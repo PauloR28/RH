@@ -772,6 +772,143 @@
   overflow-wrap: anywhere;
 }
 
+/* Drive-Conecta (OneDrive) - toolbar, grade de cards e visualização em lista */
+.rh-onedrive-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rh-onedrive-search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.rh-onedrive-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 2 1 420px;
+}
+
+.rh-onedrive-filters select,
+.rh-onedrive-filters input {
+  min-width: 150px;
+}
+
+.rh-onedrive-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+}
+
+.rh-onedrive-view-toggle button {
+  appearance: none;
+  background: var(--color-surface);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  padding: 8px 10px;
+  color: var(--color-text-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.rh-onedrive-view-toggle button:first-child {
+  border-left: none;
+}
+
+.rh-onedrive-view-toggle button.is-active {
+  background: var(--color-surface-soft);
+  color: var(--color-primary);
+}
+
+.rh-onedrive-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.rh-onedrive-grid--pequena {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.rh-onedrive-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.rh-onedrive-grid--pequena .rh-onedrive-card {
+  padding: 8px 4px;
+  gap: 4px;
+}
+
+.rh-onedrive-card-icon {
+  font-size: 2.5rem;
+  color: var(--color-text-soft);
+}
+
+.rh-onedrive-grid--pequena .rh-onedrive-card-icon {
+  font-size: 1.6rem;
+}
+
+.rh-onedrive-card-nome {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.rh-onedrive-card-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-soft);
+}
+
+.rh-onedrive-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rh-onedrive-preview-frame {
+  width: 100%;
+  height: 70vh;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.rh-onedrive-preview-text {
+  width: 100%;
+  max-height: 70vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface-soft);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+}
+
 .rh-filter-card {
   padding: 0.85rem;
   border: 1px solid var(--color-border);

@@ -14421,3 +14421,147 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* OneDrive/SharePoint — repositório de arquivos M365 */
+.rh-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.rh-breadcrumb .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font-size: inherit;
+}
+
+.rh-breadcrumb .btn-link:last-child {
+  color: var(--color-text, inherit);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .rh-breadcrumb {
+    font-size: 0.8rem;
+  }
+}
+
+/* Composição de e-mail (modelos M365 + anexos do OneDrive) */
+.rh-compose-email-variables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.rh-compose-email-preview {
+  min-height: 96px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-surface-muted, #f6f8fb);
+}
+
+.rh-onedrive-picker {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.rh-onedrive-picker-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Drive-Conecta (OneDrive) — menu suspenso de ações do arquivo/pasta.
+   Substitui os ícones de ação sempre visíveis por um botão "mais opções"
+   (more_vert) que abre uma lista ancorada com ícone + rótulo por ação. */
+.rh-onedrive-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.rh-onedrive-menu-trigger {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  transition:
+    background var(--transition-md),
+    border-color var(--transition-md),
+    color var(--transition-md);
+}
+
+.rh-onedrive-menu-trigger:hover,
+.rh-onedrive-menu-trigger:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  outline: none;
+}
+
+.rh-onedrive-menu-trigger .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rh-onedrive-menu {
+  position: fixed;
+  z-index: 1120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.rh-onedrive-menu-item {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  padding: var(--space-2);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-sm);
+}
+
+.rh-onedrive-menu-item:hover,
+.rh-onedrive-menu-item:focus-visible {
+  background: var(--color-surface-soft);
+  outline: none;
+}
+
+.rh-onedrive-menu-item.is-danger {
+  color: var(--color-danger);
+}
+
+.rh-onedrive-menu-item.is-danger:hover,
+.rh-onedrive-menu-item.is-danger:focus-visible {
+  background: var(--color-danger-soft);
+}
+
+.rh-onedrive-menu-item .material-symbols-outlined {
+  flex: 0 0 auto;
+  font-size: 18px;
+  line-height: 1;
+}

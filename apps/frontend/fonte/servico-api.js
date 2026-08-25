@@ -161,6 +161,18 @@ export {
   lerSlotsEntrevista,
 } from './services/api/interviews.js';
 export {
+  baixarArquivoOneDrive,
+  criarPastaOneDrive,
+  enviarArquivoOneDrive,
+  excluirItemOneDrive,
+  listarArquivosOneDrive,
+  obterPreviewOneDrive,
+} from './services/api/onedrive.js';
+export {
+  enviarEmail,
+  listarModelosEmail,
+} from './services/api/email-send.js';
+export {
   alterarStatusUsuario,
   atualizarItemConfiguracao,
   atualizarPermissoesPerfil,
