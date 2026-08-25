@@ -2276,7 +2276,31 @@ export function TelaProvasResultados({ controlador }) {
                   </div>
                 </div>
               `
-            : html`<${EmptyState} title="Nenhuma prova encontrada" text="Gere uma prova vinculada ao processo ou uma prova avulsa." />`}
+            : provas.length
+              ? html`
+                  <${EmptyState}
+                    icon="filter_alt_off"
+                    title="Nenhuma prova encontrada com esses filtros"
+                    text="Ajuste ou limpe os filtros aplicados para visualizar as provas geradas."
+                    action=${{
+                      label: 'Limpar filtros',
+                      icon: 'filter_alt_off',
+                      onClick: limparFiltros,
+                    }}
+                  />
+                `
+              : html`
+                  <${EmptyState}
+                    icon="assignment_add"
+                    title="Nenhuma prova gerada ainda"
+                    text="Quando uma prova for gerada para um candidato, ela aparecerá aqui com status, nota e alertas de correção."
+                    action=${{
+                      label: 'Gerar primeira prova',
+                      icon: 'assignment_add',
+                      onClick: () => setModalGerarAberto(true),
+                    }}
+                  />
+                `}
       </${SectionCard}>
 
       <${ModalConfirmacaoAcao}

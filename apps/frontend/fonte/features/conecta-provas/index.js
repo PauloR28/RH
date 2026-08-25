@@ -1409,6 +1409,58 @@ function AvisoPendenciasFinalizacao({
   `;
 }
 
+function ModalConfirmarEnvioProva({
+  aberto,
+  respondidas,
+  total,
+  etapasConcluidas,
+  totalEtapas,
+  carregando,
+  onCancelar,
+  onConfirmar,
+}) {
+  if (!aberto) return null;
+
+  return html`
+    <div class="conecta-provas-modal-backdrop" role="presentation">
+      <section
+        class="conecta-provas-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="conecta-provas-confirmar-titulo"
+      >
+        <div class="conecta-provas-modal-head">
+          <span class="material-symbols-outlined">task_alt</span>
+          <h2 id="conecta-provas-confirmar-titulo">Confirmar envio da prova</h2>
+        </div>
+        <p>
+          Você respondeu <strong>${respondidas} de ${total}</strong> questões em
+          <strong>${etapasConcluidas} de ${totalEtapas}</strong> etapa(s) concluída(s).
+        </p>
+        <p>Após confirmar o envio, não será possível alterar suas respostas.</p>
+        <div class="conecta-provas-modal-actions">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            disabled=${carregando}
+            onClick=${onCancelar}
+          >
+            Revisar antes de enviar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            disabled=${carregando}
+            onClick=${onConfirmar}
+          >
+            ${carregando ? 'Enviando...' : 'Confirmar e enviar prova'}
+          </button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function TelaFinalizacao({ onInicio }) {
   return html`
     <section class="conecta-provas-card">
@@ -1453,6 +1505,7 @@ export function TelaConectaProvas() {
   const [timestampTermino, setTimestampTermino] = useState(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
   const [pendenciasFinalizacao, setPendenciasFinalizacao] = useState([]);
+  const [confirmarFinalizacaoAberta, setConfirmarFinalizacaoAberta] = useState(false);
   const interrupcaoRegistradaRef = useRef(false);
   const telemetriaRef = useRef({
     porQuestao: {},
@@ -1612,6 +1665,12 @@ export function TelaConectaProvas() {
     () => (questoes.length ? Math.round(((indiceAtual + 1) / questoes.length) * 100) : 0),
     [indiceAtual, questoes.length],
   );
+  const posicaoEtapaJornada = etapasJornada.findIndex((item) => item.key === etapaSelecionadaKey);
+  const numeroEtapaAtual = posicaoEtapaJornada >= 0 ? posicaoEtapaJornada + 1 : null;
+  const totalEtapasJornada = etapasJornada.length;
+  const etapasConcluidasJornada = etapasJornada.filter(
+    (item) => item.status === 'concluida' || item.status === 'indisponivel',
+  ).length;
 
   contextoInterrupcaoRef.current = {
     token,
@@ -1993,7 +2052,7 @@ export function TelaConectaProvas() {
         setPendenciasFinalizacao(pendencias);
         return;
       }
-      await finalizar({ finalizarMesmoComPendencias: false });
+      setConfirmarFinalizacaoAberta(true);
     } catch (error) {
       setErro(error?.message || 'Não foi possível salvar suas respostas antes de finalizar.');
     } finally {
@@ -2101,7 +2160,13 @@ export function TelaConectaProvas() {
       ${etapa === 'prova' && questaoAtual
       ? html`
             <div class="conecta-provas-progress-wrap">
-              <div class="conecta-provas-progress-bar" style=${{ width: `${progresso}%` }}></div>
+              <div class="conecta-provas-progress-label">
+                <span>${numeroEtapaAtual ? `Etapa ${numeroEtapaAtual} de ${totalEtapasJornada}` : 'Prova em andamento'}</span>
+                <span>${etapasConcluidasJornada} de ${totalEtapasJornada} etapas concluídas</span>
+              </div>
+              <div class="conecta-provas-progress-track">
+                <div class="conecta-provas-progress-bar" style=${{ width: `${progresso}%` }}></div>
+              </div>
             </div>
             <${QuestaoProva}
               questao=${questaoAtual}
@@ -2164,6 +2229,19 @@ export function TelaConectaProvas() {
             />
           `
       : null}
+      <${ModalConfirmarEnvioProva}
+        aberto=${confirmarFinalizacaoAberta}
+        respondidas=${questoes.length - obterPendenciasObrigatorias(questoes, respostas, etapasIgnoradasPorInterrupcao).length}
+        total=${questoes.length}
+        etapasConcluidas=${etapasConcluidasJornada}
+        totalEtapas=${totalEtapasJornada}
+        carregando=${carregando}
+        onCancelar=${() => setConfirmarFinalizacaoAberta(false)}
+        onConfirmar=${async () => {
+          setConfirmarFinalizacaoAberta(false);
+          await finalizar({ finalizarMesmoComPendencias: false });
+        }}
+      />
     </main>
   `;
 }

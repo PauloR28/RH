@@ -74,11 +74,32 @@ export function MetricGrid({ items = [] }) {
   `;
 }
 
-export function EmptyState({ title, text }) {
+export function EmptyState({ title, text, icon = '', action = null }) {
   return html`
     <div class="rh-empty-state">
+      ${icon
+        ? html`
+            <span class="rh-empty-state-icon material-symbols-outlined" aria-hidden="true">
+              ${icon}
+            </span>
+          `
+        : null}
       <h3>${title}</h3>
       <p>${text}</p>
+      ${action
+        ? html`
+            <button
+              type="button"
+              class="btn btn-primary rh-empty-state-action"
+              onClick=${action.onClick}
+            >
+              ${action.icon
+                ? html`<span class="material-symbols-outlined">${action.icon}</span>`
+                : null}
+              ${action.label}
+            </button>
+          `
+        : null}
     </div>
   `;
 }

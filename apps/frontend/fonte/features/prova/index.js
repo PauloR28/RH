@@ -1592,9 +1592,42 @@ export function TelaCandidato({ controlador }) {
   `;
 }
 
+function respostaPossuiConteudo(questao, resposta) {
+  const tipo = questao?.type;
+  if (tipo === 'multiple') {
+    return resposta?.selected !== null && resposta?.selected !== undefined && resposta?.selected !== '';
+  }
+  if (tipo === 'compact_choice_group') {
+    const itens = Array.isArray(questao?.items)
+      ? questao.items
+      : Array.isArray(questao?.itens)
+        ? questao.itens
+        : [];
+    const selecoes = resposta?.selections || {};
+    return (
+      itens.length > 0 &&
+      itens.every((item) => {
+        const chave = String(item.id || '');
+        return selecoes[chave] !== null && selecoes[chave] !== undefined;
+      })
+    );
+  }
+  if (tipo === 'excel_external') {
+    return Boolean(resposta?.uploaded && resposta?.filename);
+  }
+  if (tipo === 'word') {
+    const texto = String(resposta?.content || resposta?.text || '')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+    return texto.length > 0;
+  }
+  return Boolean(resposta);
+}
+
 export function TelaProva({ controlador }) {
   const [confirmarEncerramento, setConfirmarEncerramento] = useState(false);
   const [confirmarExcelAusente, setConfirmarExcelAusente] = useState(null);
+  const [confirmarFinalizacao, setConfirmarFinalizacao] = useState(false);
   const [erroFinalizacao, setErroFinalizacao] = useState('');
   const indiceAtual = controlador.estado.indiceAtual;
   const questaoAtual = controlador.estado.questoes[indiceAtual];
@@ -1624,19 +1657,24 @@ export function TelaProva({ controlador }) {
   const progresso =
     ((indiceAtual + 1) / Math.max(1, controlador.estado.questoes.length)) * 100;
 
+  const estagiosProva = Array.from(
+    new Set(controlador.estado.questoes.map((item) => item?.stage || 'Etapa')),
+  );
+  const estagioAtualIndice = estagiosProva.indexOf(questaoAtual.stage || 'Etapa');
+  const numeroEstagioAtual = estagioAtualIndice >= 0 ? estagioAtualIndice + 1 : null;
+  const estagiosConcluidos = numeroEstagioAtual ? numeroEstagioAtual - 1 : 0;
+  const questoesRespondidas = controlador.estado.questoes.filter((item, indice) =>
+    respostaPossuiConteudo(item, controlador.estado.respostas[indice]),
+  ).length;
+
   const voltar = () => {
     if (indiceAtual > 0) {
       controlador.definirIndiceAtual(indiceAtual - 1);
     }
   };
 
-  const avancar = () => {
-    if (indiceAtual < controlador.estado.questoes.length - 1) {
-      setErroFinalizacao('');
-      controlador.definirIndiceAtual(indiceAtual + 1);
-      return;
-    }
-
+  const confirmarEnvioFinal = () => {
+    setConfirmarFinalizacao(false);
     const resultado = controlador.encerrarProva('Finalizado');
     if (!resultado?.ok) {
       if (resultado?.tipo === 'excel_nao_enviado') {
@@ -1652,6 +1690,17 @@ export function TelaProva({ controlador }) {
     }
 
     setErroFinalizacao('');
+  };
+
+  const avancar = () => {
+    if (indiceAtual < controlador.estado.questoes.length - 1) {
+      setErroFinalizacao('');
+      controlador.definirIndiceAtual(indiceAtual + 1);
+      return;
+    }
+
+    setErroFinalizacao('');
+    setConfirmarFinalizacao(true);
   };
 
   const atualizarRespostaDiscursiva = (conteudo) => {
@@ -1768,6 +1817,35 @@ export function TelaProva({ controlador }) {
         </footer>
       </${ModalPadrao}>
 
+      <${ModalPadrao}
+        aberto=${confirmarFinalizacao}
+        titulo="Confirmar envio da prova"
+        subtitulo=${`Você respondeu ${questoesRespondidas} de ${controlador.estado.questoes.length} questões.`}
+        onClose=${() => setConfirmarFinalizacao(false)}
+      >
+        <div class="rh-details-body">
+          <div class="alert alert-info mb-0">
+            Após confirmar o envio, não será possível alterar as respostas. Revise antes de enviar.
+          </div>
+        </div>
+        <footer class="rh-modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            onClick=${() => setConfirmarFinalizacao(false)}
+          >
+            Revisar respostas
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onClick=${confirmarEnvioFinal}
+          >
+            Confirmar e enviar
+          </button>
+        </footer>
+      </${ModalPadrao}>
+
       <div class="exam-screen-shell">
         <header class="exam-screen-header">
           <div class="exam-screen-header-inner">
@@ -1800,6 +1878,10 @@ export function TelaProva({ controlador }) {
               class="exam-progress-fill"
               style=${{ width: `${progresso}%` }}
             ></div>
+          </div>
+          <div class="exam-progress-meta">
+            <span>${numeroEstagioAtual ? `Etapa ${numeroEstagioAtual} de ${estagiosProva.length}` : 'Prova em andamento'}</span>
+            <span>${estagiosConcluidos} de ${estagiosProva.length} etapas concluídas</span>
           </div>
         </header>
 
