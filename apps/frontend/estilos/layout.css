@@ -1,7 +1,9 @@
 .rh-modern-shell {
   --rh-modern-sidebar-width: var(--sidebar-width);
+  --rh-modern-subnav-panel-width: 240px;
+  --rh-modern-subnav-width: 0px;
   display: grid;
-  grid-template-columns: var(--rh-modern-sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--rh-modern-sidebar-width) var(--rh-modern-subnav-width) minmax(0, 1fr);
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
@@ -11,6 +13,10 @@
 
 .rh-modern-shell.is-sidebar-collapsed {
   --rh-modern-sidebar-width: var(--sidebar-width-compact);
+}
+
+.rh-modern-shell:has(.rh-modern-subnav-panel) {
+  --rh-modern-subnav-width: var(--rh-modern-subnav-panel-width);
 }
 
 .rh-modern-sidebar {
@@ -182,104 +188,110 @@
   box-shadow: 0 10px 24px rgba(2, 13, 32, 0.2);
 }
 
-.rh-modern-nav-group {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.24rem;
-}
-
 .rh-modern-nav-parent-btn {
   min-width: 0;
 }
 
 .rh-modern-nav-chevron {
   margin-left: auto;
-  opacity: 0.72;
-  transition: transform var(--transition-sm), opacity var(--transition-sm);
+  opacity: 0.5;
 }
 
-.rh-modern-nav-group.is-open .rh-modern-nav-chevron {
-  transform: rotate(180deg);
+.rh-modern-nav-btn.is-active .rh-modern-nav-chevron {
   opacity: 1;
 }
 
-.rh-modern-nav-group.has-active:not(.is-open) .rh-modern-nav-parent-btn {
-  border-color: rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.055);
-}
-
-.rh-modern-nav-group.has-active.is-open .rh-modern-nav-parent-btn {
+/* Painel de submenu em segunda coluna (docs/Desing/Tela Web - Estilo
+   Submenu.png): substitui o antigo acordeão que empurrava os itens abaixo.
+   Fica fixo ao lado do menu de ícones enquanto o grupo estiver ativo. */
+.rh-modern-subnav-panel {
+  position: fixed;
+  top: 0;
+  left: var(--rh-modern-sidebar-width);
+  z-index: 999;
+  width: var(--rh-modern-subnav-panel-width);
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--space-5) var(--space-3);
+  background: linear-gradient(180deg, rgba(18, 78, 129, 0.98) 0%, rgba(9, 45, 100, 0.98) 100%);
   color: #fff;
-}
-
-.rh-modern-subnav {
   display: flex;
-  min-width: 0;
   flex-direction: column;
-  gap: 0.2rem;
-  margin: 0.06rem 0 0.16rem 0.66rem;
-  padding-left: 0.7rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  gap: var(--space-2);
+  transition: left var(--transition-md);
 }
 
-.rh-modern-subnav-btn {
+.rh-modern-subnav-panel-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.68);
+  padding: 0 var(--space-2) var(--space-2);
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.rh-modern-subnav-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rh-modern-subnav-panel-btn {
   width: 100%;
-  min-height: 34px;
+  min-height: 40px;
   display: flex;
   align-items: center;
-  gap: 0.46rem;
+  gap: var(--space-2);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: rgba(255, 255, 255, 0.78);
-  padding: 0.38rem 0.52rem;
-  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+  padding: var(--space-2);
+  font-size: 0.82rem;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
   text-align: left;
   cursor: pointer;
+  transition: background var(--transition-sm), color var(--transition-sm);
 }
 
-.rh-modern-subnav-btn .material-symbols-outlined {
+.rh-modern-subnav-panel-btn .material-symbols-outlined {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  min-width: 18px;
-  font-size: 0.98rem;
+  width: 20px;
+  min-width: 20px;
+  font-size: 1.05rem;
   line-height: 1;
-  overflow: hidden;
-  text-align: center;
-  white-space: nowrap;
 }
 
-.rh-modern-subnav-btn span:last-child {
+.rh-modern-subnav-panel-btn span:last-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rh-modern-subnav-btn.is-open .material-symbols-outlined {
-  color: #59d68b;
-}
-
-.rh-modern-subnav-btn.is-closed .material-symbols-outlined {
-  color: #ff8a8a;
-}
-
-.rh-modern-subnav-btn:hover,
-.rh-modern-subnav-btn:focus-visible {
-  background: rgba(255, 255, 255, 0.075);
+.rh-modern-subnav-panel-btn:hover,
+.rh-modern-subnav-panel-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
-.rh-modern-subnav-btn.is-active {
-  border-color: rgba(147, 197, 253, 0.34);
-  background: rgba(38, 108, 224, 0.36);
-  color: #fff;
+.rh-modern-subnav-panel-btn.is-active {
+  background: #fff;
+  color: var(--color-primary-strong);
+  box-shadow: 0 6px 16px rgba(3, 20, 46, 0.28);
+}
+
+.rh-modern-subnav-panel-btn.is-closed {
+  color: rgba(255, 158, 158, 0.92);
 }
 
 .rh-modern-sidebar-actions {
@@ -363,13 +375,12 @@
   align-items: center;
 }
 
-.rh-modern-sidebar.is-collapsed .rh-modern-nav-chevron,
-.rh-modern-sidebar.is-collapsed .rh-modern-subnav {
+.rh-modern-sidebar.is-collapsed .rh-modern-nav-chevron {
   display: none;
 }
 
 .rh-modern-main {
-  grid-column: 2;
+  grid-column: 3;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -1628,8 +1639,11 @@
     justify-content: center;
   }
 
-  .rh-modern-sidebar .rh-modern-nav-expander,
-  .rh-modern-sidebar .rh-modern-subnav {
+  .rh-modern-sidebar .rh-modern-nav-expander {
+    display: none;
+  }
+
+  .rh-modern-subnav-panel {
     display: none;
   }
 }

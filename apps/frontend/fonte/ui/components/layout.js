@@ -247,9 +247,6 @@ export function BarraLateral({
   const itemAtivo = (item) =>
     navAtiva === item.tela || (item.telasRelacionadas || []).includes(navAtiva);
   const grupoProcessosAtivo = telasRelacionadasProcessos.includes(navAtiva);
-  const subitemProcessoAtivo = sublinksProcessos.some(
-    (item) => item.tela === navAtiva,
-  );
   const sublinksProcessosVisiveis = sublinksProcessos.filter((subitem) =>
     possuiPermissao(subitem.permissao),
   );
@@ -278,37 +275,7 @@ export function BarraLateral({
   const subitemTreinamentoAtivo = (subitem) =>
     navAtiva === subitem.tela ||
     (navAtiva === 'screen-training' && subitem.tela === 'screen-training-trilhas');
-  const [submenuProcessosAberto, setSubmenuProcessosAberto] =
-    useState(grupoProcessosAtivo);
-  const [submenuProvasAberto, setSubmenuProvasAberto] =
-    useState(grupoProvasAtivo);
-  const [submenuGestaoAberto, setSubmenuGestaoAberto] =
-    useState(grupoGestaoAtivo);
-  const [submenuConfiguracoesAberto, setSubmenuConfiguracoesAberto] =
-    useState(grupoConfiguracoesAtivo);
-  const [submenuTreinamentosAberto, setSubmenuTreinamentosAberto] =
-    useState(grupoTreinamentosAtivo);
   const [logoComErro, setLogoComErro] = useState(false);
-
-  useEffect(() => {
-    setSubmenuProcessosAberto(grupoProcessosAtivo);
-  }, [navAtiva, grupoProcessosAtivo]);
-
-  useEffect(() => {
-    setSubmenuProvasAberto(grupoProvasAtivo);
-  }, [navAtiva, grupoProvasAtivo]);
-
-  useEffect(() => {
-    setSubmenuGestaoAberto(grupoGestaoAtivo);
-  }, [navAtiva, grupoGestaoAtivo]);
-
-  useEffect(() => {
-    setSubmenuConfiguracoesAberto(grupoConfiguracoesAtivo);
-  }, [navAtiva, grupoConfiguracoesAtivo]);
-
-  useEffect(() => {
-    setSubmenuTreinamentosAberto(grupoTreinamentosAtivo);
-  }, [navAtiva, grupoTreinamentosAtivo]);
 
   const renderizarItem = (item) => {
     if (item.visivel === false || !possuiPermissao(item.permissao)) return null;
@@ -330,7 +297,83 @@ export function BarraLateral({
     `;
   };
 
+  // Grupos com submenu: no novo design (docs/Desing/Tela Web - Estilo
+  // Submenu.png) o submenu é um painel fixo em segunda coluna, não mais um
+  // acordeão que empurra os itens abaixo. Clicar no grupo navega para o
+  // primeiro subitem e o painel some assim que a tela ativa deixa de
+  // pertencer ao grupo.
+  const grupos = [
+    {
+      id: 'processos',
+      label: 'Processos',
+      icone: 'business_center',
+      ativo: grupoProcessosAtivo,
+      sublinks: sublinksProcessosVisiveis,
+      subitemAtivo: itemAtivo,
+    },
+    {
+      id: 'provas',
+      label: 'Conecta Provas',
+      icone: 'quiz',
+      ativo: grupoProvasAtivo,
+      sublinks: sublinksProvasVisiveis,
+      subitemAtivo: subitemProvaAtivo,
+    },
+    {
+      id: 'gestao',
+      label: 'Gestão',
+      icone: 'manage_accounts',
+      ativo: grupoGestaoAtivo,
+      sublinks: sublinksGestaoVisiveis,
+      subitemAtivo: subitemGestaoAtivo,
+    },
+    {
+      id: 'treinamentos',
+      label: 'Treinamentos',
+      icone: 'school',
+      ativo: grupoTreinamentosAtivo,
+      sublinks: sublinksTreinamentosVisiveis,
+      subitemAtivo: subitemTreinamentoAtivo,
+    },
+    {
+      id: 'configuracoes',
+      label: 'Configurações',
+      icone: 'settings',
+      ativo: grupoConfiguracoesAtivo,
+      sublinks: sublinksConfiguracoesVisiveis,
+      subitemAtivo: subitemConfiguracaoAtivo,
+    },
+  ];
+  const grupoAberto = !recolhida
+    ? grupos.find((grupo) => grupo.ativo && grupo.sublinks.length)
+    : null;
+
+  const renderizarGrupo = (grupo) => {
+    if (!grupo.sublinks.length) return null;
+    return html`
+      <button
+        key=${grupo.id}
+        type="button"
+        class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${grupo.ativo ? 'is-active' : ''}`.trim()}
+        title=${grupo.label}
+        aria-current=${grupo.ativo ? 'page' : null}
+        aria-expanded=${grupo.ativo && !recolhida}
+        aria-controls=${`rh-modern-subnav-panel-${grupo.id}`}
+        onClick=${() => controlador.irParaTelaProtegida(grupo.sublinks[0]?.tela)}
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          ${grupo.icone}
+        </span>
+        <span class="rh-modern-nav-label">${grupo.label}</span>
+        <span class="material-symbols-outlined rh-modern-nav-chevron" aria-hidden="true">
+          chevron_right
+        </span>
+      </button>
+    `;
+  };
+
   return html`
+    <div class="rh-modern-nav-wrap" style=${{ display: 'contents' }}>
     <aside
       class=${`rh-modern-sidebar ${recolhida ? 'is-collapsed' : ''}`.trim()}
       data-tour-id="layout-sidebar"
@@ -375,369 +418,47 @@ export function BarraLateral({
           <span class="rh-modern-nav-label">${recolhida ? 'Expandir' : 'Recolher'}</span>
         </button>
         ${itensPrincipais.map(renderizarItem)}
-        ${sublinksProcessosVisiveis.length
-      ? html`
-              <div
-                class=${`rh-modern-nav-group ${submenuProcessosAberto && !recolhida ? 'is-open' : ''
-          } ${grupoProcessosAtivo ? 'has-active' : ''}`.trim()}
-              >
-                <button
-                  type="button"
-                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${(recolhida && grupoProcessosAtivo) ||
-          (grupoProcessosAtivo && !subitemProcessoAtivo)
-          ? 'is-active'
-          : ''
-          }`.trim()}
-                  title="Processos"
-                  aria-expanded=${!recolhida && submenuProcessosAberto}
-                  aria-controls="rh-modern-subnav-processos"
-                  aria-current=${grupoProcessosAtivo && !subitemProcessoAtivo ? 'page' : null
-        }
-                  onClick=${() => {
-          if (recolhida) {
-            controlador.irParaTelaProtegida(
-              sublinksProcessosVisiveis[0]?.tela || 'screen-processes',
-            );
-            return;
-          }
-          setSubmenuProcessosAberto((valor) => !valor);
-        }}
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    business_center
-                  </span>
-                  <span class="rh-modern-nav-label">Processos</span>
-                  <span
-                    class="material-symbols-outlined rh-modern-nav-chevron"
-                    aria-hidden="true"
-                  >
-                    expand_more
-                  </span>
-                </button>
-                ${submenuProcessosAberto && !recolhida
-          ? html`
-                      <div
-                        class="rh-modern-subnav"
-                        id="rh-modern-subnav-processos"
-                        role="group"
-                        aria-label="Submenu de Processos"
-                      >
-                        ${sublinksProcessosVisiveis.map(
-            (subitem) => html`
-                            <button
-                              key=${subitem.tela}
-                              type="button"
-                              class=${`rh-modern-subnav-btn ${navAtiva === subitem.tela ? 'is-active' : ''
-                } ${subitem.status || ''}`.trim()}
-                              title=${subitem.label}
-                              aria-current=${navAtiva === subitem.tela ? 'page' : null
-              }
-                              onClick=${() =>
-                controlador.irParaTelaProtegida(subitem.tela)}
-                            >
-                              <span
-                                class="material-symbols-outlined"
-                                aria-hidden="true"
-                              >
-                                ${subitem.icone}
-                              </span>
-                              <span>${subitem.label}</span>
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
-      : null}
-        ${sublinksProvasVisiveis.length
-      ? html`
-              <div
-                class=${`rh-modern-nav-group ${submenuProvasAberto && !recolhida ? 'is-open' : ''
-          } ${grupoProvasAtivo ? 'has-active' : ''}`.trim()}
-              >
-                <button
-                  type="button"
-                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${recolhida && grupoProvasAtivo ? 'is-active' : ''
-          }`.trim()}
-                  title="Conecta Provas"
-                  aria-expanded=${!recolhida && submenuProvasAberto}
-                  aria-controls="rh-modern-subnav-provas"
-                  onClick=${() => {
-          if (recolhida) {
-            controlador.irParaTelaProtegida(
-              sublinksProvasVisiveis[0]?.tela || 'screen-generated-exams',
-            );
-            return;
-          }
-          setSubmenuProvasAberto((valor) => !valor);
-        }}
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    quiz
-                  </span>
-                  <span class="rh-modern-nav-label">Conecta Provas</span>
-                  <span
-                    class="material-symbols-outlined rh-modern-nav-chevron"
-                    aria-hidden="true"
-                  >
-                    expand_more
-                  </span>
-                </button>
-                ${submenuProvasAberto && !recolhida
-          ? html`
-                      <div
-                        class="rh-modern-subnav"
-                        id="rh-modern-subnav-provas"
-                        role="group"
-                        aria-label="Submenu de Conecta Provas"
-                      >
-                        ${sublinksProvasVisiveis.map(
-            (subitem) => html`
-                            <button
-                              key=${subitem.tela}
-                              type="button"
-                              class=${`rh-modern-subnav-btn ${subitemProvaAtivo(subitem) ? 'is-active' : ''
-                }`.trim()}
-                              title=${subitem.label}
-                              aria-current=${subitemProvaAtivo(subitem) ? 'page' : null
-              }
-                              onClick=${() =>
-                controlador.irParaTelaProtegida(subitem.tela)}
-                            >
-                              <span
-                                class="material-symbols-outlined"
-                                aria-hidden="true"
-                              >
-                                ${subitem.icone}
-                              </span>
-                              <span>${subitem.label}</span>
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
-      : null}
-        ${sublinksGestaoVisiveis.length
-      ? html`
-              <div
-                class=${`rh-modern-nav-group ${submenuGestaoAberto && !recolhida ? 'is-open' : ''
-          } ${grupoGestaoAtivo ? 'has-active' : ''}`.trim()}
-              >
-                <button
-                  type="button"
-                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${recolhida && grupoGestaoAtivo ? 'is-active' : ''
-          }`.trim()}
-                  title="Gestão"
-                  aria-expanded=${!recolhida && submenuGestaoAberto}
-                  aria-controls="rh-modern-subnav-gestao"
-                  onClick=${() => {
-          if (recolhida) {
-            controlador.irParaTelaProtegida(
-              sublinksGestaoVisiveis[0]?.tela || 'screen-analysis-candidates',
-            );
-            return;
-          }
-          setSubmenuGestaoAberto((valor) => !valor);
-        }}
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    manage_accounts
-                  </span>
-                  <span class="rh-modern-nav-label">Gestão</span>
-                  <span
-                    class="material-symbols-outlined rh-modern-nav-chevron"
-                    aria-hidden="true"
-                  >
-                    expand_more
-                  </span>
-                </button>
-                ${submenuGestaoAberto && !recolhida
-          ? html`
-                      <div
-                        class="rh-modern-subnav"
-                        id="rh-modern-subnav-gestao"
-                        role="group"
-                        aria-label="Submenu de Gestão"
-                      >
-                        ${sublinksGestaoVisiveis.map(
-            (subitem) => html`
-                            <button
-                              key=${subitem.tela}
-                              type="button"
-                              class=${`rh-modern-subnav-btn ${subitemGestaoAtivo(subitem) ? 'is-active' : ''
-                }`.trim()}
-                              title=${subitem.label}
-                              aria-current=${subitemGestaoAtivo(subitem) ? 'page' : null
-              }
-                              onClick=${() =>
-                controlador.irParaTelaProtegida(subitem.tela)}
-                            >
-                              <span
-                                class="material-symbols-outlined"
-                                aria-hidden="true"
-                              >
-                                ${subitem.icone}
-                              </span>
-                              <span>${subitem.label}</span>
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
-      : null}
+        ${renderizarGrupo(grupos[0])}
+        ${renderizarGrupo(grupos[1])}
+        ${renderizarGrupo(grupos[2])}
         ${itensDriveConecta.map(renderizarItem)}
-        ${sublinksTreinamentosVisiveis.length
-      ? html`
-              <div
-                class=${`rh-modern-nav-group ${submenuTreinamentosAberto && !recolhida ? 'is-open' : ''
-          } ${grupoTreinamentosAtivo ? 'has-active' : ''}`.trim()}
-              >
-                <button
-                  type="button"
-                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${recolhida && grupoTreinamentosAtivo ? 'is-active' : ''
-          }`.trim()}
-                  title="Treinamentos"
-                  aria-expanded=${!recolhida && submenuTreinamentosAberto}
-                  aria-controls="rh-modern-subnav-treinamentos"
-                  onClick=${() => {
-          if (recolhida) {
-            controlador.irParaTelaProtegida(
-              sublinksTreinamentosVisiveis[0]?.tela || 'screen-training-trilhas',
-            );
-            return;
-          }
-          setSubmenuTreinamentosAberto((valor) => !valor);
-        }}
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    school
-                  </span>
-                  <span class="rh-modern-nav-label">Treinamentos</span>
-                  <span
-                    class="material-symbols-outlined rh-modern-nav-chevron"
-                    aria-hidden="true"
-                  >
-                    expand_more
-                  </span>
-                </button>
-                ${submenuTreinamentosAberto && !recolhida
-          ? html`
-                      <div
-                        class="rh-modern-subnav"
-                        id="rh-modern-subnav-treinamentos"
-                        role="group"
-                        aria-label="Submenu de Treinamentos"
-                      >
-                        ${sublinksTreinamentosVisiveis.map(
-            (subitem) => html`
-                            <button
-                              key=${subitem.tela}
-                              type="button"
-                              class=${`rh-modern-subnav-btn ${subitemTreinamentoAtivo(subitem) ? 'is-active' : ''
-                }`.trim()}
-                              title=${subitem.label}
-                              aria-current=${subitemTreinamentoAtivo(subitem) ? 'page' : null
-              }
-                              onClick=${() =>
-                controlador.irParaTelaProtegida(subitem.tela)}
-                            >
-                              <span
-                                class="material-symbols-outlined"
-                                aria-hidden="true"
-                              >
-                                ${subitem.icone}
-                              </span>
-                              <span>${subitem.label}</span>
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
-      : null}
-        ${sublinksConfiguracoesVisiveis.length
-      ? html`
-              <div
-                class=${`rh-modern-nav-group ${submenuConfiguracoesAberto && !recolhida ? 'is-open' : ''
-          } ${grupoConfiguracoesAtivo ? 'has-active' : ''}`.trim()}
-              >
-                <button
-                  type="button"
-                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${recolhida && grupoConfiguracoesAtivo ? 'is-active' : ''
-          }`.trim()}
-                  title="Configurações"
-                  aria-expanded=${!recolhida && submenuConfiguracoesAberto}
-                  aria-controls="rh-modern-subnav-configuracoes"
-                  onClick=${() => {
-          if (recolhida) {
-            controlador.irParaTelaProtegida(
-              sublinksConfiguracoesVisiveis[0]?.tela || 'screen-settings-users',
-            );
-            return;
-          }
-          setSubmenuConfiguracoesAberto((valor) => !valor);
-        }}
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    settings
-                  </span>
-                  <span class="rh-modern-nav-label">Configurações</span>
-                  <span
-                    class="material-symbols-outlined rh-modern-nav-chevron"
-                    aria-hidden="true"
-                  >
-                    expand_more
-                  </span>
-                </button>
-                ${submenuConfiguracoesAberto && !recolhida
-          ? html`
-                      <div
-                        class="rh-modern-subnav"
-                        id="rh-modern-subnav-configuracoes"
-                        role="group"
-                        aria-label="Submenu de Configurações"
-                      >
-                        ${sublinksConfiguracoesVisiveis.map(
-            (subitem) => html`
-                            <button
-                              key=${subitem.tela}
-                              type="button"
-                              class=${`rh-modern-subnav-btn ${subitemConfiguracaoAtivo(subitem) ? 'is-active' : ''
-                }`.trim()}
-                              title=${subitem.label}
-                              aria-current=${subitemConfiguracaoAtivo(subitem) ? 'page' : null
-              }
-                              onClick=${() =>
-                controlador.irParaTelaProtegida(subitem.tela)}
-                            >
-                              <span
-                                class="material-symbols-outlined"
-                                aria-hidden="true"
-                              >
-                                ${subitem.icone}
-                              </span>
-                              <span>${subitem.label}</span>
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
-      : null}
+        ${renderizarGrupo(grupos[3])}
+        ${renderizarGrupo(grupos[4])}
       </nav>
     </aside>
+
+    ${grupoAberto
+      ? html`
+            <aside
+              class="rh-modern-subnav-panel"
+              id=${`rh-modern-subnav-panel-${grupoAberto.id}`}
+              aria-label=${`Submenu de ${grupoAberto.label}`}
+            >
+              <div class="rh-modern-subnav-panel-title">${grupoAberto.label}</div>
+              <nav class="rh-modern-subnav-panel-list" role="group">
+                ${grupoAberto.sublinks.map(
+        (subitem) => html`
+                    <button
+                      key=${subitem.tela}
+                      type="button"
+                      class=${`rh-modern-subnav-panel-btn ${grupoAberto.subitemAtivo(subitem) ? 'is-active' : ''
+              } ${subitem.status || ''}`.trim()}
+                      title=${subitem.label}
+                      aria-current=${grupoAberto.subitemAtivo(subitem) ? 'page' : null}
+                      onClick=${() => controlador.irParaTelaProtegida(subitem.tela)}
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">
+                        ${subitem.icone}
+                      </span>
+                      <span>${subitem.label}</span>
+                    </button>
+                  `,
+      )}
+              </nav>
+            </aside>
+          `
+      : null}
+    </div>
   `;
 }
 
