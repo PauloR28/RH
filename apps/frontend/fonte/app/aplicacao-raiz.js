@@ -115,6 +115,7 @@ const TelaConfiguracoesSistema = carregarTela(
   'TelaConfiguracoesSistema',
 );
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260904-identidade-conecta'), 'TelaCalendario');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260906-correcoes-txt'), 'TelaMural');
 const TelaPoliticas = carregarTela(() => import('../features/politicas/index.js?v=20260904-identidade-conecta'), 'TelaPoliticas');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
@@ -422,6 +423,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-calendario') {
     return html`<${TelaCalendario} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-mural') {
+    return html`<${TelaMural} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-settings-onboarding') {

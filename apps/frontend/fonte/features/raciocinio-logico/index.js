@@ -10,7 +10,6 @@ import {
   listarPerguntasRaciocinio,
 } from '../../servico-api.js';
 import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js';
@@ -166,7 +165,6 @@ export function TelaRaciocinioAdmin({ controlador }) {
       subtituloMarca="Raciocínio Lógico"
       placeholderBusca="Raciocínio Lógico"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
       acaoPrimaria=${{
         label: 'Nova questão',
         icon: 'add',

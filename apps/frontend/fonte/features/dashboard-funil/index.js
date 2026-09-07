@@ -8,7 +8,6 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
@@ -125,12 +124,10 @@ export function TelaDashboardFunil({ controlador }) {
       subtituloMarca="Dashboard de funil"
       placeholderBusca="Dashboard de funil"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
     >
       <${PageIntro}
         kicker="Relatórios"
         title="Dashboard de funil e métricas"
-        description="Acompanhe o time-to-hire médio, a distribuição de candidatos por etapa do funil e a origem dos candidatos no período selecionado."
       />
 
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
@@ -215,7 +212,7 @@ export function TelaDashboardFunil({ controlador }) {
 
           <${MetricGrid} items=${metricasSecundarias} />
 
-          <${SectionCard} title="Funil por etapa" description="Distribuição atual dos candidatos do recorte por etapa do pipeline.">
+          <${SectionCard} title="Funil por etapa">
             ${totalCandidatos
         ? html`<div class="funnel-stage-list">${funilEtapas.map(
           (etapa) => html`
@@ -230,7 +227,7 @@ export function TelaDashboardFunil({ controlador }) {
         : html`<${EmptyState} title="Nenhum candidato no recorte" text="Ajuste os filtros de período ou processo para visualizar o funil." />`}
           </${SectionCard}>
 
-          <${SectionCard} title="Origem dos candidatos" description="De onde vieram os candidatos considerados neste recorte.">
+          <${SectionCard} title="Origem dos candidatos">
             ${origemCandidatos.length
         ? html`<div class="funnel-origin-list">${origemCandidatos.map(
           (item) => html`

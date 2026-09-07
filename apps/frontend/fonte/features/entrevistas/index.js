@@ -707,7 +707,6 @@ export function TelaEntrevistas({ controlador }) {
 
       <${SectionCard}
         title="Criar disponibilidade"
-        description="Defina dia, faixa de horário e duração. O sistema gera os slots sem conflito."
         className="availability-card"
       >
         <div class="availability-form-grid">
@@ -841,7 +840,6 @@ export function TelaEntrevistas({ controlador }) {
 
       <${SectionCard}
         title="Filtros"
-        description=""
         className="interview-filter-card"
         tourId="interview-filters"
       >
@@ -928,7 +926,6 @@ export function TelaEntrevistas({ controlador }) {
       <div class="interview-bottom-grid">
         <${SectionCard}
           title="Slots do dia"
-          description="Visão por horário com disponibilidade, candidato e status."
           className="interview-slots-card compact-dashboard-card"
         >
           ${carregando
@@ -1007,7 +1004,6 @@ export function TelaEntrevistas({ controlador }) {
 
         <${SectionCard}
           title="Agenda operacional"
-          description="Atualize status, copie a mensagem base e reagende usando slots disponiveis."
           className="interview-operation-card compact-dashboard-card"
           tourId="interview-agenda"
         >

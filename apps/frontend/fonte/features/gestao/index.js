@@ -2112,6 +2112,16 @@ export function TelaInicio({ controlador }) {
         `}
         description="Panorama geral do recrutamento hoje."
         actions=${html`
+          <span title="Em breve">
+            <button
+              type="button"
+              class="btn btn-outline-secondary rh-action-btn"
+              disabled
+            >
+              <span class="material-symbols-outlined">${IconeSvg('support_agent')}</span>
+              Suporte
+            </button>
+          </span>
           <button
             type="button"
             class="btn btn-outline-secondary rh-action-btn c24-top-refresh-btn"
@@ -2236,6 +2246,17 @@ export function TelaInicio({ controlador }) {
                     <p>Aprovações, novos processos e alertas do dia aparecerão aqui.</p>
                   </div>
                 `}
+          </${SectionCard}>
+
+          <${SectionCard}
+            title="Mural"
+            className="home-mural-card compact-dashboard-card"
+          >
+            <div class="home-empty-state">
+              <span class="material-symbols-outlined">${IconeSvg('dashboard')}</span>
+              <h3>Mural desativado</h3>
+              <p>Feed de avisos, comunicados, fotos e vídeos do RH. Em breve no Conecta.</p>
+            </div>
           </${SectionCard}>
         </div>
 

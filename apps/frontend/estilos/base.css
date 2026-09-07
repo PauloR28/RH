@@ -151,6 +151,21 @@ a {
   box-shadow: 0 0 0 0.2rem rgba(21, 61, 138, 0.12);
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .form-label {
 margin-bottom: 0.28rem;
     font-size: var(--font-sm);

@@ -21,7 +21,6 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
@@ -138,7 +137,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
   const abaAtiva = telaAtual === 'screen-training-manage' ? 'gestao' : telaAtual === 'screen-training-assignments' ? 'atribuicoes' : 'trilhas';
   const podeEditar = controlador?.possuiPermissao?.('onboarding.editar');
   const podeCriar = controlador?.possuiPermissao?.('onboarding.criar');
-  const podeGerenciar = controlador?.possuiPermissao?.('onboarding.gerenciar');
 
   const [trilhas, setTrilhas] = useState([]);
   const [operacoes, setOperacoes] = useState([]);
@@ -909,7 +907,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               </button>
             `
       : null}
-        <${AcaoSair} controlador=${controlador} />
       `}
       acaoPrimaria=${abaAtiva === 'trilhas'
       ? { label: 'Nova trilha', icon: 'add', onClick: abrirNovaTrilha, permissao: 'onboarding.editar' }
@@ -918,23 +915,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       <${PageIntro}
         kicker="Processos"
         title="Treinamentos"
-        description="LGPD, Segurança da Informação, Onboarding e Produto — organizados em trilhas por operação, com vídeos, textos, slides e o acompanhamento de quem está fazendo cada treinamento."
       />
-
-      <${SectionCard} className="rh-section-card--flat mb-4">
-        <div class="d-flex align-items-start gap-3">
-          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('upcoming')}</span>
-          <div>
-            <h3 class="h6 mb-1">Centro de Treinamentos — em evolução</h3>
-            <p class="rh-section-card-description mb-0">
-              Agendar/Editar/Encerrar, lista de presença, "Começar treinamento" e a liberação de vagas
-              vinculada ao processo seletivo já funcionam abaixo. Ainda em desenvolvimento: acesso e login
-              dedicados para instrutores/supervisores que não usam o Conecta, e o aviso automático 5 minutos
-              antes do horário agendado.
-            </p>
-          </div>
-        </div>
-      </${SectionCard}>
 
       <div class="c24-tabs" style=${{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
         <button type="button" class=${`c24-pill-tab ${abaAtiva === 'trilhas' ? 'is-active' : ''}`} onClick=${() => irParaAba('trilhas')}>
@@ -945,14 +926,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           <span class="material-symbols-outlined">${IconeSvg('assignment_ind')}</span>
           Atribuições
         </button>
-        ${podeGerenciar
-      ? html`
-              <button type="button" class=${`c24-pill-tab ${abaAtiva === 'gestao' ? 'is-active' : ''}`} onClick=${() => irParaAba('gestao')}>
-                <span class="material-symbols-outlined">${IconeSvg('bar_chart')}</span>
-                Gestão de Treinamento
-              </button>
-            `
-      : null}
       </div>
 
       ${abaAtiva === 'trilhas'

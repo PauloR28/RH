@@ -6,6 +6,8 @@ import {
   listarSolicitacoesAlteracaoEmailApi,
 } from '../app/controlador-aplicacao.js';
 import { listarNotificacoes } from '../services/api/notifications.js';
+import { listarOperacoes } from '../services/api/operations.js';
+import { listarUsuarios } from '../services/api/settings.js';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {
@@ -43,6 +45,12 @@ export const CATEGORIAS_NOTIFICACAO = [
     label: 'Central de Treinamentos',
     cor: '#0f8a5f',
     descricao: 'Treinamento aplicado, concluído, com chamada pendente ou encerrado sem chamada.',
+  },
+  {
+    id: 'critico',
+    label: 'Configuração pendente',
+    cor: '#c23b4d',
+    descricao: 'Itens que o Administrador precisa configurar (ex.: após "Limpar o Conecta").',
   },
 ];
 
@@ -147,6 +155,31 @@ function montarItensAdministracao(solicitacoesEmail) {
     }));
 }
 
+function montarItensConfiguracaoCritica({ operacoes, usuarios }) {
+  const itens = [];
+
+  if (!Array.isArray(operacoes) || operacoes.length === 0) {
+    itens.push({
+      id: 'critico-operacoes',
+      categoria: 'critico',
+      texto: 'Nenhuma operação cadastrada — configure em Configurações → Operações.',
+    });
+  }
+
+  const usuariosNaoAdministradores = (Array.isArray(usuarios) ? usuarios : []).filter(
+    (usuario) => String(usuario?.perfil || usuario?.perfil_id || '').toLowerCase() !== 'administrador',
+  );
+  if (usuariosNaoAdministradores.length === 0) {
+    itens.push({
+      id: 'critico-usuarios',
+      categoria: 'critico',
+      texto: 'Nenhum usuário cadastrado além do administrador — configure em Configurações → Usuários.',
+    });
+  }
+
+  return itens;
+}
+
 function montarItensTreinamentos(notificacoesTreinamento) {
   return (Array.isArray(notificacoesTreinamento) ? notificacoesTreinamento : [])
     .slice(0, LIMITE_ITENS_POR_CATEGORIA)
@@ -175,9 +208,18 @@ export function useResumoNotificacoes(controlador) {
     const podeVerSolicitacoesEmail = Boolean(controlador?.possuiPermissao?.('usuarios.alterar_email'));
 
     const podeVerNotificacoesTreinamento = Boolean(controlador?.possuiPermissao?.('notificacoes.visualizar'));
+    const ehAdministrador = controlador?.estado?.perfilUsuario === 'administrador';
 
     const carregar = async () => {
-      const [processos, entrevistas, candidatosProcessos, solicitacoesEmail, notificacoesTreinamento] = await Promise.all([
+      const [
+        processos,
+        entrevistas,
+        candidatosProcessos,
+        solicitacoesEmail,
+        notificacoesTreinamento,
+        operacoes,
+        usuarios,
+      ] = await Promise.all([
         lerProcessos().catch(() => []),
         lerEntrevistas().catch(() => []),
         lerCandidatosProcessos().catch(() => []),
@@ -185,6 +227,8 @@ export function useResumoNotificacoes(controlador) {
           ? listarSolicitacoesAlteracaoEmailApi().then((valor) => valor?.solicitacoes || []).catch(() => [])
           : Promise.resolve([]),
         podeVerNotificacoesTreinamento ? listarNotificacoes(true).catch(() => []) : Promise.resolve([]),
+        ehAdministrador ? listarOperacoes().catch(() => []) : Promise.resolve([]),
+        ehAdministrador ? listarUsuarios().then((valor) => valor?.usuarios || valor || []).catch(() => []) : Promise.resolve([]),
       ]);
       if (!ativo) return;
 
@@ -195,6 +239,7 @@ export function useResumoNotificacoes(controlador) {
         ...montarItensProblemas(candidatosProcessos),
         ...montarItensAdministracao(solicitacoesEmail),
         ...montarItensTreinamentos(notificacoesTreinamento),
+        ...(ehAdministrador ? montarItensConfiguracaoCritica({ operacoes, usuarios }) : []),
       ].filter((item) => preferencias[item.categoria] !== false);
 
       setItens(resultado);

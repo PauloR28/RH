@@ -2751,7 +2751,6 @@ export function TelaCandidatos({ controlador }) {
       <${PageIntro}
         kicker="Console | Candidatos"
         title="Central de candidatos"
-        description="Dossiê completo com dados pessoais, CV, provas, score, classificação, entrevistas, alertas e histórico."
         actions=${html`
           <button
             type="button"
@@ -2770,10 +2769,7 @@ export function TelaCandidatos({ controlador }) {
       ? html`<div class="alert alert-success">${mensagemSucesso}</div>`
       : null}
 
-      <${SectionCard}
-        title="Resumo geral"
-        description="Visão consolidada dos candidatos encontrados no histórico, processos seletivos e Banco de Talentos."
-      >
+      <${SectionCard} title="Resumo geral">
         <${MetricGrid}
           items=${[
       { label: 'Total filtrado', value: resumo.total },
@@ -2786,10 +2782,7 @@ export function TelaCandidatos({ controlador }) {
         />
       </${SectionCard}>
 
-      <${SectionCard}
-        title="Filtros"
-        description="Filtre a lista geral por nome, vaga, processo, status ou origem."
-      >
+      <${SectionCard} title="Filtros">
         <div class="rh-filter-grid rh-filter-grid--wide">
           <div class="rh-filter-field">
             <label>Busca geral</label>
@@ -2836,10 +2829,7 @@ export function TelaCandidatos({ controlador }) {
         </div>
       </${SectionCard}>
 
-      <${SectionCard}
-        title="Lista geral de candidatos"
-        description="As ações desta tela são atalhos. As telas antigas continuam funcionando normalmente."
-      >
+      <${SectionCard} title="Lista geral de candidatos">
         ${html`
               <div class="table-responsive">
                 <table class="table align-middle rh-modern-history-table">

@@ -473,6 +473,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     () => lerPreferenciasNotificacao(),
   );
   const [salvandoAvatar, setSalvandoAvatar] = useState(false);
+  const [avatarExpandido, setAvatarExpandido] = useState(false);
   const [nomeDraft, setNomeDraft] = useState(() => controlador?.estado?.nomeUsuarioAutenticado || '');
   const [salvandoNome, setSalvandoNome] = useState(false);
   const [sobrenomeDraft, setSobrenomeDraft] = useState(() => controlador?.estado?.sobrenomeUsuarioAutenticado || '');
@@ -1897,7 +1898,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <div>
                 <span class="c24-eyebrow">Perfis</span>
                 <h3>Escopos de acesso</h3>
-                <p>Selecione um perfil para consultar usuários vinculados e editar a matriz de permissões.</p>
               </div>
             </header>
             <div class="settings-profile-list">
@@ -1955,7 +1955,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     <div>
                       <span class="c24-eyebrow">Usuários vinculados</span>
                       <h3>${perfilSelecionado.nome}</h3>
-                      <p>Usuários com este escopo de acesso.</p>
                     </div>
                     <div class="settings-card-actions">
                       <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
@@ -3266,27 +3265,60 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               </div>
 
               <div class="settings-ambiente-section">
-                <h3>Avatar</h3>
-                <p class="settings-notifications-hint">
-                  Escolha um avatar ilustrado para o seu perfil. Clique novamente no avatar selecionado para
-                  voltar às iniciais.
-                </p>
-                <div class="settings-avatar-grid">
-                  ${AVATARES_ILUSTRADOS.map(
-                    (avatar) => html`
-                      <button
-                        key=${avatar.id}
-                        type="button"
-                        class=${`settings-avatar-option ${controlador?.estado?.avatarUsuario === avatar.id ? 'is-selected' : ''}`}
+                <div class="settings-ambiente-section-header">
+                  <div>
+                    <h3>Avatar</h3>
+                    <p class="settings-notifications-hint">
+                      Ative para escolher um avatar ilustrado para o seu perfil; desative para usar só as
+                      iniciais do seu nome.
+                    </p>
+                  </div>
+                  <div class="settings-ambiente-section-actions">
+                    <label class="process-switch-row" title=${controlador?.estado?.avatarUsuario ? 'Desativar avatar' : 'Ativar avatar'}>
+                      <input
+                        type="checkbox"
+                        checked=${Boolean(controlador?.estado?.avatarUsuario)}
                         disabled=${salvandoAvatar}
-                        title=${avatar.id}
-                        onClick=${() => escolherAvatarAmbiente(avatar.id)}
-                      >
-                        <img src=${avatar.url} alt="" loading="lazy" />
-                      </button>
-                    `,
-                  )}
+                        onChange=${(event) => {
+                          if (event.target.checked) {
+                            setAvatarExpandido(true);
+                          } else {
+                            escolherAvatarAmbiente(controlador?.estado?.avatarUsuario);
+                          }
+                        }}
+                      />
+                      <span class="process-switch-visual"></span>
+                    </label>
+                    <button
+                      type="button"
+                      class="settings-avatar-fold-btn"
+                      aria-label=${avatarExpandido ? 'Recolher avatares' : 'Expandir avatares'}
+                      onClick=${() => setAvatarExpandido((valor) => !valor)}
+                    >
+                      <${Icone} name=${avatarExpandido ? 'expand_less' : 'expand_more'} />
+                    </button>
+                  </div>
                 </div>
+                ${avatarExpandido
+                  ? html`
+                      <div class="settings-avatar-grid">
+                        ${AVATARES_ILUSTRADOS.map(
+                          (avatar) => html`
+                            <button
+                              key=${avatar.id}
+                              type="button"
+                              class=${`settings-avatar-option ${controlador?.estado?.avatarUsuario === avatar.id ? 'is-selected' : ''}`}
+                              disabled=${salvandoAvatar}
+                              title=${avatar.id}
+                              onClick=${() => escolherAvatarAmbiente(avatar.id)}
+                            >
+                              <img src=${avatar.url} alt="" loading="lazy" />
+                            </button>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : null}
               </div>
             `
           : null}

@@ -5538,7 +5538,6 @@ export function TelaProcessosDecisoesPendentes({ controlador }) {
       <${PageIntro}
         kicker="Processos"
         title="Decisões Pendentes"
-        description="Acompanhe candidatos e processos aguardando decisão final."
       />
       ${erro ? html`<div class="rh-inline-alert">${erro}</div>` : null}
 
@@ -5553,10 +5552,7 @@ export function TelaProcessosDecisoesPendentes({ controlador }) {
         />
       </${SectionCard}>
 
-      <${SectionCard}
-        title="Lista Principal"
-        description="A decisão continua manual; esta tela apenas organiza os candidatos pendentes."
-      >
+      <${SectionCard} title="Lista Principal">
         <div class="table-responsive">
           <table class="table align-middle rh-modern-history-table process-wide-table">
             <thead>
@@ -6714,8 +6710,6 @@ export function TelaDetalhesProcesso({ controlador }) {
   const [paginaCandidatosAprovados, setPaginaCandidatosAprovados] = useState(1);
   const [abaDetalheAtiva, setAbaDetalheAtiva] = useState('candidatos');
   const [subAbaEncontrar, setSubAbaEncontrar] = useState('cvs');
-
-  const idProcesso = sessionStorage.getItem(CHAVE_PROCESSO_DETALHE) || '';
 
   useEffect(() => {
     if (subAbaEncontrar !== 'sugeridos' || sugeridosCarregados || !idProcesso) return;

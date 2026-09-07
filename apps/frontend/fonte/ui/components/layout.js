@@ -155,6 +155,11 @@ export function BarraLateral({
       icone: 'celebration',
       label: 'Calendário',
     },
+    {
+      tela: 'screen-mural',
+      icone: 'dashboard',
+      label: 'Mural',
+    },
   ];
   const itensDriveConecta = [
     {
@@ -245,6 +250,7 @@ export function BarraLateral({
     'screen-candidate-details',
     'screen-candidate-pipeline',
     'screen-calendario',
+    'screen-mural',
   ];
   const telasRelacionadasConfiguracoes = [
     'screen-settings',
@@ -805,6 +811,7 @@ export function AvatarUsuario({ avatar = '', nome = '', tamanho = 40 }) {
 
 export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda = false }) {
   const [aberto, setAberto] = useState(false);
+  const [notificacoesAbertas, setNotificacoesAbertas] = useState(false);
   const [tema, setTema] = useState(() => obterTemaSalvo());
   const estado = controlador?.estado || {};
   const nome =
@@ -820,6 +827,8 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
     ? perfilBase
     : `RH / ${perfilBase}`;
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
+  const { itens: notificacoes, carregando: carregandoNotificacoes } = useResumoNotificacoes(controlador);
+  const coresPorCategoria = lerCoresNotificacao();
 
   const alternarTema = () => {
     const novoTema = definirTema(proximoTema(tema));
@@ -845,13 +854,37 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
     };
   }, [aberto]);
 
+  useEffect(() => {
+    if (!notificacoesAbertas) return undefined;
+
+    const fecharAoClicarFora = (event) => {
+      if (
+        event.target?.closest?.('.c24-notif-side-panel') ||
+        event.target?.closest?.('.c24-user-menu-wrap')
+      ) {
+        return;
+      }
+      setNotificacoesAbertas(false);
+    };
+    const fecharNoEscape = (event) => {
+      if (event.key === 'Escape') setNotificacoesAbertas(false);
+    };
+
+    document.addEventListener('click', fecharAoClicarFora);
+    document.addEventListener('keydown', fecharNoEscape);
+    return () => {
+      document.removeEventListener('click', fecharAoClicarFora);
+      document.removeEventListener('keydown', fecharNoEscape);
+    };
+  }, [notificacoesAbertas]);
+
   return html`
     <div class="c24-user-menu-wrap">
       <button
         type="button"
         class="c24-user-menu"
         title="Perfil do usuário"
-        aria-label=${`Abrir menu do perfil de ${nome}`}
+        aria-label=${`Abrir menu do perfil de ${nome}${notificacoes.length ? `, ${notificacoes.length} notificações novas` : ''}`}
         aria-haspopup="menu"
         aria-expanded=${aberto}
         onClick=${(event) => {
@@ -863,18 +896,32 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
           ${avatar
       ? html`<img src=${avatar} alt="" />`
       : html`<span>${obterIniciaisUsuario(nome)}</span>`}
-          <i aria-hidden="true"></i>
         </span>
         <span class="c24-user-copy">
           <strong>${nome}</strong>
           <small>${perfil}</small>
         </span>
         <span class="material-symbols-outlined c24-user-chevron">${IconeSvg(aberto ? 'expand_less' : 'expand_more')}</span>
+        ${notificacoes.length ? html`<i class="c24-user-menu-badge" aria-hidden="true"></i>` : null}
       </button>
 
       ${aberto
       ? html`
             <div class="c24-user-dropdown" role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                class="c24-user-dropdown-item"
+                onClick=${(event) => {
+          event.stopPropagation();
+          setAberto(false);
+          setNotificacoesAbertas(true);
+        }}
+              >
+                <span class="material-symbols-outlined">${IconeSvg('notifications')}</span>
+                Notificações
+                ${notificacoes.length ? html`<span class="c24-user-dropdown-badge">${notificacoes.length}</span>` : null}
+              </button>
               ${mostrarAjuda && onOpenHelp
           ? html`
                     <button
@@ -930,78 +977,43 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
             </div>
           `
       : null}
-    </div>
-  `;
-}
 
-export function SinoNotificacoes({ controlador }) {
-  const [aberto, setAberto] = useState(false);
-  const { itens, carregando } = useResumoNotificacoes(controlador);
-  const coresPorCategoria = lerCoresNotificacao();
-
-  useEffect(() => {
-    if (!aberto) return undefined;
-
-    const fecharAoClicarFora = (event) => {
-      if (event.target?.closest?.('.c24-notif-wrap')) return;
-      setAberto(false);
-    };
-    const fecharNoEscape = (event) => {
-      if (event.key === 'Escape') setAberto(false);
-    };
-
-    document.addEventListener('click', fecharAoClicarFora);
-    document.addEventListener('keydown', fecharNoEscape);
-    return () => {
-      document.removeEventListener('click', fecharAoClicarFora);
-      document.removeEventListener('keydown', fecharNoEscape);
-    };
-  }, [aberto]);
-
-  return html`
-    <div class="c24-notif-wrap">
-      <button
-        type="button"
-        class="c24-icon-btn c24-notif-toggle"
-        title="Notificações"
-        aria-label=${`Notificações${itens.length ? `, ${itens.length} novas` : ''}`}
-        aria-haspopup="menu"
-        aria-expanded=${aberto}
-        onClick=${(event) => {
-          event.stopPropagation();
-          setAberto((valor) => !valor);
-        }}
-      >
-        <span class="material-symbols-outlined c24-icon">${IconeSvg('notifications')}</span>
-        ${itens.length ? html`<span class="c24-notif-badge">${itens.length}</span>` : null}
-      </button>
-
-      ${aberto
-        ? html`
-            <div class="c24-notif-dropdown" role="menu">
-              <header class="c24-notif-dropdown-header">Notificações</header>
-              ${carregando
-                ? html`<p class="c24-notif-empty">Carregando…</p>`
-                : itens.length
-                  ? html`
-                      <ul class="c24-notif-list">
-                        ${itens.map(
-                          (item) => html`
-                            <li key=${item.id} class="c24-notif-item">
-                              <span
-                                class="c24-notif-dot"
-                                style=${{ backgroundColor: coresPorCategoria[item.categoria] || '#0f5be8' }}
-                              ></span>
-                              <span>${item.texto}</span>
-                            </li>
-                          `,
-                        )}
-                      </ul>
-                    `
-                  : html`<p class="c24-notif-empty">Nenhuma notificação por aqui.</p>`}
+      ${notificacoesAbertas
+      ? html`
+            <div class="c24-notif-side-panel" role="menu">
+              <header class="c24-notif-side-panel-header">
+                <span>Notificações</span>
+                <button
+                  type="button"
+                  class="c24-notif-side-panel-close"
+                  aria-label="Fechar notificações"
+                  onClick=${() => setNotificacoesAbertas(false)}
+                >
+                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
+                </button>
+              </header>
+              ${carregandoNotificacoes
+          ? html`<p class="c24-notif-empty">Carregando…</p>`
+          : notificacoes.length
+            ? html`
+                    <ul class="c24-notif-list">
+                      ${notificacoes.map(
+                (item) => html`
+                          <li key=${item.id} class="c24-notif-item">
+                            <span
+                              class="c24-notif-dot"
+                              style=${{ backgroundColor: coresPorCategoria[item.categoria] || '#0f5be8' }}
+                            ></span>
+                            <span>${item.texto}</span>
+                          </li>
+                        `,
+              )}
+                    </ul>
+                  `
+            : html`<p class="c24-notif-empty">Nenhuma notificação por aqui.</p>`}
             </div>
           `
-        : null}
+      : null}
     </div>
   `;
 }
@@ -1076,7 +1088,6 @@ export function PainelRh({
                   `
       : null}
               ${acoesTopo}
-              <${SinoNotificacoes} controlador=${controlador} />
             </div>
           </header>
 

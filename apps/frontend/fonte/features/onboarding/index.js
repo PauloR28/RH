@@ -13,7 +13,6 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
@@ -180,7 +179,6 @@ export function TelaOnboarding({ controlador }) {
       subtituloMarca="Trilhas de onboarding"
       placeholderBusca="Trilhas de onboarding"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
       acaoPrimaria=${{
       label: 'Nova trilha',
       icon: 'add',

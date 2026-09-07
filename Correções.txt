@@ -1,25 +1,16 @@
-1 - Certifique-se de todas as linhas, colunas, elementos estão com o espaçamento ajusado, igual. Eu vejo muitos forms e campos colados um no outro. Verifique e ajustes todos os forms. 
-2 - Na criação de um novo processo faça os seguintes ajustes: 
-* Desative (NÃO EXCLUA) a aba de "Botão Expresso" altere o nome para: "Botão Vaga Urgente" e desative a opção com um mensagem: "Em breve..." 
-* Adicione uma pequena animação slide 
-* Na etapa 2, retire o campo: "Observações internas"
-* Em Personalização, o campo: "Tipo de atendimento" coloque como um campo tipo "Select".
-* Adicione também opção de nível de dificuldade da prova (que irá configurar o nível das questões que serão mostradas para o candidato) essa nivelação será feita por um campo tipo: <input type="range"> quanto maior a range mais difícil será a prova (PS: As questões permanecem as mesmas, porem o próprio Conecta irá "modificar" com um filtro de dificuldade - o gabarito não se altera)
-* Na etapa 3 - Altere o nome do campo: "Disponibilidade de Horários" para "Disponibilidade de Horários para Entrevistas".
-* Na etapa 4 - Em "Jornada de trabalho" - ao clicar na opção "Outro" irá abrir uma janela para setar o horário de entrada, o horário de saída, e os dias da semana de trabalho. Em "Experiência prévia exigida" retire a opção: "Exige experiência em áreas técninicas ou correlatas" altere para "Experiências especificas", quando clicável, irá abrir um form de texto onde ele poderá inserir as experiências exigidas, ele pode adicionar mais de um, essas experiências aparcecem como TAG. Também altere a opção: Não exige experiência (Primeiro emprego) para Sem Experiência Prévia. Na aba do idioma, ao invés de ter 2 campos, será 1 campo chamado: Idioma, com um select, com as opções: Inglês/Espanhol (esse campo não será obrigatório e pode ficar em branco). - Aba de salários e benefícios terá uma aba só para eles. Alem disso, o form está todo torno e desalinhado, corrija isso. Primeiro haverá um campo do tipo turn on/off: "Informar salario", caso sim, então abrirá uma janela para adicionar o salário. Em baixo os campos select multi para os tipos de benefícios: (Altere o nome "Assistência Técninca" para "Plano de Saúde", e adicione as opções: Cartão Flash / Plano odontológico / Gympass).
-* A sessão 5 será somente para treinamento. - Haverá um botão de "Atrelar treinamentos", uma vez sim, abrirá uma lista de select com os treinamentos disponíveis para aquela operação. Podendo selecionar mais de uma (como já tinha dito anteriormente). 
+Correções: 
+- Limpar o Conecta (Eliminar todos os dados e informações como: Usuários/menos o administrado, processos seletivos abertos ou fechados/ treinamentos/provas, candidados, banco de talentos, histórico de candidatos, dadas, slots, agendamentos, histórico de processos, operações...) NÃO É PRA APAGAR O SISTEMA E SIM OS DADOS, COMO SE O CONECTA ESTIVESSE ZERADO E SE O RH COMESSASSE A USAR ELE A PARTIR DE AGORA).- Retire também todas as configurações e trilhas pré definidas. Quando o Admistrador logar-se no Conecta pela primeira vez depois dessa limpeza, Tudo que o precisa ser configurado deverá estar listado nas notificações como critico. 
 
-3 - Erro critico na pagina 'detalhes-processo':Não foi possível renderizar a interface principal.
-Cannot access 'idProcesso' before initialization
+- Retirar o texto: "LGPD, Segurança da Informação, Onboarding e Produto — organizados em trilhas por operação, com vídeos, textos, slides e o acompanhamento de quem está fazendo cada treinamento." da tela de treinamento. 
+- Retirar o box de: "rh-section-card rh-section-card--flat mb-4" - CT já esta ativo
+- Alterar as telas para a ordem de leitura seja do tipo: Padrão Z (conhecido como diagrama de Gutenberg). Isso inclui reposicionar os elementos (MAS COM CUIDADO PARA NÃO TIRAR A RESPONSIVIDADE DAS PAGINAS) assim como o alinhamento dos elementos precisa estar correta, isso é, não pode haver um espaço em branco na tela, tudo precisa esta "encaixado e alinhado", como um Tetris (mas cuidado para não deixar algo visualmente poluído ou com cara de IA).Se necessário pode usar outros componentes de interface para deixar algo mais bonito visualmente e confortável. 
+- Adicione um componente na tela inicial chamado "Mural", (porem, mantenha um aviso de que esta desativado e entrará no Conecta em breve), E adicone um sublink em "Gestão" chamado de "Mural", aqui serivá para o RH fazer uma série de postagens (a pagina será como um feed) nas intranets (Sharepoint) das operações, e também no próprio Conecta. Avisos, comunicados, fotos, vídeos, publicações. Com direito a numero de visitante ou curtidas. A publicação será feita no Conecta e será postada nas intranets. (Deixe só a pagina pronta, desenvolveremos essa ideia futuramente). 
+- Adicione uma configuração para parâmetros do Conecta, por exemplo: Conexões com Sharepoint e as intranets serão configuradas alí, pequenas e grandes configurações que antes fiz no código, agora serão configuradas ali. (O quanto menos configurações eu fizer diretamente no código melhor) Isso incluias credenciais que estão no arquivo ENV. Tudo isso serão configurado ali dentro. (Não apague as credenciais quando levar-las para o Conecta, apenas deixe os campos bloqueados e caso o ADM queria editar, deverá ter uma aba de confirmação)
+- Adicione um botão na tela inical de Suporte. Ao ser clicado ele irá abrir uma tela para Solicitar um email para o suporte (Mantenha esse botão bloqueado pois ainda estou desenvolvendo)
+- Retire a foto do Avatar de "c24-user-menu", e leve o botão de notificações para dentro das opções de "c24-user-menu" quando houver uma notificação o elemento "c24-user-menu" irá indicar, e ao ser clicado uma aba lateral direita irá com pequenos cards listados mostrando a notificação (a aba lateral deve ser curta e deve sumir qndo o mouse clicar fora dela)
 
-ReferenceError: Cannot access 'idProcesso' before initialization
-    at TelaDetalhesProcesso (http://localhost:8000/fonte/features/processos/index.js?v=20260904-correcoes-txt3:6735:45)
-    at Hi (http://localhost:8000/vendor/react-dom@18.3.1.mjs:8:16968)
-    at ni (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:3150)
-    at ua (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:44537)
-    at ra (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:39718)
-    at ff (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:39649)
-    at Ir (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:39508)
-    at di (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:35897)
-    at ea (http://localhost:8000/vendor/react-dom@18.3.1.mjs:10:34851)
-    at F (http://localhost:8000/vendor/scheduler@0.23.2.mjs:3:2068) 
+- Retire o botão "Gestão de treinamentos" da tela de Treinamentos. 
+- Retire o botão de "Sair da tela de treinamentos" 
+
+
+- Em caso de duvidas me formule perguntas

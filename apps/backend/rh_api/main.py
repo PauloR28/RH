@@ -49,6 +49,7 @@ from .routers.raciocinio_logico import public_router as raciocinio_logico_public
 from .routers.raciocinio_logico import router as raciocinio_logico_router
 from .routers.scorecards import router as scorecards_router
 from .routers.settings import router as settings_router
+from .routers.sistema import router as sistema_router
 from .routers.system import build_system_status, router as system_router
 from .scheduler import start_scheduler, stop_scheduler
 from conecta.interfaces.http.middlewares.request_context import (
@@ -383,6 +384,7 @@ def create_app() -> FastAPI:
     app.include_router(raciocinio_logico_router)
     app.include_router(raciocinio_logico_public_router)
     app.include_router(settings_router)
+    app.include_router(sistema_router)
     app.include_router(operations_router)
     app.include_router(onedrive_files_router)
     app.include_router(email_send_router)

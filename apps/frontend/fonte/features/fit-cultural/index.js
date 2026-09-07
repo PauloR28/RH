@@ -8,7 +8,6 @@ import {
   listarValoresEmpresa,
 } from '../../servico-api.js';
 import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js';
@@ -126,7 +125,6 @@ export function TelaFitCulturalAdmin({ controlador }) {
       subtituloMarca="Fit Cultural"
       placeholderBusca="Fit Cultural"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
       acaoPrimaria=${{
         label: 'Novo valor',
         icon: 'add',

@@ -342,6 +342,7 @@
 }
 
 .c24-user-menu {
+  position: relative;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -354,6 +355,31 @@
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
+}
+
+.c24-user-menu-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger);
+  border: 2px solid var(--color-surface);
+}
+
+.c24-user-dropdown-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 
 .c24-user-menu-wrap.is-open,
@@ -386,17 +412,6 @@
   height: 100%;
   border-radius: inherit;
   object-fit: cover;
-}
-
-.c24-user-avatar i {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 11px;
-  height: 11px;
-  border: 2px solid #fff;
-  border-radius: var(--radius-full);
-  background: var(--color-success);
 }
 
 .c24-user-copy {
@@ -472,37 +487,14 @@
   line-height: 1;
 }
 
-.c24-notif-wrap {
-  position: relative;
-  flex: 0 0 auto;
-}
-
-.c24-notif-toggle {
-  position: relative;
-}
-
-.c24-notif-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--color-danger);
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-}
-
-.c24-notif-dropdown {
-  position: absolute;
-  top: calc(100% + 0.42rem);
-  right: 0;
-  z-index: 50;
+.c24-notif-side-panel {
+  position: fixed;
+  top: 76px;
+  right: 24px;
+  z-index: 1050;
   width: min(320px, calc(100vw - 2rem));
+  max-height: min(420px, calc(100vh - 120px));
+  overflow-y: auto;
   padding: 0.35rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -510,13 +502,33 @@
   box-shadow: var(--shadow-md);
 }
 
-.c24-notif-dropdown-header {
+.c24-notif-side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.42rem 0.52rem;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-text-soft);
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+.c24-notif-side-panel-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.c24-notif-side-panel-close:hover {
+  background: var(--color-surface-soft);
 }
 
 .c24-notif-list {
@@ -566,6 +578,12 @@
   border-radius: var(--radius-sm);
   padding: 0 0.58rem 0 0.72rem;
   background: var(--color-surface);
+  transition: border-color var(--transition-sm), box-shadow var(--transition-sm);
+}
+
+.rh-modern-input-shell:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 0.18rem rgba(21, 61, 138, 0.12);
 }
 
 .rh-modern-search-shell {
@@ -1355,6 +1373,8 @@
 .rh-modal-footer {
   border-top: 1px solid var(--color-border);
   align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .rh-modal-content,

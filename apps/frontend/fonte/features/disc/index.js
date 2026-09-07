@@ -7,7 +7,6 @@ import {
   listarBlocosDisc,
 } from '../../servico-api.js';
 import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { obterIdAplicacaoDiscPorHash } from '../../rotas.js';
@@ -97,7 +96,6 @@ export function TelaDiscAdmin({ controlador }) {
       subtituloMarca="Teste DISC"
       placeholderBusca="Teste DISC"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
       acaoPrimaria=${{
         label: 'Novo bloco',
         icon: 'add',

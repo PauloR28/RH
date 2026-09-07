@@ -156,7 +156,7 @@
 #screen-process-details .process-filter-bar select,
 #screen-process-details .process-compact-select {
   min-height: 42px;
-  border: 1px solid #d8e0ec;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.55rem 0.8rem;
   background: var(--color-surface);
@@ -249,7 +249,7 @@
 #screen-process-details .process-related-sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; margin-top: 1rem; }
 #screen-process-details .process-related-sources section { border: 1px solid var(--process-border); border-radius: 10px; padding: 1rem; background: var(--color-surface); }
 #screen-process-details .process-related-sources h4 { margin: 0 0 0.7rem; font-size: 0.95rem; }
-#screen-process-details .process-related-sources article { display: grid; border-top: 1px solid #edf0f5; padding: 0.55rem 0; }
+#screen-process-details .process-related-sources article { display: grid; border-top: 1px solid var(--color-border); padding: 0.55rem 0; }
 #screen-process-details .process-related-sources article span,
 #screen-process-details .process-related-sources p { color: var(--process-muted); }
 
@@ -258,7 +258,7 @@
 #screen-process-details .process-job-modal h3,
 #screen-process-details .process-job-modal h4 { margin: 0; }
 #screen-process-details .process-job-details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
-#screen-process-details .process-job-details-grid > div { display: grid; gap: 0.2rem; border: 1px solid #e5eaf1; border-radius: 8px; padding: 0.7rem; background: #fbfcfe; }
+#screen-process-details .process-job-details-grid > div { display: grid; gap: 0.2rem; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.7rem; background: #fbfcfe; }
 #screen-process-details .process-job-details-grid span { color: #6b778c; font-size: 0.7rem; }
 #screen-process-details .process-job-modal ul { margin: 0.55rem 0 0; padding-left: 1.2rem; color: #45536c; }
 #screen-process-details .process-job-modal p { margin: 0.5rem 0 0; color: #45536c; }
@@ -268,10 +268,10 @@
 #screen-process-details .process-dossier-notes p { margin: 0; color: var(--process-muted); }
 #screen-process-details .process-dossier-note-form { display: grid; grid-template-columns: minmax(180px, 0.6fr) minmax(260px, 1.4fr) auto; gap: 0.7rem; align-items: start; }
 #screen-process-details .process-dossier-note-form select,
-#screen-process-details .process-dossier-note-form textarea { width: 100%; border: 1px solid #d8e0ec; border-radius: 8px; padding: 0.6rem 0.75rem; background: var(--color-surface); }
+#screen-process-details .process-dossier-note-form textarea { width: 100%; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.6rem 0.75rem; background: var(--color-surface); }
 #screen-process-details .process-dossier-note-form > div { display: flex; gap: 0.5rem; }
 #screen-process-details .process-dossier-note-list { display: grid; gap: 0.5rem; }
-#screen-process-details .process-dossier-note-list article { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid #edf0f5; padding-top: 0.65rem; }
+#screen-process-details .process-dossier-note-list article { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--color-border); padding-top: 0.65rem; }
 #screen-process-details .process-dossier-note-list small { color: #7b8799; }
 #screen-process-details .dossier-note-mention { color: var(--process-blue); font-weight: 700; }
 
@@ -299,7 +299,7 @@
 
 #screen-process-details .candidate-sheet-section.rh-section-card { margin-bottom: 0.65rem; }
 #screen-process-details .candidate-stage-results { display: grid; gap: 0.55rem; }
-#screen-process-details .candidate-stage-result { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(100px, auto); gap: 0.8rem; align-items: center; border: 1px solid #e0e6ef; border-radius: 9px; padding: 0.8rem; background: var(--color-surface); }
+#screen-process-details .candidate-stage-result { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(100px, auto); gap: 0.8rem; align-items: center; border: 1px solid var(--color-border); border-radius: 9px; padding: 0.8rem; background: var(--color-surface); }
 #screen-process-details .candidate-stage-result.is-cv { border-color: #cfe0ff; background: #f8fbff; }
 #screen-process-details .candidate-stage-result-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 9px; color: var(--process-blue); background: #eaf1ff; }
 #screen-process-details .candidate-stage-result-main { min-width: 0; }
@@ -324,7 +324,7 @@
 #screen-process-details .candidate-rh-choice-field { margin: 0; border: 0; padding: 0; }
 #screen-process-details .candidate-rh-choice-field legend { margin-bottom: 0.35rem; color: #35435c; font-size: 0.72rem; font-weight: 700; }
 #screen-process-details .candidate-sheet-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
-#screen-process-details .candidate-sheet-choice { display: flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 44px; border: 1px solid #dce3ed; border-radius: 8px; padding: 0.5rem 0.65rem; background: var(--color-surface); cursor: pointer; }
+#screen-process-details .candidate-sheet-choice { display: flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 44px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.5rem 0.65rem; background: var(--color-surface); cursor: pointer; }
 #screen-process-details .candidate-sheet-choice input { position: absolute; opacity: 0; pointer-events: none; }
 #screen-process-details .candidate-sheet-choice .material-symbols-outlined { color: #77839a; font-size: 1rem; }
 #screen-process-details .candidate-sheet-choice.is-selected { border-color: #8db2ff; background: #f2f6ff; color: var(--process-blue); }
@@ -334,15 +334,15 @@
 #screen-process-details .candidate-rh-text-grid label { display: grid; gap: 0.2rem; }
 #screen-process-details .candidate-rh-text-grid label > span { color: #35435c; font-weight: 700; }
 #screen-process-details .candidate-rh-text-grid label > small { color: #768298; }
-#screen-process-details .candidate-rh-text-grid textarea { width: 100%; min-height: 82px; border: 1px solid #d8e0ec; border-radius: 8px; padding: 0.65rem 0.75rem; resize: vertical; }
+#screen-process-details .candidate-rh-text-grid textarea { width: 100%; min-height: 82px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.65rem 0.75rem; resize: vertical; }
 
 #screen-process-details .candidate-sheet-dialog--profile .rh-modal-content {     /* width: min(1460px, calc(100vw - 30px)); */
     /* max-height: calc(100vh - 28px); */
     /* background: #f7f9fc; */
  }
-#screen-process-details .candidate-sheet-dialog--profile .rh-modal-header { border-bottom: 1px solid #dce3ed; padding: 1rem 1.35rem; background: var(--color-surface); }
+#screen-process-details .candidate-sheet-dialog--profile .rh-modal-header { border-bottom: 1px solid var(--color-border); padding: 1rem 1.35rem; background: var(--color-surface); }
 #screen-process-details .candidate-profile-page { padding: 1.1rem 1.25rem 1.3rem; overflow-y: auto; }
-#screen-process-details .candidate-profile-back { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.9rem; border: 1px solid #d7e0ed; border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--color-surface); color: var(--process-blue); font-weight: 700; }
+#screen-process-details .candidate-profile-back { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.9rem; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--color-surface); color: var(--process-blue); font-weight: 700; }
 #screen-process-details .candidate-profile-back .material-symbols-outlined { font-size: 1.05rem; }
 #screen-process-details .candidate-profile-layout { display: grid; grid-template-columns: minmax(240px, 310px) minmax(0, 1fr); gap: 1rem; align-items: start; }
 #screen-process-details .candidate-profile-sidebar,
@@ -351,8 +351,8 @@
 #screen-process-details .candidate-profile-side-card,
 #screen-process-details .candidate-complementary-card,
 #screen-process-details .candidate-rh-notes-card,
-#screen-process-details { border: 1px solid #dce3ed; border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
-/*#screen-process-details .candidate-profile-actions { border: 1px solid #dce3ed; border-radius: 12px; background: var(--color-surface); box-shadow: 0 4px 14px rgba(25, 51, 89, 0.04); }*/
+#screen-process-details { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
+/*#screen-process-details .candidate-profile-actions { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: 0 4px 14px rgba(25, 51, 89, 0.04); }*/
 #screen-process-details .candidate-profile-identity { display: grid; justify-items: center; gap: 0.32rem; padding: 1.45rem 1rem; text-align: center; }
 #screen-process-details .candidate-profile-avatar { display: grid; width: 88px; height: 88px; place-items: center; margin-bottom: 0.25rem; border-radius: var(--radius-full); background: #eaf1ff; color: var(--process-blue); font-size: 3.25rem; font-variation-settings: 'wght' 250; }
 #screen-process-details .candidate-profile-identity h2 { margin: 0.35rem 0 0.4rem; color: #111c34; font-size: 1.2rem; }
@@ -370,10 +370,10 @@
 #screen-process-details .candidate-complementary-card { padding: 1.15rem 1.35rem; }
 #screen-process-details .candidate-complementary-card > h2,
 #screen-process-details .candidate-rh-notes-card h2 { margin: 0; color: #101d4f; font-size: 1rem; }
-#screen-process-details .candidate-complementary-card > h2 { padding: 0 0.15rem 0.85rem; border-bottom: 1px solid #dce3ed; }
+#screen-process-details .candidate-complementary-card > h2 { padding: 0 0.15rem 0.85rem; border-bottom: 1px solid var(--color-border); }
 #screen-process-details .candidate-timeline-card { display: grid; gap: 0.85rem; }
 #screen-process-details .candidate-timeline-card .process-history-list { max-height: 320px; overflow-y: auto; padding-right: 0.15rem; }
-#screen-process-details .candidate-info-row { display: grid; grid-template-columns: minmax(180px, 32%) minmax(0, 1fr); gap: 1rem; align-items: center; min-height: 58px; border-bottom: 1px solid #e1e6ee; padding: 0.65rem 0.15rem; }
+#screen-process-details .candidate-info-row { display: grid; grid-template-columns: minmax(180px, 32%) minmax(0, 1fr); gap: 1rem; align-items: center; min-height: 58px; border-bottom: 1px solid var(--color-border); padding: 0.65rem 0.15rem; }
 #screen-process-details .candidate-info-row > span { color: #35435c; font-weight: 600; }
 #screen-process-details .candidate-info-row > strong { color: #41516e; font-weight: 600; }
 #screen-process-details .candidate-score-composite { display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; }
@@ -400,14 +400,14 @@
 #screen-process-details .candidate-cv-inline-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; padding-top: 0.85rem; }
 #screen-process-details .candidate-rh-notes-card { display: grid; gap: 0.75rem; padding: 1.1rem 1.25rem; }
 #screen-process-details .candidate-rh-notes-card > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-#screen-process-details .candidate-rh-notes-card textarea { width: 100%; border: 1px solid #d8e0ec; border-radius: 8px; padding: 0.7rem; color: #394862; resize: vertical; }
+#screen-process-details .candidate-rh-notes-card textarea { width: 100%; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.7rem; color: #394862; resize: vertical; }
 #screen-process-details .candidate-rh-review-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
 #screen-process-details .candidate-rh-review-grid label {     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
     min-height: 42px;
-    /* border: 1px solid #dce3ed; */
+    /* border: 1px solid var(--color-border); */
     border-radius: 8px;
     color: #40506a;
     cursor: pointer;

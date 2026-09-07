@@ -29,6 +29,7 @@ from .public_candidacy import PublicCandidacyRepositoryMixin
 from .raciocinio_logico import RaciocinioLogicoRepositoryMixin
 from .scorecards import ScorecardRepositoryMixin
 from .security import SecurityRepositoryMixin
+from .sistema import SistemaRepositoryMixin
 from .talent_bank import TalentBankRepositoryMixin
 
 
@@ -57,6 +58,7 @@ class DatabaseRepository(
     FitCulturalRepositoryMixin,
     RaciocinioLogicoRepositoryMixin,
     ScorecardRepositoryMixin,
+    SistemaRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""

@@ -12,7 +12,6 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
@@ -161,7 +160,6 @@ export function TelaCalendario({ controlador }) {
       subtituloMarca="Calendário de datas comemorativas"
       placeholderBusca="Datas comemorativas"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
       acaoPrimaria=${podeEditar
       ? {
           label: 'Nova data',

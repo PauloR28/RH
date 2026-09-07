@@ -3,6 +3,7 @@ import { formatarPontuacaoDetalhada } from '../../utilitarios.js';
 import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js';
 import { EmptyState } from './feedback.js';
 import { SectionCard } from './layout.js?v=20260904-identidade-conecta';
+import { IconeSvg } from '../icone.js';
 
 export function ModalPadrao({
   aberto,
@@ -41,7 +42,7 @@ export function ModalPadrao({
                   aria-label="Fechar"
                   onClick=${onClose}
                 >
-                  X
+                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
                 </button>
               `
       : null}

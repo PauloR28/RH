@@ -33,6 +33,7 @@ _SCHEMA_BOOTSTRAPPED = False
 _SQL_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 PROCESS_REF_SEPARATOR = "@@"
 LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+RESET_FLAG_KEY = "sistema.dados_resetados"
 
 
 def ensure_security_tables(cursor, settings: Settings) -> None:
@@ -414,12 +415,65 @@ def ensure_reusable_config_tables(cursor) -> None:
         )
 
 
+def ensure_parametros_sistema_table(cursor) -> None:
+    """Correcoes.txt (rodada de 06/set/2026): configuracoes de negocio (ex.:
+    integracao SharePoint/intranets) editaveis pelo Administrador em vez de
+    hardcoded no codigo. Segredos de infraestrutura (.env) nunca ficam aqui.
+
+    Também guarda, sob categoria 'sistema_interno', a flag que "Limpar o
+    Conecta" grava para impedir que os seeds padrão (operações, trilha de
+    onboarding, DISC, valores da empresa, raciocínio lógico) voltem sozinhos
+    no próximo restart — ver `conecta_reset_flag_ativo`.
+    """
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.parametros_sistema', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.parametros_sistema (
+                id_parametro INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                chave NVARCHAR(120) NOT NULL,
+                valor NVARCHAR(MAX) NULL,
+                categoria NVARCHAR(60) NOT NULL CONSTRAINT DF_parametros_sistema_categoria DEFAULT 'geral',
+                descricao NVARCHAR(400) NULL,
+                mascarado BIT NOT NULL CONSTRAINT DF_parametros_sistema_mascarado DEFAULT 0,
+                atualizado_por NVARCHAR(180) NULL,
+                criado_em DATETIME NOT NULL DEFAULT GETDATE(),
+                atualizado_em DATETIME NOT NULL DEFAULT GETDATE(),
+                CONSTRAINT UQ_parametros_sistema_chave UNIQUE (chave)
+            )
+        END
+        """
+    )
+
+
+def conecta_reset_flag_ativo(cursor) -> bool:
+    """True quando "Limpar o Conecta" já zerou os dados operacionais — os
+    seeds padrão (ensure_operacoes_seed, trilha de onboarding, DISC, valores
+    da empresa, raciocínio lógico) checam isso antes de se recriar sozinhos."""
+    cursor.execute(
+        """
+        SELECT CASE
+            WHEN OBJECT_ID('dbo.parametros_sistema', 'U') IS NULL THEN 0
+            WHEN EXISTS (
+                SELECT 1 FROM dbo.parametros_sistema WHERE chave = ?
+            ) THEN 1
+            ELSE 0
+        END
+        """,
+        (RESET_FLAG_KEY,),
+    )
+    row = cursor.fetchone()
+    return bool(row and int(row[0] or 0) == 1)
+
+
 def ensure_operacoes_seed(cursor) -> None:
     """Semeia as operações hoje hardcoded em OPERATION_OPTIONS (perguntas.js).
 
     Mantém sincronizado com infra/sql/migrations/V013__operacoes.sql — este
     bootstrap cobre DEV/HML (autobootstrap), a migration versionada cobre PROD.
     """
+    if conecta_reset_flag_ativo(cursor):
+        return
     operacoes_iniciais = (
         ("CRF", "CRF / Flamengo", "Receptivo"),
         ("DAVITA", "Davita", "Receptivo"),
@@ -2034,7 +2088,7 @@ def ensure_onboarding_tables(cursor) -> None:
 
     cursor.execute("SELECT COUNT(1) FROM dbo.trilhas_onboarding")
     row = cursor.fetchone()
-    if not row or int(row[0] or 0) == 0:
+    if (not row or int(row[0] or 0) == 0) and not conecta_reset_flag_ativo(cursor):
         cursor.execute(
             """
             INSERT INTO dbo.trilhas_onboarding (nome, descricao, ativo, criado_por, criado_em, atualizado_em)
@@ -2323,7 +2377,7 @@ def ensure_disc_tables(cursor) -> None:
 
     cursor.execute("SELECT COUNT(*) FROM dbo.disc_blocos")
     row = cursor.fetchone()
-    if not row or int(row[0] or 0) == 0:
+    if (not row or int(row[0] or 0) == 0) and not conecta_reset_flag_ativo(cursor):
         for ordem, bloco in enumerate(_DISC_SEED_BLOCOS):
             cursor.execute(
                 "INSERT INTO dbo.disc_blocos (ordem, ativo, criado_em) OUTPUT INSERTED.id_bloco VALUES (?, 1, GETDATE())",
@@ -2426,7 +2480,7 @@ def ensure_fit_cultural_tables(cursor) -> None:
 
     cursor.execute("SELECT COUNT(*) FROM dbo.valores_empresa")
     row = cursor.fetchone()
-    if not row or int(row[0] or 0) == 0:
+    if (not row or int(row[0] or 0) == 0) and not conecta_reset_flag_ativo(cursor):
         for nome, descricao, frases in _VALORES_EMPRESA_SEED:
             cursor.execute(
                 """
@@ -2659,7 +2713,7 @@ def ensure_raciocinio_tables(cursor) -> None:
 
     cursor.execute("SELECT COUNT(*) FROM dbo.raciocinio_perguntas")
     row = cursor.fetchone()
-    if not row or int(row[0] or 0) == 0:
+    if (not row or int(row[0] or 0) == 0) and not conecta_reset_flag_ativo(cursor):
         for enunciado, tipo, alternativas, gabarito, dificuldade, feedback_erro in _RACIOCINIO_SEED:
             cursor.execute(
                 """
@@ -3285,6 +3339,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             cursor = conn.cursor()
             ensure_security_tables(cursor, settings)
             ensure_reusable_config_tables(cursor)
+            ensure_parametros_sistema_table(cursor)
             ensure_operacoes_seed(cursor)
             ensure_user_operacoes_table(cursor)
             ensure_email_change_requests_table(cursor)

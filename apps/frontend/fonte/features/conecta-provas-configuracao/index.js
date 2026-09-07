@@ -1,6 +1,5 @@
 import { html } from '../../infraestrutura-react.js';
 import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { AcaoSair } from '../../shared/components/actions.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const DIRETRIZES = [
@@ -46,40 +45,30 @@ export function TelaProvasConfiguracao({ controlador }) {
       subtituloMarca="Configuração do Conecta Provas"
       placeholderBusca="Configuração de provas"
       controlador=${controlador}
-      acoesTopo=${html`<${AcaoSair} controlador=${controlador} />`}
     >
       <${PageIntro}
         kicker="Conecta Provas"
         title="Configuração"
-        description="Reúne as diretrizes complementares aplicadas durante o processo seletivo: onboarding, DISC, Fit Cultural e Raciocínio Lógico."
       />
 
       <${SectionCard} title="Diretrizes da prova" className="rh-section-card--flat">
-        <div class="row g-3">
+        <div class="rh-admin-module-list">
           ${diretrizesVisiveis.length
       ? diretrizesVisiveis.map(
         (item) => html`
-                <div key=${item.tela} class="col-md-6">
-                  <div class="rh-section-card rh-section-card--flat h-100 d-flex flex-column justify-content-between" style=${{ padding: '16px' }}>
-                    <div class="d-flex align-items-start gap-3">
-                      <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(item.icone)}</span>
-                      <div>
-                        <h3 class="h6 mb-1">${item.titulo}</h3>
-                        <p class="rh-section-card-description mb-0">${item.descricao}</p>
-                      </div>
-                    </div>
-                    <div class="mt-3">
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm"
-                        onClick=${() => controlador.irParaTelaProtegida(item.tela)}
-                      >
-                        Configurar
-                        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_forward')}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  key=${item.tela}
+                  type="button"
+                  class="rh-admin-module-row"
+                  onClick=${() => controlador.irParaTelaProtegida(item.tela)}
+                >
+                  <span class="material-symbols-outlined rh-admin-module-icon" aria-hidden="true">${IconeSvg(item.icone)}</span>
+                  <span class="rh-admin-module-copy">
+                    <strong>${item.titulo}</strong>
+                    <small>${item.descricao}</small>
+                  </span>
+                  <span class="material-symbols-outlined rh-admin-module-arrow" aria-hidden="true">${IconeSvg('chevron_right')}</span>
+                </button>
               `,
       )
       : html`<p class="text-muted mb-0">Você não possui permissão para configurar nenhuma diretriz de prova.</p>`}
