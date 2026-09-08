@@ -192,6 +192,7 @@ export const PERMISSOES_TELAS = {
   'screen-settings-fit-cultural': 'fit_cultural.editar',
   'screen-settings-raciocinio-logico': 'provas.questoes_criar',
   'screen-settings-administracao': 'configuracoes.visualizar',
+  'screen-settings-sharepoint-ambiente': 'configuracoes.editar',
   'screen-provas-configuracao': 'configuracoes.visualizar',
   'screen-generated-exams': 'provas.visualizar',
   'screen-process-analytical-results': 'provas.visualizar',

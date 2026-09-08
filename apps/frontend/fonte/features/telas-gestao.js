@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20260906-central-treinamentos';
+} from './gestao/index.js?v=20260908-correcoes-ambiente';

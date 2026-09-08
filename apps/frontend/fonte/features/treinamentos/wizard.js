@@ -10,6 +10,7 @@ import {
   alternarDownloadAnexo,
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { atualizarTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
 import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
@@ -51,8 +52,13 @@ const MODULO_INICIAL = {
   dica_texto: '',
   tabela: null,
   saiba_mais: [],
+  secoes: [],
+  anexos: [],
   _videoFile: null,
 };
+
+const SAIBA_MAIS_ITEM_INICIAL = { tipo: 'dica', texto: '', url: '' };
+const SECAO_MODULO_INICIAL = { subtitulo: '', texto: '', imagens: [] };
 
 const FORM_INICIAL = {
   nome: '',
@@ -66,22 +72,33 @@ const FORM_INICIAL = {
   participantes: [],
   itens: [{ ...MODULO_INICIAL }],
   pptxFile: null,
-  saibaMaisTreinamento: { texto_breve: '', links: [] },
-  anexosTreinamento: [],
   texto_encerramento: TEXTO_ENCERRAMENTO_PADRAO,
 };
 
 const ETAPAS = [
   ['1', 'Dados do Treinamento'],
-  ['2', 'Módulos'],
-  ['3', 'Slide de Apresentação'],
-  ['4', 'Saiba +'],
+  ['2', 'Montar Treinamento'],
+  ['3', 'Módulos'],
+  ['4', 'Slide de Apresentação'],
   ['5', 'Encerramento'],
   ['6', 'Revisão e Publicação'],
 ];
 
 function gerarId() {
   return Math.random().toString(36).slice(2);
+}
+
+// JSON traz `imagens` como lista de URLs (string); no estado local do wizard
+// cada imagem vira { tipo: 'link', valor } ou { tipo: 'upload', file, nome } —
+// ver adicionarImagemLinkSecao/adicionarImagemUploadSecao.
+function normalizarSecoesImportadas(secoes) {
+  return (Array.isArray(secoes) ? secoes : []).map((secao) => ({
+    subtitulo: secao?.subtitulo || '',
+    texto: secao?.texto || '',
+    imagens: (Array.isArray(secao?.imagens) ? secao.imagens : [])
+      .filter((url) => typeof url === 'string' && url.trim())
+      .map((url) => ({ tipo: 'link', valor: url })),
+  }));
 }
 
 export function TelaCriarTreinamento({ controlador }) {
@@ -96,7 +113,8 @@ export function TelaCriarTreinamento({ controlador }) {
   const [resultadosBusca, setResultadosBusca] = useState([]);
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
 
-  const [modalTermoAberto, setModalTermoAberto] = useState(null); // { tipo: 'treinamento'|'modulo', index }
+  const [modalTermoAberto, setModalTermoAberto] = useState(null); // { moduloIndex, anexoId }
+  const [importandoTreinamento, setImportandoTreinamento] = useState(false);
 
   useEffect(() => {
     listarOperacoes()
@@ -158,7 +176,7 @@ export function TelaCriarTreinamento({ controlador }) {
     }));
   };
 
-  // -- Etapa 2: módulos -----------------------------------------------------
+  // -- Etapa 3: módulos -----------------------------------------------------
 
   const atualizarModulo = (index, campo, valor) => {
     setFormulario((atual) => ({
@@ -204,6 +222,8 @@ export function TelaCriarTreinamento({ controlador }) {
             ...validado.modulo,
             tabela: validado.modulo.tabela || null,
             saiba_mais: validado.modulo.saiba_mais || [],
+            secoes: normalizarSecoesImportadas(validado.modulo.secoes),
+            anexos: [],
           },
         ],
       }));
@@ -231,76 +251,296 @@ export function TelaCriarTreinamento({ controlador }) {
     }
   };
 
-  // -- Etapa 4: Saiba + (documentos, texto, links) --------------------------
+  // -- Etapa 2: importar o treinamento completo via JSON ---------------------
 
-  const atualizarSaibaMaisTreinamento = (campo, valor) => {
-    setFormulario((atual) => ({ ...atual, saibaMaisTreinamento: { ...atual.saibaMaisTreinamento, [campo]: valor } }));
+  const handleBaixarModeloTreinamentoCompleto = async () => {
+    try {
+      const { blob } = await baixarModeloModulo();
+      const moduloExemplo = JSON.parse(await blob.text());
+      const modeloCompleto = {
+        nome: 'Ex: Nome do treinamento (opcional — mantém o que já foi preenchido na Etapa 1 se deixar em branco)',
+        descricao: 'Ex: Objetivo do treinamento (opcional).',
+        categoria: 'Onboarding',
+        modalidade: '',
+        local_padrao: '',
+        tipo_obrigatorio: false,
+        texto_encerramento: TEXTO_ENCERRAMENTO_PADRAO,
+        itens: [moduloExemplo],
+      };
+      const conteudo = JSON.stringify(modeloCompleto, null, 2);
+      const url = URL.createObjectURL(new Blob([conteudo], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'modelo-treinamento-completo.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível baixar o modelo JSON do treinamento completo.');
+    }
   };
 
-  const adicionarLinkSaibaMais = () => {
+  const handleUploadJsonTreinamentoCompleto = async (event) => {
+    const arquivo = event.target.files?.[0];
+    event.target.value = '';
+    if (!arquivo) return;
+    setErro('');
+    setImportandoTreinamento(true);
+    try {
+      const dados = JSON.parse(await arquivo.text());
+      const itensBrutos = Array.isArray(dados.itens) ? dados.itens : [];
+      if (!itensBrutos.length) {
+        throw new Error('O JSON do treinamento completo precisa ter ao menos um módulo em "itens".');
+      }
+      const itensValidados = [];
+      for (const itemBruto of itensBrutos) {
+        const validado = await validarModuloJson(itemBruto);
+        itensValidados.push({
+          ...MODULO_INICIAL,
+          ...validado.modulo,
+          tabela: validado.modulo.tabela || null,
+          saiba_mais: validado.modulo.saiba_mais || [],
+          secoes: normalizarSecoesImportadas(validado.modulo.secoes),
+          anexos: [],
+        });
+      }
+      setFormulario((atual) => ({
+        ...atual,
+        nome: String(dados.nome || '').trim() || atual.nome,
+        descricao: dados.descricao !== undefined ? String(dados.descricao || '') : atual.descricao,
+        categoria: dados.categoria || atual.categoria,
+        modalidade: dados.modalidade !== undefined ? String(dados.modalidade || '') : atual.modalidade,
+        local_padrao: dados.local_padrao !== undefined ? String(dados.local_padrao || '') : atual.local_padrao,
+        tipo_obrigatorio: dados.tipo_obrigatorio !== undefined ? !!dados.tipo_obrigatorio : atual.tipo_obrigatorio,
+        texto_encerramento:
+          dados.texto_encerramento !== undefined && String(dados.texto_encerramento).trim()
+            ? String(dados.texto_encerramento)
+            : atual.texto_encerramento,
+        itens: itensValidados,
+      }));
+      setEtapaAtual(3);
+    } catch (error) {
+      setErro(error?.message || 'O arquivo JSON do treinamento completo não é válido (ver "Baixar molde").');
+    } finally {
+      setImportandoTreinamento(false);
+    }
+  };
+
+  // -- Etapa 3: "Saiba +" e documentos por módulo -----------------------------
+
+  const adicionarSaibaMaisModulo = (moduloIndex) => {
     setFormulario((atual) => ({
       ...atual,
-      saibaMaisTreinamento: {
-        ...atual.saibaMaisTreinamento,
-        links: [...atual.saibaMaisTreinamento.links, { titulo: '', url: '' }],
-      },
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex ? { ...item, saiba_mais: [...(item.saiba_mais || []), { ...SAIBA_MAIS_ITEM_INICIAL }] } : item,
+      ),
     }));
   };
 
-  const atualizarLinkSaibaMais = (index, campo, valor) => {
+  const atualizarSaibaMaisModulo = (moduloIndex, itemIndex, campo, valor) => {
     setFormulario((atual) => ({
       ...atual,
-      saibaMaisTreinamento: {
-        ...atual.saibaMaisTreinamento,
-        links: atual.saibaMaisTreinamento.links.map((item, idx) => (idx === index ? { ...item, [campo]: valor } : item)),
-      },
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              saiba_mais: (item.saiba_mais || []).map((entrada, idxEntrada) =>
+                idxEntrada === itemIndex ? { ...entrada, [campo]: valor } : entrada,
+              ),
+            }
+          : item,
+      ),
     }));
   };
 
-  const removerLinkSaibaMais = (index) => {
+  const removerSaibaMaisModulo = (moduloIndex, itemIndex) => {
     setFormulario((atual) => ({
       ...atual,
-      saibaMaisTreinamento: {
-        ...atual.saibaMaisTreinamento,
-        links: atual.saibaMaisTreinamento.links.filter((_, idx) => idx !== index),
-      },
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? { ...item, saiba_mais: (item.saiba_mais || []).filter((_, idxEntrada) => idxEntrada !== itemIndex) }
+          : item,
+      ),
     }));
   };
 
-  const adicionarAnexo = (arquivo) => {
+  // Seções de conteúdo (subtítulos + imagens ao longo do módulo — diferente
+  // do vídeo, que é um único arquivo por módulo, aqui pode haver zero, uma ou
+  // várias imagens, espalhadas em vários subtítulos).
+  const adicionarSecaoModulo = (moduloIndex) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex ? { ...item, secoes: [...(item.secoes || []), { ...SECAO_MODULO_INICIAL, imagens: [] }] } : item,
+      ),
+    }));
+  };
+
+  const atualizarSecaoModulo = (moduloIndex, secaoIndex, campo, valor) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              secoes: (item.secoes || []).map((secao, idxSecao) =>
+                idxSecao === secaoIndex ? { ...secao, [campo]: valor } : secao,
+              ),
+            }
+          : item,
+      ),
+    }));
+  };
+
+  const removerSecaoModulo = (moduloIndex, secaoIndex) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex ? { ...item, secoes: (item.secoes || []).filter((_, idxSecao) => idxSecao !== secaoIndex) } : item,
+      ),
+    }));
+  };
+
+  // Cada imagem entra como { tipo: 'link', valor } ou { tipo: 'upload', file, nome } —
+  // o upload só é enviado ao servidor na publicação (mesmo padrão do vídeo do módulo,
+  // que também fica local até a trilha existir).
+  const adicionarImagemLinkSecao = (moduloIndex, secaoIndex) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              secoes: (item.secoes || []).map((secao, idxSecao) =>
+                idxSecao === secaoIndex
+                  ? { ...secao, imagens: [...(secao.imagens || []), { tipo: 'link', valor: '' }] }
+                  : secao,
+              ),
+            }
+          : item,
+      ),
+    }));
+  };
+
+  const adicionarImagemUploadSecao = (moduloIndex, secaoIndex, arquivo) => {
     if (!arquivo) return;
     setFormulario((atual) => ({
       ...atual,
-      anexosTreinamento: [...atual.anexosTreinamento, { id: gerarId(), file: arquivo, permite_download: false }],
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              secoes: (item.secoes || []).map((secao, idxSecao) =>
+                idxSecao === secaoIndex
+                  ? { ...secao, imagens: [...(secao.imagens || []), { tipo: 'upload', file: arquivo, nome: arquivo.name }] }
+                  : secao,
+              ),
+            }
+          : item,
+      ),
     }));
   };
 
-  const removerAnexo = (id) => {
-    setFormulario((atual) => ({ ...atual, anexosTreinamento: atual.anexosTreinamento.filter((item) => item.id !== id) }));
+  const atualizarImagemSecao = (moduloIndex, secaoIndex, imagemIndex, valor) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              secoes: (item.secoes || []).map((secao, idxSecao) =>
+                idxSecao === secaoIndex
+                  ? {
+                      ...secao,
+                      imagens: (secao.imagens || []).map((imagem, idxImagem) =>
+                        idxImagem === imagemIndex ? { ...imagem, valor } : imagem,
+                      ),
+                    }
+                  : secao,
+              ),
+            }
+          : item,
+      ),
+    }));
+  };
+
+  const removerImagemSecao = (moduloIndex, secaoIndex, imagemIndex) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              secoes: (item.secoes || []).map((secao, idxSecao) =>
+                idxSecao === secaoIndex
+                  ? { ...secao, imagens: (secao.imagens || []).filter((_, idxImagem) => idxImagem !== imagemIndex) }
+                  : secao,
+              ),
+            }
+          : item,
+      ),
+    }));
+  };
+
+  const adicionarAnexoModulo = (moduloIndex, arquivo) => {
+    if (!arquivo) return;
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? { ...item, anexos: [...(item.anexos || []), { id: gerarId(), file: arquivo, permite_download: false }] }
+          : item,
+      ),
+    }));
+  };
+
+  const removerAnexoModulo = (moduloIndex, anexoId) => {
+    setFormulario((atual) => ({
+      ...atual,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex ? { ...item, anexos: (item.anexos || []).filter((anexo) => anexo.id !== anexoId) } : item,
+      ),
+    }));
   };
 
   const confirmarAceiteTermo = () => {
     if (!modalTermoAberto) return;
+    const { moduloIndex, anexoId } = modalTermoAberto;
     setFormulario((atual) => ({
       ...atual,
-      anexosTreinamento: atual.anexosTreinamento.map((item) =>
-        item.id === modalTermoAberto.id ? { ...item, permite_download: true } : item,
+      itens: atual.itens.map((item, idx) =>
+        idx === moduloIndex
+          ? {
+              ...item,
+              anexos: (item.anexos || []).map((anexo) =>
+                anexo.id === anexoId ? { ...anexo, permite_download: true } : anexo,
+              ),
+            }
+          : item,
       ),
     }));
     setModalTermoAberto(null);
   };
 
-  const alternarPermiteDownloadAnexo = (item) => {
-    if (item.permite_download) {
+  const alternarPermiteDownloadAnexoModulo = (moduloIndex, anexo) => {
+    if (anexo.permite_download) {
       setFormulario((atual) => ({
         ...atual,
-        anexosTreinamento: atual.anexosTreinamento.map((anexo) =>
-          anexo.id === item.id ? { ...anexo, permite_download: false } : anexo,
+        itens: atual.itens.map((item, idx) =>
+          idx === moduloIndex
+            ? {
+                ...item,
+                anexos: (item.anexos || []).map((item2) =>
+                  item2.id === anexo.id ? { ...item2, permite_download: false } : item2,
+                ),
+              }
+            : item,
         ),
       }));
       return;
     }
-    setModalTermoAberto(item);
+    setModalTermoAberto({ moduloIndex, anexoId: anexo.id });
   };
 
   // -- Validação por etapa ---------------------------------------------------
@@ -312,7 +552,7 @@ export function TelaCriarTreinamento({ controlador }) {
       if (semData) return 'Informe a data/horário de todas as ocorrências, ou marque "sem horário definido".';
       return '';
     }
-    if (etapa === 2) {
+    if (etapa === 3) {
       const semTitulo = formulario.itens.some((item) => !item.titulo.trim());
       if (semTitulo) return 'Informe o título de todos os módulos.';
       return '';
@@ -337,6 +577,34 @@ export function TelaCriarTreinamento({ controlador }) {
 
   // -- Publicação -------------------------------------------------------------
 
+  // Imagens do tipo "upload" só viram URL depois que o módulo existe (id_item),
+  // então na criação elas entram vazias e, se houver alguma pendente, um
+  // segundo PUT finaliza a trilha já com as URLs resolvidas — mesma lógica de
+  // "sobe o binário depois de criar" já usada para vídeo/anexo, um nível mais
+  // fundo (por seção, não só por módulo).
+  const montarPayloadItem = (item, index, idItem) => ({
+    ...(idItem ? { id_item: idItem } : {}),
+    titulo: item.titulo.trim(),
+    descricao: (item.descricao || '').trim(),
+    ordem: index,
+    obrigatorio: !!item.obrigatorio,
+    tipo_conteudo: item.tipo_conteudo || '',
+    conteudo_url: (item.conteudo_url || '').trim(),
+    subtitulo: (item.subtitulo || '').trim(),
+    texto_principal: (item.texto_principal || '').trim(),
+    dica_texto: (item.dica_texto || '').trim(),
+    tabela: item.tabela,
+    saiba_mais: item.saiba_mais || [],
+    secoes: (item.secoes || []).map((secao) => ({
+      subtitulo: (secao.subtitulo || '').trim(),
+      texto: (secao.texto || '').trim(),
+      imagens: (secao.imagens || [])
+        .map((imagem) => (imagem.tipo === 'upload' ? imagem._urlResolvida : imagem.valor))
+        .map((url) => (url || '').trim())
+        .filter(Boolean),
+    })),
+  });
+
   const publicar = async () => {
     setSalvando(true);
     setErro('');
@@ -352,23 +620,7 @@ export function TelaCriarTreinamento({ controlador }) {
         local_padrao: formulario.local_padrao.trim(),
         tipo_obrigatorio: !!formulario.tipo_obrigatorio,
         texto_encerramento: formulario.texto_encerramento.trim(),
-        saiba_mais_treinamento: {
-          texto_breve: formulario.saibaMaisTreinamento.texto_breve.trim(),
-          links: formulario.saibaMaisTreinamento.links.filter((item) => item.titulo.trim() || item.url.trim()),
-        },
-        itens: formulario.itens.map((item, index) => ({
-          titulo: item.titulo.trim(),
-          descricao: (item.descricao || '').trim(),
-          ordem: index,
-          obrigatorio: !!item.obrigatorio,
-          tipo_conteudo: item.tipo_conteudo || '',
-          conteudo_url: (item.conteudo_url || '').trim(),
-          subtitulo: (item.subtitulo || '').trim(),
-          texto_principal: (item.texto_principal || '').trim(),
-          dica_texto: (item.dica_texto || '').trim(),
-          tabela: item.tabela,
-          saiba_mais: item.saiba_mais || [],
-        })),
+        itens: formulario.itens.map((item, index) => montarPayloadItem(item, index, null)),
         ocorrencias: formulario.ocorrencias.map((item) => ({
           data_prevista: item.sem_horario_definido ? null : new Date(item.data_prevista).toISOString(),
           sem_horario_definido: !!item.sem_horario_definido,
@@ -387,21 +639,58 @@ export function TelaCriarTreinamento({ controlador }) {
         await uploadSlideTreinamento(idTrilha, formulario.pptxFile);
       }
 
+      const itensAtualizados = formulario.itens.map((item) => ({
+        ...item,
+        secoes: (item.secoes || []).map((secao) => ({ ...secao, imagens: [...(secao.imagens || [])] })),
+      }));
+      let houveUploadDeImagem = false;
+
       for (let index = 0; index < formulario.itens.length; index += 1) {
         const moduloLocal = formulario.itens[index];
         const moduloCriado = itensCriados[index];
-        if (moduloLocal._videoFile && moduloCriado?.id_item) {
+        if (!moduloCriado?.id_item) continue;
+
+        if (moduloLocal._videoFile) {
           setProgressoPublicacao(`Enviando vídeo do módulo "${moduloLocal.titulo}"...`);
           await uploadVideoModulo(moduloCriado.id_item, moduloLocal._videoFile);
         }
+
+        for (const anexo of moduloLocal.anexos || []) {
+          setProgressoPublicacao(`Enviando anexo "${anexo.file.name}" (${moduloLocal.titulo})...`);
+          const resultadoAnexo = await uploadAnexoTreinamento(idTrilha, anexo.file, moduloCriado.id_item);
+          if (anexo.permite_download && resultadoAnexo?.id_anexo) {
+            await alternarDownloadAnexo(resultadoAnexo.id_anexo, { permite_download: true, termo_aceito: true });
+          }
+        }
+
+        const secoesModulo = moduloLocal.secoes || [];
+        for (let s = 0; s < secoesModulo.length; s += 1) {
+          const imagensSecao = secoesModulo[s].imagens || [];
+          for (let i = 0; i < imagensSecao.length; i += 1) {
+            const imagem = imagensSecao[i];
+            if (imagem.tipo !== 'upload' || !imagem.file) continue;
+            setProgressoPublicacao(`Enviando imagem "${imagem.nome}" (${moduloLocal.titulo})...`);
+            const resultadoImagem = await uploadImagemSecaoModulo(moduloCriado.id_item, imagem.file);
+            itensAtualizados[index].secoes[s].imagens[i] = { ...imagem, _urlResolvida: resultadoImagem.url };
+            houveUploadDeImagem = true;
+          }
+        }
       }
 
-      for (const anexo of formulario.anexosTreinamento) {
-        setProgressoPublicacao(`Enviando anexo "${anexo.file.name}"...`);
-        const resultadoAnexo = await uploadAnexoTreinamento(idTrilha, anexo.file, 0);
-        if (anexo.permite_download && resultadoAnexo?.id_anexo) {
-          await alternarDownloadAnexo(resultadoAnexo.id_anexo, { permite_download: true, termo_aceito: true });
-        }
+      if (houveUploadDeImagem) {
+        setProgressoPublicacao('Salvando imagens dos módulos...');
+        await atualizarTrilhaOnboarding(idTrilha, {
+          nome: formulario.nome.trim(),
+          descricao: formulario.descricao.trim(),
+          ativo: true,
+          categoria: formulario.categoria,
+          id_operacao: formulario.id_operacao ? Number(formulario.id_operacao) : null,
+          modalidade: formulario.modalidade,
+          local_padrao: formulario.local_padrao.trim(),
+          tipo_obrigatorio: !!formulario.tipo_obrigatorio,
+          texto_encerramento: formulario.texto_encerramento.trim(),
+          itens: itensAtualizados.map((item, index) => montarPayloadItem(item, index, itensCriados[index]?.id_item)),
+        });
       }
 
       controlador.irParaTelaProtegida('screen-training-trilhas');
@@ -633,6 +922,169 @@ export function TelaCriarTreinamento({ controlador }) {
         <span>Bloco "Dica" (opcional)</span>
         <textarea rows="2" value=${modulo.dica_texto} onInput=${(event) => atualizarModulo(index, 'dica_texto', event.target.value)}></textarea>
       </label>
+
+      <div class="mb-2">
+        <span class="d-block mb-1 small text-muted">
+          Seções de conteúdo (subtítulos ao longo do módulo, cada um com zero, uma ou várias imagens — opcional)
+        </span>
+        ${(modulo.secoes || []).map(
+          (secao, secaoIndex) => html`
+            <div key=${secaoIndex} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '10px' }}>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <input
+                  class="form-control form-control-sm"
+                  style=${{ maxWidth: '70%' }}
+                  placeholder="Subtítulo desta seção"
+                  value=${secao.subtitulo}
+                  onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'subtitulo', event.target.value)}
+                />
+                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerSecaoModulo(index, secaoIndex)}>
+                  <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                  Remover seção
+                </button>
+              </div>
+              <textarea
+                class="form-control form-control-sm mb-2"
+                rows="2"
+                placeholder="Texto desta seção"
+                value=${secao.texto}
+                onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'texto', event.target.value)}
+              ></textarea>
+              <span class="d-block mb-1 small text-muted">Imagens desta seção (opcional — link ou upload)</span>
+              ${(secao.imagens || []).map(
+                (imagem, imagemIndex) => html`
+                  <div key=${imagemIndex} class="d-flex gap-2 mb-1 align-items-center">
+                    ${imagem.tipo === 'upload'
+                      ? html`
+                          <span class="form-control form-control-sm d-flex align-items-center gap-1 text-truncate">
+                            <span class="material-symbols-outlined" style=${{ fontSize: '16px' }}>${IconeSvg('image')}</span>
+                            ${imagem.nome}
+                          </span>
+                        `
+                      : html`
+                          <input
+                            class="form-control form-control-sm"
+                            placeholder="Ex.: https://exemplo.sharepoint.com/imagem.png"
+                            value=${imagem.valor}
+                            onInput=${(event) => atualizarImagemSecao(index, secaoIndex, imagemIndex, event.target.value)}
+                          />
+                        `}
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      onClick=${() => removerImagemSecao(index, secaoIndex, imagemIndex)}
+                    >
+                      <span class="material-symbols-outlined">${IconeSvg('close')}</span>
+                    </button>
+                  </div>
+                `,
+              )}
+              <div class="d-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  onClick=${() => adicionarImagemLinkSecao(index, secaoIndex)}
+                >
+                  <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+                  Adicionar link de imagem
+                </button>
+                <label class="btn btn-outline-secondary btn-sm mb-0">
+                  <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+                  Enviar imagem do computador
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    style=${{ display: 'none' }}
+                    onChange=${(event) => {
+                      adicionarImagemUploadSecao(index, secaoIndex, event.target.files?.[0]);
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          `,
+        )}
+        <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => adicionarSecaoModulo(index)}>
+          <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+          Adicionar seção
+        </button>
+      </div>
+
+      <div class="mb-2">
+        <span class="d-block mb-1 small text-muted">Saiba + (dicas e links externos do módulo)</span>
+        ${(modulo.saiba_mais || []).map(
+          (entrada, entradaIndex) => html`
+            <div key=${entradaIndex} class="row g-2 mb-1 align-items-center">
+              <div class="col-md-2">
+                <select
+                  class="form-select form-select-sm"
+                  value=${entrada.tipo}
+                  onChange=${(event) => atualizarSaibaMaisModulo(index, entradaIndex, 'tipo', event.target.value)}
+                >
+                  <option value="dica">Dica</option>
+                  <option value="link">Link</option>
+                </select>
+              </div>
+              <div class=${entrada.tipo === 'link' ? 'col-md-4' : 'col-md-9'}>
+                <input
+                  class="form-control form-control-sm"
+                  placeholder=${entrada.tipo === 'link' ? 'Título do link' : 'Texto da dica'}
+                  value=${entrada.texto}
+                  onInput=${(event) => atualizarSaibaMaisModulo(index, entradaIndex, 'texto', event.target.value)}
+                />
+              </div>
+              ${entrada.tipo === 'link'
+                ? html`
+                    <div class="col-md-5">
+                      <input
+                        class="form-control form-control-sm"
+                        placeholder="URL"
+                        value=${entrada.url}
+                        onInput=${(event) => atualizarSaibaMaisModulo(index, entradaIndex, 'url', event.target.value)}
+                      />
+                    </div>
+                  `
+                : null}
+              <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerSaibaMaisModulo(index, entradaIndex)}>
+                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
+                </button>
+              </div>
+            </div>
+          `,
+        )}
+        <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => adicionarSaibaMaisModulo(index)}>
+          <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+          Adicionar item Saiba +
+        </button>
+      </div>
+
+      <div class="mb-2">
+        <span class="d-block mb-1 small text-muted">Documentos anexos do módulo (opcional)</span>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          onChange=${(event) => { adicionarAnexoModulo(index, event.target.files?.[0]); event.target.value = ''; }}
+        />
+        ${(modulo.anexos || []).map(
+          (anexo) => html`
+            <div key=${anexo.id} class="d-flex align-items-center justify-content-between mt-2 p-2 rh-section-card rh-section-card--flat">
+              <span class="small">${anexo.file.name}</span>
+              <div class="d-flex align-items-center gap-2">
+                <label class="d-flex align-items-center gap-1 mb-0 small">
+                  <input type="checkbox" checked=${anexo.permite_download} onChange=${() => alternarPermiteDownloadAnexoModulo(index, anexo)} />
+                  Permitir download pelo aluno
+                </label>
+                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerAnexoModulo(index, anexo.id)}>
+                  <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                </button>
+              </div>
+            </div>
+          `,
+        )}
+      </div>
+
       <div class="d-flex align-items-center justify-content-between">
         <label class="d-flex align-items-center gap-2 mb-0">
           <input type="checkbox" checked=${modulo.obrigatorio} onChange=${(event) => atualizarModulo(index, 'obrigatorio', !!event.target.checked)} />
@@ -657,6 +1109,54 @@ export function TelaCriarTreinamento({ controlador }) {
   const renderEtapa2 = () => html`
     <section class="process-create-card">
       <div class="process-create-section-title">
+        <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+        <h2>Como montar o treinamento?</h2>
+      </div>
+      <p class="text-muted small">
+        Escolha entre importar o treinamento completo (todos os módulos de uma vez) via um arquivo JSON, ou montar os
+        módulos manualmente na próxima etapa.
+      </p>
+      <div class="process-create-choice-grid">
+        <div class="process-create-choice-card">
+          <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+          <h3>Adicionar treinamento completo via JSON</h3>
+          <p class="text-muted small">
+            Suba um arquivo com todos os módulos do treinamento de uma vez só. Baixe o molde para ver o formato esperado.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <label class="btn btn-primary btn-sm mb-0">
+              <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+              ${importandoTreinamento ? 'Importando...' : 'Importar JSON'}
+              <input
+                type="file"
+                accept="application/json"
+                style=${{ display: 'none' }}
+                disabled=${importandoTreinamento}
+                onChange=${handleUploadJsonTreinamentoCompleto}
+              />
+            </label>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${handleBaixarModeloTreinamentoCompleto}>
+              <span class="material-symbols-outlined">${IconeSvg('download')}</span>
+              Baixar molde
+            </button>
+          </div>
+        </div>
+        <div class="process-create-choice-card">
+          <span class="material-symbols-outlined">${IconeSvg('edit_note')}</span>
+          <h3>Criar manualmente</h3>
+          <p class="text-muted small">Monte os módulos um a um, com todos os campos disponíveis para preencher na tela.</p>
+          <button type="button" class="btn btn-primary btn-sm" onClick=${() => setEtapaAtual(3)}>
+            <span class="material-symbols-outlined">${IconeSvg('arrow_forward')}</span>
+            Criar módulos manualmente
+          </button>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const renderEtapa3 = () => html`
+    <section class="process-create-card">
+      <div class="process-create-section-title">
         <span class="material-symbols-outlined">${IconeSvg('view_module')}</span>
         <h2>Módulos do treinamento</h2>
       </div>
@@ -679,7 +1179,7 @@ export function TelaCriarTreinamento({ controlador }) {
     </section>
   `;
 
-  const renderEtapa3 = () => html`
+  const renderEtapa4 = () => html`
     <section class="process-create-card">
       <div class="process-create-section-title">
         <span class="material-symbols-outlined">${IconeSvg('slideshow')}</span>
@@ -694,65 +1194,6 @@ export function TelaCriarTreinamento({ controlador }) {
         onChange=${(event) => atualizarCampo('pptxFile', event.target.files?.[0] || null)}
       />
       ${formulario.pptxFile ? html`<p class="mt-2"><strong>${formulario.pptxFile.name}</strong></p>` : null}
-    </section>
-  `;
-
-  const renderEtapa4 = () => html`
-    <section class="process-create-card">
-      <div class="process-create-section-title">
-        <span class="material-symbols-outlined">${IconeSvg('info')}</span>
-        <h2>Aba "Saiba +"</h2>
-      </div>
-      <label class="process-create-field mb-2">
-        <span>Texto livre breve</span>
-        <textarea rows="2" value=${formulario.saibaMaisTreinamento.texto_breve} onInput=${(event) => atualizarSaibaMaisTreinamento('texto_breve', event.target.value)}></textarea>
-      </label>
-
-      <div class="mb-3">
-        <span class="d-block mb-1">Links externos</span>
-        ${formulario.saibaMaisTreinamento.links.map(
-          (link, index) => html`
-            <div key=${index} class="row g-2 mb-1">
-              <div class="col-md-5">
-                <input class="form-control" placeholder="Título" value=${link.titulo} onInput=${(event) => atualizarLinkSaibaMais(index, 'titulo', event.target.value)} />
-              </div>
-              <div class="col-md-6">
-                <input class="form-control" placeholder="URL" value=${link.url} onInput=${(event) => atualizarLinkSaibaMais(index, 'url', event.target.value)} />
-              </div>
-              <div class="col-md-1">
-                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerLinkSaibaMais(index)}>
-                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
-                </button>
-              </div>
-            </div>
-          `,
-        )}
-        <button type="button" class="btn btn-outline-primary btn-sm" onClick=${adicionarLinkSaibaMais}>
-          <span class="material-symbols-outlined">${IconeSvg('add')}</span>
-          Adicionar link
-        </button>
-      </div>
-
-      <div>
-        <span class="d-block mb-1">Documentos anexos</span>
-        <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange=${(event) => { adicionarAnexo(event.target.files?.[0]); event.target.value = ''; }} />
-        ${formulario.anexosTreinamento.map(
-          (anexo) => html`
-            <div key=${anexo.id} class="d-flex align-items-center justify-content-between mt-2 p-2 rh-section-card rh-section-card--flat">
-              <span>${anexo.file.name}</span>
-              <div class="d-flex align-items-center gap-2">
-                <label class="d-flex align-items-center gap-1 mb-0 small">
-                  <input type="checkbox" checked=${anexo.permite_download} onChange=${() => alternarPermiteDownloadAnexo(anexo)} />
-                  Permitir download pelo aluno
-                </label>
-                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerAnexo(anexo.id)}>
-                  <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
-                </button>
-              </div>
-            </div>
-          `,
-        )}
-      </div>
     </section>
   `;
 
@@ -789,7 +1230,19 @@ export function TelaCriarTreinamento({ controlador }) {
           ['Participantes', String(formulario.participantes.length)],
           ['Módulos', String(formulario.itens.length)],
           ['Slide (.pptx)', formulario.pptxFile ? formulario.pptxFile.name : 'Não enviado'],
-          ['Documentos Saiba+', String(formulario.anexosTreinamento.length)],
+          [
+            'Documentos anexos (por módulo)',
+            String(formulario.itens.reduce((total, item) => total + (item.anexos?.length || 0), 0)),
+          ],
+          [
+            'Imagens (por módulo)',
+            String(
+              formulario.itens.reduce(
+                (total, item) => total + (item.secoes || []).reduce((sub, secao) => sub + (secao.imagens?.length || 0), 0),
+                0,
+              ),
+            ),
+          ],
         ].map(
           ([label, value]) => html`
             <span key=${label}>

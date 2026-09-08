@@ -228,7 +228,7 @@ margin-bottom: 0.28rem;
 
 .btn-outline-secondary {
     border-color: var(--color-border-strong);
-    color: #0f5be8;
+    color: var(--color-primary);
 }
 
 .btn-outline-secondary:hover,
@@ -239,16 +239,16 @@ margin-bottom: 0.28rem;
 }
 
 .btn-outline-secondary-avr {
-   border-color: #0f5be8;
+   border-color: var(--color-primary);
     background: var(--color-surface);
-    color: #0f5be8;
+    color: var(--color-primary);
 }
 
 .btn-outline-secondary-avr:hover,
 .btn-outline-secondary-avr:focus {
   border-color:  white;
   color:  white;
-  background:  #0f5be8;
+  background:  var(--color-primary);
 }
 
 .rh-inline-alert,
@@ -331,7 +331,7 @@ margin-bottom: 0.28rem;
 .rh-status-pill,
 .process-candidate-status-badge {
   color: var(--color-text-soft);
-  background: #eef3f9;
+  background: var(--color-surface-strong);
 }
 
 .rh-status-pill.is-finished,
@@ -356,7 +356,6 @@ margin-bottom: 0.28rem;
   background: #fff0bf;
 }
 
-.rh-status-pill.is-confirmed,
 .rh-status-pill.is-scheduled,
 .process-candidate-status-badge.is-scheduled {
   color: #6f42c1;

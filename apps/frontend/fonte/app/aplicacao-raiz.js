@@ -83,7 +83,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260904-identidade-conecta');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260908-correcoes-ambiente');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260904-identidade-conecta');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -111,7 +111,7 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/configuracoes/index.js?v=20260908-correcoes-ambiente'),
   'TelaConfiguracoesSistema',
 );
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260904-identidade-conecta'), 'TelaCalendario');
@@ -127,11 +127,11 @@ const TelaTemplatesDocumentos = carregarTela(
   'TelaTemplatesDocumentos',
 );
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20260906-central-treinamentos'),
+  () => import('../features/treinamentos/index.js?v=20260908-modulo-secoes-imagens'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
-  () => import('../features/treinamentos/wizard.js?v=20260906-central-treinamentos'),
+  () => import('../features/treinamentos/wizard.js?v=20260908-imagens-link-upload'),
   'TelaCriarTreinamento',
 );
 const TelaProvasConfiguracao = carregarTela(
@@ -139,8 +139,12 @@ const TelaProvasConfiguracao = carregarTela(
   'TelaProvasConfiguracao',
 );
 const TelaAdministracao = carregarTela(
-  () => import('../features/administracao/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/administracao/index.js?v=20260908-correcoes-ambiente'),
   'TelaAdministracao',
+);
+const TelaNovoAmbienteSharePoint = carregarTela(
+  () => import('../features/administracao/novo-ambiente.js?v=20260908-correcoes-ambiente'),
+  'TelaNovoAmbienteSharePoint',
 );
 const importarDisc = () => import('../features/disc/index.js?v=20260904-identidade-conecta');
 const importarFitCultural = () => import('../features/fit-cultural/index.js?v=20260904-identidade-conecta');
@@ -459,6 +463,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-settings-administracao') {
     return html`<${TelaAdministracao} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-sharepoint-ambiente') {
+    return html`<${TelaNovoAmbienteSharePoint} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-process-analytical-results') {

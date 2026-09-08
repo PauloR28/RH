@@ -45,6 +45,7 @@ _TRILHA_ITEM_COLUMNS = """
     tabela_json,
     dica_texto,
     saiba_mais_itens_json,
+    secoes_json,
     criado_em
 """
 
@@ -88,6 +89,7 @@ def _decorate_trilha_item(item: dict) -> dict:
     API sempre devolver estruturas prontas em vez de string crua."""
     item["tabela"] = _parse_json(item.pop("tabela_json", None))
     item["saiba_mais"] = _parse_json(item.pop("saiba_mais_itens_json", None)) or []
+    item["secoes"] = _parse_json(item.pop("secoes_json", None)) or []
     return item
 
 
@@ -339,6 +341,7 @@ class OnboardingRepositoryMixin:
                     "dica_texto": normalize_text(item.get("dica_texto")),
                     "tabela_json": _dump_json(item.get("tabela")),
                     "saiba_mais_itens_json": _dump_json(item.get("saiba_mais")),
+                    "secoes_json": _dump_json(item.get("secoes")),
                 }
             )
         return (
@@ -408,8 +411,8 @@ class OnboardingRepositoryMixin:
                     """
                     INSERT INTO trilhas_onboarding_itens
                     (trilha_id, titulo, descricao, ordem, obrigatorio, tipo_conteudo, conteudo_url,
-                     subtitulo, texto_principal, dica_texto, tabela_json, saiba_mais_itens_json, criado_em)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+                     subtitulo, texto_principal, dica_texto, tabela_json, saiba_mais_itens_json, secoes_json, criado_em)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
                     """,
                     (
                         id_trilha,
@@ -424,6 +427,7 @@ class OnboardingRepositoryMixin:
                         item["dica_texto"],
                         item["tabela_json"],
                         item["saiba_mais_itens_json"],
+                        item["secoes_json"],
                     ),
                 )
             conn.commit()
@@ -499,7 +503,7 @@ class OnboardingRepositoryMixin:
                         UPDATE trilhas_onboarding_itens
                         SET titulo = ?, descricao = ?, ordem = ?, obrigatorio = ?, tipo_conteudo = ?,
                             conteudo_url = ?, subtitulo = ?, texto_principal = ?, dica_texto = ?,
-                            tabela_json = ?, saiba_mais_itens_json = ?
+                            tabela_json = ?, saiba_mais_itens_json = ?, secoes_json = ?
                         WHERE id_item = ? AND trilha_id = ?
                         """,
                         (
@@ -514,6 +518,7 @@ class OnboardingRepositoryMixin:
                             item["dica_texto"],
                             item["tabela_json"],
                             item["saiba_mais_itens_json"],
+                            item["secoes_json"],
                             id_item,
                             int(id_trilha or 0),
                         ),
@@ -524,8 +529,8 @@ class OnboardingRepositoryMixin:
                         """
                         INSERT INTO trilhas_onboarding_itens
                         (trilha_id, titulo, descricao, ordem, obrigatorio, tipo_conteudo, conteudo_url,
-                         subtitulo, texto_principal, dica_texto, tabela_json, saiba_mais_itens_json, criado_em)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+                         subtitulo, texto_principal, dica_texto, tabela_json, saiba_mais_itens_json, secoes_json, criado_em)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
                         """,
                         (
                             int(id_trilha or 0),
@@ -540,6 +545,7 @@ class OnboardingRepositoryMixin:
                             item["dica_texto"],
                             item["tabela_json"],
                             item["saiba_mais_itens_json"],
+                            item["secoes_json"],
                         ),
                     )
 

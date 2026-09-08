@@ -52,6 +52,7 @@
   --transition-sm: 160ms ease;
   --transition-md: 180ms ease;
   --transition-lg: 200ms ease;
+  --ring-primary: 0 0 0 0.18rem rgba(15, 91, 232, 0.14);
 }
 
 @media (prefers-reduced-motion: reduce) {

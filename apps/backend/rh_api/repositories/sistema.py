@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException, status
 
 from ..auth import AuthenticatedUser
 from ..rbac import ROLE_ADMIN, SETTINGS_CATALOGS
+from ..services.graph_client import GraphClient, GraphClientError
 from ..services.helpers import normalize_text, rows_to_dicts
-from .bootstrap import RESET_FLAG_KEY, ensure_parametros_sistema_table
+from .bootstrap import (
+    RESET_FLAG_KEY,
+    ensure_ambientes_sharepoint_table,
+    ensure_parametros_sistema_table,
+)
 
 
 RESET_CONFIRMATION_PHRASE = "LIMPAR CONECTA"
@@ -76,6 +82,7 @@ _RESET_TABLE_ORDER: tuple[str, ...] = (
     "politicas",
     "templates_documentos",
     "usuarios_operacoes",
+    "ambientes_sharepoint",
     "operacoes",
 )
 
@@ -189,6 +196,9 @@ class SistemaRepositoryMixin:
         senha_smtp_configurada = bool(
             settings.email_smtp_password_env and os.getenv(settings.email_smtp_password_env)
         )
+        secret_inbox_configurado = bool(
+            settings.email_inbox_client_secret_env and os.getenv(settings.email_inbox_client_secret_env)
+        )
         return {
             "sharepoint": {
                 "tenant_id": _mask_tail(settings.sharepoint_tenant_id),
@@ -204,8 +214,204 @@ class SistemaRepositoryMixin:
                 "usuario": _mask_tail(settings.email_smtp_username, keep=3),
                 "senha_configurada": senha_smtp_configurada,
                 "remetente": settings.email_smtp_from,
+                "usa_tls": bool(settings.email_smtp_use_tls),
+                "usa_ssl": bool(settings.email_smtp_use_ssl),
+            },
+            "email_inbox": {
+                "habilitado": bool(settings.email_inbox_enabled),
+                "protocolo": settings.email_inbox_protocol,
+                "provedor": settings.email_inbox_provider,
+                "endereco": _mask_tail(settings.email_inbox_address, keep=6),
+                "caixa": settings.email_inbox_mailbox,
+                "tenant_id": _mask_tail(settings.email_inbox_tenant_id),
+                "client_id": _mask_tail(settings.email_inbox_client_id),
+                "client_secret_configurado": secret_inbox_configurado,
             },
         }
+
+    def list_ambientes_sharepoint(self) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_ambientes_sharepoint_table(cursor)
+            cursor.execute(
+                """
+                SELECT a.id_ambiente, a.nome, a.operacao_id, o.nome AS operacao_nome,
+                       a.site_url, a.hostname, a.site_path, a.site_id, a.biblioteca_destino,
+                       a.status, a.ultima_mensagem_teste, a.testado_em,
+                       a.criado_por, a.criado_em, a.atualizado_por, a.atualizado_em
+                FROM dbo.ambientes_sharepoint a
+                LEFT JOIN dbo.operacoes o ON o.id_item = a.operacao_id
+                WHERE a.ativo = 1
+                ORDER BY a.criado_em DESC
+                """
+            )
+            return {"itens": rows_to_dicts(cursor, cursor.fetchall())}
+        finally:
+            conn.close()
+
+    def _parse_sharepoint_site_url(self, site_url: str) -> tuple[str, str]:
+        partes = urlsplit(site_url if "://" in site_url else f"https://{site_url}")
+        hostname = normalize_text(partes.netloc)
+        caminho = normalize_text(partes.path).rstrip("/")
+        if not hostname or not caminho:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe a URL completa do site do SharePoint, ex.: https://suaempresa.sharepoint.com/sites/NomeDoSite.",
+            )
+        return hostname, caminho
+
+    def criar_ambiente_sharepoint(
+        self,
+        data: dict,
+        *,
+        actor: AuthenticatedUser | dict | None = None,
+    ) -> dict:
+        nome = normalize_text(data.get("nome"))
+        site_url = normalize_text(data.get("site_url"))
+        if not nome or not site_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe o nome do ambiente e a URL do site do SharePoint.",
+            )
+        hostname, site_path = self._parse_sharepoint_site_url(site_url)
+        operacao_id = data.get("operacao_id") or None
+        biblioteca_destino = normalize_text(data.get("biblioteca_destino"))
+        nome_ator = _nome_ator(actor)
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_ambientes_sharepoint_table(cursor)
+            cursor.execute(
+                """
+                INSERT INTO dbo.ambientes_sharepoint
+                    (nome, operacao_id, site_url, hostname, site_path, biblioteca_destino,
+                     status, criado_por, atualizado_por, criado_em, atualizado_em)
+                OUTPUT INSERTED.id_ambiente
+                VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?, ?, GETDATE(), GETDATE())
+                """,
+                (nome, operacao_id, site_url, hostname, site_path, biblioteca_destino, nome_ator, nome_ator),
+            )
+            id_ambiente = int(cursor.fetchone()[0])
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Administração",
+                acao="criar_ambiente_sharepoint",
+                entidade="ambientes_sharepoint",
+                entidade_id=str(id_ambiente),
+                valor_anterior=None,
+                valor_novo={"nome": nome, "site_url": site_url, "operacao_id": operacao_id},
+                sucesso=True,
+            )
+            conn.commit()
+            return {"success": True, "id_ambiente": id_ambiente}
+        finally:
+            conn.close()
+
+    def testar_ambiente_sharepoint(
+        self,
+        id_ambiente: int,
+        *,
+        actor: AuthenticatedUser | dict | None = None,
+    ) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_ambientes_sharepoint_table(cursor)
+            cursor.execute(
+                "SELECT hostname, site_path FROM dbo.ambientes_sharepoint WHERE id_ambiente = ? AND ativo = 1",
+                (id_ambiente,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado.")
+            hostname, site_path = row[0], row[1]
+
+            settings = self.settings
+            client = GraphClient(
+                tenant_id=settings.sharepoint_tenant_id,
+                client_id=settings.sharepoint_client_id,
+                client_secret=settings.sharepoint_client_secret,
+                scope=settings.sharepoint_scope,
+                base_url=settings.sharepoint_graph_base_url,
+                unconfigured_message=(
+                    "As credenciais do aplicativo Microsoft (tenant/client/secret) ainda não "
+                    "foram configuradas no servidor — fale com o time de tecnologia antes de "
+                    "adicionar ambientes."
+                ),
+            )
+
+            status_novo = "erro"
+            mensagem = ""
+            site_id = None
+            try:
+                resultado = client.get_json(f"sites/{hostname}:{site_path}")
+                site_id = normalize_text(resultado.get("id"))
+                if site_id:
+                    status_novo = "conectado"
+                    mensagem = "Conexão validada com sucesso."
+                else:
+                    mensagem = "O Microsoft Graph respondeu, mas não retornou o identificador do site."
+            except GraphClientError as exc:
+                mensagem = normalize_text(exc.detail) or "Não foi possível validar a conexão com este site."
+
+            nome_ator = _nome_ator(actor)
+            cursor.execute(
+                """
+                UPDATE dbo.ambientes_sharepoint
+                SET status = ?, site_id = ?, ultima_mensagem_teste = ?, testado_em = GETDATE(),
+                    atualizado_por = ?, atualizado_em = GETDATE()
+                WHERE id_ambiente = ?
+                """,
+                (status_novo, site_id, mensagem, nome_ator, id_ambiente),
+            )
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Administração",
+                acao="testar_ambiente_sharepoint",
+                entidade="ambientes_sharepoint",
+                entidade_id=str(id_ambiente),
+                valor_anterior=None,
+                valor_novo={"status": status_novo},
+                sucesso=status_novo == "conectado",
+            )
+            conn.commit()
+            return {"success": status_novo == "conectado", "status": status_novo, "mensagem": mensagem}
+        finally:
+            conn.close()
+
+    def excluir_ambiente_sharepoint(
+        self,
+        id_ambiente: int,
+        *,
+        actor: AuthenticatedUser | dict | None = None,
+        justificativa: str = "",
+    ) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_ambientes_sharepoint_table(cursor)
+            cursor.execute(
+                "UPDATE dbo.ambientes_sharepoint SET ativo = 0, atualizado_em = GETDATE() WHERE id_ambiente = ?",
+                (id_ambiente,),
+            )
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Administração",
+                acao="remover_ambiente_sharepoint",
+                entidade="ambientes_sharepoint",
+                entidade_id=str(id_ambiente),
+                justificativa=normalize_text(justificativa),
+                sucesso=True,
+            )
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
 
     def resetar_dados_conecta(
         self,

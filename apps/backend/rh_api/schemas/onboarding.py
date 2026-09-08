@@ -47,6 +47,26 @@ class SaibaMaisTreinamentoInput(BaseSchema):
     links: list[LinkExternoInput] = []
 
 
+class SecaoModuloInput(BaseSchema):
+    """Bloco de conteúdo dentro do módulo: um subtítulo com seu texto e, opcionalmente,
+    uma ou mais imagens — ao contrário do vídeo (um por módulo), o módulo pode ter
+    nenhuma, uma ou várias imagens, distribuídas em vários subtítulos ao longo do
+    conteúdo (Correções.txt, rodada de 08/set/2026)."""
+
+    subtitulo: str = ""
+    texto: str = ""
+    imagens: list[str] = []
+
+    @field_validator("imagens")
+    @classmethod
+    def validate_imagens(cls, value: list[str]) -> list[str]:
+        safe_urls = [str(item or "").strip() for item in (value or [])]
+        safe_urls = [item for item in safe_urls if item]
+        if len(safe_urls) > 20:
+            raise ValueError("Limite de 20 imagens por seção do módulo.")
+        return safe_urls
+
+
 class OnboardingTrilhaItemInput(BaseSchema):
     id_item: int | None = None
     titulo: str = ""
@@ -62,6 +82,10 @@ class OnboardingTrilhaItemInput(BaseSchema):
     tabela: TabelaModuloInput | None = None
     dica_texto: str = ""
     saiba_mais: list[SaibaMaisItemInput] = []
+    # Correções.txt (rodada de 08/set/2026): imagens do módulo — zero, uma ou
+    # várias, distribuídas em vários subtítulos ao longo do conteúdo (não um
+    # único anexo no final, como o vídeo).
+    secoes: list[SecaoModuloInput] = []
 
     @field_validator("titulo")
     @classmethod

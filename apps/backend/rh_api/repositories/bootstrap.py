@@ -446,6 +446,42 @@ def ensure_parametros_sistema_table(cursor) -> None:
     )
 
 
+def ensure_ambientes_sharepoint_table(cursor) -> None:
+    """Correcoes.txt (08/set/2026): cada "ambiente" liga uma intranet
+    (site SharePoint) de uma operação ao Conecta, para uso restrito ao Mural
+    (publicações simultâneas). Substitui o uso do "Novo parâmetro" genérico
+    para SharePoint por uma entidade própria — a conexão exige mais campos
+    (operação, URL do site, biblioteca de destino) do que uma chave/valor
+    solta permitiria. As credenciais do app Microsoft (tenant/client/secret)
+    continuam únicas e compartilhadas, vindas do .env (ver Settings.sharepoint_*).
+    """
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.ambientes_sharepoint', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.ambientes_sharepoint (
+                id_ambiente INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                nome NVARCHAR(180) NOT NULL,
+                operacao_id INT NULL,
+                site_url NVARCHAR(500) NOT NULL,
+                hostname NVARCHAR(255) NULL,
+                site_path NVARCHAR(255) NULL,
+                site_id NVARCHAR(255) NULL,
+                biblioteca_destino NVARCHAR(255) NULL,
+                status NVARCHAR(30) NOT NULL CONSTRAINT DF_ambientes_sharepoint_status DEFAULT 'pendente',
+                ultima_mensagem_teste NVARCHAR(500) NULL,
+                testado_em DATETIME NULL,
+                ativo BIT NOT NULL CONSTRAINT DF_ambientes_sharepoint_ativo DEFAULT 1,
+                criado_por NVARCHAR(180) NULL,
+                atualizado_por NVARCHAR(180) NULL,
+                criado_em DATETIME NOT NULL CONSTRAINT DF_ambientes_sharepoint_criado_em DEFAULT GETDATE(),
+                atualizado_em DATETIME NOT NULL CONSTRAINT DF_ambientes_sharepoint_atualizado_em DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+
+
 def conecta_reset_flag_ativo(cursor) -> bool:
     """True quando "Limpar o Conecta" já zerou os dados operacionais — os
     seeds padrão (ensure_operacoes_seed, trilha de onboarding, DISC, valores
@@ -1928,6 +1964,9 @@ def ensure_onboarding_tables(cursor) -> None:
         ("tabela_json", "NVARCHAR(MAX)"),
         ("dica_texto", "NVARCHAR(MAX)"),
         ("saiba_mais_itens_json", "NVARCHAR(MAX)"),
+        # Correções.txt (rodada de 08/set/2026): imagens do módulo — zero, uma
+        # ou várias, distribuídas em vários subtítulos ao longo do conteúdo.
+        ("secoes_json", "NVARCHAR(MAX)"),
     ):
         cursor.execute(
             f"""
@@ -3340,6 +3379,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_security_tables(cursor, settings)
             ensure_reusable_config_tables(cursor)
             ensure_parametros_sistema_table(cursor)
+            ensure_ambientes_sharepoint_table(cursor)
             ensure_operacoes_seed(cursor)
             ensure_user_operacoes_table(cursor)
             ensure_email_change_requests_table(cursor)

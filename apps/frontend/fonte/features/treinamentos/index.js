@@ -257,12 +257,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   // -- Trilhas -----------------------------------------------------------
 
-  const abrirNovaTrilha = () => {
-    setFormTrilha({ ...FORM_TRILHA_INICIAL, itens: [{ ...ITEM_INICIAL }] });
-    setErroTrilha('');
-    setModalTrilhaAberto(true);
-  };
-
   const abrirEdicaoTrilha = (trilha) => {
     let slides = [];
     try {
@@ -936,9 +930,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
             `
       : null}
       `}
-      acaoPrimaria=${abaAtiva === 'trilhas'
-      ? { label: 'Novo treinamento', icon: 'add', onClick: abrirNovaTrilha, permissao: 'onboarding.editar' }
-      : null}
     >
       <${PageIntro}
         kicker="Processos"

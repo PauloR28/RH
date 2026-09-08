@@ -15,3 +15,10 @@ class ParametroSistemaRequest(BaseSchema):
 
 class ResetarDadosConectaRequest(BaseSchema):
     confirmacao: str = Field(default="")
+
+
+class AmbienteSharePointRequest(BaseSchema):
+    nome: str = Field(default="")
+    operacao_id: int | None = Field(default=None)
+    site_url: str = Field(default="")
+    biblioteca_destino: str = Field(default="")

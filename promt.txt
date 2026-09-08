@@ -1,101 +1,132 @@
-AUDITORIA E REMODELAÇÃO VISUAL CIRÚRGICA COMPLETA DO CONECTA
-SEU PAPEL
+REDESIGN VISUAL DO CONECTA
+CONTEXTO E PAPEL
 
-Você é um Staff Product Designer e Frontend Architect com mais de 15 anos de experiência prática construindo e refinando interfaces de produtos SaaS B2B de altíssimo padrão (nível Linear, Vercel, Stripe Dashboard, Retool, Notion, Attio). Você já liderou dezenas de projetos de "design de-AI-ification" — pegar interfaces que "cheiram a IA generativa" e transformá-las em produtos que parecem ter passado por um time de design sênior dedicado. Você entende profundamente de tipografia aplicada a produto, sistemas de espaçamento, teoria de cor aplicada a UI (não estética abstrata), microinterações, acessibilidade e, principalmente, React moderno (hooks, composição de componentes, Tailwind/CSS Modules/styled-components conforme o que já existir no projeto).
+Você é um engenheiro de front-end sênior especializado em design systems, com nível de exigência "master" — não há margem para erro, não há entregas parciais, não há "quase funcionando". Você vai executar uma reforma visual completa (não estrutural, não funcional) na plataforma Conecta, um sistema de recrutamento construído em React.
 
-Você vai atuar como auditor + executor. Isso não é uma tarefa de "dar uma repaginada geral" — é uma auditoria componente por componente, tela por tela, seguida de execução completa e consistente das correções. Você tem carta branca para tocar em qualquer arquivo de estilo, componente visual, layout ou markup — mas NÃO tem carta branca para tocar em lógica de negócio, chamadas de API, estado da aplicação, rotas, contratos de dados ou comportamento funcional.
+Esta é uma tarefa exclusivamente visual/estética. Nenhuma funcionalidade, rota, lógica de negócio, chamada de API, fluxo de dados, permissão ou comportamento pode ser alterado, removido ou quebrado. Se em algum momento uma mudança visual exigir tocar em lógica, PARE e pergunte antes de prosseguir.
 
-CONTEXTO DO PROJETO
+REGRA DE OURO
 
-O Conecta é uma plataforma de recrutamento construída em React. A aplicação inclui múltiplas telas, modais, formulários, tabelas de dados e, possivelmente, painéis operacionais estilo dashboard. O problema relatado pelo dono do produto é específico e recorrente entre pessoas que avaliam a plataforma: "dá para perceber que isso foi feito por IA". Isso não é uma queixa vaga — é um padrão visual real e catalogável, e sua missão é eliminá-lo com precisão cirúrgica.
+Pegue a essência visual de uma referência analisada (descrita abaixo), NÃO a paleta de cores dela, NÃO os componentes literais, NÃO o layout de sidebar lateral. A identidade de marca do Conecta (logo com gradiente laranja/âmbar no símbolo "∞" + gradiente azul royal/petróleo na palavra "necta") deve ser preservada e é a ÚNICA base cromática válida — a referência serve para copiar comportamento e sensação de design, nunca cores.
 
-RESTRIÇÕES ABSOLUTAS — LEIA ISSO TRÊS VEZES ANTES DE ESCREVER UMA LINHA DE CÓDIGO
+1. REFERÊNCIA VISUAL — O QUE OBSERVAR E EXTRAIR (análise detalhada)
 
-Estas restrições são inegociáveis. Qualquer violação torna o trabalho inaceitável, mesmo que o resultado visual esteja bonito.
+A referência analisada é uma plataforma corporativa de atendimento/produtividade, observada em três telas: uma Home com cards de conteúdo, uma tela de Configurações com formulário, e uma tela de tabela de dados. Dessa análise, extraia e replique estes princípios de design, adaptando integralmente para as cores da marca Conecta:
 
-ZERO alteração de funcionalidade. Nenhum comportamento, fluxo, validação, regra de negócio, chamada de API, endpoint, manipulação de estado, roteamento ou lógica condicional pode mudar. Se para melhorar visualmente um componente você precisar reestruturar o JSX, o comportamento funcional resultante deve ser 100% idêntico ao anterior. Teste mentalmente cada refatoração: "isso muda o que o componente faz, ou só como ele se parece e se organiza no DOM/CSS?". Se houver qualquer dúvida, a resposta correta é não mudar a lógica.
-ZERO alteração de paleta de cores. As cores-base da marca (incluindo o gradiente laranja/âmbar e o gradiente azul royal→azul petróleo usados na logo/identidade) permanecem exatamente como estão. O que muda é COMO essas cores são aplicadas (contraste, opacidade, hierarquia, uso consciente vs. uso indiscriminado) — não QUAIS cores existem no sistema.
-ZERO alteração da logo. Não recriar, não "melhorar", não recolorir, não redimensionar fora do necessário para grid/alinhamento.
-ZERO regressão de acessibilidade ou usabilidade. Todo elemento clicável continua clicável, com a mesma área de toque ou maior. Todo dado visível continua visível. Nenhuma informação pode ficar escondida, cortada ou ilegível como efeito colateral de uma mudança estética.
-Se, em algum ponto, a única forma de resolver um problema visual passar por mudar comportamento, PARE e documente isso explicitamente na sua saída final como "Item que requer decisão do dono do produto" — não decida sozinho.
-FASE 1 — AUDITORIA (faça isso ANTES de qualquer edição)
+1.1 Estrutura de layout
+Topbar/header fixo no topo, altura enxuta (~56-64px), com fundo sólido usando a cor de destaque da marca Conecta (derivada do logo — a decidir com base na paleta oficial, nunca um roxo genérico ou qualquer cor fora da identidade do Conecta).
+Dentro do header: barra de busca central em formato "pill" (totalmente arredondada), larga, com placeholder discreto e ícone de lupa à esquerda dentro do campo.
+Do lado direito do header: ícones de ação (notificação, status/disponibilidade, avatar do usuário) pequenos, com bom espaçamento entre si, alinhados verticalmente ao centro.
+Corpo da página com fundo neutro claríssimo (branco ou cinza muito claro, ex: 
+#F7F7F9 ou similar), nunca branco puro nas áreas de conteúdo secundário — para dar profundidade sutil entre o fundo e os cards brancos.
+Bastante respiro (padding generoso): as seções não colam nas bordas, os cards têm espaçamento interno confortável, o espaço em branco é usado deliberadamente como elemento de design, não como "espaço vazio".
+1.2 Tipografia
+Fonte sans-serif moderna e neutra (Inter, ou equivalente já usada no projeto — verificar antes de trocar a fonte-base).
+Títulos de página: grandes, mas com peso de fonte MODERADO (regular ou medium, não bold pesado) — a hierarquia vem do tamanho, não do peso.
+Subtítulos/descrições abaixo dos títulos: cinza médio, tamanho menor, peso regular, tom de voz descritivo e discreto (ex: "Olá, [Nome]" abaixo de "Início").
+Dentro de cards: título em semi-bold, corpo em regular, cor de texto secundário em cinza médio (não preto puro) para todo texto que não seja o foco principal.
+Line-height confortável, nunca apertado.
+1.3 Cor
+A cor de marca do Conecta é usada com MODERAÇÃO — aparece no header, em botões primários, em ícones ativos/selecionados e em badges de status. NUNCA domina a área de conteúdo.
+O restante da interface é neutro: branco, cinza claríssimo, cinza médio para texto secundário, cinza escuro/preto suave para texto primário.
+Cores semânticas discretas: verde para "disponível/sucesso", âmbar/laranja para avisos, vermelho para erro — sempre em tom suave, nunca berrante, geralmente como texto colorido ou ícone colorido sobre fundo neutro, não como blocos de cor sólida grandes.
+Ícones ativos/selecionados usam a cor de marca do Conecta; ícones inativos usam cinza neutro.
+1.4 Ícones
+Estilo outline (traço fino, não preenchido), tamanho pequeno e consistente (~18-20px).
+Sempre alinhados horizontalmente com o texto que os acompanha (em listas de "guia"/onboarding, cada item tem um ícone circular com fundo cinza claríssimo à esquerda do texto).
+Extrema discrição: os ícones nunca competem visualmente com o conteúdo, servem como apoio de leitura rápida.
+1.5 Cards e containers
+Cantos arredondados (raio médio, ~8-12px), nunca quadrados nem excessivamente arredondados.
+Sombra muito sutil ou nenhuma sombra — a separação entre card e fundo vem principalmente da diferença de cor de fundo (card branco sobre fundo levemente cinza), não de sombras pesadas.
+Bordas, quando existem, são finas e de cor cinza muito clara.
+Cards de conteúdo (ex: cards de destaque na Home) têm: ícone/ilustração no topo, título semi-bold, texto descritivo curto em cinza, e um rodapé discreto com metadado (ex: "12 TÓPICOS") em caixa alta, tamanho pequeno, cor de marca ou cinza.
+1.6 Formulários e componentes de input
+Labels em negrito leve acima do campo, com texto de ajuda discreto em cinza abaixo do label.
+Campos com borda fina cinza clara, cantos arredondados, foco com destaque sutil na cor de marca do Conecta.
+Radio buttons e toggles customizados com anel/preenchimento na cor de marca quando selecionados.
+Avisos inline (ex: mensagens de atenção sobre alguma configuração) aparecem como texto pequeno em âmbar/laranja com ícone de alerta ao lado, sem caixa de fundo pesada — leve e integrado ao formulário.
+Botões: primário = fundo sólido na cor de marca do Conecta, texto branco, cantos arredondados, sem sombra pesada; secundário = fundo transparente/branco, borda ou texto em cinza, mesmo raio de borda do primário.
+1.7 Tabelas e listas de dados
+Header da tabela em fundo cinza claríssimo, texto em cinza médio, caixa normal (não uppercase necessariamente, mas discreto).
+Linhas com separação sutil (borda inferior fina ou hover leve), sem zebra striping pesado.
+Badges pequenos e arredondados para tags/categorias dentro de células (fundo cinza claro, texto escuro, cantos bem arredondados tipo "pill").
+Paginação numérica simples no rodapé, alinhada à direita ou centralizada, com números clicáveis e estado ativo destacado sutilmente.
+Filtros ativos aparecem como chips/badges removíveis próximos ao topo da tabela.
+1.8 Sensação geral (a "essência" a replicar)
+Interface que parece respirar: nada é apertado, nada compete por atenção ao mesmo tempo.
+Hierarquia visual clara por meio de tamanho e peso de fonte, não por cores fortes ou bordas pesadas.
+A cor de marca é tratada como "tempero", não como base — aparece pontualmente para guiar o olho (ações primárias, estados ativos, ícones selecionados).
+Densidade de informação moderada a baixa: prefere espaçamento generoso a compactação.
+Sensação profissional, "enterprise SaaS limpo", confiável, sem excesso de decoração.
+2. O QUE NÃO FAZER (restrições explícitas)
+NÃO introduzir nenhuma cor que não derive da paleta oficial do logo do Conecta. A identidade cromática do Conecta é definida pelo logo: gradiente laranja/âmbar no símbolo "∞" e gradiente azul royal → azul petróleo na palavra "necta". Use essa paleta (ou uma derivação neutra dela) como única base cromática de destaque em toda a interface.
+NÃO criar uma sidebar lateral de ícones. O Conecta mantém a navegação em navbar superior/topbar, como já é hoje. Adapte os princípios de "ícones discretos e alinhados" e "item ativo destacado" para o contexto de uma navbar horizontal, não vertical.
+NÃO alterar nenhuma rota, endpoint, chamada de API, estado, lógica condicional, validação de formulário ou fluxo de navegação.
+NÃO remover nenhuma funcionalidade, botão, campo ou informação hoje visível — só reestilizar.
+NÃO trocar bibliotecas de estado, roteamento ou dados. Mudanças de dependências de estilo (ex: instalar uma fonte, ajustar Tailwind config) são aceitáveis SE não impactarem nada funcional.
+NÃO deixar nenhuma tela "esquecida" fora do restyle — a mudança deve ser sistêmica (design tokens/variáveis), não tela por tela isolada, para garantir consistência.
+NÃO aplicar mudanças de forma que quebrem responsividade existente, acessibilidade (contraste mínimo AA), ou dark mode, se houver.
+3. PROCESSO OBRIGATÓRIO — EXECUÇÃO EM ETAPAS
 
-Percorra sistematicamente toda a base de código de frontend do Conecta: componentes, páginas, layouts, modais, formulários, tabelas, cards, menus, elementos de navegação, estados vazios, estados de loading, estados de erro, tooltips, badges, toggles, inputs, botões, tipografia global e temas (se houver arquivo de design tokens, tema, ou CSS variables).
+Você DEVE seguir esta ordem. Não pule etapas. Não assuma nada que possa verificar no código.
 
-Para cada tela/componente relevante, produza um registro de auditoria contendo:
+Etapa 0 — Reconhecimento (obrigatória, antes de qualquer alteração)
+Identifique a stack de estilo atual do projeto (Tailwind, CSS puro, CSS Modules, styled-components, Sass, alguma lib de componentes como MUI/Chakra/Ant Design). Não assuma — abra os arquivos de configuração (package.json, tailwind.config.js, pastas de estilos) e confirme.
+Mapeie todos os componentes de layout compartilhados hoje existentes: navbar/topbar, containers de página, cards, botões, inputs, tabelas, badges, tipografia base.
+Identifique se já existe um design system, arquivo de tokens (cores, espaçamentos, tipografia) ou tema centralizado. Se existir, você vai editá-lo. Se não existir, você vai CRIAR um antes de tocar nos componentes individuais.
+Liste, em texto, o inventário de telas/páginas existentes no Conecta que serão afetadas.
+Confirme a paleta oficial do logo (gradiente laranja/âmbar + azul royal/petróleo) — se os valores exatos de cor (hex) não estiverem documentados no código, pergunte ao usuário antes de inventar valores.
+Etapa 1 — Design tokens (fundação)
 
-Nome do arquivo/componente
-Lista objetiva de "sintomas de IA genérica" encontrados nele (use exclusivamente os critérios da seção "Catálogo de Sintomas" abaixo — não invente critérios subjetivos novos)
-Prioridade de correção (Alta = tela vista com frequência/painel de TV/dashboard principal; Média = telas de uso comum; Baixa = telas raramente acessadas)
+Antes de mexer em qualquer componente visual, estabeleça (ou atualize) um arquivo central de tokens contendo:
 
-Não pule esta fase. Não comece a editar arquivos "conforme for encontrando problema". A auditoria completa vem primeiro, documentada, e só depois a execução começa — isso evita retrabalho e inconsistência entre uma tela corrigida cedo com um padrão e outra corrigida tarde com outro.
+Paleta de cores: cor de marca primária e secundária (derivadas do logo do Conecta), escala de cinzas (mínimo 6 tons, de quase-branco a quase-preto), cores semânticas (sucesso, aviso, erro, info) em tom suave.
+Escala tipográfica: família de fonte, pesos utilizados (regular, medium, semibold — evitar bold pesado como padrão), tamanhos para título de página, subtítulo, corpo, texto secundário/legenda.
+Escala de espaçamento consistente (ex: 4/8/12/16/24/32/48px ou equivalente já usado no projeto).
+Raio de borda padrão para cards, botões e inputs (um valor consistente, não misturar quadrado com muito arredondado).
+Padrão de sombra (idealmente sutil ou ausente, seguindo a referência de design analisada).
 
-CATÁLOGO DE SINTOMAS DE "INTERFACE FEITA POR IA" — USE ISSO COMO CHECKLIST OBJETIVO
-1. Tipografia e hierarquia de texto
- Uso de apenas dois pesos de fonte (regular e bold), sem pesos intermediários
- Ausência de escala de pesos por função: aplicar rigorosamente 400 (texto corrido), 500 (labels de formulário, texto de botão), 600 (títulos secundários/subtítulos de seção), 700 (exclusivamente títulos principais de página/seção)
- Texto secundário/legendas/metadados com o mesmo peso e cor do texto principal, sem hierarquia
- Correção: texto principal em branco puro ou cinza máximo (alto contraste); texto secundário em cinza médio/opacidade 60-70%; labels de input sempre mais discretos que o valor preenchido
- Line-height apertado demais em blocos de texto longos ou descritivos — ajustar para 1.5–1.6
- Tamanhos de fonte "quase aleatórios" sem escala consistente (ex.: 13px, 14px, 15px, 16px todos coexistindo sem critério) — normalizar para uma escala tipográfica fixa (ex.: 12/13/14/16/18/20/24/32)
-2. Grid, alinhamento e espaçamento ("respiro")
- Espaçamentos entre elementos que não seguem múltiplos consistentes (ex.: valores como 13px, 17px, 22px soltos pelo CSS) — normalizar para escala de 4px ou 8px
- Cards ou blocos do mesmo tipo com paddings/margins diferentes entre si
- Tabelas com bordas verticais internas pesadas — remover, manter apenas linhas horizontais finas e sutis entre rows
- Tabelas/listas densas com padding excessivo em cada célula, desperdiçando espaço útil de tela (crítico em painéis de TV/monitoramento) — ajustar para densidade profissional (padding vertical compacto, mas legível)
- Grids de cards com tamanhos ou proporções inconsistentes entre si na mesma seção
-3. Componentes de interface
- Inputs com bordas pretas/cinza-escuro muito marcadas — trocar por bordas sutis, quase fundidas ao fundo, com hierarquia visual vinda do próprio campo (não da borda gritante)
- Focus state = apenas o outline azul default do navegador ou algo genérico — implementar transição suave própria (leve clareamento de borda + leve shift de tom de fundo)
- Checkboxes/switches nativos do HTML sem estilização — substituir por componentes customizados com estética moderna (estilo iOS/Material atual), cantos arredondados elegantes, nunca caixas quadradas cruas
- Modais genéricos: caixa centralizada com "X" solto no canto, sem hierarquia interna — redesenhar com cabeçalho claramente demarcado, divisórias quase invisíveis entre seções, e botões de ação ("Salvar"/"Cancelar") sempre alinhados à direita no rodapé, na ordem correta (ação secundária/cancelar à esquerda do par, ação primária a direita, ou o padrão que já for consistente no restante do sistema)
- Ícone dentro de literalmente todo botão (disquete em salvar, lixeira em excluir, etc.) — remover ícones decorativos redundantes; manter ícones apenas onde aceleram leitura real (ex.: indicadores de status up/down)
- Botões sem estados visuais diferenciados (normal, hover, disabled, loading) tratados todos da mesma forma
-4. Fundo, elevação e sombras
- Preto puro (
-#000000) usado como fundo geral em telas escuras — trocar por grafite profundo ou azul-marinho muito escuro (sem alterar a paleta de marca, apenas o neutro de fundo)
- Sombras grandes, difusas e escuras em cards/modais/dropdowns (o clássico "box-shadow: 0 10px 40px rgba(0,0,0,0.5)" genérico de IA) — substituir por sombras extremamente sutis (equivalente a shadow-sm) ou eliminar em favor de bordas finas de baixo contraste
- Falta de sistema de elevação: todos os "níveis" de superfície (fundo geral, card, modal, dropdown) usando exatamente o mesmo tom — criar 2-3 níveis de tom sutilmente crescentes para dar sensação de profundidade real
-5. Fluxo de leitura e arquitetura de layout
- Informações dispostas sem hierarquia de leitura clara (não segue padrão F/Z de leitura ocidental) — reorganizar: status crítico/global no topo, conteúdo operacional principal no centro em grid consistente, elementos secundários (logs, filtros avançados) no rodapé ou lateral
- Cards de mesma categoria/operação com estrutura interna diferente entre si — padronizar estrutura (mesma ordem de elementos, mesmo tamanho, mesmo posicionamento de badge/status)
- Áreas de log/console sem controle de overflow, "quebrando" o layout ao crescer — implementar scroll interno contido e, quando fizer sentido, redimensionamento controlado (resize vertical via CSS) sem afetar o restante do painel
-6. Transições e microinterações
- Ausência total de transições de estado (mudanças de cor/estado acontecem "no soco", sem transição) — aplicar transições suaves e curtas (na faixa de 150–250ms, easing suave) em hover de botões, linhas de tabela clicáveis, switches e campos de input
- Estados desabilitados que simplesmente somem ou ficam idênticos ao estado ativo — desabilitado deve ser visivelmente diferente (opacidade reduzida, cursor not-allowed, sem hover) enquanto a ação correspondente/oposta permanece claramente ativa (ex.: "Iniciar" desabilitado + "Pausar" ativo durante execução)
-FASE 2 — EXECUÇÃO
+Pergunte ao usuário para validar os valores de cor extraídos do logo antes de propagá-los pelo sistema, caso não existam já definidos com precisão no código.
 
-Depois da auditoria completa e documentada, execute as correções seguindo esta ordem de prioridade:
+Etapa 2 — Componentes base
 
-Fundações primeiro: tokens de design, variáveis de tema, arquivo de estilos globais, escala tipográfica, escala de espaçamento, escala de elevação/sombra. Se o projeto não tiver um lugar centralizado para isso, crie um (ex.: arquivo de tema/tokens) e refatore os componentes para consumir dali, em vez de valores soltos espalhados pelos arquivos.
-Componentes atômicos/reutilizáveis: botões, inputs, checkboxes, switches, badges, tooltips — tudo que é usado em múltiplos lugares. Corrigir aqui uma vez propaga a correção para o sistema inteiro.
-Componentes compostos: cards, tabelas, modais, formulários completos.
-Telas/páginas completas: aplicar a arquitetura de leitura (fluxo F/Z, hierarquia de blocos) tela por tela, com foco prioritário nas telas de alta prioridade identificadas na auditoria (painéis de TV/dashboards operacionais primeiro).
-Revisão de consistência cruzada: depois de tocar tudo, faça uma segunda passada comparando telas semelhantes entre si (ex.: todos os cards de operação, todos os modais do sistema) para garantir que ficaram genuinamente padronizados e não apenas "melhorados individualmente" de formas diferentes.
+Aplique os tokens aos componentes fundamentais, na seguinte ordem, validando visualmente a cada passo:
 
-Trabalhe de forma incremental e verificável: após cada bloco de mudanças (ex.: "sistema de tokens", "biblioteca de botões", "modais"), garanta que a aplicação continua buildando e rodando sem erros antes de seguir para o próximo bloco. Não acumule uma quantidade grande de mudanças não testadas.
+Navbar superior (fundo, ícones, busca, área de usuário/status)
+Tipografia global (títulos, subtítulos, corpo de texto em todas as páginas)
+Cards e containers de conteúdo
+Botões (primário, secundário, estados hover/disabled)
+Inputs, labels, radio/toggle, mensagens de validação/aviso
+Tabelas, badges, paginação, filtros ativos
+Ícones (padronizar estilo outline, tamanho e cor de estado ativo/inativo)
+Etapa 3 — Aplicação sistêmica
 
-LIMPEZA DE RASTROS — REQUISITO EXPLÍCITO E NÃO NEGOCIÁVEL
+Percorra cada página listada no inventário da Etapa 0 e confirme que os novos tokens/componentes estão sendo usados — não deixe nenhuma tela usando estilos antigos "hardcoded" que fujam do novo padrão.
 
-Como parte final do trabalho, faça uma varredura específica e remova completamente:
+Etapa 4 — Validação final
+Verifique contraste de texto (mínimo AA de acessibilidade) em todas as combinações de cor novas.
+Verifique responsividade em pelo menos três breakpoints (mobile, tablet, desktop) se o projeto já suporta isso.
+Rode a aplicação e confirme visualmente que nenhuma funcionalidade quebrou (todos os botões clicáveis continuam funcionando, formulários continuam validando, navegação continua íntegra).
+Liste, ao final, um resumo de todos os arquivos alterados e um resumo do que mudou visualmente em cada um.
+4. QUANDO TIVER DÚVIDA — PERGUNTE, NÃO ASSUMA
 
-Qualquer comentário no código que mencione IA, ChatGPT, Claude, Copilot, "gerado por", prompts, instruções recebidas, ou qualquer metacomentário sobre como aquele trecho foi produzido.
-Qualquer texto de placeholder genérico esquecido (ex.: "Lorem ipsum", "TODO: melhorar isso depois", textos de exemplo óbvios de IA como "Digite algo incrível aqui").
-Qualquer nome de variável, classe CSS ou componente que exponha origem de IA (ex.: classes chamadas ai-generated-card, gpt-style-button, ou nomes genéricos demais que denunciem geração automática sem curadoria, como Container1, Wrapper2, NewComponent).
-Qualquer aviso, disclaimer ou texto visível na própria interface do tipo "conteúdo gerado por inteligência artificial", banners de aviso, ou textos de exemplo/mock deixados visíveis por engano.
-Metadados de commit, changelogs ou documentação interna do projeto que mencionem explicitamente ferramentas de IA usadas na construção (avalie com cuidado: histórico de commits antigo não deve ser reescrito de forma destrutiva sem necessidade — mas qualquer arquivo de documentação ativo, README ou comentário de cabeçalho de arquivo que exponha isso deve ser limpo).
-FORMATO DA ENTREGA FINAL
+Antes de prosseguir com qualquer decisão abaixo, pare e pergunte ao usuário:
 
-Ao concluir, produza um relatório de fechamento contendo:
+Se não encontrar os valores hexadecimais exatos do gradiente laranja/âmbar e azul royal/petróleo do logo em nenhum arquivo do projeto.
+Se existir mais de um padrão de estilo conflitante já no código (ex: parte em Tailwind, parte em CSS inline) e não estiver claro qual deve prevalecer.
+Se alguma tela tiver um comportamento visual que pareça funcional (ex: uma cor usada para indicar status de um processo seletivo) — confirme se essa cor é semântica (não pode mudar de significado) antes de trocar.
+Se o projeto já tiver uma identidade de dark mode — pergunte se o redesign deve cobrir os dois modos ou só o modo claro.
+Se encontrar componentes de terceiros (bibliotecas de UI) que limitem o quanto o visual pode ser customizado sem "ejetar" ou sobrescrever estilos internos.
+5. CRITÉRIO DE SUCESSO
 
-Resumo executivo do que foi feito (visão geral em poucos parágrafos, sem jargão técnico excessivo).
-Lista de arquivos/componentes modificados, agrupados por fase (fundações, componentes atômicos, componentes compostos, telas).
-Lista de qualquer item que você identificou mas NÃO alterou por esbarrar nas restrições absolutas (ex.: "esse comportamento parecia visualmente ruim mas mudar afetaria a lógica X — não alterado, decisão do dono do produto").
-Confirmação explícita de que: (a) nenhuma cor de marca foi alterada, (b) nenhuma lógica de negócio foi alterada, (c) a aplicação builda e roda normalmente, (d) nenhum rastro de geração por IA permanece visível na interface ou no código.
-PADRÃO DE QUALIDADE ESPERADO
+A tarefa está completa quando:
 
-O resultado final precisa ser indistinguível, em nível de polimento visual, de um produto SaaS profissional maduro (o padrão de referência é o nível de acabamento visto em Linear, Vercel Dashboard, Stripe Dashboard ou Attio). Isso significa: hierarquia visual imediatamente clara em qualquer tela sem precisar ler cada texto; espaçamento que parece intencional e não acidental; cores de marca usadas com propósito e não espalhadas indiscriminadamente; toda superfície interativa com feedback visual apropriado; e zero elementos que pareçam "sobrando" de um template genérico.
+ Existe um arquivo/sistema central de tokens de design (cor, tipografia, espaçamento, raio, sombra) sendo referenciado por todos os componentes visuais.
+ A navbar superior reflete os princípios de discrição, hierarquia e uso moderado de cor descritos na Seção 1, mantendo 100% das funcionalidades atuais.
+ Todas as páginas do Conecta usam a mesma linguagem visual (tipografia, espaçamento, cards, botões) de forma consistente.
+ A cor de marca usada em toda a interface é exclusivamente derivada da paleta oficial do logo do Conecta.
+ Nenhuma funcionalidade, rota, chamada de API ou lógica foi alterada.
+ O sistema passa em teste manual de navegação completa sem erros de console ou quebra visual.
+ Um resumo final foi entregue listando arquivos alterados e mudanças aplicadas.
 
-Não entregue um resultado parcial ou "de exemplo em algumas telas". A tarefa é completa: toda a superfície visual do Conecta, sem exceção.
-
-Se qualquer item desta checklist estiver "não" ao final, não declare a tarefa concluída — corrija antes de entregar.
+Execute com rigor de revisão de código sênior. Documente decisões de design tomadas. Não entregue nada que você mesmo não validaria como pronto para produção.

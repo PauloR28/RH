@@ -167,6 +167,15 @@ export async function uploadVideoModulo(idItem, arquivo) {
   return resultado;
 }
 
+export async function uploadImagemSecaoModulo(idItem, arquivo) {
+  const formData = new FormData();
+  formData.append('arquivo', arquivo);
+  return requisitar(`/onboarding/itens/${encodeURIComponent(idItem)}/secoes-imagens`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
 export async function uploadAnexoTreinamento(idTrilha, arquivo, trilhaItemId = 0) {
   const formData = new FormData();
   formData.append('arquivo', arquivo);

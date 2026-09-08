@@ -1,19 +1,13 @@
 Correções: 
-Tela de Administração. 
-- Os módulos admistrativos devem estar separados por guias e organizados por abas. 
-- a aba Parâmetros será drobrável, e será dividida em vários subabas, como por exemplo: Sharepoint/Email/OneDrive e vários outros. Ao ser clicado, irá para a subpágina correspondente a aquele parâmetro onde será listado as conecções, opções de editar, ou opção de adicionar novo (no caso do Sharepoint em que posso ter várias intranets aqui). 
-- Ainda em parâmetros, para visualizar os campos com credenciais, eu preciso clicar em 'Editar', esse botão deve estar no topo da pagina de configuração. Ao ser clicado, toda a pagina entra em modo de editar e não podermitirá sair da pagina a mesnos que a pessoa salve ou cancele a edição. 
--  A caixa de pesquisa deve ficar no navbar, entre o link de configuração e o card do perfil (obviamente, ele precisa ter seu tamanho ajustado pra encaixar no elemento)
-- Na tela de treinamentos - Altere o nome "Trilhas" para "Treinamentos", elimine essa parte de "Trilhas", ficou confuso definir oq é trilha e o que é Treinamento. Mantenha somente as partes de treinamento. 
-- Na tela de criação de treinamento, a parte de "Participante esperados" precisa ser opcional, visto que os treinamentos serão utilizados varias e várias vezes (Adicione esse detalhe ao fluxo de treinamentos), ou seja, quando um treinamento é criado, é permanente, a menos que ele seja excluído (adicionar botão de excluir treinamento), quando um treinamento é dado e finalizado, ele volta pra estaca zero! Ou seja, recebe não recebe TAG nenhuma, apenas fica lá cadastrado, caso o RH crie um novo processo seletivo, ele já vai aparecer listado como uma das opções (claro, respeitando o fluxo e as regras já definidas de aparição), assim o RH não precisa ficar criando o treinamento toda vez que tiver um processo. 
-- No card do perfil, especificamente na aba de notificações, quando eu clico em uma notificação, ela deve sinalizar como "Lida" ou "Não lida", não precisa ser um detalhe grande, pode ser algo sutil, apenas para que o ícone de alerta da notificação (a bolinha vermelha - que precisa aumentar de tamanho) não fique aparecendo para notificações já lidas e tratadas. Assim com deve adicionar um pequeno botão de "Excluir notificações" para limpar a lista de notificações. 
-- Na tela de configuração de Ambiente, uma vez que a opção "Entrar pela Microsoft" estiver ligada, os campos de alterar senha estarão desativados. Adicione um outro botão do tipo "Turn on/off" para "Login com senha" para ativar o login através de login e senha, detalhe: Os dois botões não podem estar ativados ou desativados juntos, se um tiver ativado o outro deverá estar desativado, ao ativar um desativa automaticamente o outro. Adicione um botão também de "Editar", ao ser clicado ele irá permitir que tais edições sejam feitas, e só serão salvas se clicar no botão de "Salvar". Ao ativar o botão de "Login com senha" deverá abrir um campo logo em baixo para definir senha! (o login será SEMPRE pelo email) A única forma de alterar essa parte é pelo administrador alterar o login e definir um nome de login. 
-- O administrador poderá alterar TUDO sobre o outro usuário. Login, senha, email, se ele vai ou não entrar pelo Microsoft, nome, sobrenome, perfil, cargo, o que ele vai ver ou deixar de ver...ABSOLUTAMENTE TUDO ! ADICIONE TODAS AS CONFIGURAÇÕES POSSÍVELS PARA O ADMINISTRADOR SOB UM USUÁRIO. ABSOLUTAMENTE TUDO ! Ele poder controlar tudo !
-
-- Tela de Drive-Conecta: Corrija o desing dos ícones ao selecionar algum documento ou pasta clicando no circulo no canto (o que, por sinal, precisa ser corrigido pois há 2 ciruclos), ele não fica selecionável. Assim como, crie uma forma de que eu possa selecionar vários arquivos e pastas e exclui-los ao mesmo tempo de 1x. 
-
-- Mural: Exclua essa frase: "Esta página está desativada e entrará no Conecta em breve. A ideia: o RH publica aqui uma vez e a postagem aparece tanto no Conecta quanto nas intranets das operações, com contagem de visualizações e curtidas.", deixe apenas: "Esta página está desativada e entrará no Conecta em breve."
-
-- Altere os ícones do Conecta Prova no menu superior (acho que não faz muito sentido esse icone)
-
-- Tela - Calendário de entrevista: O modal Criar disponibilidade deve ser dobrável, para ele se tornar opcional na pagina, e deve estar alinhado. Também otimize o espaço e desing da barra de Filtros. 
+Tela inicial - Retire o botão no topo de "Gerar Prova", adicione como um botão/opção em "Acessos Rápidos". 
+Tela de administração: - Em Parâmetros, especificamente em SharePoint, altere o "Adicionar Parêmtro" para "Adicionar ambiente"
+Aqui vai uma operação importante e exige cautela. "Adcionar ambiente" é simplesmente linkar o Conecta com as intranets, atualmente ele só esta conectado com a intranet do RH (lembra ?), a intenção é que outras intranets das operações possam ser conectadas ao RH, lembra do mural que adicionamos ? Eles serão usados estritamente ali, sendo assim, verifique se somente o campo "Chave" em "Novo parâmetro (que deverá ser "Novo ambiente") é o suficiente para criamos essa conecção, ao ponto de fazermos publicações direta nas intranets atráves do Conecta (creio que não seja) sendo assim, crie uma pagina dedidcada a isso. Um form especifico, detalhista, e intuitivo que faça com que o administrador saiba o que fazer, como fazer, o que precisar, como conseguir. 
+Para o OneDrive não serão necessários, pois ficará padronizado o que já usam, sendo assim, apenas mistre as configurações existentes e retire o botão de "Novo parâmetro deles".
+A aba de "Email" será configurada todo o canal de email, todas as configurações possíveis serão listadas ali.
+Retire a aba "outros". 
+Está faltando as demais configurações na aba de usuário para o administrador. O Adm poderá mexer em tudo relacionado ao usuário. 
+Para ficar melhor, adicionei um login para você: 
+login: rh@central24horas.com.br
+senha:1234
+o login é de nível administrador
+aproveite e veja as pendências que ficaram para trás porque dependiam de prints e acesso as telas. 

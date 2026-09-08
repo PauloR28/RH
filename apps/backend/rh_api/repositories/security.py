@@ -242,6 +242,18 @@ class SecurityRepositoryMixin:
         )
         return [normalize_text(row[0]) for row in cursor.fetchall() if normalize_text(row[0])]
 
+    def _sync_user_operacoes(self, cursor, id_usuario: int, operacoes: list) -> None:
+        """Substitui as operações vinculadas ao usuário (Correções.txt, rodada
+        de 08/set/2026: administrador poder editar tudo relacionado ao
+        usuário, incluindo as operações às quais ele tem acesso)."""
+        valores = sorted({normalize_text(item) for item in (operacoes or []) if normalize_text(item)})
+        cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (id_usuario,))
+        for operacao in valores:
+            cursor.execute(
+                "INSERT INTO dbo.usuarios_operacoes (id_usuario, operacao, criado_em) VALUES (?, ?, GETDATE())",
+                (id_usuario, operacao),
+            )
+
     def _serialize_system_user(
         self,
         row: dict,
@@ -1239,6 +1251,7 @@ class SecurityRepositoryMixin:
 
     def create_system_user(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
         safe_name = normalize_text(data.get("nome"))
+        safe_surname = normalize_text(data.get("sobrenome"))
         safe_email = _normalize_email(data.get("email"))
         safe_login = normalize_text(data.get("login")) or safe_email
         safe_password = normalize_text(data.get("senha") or data.get("password"))
@@ -1275,6 +1288,7 @@ class SecurityRepositoryMixin:
                 (
                     login,
                     nome,
+                    sobrenome,
                     email,
                     perfil_id,
                     cargo,
@@ -1287,11 +1301,12 @@ class SecurityRepositoryMixin:
                     atualizado_em
                 )
                 OUTPUT INSERTED.id_usuario
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
                 """,
                 (
                     safe_login,
                     safe_name,
+                    safe_surname,
                     safe_email,
                     role.id,
                     safe_cargo,
@@ -1303,6 +1318,8 @@ class SecurityRepositoryMixin:
                 ),
             )
             id_usuario = int(cursor.fetchone()[0])
+            if "operacoes" in data:
+                self._sync_user_operacoes(cursor, id_usuario, data.get("operacoes"))
             self._insert_audit_log(
                 cursor,
                 user=actor,
@@ -1312,6 +1329,7 @@ class SecurityRepositoryMixin:
                 entidade_id=str(id_usuario),
                 valor_novo={
                     "nome": safe_name,
+                    "sobrenome": safe_surname,
                     "email": safe_email,
                     "login": safe_login,
                     "perfil": role.id,
@@ -1374,6 +1392,7 @@ class SecurityRepositoryMixin:
             new_values = {
                 "login": normalize_text(data.get("login")) or previous["login"],
                 "nome": normalize_text(data.get("nome")) or previous["nome"],
+                "sobrenome": normalize_text(data.get("sobrenome")) if "sobrenome" in data else previous.get("sobrenome", ""),
                 "email": requested_email,
                 "perfil_id": role.id,
                 "cargo": normalize_text(data.get("cargo")) if "cargo" in data else previous.get("cargo", ""),
@@ -1390,6 +1409,7 @@ class SecurityRepositoryMixin:
                 SET
                     login = ?,
                     nome = ?,
+                    sobrenome = ?,
                     email = ?,
                     perfil_id = ?,
                     cargo = ?,
@@ -1402,6 +1422,7 @@ class SecurityRepositoryMixin:
                 (
                     new_values["login"],
                     new_values["nome"],
+                    new_values["sobrenome"],
                     new_values["email"],
                     new_values["perfil_id"],
                     new_values["cargo"],
@@ -1411,6 +1432,8 @@ class SecurityRepositoryMixin:
                     int(id_usuario),
                 ),
             )
+            if data.get("operacoes") is not None:
+                self._sync_user_operacoes(cursor, id_usuario, data.get("operacoes"))
             if previous["provedor_autenticacao"] != new_values["provedor_autenticacao"]:
                 action = "alterar_tipo_autenticacao"
             elif previous["perfil"] != role.id:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
@@ -35,6 +37,12 @@ from ..services.training_uploads import (
 
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"], dependencies=[Depends(get_current_user)])
+
+# Nome de arquivo gerado por generate_public_token() + extensão de imagem
+# (ver services/training_uploads.py) — valida antes de montar o caminho em
+# disco, para nunca aceitar ".." ou separadores de diretório.
+_NOME_ARQUIVO_SECAO_IMAGEM_PATTERN = re.compile(r"^[a-z0-9]{4,20}\.(png|jpg|jpeg)$")
+_MIME_POR_EXTENSAO = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
 
 @router.get("/trilhas", dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))])
@@ -380,6 +388,49 @@ async def upload_item_video(
     return result
 
 
+@router.post("/itens/{id_item}/secoes-imagens", dependencies=[Depends(require_permissions("onboarding.editar"))])
+async def upload_secao_imagem(
+    id_item: int,
+    arquivo: UploadFile = File(...),
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+    settings: Settings = Depends(get_settings),
+):
+    """Imagem de uma seção de conteúdo do módulo (Correções.txt, 08/set/2026:
+    "imagens podem entrar como links ou uploads"). Ao contrário do vídeo/anexo,
+    não precisa de linha própria no banco — o arquivo em disco já é a fonte da
+    verdade, e a URL retornada aqui é o que entra na lista `imagens` da seção
+    (mesmo formato de uma imagem informada por link)."""
+    content = await arquivo.read()
+    upload = validate_training_upload(
+        original_filename=arquivo.filename or "imagem.png",
+        content=content,
+        categoria=CATEGORIA_IMAGEM,
+        max_bytes=settings.training_upload_max_document_mb * 1024 * 1024,
+    )
+    save_training_upload(upload, upload_dir=settings.training_upload_dir, subpasta="secoes-imagens")
+    audit_action(
+        repository,
+        user,
+        modulo="Onboarding",
+        acao="upload_secao_imagem_modulo",
+        entidade="trilha_onboarding_item",
+        entidade_id=str(id_item),
+        valor_novo={"nome_arquivo": upload.original_filename},
+    )
+    return {"url": f"/onboarding/secoes-imagens/{upload.stored_filename}", "nome_arquivo": upload.original_filename}
+
+
+@router.get("/secoes-imagens/{nome_arquivo}", dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))])
+def baixar_secao_imagem(nome_arquivo: str, settings: Settings = Depends(get_settings)):
+    if not _NOME_ARQUIVO_SECAO_IMAGEM_PATTERN.fullmatch(nome_arquivo):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagem não encontrada.")
+    caminho = Path(settings.training_upload_dir) / "secoes-imagens" / nome_arquivo
+    if not caminho.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagem não encontrada.")
+    return FileResponse(caminho, media_type=_MIME_POR_EXTENSAO.get(caminho.suffix.lower(), "application/octet-stream"))
+
+
 @router.post("/trilhas/{id_trilha}/anexos", dependencies=[Depends(require_permissions("onboarding.editar"))])
 async def upload_trilha_anexo(
     id_trilha: int,
@@ -526,6 +577,23 @@ _MODELO_MODULO_JSON = {
     "saiba_mais": [
         {"tipo": "dica", "texto": "Ex: Consulte também a política interna XYZ.", "url": ""},
         {"tipo": "link", "texto": "Ex: Manual completo", "url": "https://exemplo.com/manual"},
+    ],
+    # Imagens do módulo (opcional): zero, uma ou várias por seção, distribuídas
+    # em vários subtítulos ao longo do módulo — não um único anexo no final,
+    # como o vídeo. Cada URL costuma ser um link do SharePoint/OneDrive/
+    # intranet já hospedando o arquivo (ver "secoes" — deixe a lista vazia
+    # nas seções sem imagem).
+    "secoes": [
+        {
+            "subtitulo": "Ex: Passo 1 — Acessando o sistema",
+            "texto": "Ex: Explique aqui o primeiro passo, com detalhes.",
+            "imagens": ["Ex: https://exemplo.sharepoint.com/imagem-passo-1.png"],
+        },
+        {
+            "subtitulo": "Ex: Passo 2 — Configurando sua conta",
+            "texto": "Ex: Seção sem imagem — a lista pode ficar vazia.",
+            "imagens": [],
+        },
     ],
 }
 

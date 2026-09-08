@@ -81,6 +81,15 @@ export async function redefinirSenhaUsuario(idUsuario, payload) {
   });
 }
 
+export async function redefinirMfaUsuario(idUsuario, justificativa = '') {
+  const resultado = await requisitar(
+    `/settings/users/${encodeURIComponent(idUsuario)}/mfa/reset${montarQuery({ justificativa })}`,
+    { method: 'POST' },
+  );
+  invalidarCacheApi('settings:users');
+  return resultado;
+}
+
 export async function alterarStatusUsuario(idUsuario, payload) {
   const resultado = await requisitar(`/settings/users/${encodeURIComponent(idUsuario)}/status`, {
     method: 'POST',

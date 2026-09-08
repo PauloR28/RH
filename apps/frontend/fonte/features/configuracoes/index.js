@@ -22,6 +22,8 @@ import {
   rejeitarSolicitacaoAlteracaoEmailApi,
 } from '../../app/controlador-aplicacao.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
+import { redefinirMfaUsuario } from '../../services/api/settings.js';
+import { listarOperacoes } from '../../services/api/operations.js';
 import { ModalPadrao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { definirOrientacoesAtivas, orientacoesAtivas } from '../../ui/tour-guiado.js';
@@ -51,6 +53,7 @@ const ABA_POR_TELA = ABAS.reduce((mapa, aba) => ({ ...mapa, [aba.tela]: aba.id }
 const FORM_USUARIO_INICIAL = {
   id_usuario: '',
   nome: '',
+  sobrenome: '',
   email: '',
   login: '',
   senha: '',
@@ -58,6 +61,7 @@ const FORM_USUARIO_INICIAL = {
   cargo: '',
   status: 'Ativo',
   provedor_autenticacao: 'microsoft',
+  operacoes: [],
   justificativa: '',
 };
 
@@ -455,6 +459,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [feedback, setFeedback] = useState('');
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const [operacoesDisponiveis, setOperacoesDisponiveis] = useState([]);
   const [perfis, setPerfis] = useState([]);
   const [permissoes, setPermissoes] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
@@ -632,11 +637,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       ...usuario,
       id_usuario: textoSeguro(usuario.id_usuario, ''),
       nome: textoSeguro(usuario.nome, ''),
+      sobrenome: textoSeguro(usuario.sobrenome, ''),
       email: textoSeguro(usuario.email, ''),
       login: textoSeguro(usuario.login, ''),
       perfil: textoSeguro(usuario.perfil || usuario.perfil_id, FORM_USUARIO_INICIAL.perfil),
       status: textoSeguro(usuario.status, FORM_USUARIO_INICIAL.status),
       provedor_autenticacao: textoSeguro(usuario.provedor_autenticacao, 'local'),
+      operacoes: Array.isArray(usuario.operacoes) ? usuario.operacoes : [],
       senha: '',
       justificativa: '',
     });
@@ -649,6 +656,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       const tarefas = [];
       if (aba === 'usuarios' && controlador.possuiPermissao('usuarios.visualizar')) {
         tarefas.push(listarUsuarios().then((valor) => setUsuarios(normalizarLista(valor))));
+        tarefas.push(
+          listarOperacoes().then((valor) =>
+            setOperacoesDisponiveis(Array.isArray(valor) ? valor : valor?.itens || []),
+          ),
+        );
       }
       if (aba === 'usuarios' && controlador.possuiPermissao('usuarios.alterar_email')) {
         tarefas.push(carregarSolicitacoesEmailPendentes());
@@ -737,12 +749,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       ...usuario,
       id_usuario: textoSeguro(usuario.id_usuario, ''),
       nome: textoSeguro(usuario.nome, ''),
+      sobrenome: textoSeguro(usuario.sobrenome, ''),
       email: textoSeguro(usuario.email, ''),
       login: textoSeguro(usuario.login, ''),
       perfil: textoSeguro(usuario.perfil || usuario.perfil_id, FORM_USUARIO_INICIAL.perfil),
       cargo: textoSeguro(usuario.cargo, ''),
       status: textoSeguro(usuario.status, FORM_USUARIO_INICIAL.status),
       provedor_autenticacao: textoSeguro(usuario.provedor_autenticacao, 'local'),
+      operacoes: Array.isArray(usuario.operacoes) ? usuario.operacoes : [],
       senha: '',
       justificativa: '',
     });
@@ -775,12 +789,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     try {
       const payload = {
         nome: formUsuario.nome,
+        sobrenome: formUsuario.sobrenome,
         email,
         login: formUsuario.login || email,
         perfil: formUsuario.perfil,
         cargo: formUsuario.cargo,
         status: formUsuario.status,
         provedor_autenticacao: formUsuario.provedor_autenticacao,
+        operacoes: Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : [],
         justificativa: formUsuario.justificativa,
       };
       if (formUsuario.id_usuario) {
@@ -817,6 +833,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       await carregarAba(abaRenderizada);
     } catch (error) {
       setErro(error?.message || 'Não foi possível alterar o status do usuário.');
+    }
+  };
+
+  const redefinirMfa = async (usuario) => {
+    if (!window.confirm(`Redefinir o MFA de ${usuario.nome || usuario.email}? A pessoa precisará configurar novamente no próximo acesso.`)) return;
+    setErro('');
+    setFeedback('');
+    try {
+      await redefinirMfaUsuario(usuario.id_usuario, 'MFA redefinido por Configurações.');
+      setFeedback('MFA do usuário redefinido.');
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível redefinir o MFA do usuário.');
     }
   };
 
@@ -1460,9 +1488,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     const podeEditar = controlador.possuiPermissao('usuarios.editar');
     const podeExcluir = controlador.possuiPermissao('usuarios.excluir');
     const podeRedefinirSenha = controlador.possuiPermissao('usuarios.redefinir_senha');
+    const podeBloquear = controlador.possuiPermissao('usuarios.bloquear');
+    const podeDesbloquear = controlador.possuiPermissao('usuarios.desbloquear');
     const podeSalvar = formUsuario.id_usuario ? podeEditar : podeCriar;
     const totalUsuarios = usuariosFiltrados.length;
     const statusAtivo = normalizarBusca(formUsuario.status) === 'ativo';
+    const statusBloqueado = normalizarBusca(formUsuario.status) === 'bloqueado';
     const acessoMicrosoft = normalizarBusca(formUsuario.provedor_autenticacao) === 'microsoft';
     const nomeDrawer = formUsuario.nome || formUsuario.email || (criandoUsuario ? 'Novo usuário' : 'Usuário');
     const linhasUsuarios = paginacaoUsuarios.itens.map((usuario) => ({
@@ -1726,6 +1757,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         />
                       </label>
                       <label>
+                        <span>Sobrenome</span>
+                        <input
+                          class="form-control"
+                          value=${formUsuario.sobrenome}
+                          onInput=${(event) => setFormUsuario({ ...formUsuario, sobrenome: event.target.value })}
+                        />
+                      </label>
+                      <label>
                         <span>E-mail</span>
                         <input
                           class="form-control"
@@ -1763,6 +1802,35 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           value=${formUsuario.cargo}
                           onInput=${(event) => setFormUsuario({ ...formUsuario, cargo: event.target.value })}
                         />
+                      </label>
+                      <label>
+                        <span>Operações vinculadas</span>
+                        <div class="users-operacoes-checklist">
+                          ${operacoesDisponiveis.length
+          ? operacoesDisponiveis.map((operacao) => {
+            const valorOperacao = operacao.chave || operacao.nome;
+            const marcado = formUsuario.operacoes.includes(valorOperacao);
+            const idCheckbox = `users-operacao-${operacao.id_item}`;
+            return html`
+                                <span key=${operacao.id_item} class="users-operacoes-item">
+                                  <input
+                                    type="checkbox"
+                                    id=${idCheckbox}
+                                    checked=${marcado}
+                                    onChange=${(event) => {
+                const novaLista = event.target.checked
+                  ? [...formUsuario.operacoes, valorOperacao]
+                  : formUsuario.operacoes.filter((item) => item !== valorOperacao);
+                setFormUsuario({ ...formUsuario, operacoes: novaLista });
+              }}
+                                  />
+                                  <label for=${idCheckbox}>${operacao.nome}</label>
+                                </span>
+                              `;
+          })
+          : html`<span class="form-text">Nenhuma operação cadastrada.</span>`}
+                        </div>
+                        <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações.</span>
                       </label>
                       <label>
                         <span>Tipo de acesso</span>
@@ -1817,6 +1885,50 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           onInput=${(event) => setFormUsuario({ ...formUsuario, justificativa: event.target.value })}
                         ></textarea>
                       </label>
+
+                      ${formUsuario.id_usuario && (podeBloquear || podeDesbloquear || podeRedefinirSenha)
+        ? html`
+                            <div class="users-account-actions">
+                              ${statusBloqueado
+            ? podeDesbloquear
+              ? html`
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        onClick=${() => alterarStatus(formUsuario, 'desbloquear')}
+                                      >
+                                        <span class="material-symbols-outlined">${IconeSvg('lock_open')}</span>
+                                        Desbloquear usuário
+                                      </button>
+                                    `
+              : null
+            : podeBloquear
+              ? html`
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        onClick=${() => alterarStatus(formUsuario, 'bloquear')}
+                                      >
+                                        <span class="material-symbols-outlined">${IconeSvg('lock')}</span>
+                                        Bloquear usuário
+                                      </button>
+                                    `
+              : null}
+                              ${podeRedefinirSenha
+            ? html`
+                                    <button
+                                      type="button"
+                                      class="btn btn-outline-secondary btn-sm"
+                                      onClick=${() => redefinirMfa(formUsuario)}
+                                    >
+                                      <span class="material-symbols-outlined">${IconeSvg('restart_alt')}</span>
+                                      Redefinir MFA
+                                    </button>
+                                  `
+            : null}
+                            </div>
+                          `
+        : null}
 
                       ${formUsuario.id_usuario && podeExcluir
         ? html`

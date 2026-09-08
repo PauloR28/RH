@@ -7,6 +7,7 @@ from .common import BaseSchema
 
 class UserCreateRequest(BaseSchema):
     nome: str = Field(default="")
+    sobrenome: str = Field(default="")
     email: str = Field(default="")
     login: str = Field(default="")
     senha: str = Field(default="")
@@ -14,16 +15,19 @@ class UserCreateRequest(BaseSchema):
     cargo: str = Field(default="")
     status: str = Field(default="Ativo")
     provedor_autenticacao: str = Field(default="local")
+    operacoes: list[str] = Field(default_factory=list)
 
 
 class UserUpdateRequest(BaseSchema):
     nome: str = Field(default="")
+    sobrenome: str = Field(default="")
     email: str = Field(default="")
     login: str = Field(default="")
     perfil: str = Field(default="")
     cargo: str = Field(default="")
     status: str = Field(default="")
     provedor_autenticacao: str = Field(default="")
+    operacoes: list[str] | None = Field(default=None)
     justificativa: str = Field(default="")
 
 

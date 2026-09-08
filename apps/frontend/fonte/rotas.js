@@ -26,6 +26,7 @@ export const ROTAS_POR_TELA = {
   'screen-settings-onboarding': 'configuracoes/onboarding',
   'screen-settings-document-templates': 'configuracoes/templates-documentos',
   'screen-settings-administracao': 'configuracoes/administracao',
+  'screen-settings-sharepoint-ambiente': 'configuracoes/administracao/parametros/sharepoint/novo-ambiente',
   'screen-provas-configuracao': 'processos/provas-configuracao',
   'screen-settings': 'configuracoes/usuario',
   'screen-calendario': 'calendario',

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..rbac import ACCESS_DENIED_MESSAGE, ROLE_ADMIN
 from ..repositories import DatabaseRepository
-from ..schemas.sistema import ParametroSistemaRequest, ResetarDadosConectaRequest
+from ..schemas.sistema import (
+    AmbienteSharePointRequest,
+    ParametroSistemaRequest,
+    ResetarDadosConectaRequest,
+)
 
 
 router = APIRouter(prefix="/sistema", tags=["sistema"])
@@ -33,6 +37,51 @@ def put_parametro_sistema(
 )
 def get_parametros_infraestrutura(repository: DatabaseRepository = Depends(get_repository)):
     return repository.describe_infraestrutura_credenciais()
+
+
+@router.get(
+    "/ambientes-sharepoint",
+    dependencies=[Depends(require_permissions("configuracoes.visualizar"))],
+)
+def get_ambientes_sharepoint(repository: DatabaseRepository = Depends(get_repository)):
+    return repository.list_ambientes_sharepoint()
+
+
+@router.post(
+    "/ambientes-sharepoint",
+    dependencies=[Depends(require_permissions("configuracoes.editar"))],
+)
+def post_ambiente_sharepoint(
+    payload: AmbienteSharePointRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.criar_ambiente_sharepoint(payload.model_dump(), actor=user)
+
+
+@router.post(
+    "/ambientes-sharepoint/{id_ambiente}/testar",
+    dependencies=[Depends(require_permissions("configuracoes.editar"))],
+)
+def post_testar_ambiente_sharepoint(
+    id_ambiente: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.testar_ambiente_sharepoint(id_ambiente, actor=user)
+
+
+@router.delete(
+    "/ambientes-sharepoint/{id_ambiente}",
+    dependencies=[Depends(require_permissions("configuracoes.editar"))],
+)
+def delete_ambiente_sharepoint(
+    id_ambiente: int,
+    justificativa: str = Query(default=""),
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.excluir_ambiente_sharepoint(id_ambiente, actor=user, justificativa=justificativa)
 
 
 @router.post("/resetar", dependencies=[Depends(require_permissions("configuracoes.editar"))])

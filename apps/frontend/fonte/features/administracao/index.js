@@ -1,5 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import {
+  Badge,
   EmptyState,
   ModalConfirmacaoAcao,
   ModalPadrao,
@@ -11,11 +12,18 @@ import {
 } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
+  listarAmbientesSharePoint,
   listarInfraestruturaCredenciais,
   listarParametrosSistema,
   resetarDadosConecta,
   salvarParametroSistema,
 } from '../../services/api/sistema.js';
+
+const STATUS_BADGE_AMBIENTE = {
+  conectado: { label: 'Conectado', tone: 'success' },
+  pendente: { label: 'Pendente de teste', tone: 'warning' },
+  erro: { label: 'Erro na conexão', tone: 'danger' },
+};
 
 const MODULOS_DISPONIVEIS = [
   {
@@ -69,7 +77,6 @@ const GRUPOS_PARAMETRO = [
   { chave: 'sharepoint', label: 'SharePoint', icone: 'cloud_sync' },
   { chave: 'email', label: 'E-mail', icone: 'mail' },
   { chave: 'onedrive', label: 'OneDrive', icone: 'cloud' },
-  { chave: 'outros', label: 'Outros', icone: 'tune' },
 ];
 
 function classificarGrupoParametro(categoria) {
@@ -77,7 +84,7 @@ function classificarGrupoParametro(categoria) {
   if (valor.includes('sharepoint') || valor.includes('intranet')) return 'sharepoint';
   if (valor.includes('email') || valor.includes('smtp')) return 'email';
   if (valor.includes('onedrive')) return 'onedrive';
-  return 'outros';
+  return '';
 }
 
 function LinhaDef({ label, valor, indefinido = 'Não configurado', mascarado = false }) {
@@ -184,6 +191,8 @@ export function TelaAdministracao({ controlador }) {
   const [carregandoParametros, setCarregandoParametros] = useState(true);
   const [infra, setInfra] = useState(null);
   const [carregandoInfra, setCarregandoInfra] = useState(true);
+  const [ambientesSharepoint, setAmbientesSharepoint] = useState([]);
+  const [carregandoAmbientes, setCarregandoAmbientes] = useState(true);
   const [feedback, setFeedback] = useState('');
   const [erroCarregamento, setErroCarregamento] = useState('');
 
@@ -248,6 +257,17 @@ export function TelaAdministracao({ controlador }) {
         setErroCarregamento(error?.message || 'Não foi possível carregar o status das integrações.');
       } finally {
         setCarregandoInfra(false);
+      }
+    })();
+    (async () => {
+      setCarregandoAmbientes(true);
+      try {
+        const resultado = await listarAmbientesSharePoint();
+        setAmbientesSharepoint(Array.isArray(resultado?.itens) ? resultado.itens : []);
+      } catch (error) {
+        setErroCarregamento(error?.message || 'Não foi possível carregar os ambientes cadastrados.');
+      } finally {
+        setCarregandoAmbientes(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -320,6 +340,7 @@ export function TelaAdministracao({ controlador }) {
 
   const infraSharepoint = infra?.sharepoint;
   const infraEmail = infra?.email_smtp;
+  const infraEmailInbox = infra?.email_inbox;
 
   const renderizarGrupoParametro = (grupo) => {
     const itensGrupo = parametros.filter((item) => classificarGrupoParametro(item.categoria) === grupo.chave);
@@ -359,8 +380,40 @@ export function TelaAdministracao({ controlador }) {
                               `}
                       </div>
                       <p class="rh-admin-hint">
-                        Cadastre abaixo cada intranet/site do SharePoint que recebe publicações do Conecta (uma linha por intranet).
+                        Cada linha abaixo é um "ambiente": a ligação entre o Conecta e a intranet (site SharePoint)
+                        de uma operação, usada pelo Mural para publicar simultaneamente.
                       </p>
+                      ${carregandoAmbientes
+              ? html`<p class="text-muted mb-0">Carregando ambientes...</p>`
+              : ambientesSharepoint.length
+                ? html`
+                              <div class="table-responsive mb-3">
+                                <table class="table rh-table-compact align-middle mb-0">
+                                  <thead>
+                                    <tr>
+                                      <th>Nome</th>
+                                      <th>Operação</th>
+                                      <th>Site</th>
+                                      <th>Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    ${ambientesSharepoint.map((ambiente) => {
+                    const infoStatus = STATUS_BADGE_AMBIENTE[ambiente.status] || STATUS_BADGE_AMBIENTE.pendente;
+                    return html`
+                                        <tr key=${ambiente.id_ambiente}>
+                                          <td>${ambiente.nome}</td>
+                                          <td>${ambiente.operacao_nome || html`<em>Sem operação</em>`}</td>
+                                          <td><code>${ambiente.hostname}${ambiente.site_path}</code></td>
+                                          <td><${Badge} label=${infoStatus.label} tone=${infoStatus.tone} /></td>
+                                        </tr>
+                                      `;
+                  })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            `
+                : html`<p class="text-muted small mb-3">Nenhum ambiente cadastrado ainda.</p>`}
                     `
           : null}
                 ${grupo.chave === 'email'
@@ -369,10 +422,35 @@ export function TelaAdministracao({ controlador }) {
                         ${carregandoInfra
               ? html`<p class="text-muted mb-0">Carregando status da integração...</p>`
               : html`
+                                <${LinhaDef} label="Envio habilitado (SMTP)" valor=${infraEmail?.habilitado ? 'Sim' : 'Não'} />
                                 <${LinhaDef} label="Host SMTP" valor=${infraEmail?.host} />
+                                <${LinhaDef} label="Porta SMTP" valor=${infraEmail?.porta ? String(infraEmail.porta) : ''} />
+                                <${LinhaDef} label="Usuário SMTP" valor=${infraEmail?.usuario} mascarado=${true} />
                                 <${LinhaDef}
                                   label="Senha SMTP"
                                   valor=${infraEmail?.senha_configurada ? 'Configurada' : ''}
+                                  mascarado=${true}
+                                />
+                                <${LinhaDef} label="Remetente" valor=${infraEmail?.remetente} />
+                                <${LinhaDef} label="Usa TLS" valor=${infraEmail?.usa_tls ? 'Sim' : 'Não'} />
+                                <${LinhaDef} label="Usa SSL" valor=${infraEmail?.usa_ssl ? 'Sim' : 'Não'} />
+                              `}
+                      </div>
+                      <p class="rh-admin-hint">Caixa de entrada (recebimento de currículos por e-mail):</p>
+                      <div class="rh-def-list mb-3">
+                        ${carregandoInfra
+              ? html`<p class="text-muted mb-0">Carregando status da integração...</p>`
+              : html`
+                                <${LinhaDef} label="Recebimento habilitado" valor=${infraEmailInbox?.habilitado ? 'Sim' : 'Não'} />
+                                <${LinhaDef} label="Protocolo" valor=${infraEmailInbox?.protocolo} />
+                                <${LinhaDef} label="Provedor" valor=${infraEmailInbox?.provedor} />
+                                <${LinhaDef} label="Endereço monitorado" valor=${infraEmailInbox?.endereco} mascarado=${true} />
+                                <${LinhaDef} label="Caixa" valor=${infraEmailInbox?.caixa} />
+                                <${LinhaDef} label="Tenant ID (Graph)" valor=${infraEmailInbox?.tenant_id} mascarado=${true} />
+                                <${LinhaDef} label="Client ID (Graph)" valor=${infraEmailInbox?.client_id} mascarado=${true} />
+                                <${LinhaDef}
+                                  label="Client secret (Graph)"
+                                  valor=${infraEmailInbox?.client_secret_configurado ? 'Configurado' : ''}
                                   mascarado=${true}
                                 />
                               `}
@@ -431,13 +509,25 @@ export function TelaAdministracao({ controlador }) {
                     `
             : html`<p class="text-muted small mb-0">Nenhum parâmetro cadastrado nesta categoria ainda.</p>`}
 
-                ${modoEdicaoParametros && podeEditarConfiguracoes
+                ${modoEdicaoParametros && podeEditarConfiguracoes && grupo.chave === 'sharepoint'
+          ? html`
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm mt-3"
+                        onClick=${() => controlador.irParaTelaProtegida('screen-settings-sharepoint-ambiente')}
+                      >
+                        <span class="material-symbols-outlined">${IconeSvg('link')}</span>
+                        Adicionar ambiente
+                      </button>
+                    `
+          : null}
+                ${modoEdicaoParametros && podeEditarConfiguracoes && grupo.chave === 'email'
           ? html`
                       <button
                         type="button"
                         class="btn btn-outline-primary btn-sm mt-3"
                         onClick=${() => {
-              setFormNovo({ ...FORM_PARAMETRO_INICIAL, categoria: grupo.chave === 'outros' ? 'geral' : grupo.chave });
+              setFormNovo({ ...FORM_PARAMETRO_INICIAL, categoria: grupo.chave });
               setErroNovo('');
               setModalNovoAberto(true);
             }}

@@ -2084,19 +2084,6 @@ export function TelaInicio({ controlador }) {
       subtituloMarca="Plataforma de Recrutamento e Seleção"
       placeholderBusca="Buscar candidatos, processos, vagas ou provas..."
       controlador=${controlador}
-      acaoPrimaria=${{
-      label: 'Gerar prova',
-      icon: 'assignment_add',
-      permissao: 'provas.enviar',
-      onClick: () => {
-        try {
-          sessionStorage.setItem('rh_open_generated_exam_modal_v1', '1');
-        } catch (error) {
-          // Navegacao ainda funciona se o navegador bloquear sessionStorage.
-        }
-        controlador.irParaTelaProtegida('screen-generated-exams');
-      },
-    }}
     >
       <${ToastHost} />
       <${PageIntro}
@@ -2140,6 +2127,19 @@ export function TelaInicio({ controlador }) {
       >
         <div class="home-quick-grid">
           ${[
+      {
+        label: 'Gerar prova',
+        icon: 'assignment_add',
+        permissao: 'provas.enviar',
+        onClick: () => {
+          try {
+            sessionStorage.setItem('rh_open_generated_exam_modal_v1', '1');
+          } catch (error) {
+            // Navegacao ainda funciona se o navegador bloquear sessionStorage.
+          }
+          controlador.irParaTelaProtegida('screen-generated-exams');
+        },
+      },
       {
         label: 'Nova vaga',
         icon: 'work',
