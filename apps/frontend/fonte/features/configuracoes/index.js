@@ -484,6 +484,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [salvandoEmail, setSalvandoEmail] = useState(false);
   const [formLoginLocalAmbiente, setFormLoginLocalAmbiente] = useState({ novaSenha: '', confirmarSenha: '' });
   const [mostrarFormLoginLocalAmbiente, setMostrarFormLoginLocalAmbiente] = useState(false);
+  const [editandoLoginAmbiente, setEditandoLoginAmbiente] = useState(false);
   const [salvandoLoginLocalAmbiente, setSalvandoLoginLocalAmbiente] = useState(false);
   const [salvandoProvedorAmbiente, setSalvandoProvedorAmbiente] = useState(false);
   const [solicitacoesEmailPendentes, setSolicitacoesEmailPendentes] = useState([]);
@@ -1458,6 +1459,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     const podeCriar = controlador.possuiPermissao('usuarios.criar');
     const podeEditar = controlador.possuiPermissao('usuarios.editar');
     const podeExcluir = controlador.possuiPermissao('usuarios.excluir');
+    const podeRedefinirSenha = controlador.possuiPermissao('usuarios.redefinir_senha');
     const podeSalvar = formUsuario.id_usuario ? podeEditar : podeCriar;
     const totalUsuarios = usuariosFiltrados.length;
     const statusAtivo = normalizarBusca(formUsuario.status) === 'ativo';
@@ -1501,7 +1503,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       <div class="settings-admin-shell users-modern-page">
         <section class="users-modern-panel">
           ${controlador.possuiPermissao('usuarios.alterar_email') && solicitacoesEmailPendentes.length > 0
-            ? html`
+        ? html`
                 <section class="c24-card settings-ambiente-section">
                   <h3>Solicitações de e-mail pendentes</h3>
                   <p class="settings-notifications-hint">
@@ -1509,7 +1511,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   </p>
                   <div class="settings-notif-list">
                     ${solicitacoesEmailPendentes.map(
-                      (solicitacao) => html`
+          (solicitacao) => html`
                         <div class="settings-notif-row" key=${solicitacao.id}>
                           <span>
                             <strong>${solicitacao.nome_usuario || solicitacao.login_usuario || 'Usuário'}</strong>
@@ -1535,11 +1537,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           </div>
                         </div>
                       `,
-                    )}
+        )}
                   </div>
                 </section>
               `
-            : null}
+        : null}
 
           <div class="users-modern-count">${totalUsuarios} ${totalUsuarios === 1 ? 'resultado' : 'resultados'}</div>
 
@@ -1734,6 +1736,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         />
                       </label>
                       <label>
+                        <span>Login</span>
+                        <input
+                          class="form-control"
+                          placeholder="Padrão: usa o e-mail"
+                          value=${formUsuario.login}
+                          onInput=${(event) => setFormUsuario({ ...formUsuario, login: event.target.value })}
+                        />
+                      </label>
+                      <label>
                         <span>Perfil</span>
                         <select
                           class="form-select"
@@ -1760,10 +1771,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           required
                           value=${formUsuario.provedor_autenticacao}
                           onChange=${(event) => setFormUsuario({
-                            ...formUsuario,
-                            provedor_autenticacao: event.target.value,
-                            senha: event.target.value === 'microsoft' ? '' : formUsuario.senha,
-                          })}
+          ...formUsuario,
+          provedor_autenticacao: event.target.value,
+          senha: event.target.value === 'microsoft' ? '' : formUsuario.senha,
+        })}
                         >
                           <option value="microsoft">Microsoft</option>
                           <option value="local">Local</option>
@@ -1781,20 +1792,21 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <i></i>
                         </button>
                       </label>
-                      ${criandoUsuario && !acessoMicrosoft
-            ? html`
+                      ${!acessoMicrosoft && (criandoUsuario || podeRedefinirSenha)
+        ? html`
                             <label>
-                              <span>Senha inicial</span>
+                              <span>${criandoUsuario ? 'Senha inicial' : 'Nova senha (opcional)'}</span>
                               <input
                                 class="form-control"
                                 type="password"
-                                required
+                                required=${criandoUsuario}
+                                placeholder=${criandoUsuario ? '' : 'Deixe em branco para manter a senha atual'}
                                 value=${formUsuario.senha}
                                 onInput=${(event) => setFormUsuario({ ...formUsuario, senha: event.target.value })}
                               />
                             </label>
                           `
-            : null}
+        : null}
                       <label>
                         <span>Justificativa</span>
                         <textarea
@@ -1807,10 +1819,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       </label>
 
                       ${formUsuario.id_usuario && podeExcluir
-            ? html`
+        ? html`
                             <div class="users-delete-panel">
                               ${confirmandoExclusaoUsuario
-                ? html`
+            ? html`
                                       <p>Deseja realmente excluir este usuário? Esta ação é permanente.</p>
                                       <div>
                                         <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(false)}>
@@ -1821,7 +1833,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                         </button>
                                       </div>
                                     `
-                : html`
+            : html`
                                       <button type="button" class="users-delete-button" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(true)}>
                                         <${Icone} name="delete" />
                                         Excluir usuário
@@ -1829,7 +1841,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                     `}
                             </div>
                           `
-            : null}
+        : null}
             </div>
 
             <footer class="rh-modal-footer">
@@ -2144,8 +2156,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <footer class="rh-form-footer rh-form-footer--sticky">
                     <span class="rh-form-footer-hint">
                       ${alteracoesPendentesPerfil
-        ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
-        : 'Nenhuma alteração pendente.'}
+            ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
+            : 'Nenhuma alteração pendente.'}
                     </span>
                     <div class="settings-card-actions">
                       <button
@@ -2187,7 +2199,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       <${StatGrid} items=${metricasGerais} />
 
       ${tipoCatalogo === 'operacoes'
-    ? html`
+      ? html`
           <section class="c24-card settings-rule-form-card">
             <header class="c24-card-header compact">
               <div>
@@ -2196,15 +2208,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 <p>Usado por operações com Unidade "Em loco". Edição restrita a quem administra Configurações.</p>
               </div>
               ${controlador.possuiPermissao('configuracoes.editar') && !editandoEndereco
-        ? html`
+          ? html`
                     <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoEndereco(true)}>
                       <${Icone} name="edit" /> ${enderecoPrincipalItem ? 'Editar' : 'Cadastrar'}
                     </button>
                   `
-        : null}
+          : null}
             </header>
             ${editandoEndereco
-      ? html`
+          ? html`
                   <form class="c24-form-grid" onSubmit=${salvarEnderecoPrincipal}>
                     <label class="is-wide">
                       <span>Rua/Avenida</span>
@@ -2242,16 +2254,16 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     </footer>
                   </form>
                 `
-      : html`
+          : html`
                   <p class="text-muted mb-0">
                     ${enderecoPrincipalItem
-        ? `${formEndereco.rua}${formEndereco.numero ? `, ${formEndereco.numero}` : ''} — ${formEndereco.bairro || ''} ${formEndereco.cidade || ''}${formEndereco.uf ? `/${formEndereco.uf}` : ''}${formEndereco.cep ? ` — CEP ${formEndereco.cep}` : ''}`
-        : 'Nenhum endereço principal cadastrado ainda.'}
+              ? `${formEndereco.rua}${formEndereco.numero ? `, ${formEndereco.numero}` : ''} — ${formEndereco.bairro || ''} ${formEndereco.cidade || ''}${formEndereco.uf ? `/${formEndereco.uf}` : ''}${formEndereco.cep ? ` — CEP ${formEndereco.cep}` : ''}`
+              : 'Nenhum endereço principal cadastrado ainda.'}
                   </p>
                 `}
           </section>
         `
-    : null}
+      : null}
 
       <div class="settings-catalog-workspace">
         <section class="c24-card settings-area-panel">
@@ -2263,9 +2275,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           </header>
           <div class="settings-area-list">
             ${catalogo.map(
-    (secao) => {
-      const ativos = contarPor(secao.items, (item) => item.ativo);
-      return html`
+        (secao) => {
+          const ativos = contarPor(secao.items, (item) => item.ativo);
+          return html`
                   <button
                     type="button"
                     key=${secao.tipo}
@@ -2277,8 +2289,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     <small>${ativos}/${normalizarLista(secao.items).length} ativos</small>
                   </button>
                 `;
-    },
-  )}
+        },
+      )}
           </div>
         </section>
 
@@ -2317,7 +2329,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               />
             </label>
             ${secaoCatalogoAtiva?.tipo === 'operacoes'
-    ? html`
+      ? html`
                   <label>
                     <span>Chave/Tag (automática)</span>
                     <input class="form-control" disabled value=${String(formItem.nome || '').toUpperCase() || '—'} />
@@ -2333,7 +2345,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     />
                   </label>
                 `
-    : html`
+      : html`
                   <label>
                     <span>Chave</span>
                     <input
@@ -2346,7 +2358,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             <label>
               <span>${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'Tipo de operação' : 'Categoria'}</span>
               ${secaoCatalogoAtiva?.tipo === 'operacoes'
-    ? html`
+      ? html`
                     <select
                       class="form-select"
                       value=${formItem.categoria}
@@ -2355,11 +2367,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       <option value="">Selecione</option>
                       ${TIPOS_OPERACAO.map((tipo) => html`<option key=${tipo} value=${tipo}>${tipo}</option>`)}
                       ${formItem.categoria && !TIPOS_OPERACAO.includes(formItem.categoria)
-        ? html`<option value=${formItem.categoria}>${formItem.categoria} (legado)</option>`
-        : null}
+          ? html`<option value=${formItem.categoria}>${formItem.categoria} (legado)</option>`
+          : null}
                     </select>
                   `
-    : html`
+      : html`
                     <input
                       class="form-control"
                       value=${formItem.categoria}
@@ -2544,7 +2556,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <label>
                     <span>Área específica do segmento</span>
                     ${normalizarLista(AREAS_POR_SEGMENTO[formItem.segmentoMercado]).length
-        ? html`
+          ? html`
                           <select
                             class="form-select"
                             value=${formItem.areaSegmento}
@@ -2552,11 +2564,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           >
                             <option value="">Selecione</option>
                             ${AREAS_POR_SEGMENTO[formItem.segmentoMercado].map(
-          (area) => html`<option key=${area} value=${area}>${area}</option>`,
-        )}
+            (area) => html`<option key=${area} value=${area}>${area}</option>`,
+          )}
                           </select>
                         `
-        : html`
+          : html`
                           <input
                             class="form-control"
                             placeholder="Detalhe a área específica deste segmento"
@@ -2578,8 +2590,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       Usado para já indicar, na solicitação de credenciais de um novo colaborador desta operação, quais acessos precisam ser criados.
                     </p>
                     ${normalizarLista(formItem.sistemasAcesso).length
-        ? normalizarLista(formItem.sistemasAcesso).map(
-          (sistema, indice) => html`
+          ? normalizarLista(formItem.sistemasAcesso).map(
+            (sistema, indice) => html`
                             <div key=${indice} class="row g-2 align-items-start mb-2">
                               <div class="col-md-5">
                                 <input
@@ -2609,8 +2621,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                               </div>
                             </div>
                           `,
-        )
-        : html`<p class="text-muted small mb-0">Nenhum sistema adicionado ainda.</p>`}
+          )
+          : html`<p class="text-muted small mb-0">Nenhum sistema adicionado ainda.</p>`}
                   </div>
                   <label>
                     <span>Unidade</span>
@@ -2624,14 +2636,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     </select>
                   </label>
                   ${formItem.unidadeTipo === 'em_loco'
-      ? html`
+          ? html`
                         <p class="is-wide text-muted small mb-0">
                           Usa o endereço principal da empresa, cadastrado no topo desta tela (acesso restrito a quem edita Configurações).
                         </p>
                       `
-      : null}
+          : null}
                   ${formItem.unidadeTipo === 'alocado_cliente'
-      ? html`
+          ? html`
                         <label class="is-wide">
                           <span>Endereço alocado ao cliente</span>
                           <input
@@ -2642,9 +2654,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           />
                         </label>
                       `
-      : null}
+          : null}
                   ${formItem.unidadeTipo === 'hibrido'
-      ? html`
+          ? html`
                         <div class="is-wide">
                           <div class="d-flex align-items-center justify-content-between mb-2">
                             <span>Endereços do modelo híbrido</span>
@@ -2653,8 +2665,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                             </button>
                           </div>
                           ${normalizarLista(formItem.unidadeEnderecosHibrido).length
-        ? normalizarLista(formItem.unidadeEnderecosHibrido).map(
-          (endereco, indice) => html`
+              ? normalizarLista(formItem.unidadeEnderecosHibrido).map(
+                (endereco, indice) => html`
                                 <div key=${indice} class="row g-2 align-items-start mb-2">
                                   <div class="col-md-11">
                                     <input
@@ -2671,17 +2683,17 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                   </div>
                                 </div>
                               `,
-        )
-        : html`<p class="text-muted small mb-0">Nenhum endereço adicionado ainda.</p>`}
+              )
+              : html`<p class="text-muted small mb-0">Nenhum endereço adicionado ainda.</p>`}
                         </div>
                       `
-      : null}
+          : null}
                   <div class="is-wide">
                     <span>Jornada de trabalho</span>
                     <p class="text-muted small mb-2">Pode marcar mais de uma — supervisores e outras funções costumam ter escalas diferentes da operação.</p>
                     <div class="d-flex flex-wrap gap-3">
                       ${JORNADAS_OPERACAO.map(
-        (item) => html`
+            (item) => html`
                             <label key=${item.value} class="settings-toggle-line" style=${{ minWidth: '0' }}>
                               <input
                                 type="checkbox"
@@ -2691,7 +2703,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                               <span>${item.label}</span>
                             </label>
                           `,
-      )}
+          )}
                     </div>
                   </div>
                   <label>
@@ -2808,8 +2820,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <span
                             class="settings-catalog-icon"
                             style=${secaoCatalogoAtiva?.tipo === 'operacoes' && item.payload?.cor_tag
-        ? { color: item.payload.cor_tag, borderColor: item.payload.cor_tag }
-        : {}}
+            ? { color: item.payload.cor_tag, borderColor: item.payload.cor_tag }
+            : {}}
                           ><${Icone} name=${CATALOGO_ICONS[secaoCatalogoAtiva?.tipo] || 'settings'} /></span>
                           <span>
                             <strong>${item.nome || '-'}</strong>
@@ -3157,18 +3169,17 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     <div class="settings-ambiente-shell">
       <div class="settings-ambiente-tabs">
         ${ABAS_AMBIENTE.map(
-          (aba) => html`
+    (aba) => html`
             <${BotaoAba} key=${aba.id} aba=${aba} ativa=${abaAmbiente === aba.id} onClick=${() => setAbaAmbiente(aba.id)} />
           `,
-        )}
+  )}
       </div>
 
       <section class="c24-card settings-ambiente-panel">
         ${abaAmbiente === 'perfil'
-          ? html`
+      ? html`
               <div class="settings-ambiente-section">
                 <h3>Nome</h3>
-                <p class="settings-notifications-hint">Como o seu nome aparece para o restante do time.</p>
                 <label class="settings-name-field">
                   <div class="settings-name-row">
                     <input
@@ -3239,8 +3250,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <div class="settings-ambiente-section">
                 <h3>E-mail</h3>
                 <p class="settings-notifications-hint">
-                  E-mail atual: <strong>${controlador?.estado?.emailUsuarioAutenticado || 'não informado'}</strong>.
-                  Alterações passam por aprovação do administrador antes de valer.
+                  Alterações passam por aprovação do administrador antes de serem aplicadas.
                 </p>
                 <label class="settings-name-field">
                   <div class="settings-name-row">
@@ -3269,8 +3279,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <div>
                     <h3>Avatar</h3>
                     <p class="settings-notifications-hint">
-                      Ative para escolher um avatar ilustrado para o seu perfil; desative para usar só as
-                      iniciais do seu nome.
+                      Ative para escolher um avatar ilustrado para o seu perfil.
                     </p>
                   </div>
                   <div class="settings-ambiente-section-actions">
@@ -3280,12 +3289,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         checked=${Boolean(controlador?.estado?.avatarUsuario)}
                         disabled=${salvandoAvatar}
                         onChange=${(event) => {
-                          if (event.target.checked) {
-                            setAvatarExpandido(true);
-                          } else {
-                            escolherAvatarAmbiente(controlador?.estado?.avatarUsuario);
-                          }
-                        }}
+          if (event.target.checked) {
+            setAvatarExpandido(true);
+          } else {
+            escolherAvatarAmbiente(controlador?.estado?.avatarUsuario);
+          }
+        }}
                       />
                       <span class="process-switch-visual"></span>
                     </label>
@@ -3300,10 +3309,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   </div>
                 </div>
                 ${avatarExpandido
-                  ? html`
+          ? html`
                       <div class="settings-avatar-grid">
                         ${AVATARES_ILUSTRADOS.map(
-                          (avatar) => html`
+            (avatar) => html`
                             <button
                               key=${avatar.id}
                               type="button"
@@ -3315,16 +3324,16 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                               <img src=${avatar.url} alt="" loading="lazy" />
                             </button>
                           `,
-                        )}
+          )}
                       </div>
                     `
-                  : null}
+          : null}
               </div>
             `
-          : null}
+      : null}
 
         ${abaAmbiente === 'seguranca'
-          ? html`
+      ? html`
               <div class="settings-ambiente-section">
                 <h3>Alterar senha</h3>
                 <p class="settings-notifications-hint">
@@ -3377,28 +3386,55 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               </div>
 
               <div class="settings-ambiente-section">
-                <h3>Login pela Microsoft</h3>
+                <div class="settings-ambiente-section-header">
+                  <div>
+                    <h3>Forma de login</h3>
+                    <p class="settings-notifications-hint">
+                      Os dois botões abaixo são espelhados: ativar um desativa o outro automaticamente. O login é
+                      sempre o seu e-mail cadastrado.
+                    </p>
+                  </div>
+                  <div class="settings-ambiente-section-actions">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      onClick=${() => setEditandoLoginAmbiente((valor) => !valor)}
+                    >
+                      ${editandoLoginAmbiente ? 'Concluir edição' : 'Editar'}
+                    </button>
+                  </div>
+                </div>
                 <div class="process-cutoff-panel">
                   <label class="process-switch-row">
                     <input
                       type="checkbox"
                       checked=${controlador?.estado?.provedorAutenticacaoUsuario === 'microsoft'}
-                      disabled=${salvandoProvedorAmbiente}
+                      disabled=${salvandoProvedorAmbiente || !editandoLoginAmbiente}
                       onChange=${(event) => alternarLoginMicrosoftAmbiente(event.target.checked)}
                     />
                     <span class="process-switch-visual"></span>
                     <span>
                       <strong>Entrar pela Microsoft</strong>
-                      <small>
-                        Ao desativar, você cria um login e senha de acesso local — o login é sempre o seu
-                        e-mail cadastrado.
-                      </small>
+                      <small>Login e senha gerenciados pela Microsoft (SSO).</small>
+                    </span>
+                  </label>
+                  <label class="process-switch-row">
+                    <input
+                      type="checkbox"
+                      checked=${controlador?.estado?.provedorAutenticacaoUsuario !== 'microsoft'}
+                      disabled=${salvandoProvedorAmbiente || !editandoLoginAmbiente}
+                      onChange=${(event) => alternarLoginMicrosoftAmbiente(!event.target.checked)}
+                    />
+                    <span class="process-switch-visual"></span>
+                    <span>
+                      <strong>Login com senha</strong>
+                      <small>Acesso local com e-mail + senha própria do Conecta.</small>
                     </span>
                   </label>
                 </div>
 
                 ${mostrarFormLoginLocalAmbiente
-                  ? html`
+          ? html`
                       <div class="settings-password-grid">
                         <label class="settings-name-field">
                           <span>Nova senha de acesso local</span>
@@ -3409,7 +3445,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                             value=${formLoginLocalAmbiente.novaSenha}
                             disabled=${salvandoLoginLocalAmbiente}
                             onInput=${(event) =>
-                              setFormLoginLocalAmbiente({ ...formLoginLocalAmbiente, novaSenha: event.target.value })}
+              setFormLoginLocalAmbiente({ ...formLoginLocalAmbiente, novaSenha: event.target.value })}
                           />
                         </label>
                         <label class="settings-name-field">
@@ -3421,7 +3457,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                             value=${formLoginLocalAmbiente.confirmarSenha}
                             disabled=${salvandoLoginLocalAmbiente}
                             onInput=${(event) =>
-                              setFormLoginLocalAmbiente({ ...formLoginLocalAmbiente, confirmarSenha: event.target.value })}
+              setFormLoginLocalAmbiente({ ...formLoginLocalAmbiente, confirmarSenha: event.target.value })}
                           />
                         </label>
                       </div>
@@ -3439,21 +3475,21 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           class="btn btn-outline-secondary btn-sm"
                           disabled=${salvandoLoginLocalAmbiente}
                           onClick=${() => {
-                            setMostrarFormLoginLocalAmbiente(false);
-                            setFormLoginLocalAmbiente({ novaSenha: '', confirmarSenha: '' });
-                          }}
+              setMostrarFormLoginLocalAmbiente(false);
+              setFormLoginLocalAmbiente({ novaSenha: '', confirmarSenha: '' });
+            }}
                         >
                           Cancelar
                         </button>
                       </div>
                     `
-                  : null}
+          : null}
               </div>
             `
-          : null}
+      : null}
 
         ${abaAmbiente === 'aparencia'
-          ? html`
+      ? html`
               <div class="settings-ambiente-section">
                 <h3>Aparência</h3>
                 <div class="process-cutoff-panel">
@@ -3493,10 +3529,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 </div>
               </div>
             `
-          : null}
+      : null}
 
         ${abaAmbiente === 'notificacoes'
-          ? html`
+      ? html`
               <div class="settings-ambiente-section">
                 <h3>Notificações</h3>
                 <p class="settings-notifications-hint">
@@ -3504,7 +3540,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 </p>
                 <div class="settings-notif-list">
                   ${CATEGORIAS_NOTIFICACAO.map(
-                    (categoria) => html`
+        (categoria) => html`
                       <div class="settings-notif-row" key=${categoria.id}>
                         <label class="process-switch-row settings-notif-toggle">
                           <input
@@ -3527,11 +3563,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         </label>
                       </div>
                     `,
-                  )}
+      )}
                 </div>
               </div>
             `
-          : null}
+      : null}
       </section>
     </div>
   `;

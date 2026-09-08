@@ -49,6 +49,7 @@ export function BarraLateral({
   navAtiva,
   controlador,
   subtituloMarca = 'Plataforma de Recrutamento e Seleção',
+  placeholderBusca,
   mostrarAtalhos = true,
   recolhida = false,
   onOpenHelp = null,
@@ -120,7 +121,7 @@ export function BarraLateral({
     {
       tela: 'screen-training-trilhas',
       icone: 'school',
-      label: 'Trilhas',
+      label: 'Treinamentos',
       permissao: 'onboarding.visualizar',
     },
     {
@@ -453,7 +454,7 @@ export function BarraLateral({
                   aria-controls="rh-modern-subnav-provas"
                   onClick=${() => alternarGrupo('provas')}
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('quiz')}</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('assignment_turned_in')}</span>
                   <span class="rh-modern-nav-label">Conecta Provas</span>
                   <span
                     class="material-symbols-outlined rh-modern-nav-chevron"
@@ -684,6 +685,13 @@ export function BarraLateral({
       : null}
       </nav>
 
+      <div class="rh-modern-topnav-search" data-tour-id="topbar-search">
+        <${BuscaGlobalTopbar}
+          placeholderBusca=${placeholderBusca}
+          controlador=${controlador}
+        />
+      </div>
+
       <div class="rh-modern-topnav-user">
         <${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />
       </div>
@@ -827,8 +835,9 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
     ? perfilBase
     : `RH / ${perfilBase}`;
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
-  const { itens: notificacoes, carregando: carregandoNotificacoes } = useResumoNotificacoes(controlador);
+  const { itens: notificacoes, carregando: carregandoNotificacoes, marcarComoLida, excluirTodas } = useResumoNotificacoes(controlador);
   const coresPorCategoria = lerCoresNotificacao();
+  const notificacoesNaoLidas = notificacoes.filter((item) => !item.lida);
 
   const alternarTema = () => {
     const novoTema = definirTema(proximoTema(tema));
@@ -884,7 +893,7 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
         type="button"
         class="c24-user-menu"
         title="Perfil do usuário"
-        aria-label=${`Abrir menu do perfil de ${nome}${notificacoes.length ? `, ${notificacoes.length} notificações novas` : ''}`}
+        aria-label=${`Abrir menu do perfil de ${nome}${notificacoesNaoLidas.length ? `, ${notificacoesNaoLidas.length} notificações novas` : ''}`}
         aria-haspopup="menu"
         aria-expanded=${aberto}
         onClick=${(event) => {
@@ -902,7 +911,7 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
           <small>${perfil}</small>
         </span>
         <span class="material-symbols-outlined c24-user-chevron">${IconeSvg(aberto ? 'expand_less' : 'expand_more')}</span>
-        ${notificacoes.length ? html`<i class="c24-user-menu-badge" aria-hidden="true"></i>` : null}
+        ${notificacoesNaoLidas.length ? html`<i class="c24-user-menu-badge" aria-hidden="true"></i>` : null}
       </button>
 
       ${aberto
@@ -920,7 +929,7 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
               >
                 <span class="material-symbols-outlined">${IconeSvg('notifications')}</span>
                 Notificações
-                ${notificacoes.length ? html`<span class="c24-user-dropdown-badge">${notificacoes.length}</span>` : null}
+                ${notificacoesNaoLidas.length ? html`<span class="c24-user-dropdown-badge">${notificacoesNaoLidas.length}</span>` : null}
               </button>
               ${mostrarAjuda && onOpenHelp
           ? html`
@@ -983,14 +992,27 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
             <div class="c24-notif-side-panel" role="menu">
               <header class="c24-notif-side-panel-header">
                 <span>Notificações</span>
-                <button
-                  type="button"
-                  class="c24-notif-side-panel-close"
-                  aria-label="Fechar notificações"
-                  onClick=${() => setNotificacoesAbertas(false)}
-                >
-                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
-                </button>
+                <div class="c24-notif-side-panel-header-actions">
+                  ${notificacoes.length
+          ? html`
+                        <button
+                          type="button"
+                          class="c24-notif-side-panel-clear"
+                          onClick=${() => excluirTodas()}
+                        >
+                          Excluir notificações
+                        </button>
+                      `
+          : null}
+                  <button
+                    type="button"
+                    class="c24-notif-side-panel-close"
+                    aria-label="Fechar notificações"
+                    onClick=${() => setNotificacoesAbertas(false)}
+                  >
+                    <span class="material-symbols-outlined">${IconeSvg('close')}</span>
+                  </button>
+                </div>
               </header>
               ${carregandoNotificacoes
           ? html`<p class="c24-notif-empty">Carregando…</p>`
@@ -999,7 +1021,20 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
                     <ul class="c24-notif-list">
                       ${notificacoes.map(
                 (item) => html`
-                          <li key=${item.id} class="c24-notif-item">
+                          <li
+                            key=${item.id}
+                            class=${`c24-notif-item ${item.lida ? 'is-lida' : ''}`.trim()}
+                            role="menuitem"
+                            tabIndex="0"
+                            title=${item.lida ? 'Notificação lida' : 'Marcar como lida'}
+                            onClick=${() => marcarComoLida(item)}
+                            onKeyDown=${(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    marcarComoLida(item);
+                  }
+                }}
+                          >
                             <span
                               class="c24-notif-dot"
                               style=${{ backgroundColor: coresPorCategoria[item.categoria] || '#0f5be8' }}
@@ -1048,6 +1083,7 @@ export function PainelRh({
   const abrirTour = () => setTourReopenSignal((valor) => valor + 1);
   const ambiente = String(window.RUNTIME_CONFIG?.APP_ENV || '').toLowerCase();
   const exibirAmbiente = ambiente === 'dev' || ambiente === 'hml';
+  const mostrarTopbarSecundaria = Boolean(mostrarAcaoPrimaria || acoesTopo);
 
   return html`
     <section class="active screen" id=${screenId}>
@@ -1056,6 +1092,7 @@ export function PainelRh({
         <${BarraLateral}
           navAtiva=${navAtiva}
           subtituloMarca=${subtituloMarca}
+          placeholderBusca=${placeholderBusca}
           controlador=${controlador}
           mostrarAtalhos=${mostrarAtalhos}
           onOpenHelp=${abrirTour}
@@ -1063,33 +1100,30 @@ export function PainelRh({
         />
 
         <div class="rh-modern-main">
-          <header class="rh-modern-topbar">
-            <div class="rh-modern-topbar-left" data-tour-id="topbar-search">
-              <${BuscaGlobalTopbar}
-                placeholderBusca=${placeholderBusca}
-                controlador=${controlador}
-              />
-            </div>
-            <div class="rh-modern-topbar-actions">
-              
-              ${mostrarAcaoPrimaria
+          ${mostrarTopbarSecundaria
       ? html`
-                    <button
-                      type="button"
-                      class="btn btn-primary rh-modern-primary-btn"
-                      data-tour-id="topbar-primary-action"
-                      onClick=${acaoPrimaria.onClick}
-                    >
-                      ${acaoPrimaria.icon
-          ? html`<span class="material-symbols-outlined">${IconeSvg(acaoPrimaria.icon)}</span>`
+                <header class="rh-modern-topbar rh-modern-topbar--actions-only">
+                  <div class="rh-modern-topbar-actions">
+                    ${mostrarAcaoPrimaria
+          ? html`
+                          <button
+                            type="button"
+                            class="btn btn-primary rh-modern-primary-btn"
+                            data-tour-id="topbar-primary-action"
+                            onClick=${acaoPrimaria.onClick}
+                          >
+                            ${acaoPrimaria.icon
+              ? html`<span class="material-symbols-outlined">${IconeSvg(acaoPrimaria.icon)}</span>`
+              : null}
+                            ${acaoPrimaria.label}
+                          </button>
+                        `
           : null}
-                      ${acaoPrimaria.label}
-                    </button>
-                  `
+                    ${acoesTopo}
+                  </div>
+                </header>
+              `
       : null}
-              ${acoesTopo}
-            </div>
-          </header>
 
           <main class="rh-modern-page">
             ${children}

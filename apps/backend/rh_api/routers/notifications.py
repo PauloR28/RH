@@ -37,3 +37,20 @@ def marcar_todas_notificacoes_lidas(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.marcar_todas_notificacoes_lidas(papel=user.perfil, usuario=user.username)
+
+
+@router.delete("/{id_notificacao}", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
+def excluir_notificacao(
+    id_notificacao: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.excluir_notificacao(id_notificacao, papel=user.perfil, usuario=user.username)
+
+
+@router.delete("", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
+def excluir_todas_notificacoes(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.excluir_todas_notificacoes(papel=user.perfil, usuario=user.username)

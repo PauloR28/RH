@@ -223,6 +223,7 @@ export function TelaEntrevistas({ controlador }) {
     capacidade_total: 1,
     observacoes_rh: '',
   });
+  const [disponibilidadeExpandida, setDisponibilidadeExpandida] = useState(false);
   const [entrevistaEdicao, setEntrevistaEdicao] = useState(null);
   const [formularioEdicao, setFormularioEdicao] = useState({
     id_slot: '',
@@ -708,7 +709,21 @@ export function TelaEntrevistas({ controlador }) {
       <${SectionCard}
         title="Criar disponibilidade"
         className="availability-card"
+        actions=${html`
+          <button
+            type="button"
+            class="availability-fold-btn"
+            aria-expanded=${disponibilidadeExpandida}
+            aria-label=${disponibilidadeExpandida ? 'Recolher criação de disponibilidade' : 'Expandir criação de disponibilidade'}
+            onClick=${() => setDisponibilidadeExpandida((valor) => !valor)}
+          >
+            <span class="material-symbols-outlined">${IconeSvg(disponibilidadeExpandida ? 'expand_less' : 'expand_more')}</span>
+          </button>
+        `}
       >
+        ${!disponibilidadeExpandida
+          ? html`<p class="availability-fold-hint text-muted small mb-0">Recolhido para economizar espaço — clique na seta para gerar novos slots.</p>`
+          : html`
         <div class="availability-form-grid">
           <div class="rh-filter-field">
             <label>Processo</label>
@@ -835,6 +850,7 @@ export function TelaEntrevistas({ controlador }) {
             ${salvando ? 'Salvando...' : 'Gerar slots'}
           </button>
         </div>
+        `}
       </${SectionCard}>
       </div>
 

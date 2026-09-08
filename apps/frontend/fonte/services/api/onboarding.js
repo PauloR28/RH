@@ -52,6 +52,14 @@ export async function atualizarTrilhaOnboarding(idTrilha, payload) {
   return resultado;
 }
 
+export async function excluirTrilhaOnboarding(idTrilha) {
+  const resultado = await requisitar(`/onboarding/trilhas/${encodeURIComponent(idTrilha)}`, {
+    method: 'DELETE',
+  });
+  invalidarCacheApi('onboarding-trilhas');
+  return resultado;
+}
+
 export async function iniciarOnboardingCandidato(payload) {
   const resultado = await requisitar('/onboarding/candidatos/iniciar', {
     method: 'POST',

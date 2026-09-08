@@ -4,6 +4,7 @@ import {
   atualizarTrilhaOnboarding,
   criarTrilhaOnboarding,
   excluirAtribuicaoTreinamento,
+  excluirTrilhaOnboarding,
   liberarVagasTreinamento,
   listarAtribuicoesTreinamento,
   listarCandidatosLiberacaoTreinamento,
@@ -149,6 +150,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
   const [salvandoTrilha, setSalvandoTrilha] = useState(false);
   const [erroTrilha, setErroTrilha] = useState('');
 
+  const [excluindoTrilhaId, setExcluindoTrilhaId] = useState(null);
+
   const [modalAgendarAberto, setModalAgendarAberto] = useState(false);
   const [formAgendar, setFormAgendar] = useState(FORM_AGENDAR_INICIAL);
   const [salvandoAgenda, setSalvandoAgenda] = useState(false);
@@ -181,7 +184,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       const dados = await listarTrilhasOnboarding();
       setTrilhas(Array.isArray(dados) ? dados : []);
     } catch (error) {
-      setErro(error?.message || 'Não foi possível carregar as trilhas de treinamento.');
+      setErro(error?.message || 'Não foi possível carregar os treinamentos.');
     }
   };
 
@@ -342,11 +345,11 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
   const salvarTrilha = async () => {
     setErroTrilha('');
     if (!formTrilha.nome.trim()) {
-      setErroTrilha('Informe o nome da trilha.');
+      setErroTrilha('Informe o nome do treinamento.');
       return;
     }
     if (!itensTrilhaValidos) {
-      setErroTrilha('Informe o título de todos os módulos da trilha.');
+      setErroTrilha('Informe o título de todos os módulos do treinamento.');
       return;
     }
 
@@ -376,9 +379,23 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       fecharModalTrilha();
       await carregarTrilhas();
     } catch (error) {
-      setErroTrilha(error?.message || 'Não foi possível salvar a trilha de treinamento.');
+      setErroTrilha(error?.message || 'Não foi possível salvar o treinamento.');
     } finally {
       setSalvandoTrilha(false);
+    }
+  };
+
+  const excluirTrilhaCadastrada = async (item) => {
+    if (!window.confirm(`Excluir definitivamente o treinamento "${item.nome}"? Esta ação não pode ser desfeita.`)) return;
+    setErro('');
+    setExcluindoTrilhaId(item.id_trilha);
+    try {
+      await excluirTrilhaOnboarding(item.id_trilha);
+      await carregarTrilhas();
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível excluir este treinamento.');
+    } finally {
+      setExcluindoTrilhaId(null);
     }
   };
 
@@ -564,7 +581,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const renderTrilhas = () => html`
     ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
-    <${SectionCard} title="Trilhas de treinamento" className="rh-section-card--flat">
+    <${SectionCard} title="Treinamentos" className="rh-section-card--flat">
       <div class="table-responsive">
         <table class="table align-middle rh-modern-history-table">
           <thead>
@@ -595,19 +612,30 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                       <td>${(item.itens || []).length} módulo(s)</td>
                       <td>
                         <span class=${`rh-chip ${item.ativo ? 'is-indicacao' : ''}`}>
-                          ${item.ativo ? 'Ativa' : 'Inativa'}
+                          ${item.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
                       <td>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicaoTrilha(item)}>
-                          <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-                          Editar
-                        </button>
+                        <div class="d-flex gap-2">
+                          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicaoTrilha(item)}>
+                            <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            disabled=${excluindoTrilhaId === item.id_trilha}
+                            onClick=${() => excluirTrilhaCadastrada(item)}
+                          >
+                            <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                            ${excluindoTrilhaId === item.id_trilha ? 'Excluindo...' : 'Excluir'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   `,
         )
-        : html`<${TabelaVazia} colunas=${7} texto="Nenhuma trilha de treinamento cadastrada." icone="school" />`}
+        : html`<${TabelaVazia} colunas=${7} texto="Nenhum treinamento cadastrado." icone="school" />`}
           </tbody>
         </table>
       </div>
@@ -634,7 +662,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           <thead>
             <tr>
               <th>Colaborador</th>
-              <th>Trilha</th>
+              <th>Treinamento</th>
               <th>Progresso</th>
               <th>Data prevista</th>
               <th>Local</th>
@@ -724,7 +752,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           <thead>
             <tr>
               <th>Processo</th>
-              <th>Trilha</th>
+              <th>Treinamento</th>
               <th>Aguardando processo</th>
               <th>Aberto</th>
               <th>Ações</th>
@@ -775,7 +803,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     <${SectionCard}
       title="Relatórios de treinamentos aplicados x pendentes x encerrados sem chamada"
       className="rh-section-card--flat mb-4"
-      description="Edição de treinamentos e histórico de presença ficam nas abas Trilhas/Atribuições acima."
+      description="Edição de treinamentos e histórico de presença ficam nas abas Treinamentos/Atribuições acima."
     >
       <div class="table-responsive">
         <table class="table align-middle rh-modern-history-table">
@@ -909,7 +937,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       : null}
       `}
       acaoPrimaria=${abaAtiva === 'trilhas'
-      ? { label: 'Nova trilha', icon: 'add', onClick: abrirNovaTrilha, permissao: 'onboarding.editar' }
+      ? { label: 'Novo treinamento', icon: 'add', onClick: abrirNovaTrilha, permissao: 'onboarding.editar' }
       : null}
     >
       <${PageIntro}
@@ -920,7 +948,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       <div class="c24-tabs" style=${{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
         <button type="button" class=${`c24-pill-tab ${abaAtiva === 'trilhas' ? 'is-active' : ''}`} onClick=${() => irParaAba('trilhas')}>
           <span class="material-symbols-outlined">${IconeSvg('school')}</span>
-          Trilhas
+          Treinamentos
         </button>
         <button type="button" class=${`c24-pill-tab ${abaAtiva === 'atribuicoes' ? 'is-active' : ''}`} onClick=${() => irParaAba('atribuicoes')}>
           <span class="material-symbols-outlined">${IconeSvg('assignment_ind')}</span>
@@ -936,7 +964,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
       <${ModalPadrao}
         aberto=${modalTrilhaAberto}
-        titulo=${formTrilha.id_trilha ? 'Editar trilha de treinamento' : 'Nova trilha de treinamento'}
+        titulo=${formTrilha.id_trilha ? 'Editar treinamento' : 'Novo treinamento'}
         subtitulo="Monte os módulos (vídeo, texto, slide ou link) que serão aplicados ao iniciar o treinamento de um colaborador."
         onClose=${fecharModalTrilha}
         className="rh-modal-dialog--lg"
@@ -945,7 +973,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           ${erroTrilha ? html`<div class="alert alert-warning">${erroTrilha}</div>` : null}
 
           <div class="rh-filter-field">
-            <label>Nome da trilha</label>
+            <label>Nome do treinamento</label>
             <input
               class="form-control"
               value=${formTrilha.nome}
@@ -1020,11 +1048,11 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               checked=${formTrilha.ativo}
               onChange=${(event) => setFormTrilha({ ...formTrilha, ativo: !!event.target.checked })}
             />
-            <span>Trilha ativa</span>
+            <span>Treinamento ativo</span>
           </label>
 
           <div class="rh-filter-field">
-            <label>Módulos da trilha</label>
+            <label>Módulos do treinamento</label>
             ${formTrilha.itens.map(
       (item, index) => html`
                 <div key=${index} class="rh-section-card rh-section-card--flat" style=${{ padding: '12px', marginBottom: '8px' }}>
@@ -1346,7 +1374,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                         </div>
                       </div>
                     `
-        : html`<p class="text-muted">Esta trilha ainda não tem slides/script cadastrados — cadastre em "Editar trilha".</p>`}
+        : html`<p class="text-muted">Este treinamento ainda não tem slides/script cadastrados — cadastre em "Editar treinamento".</p>`}
                 <p class="text-muted small mt-3">
                   Ao final da apresentação, use "Presença" na lista de colaboradores para marcar quem assistiu.
                 </p>

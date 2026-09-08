@@ -271,6 +271,7 @@ export {
   criarTreinamentoWizard,
   excluirAnexoTreinamento,
   excluirAtribuicaoTreinamento,
+  excluirTrilhaOnboarding,
   iniciarOnboardingCandidato,
   lerProgressoOnboardingCandidato,
   lerTrilhaOnboarding,
@@ -291,10 +292,12 @@ export {
   validarModuloJson,
 } from './services/api/onboarding.js?v=20260906-central-treinamentos';
 export {
+  excluirNotificacao,
+  excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   marcarTodasNotificacoesLidas,
-} from './services/api/notifications.js?v=20260906-central-treinamentos';
+} from './services/api/notifications.js?v=20260908-notificacoes-lidas';
 export {
   atualizarTemplateDocumento,
   criarTemplateDocumento,

@@ -201,6 +201,24 @@ def update_onboarding_trilha(
     return result
 
 
+@router.delete("/trilhas/{id_trilha}", dependencies=[Depends(require_permissions("onboarding.editar"))])
+def delete_onboarding_trilha(
+    id_trilha: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    result = repository.delete_onboarding_trilha(id_trilha)
+    audit_action(
+        repository,
+        user,
+        modulo="Onboarding",
+        acao="excluir_trilha_onboarding",
+        entidade="trilha_onboarding",
+        entidade_id=str(id_trilha),
+    )
+    return result
+
+
 @router.post("/candidatos/iniciar", dependencies=[Depends(require_permissions("onboarding.editar"))])
 def start_onboarding(
     payload: OnboardingStartRequest,

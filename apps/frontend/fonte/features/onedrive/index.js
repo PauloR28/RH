@@ -115,6 +115,9 @@ export function TelaOneDriveArquivos({ controlador }) {
   const [enviandoArquivo, setEnviandoArquivo] = useState(false);
   const [itemParaExcluir, setItemParaExcluir] = useState(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [itensSelecionados, setItensSelecionados] = useState(() => new Set());
+  const [confirmarExclusaoLoteAberto, setConfirmarExclusaoLoteAberto] = useState(false);
+  const [excluindoLote, setExcluindoLote] = useState(false);
   const [itemParaEnviarEmail, setItemParaEnviarEmail] = useState(null);
   const [menuAcoesAbertoId, setMenuAcoesAbertoId] = useState('');
   const [menuAcoesPosicao, setMenuAcoesPosicao] = useState(null);
@@ -159,6 +162,7 @@ export function TelaOneDriveArquivos({ controlador }) {
   useEffect(() => {
     if (!podeVisualizar) return;
     carregarItens(caminho);
+    setItensSelecionados(new Set());
   }, [caminho, podeVisualizar]);
 
   useEffect(() => {
@@ -318,6 +322,43 @@ export function TelaOneDriveArquivos({ controlador }) {
     }
   };
 
+  const alternarSelecao = (item) => {
+    setItensSelecionados((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(item.id)) {
+        proximo.delete(item.id);
+      } else {
+        proximo.add(item.id);
+      }
+      return proximo;
+    });
+  };
+
+  const itensSelecionadosObjetos = itens.filter((item) => itensSelecionados.has(item.id));
+
+  const confirmarExclusaoLote = async () => {
+    setExcluindoLote(true);
+    const falhas = [];
+    for (const item of itensSelecionadosObjetos) {
+      const caminhoItem = [caminho, item.nome].filter(Boolean).join('/');
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await excluirItemOneDrive(caminhoItem);
+      } catch (error) {
+        falhas.push(item.nome);
+      }
+    }
+    setExcluindoLote(false);
+    setConfirmarExclusaoLoteAberto(false);
+    setItensSelecionados(new Set());
+    await carregarItens(caminho);
+    if (falhas.length) {
+      setErro(`Não foi possível excluir: ${falhas.join(', ')}.`);
+    } else {
+      setMensagem(`${itensSelecionadosObjetos.length} ${itensSelecionadosObjetos.length === 1 ? 'item excluído' : 'itens excluídos'} com sucesso.`);
+    }
+  };
+
   const itemEhVisualizavel = (item) =>
     item.tipo !== 'pasta' && EXTENSOES_VISUALIZAVEIS.includes(obterExtensao(item.nome));
 
@@ -468,6 +509,7 @@ export function TelaOneDriveArquivos({ controlador }) {
   };
 
   const colunas = [
+    { key: 'selecao', label: '' },
     { key: 'nome', label: 'Nome' },
     { key: 'tamanho_bytes', label: 'Tamanho' },
     { key: 'criado_em', label: 'Criado em' },
@@ -477,6 +519,17 @@ export function TelaOneDriveArquivos({ controlador }) {
   ];
 
   const renderCell = (item, coluna) => {
+    if (coluna.key === 'selecao') {
+      return html`
+        <input
+          type="checkbox"
+          class="form-check-input"
+          checked=${itensSelecionados.has(item.id)}
+          onChange=${() => alternarSelecao(item)}
+          aria-label=${itensSelecionados.has(item.id) ? `Remover seleção de ${item.nome}` : `Selecionar ${item.nome}`}
+        />
+      `;
+    }
     if (coluna.key === 'nome') {
       return html`
         <button
@@ -670,6 +723,26 @@ export function TelaOneDriveArquivos({ controlador }) {
           </div>
         </div>
 
+        ${itensSelecionados.size
+          ? html`
+              <div class="rh-onedrive-selection-bar">
+                <span>${itensSelecionados.size} ${itensSelecionados.size === 1 ? 'item selecionado' : 'itens selecionados'}</span>
+                <div class="rh-onedrive-selection-actions">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setItensSelecionados(new Set())}>
+                    Cancelar seleção
+                  </button>
+                  ${podeExcluir
+                    ? html`
+                        <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setConfirmarExclusaoLoteAberto(true)}>
+                          <${Icone} name="delete" /> Excluir selecionados
+                        </button>
+                      `
+                    : null}
+                </div>
+              </div>
+            `
+          : null}
+
         ${carregando
           ? html`<${LoadingState} titulo="Carregando arquivos" />`
           : itensFiltrados.length
@@ -680,13 +753,25 @@ export function TelaOneDriveArquivos({ controlador }) {
                     ${itensFiltrados.map(
                       (item) => {
                         const clicavel = item.tipo === 'pasta' || itemEhVisualizavel(item);
+                        const selecionado = itensSelecionados.has(item.id);
                         return html`
                         <div
-                          class=${`rh-onedrive-card ${clicavel ? 'is-clickable' : ''} ${String(menuAcoesAbertoId) === String(item.id) ? 'has-menu-open' : ''}`}
+                          class=${`rh-onedrive-card ${clicavel ? 'is-clickable' : ''} ${selecionado ? 'is-selected' : ''} ${String(menuAcoesAbertoId) === String(item.id) ? 'has-menu-open' : ''}`}
                           key=${item.id}
                           onClick=${clicavel ? () => abrirItem(item) : undefined}
                           onContextMenu=${(event) => abrirMenuAcoesNoClienteDireito(event, item)}
                         >
+                          <button
+                            type="button"
+                            class="rh-onedrive-card-select"
+                            aria-label=${selecionado ? `Remover seleção de ${item.nome}` : `Selecionar ${item.nome}`}
+                            onClick=${(event) => {
+                              event.stopPropagation();
+                              alternarSelecao(item);
+                            }}
+                          >
+                            ${selecionado ? html`<span class="material-symbols-outlined">${IconeSvg('check')}</span>` : null}
+                          </button>
                           <div class="rh-onedrive-card-actions">${renderMenuAcoes(item)}</div>
                           <span class="rh-onedrive-card-icon"><${Icone} name=${iconeDoItem(item)} /></span>
                           <button
@@ -774,6 +859,19 @@ export function TelaOneDriveArquivos({ controlador }) {
         carregando=${excluindo}
         onClose=${() => setItemParaExcluir(null)}
         onConfirm=${confirmarExclusao}
+      />
+
+      <${ModalConfirmacaoAcao}
+        aberto=${confirmarExclusaoLoteAberto}
+        titulo=${`Excluir ${itensSelecionadosObjetos.length} ${itensSelecionadosObjetos.length === 1 ? 'item' : 'itens'}`}
+        descricao="Esta ação remove os itens selecionados diretamente do SharePoint/OneDrive corporativo."
+        consequencia=${itensSelecionadosObjetos.some((item) => item.tipo === 'pasta') ? 'O conteúdo das pastas selecionadas também será excluído.' : ''}
+        reversibilidade="Esta ação pode ser revertida pela Lixeira do SharePoint por tempo limitado, fora do Conecta."
+        textoConfirmar="Excluir selecionados"
+        tipo="perigo"
+        carregando=${excluindoLote}
+        onClose=${() => setConfirmarExclusaoLoteAberto(false)}
+        onConfirm=${confirmarExclusaoLote}
       />
 
       ${podeComporEmail

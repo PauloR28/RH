@@ -132,6 +132,9 @@ export const ICONES = {
   more_horiz: [
     ['path', { d: 'M5 12H5.01M12 12H12.01M19 12H19.01' }],
   ],
+  more_vert: [
+    ['path', { d: 'M12 5H12.01M12 12H12.01M12 19H12.01' }],
+  ],
   content_copy: [
     ['rect', { x: '8', y: '8', width: '12', height: '12', rx: '2' }],
     ['path', { d: 'M6 16H5C3.9 16 3 15.1 3 14V5C3 3.9 3.9 3 5 3H14C15.1 3 16 3.9 16 5V6' }],

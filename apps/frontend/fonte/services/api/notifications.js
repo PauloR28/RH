@@ -18,3 +18,15 @@ export async function marcarTodasNotificacoesLidas() {
   invalidarCacheApi('notificacoes');
   return resultado;
 }
+
+export async function excluirNotificacao(idNotificacao) {
+  const resultado = await requisitar(`/notificacoes/${encodeURIComponent(idNotificacao)}`, { method: 'DELETE' });
+  invalidarCacheApi('notificacoes');
+  return resultado;
+}
+
+export async function excluirTodasNotificacoes() {
+  const resultado = await requisitar('/notificacoes', { method: 'DELETE' });
+  invalidarCacheApi('notificacoes');
+  return resultado;
+}

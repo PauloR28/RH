@@ -553,6 +553,42 @@ class OnboardingRepositoryMixin:
 
         return self.get_onboarding_trilha(id_trilha)
 
+    def delete_onboarding_trilha(self, id_trilha: int) -> dict:
+        """Exclui um treinamento (trilha) cadastrado — permanente, mas só
+        quando não há histórico vinculado (Correcoes.txt, item Central de
+        Treinamentos: "quando um treinamento é criado, é permanente, a menos
+        que ele seja excluído")."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_onboarding_tables(cursor)
+
+            cursor.execute("SELECT id_trilha FROM trilhas_onboarding WHERE id_trilha = ?", (int(id_trilha or 0),))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treinamento não encontrado.")
+
+            cursor.execute("SELECT COUNT(*) FROM onboarding_candidatos WHERE trilha_id = ?", (int(id_trilha or 0),))
+            total_atribuicoes = int((cursor.fetchone() or [0])[0] or 0)
+            cursor.execute("SELECT COUNT(*) FROM processos_treinamentos WHERE trilha_id = ?", (int(id_trilha or 0),))
+            total_processos = int((cursor.fetchone() or [0])[0] or 0)
+            if total_atribuicoes or total_processos:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        "Não é possível excluir: este treinamento tem colaboradores atribuídos ou está "
+                        "vinculado a processos seletivos."
+                    ),
+                )
+
+            cursor.execute("DELETE FROM trilhas_onboarding_anexos WHERE trilha_id = ?", (int(id_trilha or 0),))
+            cursor.execute("DELETE FROM trilhas_onboarding_itens WHERE trilha_id = ?", (int(id_trilha or 0),))
+            cursor.execute("DELETE FROM trilhas_onboarding WHERE id_trilha = ?", (int(id_trilha or 0),))
+            conn.commit()
+        finally:
+            conn.close()
+
+        return {"success": True}
+
     # ------------------------------------------------------------------
     # Instância de onboarding por candidato
     # ------------------------------------------------------------------
@@ -1646,3 +1682,35 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
         return {"success": True, "atualizadas": atualizadas}
+
+    def excluir_notificacao(self, id_notificacao: int, *, papel: str, usuario: str) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notifications_table(cursor)
+            cursor.execute(
+                """
+                DELETE FROM notificacoes
+                WHERE id_notificacao = ? AND (destinatario_papel = ? OR destinatario_usuario = ?)
+                """,
+                (int(id_notificacao or 0), normalize_text(papel), normalize_text(usuario)),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True}
+
+    def excluir_todas_notificacoes(self, *, papel: str, usuario: str) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notifications_table(cursor)
+            cursor.execute(
+                "DELETE FROM notificacoes WHERE (destinatario_papel = ? OR destinatario_usuario = ?)",
+                (normalize_text(papel), normalize_text(usuario)),
+            )
+            excluidas = cursor.rowcount
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True, "excluidas": excluidas}

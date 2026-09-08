@@ -21,9 +21,7 @@ export function TelaMural({ controlador }) {
         <div class="d-flex align-items-start gap-3">
           <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('upcoming')}</span>
           <p class="rh-section-card-description mb-0">
-            Esta página está desativada e entrará no Conecta em breve. A ideia: o RH publica aqui uma
-            vez e a postagem aparece tanto no Conecta quanto nas intranets das operações, com contagem
-            de visualizações e curtidas.
+            Esta página está desativada e entrará no Conecta em breve.
           </p>
         </div>
       </${SectionCard}>

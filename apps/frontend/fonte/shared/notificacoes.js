@@ -5,7 +5,11 @@ import {
   lerCandidatosProcessos,
   listarSolicitacoesAlteracaoEmailApi,
 } from '../app/controlador-aplicacao.js';
-import { listarNotificacoes } from '../services/api/notifications.js';
+import {
+  excluirTodasNotificacoes,
+  listarNotificacoes,
+  marcarNotificacaoLida,
+} from '../services/api/notifications.js';
 import { listarOperacoes } from '../services/api/operations.js';
 import { listarUsuarios } from '../services/api/settings.js';
 
@@ -56,6 +60,28 @@ export const CATEGORIAS_NOTIFICACAO = [
 
 const CHAVE_PREFERENCIAS = 'c24_notificacoes_categorias';
 const CHAVE_CORES_PERSONALIZADAS = 'c24_notificacoes_cores';
+// "Lida"/"excluída" das categorias sem persistência própria no backend
+// (só a categoria "treinamentos" tem tabela real com `lida` — ver
+// dbo.notificacoes) — controlado localmente por navegador/usuário.
+const CHAVE_NOTIF_LIDAS_LOCAIS = 'c24_notificacoes_lidas_locais';
+const CHAVE_NOTIF_OCULTAS = 'c24_notificacoes_ocultas';
+
+function lerConjuntoStorage(chave) {
+  try {
+    const bruto = JSON.parse(localStorage.getItem(chave) || '[]');
+    return new Set(Array.isArray(bruto) ? bruto : []);
+  } catch (error) {
+    return new Set();
+  }
+}
+
+function gravarConjuntoStorage(chave, conjunto) {
+  try {
+    localStorage.setItem(chave, JSON.stringify(Array.from(conjunto)));
+  } catch (error) {
+    // Preferência é best-effort; se o storage falhar, o estado só não persiste entre sessões.
+  }
+}
 
 export function lerCoresNotificacao() {
   let salvo = {};
@@ -191,15 +217,16 @@ function montarItensTreinamentos(notificacoesTreinamento) {
 }
 
 export function useResumoNotificacoes(controlador) {
-  const [itens, setItens] = useState([]);
+  const [itensBrutos, setItensBrutos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [, forcarAtualizacaoLocal] = useState(0);
   const autenticado = Boolean(controlador?.estado?.autenticado);
 
   useEffect(() => {
     let ativo = true;
 
     if (!autenticado) {
-      setItens([]);
+      setItensBrutos([]);
       setCarregando(false);
       return undefined;
     }
@@ -242,7 +269,7 @@ export function useResumoNotificacoes(controlador) {
         ...(ehAdministrador ? montarItensConfiguracaoCritica({ operacoes, usuarios }) : []),
       ].filter((item) => preferencias[item.categoria] !== false);
 
-      setItens(resultado);
+      setItensBrutos(resultado);
       setCarregando(false);
     };
 
@@ -255,5 +282,47 @@ export function useResumoNotificacoes(controlador) {
     };
   }, [autenticado]);
 
-  return { itens, carregando };
+  const ocultas = lerConjuntoStorage(CHAVE_NOTIF_OCULTAS);
+  const lidasLocais = lerConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS);
+  const itens = itensBrutos
+    .filter((item) => !ocultas.has(item.id))
+    .map((item) => ({
+      ...item,
+      // A categoria "treinamentos" só busca não-lidas (listarNotificacoes(true)),
+      // então qualquer item presente aqui já é, por definição, não lido.
+      lida: item.categoria === 'treinamentos' ? false : lidasLocais.has(item.id),
+    }));
+
+  const marcarComoLida = async (item) => {
+    if (!item || item.lida) return;
+    if (item.categoria === 'treinamentos') {
+      const idReal = String(item.id).replace('treinamento-', '');
+      try {
+        await marcarNotificacaoLida(idReal);
+      } catch (error) {
+        // Best-effort: se a chamada falhar, o item volta a aparecer no próximo carregamento.
+      }
+      setItensBrutos((atual) => atual.filter((existente) => existente.id !== item.id));
+      return;
+    }
+    const conjunto = lerConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS);
+    conjunto.add(item.id);
+    gravarConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS, conjunto);
+    forcarAtualizacaoLocal((valor) => valor + 1);
+  };
+
+  const excluirTodas = async () => {
+    try {
+      await excluirTodasNotificacoes();
+    } catch (error) {
+      // Best-effort: mesmo se a exclusão no servidor falhar, ocultamos localmente.
+    }
+    const conjunto = lerConjuntoStorage(CHAVE_NOTIF_OCULTAS);
+    itens.forEach((item) => conjunto.add(item.id));
+    gravarConjuntoStorage(CHAVE_NOTIF_OCULTAS, conjunto);
+    setItensBrutos((atual) => atual.filter((item) => item.categoria !== 'treinamentos'));
+    forcarAtualizacaoLocal((valor) => valor + 1);
+  };
+
+  return { itens, carregando, marcarComoLida, excluirTodas };
 }

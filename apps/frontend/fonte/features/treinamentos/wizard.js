@@ -308,7 +308,6 @@ export function TelaCriarTreinamento({ controlador }) {
   const validarEtapa = (etapa) => {
     if (etapa === 1) {
       if (!formulario.nome.trim()) return 'Informe o nome do treinamento.';
-      if (!formulario.participantes.length) return 'Selecione ao menos um participante esperado.';
       const semData = formulario.ocorrencias.some((item) => !item.data_prevista && !item.sem_horario_definido);
       if (semData) return 'Informe a data/horário de todas as ocorrências, ou marque "sem horário definido".';
       return '';
@@ -528,10 +527,11 @@ export function TelaCriarTreinamento({ controlador }) {
     <section class="process-create-card mt-3">
       <div class="process-create-section-title">
         <span class="material-symbols-outlined">${IconeSvg('groups')}</span>
-        <h2>Participantes esperados</h2>
+        <h2>Participantes esperados (opcional)</h2>
       </div>
       <p class="text-muted small">
-        Busque pelo nome do colaborador (candidato já registrado no Conecta). Ajuste manualmente a lista conforme necessário.
+        Busque pelo nome do colaborador (candidato já registrado no Conecta). Ajuste manualmente a lista conforme necessário —
+        o treinamento pode ser cadastrado sem participantes e reaproveitado em processos seletivos futuros.
       </p>
       <div class="rh-filter-field position-relative">
         <input
@@ -574,6 +574,15 @@ export function TelaCriarTreinamento({ controlador }) {
         )}
         ${!formulario.participantes.length ? html`<span class="text-muted small">Nenhum participante selecionado ainda.</span>` : null}
       </div>
+      ${!formulario.participantes.length
+        ? html`
+            <p class="text-muted small mt-2 mb-0">
+              <span class="material-symbols-outlined align-middle" style=${{ fontSize: '16px' }}>${IconeSvg('info')}</span>
+              Sem participantes, o treinamento fica só cadastrado (sem agenda vinculada) — as datas informadas acima poderão
+              ser reaproveitadas depois, pela aba Atribuições ou ao liberar vagas de um processo seletivo.
+            </p>
+          `
+        : null}
     </section>
   `;
 

@@ -6,6 +6,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
+  Tabs,
+  TabPanel,
 } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
@@ -62,6 +64,21 @@ const FORM_PARAMETRO_INICIAL = {
 };
 
 const RESET_FRASE_CONFIRMACAO = 'LIMPAR CONECTA';
+
+const GRUPOS_PARAMETRO = [
+  { chave: 'sharepoint', label: 'SharePoint', icone: 'cloud_sync' },
+  { chave: 'email', label: 'E-mail', icone: 'mail' },
+  { chave: 'onedrive', label: 'OneDrive', icone: 'cloud' },
+  { chave: 'outros', label: 'Outros', icone: 'tune' },
+];
+
+function classificarGrupoParametro(categoria) {
+  const valor = String(categoria || '').toLowerCase();
+  if (valor.includes('sharepoint') || valor.includes('intranet')) return 'sharepoint';
+  if (valor.includes('email') || valor.includes('smtp')) return 'email';
+  if (valor.includes('onedrive')) return 'onedrive';
+  return 'outros';
+}
 
 function LinhaDef({ label, valor, indefinido = 'Não configurado', mascarado = false }) {
   return html`
@@ -183,6 +200,30 @@ export function TelaAdministracao({ controlador }) {
   const [resetando, setResetando] = useState(false);
   const [erroReset, setErroReset] = useState('');
 
+  const [abaAdminAtiva, setAbaAdminAtiva] = useState('modulos');
+  const [modoEdicaoParametros, setModoEdicaoParametros] = useState(false);
+  const [categoriaAberta, setCategoriaAberta] = useState(null);
+
+  useEffect(() => {
+    if (!modoEdicaoParametros) return undefined;
+    const avisarSaida = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', avisarSaida);
+    return () => window.removeEventListener('beforeunload', avisarSaida);
+  }, [modoEdicaoParametros]);
+
+  const trocarAbaAdmin = (chave) => {
+    if (modoEdicaoParametros) {
+      setFeedback('');
+      setErroCarregamento('Finalize a edição dos Parâmetros (Concluir ou Cancelar) antes de mudar de aba.');
+      return;
+    }
+    setErroCarregamento('');
+    setAbaAdminAtiva(chave);
+  };
+
   const carregarParametros = async () => {
     setCarregandoParametros(true);
     try {
@@ -280,6 +321,139 @@ export function TelaAdministracao({ controlador }) {
   const infraSharepoint = infra?.sharepoint;
   const infraEmail = infra?.email_smtp;
 
+  const renderizarGrupoParametro = (grupo) => {
+    const itensGrupo = parametros.filter((item) => classificarGrupoParametro(item.categoria) === grupo.chave);
+    const aberto = categoriaAberta === grupo.chave;
+    return html`
+      <div class="rh-admin-accordion" key=${grupo.chave}>
+        <button
+          type="button"
+          class="rh-admin-accordion-header"
+          aria-expanded=${aberto}
+          onClick=${() => setCategoriaAberta(aberto ? null : grupo.chave)}
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(grupo.icone)}</span>
+          <span class="rh-admin-accordion-title">${grupo.label}</span>
+          <span class="rh-admin-accordion-count">${itensGrupo.length}</span>
+          <span class="material-symbols-outlined rh-admin-accordion-chevron" aria-hidden="true">
+            ${IconeSvg(aberto ? 'expand_less' : 'expand_more')}
+          </span>
+        </button>
+        ${aberto
+      ? html`
+              <div class="rh-admin-accordion-body">
+                ${grupo.chave === 'sharepoint'
+          ? html`
+                      <div class="rh-def-list mb-3">
+                        ${carregandoInfra
+              ? html`<p class="text-muted mb-0">Carregando status da integração...</p>`
+              : html`
+                                <${LinhaDef} label="Tenant ID" valor=${infraSharepoint?.tenant_id} mascarado=${true} />
+                                <${LinhaDef} label="Client ID" valor=${infraSharepoint?.client_id} mascarado=${true} />
+                                <${LinhaDef}
+                                  label="Client secret"
+                                  valor=${infraSharepoint?.client_secret_configurado ? 'Configurado' : ''}
+                                  mascarado=${true}
+                                />
+                                <${LinhaDef} label="Escopo" valor=${infraSharepoint?.scope} />
+                              `}
+                      </div>
+                      <p class="rh-admin-hint">
+                        Cadastre abaixo cada intranet/site do SharePoint que recebe publicações do Conecta (uma linha por intranet).
+                      </p>
+                    `
+          : null}
+                ${grupo.chave === 'email'
+          ? html`
+                      <div class="rh-def-list mb-3">
+                        ${carregandoInfra
+              ? html`<p class="text-muted mb-0">Carregando status da integração...</p>`
+              : html`
+                                <${LinhaDef} label="Host SMTP" valor=${infraEmail?.host} />
+                                <${LinhaDef}
+                                  label="Senha SMTP"
+                                  valor=${infraEmail?.senha_configurada ? 'Configurada' : ''}
+                                  mascarado=${true}
+                                />
+                              `}
+                      </div>
+                    `
+          : null}
+                ${grupo.chave === 'onedrive'
+          ? html`
+                      <p class="rh-admin-hint">
+                        O OneDrive usa o mesmo aplicativo Microsoft (Graph) configurado em SharePoint — nenhuma credencial adicional é necessária aqui.
+                      </p>
+                    `
+          : null}
+
+                ${carregandoParametros
+          ? html`<p class="text-muted mb-0">Carregando parâmetros...</p>`
+          : itensGrupo.length
+            ? html`
+                      <div class="table-responsive">
+                        <table class="table rh-table-compact align-middle mb-0">
+                          <thead>
+                            <tr>
+                              <th>Chave</th>
+                              <th>Descrição</th>
+                              <th>Valor</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${itensGrupo.map(
+              (item) => html`
+                                <tr key=${item.chave}>
+                                  <td><code>${item.chave}</code></td>
+                                  <td>${item.descricao || '-'}</td>
+                                  <td>${item.mascarado ? '••••••••' : item.valor || '-'}</td>
+                                  <td class="text-end">
+                                    ${modoEdicaoParametros && podeEditarConfiguracoes
+                  ? html`
+                                          <button
+                                            type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            onClick=${() => setParametroEditando(item)}
+                                          >
+                                            <span class="material-symbols-outlined">${IconeSvg('lock')}</span>
+                                            Editar
+                                          </button>
+                                        `
+                  : null}
+                                  </td>
+                                </tr>
+                              `,
+            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    `
+            : html`<p class="text-muted small mb-0">Nenhum parâmetro cadastrado nesta categoria ainda.</p>`}
+
+                ${modoEdicaoParametros && podeEditarConfiguracoes
+          ? html`
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm mt-3"
+                        onClick=${() => {
+              setFormNovo({ ...FORM_PARAMETRO_INICIAL, categoria: grupo.chave === 'outros' ? 'geral' : grupo.chave });
+              setErroNovo('');
+              setModalNovoAberto(true);
+            }}
+                      >
+                        <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+                        Novo parâmetro
+                      </button>
+                    `
+          : null}
+              </div>
+            `
+      : null}
+      </div>
+    `;
+  };
+
   return html`
     <${PainelRh}
       screenId="screen-settings-administracao"
@@ -291,151 +465,106 @@ export function TelaAdministracao({ controlador }) {
       <${PageIntro}
         kicker="Configurações"
         title="Administração"
-        description="Controle de nível global do Conecta: cadastro de operações, credenciais de acesso ao sistema, usuários e regras. Diferente da visão de Gestor, aqui a atuação é sobre a plataforma como um todo."
+        description=""
       />
 
       ${feedback ? html`<div class="alert alert-success">${feedback}</div>` : null}
       ${erroCarregamento ? html`<div class="alert alert-danger">${erroCarregamento}</div>` : null}
 
-      <${SectionCard} title="Módulos administrativos" className="rh-section-card--flat">
-        <div class="rh-admin-module-list">
-          ${modulosVisiveis.length
+      <${Tabs}
+        tabs=${[
+        { key: 'modulos', label: 'Módulos' },
+        ...(podeVerConfiguracoes ? [{ key: 'parametros', label: 'Parâmetros' }] : []),
+        ...(ehAdministrador ? [{ key: 'risco', label: 'Zona de risco' }] : []),
+      ]}
+        activeKey=${abaAdminAtiva}
+        onChange=${trocarAbaAdmin}
+      />
+
+      <${TabPanel} tabKey="modulos" activeKey=${abaAdminAtiva}>
+        <${SectionCard} title="Módulos administrativos" className="rh-section-card--flat">
+          <div class="rh-admin-module-list">
+            ${modulosVisiveis.length
       ? modulosVisiveis.map(
         (item) => html`
-                <button
-                  key=${item.tela}
-                  type="button"
-                  class="rh-admin-module-row"
-                  onClick=${() => controlador.irParaTelaProtegida(item.tela)}
-                >
-                  <span class="material-symbols-outlined rh-admin-module-icon" aria-hidden="true">${IconeSvg(item.icone)}</span>
-                  <span class="rh-admin-module-copy">
-                    <strong>${item.titulo}</strong>
-                    <small>${item.descricao}</small>
-                  </span>
-                  <span class="material-symbols-outlined rh-admin-module-arrow" aria-hidden="true">${IconeSvg('chevron_right')}</span>
-                </button>
-              `,
+                  <button
+                    key=${item.tela}
+                    type="button"
+                    class="rh-admin-module-row"
+                    onClick=${() => controlador.irParaTelaProtegida(item.tela)}
+                  >
+                    <span class="material-symbols-outlined rh-admin-module-icon" aria-hidden="true">${IconeSvg(item.icone)}</span>
+                    <span class="rh-admin-module-copy">
+                      <strong>${item.titulo}</strong>
+                      <small>${item.descricao}</small>
+                    </span>
+                    <span class="material-symbols-outlined rh-admin-module-arrow" aria-hidden="true">${IconeSvg('chevron_right')}</span>
+                  </button>
+                `,
       )
       : html`<p class="text-muted mb-0">Você não possui permissão para acessar módulos administrativos.</p>`}
-        </div>
-      </${SectionCard}>
+          </div>
+        </${SectionCard}>
+      </${TabPanel}>
 
       ${podeVerConfiguracoes
       ? html`
-            <${SectionCard} title="Parâmetros do Conecta" className="rh-section-card--flat">
-              <p class="rh-admin-hint">
-                Configurações de negócio (SharePoint, intranets) que antes dependiam do código. Segredos do <code>.env</code> ficam só no servidor.
-              </p>
+            <${TabPanel} tabKey="parametros" activeKey=${abaAdminAtiva}>
+              <${SectionCard}
+                title="Parâmetros"
+                className="rh-section-card--flat"
+                actions=${podeEditarConfiguracoes
+          ? modoEdicaoParametros
+            ? html`
+                          <div class="rh-admin-edit-actions">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setModoEdicaoParametros(false)}>
+                              Cancelar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" onClick=${() => setModoEdicaoParametros(false)}>
+                              Concluir edição
+                            </button>
+                          </div>
+                        `
+            : html`
+                          <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setModoEdicaoParametros(true)}>
+                            <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                            Editar
+                          </button>
+                        `
+          : null}
+              >
+                <p class="rh-admin-hint">
+                  Configurações de negócio (SharePoint, e-mail, OneDrive, intranets) que antes dependiam do código, organizadas por integração. Segredos do <code>.env</code> ficam só no servidor.
+                </p>
+                ${modoEdicaoParametros
+          ? html`<p class="rh-admin-edit-banner">Modo de edição ativo — conclua ou cancele para navegar para outra aba.</p>`
+          : null}
 
-              <h4 class="rh-admin-subtitle">Integrações (.env)</h4>
-              ${carregandoInfra
-        ? html`<p class="text-muted mb-0">Carregando status das integrações...</p>`
-        : html`
-                    <div class="rh-def-list">
-                      <${LinhaDef} label="SharePoint — Tenant ID" valor=${infraSharepoint?.tenant_id} mascarado=${true} />
-                      <${LinhaDef} label="SharePoint — Client ID" valor=${infraSharepoint?.client_id} mascarado=${true} />
-                      <${LinhaDef}
-                        label="SharePoint — Client secret"
-                        valor=${infraSharepoint?.client_secret_configurado ? 'Configurado' : ''}
-                        mascarado=${true}
-                      />
-                      <${LinhaDef} label="SharePoint — Escopo" valor=${infraSharepoint?.scope} />
-                      <${LinhaDef} label="E-mail SMTP — Host" valor=${infraEmail?.host} />
-                      <${LinhaDef}
-                        label="E-mail SMTP — Senha"
-                        valor=${infraEmail?.senha_configurada ? 'Configurada' : ''}
-                        mascarado=${true}
-                      />
-                    </div>
-                  `}
-
-              <h4 class="rh-admin-subtitle">Parâmetros configuráveis</h4>
-              ${carregandoParametros
-        ? html`<p class="text-muted mb-0">Carregando parâmetros...</p>`
-        : parametros.length
-          ? html`
-                      <div class="table-responsive">
-                        <table class="table rh-table-compact align-middle mb-0">
-                          <thead>
-                            <tr>
-                              <th>Chave</th>
-                              <th>Descrição</th>
-                              <th>Categoria</th>
-                              <th>Valor</th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${parametros.map(
-            (item) => html`
-                                <tr key=${item.chave}>
-                                  <td><code>${item.chave}</code></td>
-                                  <td>${item.descricao || '-'}</td>
-                                  <td>${item.categoria}</td>
-                                  <td>${item.mascarado ? '••••••••' : item.valor || '-'}</td>
-                                  <td class="text-end">
-                                    ${podeEditarConfiguracoes
-                ? html`
-                                          <button
-                                            type="button"
-                                            class="btn btn-outline-secondary btn-sm"
-                                            onClick=${() => setParametroEditando(item)}
-                                          >
-                                            <span class="material-symbols-outlined">${IconeSvg('lock')}</span>
-                                            Editar
-                                          </button>
-                                        `
-                : null}
-                                  </td>
-                                </tr>
-                              `,
-          )}
-                          </tbody>
-                        </table>
-                      </div>
-                    `
-          : html`
-                      <${EmptyState}
-                        title="Nenhum parâmetro configurado ainda"
-                        text="Cadastre abaixo as configurações de negócio que hoje dependem do código (ex.: URL do site SharePoint de destino)."
-                      />
-                    `}
-              ${podeEditarConfiguracoes
-        ? html`
-                    <button
-                      type="button"
-                      class="btn btn-outline-primary btn-sm mt-3"
-                      onClick=${() => {
-            setFormNovo(FORM_PARAMETRO_INICIAL);
-            setErroNovo('');
-            setModalNovoAberto(true);
-          }}
-                    >
-                      <span class="material-symbols-outlined">${IconeSvg('add')}</span>
-                      Novo parâmetro
-                    </button>
-                  `
-        : null}
-            </${SectionCard}>
+                <div class="rh-admin-param-groups">
+                  ${GRUPOS_PARAMETRO.map(renderizarGrupoParametro)}
+                </div>
+              </${SectionCard}>
+            </${TabPanel}>
           `
       : null}
 
       ${ehAdministrador
       ? html`
-            <${SectionCard} title="Zona de risco" className="rh-section-card--flat rh-danger-zone">
-              <p class="rh-admin-hint">
-                Apaga todos os dados operacionais (usuários exceto administradores, processos,
-                candidatos, provas, treinamentos, operações) — não pode ser desfeito.
-              </p>
-              <button type="button" class="btn btn-danger" onClick=${() => {
+            <${TabPanel} tabKey="risco" activeKey=${abaAdminAtiva}>
+              <${SectionCard} title="Zona de risco" className="rh-section-card--flat rh-danger-zone">
+                <p class="rh-admin-hint">
+                  Apaga todos os dados operacionais (usuários exceto administradores, processos,
+                  candidatos, provas, treinamentos, operações) — não pode ser desfeito.
+                </p>
+                <button type="button" class="btn btn-danger" onClick=${() => {
           setErroReset('');
           setModalResetAberto(true);
         }}>
-                <span class="material-symbols-outlined">${IconeSvg('delete_forever')}</span>
-                Limpar o Conecta
-              </button>
-            </${SectionCard}>
+                  <span class="material-symbols-outlined">${IconeSvg('delete_forever')}</span>
+                  Limpar o Conecta
+                </button>
+              </${SectionCard}>
+            </${TabPanel}>
           `
       : null}
 

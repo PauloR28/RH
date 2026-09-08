@@ -162,13 +162,13 @@ class TreinamentoWizardCreateRequest(OnboardingTrilhaCreateRequest):
     @classmethod
     def validate_participantes(cls, value: list[int]) -> list[int]:
         safe_ids = [int(item) for item in (value or []) if item]
-        # Sem tabela de "sessão" própria (plano técnico §1.4), a ocorrência só
-        # fica persistida através das linhas onboarding_candidatos por
-        # participante — publicar sem nenhum participante perderia a agenda
-        # cadastrada silenciosamente. Adicione ao menos 1 participante (dá
-        # para ajustar a lista de presença depois pela aba Atribuições).
-        if not safe_ids:
-            raise ValueError("Selecione ao menos um participante esperado para o treinamento.")
+        # Participantes esperados é opcional (Correcoes.txt, item Central de
+        # Treinamentos): o treinamento fica cadastrado sem nenhuma atribuição
+        # (onboarding_candidatos) e reaparece como opção ao criar um novo
+        # processo seletivo — não há "sessão" própria sem tabela dedicada
+        # (plano técnico §1.4), então sem participantes a(s) ocorrência(s)
+        # informada(s) não geram atribuição alguma agora; podem ser criadas
+        # depois pela aba Atribuições ou ao liberar vagas de um processo.
         if len(safe_ids) > 500:
             raise ValueError("Limite de 500 participantes por treinamento.")
         return safe_ids
