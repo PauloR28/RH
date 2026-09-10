@@ -2241,6 +2241,14 @@ export function TelaInicio({ controlador }) {
     )}
       </div>
 
+      ${carregando
+      ? html`
+            <${LoadingState}
+              titulo="Carregando painel"
+              descricao="Preparando as informações do seu painel."
+            />
+          `
+      : html`
       <div class="home-dashboard-grid home-dashboard-main-grid">
         <div class="home-dashboard-stack home-dashboard-stack--left">
           <${SecaoCurriculosRecebidosEmail} modo="resumo" controlador=${controlador} />
@@ -2371,14 +2379,7 @@ export function TelaInicio({ controlador }) {
               </button>
             `}
           >
-            ${carregando
-      ? html`
-                    <${LoadingState}
-                      titulo="Carregando provas recentes"
-                      descricao="Buscando os últimos registros salvos."
-                    />
-                  `
-      : recentes.length
+            ${recentes.length
         ? html`
                     <div class="rh-recent-grid">
                       ${recentesPaginados.itens.map(
@@ -2428,6 +2429,7 @@ export function TelaInicio({ controlador }) {
           </${SectionCard}>
         </div>
       </div>
+          `}
 
       <${ModalDetalhesProva}
         detalhe=${detalheAberto}

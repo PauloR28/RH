@@ -939,19 +939,20 @@ export function TelaEntrevistas({ controlador }) {
         </div>
       </${SectionCard}>
 
+      ${carregando
+        ? html`
+            <${LoadingState}
+              titulo="Carregando agenda"
+              descricao="Buscando slots, entrevistas e candidatos associados."
+            />
+          `
+        : html`
       <div class="interview-bottom-grid">
         <${SectionCard}
           title="Slots do dia"
           className="interview-slots-card compact-dashboard-card"
         >
-          ${carregando
-            ? html`
-                <${LoadingState}
-                  titulo="Carregando horários"
-                  descricao="Buscando slots internos da agenda."
-                />
-              `
-            : slots.length
+          ${slots.length
               ? html`
                   <div class="interview-slot-list">
                     ${slotsPaginados.itens.map(
@@ -1023,14 +1024,7 @@ export function TelaEntrevistas({ controlador }) {
           className="interview-operation-card compact-dashboard-card"
           tourId="interview-agenda"
         >
-          ${carregando
-            ? html`
-                <${LoadingState}
-                  titulo="Carregando entrevistas"
-                  descricao="Buscando agenda, status e candidatos associados."
-                />
-              `
-            : entrevistas.length
+          ${entrevistas.length
               ? html`
                   <div class="interview-operation-list">
                     ${entrevistasPaginadas.itens.map(
@@ -1129,6 +1123,7 @@ export function TelaEntrevistas({ controlador }) {
                 `}
         </${SectionCard}>
       </div>
+          `}
 
       <${ModalEdicaoEntrevista}
         aberto=${!!entrevistaEdicao}

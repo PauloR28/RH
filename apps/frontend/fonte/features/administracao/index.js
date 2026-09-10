@@ -10,13 +10,18 @@ import {
   TabPanel,
 } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import {
+  atualizarAmbienteSharePoint,
+  excluirAmbienteSharePoint,
   listarAmbientesSharePoint,
   listarInfraestruturaCredenciais,
   listarParametrosSistema,
   resetarDadosConecta,
   salvarParametroSistema,
+  testarAmbienteSharePoint,
 } from '../../services/api/sistema.js';
+import { listarOperacoes } from '../../services/api/operations.js';
 
 // Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
 // ponto (rh-status-pill) usado em administracao/novo-ambiente.js.
@@ -49,6 +54,13 @@ const MODULOS_DISPONIVEIS = [
     permissao: 'logs.visualizar',
   },
 ];
+
+const FORM_AMBIENTE_INICIAL = {
+  operacao_id: '',
+  nome: '',
+  site_url: '',
+  biblioteca_destino: '',
+};
 
 const FORM_PARAMETRO_INICIAL = {
   chave: '',
@@ -180,6 +192,14 @@ export function TelaAdministracao({ controlador }) {
   const [carregandoInfra, setCarregandoInfra] = useState(true);
   const [ambientesSharepoint, setAmbientesSharepoint] = useState([]);
   const [carregandoAmbientes, setCarregandoAmbientes] = useState(true);
+  const [operacoesAmbiente, setOperacoesAmbiente] = useState([]);
+  const [ambienteEditando, setAmbienteEditando] = useState(null);
+  const [formEdicaoAmbiente, setFormEdicaoAmbiente] = useState(FORM_AMBIENTE_INICIAL);
+  const [salvandoEdicaoAmbiente, setSalvandoEdicaoAmbiente] = useState(false);
+  const [erroEdicaoAmbiente, setErroEdicaoAmbiente] = useState('');
+  const [testandoAmbienteId, setTestandoAmbienteId] = useState(null);
+  const [ambienteRemover, setAmbienteRemover] = useState(null);
+  const [removendoAmbiente, setRemovendoAmbiente] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [erroCarregamento, setErroCarregamento] = useState('');
 
@@ -246,19 +266,93 @@ export function TelaAdministracao({ controlador }) {
         setCarregandoInfra(false);
       }
     })();
-    (async () => {
-      setCarregandoAmbientes(true);
-      try {
-        const resultado = await listarAmbientesSharePoint();
-        setAmbientesSharepoint(Array.isArray(resultado?.itens) ? resultado.itens : []);
-      } catch (error) {
-        setErroCarregamento(error?.message || 'Não foi possível carregar os ambientes cadastrados.');
-      } finally {
-        setCarregandoAmbientes(false);
-      }
-    })();
+    carregarAmbientesSharepoint();
+    listarOperacoes()
+      .then((resultado) => setOperacoesAmbiente(Array.isArray(resultado) ? resultado : resultado?.itens || []))
+      .catch(() => setOperacoesAmbiente([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [podeVerConfiguracoes]);
+
+  const carregarAmbientesSharepoint = async () => {
+    setCarregandoAmbientes(true);
+    try {
+      const resultado = await listarAmbientesSharePoint();
+      setAmbientesSharepoint(Array.isArray(resultado?.itens) ? resultado.itens : []);
+    } catch (error) {
+      setErroCarregamento(error?.message || 'Não foi possível carregar os ambientes cadastrados.');
+    } finally {
+      setCarregandoAmbientes(false);
+    }
+  };
+
+  const abrirEdicaoAmbiente = (ambiente) => {
+    setAmbienteEditando(ambiente);
+    setFormEdicaoAmbiente({
+      operacao_id: ambiente.operacao_id ? String(ambiente.operacao_id) : '',
+      nome: ambiente.nome || '',
+      site_url: ambiente.site_url || '',
+      biblioteca_destino: ambiente.biblioteca_destino || '',
+    });
+    setErroEdicaoAmbiente('');
+  };
+
+  const salvarEdicaoAmbiente = async () => {
+    if (!ambienteEditando) return;
+    if (!formEdicaoAmbiente.nome.trim() || !formEdicaoAmbiente.site_url.trim()) {
+      setErroEdicaoAmbiente('Informe o nome do ambiente e a URL do site do SharePoint.');
+      return;
+    }
+    setSalvandoEdicaoAmbiente(true);
+    setErroEdicaoAmbiente('');
+    try {
+      await atualizarAmbienteSharePoint(ambienteEditando.id_ambiente, {
+        nome: formEdicaoAmbiente.nome.trim(),
+        operacao_id: formEdicaoAmbiente.operacao_id ? Number(formEdicaoAmbiente.operacao_id) : null,
+        site_url: formEdicaoAmbiente.site_url.trim(),
+        biblioteca_destino: formEdicaoAmbiente.biblioteca_destino.trim(),
+      });
+      setAmbienteEditando(null);
+      setFeedback('Ambiente atualizado. Teste a conexão novamente para validar as novas credenciais.');
+      await carregarAmbientesSharepoint();
+    } catch (error) {
+      setErroEdicaoAmbiente(error?.message || 'Não foi possível atualizar este ambiente.');
+    } finally {
+      setSalvandoEdicaoAmbiente(false);
+    }
+  };
+
+  const testarAmbienteExistente = async (ambiente) => {
+    setTestandoAmbienteId(ambiente.id_ambiente);
+    setErroCarregamento('');
+    try {
+      const teste = await testarAmbienteSharePoint(ambiente.id_ambiente);
+      setFeedback(
+        teste?.success
+          ? `Conexão com "${ambiente.nome}" validada com sucesso.`
+          : `Não foi possível validar "${ambiente.nome}": ${teste?.mensagem || 'verifique a URL informada.'}`,
+      );
+      await carregarAmbientesSharepoint();
+    } catch (error) {
+      setErroCarregamento(error?.message || 'Não foi possível testar a conexão deste ambiente.');
+    } finally {
+      setTestandoAmbienteId(null);
+    }
+  };
+
+  const confirmarRemocaoAmbiente = async ({ justificativa }) => {
+    if (!ambienteRemover) return;
+    setRemovendoAmbiente(true);
+    try {
+      await excluirAmbienteSharePoint(ambienteRemover.id_ambiente, justificativa);
+      setAmbienteRemover(null);
+      setFeedback('Ambiente removido.');
+      await carregarAmbientesSharepoint();
+    } catch (error) {
+      setErroCarregamento(error?.message || 'Não foi possível remover este ambiente.');
+    } finally {
+      setRemovendoAmbiente(false);
+    }
+  };
 
   const salvarNovoParametro = async () => {
     if (!formNovo.chave.trim()) {
@@ -382,6 +476,7 @@ export function TelaAdministracao({ controlador }) {
                                       <th>Operação</th>
                                       <th>Site</th>
                                       <th>Status</th>
+                                      ${modoEdicaoParametros && podeEditarConfiguracoes ? html`<th></th>` : null}
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -392,7 +487,43 @@ export function TelaAdministracao({ controlador }) {
                                           <td>${ambiente.nome}</td>
                                           <td>${ambiente.operacao_nome || html`<em>Sem operação</em>`}</td>
                                           <td><code>${ambiente.hostname}${ambiente.site_path}</code></td>
-                                          <td><span class=${`rh-status-pill ${infoStatus.classe}`}>${infoStatus.label}</span></td>
+                                          <td>
+                                            <span class=${`rh-status-pill ${infoStatus.classe}`}>${infoStatus.label}</span>
+                                            ${ambiente.status === 'erro' && ambiente.ultima_mensagem_teste
+                        ? html`<div class="form-text mb-0">${ambiente.ultima_mensagem_teste}</div>`
+                        : null}
+                                          </td>
+                                          ${modoEdicaoParametros && podeEditarConfiguracoes
+                        ? html`
+                                                <td class="text-end">
+                                                  <${MenuAcoesProcesso}
+                                                    ariaLabel="Ações do ambiente"
+                                                    acoes=${[
+                            {
+                              key: 'editar',
+                              label: 'Editar conexão',
+                              icon: 'edit',
+                              onClick: () => abrirEdicaoAmbiente(ambiente),
+                            },
+                            {
+                              key: 'testar',
+                              label: testandoAmbienteId === ambiente.id_ambiente ? 'Testando...' : 'Testar novamente',
+                              icon: 'sync',
+                              disabled: testandoAmbienteId === ambiente.id_ambiente,
+                              onClick: () => testarAmbienteExistente(ambiente),
+                            },
+                            {
+                              key: 'excluir',
+                              label: 'Excluir conexão',
+                              icon: 'delete',
+                              danger: true,
+                              onClick: () => setAmbienteRemover(ambiente),
+                            },
+                          ]}
+                                                  />
+                                                </td>
+                                              `
+                        : null}
                                         </tr>
                                       `;
                   })}
@@ -709,6 +840,84 @@ export function TelaAdministracao({ controlador }) {
           </button>
         </footer>
       </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${Boolean(ambienteEditando)}
+        titulo="Editar conexão"
+        subtitulo="Altere o nome, a operação vinculada ou a URL do site do SharePoint desta intranet."
+        onClose=${salvandoEdicaoAmbiente ? () => null : () => setAmbienteEditando(null)}
+      >
+        <div class="rh-action-modal-body">
+          <label class="form-label">Operação vinculada</label>
+          <select
+            class="form-select mb-3"
+            value=${formEdicaoAmbiente.operacao_id}
+            disabled=${salvandoEdicaoAmbiente}
+            onChange=${(event) => setFormEdicaoAmbiente((valor) => ({ ...valor, operacao_id: event.target.value }))}
+          >
+            <option value="">Selecione a operação (opcional)</option>
+            ${operacoesAmbiente.map(
+        (operacao) => html`
+                <option key=${operacao.id_item} value=${operacao.id_item}>${operacao.nome}</option>
+              `,
+      )}
+          </select>
+
+          <label class="form-label">Nome do ambiente</label>
+          <input
+            type="text"
+            class="form-control mb-3"
+            value=${formEdicaoAmbiente.nome}
+            disabled=${salvandoEdicaoAmbiente}
+            onInput=${(event) => setFormEdicaoAmbiente((valor) => ({ ...valor, nome: event.target.value }))}
+          />
+
+          <label class="form-label">URL do site SharePoint</label>
+          <input
+            type="text"
+            class="form-control mb-1"
+            placeholder="https://suaempresa.sharepoint.com/sites/NomeDoSite"
+            value=${formEdicaoAmbiente.site_url}
+            disabled=${salvandoEdicaoAmbiente}
+            onInput=${(event) => setFormEdicaoAmbiente((valor) => ({ ...valor, site_url: event.target.value }))}
+          />
+          <p class="form-text mb-3">Cole a URL completa do site, como aparece no navegador.</p>
+
+          <label class="form-label">Biblioteca/pasta de destino (opcional)</label>
+          <input
+            type="text"
+            class="form-control mb-1"
+            value=${formEdicaoAmbiente.biblioteca_destino}
+            disabled=${salvandoEdicaoAmbiente}
+            onInput=${(event) => setFormEdicaoAmbiente((valor) => ({ ...valor, biblioteca_destino: event.target.value }))}
+          />
+          <p class="form-text mb-0">
+            Alterar a URL invalida o último teste de conexão — use "Testar novamente" depois de salvar.
+          </p>
+          ${erroEdicaoAmbiente ? html`<div class="alert alert-danger mt-2 mb-0">${erroEdicaoAmbiente}</div>` : null}
+        </div>
+        <footer class="rh-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" disabled=${salvandoEdicaoAmbiente} onClick=${() => setAmbienteEditando(null)}>
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" disabled=${salvandoEdicaoAmbiente} onClick=${salvarEdicaoAmbiente}>
+            ${salvandoEdicaoAmbiente ? 'Salvando...' : 'Salvar'}
+          </button>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalConfirmacaoAcao}
+        aberto=${Boolean(ambienteRemover)}
+        titulo="Remover ambiente"
+        descricao=${`Deseja remover o ambiente "${ambienteRemover?.nome || ''}"?`}
+        consequencia="O Mural deixará de publicar nesta intranet até que um novo ambiente seja cadastrado."
+        reversibilidade="É possível cadastrar este ambiente novamente a qualquer momento."
+        textoConfirmar="Remover ambiente"
+        tipo="destrutivo"
+        carregando=${removendoAmbiente}
+        onClose=${() => setAmbienteRemover(null)}
+        onConfirm=${confirmarRemocaoAmbiente}
+      />
 
       <${ModalConfirmacaoAcao}
         aberto=${modalResetAberto}

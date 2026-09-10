@@ -59,6 +59,19 @@ def post_ambiente_sharepoint(
     return repository.criar_ambiente_sharepoint(payload.model_dump(), actor=user)
 
 
+@router.put(
+    "/ambientes-sharepoint/{id_ambiente}",
+    dependencies=[Depends(require_permissions("configuracoes.editar"))],
+)
+def put_ambiente_sharepoint(
+    id_ambiente: int,
+    payload: AmbienteSharePointRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.atualizar_ambiente_sharepoint(id_ambiente, payload.model_dump(), actor=user)
+
+
 @router.post(
     "/ambientes-sharepoint/{id_ambiente}/testar",
     dependencies=[Depends(require_permissions("configuracoes.editar"))],

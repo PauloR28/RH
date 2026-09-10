@@ -310,6 +310,62 @@ class SistemaRepositoryMixin:
         finally:
             conn.close()
 
+    def atualizar_ambiente_sharepoint(
+        self,
+        id_ambiente: int,
+        data: dict,
+        *,
+        actor: AuthenticatedUser | dict | None = None,
+    ) -> dict:
+        nome = normalize_text(data.get("nome"))
+        site_url = normalize_text(data.get("site_url"))
+        if not nome or not site_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe o nome do ambiente e a URL do site do SharePoint.",
+            )
+        hostname, site_path = self._parse_sharepoint_site_url(site_url)
+        operacao_id = data.get("operacao_id") or None
+        biblioteca_destino = normalize_text(data.get("biblioteca_destino"))
+        nome_ator = _nome_ator(actor)
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_ambientes_sharepoint_table(cursor)
+            cursor.execute(
+                "SELECT id_ambiente FROM dbo.ambientes_sharepoint WHERE id_ambiente = ? AND ativo = 1",
+                (id_ambiente,),
+            )
+            if not cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ambiente não encontrado.")
+            cursor.execute(
+                """
+                UPDATE dbo.ambientes_sharepoint
+                SET nome = ?, operacao_id = ?, site_url = ?, hostname = ?, site_path = ?,
+                    biblioteca_destino = ?, status = 'pendente', site_id = NULL,
+                    ultima_mensagem_teste = NULL, testado_em = NULL,
+                    atualizado_por = ?, atualizado_em = GETDATE()
+                WHERE id_ambiente = ?
+                """,
+                (nome, operacao_id, site_url, hostname, site_path, biblioteca_destino, nome_ator, id_ambiente),
+            )
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Administração",
+                acao="atualizar_ambiente_sharepoint",
+                entidade="ambientes_sharepoint",
+                entidade_id=str(id_ambiente),
+                valor_anterior=None,
+                valor_novo={"nome": nome, "site_url": site_url, "operacao_id": operacao_id},
+                sucesso=True,
+            )
+            conn.commit()
+            return {"success": True, "id_ambiente": id_ambiente}
+        finally:
+            conn.close()
+
     def testar_ambiente_sharepoint(
         self,
         id_ambiente: int,

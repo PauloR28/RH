@@ -36,6 +36,14 @@ export async function criarAmbienteSharePoint(payload) {
   });
 }
 
+export async function atualizarAmbienteSharePoint(idAmbiente, payload) {
+  return requisitar(`/sistema/ambientes-sharepoint/${encodeURIComponent(idAmbiente)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function testarAmbienteSharePoint(idAmbiente) {
   return requisitar(`/sistema/ambientes-sharepoint/${encodeURIComponent(idAmbiente)}/testar`, {
     method: 'POST',

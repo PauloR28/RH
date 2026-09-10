@@ -24,6 +24,7 @@ import {
   rejeitarSolicitacaoAlteracaoEmailApi,
 } from '../../app/controlador-aplicacao.js';
 import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
+import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { listarOperacoes } from '../../services/api/operations.js';
@@ -39,6 +40,7 @@ import {
   salvarPreferenciasNotificacao,
 } from '../../shared/notificacoes.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -556,6 +558,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [sessaoPermissaoAtiva, setSessaoPermissaoAtiva] = useState(SESSOES_PERMISSAO[0].id);
   const [perfisDesbloqueados, setPerfisDesbloqueados] = useState(false);
   const [tipoCatalogo, setTipoCatalogo] = useState('');
+  const [listaCatalogoRecolhida, setListaCatalogoRecolhida] = useState(true);
   const [formItem, setFormItem] = useState(FORM_ITEM_INICIAL);
   const enderecoPrincipalItem = useMemo(
     () => (catalogo.find((secao) => secao.tipo === 'geral')?.items || []).find(
@@ -579,6 +582,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [menuUsuarioAbertoId, setMenuUsuarioAbertoId] = useState('');
   const [menuUsuarioPosicao, setMenuUsuarioPosicao] = useState(null);
   const [drawerUsuarioAberto, setDrawerUsuarioAberto] = useState(false);
+  const [modoEdicaoUsuario, setModoEdicaoUsuario] = useState(false);
   const [confirmandoExclusaoUsuario, setConfirmandoExclusaoUsuario] = useState(false);
 
   const permissoesPorModulo = useMemo(() => agruparPermissoes(permissoes), [permissoes]);
@@ -629,6 +633,20 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       setAbaAtiva(abaDaRota);
     }
   }, [telaAtual, abaAtiva]);
+
+  // Correções.txt item 2: feedback (toast de sucesso/erro) não pode
+  // sobreviver a uma troca de aba/tela — limpa ao trocar de aba e também
+  // por timeout, mesmo que o timeout anterior ainda não tenha disparado.
+  useEffect(() => {
+    setFeedback('');
+    setErro('');
+  }, [abaAtiva]);
+
+  useEffect(() => {
+    if (!feedback) return undefined;
+    const timer = window.setTimeout(() => setFeedback(''), 4000);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
 
   useEffect(() => {
     if (!abasPermitidas.some((aba) => aba.id === abaAtiva)) {
@@ -801,6 +819,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setMenuUsuarioAbertoId('');
     setMenuUsuarioPosicao(null);
     setConfirmandoExclusaoUsuario(false);
+    setModoEdicaoUsuario(false);
     setDrawerUsuarioAberto(true);
   };
 
@@ -811,6 +830,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setMenuUsuarioAbertoId('');
     setMenuUsuarioPosicao(null);
     setConfirmandoExclusaoUsuario(false);
+    setModoEdicaoUsuario(true);
     setDrawerUsuarioAberto(true);
   };
 
@@ -1532,33 +1552,42 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     },
   ];
 
+  // Correções.txt item 4c: métricas do catálogo atualmente selecionado
+  // (ex.: Operações), não contagens genéricas de todos os catálogos juntos —
+  // só métricas com dado real por trás (ativo/inativo e atualizado_em já
+  // vêm do backend; nada aqui é inventado).
   const metricasOperacoes = useMemo(() => {
-    const secaoOperacoes = catalogo.find((secao) => secao.tipo === 'operacoes');
-    const itensOperacoes = normalizarLista(secaoOperacoes?.items);
+    const ativos = contarPor(itensCatalogo, (item) => item.ativo);
+    const arquivados = itensCatalogo.length - ativos;
+    const ultimaAtualizacao = itensCatalogo.reduce((maisRecente, item) => {
+      const data = item.atualizado_em || item.criado_em;
+      if (!data) return maisRecente;
+      return !maisRecente || new Date(data) > new Date(maisRecente) ? data : maisRecente;
+    }, null);
     return [
       {
-        icon: 'apartment',
-        label: 'Operações cadastradas',
-        value: itensOperacoes.length,
-        helper: `${contarPor(itensOperacoes, (item) => item.ativo)} ativas`,
-        tone: 'blue',
+        icon: 'check_circle',
+        label: 'Itens ativos',
+        value: ativos,
+        helper: secaoCatalogoAtiva?.label || 'Nenhum catálogo selecionado',
+        tone: 'green',
       },
       {
-        icon: 'rule_settings',
-        label: 'Itens no catálogo atual',
-        value: itensCatalogo.length,
-        helper: secaoCatalogoAtiva?.label || 'Nenhum catálogo selecionado',
+        icon: 'archive',
+        label: 'Itens arquivados',
+        value: arquivados,
+        helper: `${itensCatalogo.length} no total`,
         tone: 'indigo',
       },
       {
-        icon: 'inventory_2',
-        label: 'Catálogos disponíveis',
-        value: catalogo.length,
-        helper: 'Etapas, motivos e operações',
-        tone: 'green',
+        icon: 'history',
+        label: 'Última atualização',
+        value: ultimaAtualizacao ? formatarDataHora(ultimaAtualizacao) : '—',
+        helper: 'Item mais recente do catálogo atual',
+        tone: 'blue',
       },
     ];
-  }, [catalogo, itensCatalogo, secaoCatalogoAtiva]);
+  }, [itensCatalogo, secaoCatalogoAtiva]);
 
   const renderUsuarios = () => {
     const podeCriar = controlador.possuiPermissao('usuarios.criar');
@@ -1568,6 +1597,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     const podeBloquear = controlador.possuiPermissao('usuarios.bloquear');
     const podeDesbloquear = controlador.possuiPermissao('usuarios.desbloquear');
     const podeSalvar = formUsuario.id_usuario ? podeEditar : podeCriar;
+    const bloqueadoLeitura = !criandoUsuario && !modoEdicaoUsuario;
     const totalUsuarios = usuariosFiltrados.length;
     const statusAtivo = normalizarBusca(formUsuario.status) === 'ativo';
     const statusBloqueado = normalizarBusca(formUsuario.status) === 'bloqueado';
@@ -1582,29 +1612,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     const atualizarFiltroUsuario = (campo, valor) => {
       setFiltrosUsuarios((atuais) => ({ ...atuais, [campo]: valor }));
       setPaginaUsuarios(1);
-    };
-
-    const alternarMenuUsuario = (event, idUsuario) => {
-      event.stopPropagation();
-      if (String(menuUsuarioAbertoId) === String(idUsuario)) {
-        setMenuUsuarioAbertoId('');
-        setMenuUsuarioPosicao(null);
-        return;
-      }
-      const rect = event.currentTarget.getBoundingClientRect();
-      const largura = 196;
-      setMenuUsuarioPosicao({
-        top: `${Math.min(window.innerHeight - 52, rect.bottom + 6)}px`,
-        left: `${Math.max(8, Math.min(window.innerWidth - largura - 8, rect.right - largura))}px`,
-      });
-      setMenuUsuarioAbertoId(idUsuario);
-    };
-
-    const marcarUsuario = (usuario) => {
-      setCriandoUsuario(false);
-      setUsuarioSelecionadoId(usuario.id_usuario);
-      setMenuUsuarioAbertoId('');
-      setMenuUsuarioPosicao(null);
     };
 
     return html`
@@ -1745,55 +1752,33 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <table class="users-modern-table">
                     <thead>
                       <tr>
-                        <th class="is-select"><input type="radio" disabled /></th>
                         <th>Nome</th>
                         <th>Perfil</th>
                         <th>Status</th>
                         <th>E-mail</th>
-                        <th class="is-actions">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${linhasUsuarios.map(
           ({ usuario, idUsuario, selecionado }) => html`
-                          <tr key=${idUsuario || textoSeguro(usuario.email, textoSeguro(usuario.login, 'usuario'))} class=${selecionado ? 'is-selected' : ''}>
-                            <td class="is-select">
-                              <input
-                                type="radio"
-                                name="usuario-selecionado"
-                                checked=${selecionado}
-                                onChange=${() => marcarUsuario(usuario)}
-                              />
-                            </td>
+                          <tr
+                            key=${idUsuario || textoSeguro(usuario.email, textoSeguro(usuario.login, 'usuario'))}
+                            class=${`users-row-clickable ${selecionado ? 'is-selected' : ''}`.trim()}
+                            tabIndex="0"
+                            role="button"
+                            aria-label=${`Ver informações de ${textoSeguro(usuario.nome, 'usuário')}`}
+                            onClick=${() => selecionarUsuario(usuario)}
+                            onKeyDown=${(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selecionarUsuario(usuario);
+              }
+            }}
+                          >
                             <td><span class="users-name-text">${textoSeguro(usuario.nome)}</span></td>
                             <td>${textoSeguro(usuario.perfil_nome, textoSeguro(usuario.perfil))}</td>
                             <td><${Badge} label=${textoSeguro(usuario.status, 'Sem status')} tone=${obterStatusTone(textoSeguro(usuario.status, ''))} /></td>
                             <td>${textoSeguro(usuario.email, textoSeguro(usuario.login))}</td>
-                            <td class="is-actions">
-                              <div class="users-row-menu">
-                                <button
-                                  type="button"
-                                  class="process-row-action-trigger"
-                                  title="Mais ações"
-                                  aria-label="Mais ações"
-                                  aria-haspopup="menu"
-                                  aria-expanded=${String(menuUsuarioAbertoId) === String(idUsuario)}
-                                  onClick=${(event) => alternarMenuUsuario(event, idUsuario)}
-                                >
-                                  <span class="material-symbols-outlined">${IconeSvg('more_horiz')}</span>
-                                </button>
-                                ${String(menuUsuarioAbertoId) === String(idUsuario)
-              ? html`
-                                      <div class="users-row-actions-dropdown" role="menu" style=${menuUsuarioPosicao || {}} onClick=${(event) => event.stopPropagation()}>
-                                        <button type="button" role="menuitem" class="process-row-actions-item" onClick=${() => selecionarUsuario(usuario)}>
-                                          <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-                                          <span>Editar usuário</span>
-                                        </button>
-                                      </div>
-                                    `
-              : null}
-                              </div>
-                            </td>
                           </tr>
                         `,
         )}
@@ -1824,40 +1809,29 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         >
           <form class="users-drawer-form" onSubmit=${salvarUsuario}>
             <div class="users-drawer-body">
+              ${!criandoUsuario && podeEditar
+        ? html`
+                    <div class="users-edit-toggle-row">
+                      <button
+                        type="button"
+                        class=${`btn btn-sm ${modoEdicaoUsuario ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
+                        onClick=${() => setModoEdicaoUsuario((atual) => !atual)}
+                      >
+                        <${Icone} name=${modoEdicaoUsuario ? 'lock_open' : 'edit'} />
+                        ${modoEdicaoUsuario ? 'Edição liberada' : 'Editar'}
+                      </button>
+                    </div>
+                  `
+        : null}
+              <div class="users-drawer-form-grid">
               <label>
                         <span>Nome</span>
                         <input
                           class="form-control"
                           required
+                          disabled=${bloqueadoLeitura}
                           value=${formUsuario.nome}
                           onInput=${(event) => setFormUsuario({ ...formUsuario, nome: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Sobrenome</span>
-                        <input
-                          class="form-control"
-                          value=${formUsuario.sobrenome}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, sobrenome: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>E-mail</span>
-                        <input
-                          class="form-control"
-                          type="email"
-                          required
-                          value=${formUsuario.email}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, email: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Login</span>
-                        <input
-                          class="form-control"
-                          placeholder="Padrão: usa o e-mail"
-                          value=${formUsuario.login}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, login: event.target.value })}
                         />
                       </label>
                       <label>
@@ -1865,6 +1839,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         <select
                           class="form-select"
                           required
+                          disabled=${bloqueadoLeitura}
                           value=${formUsuario.perfil}
                           onChange=${(event) => setFormUsuario({ ...formUsuario, perfil: event.target.value })}
                         >
@@ -1872,15 +1847,76 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         </select>
                       </label>
                       <label>
+                        <span>Sobrenome</span>
+                        <input
+                          class="form-control"
+                          disabled=${bloqueadoLeitura}
+                          value=${formUsuario.sobrenome}
+                          onInput=${(event) => setFormUsuario({ ...formUsuario, sobrenome: event.target.value })}
+                        />
+                      </label>
+                      <label class="users-toggle-row">
+                        <span>${statusAtivo ? 'Usuário ativo' : 'Usuário inativo'}</span>
+                        <button
+                          type="button"
+                          class=${`users-switch ${statusAtivo ? 'is-on' : ''}`.trim()}
+                          role="switch"
+                          aria-checked=${statusAtivo}
+                          disabled=${bloqueadoLeitura}
+                          onClick=${() => setFormUsuario({ ...formUsuario, status: statusAtivo ? 'Inativo' : 'Ativo' })}
+                        >
+                          <i></i>
+                        </button>
+                      </label>
+                      <label>
+                        <span>E-mail</span>
+                        <input
+                          class="form-control"
+                          type="email"
+                          required
+                          disabled=${bloqueadoLeitura}
+                          value=${formUsuario.email}
+                          onInput=${(event) => setFormUsuario({ ...formUsuario, email: event.target.value })}
+                        />
+                      </label>
+                      <label>
                         <span>Cargo</span>
                         <input
                           class="form-control"
                           placeholder="Ex.: Analista de RH Pleno"
+                          disabled=${bloqueadoLeitura}
                           value=${formUsuario.cargo}
                           onInput=${(event) => setFormUsuario({ ...formUsuario, cargo: event.target.value })}
                         />
                       </label>
                       <label>
+                        <span>Login</span>
+                        <input
+                          class="form-control"
+                          placeholder="Padrão: usa o e-mail"
+                          disabled=${bloqueadoLeitura}
+                          value=${formUsuario.login}
+                          onInput=${(event) => setFormUsuario({ ...formUsuario, login: event.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span>Tipo de acesso</span>
+                        <select
+                          class="form-select"
+                          required
+                          disabled=${bloqueadoLeitura}
+                          value=${formUsuario.provedor_autenticacao}
+                          onChange=${(event) => setFormUsuario({
+          ...formUsuario,
+          provedor_autenticacao: event.target.value,
+          senha: event.target.value === 'microsoft' ? '' : formUsuario.senha,
+        })}
+                        >
+                          <option value="microsoft">Microsoft</option>
+                          <option value="local">Local</option>
+                        </select>
+                      </label>
+                      <label class="users-drawer-field-wide">
                         <span>Operações vinculadas</span>
                         <div class="users-operacoes-checklist">
                           ${operacoesDisponiveis.length
@@ -1894,6 +1930,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                     type="checkbox"
                                     id=${idCheckbox}
                                     checked=${marcado}
+                                    disabled=${bloqueadoLeitura}
                                     onChange=${(event) => {
               const novaLista = event.target.checked
                 ? [...formUsuario.operacoes, valorOperacao]
@@ -1909,37 +1946,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         </div>
                         <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações.</span>
                       </label>
-                      <label>
-                        <span>Tipo de acesso</span>
-                        <select
-                          class="form-select"
-                          required
-                          value=${formUsuario.provedor_autenticacao}
-                          onChange=${(event) => setFormUsuario({
-          ...formUsuario,
-          provedor_autenticacao: event.target.value,
-          senha: event.target.value === 'microsoft' ? '' : formUsuario.senha,
-        })}
-                        >
-                          <option value="microsoft">Microsoft</option>
-                          <option value="local">Local</option>
-                        </select>
-                      </label>
-                      <label class="users-toggle-row">
-                        <span>${statusAtivo ? 'Usuário ativo' : 'Usuário inativo'}</span>
-                        <button
-                          type="button"
-                          class=${`users-switch ${statusAtivo ? 'is-on' : ''}`.trim()}
-                          role="switch"
-                          aria-checked=${statusAtivo}
-                          onClick=${() => setFormUsuario({ ...formUsuario, status: statusAtivo ? 'Inativo' : 'Ativo' })}
-                        >
-                          <i></i>
-                        </button>
-                      </label>
-                      ${!acessoMicrosoft && (criandoUsuario || podeRedefinirSenha)
+                      ${!acessoMicrosoft && (criandoUsuario || (podeRedefinirSenha && !bloqueadoLeitura))
         ? html`
-                            <label>
+                            <label class="users-drawer-field-wide">
                               <span>${criandoUsuario ? 'Senha inicial' : 'Nova senha (opcional)'}</span>
                               <input
                                 class="form-control"
@@ -1952,20 +1961,22 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                             </label>
                           `
         : null}
-                      <label>
+                      <label class="users-drawer-field-wide">
                         <span>Justificativa</span>
                         <textarea
                           class="form-control"
                           rows="3"
                           placeholder="Obrigatória para alterações sensíveis"
+                          disabled=${bloqueadoLeitura}
                           value=${formUsuario.justificativa}
                           onInput=${(event) => setFormUsuario({ ...formUsuario, justificativa: event.target.value })}
                         ></textarea>
                       </label>
+                      </div>
 
-                      ${formUsuario.id_usuario && (podeBloquear || podeDesbloquear || podeRedefinirSenha)
+                      ${formUsuario.id_usuario && (podeBloquear || podeDesbloquear || podeRedefinirSenha || podeExcluir)
         ? html`
-                            <div class="users-account-actions">
+                            <div class="users-critical-actions">
                               ${statusBloqueado
             ? podeDesbloquear
               ? html`
@@ -2003,31 +2014,26 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                     </button>
                                   `
             : null}
-                            </div>
-                          `
-        : null}
-
-                      ${formUsuario.id_usuario && podeExcluir
-        ? html`
-                            <div class="users-delete-panel">
-                              ${confirmandoExclusaoUsuario
-            ? html`
-                                      <p>Deseja realmente excluir este usuário? Esta ação é permanente.</p>
-                                      <div>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(false)}>
-                                          Cancelar
-                                        </button>
-                                        <button type="button" class="btn btn-danger btn-sm" disabled=${salvando} onClick=${excluirUsuarioSelecionado}>
-                                          Excluir usuário
-                                        </button>
-                                      </div>
-                                    `
-            : html`
-                                      <button type="button" class="users-delete-button" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(true)}>
-                                        <${Icone} name="delete" />
-                                        Excluir usuário
+                              ${podeExcluir
+            ? confirmandoExclusaoUsuario
+              ? html`
+                                    <span class="users-delete-confirm">
+                                      <span>Excluir permanentemente?</span>
+                                      <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(false)}>
+                                        Cancelar
                                       </button>
-                                    `}
+                                      <button type="button" class="btn btn-danger btn-sm" disabled=${salvando} onClick=${excluirUsuarioSelecionado}>
+                                        Confirmar exclusão
+                                      </button>
+                                    </span>
+                                  `
+              : html`
+                                    <button type="button" class="btn btn-danger btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(true)}>
+                                      <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                                      Excluir usuário
+                                    </button>
+                                  `
+            : null}
                             </div>
                           `
         : null}
@@ -2037,7 +2043,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${fecharDrawerUsuario}>
                 Cancelar
               </button>
-              <button type="submit" class="btn btn-primary" disabled=${salvando || !podeSalvar}>
+              <button type="submit" class="btn btn-primary" disabled=${salvando || !podeSalvar || bloqueadoLeitura}>
                 ${salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </footer>
@@ -2149,221 +2155,220 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       ]}
         />
 
-        <div class="settings-profile-matrix">
-          <nav class="settings-profile-rail">
-            <span class="c24-eyebrow">Perfis</span>
-            ${perfis.length
-        ? perfis.map((perfil) => {
-          const selecionado = perfilSelecionado?.id === perfil.id;
-          return html`
-                    <button
-                      type="button"
-                      key=${perfil.id}
-                      class=${`settings-profile-chip ${selecionado ? 'is-active' : ''}`.trim()}
-                      onClick=${() => selecionarPerfilPermissoes(perfil.id)}
-                    >
-                      <span class="settings-profile-chip-icon"><${Icone} name="badge" /></span>
-                      <span class="settings-profile-chip-copy">
-                        <strong>${perfil.nome}</strong>
-                        <small>${contagemUsuariosPorPerfil[perfil.id] || 0} usuário(s)</small>
-                      </span>
-                    </button>
-                  `;
-        })
-        : html`<${EmptyPanel} icon="group_off" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
-          </nav>
-
-          ${perfilSelecionado
+        ${perfis.length
         ? html`
-                <nav class="settings-session-rail">
-                  <span class="c24-eyebrow">${perfilSelecionado.nome}</span>
-                  ${SESSOES_PERMISSAO.map((sessao) => {
-          const ativa = sessao.id === sessaoAtiva.id;
-          const total = contagemPorSessao(sessao);
+              <nav class="settings-permission-tree">
+                ${perfis.map((perfil) => {
+          const expandido = perfilSelecionado?.id === perfil.id;
           return html`
+                    <div class=${`settings-permission-tree-node ${expandido ? 'is-expanded' : ''}`.trim()} key=${perfil.id}>
                       <button
                         type="button"
-                        key=${sessao.id}
-                        class=${`settings-session-chip ${ativa ? 'is-active' : ''}`.trim()}
-                        onClick=${() => setSessaoPermissaoAtiva(sessao.id)}
+                        class=${`settings-permission-tree-profile ${expandido ? 'is-active' : ''}`.trim()}
+                        aria-expanded=${expandido}
+                        onClick=${() => selecionarPerfilPermissoes(expandido ? '' : perfil.id)}
                       >
-                        <${Icone} name=${sessao.icon} />
-                        <span>${sessao.label}</span>
-                        <small>${total}</small>
+                        <span class="settings-permission-tree-profile-icon"><${Icone} name="badge" /></span>
+                        <span class="settings-permission-tree-label">
+                          <strong>${perfil.nome}</strong>
+                        </span>
+                        <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
                       </button>
-                    `;
-        })}
-                </nav>
 
-                <section class="c24-card settings-permission-panel">
-                  <header class="c24-card-header settings-permission-head">
-                    <div>
-                      <span class="c24-eyebrow">${sessaoAtiva.label}</span>
-                      <h3>${perfilSelecionado.nome}</h3>
-                    </div>
-                    <div class="settings-card-actions">
-                      <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
-                      ${usuariosPerfilSelecionado.length
-          ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
-          : null}
-                      ${podeEditarPerfis
-          ? html`
-                            <button
-                              type="button"
-                              class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
-                              onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
-                            >
-                              <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
-                              ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
-                            </button>
-                          `
-          : null}
-                    </div>
-                  </header>
-
-                  ${perfisDesbloqueados
-          ? html`
-                        <div class="c24-filter-bar settings-permission-filter">
-                          <${FilterField} label="Buscar permissão" icon="search">
-                            <input
-                              class="form-control"
-                              placeholder="Módulo, chave ou descrição"
-                              value=${buscaPermissao}
-                              onInput=${(event) => setBuscaPermissao(event.target.value)}
-                            />
-                          </${FilterField}>
-                          <${FilterField} label="Comparar com" icon="compare_arrows">
-                            <select
-                              class="form-select"
-                              value=${perfilComparadoId}
-                              onChange=${(event) => setPerfilComparadoId(event.target.value)}
-                            >
-                              <option value="">Não comparar</option>
-                              ${perfis
-            .filter((perfil) => perfil.id !== perfilSelecionado.id)
-            .map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
-                            </select>
-                          </${FilterField}>
-                          <label class="c24-check-filter settings-active-filter">
-                            <input
-                              type="checkbox"
-                              checked=${mostrarSomenteAtivas}
-                              onChange=${(event) => setMostrarSomenteAtivas(event.target.checked)}
-                            />
-                            Ver apenas ativas
-                          </label>
-                          <${FilterField} label="Justificativa da alteração" icon="edit_note">
-                            <input
-                              class="form-control"
-                              value=${justificativaPerfil}
-                              placeholder="Opcional, recomendado para alterações críticas"
-                              onInput=${(event) => setJustificativaPerfil(event.target.value)}
-                            />
-                          </${FilterField}>
-                        </div>
-                      `
-          : null}
-
-                  <div class="settings-permission-groups">
-                    ${permissoesDaSessao.length
-          ? permissoesDaSessao.map(
-            ([modulo, itens]) => {
-              const ativos = contarPor(itens, (permissao) => permissoesPerfilDraft.includes(permissao.chave));
-              return html`
-                            <div class="settings-permission-group" key=${modulo}>
-                              <div class="settings-permission-group-head">
-                                <span>
-                                  <strong>${modulo}</strong>
-                                  <small>${ativos}/${itens.length} ativas</small>
-                                </span>
-                                ${perfisDesbloqueados
-                ? html`
-                                      <span class="settings-group-actions">
-                                        <button type="button" onClick=${() => alterarGrupoPermissoes(itens, true)}>Marcar grupo</button>
-                                        <button type="button" onClick=${() => alterarGrupoPermissoes(itens, false)}>Limpar grupo</button>
-                                      </span>
-                                    `
-                : null}
-                              </div>
-                              <div class="settings-permission-list">
-                                ${itens.map((permissao) => {
-                  const ativa = permissoesPerfilDraft.includes(permissao.chave);
-                  const ativaComparado = perfilComparado ? permissaoEstaAtiva(perfilComparado, permissao.chave) : null;
+                      ${expandido
+              ? html`
+                            <div class="settings-permission-tree-children">
+                              ${SESSOES_PERMISSAO.map((sessao) => {
+                  const sessaoExpandida = sessao.id === sessaoAtiva.id;
+                  const total = contagemPorSessao(sessao);
                   return html`
-                                    <div class=${`settings-permission-row ${ativa ? 'is-active' : ''}`.trim()} key=${permissao.chave}>
-                                      <${ToggleSwitch}
-                                        checked=${ativa}
-                                        disabled=${!perfisDesbloqueados}
-                                        onChange=${() => alternarPermissao(permissao.chave)}
-                                      />
-                                      <span class="settings-permission-copy">
-                                        <strong>${permissao.chave}</strong>
-                                        <small>${permissao.descricao || '-'}</small>
-                                      </span>
-                                      <span class="settings-permission-badges">
-                                        <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
-                                        ${perfilComparado
-                      ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`
-                      : null}
-                                      </span>
-                                    </div>
-                                  `;
-                })}
-                              </div>
-                            </div>
-                          `;
-            },
-          )
-          : html`
-                        <${EmptyPanel}
-                          icon="shield_off"
-                          title="Sem permissões nesta sessão"
-                          text="Nenhuma permissão corresponde ao filtro atual."
-                        />
-                      `}
-                  </div>
+                                  <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoExpandida ? 'is-expanded' : ''}`.trim()} key=${sessao.id}>
+                                    <button
+                                      type="button"
+                                      class=${`settings-permission-tree-session ${sessaoExpandida ? 'is-active' : ''}`.trim()}
+                                      aria-expanded=${sessaoExpandida}
+                                      onClick=${() => setSessaoPermissaoAtiva(sessao.id)}
+                                    >
+                                      <${Icone} name=${sessao.icon} />
+                                      <span>${sessao.label}</span>
+                                      <small>${total}</small>
+                                      <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
+                                    </button>
 
-                  ${perfisDesbloqueados
-          ? html`
-                        <footer class="rh-form-footer rh-form-footer--sticky">
-                          <span class="rh-form-footer-hint">
-                            ${alteracoesPendentesPerfil
-              ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
-              : 'Nenhuma alteração pendente.'}
-                          </span>
-                          <div class="settings-card-actions">
-                            <button
-                              type="button"
-                              class="btn btn-outline-secondary btn-sm"
-                              disabled=${salvando}
-                              onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
-                            >
-                              <${Icone} name="restore" /> Restaurar
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-primary btn-sm"
-                              disabled=${salvando || !podeEditarPerfis}
-                              onClick=${salvarPermissoesPerfil}
-                            >
-                              <${Icone} name="save" /> ${salvando ? 'Salvando...' : 'Salvar matriz'}
-                            </button>
-                          </div>
-                        </footer>
-                      `
-          : null}
-                </section>
-              `
-        : html`
-                <section class="c24-card settings-profile-empty-card">
-                  <${EmptyPanel}
-                    icon="rule"
-                    title="Selecione um perfil"
-                    text="Selecione um perfil à esquerda para visualizar e editar permissões por sessão."
-                  />
-                </section>
-              `}
-        </div>
+                                    ${sessaoExpandida
+                      ? html`
+                                          <div class="settings-permission-tree-content">
+                                            <header class="c24-card-header settings-permission-head">
+                                              <div>
+                                                <span class="c24-eyebrow">${sessaoAtiva.label}</span>
+                                                <h3>${perfilSelecionado.nome}</h3>
+                                              </div>
+                                              <div class="settings-card-actions">
+                                                <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
+                                                ${usuariosPerfilSelecionado.length
+                          ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
+                          : null}
+                                                ${podeEditarPerfis
+                          ? html`
+                                                      <button
+                                                        type="button"
+                                                        class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
+                                                        onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
+                                                      >
+                                                        <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
+                                                        ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
+                                                      </button>
+                                                    `
+                          : null}
+                                              </div>
+                                            </header>
+
+                                            ${perfisDesbloqueados
+                        ? html`
+                                                  <div class="c24-filter-bar settings-permission-filter">
+                                                    <${FilterField} label="Buscar permissão" icon="search">
+                                                      <input
+                                                        class="form-control"
+                                                        placeholder="Módulo, chave ou descrição"
+                                                        value=${buscaPermissao}
+                                                        onInput=${(event) => setBuscaPermissao(event.target.value)}
+                                                      />
+                                                    </${FilterField}>
+                                                    <${FilterField} label="Comparar com" icon="compare_arrows">
+                                                      <select
+                                                        class="form-select"
+                                                        value=${perfilComparadoId}
+                                                        onChange=${(event) => setPerfilComparadoId(event.target.value)}
+                                                      >
+                                                        <option value="">Não comparar</option>
+                                                        ${perfis
+                          .filter((perfil2) => perfil2.id !== perfilSelecionado.id)
+                          .map((perfil2) => html`<option key=${perfil2.id} value=${perfil2.id}>${perfil2.nome}</option>`)}
+                                                      </select>
+                                                    </${FilterField}>
+                                                    <label class="c24-check-filter settings-active-filter">
+                                                      <input
+                                                        type="checkbox"
+                                                        checked=${mostrarSomenteAtivas}
+                                                        onChange=${(event) => setMostrarSomenteAtivas(event.target.checked)}
+                                                      />
+                                                      Ver apenas ativas
+                                                    </label>
+                                                    <${FilterField} label="Justificativa da alteração" icon="edit_note">
+                                                      <input
+                                                        class="form-control"
+                                                        value=${justificativaPerfil}
+                                                        placeholder="Opcional, recomendado para alterações críticas"
+                                                        onInput=${(event) => setJustificativaPerfil(event.target.value)}
+                                                      />
+                                                    </${FilterField}>
+                                                  </div>
+                                                `
+                        : null}
+
+                                            <div class="settings-permission-groups">
+                                              ${permissoesDaSessao.length
+                        ? permissoesDaSessao.map(
+                          ([modulo, itens]) => {
+                            const ativos = contarPor(itens, (permissao) => permissoesPerfilDraft.includes(permissao.chave));
+                            return html`
+                                                          <div class="settings-permission-group" key=${modulo}>
+                                                            <div class="settings-permission-group-head">
+                                                              <span>
+                                                                <strong>${modulo}</strong>
+                                                                <small>${ativos}/${itens.length} ativas</small>
+                                                              </span>
+                                                              ${perfisDesbloqueados
+                                ? html`
+                                                                    <span class="settings-group-actions">
+                                                                      <button type="button" onClick=${() => alterarGrupoPermissoes(itens, true)}>Marcar grupo</button>
+                                                                      <button type="button" onClick=${() => alterarGrupoPermissoes(itens, false)}>Limpar grupo</button>
+                                                                    </span>
+                                                                  `
+                                : null}
+                                                            </div>
+                                                            <div class="settings-permission-list">
+                                                              ${itens.map((permissao) => {
+                                  const ativa = permissoesPerfilDraft.includes(permissao.chave);
+                                  const ativaComparado = perfilComparado ? permissaoEstaAtiva(perfilComparado, permissao.chave) : null;
+                                  return html`
+                                                                  <div class=${`settings-permission-row ${ativa ? 'is-active' : ''}`.trim()} key=${permissao.chave}>
+                                                                    <${ToggleSwitch}
+                                                                      checked=${ativa}
+                                                                      disabled=${!perfisDesbloqueados}
+                                                                      onChange=${() => alternarPermissao(permissao.chave)}
+                                                                    />
+                                                                    <span class="settings-permission-copy">
+                                                                      <strong>${permissao.chave}</strong>
+                                                                      <small>${permissao.descricao || '-'}</small>
+                                                                    </span>
+                                                                    <span class="settings-permission-badges">
+                                                                      <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
+                                                                      ${perfilComparado
+                                      ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`
+                                      : null}
+                                                                    </span>
+                                                                  </div>
+                                                                `;
+                                })}
+                                                            </div>
+                                                          </div>
+                                                        `;
+                          },
+                        )
+                        : html`
+                                                    <${EmptyPanel}
+                                                      icon="shield_off"
+                                                      title="Sem permissões nesta sessão"
+                                                      text="Nenhuma permissão corresponde ao filtro atual."
+                                                    />
+                                                  `}
+                                            </div>
+
+                                            ${perfisDesbloqueados
+                        ? html`
+                                                  <footer class="rh-form-footer rh-form-footer--sticky">
+                                                    <span class="rh-form-footer-hint">
+                                                      ${alteracoesPendentesPerfil
+                          ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
+                          : 'Nenhuma alteração pendente.'}
+                                                    </span>
+                                                    <div class="settings-card-actions">
+                                                      <button
+                                                        type="button"
+                                                        class="btn btn-outline-secondary btn-sm"
+                                                        disabled=${salvando}
+                                                        onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
+                                                      >
+                                                        <${Icone} name="restore" /> Restaurar
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        class="btn btn-primary btn-sm"
+                                                        disabled=${salvando || !podeEditarPerfis}
+                                                        onClick=${salvarPermissoesPerfil}
+                                                      >
+                                                        <${Icone} name="save" /> ${salvando ? 'Salvando...' : 'Salvar matriz'}
+                                                      </button>
+                                                    </div>
+                                                  </footer>
+                                                `
+                        : null}
+                                          </div>
+                                        `
+                      : null}
+                                  </div>
+                                `;
+                })}
+                            </div>
+                          `
+              : null}
+                    </div>
+                  `;
+        })}
+              </nav>
+            `
+        : html`<${EmptyPanel} icon="group_off" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
       </div>
     `;
   };
@@ -2438,7 +2443,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         `
       : null}
 
-      <div class="settings-catalog-workspace">
+      <div
+        class="settings-catalog-workspace"
+        style=${{ '--catalog-list-col': listaCatalogoRecolhida ? '56px' : undefined }}
+      >
         <section class="c24-card settings-area-panel">
           <header class="c24-card-header compact">
             <div>
@@ -2492,6 +2500,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             </div>
           </header>
           <form class="c24-form-grid settings-rule-form" onSubmit=${salvarItem}>
+            <div class="settings-form-section">
+            <h4 class="settings-form-section-title">Identificação</h4>
             <label>
               <span>Nome</span>
               <input
@@ -2612,6 +2622,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               />
               <span>Item ativo nos fluxos operacionais</span>
             </label>
+            </div>
             ${secaoCatalogoAtiva?.tipo === 'etapas'
       ? html`
                   <label>
@@ -2654,6 +2665,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
             ${secaoCatalogoAtiva?.tipo === 'operacoes'
       ? html`
+                  <div class="settings-form-section">
+                  <h4 class="settings-form-section-title">Cliente e escopo</h4>
                   <label>
                     <span>Cliente</span>
                     <input
@@ -2752,6 +2765,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         `}
                     <small class="text-muted">Usado para personalizar automaticamente provas e a análise de currículo desta operação.</small>
                   </label>
+                  </div>
+
+                  <div class="settings-form-section">
+                  <h4 class="settings-form-section-title">Sistemas e acesso</h4>
                   <div class="is-wide">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                       <span>Sistemas e portais de acesso necessários</span>
@@ -2795,6 +2812,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           )
           : html`<p class="text-muted small mb-0">Nenhum sistema adicionado ainda.</p>`}
                   </div>
+                  </div>
+
+                  <div class="settings-form-section">
+                  <h4 class="settings-form-section-title">Localização e jornada</h4>
                   <label>
                     <span>Unidade</span>
                     <select
@@ -2894,6 +2915,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     />
                     <span>Necessita disponibilidade de horário</span>
                   </label>
+                  </div>
+
+                  <div class="settings-form-section">
+                  <h4 class="settings-form-section-title">Descrição detalhada</h4>
                   <label class="is-wide">
                     <span>Descrição do cliente</span>
                     <textarea
@@ -2913,6 +2938,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       onInput=${(event) => setFormItem({ ...formItem, descricaoAtividades: event.target.value })}
                     ></textarea>
                   </label>
+                  </div>
                 `
       : null}
             <label class="is-wide">
@@ -2947,88 +2973,120 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           </form>
         </section>
 
-        <section class="c24-card settings-catalog-list-card">
-          <header class="c24-card-header">
-            <div>
-              <span class="c24-eyebrow">${secaoCatalogoAtiva?.label || 'Regras'}</span>
-              <h3>Itens cadastrados</h3>
-              <p>Desative itens usados nos fluxos; não remova fisicamente.</p>
-            </div>
-            <button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
-              <${Icone} name="add" /> Novo item
-            </button>
-          </header>
-
-          <div class="c24-filter-bar settings-catalog-filter">
-            <${FilterField} label="Buscar" icon="search">
-              <input
-                class="form-control"
-                value=${filtrosCatalogo.busca}
-                placeholder="Nome, chave ou categoria"
-                onInput=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: event.target.value })}
-              />
-            </${FilterField}>
-            <${FilterField} label="Status">
-              <select
-                class="form-select"
-                value=${filtrosCatalogo.status}
-                onChange=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, status: event.target.value })}
-              >
-                ${STATUS_ITEM.map(
-        (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
-      )}
-              </select>
-            </${FilterField}>
-          </div>
-
-          ${itensCatalogoFiltrados.length
+        <section class=${`c24-card settings-catalog-list-card ${listaCatalogoRecolhida ? 'is-collapsed' : ''}`.trim()}>
+          ${listaCatalogoRecolhida
       ? html`
-                <div class="settings-catalog-items">
-                  ${itensCatalogoFiltrados.map(
-        (item) => html`
-                      <article class=${`settings-catalog-item ${String(item.id_item) === String(formItem.id_item) ? 'is-active' : ''}`.trim()} key=${item.id_item}>
-                        <button type="button" class="settings-catalog-item-main" onClick=${() => editarItem(item)}>
-                          <span
-                            class="settings-catalog-icon"
-                            style=${secaoCatalogoAtiva?.tipo === 'operacoes' && item.payload?.cor_tag
-            ? { color: item.payload.cor_tag, borderColor: item.payload.cor_tag }
-            : {}}
-                          ><${Icone} name=${CATALOGO_ICONS[secaoCatalogoAtiva?.tipo] || 'settings'} /></span>
-                          <span>
-                            <strong>${item.nome || '-'}</strong>
-                            <small>${item.descricao || item.categoria || item.chave || 'Sem descrição'}</small>
-                          </span>
-                        </button>
-                        <div class="settings-catalog-item-actions">
-                          <${Badge} label=${item.ativo ? 'Ativo' : 'Inativo'} tone=${item.ativo ? 'success' : 'muted'} />
-                          <button type="button" class="c24-icon-btn" title="Editar" onClick=${() => editarItem(item)}>
-                            <${Icone} name="edit" />
-                          </button>
-                          <button type="button" class="c24-icon-btn" title="Duplicar" onClick=${() => duplicarItem(item)}>
-                            <${Icone} name="content_copy" />
-                          </button>
-                          <button type="button" class="c24-icon-btn is-danger" title="Arquivar" disabled=${!item.ativo} onClick=${() => desativarItem(item)}>
-                            <${Icone} name="archive" />
-                          </button>
-                        </div>
-                      </article>
-                    `,
-      )}
-                </div>
-                <div class="settings-list-footer">
-                  <span>${itensCatalogoFiltrados.length} exibidos de ${itensCatalogo.length}</span>
-                  <button type="button" class="c24-link-btn" onClick=${() => setFiltrosCatalogo({ busca: '', status: 'todos' })}>
-                    Ver todos
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="settings-catalog-list-collapsed-toggle"
+                  title="Expandir itens cadastrados"
+                  aria-expanded="false"
+                  onClick=${() => setListaCatalogoRecolhida(false)}
+                >
+                  <${Icone} name="chevron_left" />
+                  <span>${itensCatalogo.length}</span>
+                </button>
               `
       : html`
-                <${EmptyPanel}
-                  icon="inventory_2"
-                  title="Sem itens"
-                  text="Cadastre o primeiro item reutilizável deste catálogo."
-                  action=${html`<button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>Novo item</button>`}
-                />
+                <header class="c24-card-header">
+                  <div>
+                    <span class="c24-eyebrow">${secaoCatalogoAtiva?.label || 'Regras'}</span>
+                    <h3>Itens cadastrados</h3>
+                    <p>Desative itens usados nos fluxos; não remova fisicamente.</p>
+                  </div>
+                  <div class="settings-card-actions">
+                    <button
+                      type="button"
+                      class="c24-icon-btn"
+                      title="Recolher itens cadastrados"
+                      aria-expanded="true"
+                      onClick=${() => setListaCatalogoRecolhida(true)}
+                    >
+                      <${Icone} name="chevron_right" />
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
+                      <${Icone} name="add" /> Novo item
+                    </button>
+                  </div>
+                </header>
+
+                <div class="c24-filter-bar settings-catalog-filter">
+                  <${FilterField} label="Buscar" icon="search">
+                    <input
+                      class="form-control"
+                      value=${filtrosCatalogo.busca}
+                      placeholder="Nome, chave ou categoria"
+                      onInput=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: event.target.value })}
+                    />
+                  </${FilterField}>
+                  <${FilterField} label="Status">
+                    <select
+                      class="form-select"
+                      value=${filtrosCatalogo.status}
+                      onChange=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, status: event.target.value })}
+                    >
+                      ${STATUS_ITEM.map(
+          (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
+        )}
+                    </select>
+                  </${FilterField}>
+                </div>
+
+                ${itensCatalogoFiltrados.length
+          ? html`
+                      <div class="settings-catalog-items">
+                        ${itensCatalogoFiltrados.map(
+            (item) => html`
+                            <article class=${`settings-catalog-item ${String(item.id_item) === String(formItem.id_item) ? 'is-active' : ''}`.trim()} key=${item.id_item}>
+                              <button type="button" class="settings-catalog-item-main" onClick=${() => editarItem(item)}>
+                                <span
+                                  class="settings-catalog-icon"
+                                  style=${secaoCatalogoAtiva?.tipo === 'operacoes' && item.payload?.cor_tag
+                ? { color: item.payload.cor_tag, borderColor: item.payload.cor_tag }
+                : {}}
+                                ><${Icone} name=${CATALOGO_ICONS[secaoCatalogoAtiva?.tipo] || 'settings'} /></span>
+                                <span>
+                                  <strong>${item.nome || '-'}</strong>
+                                  <small>${item.descricao || item.categoria || item.chave || 'Sem descrição'}</small>
+                                </span>
+                              </button>
+                              <div class="settings-catalog-item-actions">
+                                <${Badge} label=${item.ativo ? 'Ativo' : 'Inativo'} tone=${item.ativo ? 'success' : 'muted'} />
+                                <${MenuAcoesProcesso}
+                                  ariaLabel="Ações do item"
+                                  acoes=${[
+                { key: 'editar', label: 'Editar', icon: 'edit', onClick: () => editarItem(item) },
+                { key: 'duplicar', label: 'Duplicar', icon: 'content_copy', onClick: () => duplicarItem(item) },
+                {
+                  key: 'arquivar',
+                  label: 'Arquivar',
+                  icon: 'archive',
+                  danger: true,
+                  disabled: !item.ativo,
+                  onClick: () => desativarItem(item),
+                },
+              ]}
+                                />
+                              </div>
+                            </article>
+                          `,
+          )}
+                      </div>
+                      <div class="settings-list-footer">
+                        <span>${itensCatalogoFiltrados.length} exibidos de ${itensCatalogo.length}</span>
+                        <button type="button" class="c24-link-btn" onClick=${() => setFiltrosCatalogo({ busca: '', status: 'todos' })}>
+                          Ver todos
+                        </button>
+                      </div>
+                    `
+          : html`
+                      <${EmptyPanel}
+                        icon="inventory_2"
+                        title="Sem itens"
+                        text="Cadastre o primeiro item reutilizável deste catálogo."
+                        action=${html`<button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>Novo item</button>`}
+                      />
+                    `}
               `}
         </section>
       </div>

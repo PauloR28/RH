@@ -5378,6 +5378,36 @@
   grid-column: 1 / -1;
 }
 
+/* Correções.txt item 4b: form de "Nova/Editar regra" (Operações) dividido
+ * em seções curtas (Identificação, Cliente e escopo, Sistemas e acesso,
+ * Localização e jornada, Descrição) em vez de um formulário único e longo —
+ * cada seção mantém a mesma grade de 2 colunas do formulário. */
+.settings-form-section {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-form-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.settings-form-section-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
 .settings-form-footer {
   justify-content: flex-start;
   padding-top: 0.25rem;
@@ -5971,62 +6001,52 @@
   border-bottom: 0;
 }
 
-.settings-profile-empty-card {
-  display: grid;
-  min-height: 180px;
-}
-
-/* Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
- * 3 trilhas (perfis / sessões / conteúdo) em vez de tudo empilhado — a
- * própria altura da tela deixa de crescer com o número de módulos, porque
- * só a sessão selecionada é exibida por vez. */
-.settings-profile-matrix {
-  display: grid;
-  grid-template-columns: 220px 240px minmax(0, 1fr);
-  gap: 0.85rem;
-  align-items: start;
-}
-
-.settings-profile-rail,
-.settings-session-rail {
+/* Perfis e permissões (Correções.txt item 1): navegação lateral unificada
+ * em árvore — perfil (pai) expande inline revelando as sessões (filhos), e
+ * cada sessão expande revelando o conteúdo de permissões, empurrando os
+ * itens seguintes para baixo em vez de usar painéis/trilhas separados. */
+.settings-permission-tree {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.6rem;
+  gap: 8px;
+}
+
+.settings-permission-tree-node {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-standard);
   background: var(--color-surface);
+  overflow: hidden;
 }
 
-.settings-profile-rail .c24-eyebrow,
-.settings-session-rail .c24-eyebrow {
-  padding: 0 0.3rem 0.2rem;
-}
-
-.settings-profile-chip {
+.settings-permission-tree-profile,
+.settings-permission-tree-session {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.55rem;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
   background: transparent;
   text-align: left;
   color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
-.settings-profile-chip:hover {
+.settings-permission-tree-profile:hover,
+.settings-permission-tree-session:hover {
   background: var(--color-surface-soft);
 }
 
-.settings-profile-chip.is-active {
-  border-color: var(--color-primary);
+.settings-permission-tree-profile.is-active,
+.settings-permission-tree-session.is-active {
   background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
-.settings-profile-chip-icon {
-  width: 30px;
-  height: 30px;
+.settings-permission-tree-profile-icon {
+  width: 28px;
+  height: 28px;
   flex: none;
   display: grid;
   place-items: center;
@@ -6035,53 +6055,19 @@
   color: var(--color-primary);
 }
 
-.settings-profile-chip-copy {
+.settings-permission-tree-label {
+  flex: 1;
   min-width: 0;
   display: grid;
 }
 
-.settings-profile-chip-copy strong,
-.settings-profile-chip-copy small {
-  display: block;
+.settings-permission-tree-label strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.settings-profile-chip-copy strong {
-  font-size: 0.86rem;
-  font-weight: 600;
-}
-
-.settings-profile-chip-copy small {
-  color: var(--color-text-soft);
-  font-size: 0.72rem;
-}
-
-.settings-session-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.55rem;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.84rem;
-  font-weight: 600;
-}
-
-.settings-session-chip:hover {
-  background: var(--color-surface-soft);
-}
-
-.settings-session-chip.is-active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.settings-session-chip span {
+.settings-permission-tree-session span {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -6089,13 +6075,47 @@
   white-space: nowrap;
 }
 
-.settings-session-chip small {
+.settings-permission-tree-session small {
   color: var(--color-text-soft);
   font-weight: 700;
 }
 
-.settings-session-chip.is-active small {
+.settings-permission-tree-session.is-active small {
   color: var(--color-primary);
+}
+
+.settings-permission-tree-chevron {
+  flex: none;
+  font-size: 20px;
+  color: var(--color-text-soft);
+  transition: transform var(--transition-xs);
+}
+
+.settings-permission-tree-profile.is-active .settings-permission-tree-chevron,
+.settings-permission-tree-session.is-active .settings-permission-tree-chevron {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+.settings-permission-tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-permission-tree-node--session {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+  overflow: hidden;
+}
+
+.settings-permission-tree-content {
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .settings-permission-group-head {
@@ -6283,10 +6303,8 @@
 
 .settings-catalog-workspace {
   display: grid;
-  grid-template-columns: minmax(230px, 290px) minmax(360px, 1fr) minmax(
-      300px,
-      400px
-    );
+  grid-template-columns: minmax(230px, 290px) minmax(360px, 1fr)
+    var(--catalog-list-col, minmax(300px, 400px));
   gap: 0.85rem;
   align-items: start;
 }
@@ -6331,6 +6349,38 @@
 .settings-logs-panel,
 .settings-permission-panel {
   overflow: visible;
+}
+
+/* Correções.txt item 4a: "Itens cadastrados" vira um sidebar recolhível —
+ * recolhido, é só uma faixa estreita com o total; expandido, volta a ser o
+ * card completo (largura controlada via grid-template-columns inline no
+ * .settings-catalog-workspace). */
+.settings-catalog-list-card.is-collapsed {
+  padding: 8px;
+  display: flex;
+}
+
+.settings-catalog-list-collapsed-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-soft);
+}
+
+.settings-catalog-list-collapsed-toggle:hover {
+  background: var(--color-surface-soft);
+  color: var(--color-primary);
+}
+
+.settings-catalog-list-collapsed-toggle span {
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .settings-toggle-line {
@@ -6555,10 +6605,8 @@
 
 @media (max-width: 1399.98px) {
   .settings-catalog-workspace {
-    grid-template-columns: minmax(220px, 270px) minmax(340px, 1fr) minmax(
-        280px,
-        360px
-      );
+    grid-template-columns: minmax(220px, 270px) minmax(340px, 1fr)
+      var(--catalog-list-col, minmax(280px, 360px));
   }
 
   .settings-audit-list {
@@ -6573,20 +6621,8 @@
 
   .settings-users-workspace,
   .settings-profile-workspace,
-  .settings-catalog-workspace,
-  .settings-profile-matrix {
+  .settings-catalog-workspace {
     grid-template-columns: 1fr;
-  }
-
-  .settings-profile-rail,
-  .settings-session-rail {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .settings-profile-chip,
-  .settings-session-chip {
-    flex: 1 1 220px;
   }
 
   .settings-detail-panel {
@@ -6633,7 +6669,8 @@
   .c24-stat-grid,
   .settings-area-list,
   .settings-audit-list,
-  .c24-form-grid {
+  .c24-form-grid,
+  .settings-form-section {
     grid-template-columns: 1fr;
   }
 
@@ -7147,6 +7184,19 @@
   background: #f8fbff;
 }
 
+/* Correções.txt item 7: linha inteira da lista de usuários é clicável e
+ * abre o modal de informações (substitui a coluna "Ações"). */
+#screen-settings-users .users-modern-table tbody tr.users-row-clickable,
+#screen-settings .users-modern-table tbody tr.users-row-clickable {
+  cursor: pointer;
+}
+
+#screen-settings-users .users-modern-table tbody tr.users-row-clickable:focus-visible,
+#screen-settings .users-modern-table tbody tr.users-row-clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 #screen-settings-users .users-modern-table .is-select,
 #screen-settings .users-modern-table .is-select {
   width: 38px;
@@ -7364,11 +7414,71 @@
   color: inherit;
 }
 
-#screen-settings-users .users-account-actions,
-#screen-settings .users-account-actions {
+/* Correções.txt item 7: formulário em fluxo de leitura "Z" — grade de 2
+ * colunas (topo-esquerda -> topo-direita -> diagonal -> baixo-direita), com
+ * campos que precisam de largura total (operações, senha, justificativa)
+ * ocupando as 2 colunas. */
+#screen-settings-users .users-drawer-form-grid,
+#screen-settings .users-drawer-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.78rem;
+}
+
+#screen-settings-users .users-drawer-field-wide,
+#screen-settings .users-drawer-field-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  #screen-settings-users .users-drawer-form-grid,
+  #screen-settings .users-drawer-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+#screen-settings-users .users-edit-toggle-row,
+#screen-settings .users-edit-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Botões de ação crítica alinhados lado a lado numa única barra, com
+ * "Excluir usuário" em destaque de perigo e os demais em estilo secundário. */
+#screen-settings-users .users-critical-actions,
+#screen-settings .users-critical-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid rgba(217, 226, 238, 0.95);
+}
+
+#screen-settings-users .users-critical-actions .btn-danger,
+#screen-settings .users-critical-actions .btn-danger {
+  margin-left: auto;
+}
+
+#screen-settings-users .users-delete-confirm,
+#screen-settings .users-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(231, 97, 97, 0.28);
+  border-radius: 8px;
+  background: #fff6f6;
+}
+
+#screen-settings-users .users-delete-confirm > span:first-child,
+#screen-settings .users-delete-confirm > span:first-child {
+  color: #8d2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 #screen-settings-users .users-toggle-row,
@@ -7416,52 +7526,6 @@
 #screen-settings-users .users-switch.is-on i,
 #screen-settings .users-switch.is-on i {
   transform: translateX(22px);
-}
-
-#screen-settings-users .users-delete-panel,
-#screen-settings .users-delete-panel {
-  display: grid;
-  gap: 0.6rem;
-  padding: 0.72rem;
-  border: 1px solid rgba(231, 97, 97, 0.28);
-  border-radius: 8px;
-  background: #fff6f6;
-}
-
-#screen-settings-users .users-delete-panel p,
-#screen-settings .users-delete-panel p {
-  margin: 0;
-  color: #8d2626;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-#screen-settings-users .users-delete-panel > div,
-#screen-settings .users-delete-panel > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-#screen-settings-users .users-delete-button,
-#screen-settings .users-delete-button {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #b73737;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-#screen-settings-users .users-delete-button .material-symbols-outlined,
-#screen-settings .users-delete-button .material-symbols-outlined {
-  font-size: 18px;
 }
 
 #screen-settings-users .users-drawer-footer,
@@ -12459,10 +12523,8 @@
 }
 
 #screen-settings .settings-catalog-workspace {
-  grid-template-columns: minmax(210px, 270px) minmax(360px, 1fr) minmax(
-      300px,
-      380px
-    );
+  grid-template-columns: minmax(210px, 270px) minmax(360px, 1fr)
+    var(--catalog-list-col, minmax(300px, 380px));
 }
 
 #screen-settings .settings-users-workspace {
@@ -12582,7 +12644,8 @@
   #screen-interviews .interview-filter-toolbar,
   #screen-settings .c24-stat-grid,
   #screen-settings .settings-audit-list,
-  #screen-settings .c24-form-grid {
+  #screen-settings .c24-form-grid,
+  #screen-settings .settings-form-section {
     grid-template-columns: 1fr;
   }
 
