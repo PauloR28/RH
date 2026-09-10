@@ -1,6 +1,5 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import {
-  Badge,
   EmptyState,
   ModalConfirmacaoAcao,
   PageIntro,
@@ -23,15 +22,19 @@ const FORM_INICIAL = {
   biblioteca_destino: '',
 };
 
-const STATUS_BADGE = {
-  conectado: { label: 'Conectado', tone: 'success' },
-  pendente: { label: 'Pendente de teste', tone: 'warning' },
-  erro: { label: 'Erro na conexão', tone: 'danger' },
+// Redesign 10/set/2026 (achado transversal nº3, ver design/wireframes/
+// README.md): mesmo padrão contorno+ponto (rh-status-pill) já usado no
+// resto do app, em vez do Badge compartilhado (classes literais do
+// Bootstrap — ver folha de sistema do lote 1).
+const STATUS_PILL = {
+  conectado: { label: 'Conectado', classe: 'is-finished' },
+  pendente: { label: 'Pendente de teste', classe: 'is-pending' },
+  erro: { label: 'Erro na conexão', classe: 'is-unsaved' },
 };
 
 function BadgeStatusAmbiente({ status }) {
-  const info = STATUS_BADGE[status] || STATUS_BADGE.pendente;
-  return html`<${Badge} label=${info.label} tone=${info.tone} />`;
+  const info = STATUS_PILL[status] || STATUS_PILL.pendente;
+  return html`<span class=${`rh-status-pill ${info.classe}`}>${info.label}</span>`;
 }
 
 export function TelaNovoAmbienteSharePoint({ controlador }) {

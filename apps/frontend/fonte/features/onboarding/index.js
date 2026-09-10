@@ -218,7 +218,7 @@ export function TelaOnboarding({ controlador }) {
                         </td>
                         <td>${(item.itens || []).length} item(ns)</td>
                         <td>
-                          <span class=${`rh-chip ${item.ativo ? 'is-indicacao' : ''}`}>
+                          <span class=${`rh-status-pill ${item.ativo ? 'is-finished' : ''}`}>
                             ${item.ativo ? 'Ativa' : 'Inativa'}
                           </span>
                         </td>

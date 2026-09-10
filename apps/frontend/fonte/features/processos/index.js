@@ -1,4 +1,5 @@
 import { IconeSvg } from '../../ui/icone.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 
 ﻿import {
   html,
@@ -130,6 +131,8 @@ import {
   lerProvaGerada,
   reabrirProvaGerada,
 } from '../../services/api/generated-exams.js?v=20260721-exam-analytics-2';
+import { criarAplicacaoDisc } from '../../services/api/disc.js';
+import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROCESSO,
@@ -227,6 +230,16 @@ function candidatoPodeGerarProva(candidato = {}, processoStatus = '') {
     'Agendado',
   );
   return STATUS_APTOS_GERAR_PROVA_PROCESSO.has(statusCandidato);
+}
+
+function candidatoPodeSerAprovado(candidato = {}, estadoAcoes = null) {
+  const estado = estadoAcoes || getCandidateActionState(candidato);
+  if (estado.canApprove) return true;
+  return Boolean(
+    candidatoTemProvaConcluida(candidato) &&
+    !estado.processClosed &&
+    !estado.isFinalized,
+  );
 }
 
 function candidatoPodeSerEliminadoNoProcesso(candidato = {}, estadoAcoes = null) {
@@ -944,6 +957,9 @@ function montarPayloadLiberacaoProva({ candidato = {}, processo = {}, configurac
       config.situacao_pratica_operacao ||
       configInterna.personalizacao?.situacao_pratica_operacao ||
       '',
+    // Correções.txt item 9: lido em liberarProvaDoProcesso() para provisionar
+    // automaticamente os testes complementares habilitados no processo.
+    testes_complementares: config.testes_complementares || {},
     configuracao: {
       ...configInterna,
       origem_liberacao: 'processo_seletivo',
@@ -1506,6 +1522,9 @@ function obterAderenciaVisualCandidato(candidato = {}) {
 }
 
 function obterStatusVisualCandidato(candidato = {}) {
+  if (candidatoTemProvaConcluida(candidato)) {
+    return obterTagStatusProvaCandidato(candidato).label;
+  }
   const statusEntrevista = canonicalizeCandidateStatus(candidato.status_entrevista || '');
   if (statusEntrevista === CANDIDATE_STATUS_PENDING_CONFIRMATION) {
     return 'Pendente confirmação';
@@ -1937,132 +1956,6 @@ function renderizarResumoProcessoAberto({ processo, candidatosProcesso, entrevis
   `;
 }
 
-function MenuAcoesProcesso({
-  acoes = [],
-  label = '',
-  icon = 'more_horiz',
-  ariaLabel = 'Mais ações',
-  className = '',
-  triggerClassName = '',
-}) {
-  const itensBase = acoes.filter(Boolean);
-  const itens = itensBase.filter(
-    (item, indice) =>
-      !item.separator ||
-      (
-        itensBase.slice(0, indice).some((anterior) => !anterior.separator) &&
-        itensBase.slice(indice + 1).some((proximo) => !proximo.separator)
-      ),
-  );
-  const [aberto, setAberto] = useState(false);
-  const [menuId] = useState(() => `process-actions-${Math.random().toString(36).slice(2)}`);
-  const [posicao, setPosicao] = useState(null);
-
-  useEffect(() => {
-    const fecharOutrosMenus = (event) => {
-      if (event.detail !== menuId) setAberto(false);
-    };
-    window.addEventListener('process-actions-open', fecharOutrosMenus);
-    return () => window.removeEventListener('process-actions-open', fecharOutrosMenus);
-  }, [menuId]);
-
-  useEffect(() => {
-    if (!aberto) return undefined;
-    const fechar = () => setAberto(false);
-    const fecharComEsc = (event) => {
-      if (event.key === 'Escape') fechar();
-    };
-    document.addEventListener('click', fechar);
-    document.addEventListener('keydown', fecharComEsc);
-    window.addEventListener('resize', fechar);
-    window.addEventListener('scroll', fechar, true);
-    return () => {
-      document.removeEventListener('click', fechar);
-      document.removeEventListener('keydown', fecharComEsc);
-      window.removeEventListener('resize', fechar);
-      window.removeEventListener('scroll', fechar, true);
-    };
-  }, [aberto]);
-
-  if (!itens.length) return null;
-
-  const alternarMenu = (event) => {
-    event.stopPropagation();
-    if (!aberto) {
-      window.dispatchEvent(new CustomEvent('process-actions-open', { detail: menuId }));
-      const rect = event.currentTarget.getBoundingClientRect();
-      const largura = label ? 232 : 196;
-      const altura = Math.min(286, 14 + itens.length * 38);
-      const topoAbaixo = rect.bottom + 6;
-      const topo =
-        topoAbaixo + altura > window.innerHeight - 8
-          ? Math.max(8, rect.top - altura - 6)
-          : topoAbaixo;
-      setPosicao({
-        top: `${topo}px`,
-        left: `${Math.max(8, Math.min(window.innerWidth - largura - 8, rect.right - largura))}px`,
-        width: `${largura}px`,
-      });
-    }
-    setAberto(!aberto);
-  };
-
-  const executarAcao = (event, acao) => {
-    event.stopPropagation();
-    if (acao.disabled) return;
-    setAberto(false);
-    acao.onClick?.();
-  };
-
-  return html`
-    <div class=${`process-row-action-menu ${className}`.trim()}>
-      <button
-        type="button"
-        class=${triggerClassName || 'process-row-action-trigger'}
-        title=${ariaLabel}
-        aria-label=${ariaLabel}
-        aria-haspopup="menu"
-        aria-expanded=${aberto}
-        onClick=${alternarMenu}
-      >
-        ${label ? html`<span>${label}</span>` : null}
-        <span class="material-symbols-outlined">${IconeSvg(icon)}</span>
-      </button>
-      ${aberto
-      ? html`
-            <div
-              class="process-row-actions-dropdown"
-              role="menu"
-              style=${posicao || {}}
-              onClick=${(event) => event.stopPropagation()}
-            >
-              ${itens.map(
-        (acao, indice) => acao.separator
-          ? html`<div key=${acao.key || `separator-${indice}`} class="process-row-actions-separator" role="separator"></div>`
-          : html`
-                  <button
-                    key=${acao.label}
-                    type="button"
-                    role="menuitem"
-                    class=${`process-row-actions-item ${acao.danger ? 'is-danger' : ''}`.trim()}
-                    disabled=${acao.disabled}
-                    title=${acao.title || acao.label}
-                    onClick=${(event) => executarAcao(event, acao)}
-                  >
-                    ${acao.icon
-              ? html`<span class="material-symbols-outlined">${IconeSvg(acao.icon)}</span>`
-              : null}
-                    <span>${acao.label}</span>
-                  </button>
-                `,
-      )}
-            </div>
-          `
-      : null}
-    </div>
-  `;
-}
-
 function montarRegistrosRecentesProcessosAbertos({
   processosAbertos = [],
   candidatos = [],
@@ -2179,23 +2072,7 @@ function renderizarAcoesDoCandidato({
     'candidatos.editar_admissional',
   );
   const botoes = [];
-
-  if (typeof onFicha === 'function') {
-    botoes.push(
-      html`
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-dark rh-action-btn btn-action btn-neutral"
-          title="Abrir detalhes completos do candidato"
-          disabled=${fichaCarregandoId === String(candidato.id_teste || '')}
-          onClick=${() => onFicha(candidato)}
-        >
-          <span class="material-symbols-outlined">${IconeSvg('badge')}</span>
-          ${fichaCarregandoId === String(candidato.id_teste || '') ? 'Abrindo...' : 'Detalhes'}
-        </button>
-      `,
-    );
-  }
+  const acoesSecundarias = [];
 
   if (
     !estadoAcoes.processClosed &&
@@ -2207,7 +2084,7 @@ function renderizarAcoesDoCandidato({
     botoes.push(html`
       <button
         type="button"
-        class="btn btn-sm btn-outline-primary rh-action-btn btn-action btn-primary-soft"
+        class="btn btn-sm rh-action-btn btn-action btn-action-ghost is-primary"
         title="Liberar prova para o candidato"
         onClick=${() => onGerarProva(candidato)}
       >
@@ -2227,7 +2104,7 @@ function renderizarAcoesDoCandidato({
       html`
         <button
           type="button"
-          class="btn btn-sm btn-outline-primary rh-action-btn btn-action btn-primary-soft"
+          class="btn btn-sm rh-action-btn btn-action btn-action-ghost is-primary"
           title="Agendar entrevista"
           onClick=${() => onAgendarEntrevista(candidato)}
         >
@@ -2239,11 +2116,14 @@ function renderizarAcoesDoCandidato({
   }
 
   if (estadoAcoes.canApprove && podeAprovar) {
+    // Rodada 2 de promt.txt: no máximo 1 botão sólido por linha — "Aprovar" é
+    // sempre a ação de maior valor de decisão quando disponível, por isso é a
+    // única promovida a preenchimento sólido.
     botoes.push(
       html`
         <button
           type="button"
-          class="btn btn-sm btn-outline-success rh-action-btn btn-action btn-success-soft"
+          class="btn btn-sm rh-action-btn btn-action btn-action-solid"
           title="Aprovar candidato"
           onClick=${() =>
           typeof onAprovar === 'function'
@@ -2258,11 +2138,14 @@ function renderizarAcoesDoCandidato({
   }
 
   if (estadoAcoes.canEliminate && podeEliminar) {
+    // "Eliminar" nunca é promovido a sólido, mesmo quando é a única ação
+    // disponível — ação destrutiva não deve ser o elemento mais chamativo
+    // da linha por padrão de segurança de UX.
     botoes.push(
       html`
         <button
           type="button"
-          class="btn btn-sm btn-outline-danger rh-action-btn btn-action btn-danger-soft"
+          class="btn btn-sm rh-action-btn btn-action btn-action-ghost is-danger"
           title="Eliminar candidato"
           onClick=${() => onAtualizarStatus(candidato, 'Eliminado')}
         >
@@ -2273,39 +2156,45 @@ function renderizarAcoesDoCandidato({
     );
   }
 
+  if (typeof onFicha === 'function') {
+    acoesSecundarias.push({
+      label: fichaCarregandoId === String(candidato.id_teste || '') ? 'Abrindo...' : 'Detalhes',
+      title: 'Abrir detalhes completos do candidato',
+      icon: 'badge',
+      disabled: fichaCarregandoId === String(candidato.id_teste || ''),
+      onClick: () => onFicha(candidato),
+    });
+  }
+
   if (
     candidatoPodeIrParaBancoTalentos(candidato, estadoAcoes, candidato.status_processo) &&
     podeEnviarBancoTalentos
   ) {
-    botoes.push(
-      html`
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-secondary rh-action-btn btn-action btn-neutral"
-          title="Enviar para Banco de Talentos"
-          onClick=${() => onAtualizarStatus(candidato, 'Banco de Talentos')}
-        >
-          <span class="material-symbols-outlined">${IconeSvg('inventory_2')}</span>
-          Banco
-        </button>
-      `,
-    );
+    acoesSecundarias.push({
+      label: 'Enviar para Banco de Talentos',
+      icon: 'inventory_2',
+      onClick: () => onAtualizarStatus(candidato, 'Banco de Talentos'),
+    });
   }
 
   if (estadoAcoes.canEdit && typeof onEditar === 'function' && podeEditar) {
-    botoes.push(
-      html`
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-secondary rh-action-btn btn-action btn-neutral"
-          title="Editar dados do candidato"
-          onClick=${() => onEditar(candidato)}
-        >
-          <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-          Editar
-        </button>
-      `,
-    );
+    acoesSecundarias.push({
+      label: 'Editar dados',
+      icon: 'edit',
+      onClick: () => onEditar(candidato),
+    });
+  }
+
+  if (acoesSecundarias.length) {
+    // Ações de baixa frequência (Detalhes/Banco/Editar) saem da linha e vão
+    // para o menu "..." já existente, em vez de competir visualmente com a
+    // decisão principal (Aprovar/Eliminar).
+    botoes.push(html`
+      <${MenuAcoesProcesso}
+        acoes=${acoesSecundarias}
+        ariaLabel="Mais ações do candidato"
+      />
+    `);
   }
 
   if (!botoes.length) {
@@ -3065,11 +2954,19 @@ function ModalFichaCandidato({
             </section>
 
             <footer class="candidate-profile-actions">
-              <button type="button" class="btn btn-outline-primary" onClick=${onEditar}><span class="material-symbols-outlined">${IconeSvg('edit')}</span>Editar candidato</button>
-              <button type="button" class="btn btn-outline-primary" onClick=${onPrint}><span class="material-symbols-outlined">${IconeSvg('download')}</span>Baixar ficha</button>
-              <button type="button" class="btn btn-outline-danger" onClick=${onEliminar}><span class="material-symbols-outlined">${IconeSvg('delete')}</span>Eliminar</button>
-              ${typeof onBanco === 'function' ? html`<button type="button" class="btn btn-outline-secondary" onClick=${onBanco}><span class="material-symbols-outlined">${IconeSvg('inventory_2')}</span>Banco</button>` : ''}
-              <button type="button" class="btn btn-primary" onClick=${onAprovar}><span class="material-symbols-outlined">${IconeSvg('check')}</span>Aprovar</button>
+              <${MenuAcoesProcesso}
+                label="Ações"
+                icon="expand_more"
+                ariaLabel="Ações da ficha do candidato"
+                triggerClassName="btn btn-primary process-actions-trigger"
+                acoes=${[
+                  { label: 'Aprovar', icon: 'check', onClick: onAprovar },
+                  { label: 'Editar candidato', icon: 'edit', onClick: onEditar },
+                  { label: 'Baixar ficha', icon: 'download', onClick: onPrint },
+                  typeof onBanco === 'function' ? { label: 'Enviar para banco de talentos', icon: 'inventory_2', onClick: onBanco } : null,
+                  { label: 'Eliminar', icon: 'delete', danger: true, onClick: onEliminar },
+                ].filter(Boolean)}
+              />
             </footer>
           </main>
         </div>
@@ -3764,6 +3661,7 @@ export function TelaProcessos({ controlador }) {
     notaCorte: '',
     status: '',
   });
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [edicao, setEdicao] = useState(null);
   const [processoParaEncerrar, setProcessoParaEncerrar] = useState('');
   const [aprovacaoSelecionada, setAprovacaoSelecionada] = useState(null);
@@ -3871,6 +3769,26 @@ export function TelaProcessos({ controlador }) {
     [candidatosComFluxo, processosAbertos],
   );
 
+  // Pedido do RH: lista breve (uma linha por processo) de processos abertos,
+  // destacando quais têm candidatos aguardando decisão ("pendentes") — mais
+  // compacta que os cards de "Processos Abertos em Destaque" abaixo.
+  const processosAbertosResumoBreve = useMemo(
+    () =>
+      processosAbertos
+        .map((processo) => {
+          const candidatosDoProcesso = obterCandidatosDoProcesso(candidatosComFluxo, processo);
+          const pendentes = candidatosDoProcesso.filter(
+            (candidato) =>
+              candidato.acoes_fluxo?.canApprove ||
+              candidato.acoes_fluxo?.canEliminate ||
+              candidato.acoes_fluxo?.canSendToTalentBank,
+          ).length;
+          return { processo, candidatos: candidatosDoProcesso.length, pendentes };
+        })
+        .sort((a, b) => b.pendentes - a.pendentes),
+    [candidatosComFluxo, processosAbertos],
+  );
+
   const entrevistasVinculadas = Array.isArray(entrevistas) ? entrevistas.length : null;
 
   const resumo = useMemo(
@@ -3939,7 +3857,7 @@ export function TelaProcessos({ controlador }) {
       Number(processo?.quantidade_vagas || 0) === 1
     ) {
       const confirmar = window.confirm(
-        'Este processo possui apenas 1 vaga. Ao aprovar o candidato, o processo pode ser encerrado automaticamente. Deseja continuar?',
+        'Este processo possui apenas 1 vaga. Ao aprovar o candidato, o processo entrará automaticamente em "Em treinamento". Deseja continuar?',
       );
       if (!confirmar) return;
     }
@@ -4073,6 +3991,12 @@ export function TelaProcessos({ controlador }) {
     [processoParaEncerrar, processos],
   );
 
+  const contagemFiltrosSecundariosAtivos = [
+    filtros.operacao,
+    filtros.notaCorte,
+    filtros.status,
+  ].filter(Boolean).length;
+
   return html`
     <${PainelRh}
       screenId="screen-processes"
@@ -4080,25 +4004,19 @@ export function TelaProcessos({ controlador }) {
       subtituloMarca="Processos seletivos"
       placeholderBusca="Gerenciamento de processos e candidatos"
       controlador=${controlador}
-      acaoPrimaria=${null}
+      acaoPrimaria=${controlador.possuiPermissao('vagas.criar')
+      ? {
+        label: 'Criar Processo',
+        icon: 'add',
+        onClick: () => controlador.irParaTelaProtegida('screen-process-create'),
+      }
+      : null}
     >
       <${ToastHost} />
       <${PageIntro}
         kicker="Receptivo"
         title="Processos Seletivos"
         description="Gerencie processos, etapas, candidatos, entrevistas e decisões finais."
-        actions=${controlador.possuiPermissao('vagas.criar')
-      ? html`
-              <button
-                type="button"
-                class="process-create-primary-btn"
-                onClick=${() => controlador.irParaTelaProtegida('screen-process-create')}
-              >
-                <span class="material-symbols-outlined">${IconeSvg('add')}</span>
-                Criar Processo
-              </button>
-            `
-      : null}
       />
 
       ${erro ? html`<div class="rh-inline-alert">${erro}</div>` : null}
@@ -4109,27 +4027,25 @@ export function TelaProcessos({ controlador }) {
       {
         label: 'Abertos',
         value: resumo.abertos,
-        icon: 'folder_open',
-        variant: 'is-approved',
+        variant: 'rh-metric-card--is-neutral',
       },
       {
         label: 'Encerrados',
         value: resumo.encerrados,
-        icon: 'inventory_2',
-        variant: 'is-eliminated',
+        variant: 'rh-metric-card--is-neutral',
         onClick: () => controlador.irParaTelaProtegida('screen-processes-closed'),
       },
       {
         label: 'Pendentes',
         value: resumo.candidatosComDecisaoPendente,
-        icon: 'rule',
-        variant: 'is-analysis',
+        helper: 'aguardando decisão do RH',
+        variant: 'rh-metric-card--is-critical',
       },
       resumo.entrevistasVinculadas !== null
         ? {
           label: 'Agendadas',
           value: resumo.entrevistasVinculadas,
-          icon: 'event_available',
+          variant: 'rh-metric-card--is-attention',
           onClick: () => controlador.irParaTelaProtegida('screen-interviews'),
         }
         : null,
@@ -4138,65 +4054,136 @@ export function TelaProcessos({ controlador }) {
       </${SectionCard}>
 
       <${SectionCard}
+        title="Processos Abertos e Pendentes"
+        description="Visão rápida dos processos ativos — os que têm candidatos aguardando decisão aparecem primeiro."
+        className="process-brief-list-card"
+      >
+        ${processosAbertosResumoBreve.length
+      ? html`
+              <ul class="process-brief-list">
+                ${processosAbertosResumoBreve.slice(0, 8).map(({ processo, candidatos, pendentes }) => html`
+                  <li key=${obterChaveProcesso(processo)}>
+                    <button type="button" class="process-brief-list-row" onClick=${() => abrirDetalhe(processo)}>
+                      <span class="process-brief-list-name">${processo.vaga || obterCodigoProcessoUsuario(processo)}</span>
+                      <span class="process-brief-list-meta">${candidatos} candidato${candidatos === 1 ? '' : 's'}</span>
+                      ${pendentes
+      ? html`<span class="process-brief-list-badge is-pending">${pendentes} pendente${pendentes === 1 ? '' : 's'}</span>`
+      : html`<span class="process-brief-list-badge is-ok">Em dia</span>`}
+                      <span class="material-symbols-outlined">${IconeSvg('chevron_right')}</span>
+                    </button>
+                  </li>
+                `)}
+              </ul>
+              ${processosAbertosResumoBreve.length > 8
+      ? html`<p class="process-brief-list-more">+${processosAbertosResumoBreve.length - 8} outros processos abertos.</p>`
+      : null}
+            `
+      : html`<p class="text-muted">Nenhum processo aberto no momento.</p>`}
+      </${SectionCard}>
+
+      <${SectionCard}
         className="process-filter-panel"
         tourId="process-filters"
       >
-        <div class="rh-filter-grid rh-filter-grid--wide">
-          <div class="rh-filter-field">
-            <label>Vaga</label>
-            <select
-              class="form-select"
+        <div class="rh-filter-bar">
+          <div class="rh-filter-bar-search">
+            <span class="material-symbols-outlined">${IconeSvg('search')}</span>
+            <input
+              type="search"
+              list="process-filtro-vaga-lista"
+              placeholder="Buscar por vaga..."
               value=${filtros.vaga}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, vaga: event.target.value })}
-            >
-              ${renderizarOpcoesFiltro(opcoesVagaProcessos, 'Filtrar vaga')}
-            </select>
+              onInput=${(event) => setFiltros({ ...filtros, vaga: event.target.value })}
+            />
           </div>
-          <div class="rh-filter-field">
-            <label>Operação / Cliente</label>
-            <select
-              class="form-select"
-              value=${filtros.operacao}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, operacao: event.target.value })}
-            >
-              ${renderizarOpcoesFiltro(opcoesOperacaoProcessos, 'Operação / Cliente')}
-            </select>
-          </div>
-          <div class="rh-filter-field">
-            <label>Nota de corte</label>
-            <select
-              class="form-select"
-              value=${filtros.notaCorte}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, notaCorte: event.target.value })}
-            >
-              <option value="">Nota de corte</option>
-              <option value="sim">Sim</option>
-              <option value="nao">Não</option>
-            </select>
-          </div>
-          <div class="rh-filter-field">
-            <label>Status</label>
-            <select
-              class="form-select"
-              value=${filtros.status}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, status: event.target.value })}
-            >
-              <option value="">Status</option>
-              <option value="aberto">Aberto</option>
-              <option value="encerrado">Encerrado</option>
-            </select>
-          </div>
-          <div class="process-dashboard-filter-action">
-            <button type="button" class="process-filter-apply-btn">
-              <span class="material-symbols-outlined">${IconeSvg('filter_alt')}</span>
-              Filtrar
-            </button>
-          </div>
+          <datalist id="process-filtro-vaga-lista">
+            ${opcoesVagaProcessos.map((opcao) => html`<option key=${opcao} value=${opcao} />`)}
+          </datalist>
+
+          <button
+            type="button"
+            class="rh-filter-toggle"
+            aria-expanded=${filtrosAbertos}
+            onClick=${() => setFiltrosAbertos(!filtrosAbertos)}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('tune')}</span>
+            Filtros
+            ${contagemFiltrosSecundariosAtivos > 0
+      ? html`<span class="rh-filter-count">${contagemFiltrosSecundariosAtivos}</span>`
+      : null}
+          </button>
+
+          ${filtros.operacao
+      ? html`
+              <span class="rh-filter-chip">
+                ${filtros.operacao}
+                <button type="button" aria-label="Remover filtro de operação" onClick=${() => setFiltros({ ...filtros, operacao: '' })}>×</button>
+              </span>
+            `
+      : null}
+          ${filtros.notaCorte
+      ? html`
+              <span class="rh-filter-chip">
+                Nota de corte: ${filtros.notaCorte === 'sim' ? 'Sim' : 'Não'}
+                <button type="button" aria-label="Remover filtro de nota de corte" onClick=${() => setFiltros({ ...filtros, notaCorte: '' })}>×</button>
+              </span>
+            `
+      : null}
+          ${filtros.status
+      ? html`
+              <span class="rh-filter-chip">
+                Status: ${filtros.status === 'aberto' ? 'Aberto' : 'Encerrado'}
+                <button type="button" aria-label="Remover filtro de status" onClick=${() => setFiltros({ ...filtros, status: '' })}>×</button>
+              </span>
+            `
+      : null}
         </div>
+
+        ${filtrosAbertos
+      ? html`
+            <div class="rh-filter-panel-expanded">
+              <div class="rh-filter-grid">
+                <div class="rh-filter-field">
+                  <label>Operação / Cliente</label>
+                  <select
+                    class="form-select"
+                    value=${filtros.operacao}
+                    onChange=${(event) =>
+        setFiltros({ ...filtros, operacao: event.target.value })}
+                  >
+                    ${renderizarOpcoesFiltro(opcoesOperacaoProcessos, 'Operação / Cliente')}
+                  </select>
+                </div>
+                <div class="rh-filter-field">
+                  <label>Nota de corte</label>
+                  <select
+                    class="form-select"
+                    value=${filtros.notaCorte}
+                    onChange=${(event) =>
+        setFiltros({ ...filtros, notaCorte: event.target.value })}
+                  >
+                    <option value="">Nota de corte</option>
+                    <option value="sim">Sim</option>
+                    <option value="nao">Não</option>
+                  </select>
+                </div>
+                <div class="rh-filter-field">
+                  <label>Status</label>
+                  <select
+                    class="form-select"
+                    value=${filtros.status}
+                    onChange=${(event) =>
+        setFiltros({ ...filtros, status: event.target.value })}
+                  >
+                    <option value="">Status</option>
+                    <option value="aberto">Aberto</option>
+                    <option value="encerrado">Encerrado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          `
+      : null}
       </${SectionCard}>
 
       <${SectionCard}
@@ -4342,7 +4329,7 @@ export function TelaProcessos({ controlador }) {
               : 'Não informado'}
                                 </td>
                                 <td>
-                                  <span class="rh-status-pill is-finished">
+                                  <span class=${`rh-status-pill ${processo.status === 'Encerrado' ? 'is-neutral' : 'is-finished'}`}>
                                     ${processo.status || '-'}
                                   </span>
                                 </td>
@@ -6270,13 +6257,13 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
 
       <section class="process-summary-cards" aria-label="Resumo do processo">
         ${[
-      ['groups', 'Candidatos no processo', candidatos.length, 'blue'],
-      ['calendar_month', 'Entrevistas hoje', entrevistasHoje, 'green'],
-      ['assignment_turned_in', 'Provas concluídas', provasConcluidas, 'purple'],
-      ['schedule', 'Decisões pendentes', decisoesPendentes, 'orange'],
-    ].map(([icon, label, value, tone]) => html`
-          <article class="process-summary-card" key=${label}>
-            <span class=${`process-summary-icon is-${tone}`}><i class="material-symbols-outlined">${IconeSvg(icon)}</i></span>
+      ['groups', 'Candidatos no processo', candidatos.length, ''],
+      ['calendar_month', 'Entrevistas hoje', entrevistasHoje, ''],
+      ['assignment_turned_in', 'Provas concluídas', provasConcluidas, 'is-positive'],
+      ['schedule', 'Decisões pendentes', decisoesPendentes, decisoesPendentes ? 'is-attention' : ''],
+    ].map(([icon, label, value, peso]) => html`
+          <article class=${`process-summary-card ${peso}`.trim()} key=${label}>
+            <span class="process-summary-icon"><i class="material-symbols-outlined">${IconeSvg(icon)}</i></span>
             <div><span>${label}</span><strong>${value}</strong></div>
           </article>
         `)}
@@ -6398,7 +6385,7 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
       const status = obterStatusVisualCandidato(candidato);
       return html`<tr key=${id} class=${selecionados.includes(id) ? 'is-selected' : ''}>
                       <td class="is-check"><input type="checkbox" checked=${selecionados.includes(id)} onChange=${(event) => actions.selecionarCandidato(candidato, event.target.checked)} /></td>
-                      <td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div><strong>${candidato.nome_candidato || '-'}</strong><small>ID: ${candidato.id_registro || candidato.id_teste || '-'}</small></div></div></td>
+                      <td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div>${candidatoTemProvaSalva(candidato) ? html`<button type="button" class="process-link-button process-candidate-name-link" onClick=${() => abrirDetalheProva(candidato)}>${candidato.nome_candidato || '-'}</button>` : html`<strong>${candidato.nome_candidato || '-'}</strong>`}<small>ID: ${candidato.id_registro || candidato.id_teste || '-'}</small></div></div></td>
                       <td><div class="process-score-cell"><div><strong>${nota.valor}</strong><small>${nota.tipo}</small></div><span class=${`process-fit-tag ${aderencia.className}`}>${aderencia.label}</span></div></td>
                       <td><span class=${`process-status-tag ${obterStatusClasseVisual(status)}`}>${status}</span></td>
                       <td><span class="process-next-action"><i class="material-symbols-outlined">${IconeSvg('arrow_circle_right')}</i>${obterProximaAcaoVisual(candidato)}</span></td>
@@ -6418,7 +6405,7 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
           ` : null}
 
           ${aba === 'reprovados' ? html`
-            <div class="process-section-heading"><div><h3>Candidatos reprovados</h3><p>Somente candidatos que participaram do processo e foram eliminados ou desclassificados.</p></div></div>
+            <div class="process-section-heading"><div><h3>Candidatos reprovados</h3><p>Somente candidatos que participaram do processo e foram eliminados ou desclassificados. Currículos que não chegaram a virar candidatos (CV não qualificado) ficam em <button type="button" class="process-link-button" onClick=${() => actions.trocarAba('candidatos')}>Candidatos no processo → CVs analisados não qualificados</button>, de onde ainda podem ser adicionados ao processo.</p></div></div>
             <div class="process-table-shell"><table class="process-table"><thead><tr><th>Candidato</th><th>Origem</th><th>Resultado</th><th>Motivo / análise</th><th>Status</th><th>Ação</th></tr></thead><tbody>
               ${reprovados.map((candidato) => { const desistente = canonicalizeCandidateStatus(candidato.status_fluxo || candidato.status_candidato) === CANDIDATE_STATUS_WITHDREW; return html`<tr key=${`reprovado-${candidato.id_registro || candidato.id_teste}`}><td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div><strong>${candidato.nome_candidato || '-'}</strong><small>ID: ${candidato.id_registro || candidato.id_teste || '-'}</small></div></div></td><td>${formatarOrigemCandidato(candidato)}</td><td>${obterNotaVisualCandidato(candidato).valor}</td><td>${candidato.motivo_eliminacao || (desistente ? 'Desistência do candidato' : candidato.observacao_rh) || 'Decisão registrada pelo RH'}</td><td><span class="process-status-tag is-danger">Eliminado</span></td><td><${MenuAcoesProcesso} acoes=${actions.acoesDaLinha(candidato)} /></td></tr>`; })}
               ${!reprovados.length ? html`<tr><td colspan="6" class="process-empty-row">Nenhum candidato reprovado neste processo.</td></tr>` : null}
@@ -6441,7 +6428,7 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
       const id = String(candidato.id_registro || candidato.id_teste || '');
       const status = obterTagStatusProvaCandidato(candidato);
       const nota = converterNumeroDossie(obterNotaProvaCandidato(candidato));
-      return html`<tr key=${id}><td class="is-check"><input type="checkbox" checked=${selecionados.includes(id)} onChange=${(event) => actions.selecionarCandidato(candidato, event.target.checked)} /></td><td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div><strong>${candidato.nome_candidato || '-'}</strong><small>ID: ${candidato.id_registro || candidato.id_teste || '-'}</small></div></div></td><td><strong>${formatarDataCurta(candidato.data_prova_gerada || candidato.data_prova_realizada || candidato.data_prova)}</strong><small class="process-cell-subtitle">${formatarHoraCurta(candidato.data_prova_gerada || candidato.data_prova_realizada || candidato.data_prova)}</small></td><td><span class=${`process-status-tag ${obterStatusClasseVisual(status.label)}`}>${status.label}</span></td><td><div class="process-result-cell"><strong>${nota === null ? '–' : `${formatarNumeroDossie(nota)} / 10,0`}</strong>${nota !== null ? html`<small>${Math.round(nota * 10)}%</small>` : null}</div></td><td class="is-menu"><${MenuAcoesProcesso} acoes=${actions.acoesDaLinha(candidato)} /></td></tr>`;
+      return html`<tr key=${id}><td class="is-check"><input type="checkbox" checked=${selecionados.includes(id)} onChange=${(event) => actions.selecionarCandidato(candidato, event.target.checked)} /></td><td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div>${candidatoTemProvaSalva(candidato) ? html`<button type="button" class="process-link-button process-candidate-name-link" onClick=${() => abrirDetalheProva(candidato)}>${candidato.nome_candidato || '-'}</button>` : html`<strong>${candidato.nome_candidato || '-'}</strong>`}<small>ID: ${candidato.id_registro || candidato.id_teste || '-'}</small></div></div></td><td><strong>${formatarDataCurta(candidato.data_prova_gerada || candidato.data_prova_realizada || candidato.data_prova)}</strong><small class="process-cell-subtitle">${formatarHoraCurta(candidato.data_prova_gerada || candidato.data_prova_realizada || candidato.data_prova)}</small></td><td><span class=${`process-status-tag ${obterStatusClasseVisual(status.label)}`}>${status.label}</span></td><td><div class="process-result-cell"><strong>${nota === null ? '–' : `${formatarNumeroDossie(nota)} / 10,0`}</strong>${nota !== null ? html`<small>${Math.round(nota * 10)}%</small>` : null}</div></td><td class="is-menu"><${MenuAcoesProcesso} acoes=${actions.acoesDaLinha(candidato)} /></td></tr>`;
     }) : html`<tr><td colspan="6" class="process-empty-row">Nenhuma prova encontrada.</td></tr>`}
             </tbody></table><${PaginacaoCompacta} paginaAtual=${provasPagina.paginaAtual} totalPaginas=${provasPagina.totalPaginas} totalItens=${provasPagina.totalItens} tamanhoPagina=${10} itensNaPagina=${provasPagina.itens.length} onChange=${actions.setPaginaProvas} /></div>
           ` : null}
@@ -6515,7 +6502,7 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
         </div>
 
         ${selecionados.length ? html`
-          <aside class="quick-actions-panel"><h3>Ações rápidas</h3>${actions.acoesRapidas.map((acao) => html`<button key=${acao.label} type="button" class=${acao.danger ? 'is-danger' : ''} disabled=${acao.disabled} title=${acao.title || acao.label} onClick=${acao.onClick}><span class="material-symbols-outlined">${IconeSvg(acao.icon)}</span>${acao.label}</button>`)}</aside>
+          <aside class="quick-actions-panel"><h3>Ações rápidas</h3>${actions.acoesRapidas.map((acao) => html`<button key=${acao.label} type="button" class=${acao.danger ? 'is-danger' : acao.variant ? `is-${acao.variant}` : ''} disabled=${acao.disabled} title=${acao.title || acao.label} onClick=${acao.onClick}><span class="material-symbols-outlined">${IconeSvg(acao.icon)}</span>${acao.label}</button>`)}</aside>
         ` : null}
       </div>
 
@@ -6893,7 +6880,10 @@ export function TelaDetalhesProcesso({ controlador }) {
           idProcesso,
           paginaNaoQualificados,
           TAMANHO_PAGINA_CVS_NAO_QUALIFICADOS,
-          { classificacao: 'Não qualificado', mostrarOcultos: false },
+          // Correções.txt item 1: um CV dispensado não pode sumir de vez — o
+          // candidato precisa continuar aparecendo aqui (com aviso de que foi
+          // dispensado) para que o RH ainda consiga atrelá-lo ao processo.
+          { classificacao: 'Não qualificado', mostrarOcultos: true },
         ),
         lerEntrevistas({ idProcesso }),
         lerSlotsEntrevista({ idProcesso }),
@@ -8095,6 +8085,25 @@ export function TelaDetalhesProcesso({ controlador }) {
 
   const liberarProvaDoProcesso = async (payload) => {
     const resposta = await criarProvaGerada(payload);
+    // Correções.txt item 9: testes complementares habilitados na criação do
+    // processo são provisionados automaticamente junto com a prova — melhor
+    // esforço (não bloqueia a liberação da prova se algum deles falhar).
+    const testes = payload?.testes_complementares || {};
+    const idTeste = payload?.id_teste || payload?.candidato_id;
+    if (idTeste && testes.disc) {
+      try {
+        await criarAplicacaoDisc({ id_teste: idTeste });
+      } catch (error) {
+        console.warn('Não foi possível provisionar o teste DISC automaticamente.', error);
+      }
+    }
+    if (idTeste && testes.raciocinio_logico) {
+      try {
+        await criarAplicacaoRaciocinio({ id_teste: idTeste });
+      } catch (error) {
+        console.warn('Não foi possível provisionar o teste de raciocínio lógico automaticamente.', error);
+      }
+    }
     await carregar(paginaPreAnalises, filtrosPreAnalises, paginaCvsNaoQualificados);
     return resposta;
   };
@@ -8565,7 +8574,7 @@ export function TelaDetalhesProcesso({ controlador }) {
       return;
     }
 
-    if (!estadoAcoes.canApprove) {
+    if (!candidatoPodeSerAprovado(candidato, estadoAcoes)) {
       setErro('A aprovação não está disponível para o status atual deste candidato.');
       return;
     }
@@ -9571,22 +9580,92 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
     }
   };
 
+  // Correções.txt item 2: 3 botões em destaque para candidato com entrevista
+  // agendada. "Confirmada" libera a prova automaticamente (reaproveitando o
+  // mesmo fluxo de geração já usado em "Liberar prova" — a seleção de questões
+  // é lógica de frontend, então a liberação automática abre o modal já pronto
+  // em vez de disparar algo silencioso no backend); "Cancelada" abre a vaga do
+  // slot (automático via _refresh_slot_status no backend) e elimina o
+  // candidato para Reprovados; "Reagendar" reaproveita o modal de edição de
+  // entrevista já existente.
+  const confirmarEntrevistaCandidato = async (candidato) => {
+    if (!candidato?.id_entrevista) return;
+    try {
+      setErro('');
+      await atualizarEntrevista(candidato.id_entrevista, { status_entrevista: CANDIDATE_STATUS_CONFIRMED });
+      await carregar(paginaPreAnalises, filtrosPreAnalises, paginaCvsNaoQualificados);
+      showToast('Entrevista confirmada.', 'success');
+      if (
+        candidatoPodeGerarProva(candidato, processo?.status || '') &&
+        !candidato?.tem_prova_gerada &&
+        !candidatoTemProvaSalva(candidato)
+      ) {
+        abrirGeracaoProva({ ...candidato, status_entrevista: CANDIDATE_STATUS_CONFIRMED });
+        showToast('Prova pronta para ser liberada — confirme os dados abaixo.', 'info');
+      }
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível confirmar a entrevista.');
+    }
+  };
+
+  const cancelarEntrevistaCandidato = (candidato) => {
+    if (!candidato?.id_entrevista) return;
+    if (
+      !window.confirm(
+        'Cancelar esta entrevista também elimina o candidato do processo (ele será movido para Reprovados) e libera o horário do slot para outro candidato. Deseja continuar?',
+      )
+    ) {
+      return;
+    }
+    (async () => {
+      try {
+        setErro('');
+        await atualizarEntrevista(candidato.id_entrevista, { status_entrevista: 'Cancelado' });
+        await carregar(paginaPreAnalises, filtrosPreAnalises, paginaCvsNaoQualificados);
+        showToast('Entrevista cancelada: candidato movido para Reprovados e horário liberado.', 'info');
+      } catch (error) {
+        setErro(error?.message || 'Não foi possível cancelar a entrevista.');
+      }
+    })();
+  };
+
+  const reagendarEntrevistaCandidato = (candidato) => {
+    if (!candidato?.id_entrevista) return;
+    abrirEdicaoEntrevista({
+      id_entrevista: candidato.id_entrevista,
+      id_registro: candidato.id_registro,
+      id_slot: candidato.id_slot || '',
+      status_entrevista: candidato.status_entrevista || CANDIDATE_STATUS_PENDING_CONFIRMATION,
+      status_processo: candidato.status_processo || processo?.status || '',
+      observacoes_rh: candidato.observacoes_rh || '',
+      mensagem_personalizada: candidato.mensagem_personalizada || '',
+    });
+  };
+
   const montarAcoesDaLinhaDetalhe = (candidato) => {
     const estadoAcoes = candidato?.acoes_fluxo || getCandidateActionState(candidato, processo?.status || '');
     const statusEntrevista = canonicalizeCandidateStatus(candidato?.status_entrevista || '');
     const confirmacaoEntrevista = obterEstadoConfirmacaoEntrevista(candidato);
+    const provaConcluida = candidatoTemProvaConcluida(candidato);
+    const entrevistaAgendadaAtiva = !provaConcluida && [
+      CANDIDATE_STATUS_SCHEDULED,
+      CANDIDATE_STATUS_CONFIRMED,
+      CANDIDATE_STATUS_RESCHEDULED,
+      CANDIDATE_STATUS_PENDING_CONFIRMATION,
+    ].includes(statusEntrevista);
+    const podeAprovar = candidatoPodeSerAprovado(candidato, estadoAcoes);
     const acoes = [
       candidato?.id_teste ? {
         label: 'Ver ficha do candidato',
         icon: 'badge',
         onClick: () => abrirFichaCandidato(candidato),
       } : null,
-      estadoAcoes.isActive && !estadoAcoes.processClosed && controlador?.possuiPermissao?.('entrevistas.criar') ? {
+      !provaConcluida && estadoAcoes.isActive && !estadoAcoes.processClosed && controlador?.possuiPermissao?.('entrevistas.criar') ? {
         label: 'Agendar entrevista',
         icon: 'event',
         onClick: () => abrirAgendamento(candidato),
       } : null,
-      statusEntrevista === CANDIDATE_STATUS_PENDING_CONFIRMATION ? {
+      !provaConcluida && statusEntrevista === CANDIDATE_STATUS_PENDING_CONFIRMATION ? {
         label: 'Confirmar entrevista',
         icon: confirmacaoEntrevista.disponivel ? 'mark_email_read' : 'lock_clock',
         disabled: !confirmacaoEntrevista.disponivel,
@@ -9595,7 +9674,25 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
           : `Disponível em ${formatarDataHora(confirmacaoEntrevista.dataLiberacao?.toISOString())}`,
         onClick: () => abrirConfirmacaoEntrevista(candidato),
       } : null,
-      estadoAcoes.isActive && candidatoPodeGerarProva(candidato, processo?.status || '') &&
+      entrevistaAgendadaAtiva && !estadoAcoes.processClosed && statusEntrevista !== CANDIDATE_STATUS_CONFIRMED ? {
+        label: 'Entrevista confirmada',
+        icon: 'check_circle',
+        variant: 'success',
+        onClick: () => confirmarEntrevistaCandidato(candidato),
+      } : null,
+      entrevistaAgendadaAtiva && !estadoAcoes.processClosed ? {
+        label: 'Entrevista cancelada',
+        icon: 'event_busy',
+        danger: true,
+        onClick: () => cancelarEntrevistaCandidato(candidato),
+      } : null,
+      entrevistaAgendadaAtiva && !estadoAcoes.processClosed ? {
+        label: 'Reagendar',
+        icon: 'edit_calendar',
+        variant: 'primary',
+        onClick: () => reagendarEntrevistaCandidato(candidato),
+      } : null,
+      !provaConcluida && estadoAcoes.isActive && candidatoPodeGerarProva(candidato, processo?.status || '') &&
         !candidato?.tem_prova_gerada && !candidatoTemProvaSalva(candidato) ? {
         label: 'Liberar prova',
         icon: 'assignment_add',
@@ -9611,7 +9708,7 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
         icon: 'folder_open',
         onClick: () => abrirDossieDoCandidato(candidato),
       },
-      estadoAcoes.canApprove ? {
+      podeAprovar ? {
         label: 'Enviar para contratação',
         icon: 'task_alt',
         onClick: () => abrirAprovacao(candidato),
@@ -11079,6 +11176,9 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                               ${item.classificacao || 'Não qualificado'}
                             </span>
                             <em>${item.score_final ?? '-'} pts</em>
+                            ${Number(item.oculto_na_lista || 0) === 1
+              ? html`<em class="unqualified-cv-dismissed-tag">Dispensado</em>`
+              : null}
                           </span>
                           <span class="unqualified-cv-reason" title=${motivo}>
                             <strong>Motivo</strong>
@@ -11109,9 +11209,10 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                           <button
                             type="button"
                             class="btn btn-sm btn-outline-danger process-icon-action"
-                            title="Dispensar"
+                            title=${Number(item.oculto_na_lista || 0) === 1 ? 'Já dispensado' : 'Dispensar'}
                             aria-label="Dispensar"
                             disabled=${processoEncerrado ||
+            Number(item.oculto_na_lista || 0) === 1 ||
             usandoPreAnaliseId === String(item.id_pre_analise || '')}
                             onClick=${() => excluirPreAnalise(item.id_pre_analise)}
                           >

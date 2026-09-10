@@ -1,5 +1,5 @@
 #screen-process-details .process-details-page {
-  --process-blue: #0758f0;
+  --process-blue: #086fca;
   --process-ink: #101828;
   --process-muted: #53627c;
   --process-border: #dfe5ef;
@@ -99,6 +99,7 @@
   gap: 0.9rem;
   min-height: 88px;
   border: 1px solid var(--process-border);
+  border-left: 3px solid var(--color-border-strong);
   border-radius: 8px;
   padding: 0.95rem 1.1rem;
   background: var(--color-surface);
@@ -107,13 +108,31 @@
 
 #screen-process-details .process-summary-card > div { display: grid; gap: 0.25rem; }
 #screen-process-details .process-summary-card span { color: #465777; }
-#screen-process-details .process-summary-card strong { color: var(--process-ink); font-size: 1.35rem; line-height: 1; }
-#screen-process-details .process-summary-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: var(--radius-full); }
-#screen-process-details .process-summary-icon i { font-size: 1.35rem; }
-/*#screen-process-details .process-summary-icon.is-blue { color: #0758f0; background: #eaf1ff; }
-#screen-process-details .process-summary-icon.is-green { color: #138a31; background: #e7f8ea; }
-#screen-process-details .process-summary-icon.is-purple { color: #7b35ea; background: #f1eaff; }
-#screen-process-details .process-summary-icon.is-orange { color: #e06b00; background: #fff0e3; }*/
+#screen-process-details .process-summary-card strong { color: var(--process-ink); font-size: 1.35rem; line-height: 1; font-variant-numeric: tabular-nums; }
+#screen-process-details .process-summary-icon { display: grid; width: 36px; height: 36px; place-items: center; color: var(--color-text-muted); }
+#screen-process-details .process-summary-icon i { font-size: 1.25rem; }
+
+/* Redesign 10/set/2026 (lote 2, ver design/wireframes/README.md): as 4
+ * cores fixas (blue/green/purple/orange) já estavam desativadas em
+ * comentário — nenhuma delas era funcional, só decorativa. Substituídas
+ * pelo mesmo peso semântico (atenção/positivo) usado no resto do app. */
+#screen-process-details .process-summary-card.is-attention {
+  border-left-color: var(--color-warning);
+}
+
+#screen-process-details .process-summary-card.is-attention strong,
+#screen-process-details .process-summary-card.is-attention .process-summary-icon {
+  color: var(--color-warning);
+}
+
+#screen-process-details .process-summary-card.is-positive {
+  border-left-color: var(--color-success);
+}
+
+#screen-process-details .process-summary-card.is-positive strong,
+#screen-process-details .process-summary-card.is-positive .process-summary-icon {
+  color: var(--color-success);
+}
 
 #screen-process-details .process-tabs {
   display: flex;
@@ -200,6 +219,23 @@
 #screen-process-details .process-candidate-cell { display: flex; align-items: center; gap: 0.65rem; min-width: 170px; }
 #screen-process-details .process-candidate-cell > div { display: grid; min-width: 0; }
 #screen-process-details .process-candidate-cell strong { color: #111b2d; }
+#screen-process-details .process-candidate-cell .process-candidate-name-link {
+  display: inline;
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: var(--process-blue);
+  font-weight: 700;
+  font-size: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#screen-process-details .process-candidate-cell .process-candidate-name-link:hover,
+#screen-process-details .process-candidate-cell .process-candidate-name-link:focus-visible {
+  text-decoration: underline;
+}
 #screen-process-details .process-candidate-cell small,
 #screen-process-details .process-cell-subtitle { display: block; color: #64728a; font-size: 0.72rem; }
 #screen-process-details .process-avatar { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: var(--radius-full); background: #e8f0ff; color: var(--process-blue); font-weight: 700; }
@@ -212,7 +248,7 @@
 #screen-process-details .process-fit-tag.is-low { color: #b42318; background: #feeceb; }
 
 #screen-process-details .process-status-tag { display: inline-flex; align-items: center; max-width: 190px; border: 1px solid transparent; border-radius: 7px; padding: 0.3rem 0.62rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
-#screen-process-details .process-status-tag.is-info { color: #0758f0; border-color: #cbdcff; background: #edf3ff; }
+#screen-process-details .process-status-tag.is-info { color: #086fca; border-color: #cbdcff; background: #edf3ff; }
 #screen-process-details .process-status-tag.is-success { color: #137a2d; border-color: #cce9d2; background: #ecf8ee; }
 #screen-process-details .process-status-tag.is-warning { color: #c55d00; border-color: #ffd8ae; background: #fff5e9; }
 #screen-process-details .process-status-tag.is-danger { color: #c1263d; border-color: #facbd3; background: #fff0f3; }
@@ -230,6 +266,11 @@
 #screen-process-details .quick-actions-panel button:disabled { cursor: not-allowed; opacity: 0.52; background: #f6f8fb; color: #7b879b; }
 #screen-process-details .quick-actions-panel button:disabled:hover { border-color: var(--process-border); background: #f6f8fb; color: #7b879b; }
 #screen-process-details .quick-actions-panel button.is-danger { color: #b42318; }
+#screen-process-details .quick-actions-panel button.is-success { border-color: #a6d9b8; color: #1a7a42; background: #f2fbf5; }
+#screen-process-details .quick-actions-panel button.is-success:hover { border-color: #7dc496; background: #e7f8ec; }
+#screen-process-details .quick-actions-panel button.is-success .material-symbols-outlined { color: #1a7a42; }
+#screen-process-details .quick-actions-panel button.is-primary { border-color: #a9c5ff; color: var(--process-blue); background: #f1f6ff; }
+#screen-process-details .quick-actions-panel button.is-primary:hover { border-color: #7fa6f5; background: #e8f0ff; }
 #screen-process-details .quick-actions-panel .material-symbols-outlined { color: var(--process-blue); font-size: 1.25rem; }
 
 #screen-process-details .process-section-heading { justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
@@ -415,7 +456,7 @@
 #screen-process-details .candidate-rh-review-grid label.is-selected { border-color: #91b4fc; background: #f1f6ff; color: var(--process-blue); }
 #screen-process-details .candidate-rh-notes-card footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 #screen-process-details .candidate-rh-notes-card footer small { color: #8792a5; }
-#screen-process-details .candidate-profile-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; padding: 0.8rem; position: sticky; bottom: 0; z-index: 40; background: var(--color-surface); box-shadow: var(--shadow-sm); }
+#screen-process-details .candidate-profile-actions { display: flex; justify-content: flex-end; gap: 0.65rem; padding: 0.8rem; position: sticky; bottom: 0; z-index: 40; background: var(--color-surface); box-shadow: var(--shadow-sm); }
 #screen-process-details .candidate-profile-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.42rem; min-height: 44px; }
 #screen-process-details .candidate-profile-actions .material-symbols-outlined { font-size: 1.1rem; }
 
@@ -431,7 +472,6 @@
   #screen-process-details .process-table-shell { overflow-x: auto; }
   #screen-process-details .process-table { min-width: 780px; }
   #screen-process-details .candidate-profile-layout { grid-template-columns: 250px minmax(0, 1fr); }
-  #screen-process-details .candidate-profile-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
@@ -462,7 +502,6 @@
   #screen-process-details .candidate-profile-sidebar { grid-template-columns: 1fr; }
   #screen-process-details .candidate-info-row { grid-template-columns: 1fr; gap: 0.4rem; }
   #screen-process-details .candidate-proof-score { align-items: flex-start; flex-direction: column; }
-  #screen-process-details .candidate-rh-review-grid,
-  #screen-process-details .candidate-profile-actions { grid-template-columns: 1fr; }
+  #screen-process-details .candidate-rh-review-grid { grid-template-columns: 1fr; }
   #screen-process-details .candidate-rh-notes-card footer { align-items: stretch; flex-direction: column; }
 }

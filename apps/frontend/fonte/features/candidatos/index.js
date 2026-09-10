@@ -55,7 +55,9 @@ import {
 import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js';
 import {
   formatarDataHora,
+  obterClasseFaixaNota,
   obterClasseStatusEntrevista,
+  obterClasseStatusProcesso,
 } from '../../shared/helpers-visuais.js';
 import { obterReferenciaProcesso } from '../../shared/process-reference.js';
 import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js';
@@ -186,6 +188,19 @@ function possuiReferenciaProcessoReal(candidato) {
     'processo_unico',
   ].includes(normalizarTexto(referencia));
 }
+
+// Peso visual hierárquico do KPI "Status atual" (rodada 2 de promt.txt):
+// eliminado/não-qualificado chama atenção (encerramento), análise/agendado/
+// banco de talentos pedem acompanhamento, aprovado é uma conclusão positiva.
+const PESO_METRICA_POR_STATUS_CANDIDATO = {
+  'is-eliminated': 'rh-metric-card--is-critical',
+  'is-not-qualified': 'rh-metric-card--is-critical',
+  'is-analysis': 'rh-metric-card--is-attention',
+  'is-scheduled': 'rh-metric-card--is-attention',
+  'is-talent': 'rh-metric-card--is-attention',
+  'is-approved': 'rh-metric-card--is-positive',
+  'is-highlight': 'rh-metric-card--is-neutral',
+};
 
 function candidatoPodeAtrelar(candidato) {
   const estadoAcoes = obterEstadoAcoesCentral(candidato);
@@ -1500,47 +1515,17 @@ export function TelaDetalhesCandidato({ controlador }) {
       subtituloMarca="Detalhes do candidato"
       placeholderBusca="Buscar candidatos"
       controlador=${controlador}
+      acaoPrimaria=${{
+        label: salvando ? 'Salvando...' : 'Salvar alterações',
+        icon: 'save',
+        onClick: salvar,
+        disabled: salvando,
+      }}
     >
       <${ToastHost} />
       <${PageIntro}
         kicker="Central de candidatos"
         title=${candidato?.nome_candidato || 'Detalhes do Candidato'}
-        actions=${html`
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            onClick=${() =>
-        window.history.length > 1
-          ? window.history.back()
-          : controlador.irParaTelaProtegida('screen-candidates')}
-          >
-            <span class="material-symbols-outlined">${IconeSvg('arrow_back')}</span>
-            Voltar
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            onClick=${() => controlador.irParaTelaProtegida('screen-candidates')}
-          >
-            <span class="material-symbols-outlined">${IconeSvg('groups')}</span>
-            Lista geral de candidatos
-          </button>
-          <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => abrirFichaImpressao(candidato, dossie, showToast)}>
-            Baixar ficha
-          </button>
-          ${candidatoPodeAtrelar(candidato) && controlador?.possuiPermissao?.('candidatos.criar')
-        ? html`
-                <button
-                  type="button"
-                  class="btn btn-outline-primary btn-sm"
-                  disabled=${salvandoVinculo}
-                  onClick=${abrirModalVinculo}
-                >
-                  Adicionar a processo seletivo
-                </button>
-              `
-        : null}
-        `}
       />
 
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
@@ -1566,10 +1551,16 @@ export function TelaDetalhesCandidato({ controlador }) {
       <${TabPanel} tabKey="geral" activeKey=${abaDetalheAtiva}>
       <${MetricGrid}
         items=${[
-      { label: 'Status atual', value: candidato.status_visivel || candidato.status_candidato || '-' },
-      { label: 'Score do CV', value: candidato.nota_exibicao || candidato.cv_score_final || '-' },
-      { label: 'Score Conecta', value: candidato.score_conecta || candidato.score_final || candidato.nota_exibicao || '-' },
-      { label: 'Processo atual', value: candidato.processo_nome || candidato.id_processo_ref || candidato.id_processo || '-' },
+      {
+        label: 'Status atual',
+        value: candidato.status_visivel || candidato.status_candidato || '-',
+        variant: PESO_METRICA_POR_STATUS_CANDIDATO[
+          obterClasseStatusProcesso(candidato.status_visivel || candidato.status_candidato)
+        ] || 'rh-metric-card--is-neutral',
+      },
+      { label: 'Score do CV', value: candidato.nota_exibicao || candidato.cv_score_final || '-', variant: 'rh-metric-card--is-neutral' },
+      { label: 'Score Conecta', value: candidato.score_conecta || candidato.score_final || candidato.nota_exibicao || '-', variant: 'rh-metric-card--is-neutral' },
+      { label: 'Processo atual', value: candidato.processo_nome || candidato.id_processo_ref || candidato.id_processo || '-', variant: 'rh-metric-card--is-neutral' },
     ]}
       />
       ${montarTagsOperacionaisCandidato(candidato).length
@@ -1825,10 +1816,42 @@ export function TelaDetalhesCandidato({ controlador }) {
         <span class="rh-form-footer-hint">
           ${salvando ? 'Salvando alterações...' : 'Revise os dados antes de salvar.'}
         </span>
-        <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${salvar}>
-          <span class="material-symbols-outlined">${IconeSvg('save')}</span>
-          ${salvando ? 'Salvando...' : 'Salvar alterações'}
-        </button>
+        <div class="rh-form-footer-secondary-actions">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onClick=${() =>
+      window.history.length > 1
+        ? window.history.back()
+        : controlador.irParaTelaProtegida('screen-candidates')}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('arrow_back')}</span>
+            Voltar
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            onClick=${() => controlador.irParaTelaProtegida('screen-candidates')}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('groups')}</span>
+            Lista geral de candidatos
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirFichaImpressao(candidato, dossie, showToast)}>
+            Baixar ficha
+          </button>
+          ${candidatoPodeAtrelar(candidato) && controlador?.possuiPermissao?.('candidatos.criar')
+      ? html`
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  disabled=${salvandoVinculo}
+                  onClick=${abrirModalVinculo}
+                >
+                  Adicionar a processo seletivo
+                </button>
+              `
+      : null}
+        </div>
       </footer>
 
       <${ModalPadrao}
@@ -1908,6 +1931,7 @@ export function TelaCandidatos({ controlador }) {
     status: '',
     origem: '',
   });
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [paginaCandidatos, setPaginaCandidatos] = useState(1);
   const [detalhe, setDetalhe] = useState(null);
   const [candidatoEditando, setCandidatoEditando] = useState(null);
@@ -2772,96 +2796,134 @@ export function TelaCandidatos({ controlador }) {
       <${SectionCard} title="Resumo geral">
         <${MetricGrid}
           items=${[
-      { label: 'Total filtrado', value: resumo.total },
-      { label: 'Aprovados', value: resumo.aprovados },
-      { label: 'Eliminados', value: resumo.eliminados },
-      { label: 'Em análise', value: resumo.analise },
-      { label: 'Em processo', value: resumo.processo },
-      { label: 'Banco de Talentos', value: resumo.banco },
+      { label: 'Total filtrado', value: resumo.total, variant: 'rh-metric-card--is-neutral' },
+      { label: 'Aprovados', value: resumo.aprovados, variant: 'rh-metric-card--is-positive' },
+      { label: 'Eliminados', value: resumo.eliminados, variant: 'rh-metric-card--is-neutral' },
+      { label: 'Em análise', value: resumo.analise, variant: 'rh-metric-card--is-attention' },
+      { label: 'Em processo', value: resumo.processo, variant: 'rh-metric-card--is-neutral' },
+      { label: 'Banco de Talentos', value: resumo.banco, variant: 'rh-metric-card--is-neutral' },
     ]}
         />
       </${SectionCard}>
 
-      <${SectionCard} title="Filtros">
-        <div class="rh-filter-grid rh-filter-grid--wide">
-          <div class="rh-filter-field">
-            <label>Busca geral</label>
+      <${SectionCard} className="process-filter-panel">
+        <div class="rh-filter-bar">
+          <div class="rh-filter-bar-search">
+            <span class="material-symbols-outlined">${IconeSvg('search')}</span>
             <input
-              class="form-control"
-              placeholder="Nome, email, vaga, processo, status..."
+              type="search"
+              placeholder="Nome, e-mail, vaga, processo, status..."
               value=${filtros.busca}
-              onInput=${(event) =>
-      setFiltros({ ...filtros, busca: event.target.value })}
+              onInput=${(event) => setFiltros({ ...filtros, busca: event.target.value })}
             />
           </div>
 
-          <div class="rh-filter-field">
-            <label>Status</label>
-            <select
-              class="form-select"
-              value=${filtros.status}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, status: event.target.value })}
-            >
-              <option value="">Todos</option>
-              <option value="aprovado">Aprovados</option>
-              <option value="eliminado">Eliminados</option>
-              <option value="analise">Em análise</option>
-              <option value="processo">Em processo</option>
-              <option value="banco">Banco de Talentos</option>
-            </select>
-          </div>
+          <button
+            type="button"
+            class="rh-filter-toggle"
+            aria-expanded=${filtrosAbertos}
+            onClick=${() => setFiltrosAbertos(!filtrosAbertos)}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('tune')}</span>
+            Filtros
+            ${(filtros.status ? 1 : 0) + (filtros.origem ? 1 : 0) > 0
+      ? html`<span class="rh-filter-count">${(filtros.status ? 1 : 0) + (filtros.origem ? 1 : 0)}</span>`
+      : null}
+          </button>
 
-          <div class="rh-filter-field">
-            <label>Origem</label>
-            <select
-              class="form-select"
-              value=${filtros.origem}
-              onChange=${(event) =>
-      setFiltros({ ...filtros, origem: event.target.value })}
-            >
-              <option value="">Todas</option>
-              <option value="processo">Processo seletivo</option>
-              <option value="banco">Banco de Talentos</option>
-              <option value="historico">Histórico de prova</option>
-            </select>
-          </div>
+          ${filtros.status
+      ? html`
+              <span class="rh-filter-chip">
+                Status: ${{
+        aprovado: 'Aprovados', eliminado: 'Eliminados', analise: 'Em análise',
+        processo: 'Em processo', banco: 'Banco de Talentos',
+      }[filtros.status] || filtros.status}
+                <button type="button" aria-label="Remover filtro de status" onClick=${() => setFiltros({ ...filtros, status: '' })}>×</button>
+              </span>
+            `
+      : null}
+          ${filtros.origem
+      ? html`
+              <span class="rh-filter-chip">
+                Origem: ${{
+        processo: 'Processo seletivo', banco: 'Banco de Talentos', historico: 'Histórico de prova',
+      }[filtros.origem] || filtros.origem}
+                <button type="button" aria-label="Remover filtro de origem" onClick=${() => setFiltros({ ...filtros, origem: '' })}>×</button>
+              </span>
+            `
+      : null}
         </div>
+
+        ${filtrosAbertos
+      ? html`
+            <div class="rh-filter-panel-expanded">
+              <div class="rh-filter-grid">
+                <div class="rh-filter-field">
+                  <label>Status</label>
+                  <select
+                    class="form-select"
+                    value=${filtros.status}
+                    onChange=${(event) => setFiltros({ ...filtros, status: event.target.value })}
+                  >
+                    <option value="">Todos</option>
+                    <option value="aprovado">Aprovados</option>
+                    <option value="eliminado">Eliminados</option>
+                    <option value="analise">Em análise</option>
+                    <option value="processo">Em processo</option>
+                    <option value="banco">Banco de Talentos</option>
+                  </select>
+                </div>
+
+                <div class="rh-filter-field">
+                  <label>Origem</label>
+                  <select
+                    class="form-select"
+                    value=${filtros.origem}
+                    onChange=${(event) => setFiltros({ ...filtros, origem: event.target.value })}
+                  >
+                    <option value="">Todas</option>
+                    <option value="processo">Processo seletivo</option>
+                    <option value="banco">Banco de Talentos</option>
+                    <option value="historico">Histórico de prova</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          `
+      : null}
       </${SectionCard}>
 
       <${SectionCard} title="Lista geral de candidatos">
         ${html`
               <div class="table-responsive">
-                <table class="table align-middle rh-modern-history-table">
+                <table class="table align-middle rh-modern-history-table candidate-list-table">
                   <thead>
                     <tr>
                       <th>Candidato</th>
-                      <th>Contato</th>
-                      <th>Cidade</th>
-                      <th>Bairro</th>
-                      <th>Vaga</th>
-                      <th>Processo</th>
-                      <th>Nota</th>
+                      <th>Localização</th>
+                      <th>Vaga / Processo</th>
+                      <th class="text-end">Nota</th>
                       <th>Status</th>
                       <th>Origem</th>
-                      <th>Data</th>
-                      <th>CV</th>
+                      <th class="text-end">Data</th>
                       <th class="text-end">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${carregando
-                      ? html`<${SkeletonTableRows} colunas=${12} linhas=${6} />`
+                      ? html`<${SkeletonTableRows} colunas=${8} linhas=${6} />`
                       : candidatosFiltrados.length
                       ? candidatosPaginados.itens.map(
                           (candidato) => {
                             const tagsOperacionais = montarTagsOperacionaisCandidato(candidato);
+                            const localizacao = [candidato.cidade, candidato.bairro].filter(Boolean).join(' · ');
                             return html`
                             <tr key=${candidato.chave} class="c24-fade-in">
                               <td>
                                 <strong>${candidato.nome_candidato || '-'}</strong>
+                                <div class="text-muted small">${candidato.id_teste || '-'}</div>
                                 <div class="text-muted small">
-                                  ${candidato.id_teste || '-'}
+                                  ${mascararEmailContato(candidato.email)} · ${mascararTelefoneContato(candidato.telefone || candidato.whatsapp)}
                                 </div>
                                 ${tagsOperacionais.length
                   ? html`
@@ -2880,26 +2942,22 @@ export function TelaCandidatos({ controlador }) {
                                     `
                   : null}
                               </td>
+                              <td>${localizacao || '-'}</td>
                               <td>
-                                <div>${mascararEmailContato(candidato.email)}</div>
+                                <div>${candidato.vaga || '-'}</div>
                                 <div class="text-muted small">
-                                  ${mascararTelefoneContato(candidato.telefone || candidato.whatsapp)}
+                                  ${candidato.processo_nome || candidato.id_processo_ref || candidato.id_processo || '-'}
                                 </div>
                               </td>
-                              <td>${candidato.cidade || '-'}</td>
-                              <td>${candidato.bairro || '-'}</td>
-                              <td>${candidato.vaga || '-'}</td>
-                              <td>
-                                <div>${candidato.processo_nome || '-'}</div>
-                                <div class="text-muted small">
-                                  ${candidato.id_processo_ref || candidato.id_processo || '-'}
-                                </div>
-                              </td>
-                              <td>
-                                <div>${candidato.nota_exibicao || '-'}</div>
-                                <div class="text-muted small">
-                                  ${candidato.classificacao_exibicao || '-'}
-                                </div>
+                              <td class="text-end">
+                                ${candidato.nota_exibicao
+                  ? html`
+                                      <span class=${`candidate-score-badge num ${obterClasseFaixaNota(candidato.nota_exibicao)}`}>
+                                        ${candidato.nota_exibicao}
+                                      </span>
+                                      <div class="text-muted small">${candidato.classificacao_exibicao || ''}</div>
+                                    `
+                  : '-'}
                               </td>
                               <td>
                                 <span
@@ -2911,23 +2969,25 @@ export function TelaCandidatos({ controlador }) {
                                 </span>
                               </td>
                               <td>${renderizarOrigemComIndicacao(candidato)}</td>
-                              <td>${formatarDataHora(candidato.data_exibicao)}</td>
-                              <td>
-                                ${candidato.cv_disponivel &&
+                              <td class="text-end num">${formatarDataHora(candidato.data_exibicao)}</td>
+                              <td class="text-end">
+                                <div class="candidate-row-actions">
+                                  ${candidato.cv_disponivel &&
                   controlador.possuiPermissao('candidatos.baixar_curriculo')
                   ? html`
                                       <button
                                         type="button"
-                                        class="btn btn-sm btn-outline-secondary"
+                                        class="btn btn-sm btn-outline-secondary candidate-cv-btn"
+                                        title="Ver currículo"
                                         onClick=${() => abrirCurriculo(candidato)}
                                       >
-                                        Ver CV
+                                        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('description')}</span>
                                       </button>
                                     `
-                  : 'Sem CV'}
-                              </td>
-                              <td class="text-end">
-                                ${renderizarAcoesCandidatoCentral({
+                  : html`<span class="candidate-cv-missing" title="Sem currículo anexado">
+                                      <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('description')}</span>
+                                    </span>`}
+                                  ${renderizarAcoesCandidatoCentral({
                     candidato,
                     salvando,
                     onDetalhes: abrirTelaDetalhesCandidato,
@@ -2943,6 +3003,7 @@ export function TelaCandidatos({ controlador }) {
                       abrirAtrelar(item, 'Central de Candidatos'),
                     controlador,
                   })}
+                                </div>
                               </td>
                             </tr>
                           `;
@@ -2950,7 +3011,7 @@ export function TelaCandidatos({ controlador }) {
           )
           : html`
                           <${TabelaVazia}
-                            colunas=${12}
+                            colunas=${8}
                             texto="Nenhum candidato encontrado."
                             icone="person_off"
                           />

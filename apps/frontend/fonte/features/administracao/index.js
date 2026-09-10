@@ -1,6 +1,5 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import {
-  Badge,
   EmptyState,
   ModalConfirmacaoAcao,
   ModalPadrao,
@@ -19,10 +18,12 @@ import {
   salvarParametroSistema,
 } from '../../services/api/sistema.js';
 
+// Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
+// ponto (rh-status-pill) usado em administracao/novo-ambiente.js.
 const STATUS_BADGE_AMBIENTE = {
-  conectado: { label: 'Conectado', tone: 'success' },
-  pendente: { label: 'Pendente de teste', tone: 'warning' },
-  erro: { label: 'Erro na conexão', tone: 'danger' },
+  conectado: { label: 'Conectado', classe: 'is-finished' },
+  pendente: { label: 'Pendente de teste', classe: 'is-pending' },
+  erro: { label: 'Erro na conexão', classe: 'is-unsaved' },
 };
 
 const MODULOS_DISPONIVEIS = [
@@ -405,7 +406,7 @@ export function TelaAdministracao({ controlador }) {
                                           <td>${ambiente.nome}</td>
                                           <td>${ambiente.operacao_nome || html`<em>Sem operação</em>`}</td>
                                           <td><code>${ambiente.hostname}${ambiente.site_path}</code></td>
-                                          <td><${Badge} label=${infoStatus.label} tone=${infoStatus.tone} /></td>
+                                          <td><span class=${`rh-status-pill ${infoStatus.classe}`}>${infoStatus.label}</span></td>
                                         </tr>
                                       `;
                   })}

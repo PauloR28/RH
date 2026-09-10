@@ -1,6 +1,19 @@
 import { ROTULOS_ETAPAS } from '../rotulos-etapas.js';
 import { canonicalizeCandidateStatus } from './process-flow.js';
 
+// Aceita nota em escala 0-10 ou 0-100 (a origem do dado varia por fluxo de
+// prova) — normaliza para 0-10 só para decidir a cor da faixa, o valor
+// exibido continua o original, sem conversão. Compartilhado entre
+// Candidatos e Banco de Talentos (redesign 10/set/2026).
+export function obterClasseFaixaNota(valor) {
+  const numero = Number(String(valor ?? '').replace(',', '.'));
+  if (!Number.isFinite(numero)) return 'is-neutral';
+  const notaEmDez = numero > 10 ? numero / 10 : numero;
+  if (notaEmDez >= 7) return 'is-high';
+  if (notaEmDez >= 5) return 'is-mid';
+  return 'is-low';
+}
+
 export function formatarTempoRestante(segundosTotais) {
   const total = Math.max(0, Number(segundosTotais || 0));
   const minutos = String(Math.floor(total / 60)).padStart(2, '0');

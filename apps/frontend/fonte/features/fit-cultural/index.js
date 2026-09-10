@@ -164,7 +164,7 @@ export function TelaFitCulturalAdmin({ controlador }) {
                         </td>
                         <td>${(valor.frases || []).length} frase(s)</td>
                         <td>
-                          <span class=${`rh-chip ${valor.ativo ? 'is-indicacao' : ''}`}>
+                          <span class=${`rh-status-pill ${valor.ativo ? 'is-finished' : ''}`}>
                             ${valor.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
@@ -387,7 +387,7 @@ export function TelaFitCulturalTestePublico() {
 // ----------------------------------------------------------------------
 // Painel de resultado (embutido na ficha do candidato)
 // ----------------------------------------------------------------------
-export function PainelResultadoFitCultural({ candidatoProcessoId }) {
+export function PainelResultadoFitCultural({ candidatoProcessoId, aoCarregar }) {
   const [resultado, setResultado] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -395,12 +395,19 @@ export function PainelResultadoFitCultural({ candidatoProcessoId }) {
   useEffect(() => {
     if (!candidatoProcessoId) {
       setCarregando(false);
+      aoCarregar?.({ possuiResultado: false });
       return;
     }
     setCarregando(true);
     lerResultadoFitCultural(candidatoProcessoId)
-      .then(setResultado)
-      .catch((error) => setErro(error?.message || 'Não foi possível carregar o resultado de fit cultural.'))
+      .then((dados) => {
+        setResultado(dados);
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+      })
+      .catch((error) => {
+        setErro(error?.message || 'Não foi possível carregar o resultado de fit cultural.');
+        aoCarregar?.({ possuiResultado: false });
+      })
       .finally(() => setCarregando(false));
   }, [candidatoProcessoId]);
 

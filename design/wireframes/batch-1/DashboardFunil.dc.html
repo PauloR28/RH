@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg:#f4f7fb; --surface:#ffffff; --surface-soft:#f6f8fc; --surface-strong:#e9eef7;
+      --border:#dbe4f0; --border-strong:#c7d3e3; --border-subtle:rgba(219,228,240,.7);
+      --text:#101d33; --text-soft:#4d5f79; --text-muted:#7a8aa3;
+      --primary:#086fca; --primary-strong:#014a8a; --primary-soft:#eaf3fb;
+      --success:#13795b; --success-soft:#e7f7f1;
+      --warning:#b97810; --warning-soft:#fff4de;
+      --r-sm:6px; --r-md:8px; --r-lg:14px; --r-pill:999px;
+      --e1:0 1px 2px rgba(15,33,57,.04); --e2:0 4px 16px rgba(14,33,61,.06);
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+    .num{font-variant-numeric:tabular-nums;}
+    svg.ic{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+    .topnav{height:64px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:20px;padding:0 24px;}
+    .brand{font-weight:700;font-size:1.05rem;display:flex;gap:6px;}
+    .brand .inf{background:linear-gradient(135deg,#f0ac4f,#c9720a);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .brand .necta{background:linear-gradient(90deg,#086fca,#014a8a);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .crumb{font-size:.8rem;color:var(--text-muted);font-weight:600;}
+
+    .page{max-width:1392px;margin:0 auto;padding:28px 24px 64px;}
+    .intro{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;}
+    .kicker{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 4px;}
+    .title{font-size:1.75rem;font-weight:700;margin:0;letter-spacing:-.01em;}
+    .btn{border:none;border-radius:var(--r-sm);font-family:inherit;font-size:.82rem;font-weight:600;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:var(--surface);color:var(--primary);border:1px solid var(--border-strong);}
+
+    .filterbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;display:flex;align-items:center;gap:12px;box-shadow:var(--e1);font-size:.82rem;color:var(--text-soft);}
+    .ffield{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 12px;background:var(--surface-soft);}
+    .ffield label{color:var(--text-muted);font-weight:600;font-size:.72rem;text-transform:uppercase;}
+
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+    .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--e1);}
+    .kpi .lbl{font-size:.72rem;color:var(--text-muted);font-weight:600;margin-bottom:8px;}
+    .kpi .val{font-size:1.6rem;font-weight:700;letter-spacing:-.01em;}
+    .kpi .delta{font-size:.76rem;color:var(--success);font-weight:600;margin-top:4px;}
+    .kpi.hero{background:linear-gradient(180deg,var(--surface),var(--primary-soft));border-color:var(--primary);}
+    .kpi.hero .val{color:var(--primary-strong);font-size:1.9rem;}
+
+    .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:20px 24px;box-shadow:var(--e1);}
+    .card h3{margin:0 0 4px;font-size:1rem;font-weight:700;}
+    .card .sub{font-size:.78rem;color:var(--text-muted);margin:0 0 20px;}
+
+    /* ---- stepped funnel: trapezoid WIDTH is proportional to the real count
+       (label/value sit in a full-width row above so the shape can shrink
+       freely without ever clipping text) ---- */
+    .funnel{display:flex;flex-direction:column;gap:0;}
+    .fstep{width:100%;}
+    .fhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 2px;margin-bottom:6px;}
+    .fhead .flabel{font-size:.82rem;font-weight:600;color:var(--text-soft);}
+    .fhead .fcount{font-size:.92rem;font-weight:700;}
+    .ftrap{height:34px;margin:0 auto;min-width:56px;}
+    .fdelta{font-size:.72rem;color:var(--text-muted);padding:8px 0;display:flex;align-items:center;gap:4px;}
+    .fdelta.drop{color:var(--warning);}
+
+    .originrow{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .originrow .oname{width:132px;font-size:.82rem;font-weight:600;color:var(--text-soft);flex:none;}
+    .otrack{flex:1;height:20px;background:var(--surface-strong);border-radius:var(--r-sm);overflow:hidden;}
+    .ofill{height:100%;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:.72rem;font-weight:700;}
+  </style>
+</helmet>
+
+<div style="position:relative;min-height:1180px;background:var(--bg);">
+  <div class="topnav">
+    <div class="brand"><span class="inf">∞</span><span class="necta">necta</span></div>
+    <div class="crumb">Gestão / Dashboard de Funil</div>
+  </div>
+
+  <div class="page">
+    <div class="intro">
+      <div><p class="kicker">Gestão · Relatórios</p><h2 class="title">Dashboard de Funil</h2></div>
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v12M6 12l6 6 6-6M4 20h16"/></svg>Exportar</button>
+    </div>
+
+    <div class="filterbar">
+      <div class="ffield"><label>De</label>01/08/2026</div>
+      <div class="ffield"><label>Até</label>09/09/2026</div>
+      <div class="ffield"><label>Processo</label>Todos</div>
+      <div style="flex:1;"></div>
+      <span style="font-size:.76rem;color:var(--text-muted);">Atualizado há 14 min</span>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi hero"><div class="lbl">Candidatos no funil</div><div class="val num">1.284</div><div class="delta">↑ 8% vs. período anterior</div></div>
+      <div class="kpi"><div class="lbl">Conversão global</div><div class="val num">12,4%</div></div>
+      <div class="kpi"><div class="lbl">Tempo médio até contratação</div><div class="val num">18,2 dias</div></div>
+      <div class="kpi"><div class="lbl">Origem líder</div><div class="val" style="font-size:1.2rem;">Indicação interna</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Funil de conversão</h3>
+        <p class="sub">Inscritos até aprovados, com queda percentual entre etapas</p>
+        <div class="funnel">
+          <div class="fstep">
+            <div class="fhead"><span class="flabel">Inscritos</span><span class="fcount num">1.284</span></div>
+            <div class="ftrap" style="width:100%;background:var(--primary-strong);border-radius:6px;"></div>
+          </div>
+          <div class="fdelta">↓ 41% de queda</div>
+          <div class="fstep">
+            <div class="fhead"><span class="flabel">Triagem</span><span class="fcount num">758</span></div>
+            <div class="ftrap" style="width:59%;background:#0d64ad;border-radius:6px;"></div>
+          </div>
+          <div class="fdelta drop">↓ 58% de queda</div>
+          <div class="fstep">
+            <div class="fhead"><span class="flabel">Prova</span><span class="fcount num">318</span></div>
+            <div class="ftrap" style="width:25%;background:#1a7fc4;border-radius:6px;"></div>
+          </div>
+          <div class="fdelta">↓ 34% de queda</div>
+          <div class="fstep">
+            <div class="fhead"><span class="flabel">Entrevista</span><span class="fcount num">210</span></div>
+            <div class="ftrap" style="width:16%;background:#4b9cd6;border-radius:6px;"></div>
+          </div>
+          <div class="fdelta">↓ 24% de queda</div>
+          <div class="fstep">
+            <div class="fhead"><span class="flabel">Aprovados</span><span class="fcount num">159</span></div>
+            <div class="ftrap" style="width:12%;background:var(--success);border-radius:6px;"></div>
+          </div>
+        </div>
+        <p style="font-size:.7rem;color:var(--text-muted);margin:14px 0 0;">Largura do trapézio proporcional ao volume real de cada etapa (1.284 → 12% em Aprovados).</p>
+      </div>
+
+      <div class="card">
+        <h3>Origem dos candidatos</h3>
+        <p class="sub">Ranking por volume — cor sequencial, não decorativa</p>
+        <div class="originrow"><div class="oname">Indicação interna</div><div class="otrack"><div class="ofill num" style="width:92%;background:var(--primary-strong);">412</div></div></div>
+        <div class="originrow"><div class="oname">Processo seletivo</div><div class="otrack"><div class="ofill num" style="width:78%;background:#0d64ad;">348</div></div></div>
+        <div class="originrow"><div class="oname">Banco de talentos</div><div class="otrack"><div class="ofill num" style="width:54%;background:#4b9cd6;">241</div></div></div>
+        <div class="originrow"><div class="oname">Currículo espontâneo</div><div class="otrack"><div class="ofill num" style="width:38%;background:#8dc0e6;">169</div></div></div>
+        <div class="originrow"><div class="oname">Outras origens</div><div class="otrack"><div class="ofill num" style="width:20%;background:#c6dff2;color:var(--text-soft);">89</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

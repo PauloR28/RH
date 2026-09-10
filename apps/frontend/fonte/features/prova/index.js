@@ -1147,7 +1147,7 @@ export function TelaConfiguracao({ controlador }) {
                 Desejo personalizar esta prova por operação/cliente
               </span>
             </label>
-            <span class="badge bg-secondary">${personalizacao.status}</span>
+            <span class="rh-status-pill">${personalizacao.status}</span>
           </div>
           <div class="form-text mt-2">
             Opcional. Desmarcado, o sistema gera uma prova padrão com base em vaga, área, nível, etapas e regras existentes.

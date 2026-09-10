@@ -605,7 +605,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                       <td>${MODALIDADES_TREINAMENTO.find((m) => m.value === item.modalidade)?.label || '-'}</td>
                       <td>${(item.itens || []).length} módulo(s)</td>
                       <td>
-                        <span class=${`rh-chip ${item.ativo ? 'is-indicacao' : ''}`}>
+                        <span class=${`rh-status-pill ${item.ativo ? 'is-finished' : ''}`}>
                           ${item.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>

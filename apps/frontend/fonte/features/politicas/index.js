@@ -132,7 +132,7 @@ export function TelaPoliticas({ controlador }) {
                         <td><strong>${item.titulo}</strong></td>
                         <td>v${item.versao}</td>
                         <td>
-                          <span class=${`rh-chip ${item.ativo ? 'is-indicacao' : ''}`}>
+                          <span class=${`rh-status-pill ${item.ativo ? 'is-finished' : ''}`}>
                             ${item.ativo ? 'Ativa' : 'Inativa'}
                           </span>
                         </td>

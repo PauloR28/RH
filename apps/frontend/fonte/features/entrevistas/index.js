@@ -605,11 +605,11 @@ export function TelaEntrevistas({ controlador }) {
             ${[
               { icon: 'groups', label: 'Entrevistas', value: resumo.total || 0, variant: 'is-blue' },
               { icon: 'event_available', label: 'Slots livres', value: resumo.disponiveis || 0, variant: 'is-blue' },
-              { icon: 'hourglass_top', label: 'Pendentes', value: resumo.pendentes || 0, variant: 'is-purple' },
+              { icon: 'hourglass_top', label: 'Pendentes', value: resumo.pendentes || 0, variant: 'is-purple is-attention' },
               { icon: 'schedule', label: 'Agendado', value: resumo.agendadas || 0, variant: 'is-blue' },
               { icon: 'sync', label: 'Reagendado', value: resumo.reagendadas || 0, variant: 'is-purple' },
-              { icon: 'person_check', label: 'Compareceu', value: resumo.compareceram || 0, variant: 'is-green' },
-              { icon: 'person_cancel', label: 'Faltou', value: resumo.faltas || 0, variant: 'is-red' },
+              { icon: 'person_check', label: 'Compareceu', value: resumo.compareceram || 0, variant: 'is-green is-positive' },
+              { icon: 'person_cancel', label: 'Faltou', value: resumo.faltas || 0, variant: 'is-red is-attention' },
             ].map(
               (item) => html`
                 <article class=${`interview-stat-card ${item.variant}`} key=${item.label}>

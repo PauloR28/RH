@@ -1,12 +1,50 @@
-/* Dashboard de funil e métricas (time-to-hire) — roadmap respostas.txt */
+/* Dashboard de funil e métricas (time-to-hire).
+ * Redesenhado na rodada de 10/set/2026 (ver design/wireframes/README.md,
+ * seção 3): funil real proporcional ao volume (era barra de progresso
+ * monocromática), desfecho Aprovado/Reprovado tratado como resultado
+ * paralelo (não mais "mais uma etapa" do funil — os dois são estados
+ * terminais mutuamente exclusivos, não uma etapa sequencial), origem com
+ * cor sequencial funcional (era cor única sem significado). */
 
-.funnel-dashboard-filter-actions {
+.funnel-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
+  box-shadow: var(--elevation-1);
+  margin-bottom: var(--space-5);
 }
 
-.funnel-dashboard-filter-actions .btn {
+.funnel-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.funnel-filter-field label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.funnel-filter-field input {
+  height: 36px;
+}
+
+.funnel-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.funnel-filter-actions .btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -16,7 +54,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .funnel-dashboard-hero {
@@ -26,12 +64,15 @@
   padding: var(--space-6);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-standard);
+  box-shadow: var(--elevation-1);
 }
 
 .funnel-dashboard-hero--principal {
   border-color: var(--color-primary);
+  border-radius: var(--radius-prominent);
+  box-shadow: var(--elevation-3);
+  border-top: 3px solid var(--color-primary);
 }
 
 .funnel-dashboard-hero--principal .funnel-dashboard-hero-label .material-symbols-outlined {
@@ -65,6 +106,7 @@
   line-height: 1;
   font-weight: 700;
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .funnel-dashboard-hero-value span {
@@ -86,61 +128,152 @@
   font-size: var(--font-sm);
 }
 
-.funnel-stage-list,
-.funnel-origin-list {
+/* ---- funil real: largura do trapézio proporcional ao volume da etapa ---- */
+.funnel-chart {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 0;
 }
 
-.funnel-stage-row,
-.funnel-origin-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+.funnel-chart-step {
+  width: 100%;
 }
 
-.funnel-stage-label,
-.funnel-origin-label {
+.funnel-chart-head {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2);
+  align-items: baseline;
+  padding: 0 var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.funnel-chart-head .funnel-chart-label {
   font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text);
 }
 
-.funnel-stage-count,
-.funnel-origin-count {
+.funnel-chart-head .funnel-chart-count {
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--color-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel-chart-bar {
+  height: 34px;
+  margin: 0 auto;
+  min-width: 64px;
+  border-radius: var(--radius-subtle);
+  transition: width var(--transition-lg);
+}
+
+.funnel-chart-connector {
+  align-self: center;
+  font-size: var(--font-xs);
   color: var(--color-text-muted);
+  padding: var(--space-1) 0;
+}
+
+/* ---- desfecho: Aprovado x Reprovado como resultado paralelo, não etapa ---- */
+.funnel-outcomes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.funnel-outcome-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-standard);
+  border-left: 3px solid var(--color-border-strong);
+  background: var(--color-surface-sunken);
+}
+
+.funnel-outcome-card.is-aprovado {
+  border-left-color: var(--color-success);
+}
+
+.funnel-outcome-card.is-reprovado {
+  border-left-color: var(--color-danger);
+}
+
+.funnel-outcome-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.funnel-outcome-value {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel-outcome-card.is-aprovado .funnel-outcome-value {
+  color: var(--color-success);
+}
+
+.funnel-outcome-card.is-reprovado .funnel-outcome-value {
+  color: var(--color-danger);
+}
+
+.funnel-outcome-share {
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---- origem: ranking com cor sequencial (funcional, não decorativa) ---- */
+.funnel-origin-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.funnel-origin-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.funnel-origin-label {
+  width: 168px;
+  flex: none;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.funnel-stage-track,
 .funnel-origin-track {
   position: relative;
-  height: 16px;
-  border-radius: var(--radius-sm);
+  flex: 1;
+  height: 22px;
+  border-radius: var(--radius-subtle);
   background: var(--color-surface-strong);
   overflow: hidden;
 }
 
-.funnel-stage-fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  transition: width var(--transition-lg);
-}
-
 .funnel-origin-fill {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   height: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--color-info);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-subtle);
+  color: #fff;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   transition: width var(--transition-lg);
 }
 
@@ -157,7 +290,20 @@
     font-size: 2.25rem;
   }
 
-  .funnel-dashboard-filter-actions {
+  .funnel-filter-bar {
+    flex-direction: column;
     align-items: stretch;
+  }
+
+  .funnel-filter-actions {
+    margin-left: 0;
+  }
+
+  .funnel-outcomes {
+    grid-template-columns: 1fr;
+  }
+
+  .funnel-origin-label {
+    width: 112px;
   }
 }

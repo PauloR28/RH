@@ -203,7 +203,7 @@ export function TelaRaciocinioAdmin({ controlador }) {
                         <td>${rotuloTipo(pergunta.tipo)}</td>
                         <td>${rotuloDificuldade(pergunta.dificuldade)}</td>
                         <td>
-                          <span class=${`rh-chip ${pergunta.ativo ? 'is-indicacao' : ''}`}>
+                          <span class=${`rh-status-pill ${pergunta.ativo ? 'is-finished' : ''}`}>
                             ${pergunta.ativo ? 'Ativa' : 'Inativa'}
                           </span>
                         </td>
@@ -557,7 +557,7 @@ export function TelaRaciocinioTestePublico() {
 // ----------------------------------------------------------------------
 // Painel de resultado (embutido na ficha do candidato)
 // ----------------------------------------------------------------------
-export function PainelResultadoRaciocinio({ idTeste }) {
+export function PainelResultadoRaciocinio({ idTeste, aoCarregar }) {
   const [resultado, setResultado] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -565,12 +565,19 @@ export function PainelResultadoRaciocinio({ idTeste }) {
   useEffect(() => {
     if (!idTeste) {
       setCarregando(false);
+      aoCarregar?.({ possuiResultado: false });
       return;
     }
     setCarregando(true);
     lerResultadoRaciocinioCandidato(idTeste)
-      .then(setResultado)
-      .catch((error) => setErro(error?.message || 'Não foi possível carregar o resultado de raciocínio lógico.'))
+      .then((dados) => {
+        setResultado(dados);
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+      })
+      .catch((error) => {
+        setErro(error?.message || 'Não foi possível carregar o resultado de raciocínio lógico.');
+        aoCarregar?.({ possuiResultado: false });
+      })
       .finally(() => setCarregando(false));
   }, [idTeste]);
 

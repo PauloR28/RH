@@ -347,13 +347,13 @@ export function TelaPipelineCandidatos({ controlador }) {
       >
         <${MetricGrid}
           items=${[
-            { label: 'Total', value: resumo.total || 0 },
-            { label: 'Análise', value: resumo.Triagem || 0, variant: 'is-analysis' },
-            { label: 'Qualificados', value: resumo.Prova || 0, variant: 'is-highlight' },
-            { label: 'Entrevistas', value: resumo.Entrevista || 0, variant: 'is-confirmed' },
-            { label: 'Entrevistas agendadas', value: resumo.entrevistasAtivas || 0, variant: 'is-highlight' },
-            { label: 'Aprovado', value: resumo.Aprovado || 0, variant: 'is-approved' },
-            { label: 'Finalizados', value: resumo.Reprovado || 0, variant: 'is-eliminated' },
+            { label: 'Total', value: resumo.total || 0, variant: 'rh-metric-card--is-neutral' },
+            { label: 'Em análise (Triagem)', value: resumo.Triagem || 0, variant: 'rh-metric-card--is-neutral' },
+            { label: 'Qualificados (Prova)', value: resumo.Prova || 0, variant: 'rh-metric-card--is-neutral' },
+            { label: 'Entrevistas', value: resumo.Entrevista || 0, variant: 'rh-metric-card--is-neutral' },
+            { label: 'Entrevistas agendadas', value: resumo.entrevistasAtivas || 0, variant: 'rh-metric-card--is-neutral' },
+            { label: 'Aprovado', value: resumo.Aprovado || 0, variant: 'rh-metric-card--is-positive' },
+            { label: 'Reprovado', value: resumo.Reprovado || 0, variant: 'rh-metric-card--is-attention' },
           ]}
         />
       </${SectionCard}>

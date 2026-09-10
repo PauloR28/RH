@@ -7,6 +7,7 @@ import {
   removerDataComemorativa,
 } from '../../servico-api.js';
 import {
+  EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
@@ -14,12 +15,15 @@ import {
 } from '../../ui/componentes-compartilhados.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
+import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
+
+const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
 const FORM_INICIAL = { id_data: '', titulo: '', dia: '', mes: '', descricao: '' };
 
@@ -149,8 +153,6 @@ export function TelaCalendario({ controlador }) {
     }
   };
 
-  const totalColunas = podeEditar ? 4 : 3;
-
   const datasOrdenadas = useMemo(() => datas, [datas]);
 
   return html`
@@ -177,69 +179,64 @@ export function TelaCalendario({ controlador }) {
 
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
 
-      <${SectionCard} title="Próximas datas" className="rh-section-card--flat">
-        <div class="table-responsive">
-          <table class="table align-middle rh-modern-history-table">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Data</th>
-                <th>Descrição</th>
-                ${podeEditar ? html`<th>Ações</th>` : null}
-              </tr>
-            </thead>
-            <tbody>
-              ${carregando
-      ? html`<${SkeletonTableRows} colunas=${totalColunas} linhas=${4} />`
+      <${SectionCard} title="Próximas datas" description="Ordenadas pela próxima ocorrência anual." className="rh-section-card--flat">
+        ${carregando
+      ? html`
+              <div class="calendar-date-grid">
+                ${[1, 2, 3, 4].map((chave) => html`<div class="calendar-date-card is-skeleton" key=${chave}></div>`)}
+              </div>
+            `
       : datasOrdenadas.length
-        ? datasOrdenadas.map(
+        ? html`
+              <div class="calendar-date-grid">
+                ${datasOrdenadas.map(
           (item) => html`
-                      <tr key=${item.id_data}>
-                        <td>
-                          <strong>${item.titulo}</strong>
-                          ${formatarProximidade(item)
-              ? html`<div class="rh-chip-wrap"><span class="rh-chip">${formatarProximidade(item)}</span></div>`
+                    <article class="calendar-date-card" key=${item.id_data}>
+                      <div class="calendar-date-badge">
+                        <strong>${String(item.dia || '').padStart(2, '0')}</strong>
+                        <span>${MESES_ABREV[Number(item.mes || 1) - 1] || ''}</span>
+                      </div>
+                      <div class="calendar-date-content">
+                        <strong>${item.titulo}</strong>
+                        ${item.descricao ? html`<p>${item.descricao}</p>` : null}
+                        ${formatarProximidade(item)
+              ? html`<span class="rh-chip">${formatarProximidade(item)}</span>`
               : null}
-                        </td>
-                        <td>${formatarData(item)}</td>
-                        <td>${item.descricao || '-'}</td>
-                        ${podeEditar
+                      </div>
+                      ${podeEditar
               ? html`
-                              <td>
-                                <div class="d-flex gap-2">
-                                  <button
-                                    type="button"
-                                    class="btn btn-outline-secondary btn-sm"
-                                    onClick=${() => abrirEdicao(item)}
-                                  >
-                                    <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-                                    Editar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    class="btn btn-outline-danger btn-sm"
-                                    onClick=${() => excluir(item)}
-                                  >
-                                    <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
-                                    Remover
-                                  </button>
-                                </div>
-                              </td>
-                            `
+                            <div class="calendar-date-actions">
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                title="Editar"
+                                onClick=${() => abrirEdicao(item)}
+                              >
+                                <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                title="Remover"
+                                onClick=${() => excluir(item)}
+                              >
+                                <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                              </button>
+                            </div>
+                          `
               : null}
-                      </tr>
-                    `,
-        )
+                    </article>
+                  `,
+        )}
+              </div>
+            `
         : html`
-                      <${TabelaVazia}
-                        colunas=${totalColunas}
-                        texto="Nenhuma data comemorativa cadastrada."
-                        icone="celebration"
-                      />
-                    `}
-            </tbody>
-          </table>
-        </div>
+              <${EmptyState}
+                title="Nenhuma data comemorativa cadastrada"
+                text="Cadastre datas relevantes de RH e da empresa para acompanhá-las aqui."
+                icon="celebration"
+              />
+            `}
       </${SectionCard}>
 
       <${SectionCard} title="Entrevistas agendadas" className="rh-section-card--flat">
@@ -263,7 +260,11 @@ export function TelaCalendario({ controlador }) {
                         <td><strong>${evento.titulo}</strong></td>
                         <td>${evento.vaga || '-'}</td>
                         <td>${formatarDataHoraEntrevista(evento.data)}</td>
-                        <td>${evento.status || '-'}</td>
+                        <td>
+                          ${evento.status
+              ? html`<span class=${`rh-status-pill ${obterClasseStatusEntrevista(evento.status)}`}>${evento.status}</span>`
+              : '-'}
+                        </td>
                       </tr>
                     `,
         )

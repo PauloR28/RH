@@ -58,7 +58,15 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 4px;
-  min-width: 260px;
+}
+
+/* Correções.txt item 3: linha inteira clicável abre o detalhe da prova. */
+.generated-exams-row {
+  cursor: pointer;
+}
+
+.generated-exams-row:hover {
+  background: var(--color-primary-soft);
 }
 
 .generated-exam-modal .rh-section-card {
@@ -136,13 +144,17 @@
   display: grid;
   place-items: center;
   padding: 24px;
+  /* Correções.txt item 5: fundo forte distrai o candidato durante a prova —
+     véu translúcido por cima da imagem para clarear sem trocar o arquivo. */
   background:
+    linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)),
     url('./Fundo Provas.png') center/cover fixed;
 }
 
 .conecta-provas-shell.is-access-view {
   place-items: start center;
   background:
+    linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)),
     url('./Fundo Provas inicial.png') center top/cover fixed;
 }
 
@@ -1027,6 +1039,22 @@
   margin-top: 0.75rem;
 }
 
+.rh-login-alt-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.rh-login-alt-btn {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.rh-login-alt-btn:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
 .rh-login-footer-meta {
   display: flex;
   justify-content: center;
@@ -1480,9 +1508,12 @@
 
 .rh-editor-toolbar {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
 }
 
 .rh-editor-helper {
@@ -1501,10 +1532,11 @@
 }
 
 .rh-editor-toolbar-btn {
-  width: 40px;
-  height: 40px;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
   border: 1px solid rgba(17, 34, 59, 0.12);
-  border-radius: 8px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1528,16 +1560,31 @@
 }
 
 .rh-editor-toolbar-btn .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 18px;
+}
+
+.rh-editor-toolbar-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 24px;
+  background: rgba(17, 34, 59, 0.12);
+  margin: 0 4px;
 }
 
 .rh-editor-font-size {
-  min-height: 40px;
+  /* Correções.txt item 1: sem width próprio, este <select> herdava o
+     `width: 100%` global de base.css (input/select/textarea/.form-control/
+     .form-select) e esticava por toda a barra de ferramentas da redação. */
+  flex: 0 0 auto;
+  width: 12%;
+  min-width: 76px;
+  max-width: 100%;
+  min-height: 32px;
   border: 1px solid rgba(17, 34, 59, 0.12);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-surface);
   color: var(--color-text);
-  padding: 0 0.48rem;
+  padding: 0 0.4rem;
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -1586,7 +1633,7 @@
   margin: 0 0 0.75rem;
   color: var(--color-text);
   font-size: 0.95rem;
-  font-weight: 700;
+  /* font-weight: 700; */
   line-height: 1.45;
 }
 
@@ -2418,7 +2465,7 @@
 
 #screen-email-inbox .rh-modern-kicker {
   margin-bottom: 0.28rem;
-  color: #0f5be8;
+  color: var(--color-primary);
   font-size: 0.73rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -2644,7 +2691,7 @@
 }
 
 .email-row.is-selected {
-  box-shadow: inset 3px 0 0 #0f5be8;
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .email-row.is-unread .email-subject-cell > div {
@@ -3041,21 +3088,9 @@
     align-items: flex-start;
     flex-direction: column;
   }
-
-  #screen-menu .home-quick-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow: visible;
-  }
-
-  #screen-menu .home-quick-action {
-    width: 100%;
-    min-width: 0;
-  }
 }
 
 @media (max-width: 460px) {
-  #screen-menu .home-quick-grid,
   #screen-menu .day-summary-stats {
     grid-template-columns: 1fr;
   }
@@ -3182,17 +3217,18 @@
 .process-create-step:not(:first-child)::before {
   content: '';
   position: absolute;
-  top: 16px;
+  top: 15px;
   left: -50%;
   width: 100%;
-  height: 2px;
-  background: var(--color-border);
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-subtle);
   z-index: 0;
 }
 
 .process-create-step.is-active:not(:first-child)::before,
 .process-create-step.is-done:not(:first-child)::before {
-  background: var(--color-primary);
+  background: var(--color-action-primary);
 }
 
 .process-create-step span {
@@ -3203,12 +3239,14 @@
   flex: 0 0 32px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(180, 195, 218, 0.95);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-subtle);
   background: var(--color-surface);
-  color: #38506f;
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
   font-weight: 700;
+  transition: transform var(--transition-sm), box-shadow var(--transition-sm),
+    background var(--transition-sm), border-color var(--transition-sm), color var(--transition-sm);
 }
 
 .process-create-step span .material-symbols-outlined {
@@ -3225,23 +3263,26 @@
   text-align: center;
 }
 
-.process-create-step.is-active,
 .process-create-step.is-done {
-  color: var(--color-primary);
+  color: var(--color-action-primary);
 }
 
-.process-create-step.is-active span,
 .process-create-step.is-done span {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #fff;
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary-soft);
+  color: var(--color-action-primary);
 }
 
-.process-create-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: var(--space-3);
-  align-items: start;
+.process-create-step.is-active {
+  color: var(--color-action-primary);
+}
+
+.process-create-step.is-active span {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-action-primary-text);
+  transform: scale(1.12);
+  box-shadow: var(--elevation-2);
 }
 
 .process-create-main {
@@ -3442,8 +3483,8 @@
 .process-create-field textarea:focus,
 .process-release-field input:focus,
 .process-release-field select:focus {
-  border-color: rgba(15, 91, 232, 0.54);
-  box-shadow: 0 0 0 3px rgba(15, 91, 232, 0.1);
+  border-color: rgba(8, 111, 202, 0.54);
+  box-shadow: 0 0 0 3px rgba(8, 111, 202, 0.1);
   outline: none;
 }
 
@@ -3543,7 +3584,7 @@
   min-width: 0;
   margin-top: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid rgba(15, 91, 232, 0.18);
+  border: 1px solid rgba(8, 111, 202, 0.18);
   border-radius: var(--radius-sm);
   background: #f4f8ff;
 }
@@ -3639,72 +3680,26 @@
   text-transform: uppercase;
 }
 
-.process-create-summary {
+/*
+ * Rodada 2 de promt.txt (padrão de leitura em Z): o "Resumo" do wizard
+ * deixou de ser um <aside> lateral fixo com fundo escuro isolado (destoante
+ * da paleta clara do resto do app) e virou uma faixa inline logo abaixo do
+ * stepper — ver WizardSummaryStrip em fonte/ui/components/wizard.js. O
+ * MetricGrid interno herda a paleta clara padrão; aqui só o contêiner.
+ */
+.process-create-summary--inline {
   position: sticky;
-  top: var(--space-3);
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
+  top: calc(68px + var(--space-2));
+  z-index: 10;
   padding: var(--space-3);
-  border: 1px solid rgba(22, 47, 89, 0.16);
-  border-radius: var(--radius-sm);
-  background: #172033;
-  color: #fff;
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-standard);
+  background: var(--color-surface-sunken);
 }
 
-.process-create-summary h3 {
-  display: flex;
-  align-items: center;
-  gap: 0.46rem;
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.process-create-summary h3 .material-symbols-outlined {
-  color: #9bc2ff;
-}
-
-.process-create-summary dl {
-  display: grid;
-  gap: 0.42rem;
-  margin: 0;
-}
-
-.process-create-summary dl div {
-  min-width: 0;
-  padding: 0.52rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.process-create-summary dt {
-  margin: 0 0 0.1rem;
-  color: #b8c6dc;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.process-create-summary dd {
-  margin: 0;
-  overflow: hidden;
-  color: #fff;
-  font-size: 0.86rem;
-  font-weight: 600;
-  line-height: 1.22;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.process-create-summary-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.48rem;
-  padding: 0.68rem;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.1);
-  color: #dbe8ff;
+.process-create-summary-note--inline {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
   line-height: 1.35;
 }
@@ -4121,11 +4116,7 @@
 }
 
 @media (max-width: 1100px) {
-  .process-create-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .process-create-summary {
+  .process-create-summary--inline {
     position: static;
   }
 
@@ -4534,7 +4525,7 @@
   gap: 0.7rem;
   margin-bottom: 0.85rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid rgba(15, 91, 232, 0.18);
+  border: 1px solid rgba(8, 111, 202, 0.18);
   border-radius: var(--radius-sm);
   background: var(--color-primary-soft);
 }
@@ -4563,25 +4554,29 @@
 }
 
 .home-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  gap: 0.58rem;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .home-quick-action {
-  min-width: 0;
-  min-height: 66px;
+  flex: 1 1 76px;
+  min-width: 76px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 0.34rem;
-  padding: 0.58rem 0.5rem;
+  gap: 0.22rem;
+  padding: 0.4rem 0.32rem;
   border: 1px solid rgba(217, 226, 238, 0.96);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-subtle);
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-soft) 100%);
   color: var(--color-text);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--elevation-1);
   text-align: center;
   transition:
     border-color var(--transition-sm),
@@ -4591,26 +4586,28 @@
 
 .home-quick-action:hover,
 .home-quick-action:focus {
-  border-color: rgba(15, 91, 232, 0.34);
+  border-color: rgba(8, 111, 202, 0.34);
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
 
 .home-quick-action .material-symbols-outlined {
-  color: #5277be;
-  font-size: 1.35rem;
+  color: var(--color-primary);
+  opacity: 0.72;
+  font-size: 1.1rem;
   line-height: 1;
 }
 
 .home-quick-action:hover .material-symbols-outlined,
 .home-quick-action:focus .material-symbols-outlined {
   color: var(--color-primary);
+  opacity: 1;
 }
 
 .home-quick-action strong {
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4623,6 +4620,21 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+}
+
+.process-summary-panel.rh-section-card {
+  position: relative;
+  border-radius: var(--radius-prominent);
+  box-shadow: var(--elevation-3);
+  overflow: hidden;
+}
+
+.process-summary-panel.rh-section-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--color-action-primary);
 }
 
 .compact-dashboard-card .rh-section-card-header,
@@ -7076,6 +7088,47 @@
   min-height: 38px;
   border-radius: 8px;
   font-size: 0.84rem;
+}
+
+/* "Criar usuário rápido" — lista compacta de candidatos aprovados. */
+#screen-settings .quick-user-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#screen-settings .quick-user-candidate-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+#screen-settings .quick-user-candidate-item:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-primary-soft);
+}
+
+#screen-settings .quick-user-candidate-name {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+#screen-settings .quick-user-candidate-email {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
 }
 
 #screen-settings-users .users-operacoes-checklist,
@@ -11091,7 +11144,7 @@
 }
 
 .candidate-exam-status-chip.is-progress {
-  border-color: rgba(15, 91, 232, 0.22);
+  border-color: rgba(8, 111, 202, 0.22);
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
@@ -11303,6 +11356,14 @@
   font-size: 0.68rem;
   font-style: normal;
   font-weight: 600;
+}
+
+/* Correções.txt item 1: candidato dispensado continua listado, com aviso. */
+#screen-process-details .unqualified-cv-details .unqualified-cv-dismissed-tag {
+  color: #b42318;
+  background: #fdeceb;
+  border-radius: 4px;
+  padding: 0.08rem 0.32rem;
 }
 
 #screen-process-details .unqualified-cv-reason {
@@ -11578,33 +11639,6 @@
   white-space: normal;
 }
 
-#screen-menu .home-quick-card.rh-section-card {
-  padding: 1.02rem;
-}
-
-#screen-menu .home-quick-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.68rem;
-}
-
-#screen-menu .home-quick-action {
-  min-height: 76px;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.78rem 0.62rem;
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-#screen-menu .home-quick-action .material-symbols-outlined {
-  font-size: 1.45rem;
-}
-
-#screen-menu .home-quick-action strong {
-  font-size: 0.82rem;
-  white-space: normal;
-}
-
 #screen-menu .home-dashboard-grid,
 #screen-menu .home-dashboard-grid--day,
 #screen-menu .home-dashboard-grid--secondary {
@@ -11657,6 +11691,27 @@
   width: 38px;
   height: 38px;
   border-radius: 8px;
+}
+
+/* Redesign 10/set/2026 (lote 2, ver design/wireframes/README.md): mesmo
+ * achado do KPI tile ícone-círculo já corrigido em Candidatos/Dashboard de
+ * Funil/Home — troca de cor de ícone por peso (barra de acento + cor do
+ * valor), sem tocar no restante do card (várias regras de layout deste
+ * seletor já espalhadas pelo arquivo — ver nota em screens.css:6538). */
+#screen-interviews .interview-stat-card {
+  border-left: 3px solid var(--color-border-strong);
+}
+
+#screen-interviews .interview-stat-card.is-attention {
+  border-left-color: var(--color-warning);
+}
+
+#screen-interviews .interview-stat-card.is-attention strong {
+  color: var(--color-warning);
+}
+
+#screen-interviews .interview-stat-card.is-positive {
+  border-left-color: var(--color-success);
 }
 
 #screen-menu .mailbox-card-compact .table-responsive {
@@ -11729,12 +11784,163 @@
   /* font-size: 12px; */
 }
 
-#screen-candidates .rh-filter-grid--wide {
-  grid-template-columns: minmax(260px, 1.2fr) repeat(2, minmax(170px, 0.7fr));
+#screen-candidates .rh-modern-history-table {
+  min-width: 920px;
 }
 
-#screen-candidates .rh-modern-history-table {
-  min-width: 1120px;
+/* Redesign 10/set/2026 (ver design/wireframes/README.md, seção 1):
+ * 12 colunas de peso igual → hierarquia (localização/vaga-processo
+ * fundidos, nota em destaque, ações consolidadas). */
+.candidate-score-badge {
+  display: inline-flex;
+  justify-content: flex-end;
+  min-width: 40px;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.candidate-score-badge.is-high {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.candidate-score-badge.is-mid {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.candidate-score-badge.is-low {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.candidate-score-badge.is-neutral {
+  color: var(--color-text-muted);
+  background: var(--color-surface-strong);
+}
+
+.candidate-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+}
+
+.candidate-cv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.candidate-cv-missing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.candidate-cv-missing .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+/* Redesign 10/set/2026 (lote 2): "Calendário" não tinha nenhuma grade ou
+ * visual de calendário — eram 2 tabelas simples (ver design/wireframes/
+ * README.md). Datas comemorativas viram cartões estilo folhinha em vez de
+ * linhas de tabela; sem grade mensal completa (as datas não têm ano, só
+ * dia/mês) para manter o escopo seguro nesta rodada. */
+#screen-calendario .calendar-date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+#screen-calendario .calendar-date-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
+  box-shadow: var(--elevation-1);
+}
+
+#screen-calendario .calendar-date-card.is-skeleton {
+  min-height: 84px;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-strong) 25%,
+    var(--color-surface-soft) 50%,
+    var(--color-surface-strong) 75%
+  );
+  background-size: 200% 100%;
+  animation: c24-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+#screen-calendario .calendar-date-badge {
+  flex: none;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-subtle);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+#screen-calendario .calendar-date-badge strong {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+#screen-calendario .calendar-date-badge span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+#screen-calendario .calendar-date-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#screen-calendario .calendar-date-content strong {
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+#screen-calendario .calendar-date-content p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-soft);
+}
+
+#screen-calendario .calendar-date-content .rh-chip {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+#screen-calendario .calendar-date-actions {
+  flex: none;
+  display: flex;
+  gap: 4px;
 }
 
 #screen-candidates .rh-modern-history-table .btn,
@@ -12074,10 +12280,6 @@
 }
 
 @media (max-width: 1360px) {
-  #screen-menu .home-quick-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   #screen-menu .rh-modern-page > .rh-metric-grid {
     grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
   }
@@ -12100,7 +12302,6 @@
     grid-template-columns: 1fr;
   }
 
-  #screen-candidates .rh-filter-grid--wide,
   #screen-interviews .availability-form-grid,
   #screen-interviews .interview-filter-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -12118,9 +12319,7 @@
 }
 
 @media (max-width: 767.98px) {
-  #screen-menu .home-quick-grid,
   #screen-menu .quick-summary-grid,
-  #screen-candidates .rh-filter-grid--wide,
   #screen-interviews .availability-form-grid,
   #screen-interviews .interview-filter-toolbar,
   #screen-settings .c24-stat-grid,
@@ -12133,10 +12332,6 @@
   #screen-candidates .rh-metric-grid,
   #screen-interviews .interview-executive-card .interview-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  #screen-menu .home-quick-action {
-    min-height: 64px;
   }
 
   #screen-interviews .interview-day-card .rh-section-card-header {
@@ -12346,32 +12541,6 @@
   box-shadow: 0 0 0 0.18rem rgba(21, 61, 138, 0.28);
 }
 
-#screen-menu .home-quick-card.rh-section-card {
-  padding: 0.78rem;
-}
-
-#screen-menu .home-quick-grid {
-  /* flex-wrap: balance;
-    gap: 0.45rem;*/
-}
-
-#screen-menu .home-quick-action {
-  flex: 0 1 auto;
-  width: auto;
-  min-width: 126px;
-  min-height: 42px;
-  flex-direction: row;
-  padding: 0.42rem 0.62rem;
-}
-
-#screen-menu .home-quick-action .material-symbols-outlined {
-  font-size: 1.08rem;
-}
-
-#screen-menu .home-quick-action strong {
-  font-size: 0.78rem;
-}
-
 #screen-menu .day-summary-card {
   padding: 0.82rem;
 }
@@ -12452,7 +12621,7 @@
 
 .home-activity-item.is-info {
   border-left-color: var(--color-primary);
-  background: rgba(15, 91, 232, 0.08);
+  background: rgba(8, 111, 202, 0.08);
 }
 
 .home-activity-item.is-purple {
@@ -12806,37 +12975,6 @@
   line-height: 1.18;
 }
 
-#screen-menu .home-quick-card.rh-section-card {
-  padding: 0.82rem 1rem 0.95rem;
-}
-
-#screen-menu .home-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.78rem;
-}
-
-#screen-menu .home-quick-action {
-  min-width: 0;
-  min-height: 52px;
-  flex-direction: row;
-  gap: 0.48rem;
-  padding: 0.5rem 0.68rem;
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: none;
-}
-
-#screen-menu .home-quick-action .material-symbols-outlined {
-  color: #0f5be8;
-  font-size: 1.15rem;
-}
-
-#screen-menu .home-quick-action strong {
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
 #screen-menu .day-summary-card {
   padding: 0.82rem 0.98rem 0.95rem;
 }
@@ -12883,6 +13021,13 @@
   gap: 0.78rem;
 }
 
+/* Redesign 10/set/2026 (lote 2): mesmo achado do "KPI tile ícone-círculo"
+ * já corrigido em Candidatos/Dashboard de Funil (ver design/wireframes/
+ * README.md) — o círculo colorido não hierarquiza nada (as 6 tiles tinham
+ * peso visual idêntico); trocado pela mesma barra de acento + peso
+ * tipográfico já usado nos outros lugares, aplicado ao layout próprio
+ * desta tela (não ao MetricGrid compartilhado, para não arriscar mudar o
+ * tamanho/posição desta seção especificamente na Home). */
 #screen-menu .home-pillar-card {
   display: flex;
   align-items: center;
@@ -12891,6 +13036,7 @@
   padding: 0.66rem 0.72rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
   border-radius: 10px;
   box-shadow: var(--shadow-sm);
 }
@@ -12900,20 +13046,19 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
   font-size: 1.05rem;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-text-muted);
 }
 
 #screen-menu .home-pillar-card strong {
   display: block;
   font-size: 1.12rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 #screen-menu .home-pillar-card span:not(.material-symbols-outlined) {
@@ -12925,19 +13070,22 @@
   line-height: 1.14;
 }
 
-#screen-menu .home-pillar-card.is-green .home-pillar-icon {
-  background: var(--color-success-soft);
+#screen-menu .home-pillar-card.is-positive {
+  border-left-color: var(--color-success);
+}
+
+#screen-menu .home-pillar-card.is-positive strong,
+#screen-menu .home-pillar-card.is-positive .home-pillar-icon {
   color: var(--color-success);
 }
 
-#screen-menu .home-pillar-card.is-yellow .home-pillar-icon {
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
+#screen-menu .home-pillar-card.is-attention {
+  border-left-color: var(--color-warning);
 }
 
-#screen-menu .home-pillar-card.is-red .home-pillar-icon {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+#screen-menu .home-pillar-card.is-attention strong,
+#screen-menu .home-pillar-card.is-attention .home-pillar-icon {
+  color: var(--color-warning);
 }
 
 @media (max-width: 1180px) {
@@ -13253,10 +13401,6 @@
   #screen-menu .home-dashboard-main-grid {
     grid-template-columns: 1fr;
   }
-
-  #screen-menu .home-quick-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1100px) {
@@ -13309,19 +13453,6 @@
 
   #screen-menu .rh-modern-page {
     padding: 0.88rem;
-  }
-
-  #screen-menu .home-quick-grid {
-    display: flex;
-    gap: 0.55rem;
-    overflow-x: auto;
-    padding-bottom: 0.1rem;
-    scroll-snap-type: x proximity;
-  }
-
-  #screen-menu .home-quick-action {
-    flex: 0 0 180px;
-    scroll-snap-align: start;
   }
 
   #screen-menu .mailbox-toolbar {
@@ -13604,72 +13735,71 @@
   line-height: 1.28;
 }
 
+/*
+ * Paleta de badge com identidade própria (rodada 2 de promt.txt): esta
+ * tela tinha seu próprio sistema de cor cru (hex estilo Tailwind), à parte
+ * dos tokens usados no resto do app. Migrado para a mesma fórmula de
+ * contorno + ponto de 6px de base.css (achado da rodada 2, tela não
+ * revisitada na rodada 1).
+ */
 #screen-generated-exams .generated-status-badge,
 #screen-generated-exams .generated-stage-status {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   min-height: 24px;
-  padding: 0.18rem 0.52rem;
-  border: 1px solid transparent;
+  padding: 0.18rem 0.6rem;
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
   font-size: 0.68rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-#screen-generated-exams .generated-decision-badge {
-  display: block;
-  width: fit-content;
-  margin-top: 0.28rem;
-  min-height: 22px;
-  padding: 0.15rem 0.48rem;
-  border: 1px solid rgba(15, 91, 232, 0.18);
-  border-radius: var(--radius-full);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: 0.66rem;
-  font-weight: 600;
-  white-space: nowrap;
+#screen-generated-exams .generated-status-badge::before,
+#screen-generated-exams .generated-stage-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 #screen-generated-exams .generated-status-badge.is-finished,
 #screen-generated-exams .generated-stage-status.is-done {
-  border-color: #bbf7d0;
-  background: #dcfce7;
-  color: #15803d;
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 #screen-generated-exams .generated-status-badge.is-pending,
 #screen-generated-exams .generated-stage-status.is-pending {
-  border-color: #fdba74;
-  background: #fff4e5;
-  color: #ea580c;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 #screen-generated-exams .generated-status-badge.is-progress {
-  border-color: #bfdbfe;
-  background: #dbeafe;
-  color: #1d4ed8;
+  border-color: var(--color-info);
+  color: var(--color-info);
 }
 
 #screen-generated-exams .generated-status-badge.is-cancelled,
 #screen-generated-exams .generated-stage-status.is-danger {
-  border-color: #fca5a5;
-  background: #fef2f2;
-  color: #dc2626;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 #screen-generated-exams .generated-status-badge.is-neutral,
 #screen-generated-exams .generated-stage-status.is-muted {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-  color: #475569;
+  border-color: var(--color-border-default);
+  color: var(--color-text-tertiary);
 }
 
 #screen-generated-exams .generated-stage-status.is-final {
   border-color: var(--color-accent);
-  background: var(--color-accent-soft);
   color: var(--color-accent-strong);
 }
 
@@ -13686,20 +13816,20 @@
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
-  border: 1px solid #fdba74;
+  border: 1px solid var(--color-warning);
   border-radius: 8px;
   padding: 0.32rem 0.55rem;
-  background: #fff4e5;
-  color: #ea580c;
+  background: var(--color-surface);
+  color: var(--color-warning);
   font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
 #screen-generated-exams .generated-alert-badge.is-empty {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-  color: #64748b;
+  border-color: var(--color-border-default);
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
 }
 
 #screen-generated-exams .generated-alert-badge .material-symbols-outlined {
@@ -13742,8 +13872,8 @@
 }
 
 #screen-generated-exams .generated-action-button.is-primary {
-  border-color: #d5e4ff;
-  color: #005cff;
+  border-color: var(--color-action-primary-soft);
+  color: var(--color-action-primary);
 }
 
 #screen-generated-exams .generated-action-button.is-purple {
@@ -14210,6 +14340,94 @@
   gap: 0.52rem;
 }
 
+/* Correções.txt item 6: "Feedback qualitativo automático" reaproveitava CSS
+   de outra feature (Testes complementares), sem limite de altura — deixava
+   o modal gigantesco. Estilo próprio, compacto, com scroll interno. */
+#screen-generated-exams .generated-qualitative-summary {
+  margin: 0 0 0.6rem;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: #f8fbff;
+  color: var(--generated-text);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+#screen-generated-exams .generated-qualitative-list {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+#screen-generated-exams .generated-qualitative-item {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+}
+
+#screen-generated-exams .generated-qualitative-item-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: var(--generated-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+#screen-generated-exams .generated-qualitative-item-title small {
+  color: var(--generated-muted);
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+#screen-generated-exams .generated-qualitative-item p {
+  margin: 0.22rem 0 0;
+  color: var(--generated-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+/* Correções.txt item 11: DISC / Fit Cultural / Raciocínio em abas dentro do
+   modal de resultado, reaproveitando os painéis já usados na ficha do
+   candidato. Aba fica esmaecida quando o candidato não realizou o teste. */
+#screen-generated-exams .generated-complementary-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+#screen-generated-exams .generated-complementary-tab {
+  padding: 0.42rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--generated-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+#screen-generated-exams .generated-complementary-tab.is-active {
+  border-color: #0f62fe;
+  background: var(--color-primary-soft);
+  color: #0f62fe;
+}
+
+#screen-generated-exams .generated-complementary-tab.is-empty {
+  opacity: 0.55;
+}
+
+#screen-generated-exams .generated-complementary-panel {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: #f8fbff;
+}
+
 #screen-generated-exams .generated-answer-card {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
@@ -14418,9 +14636,23 @@
   max-height: calc(100vh - 170px);
   overflow: auto;
   display: grid;
-  gap: 1.72rem;
+  gap: 1.1rem;
   padding: 2rem 2rem 4.8rem;
   background: #f9f9ff;
+}
+
+/* Redesign 10/set/2026 (ver design/wireframes/README.md, seção 2): o corpo
+ * do modal virou abas (Resumo/Testes complementares/Feedback qualitativo/
+ * Respostas) em vez de um scroll único. TabPanel (componente compartilhado)
+ * define display:block/none inline, então o grid+gap do corpo não alcança
+ * as seções dentro de cada aba — replicado aqui via margem entre irmãos,
+ * sem !important e sem alterar o componente compartilhado. */
+#screen-generated-exams .generated-detail-tabs {
+  margin-bottom: 0.2rem;
+}
+
+#screen-generated-exams .generated-detail-body > .rh-tab-panel > * + * {
+  margin-top: 1.72rem;
 }
 
 #screen-generated-exams .generated-detail-summary-grid {
@@ -14470,13 +14702,18 @@
 }
 
 #screen-generated-exams .generated-detail-summary-card strong {
+  /* Correções.txt item 6: sem min-width:0 o texto (ex.: "Indicado com
+     restrições" em Classificação) forçava a trilha do grid a crescer além
+     do card, estourando a grade — min-width:0 permite que o ellipsis abaixo
+     realmente atue. Fonte reduzida conforme pedido. */
   grid-area: value;
+  min-width: 0;
   margin: 0.26rem 0 0;
   overflow: hidden;
   color: #20293a;
-  font-size: 1.48rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -14615,13 +14852,22 @@
   white-space: nowrap;
 }
 
+/*
+ * Achado da rodada 2 de promt.txt: esta é uma 2ª definição de
+ * .generated-stage-status mais adiante no arquivo (cruft de cascata — o
+ * bloco anterior, migrado para a paleta com identidade própria em
+ * #screen-generated-exams .generated-status-badge acima, era sobrescrito
+ * por esta aqui, que vence por ordem de declaração). Cores migradas para
+ * tokens preservando o formato pastel original desta variante compacta
+ * (uppercase, sem borda) — tratamento visual mantido, só a cor crua trocada.
+ */
 #screen-generated-exams .generated-stage-status {
   min-height: 18px;
   padding: 0.18rem 0.46rem;
   border: 0;
   border-radius: 6px;
-  background: #fff4e8;
-  color: #f97316;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -14630,8 +14876,8 @@
 
 #screen-generated-exams .generated-stage-status.is-done,
 #screen-generated-exams .generated-stage-status.is-final {
-  background: #e7fbf2;
-  color: #059669;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 #screen-generated-exams .generated-stage-score-row {
@@ -14987,26 +15233,6 @@
   font-size: 1rem;
 }
 
-#screen-processes .process-create-primary-btn {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 0;
-  border-radius: 8px;
-  padding: 0.55rem 1.6rem;
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-#screen-processes .process-create-primary-btn .material-symbols-outlined {
-  font-size: 1.25rem;
-}
-
 #screen-processes .process-summary-cards.rh-section-card,
 #screen-processes .process-progress-card.rh-section-card {
   padding: 0;
@@ -15023,48 +15249,25 @@
   gap: 0.5rem;
 }
 
-#screen-processes .process-summary-cards .rh-metric-card {
-  min-height: 76px;
-  justify-content: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border-strong);
-  /*border-radius: 8px;*/
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+/*
+ * Rodada 2 de promt.txt: o ícone circular pastel + tamanho uniforme
+ * (diagnóstico #8) foi removido daqui — os KPIs desta tela passaram a usar
+ * a hierarquia de peso global (.rh-metric-card--is-*, layout.css). O
+ * seletor genérico #screen-processes .rh-metric-card (linha ~9998, usado
+ * por outros metric-grids compactos da mesma tela) tem especificidade
+ * maior que as classes de peso globais — os overrides abaixo, escopados só
+ * a .process-summary-cards, restauram o tamanho/destaque pretendido sem
+ * tocar o padrão compacto usado no restante da tela.
+ */
+#screen-processes .process-summary-cards .rh-metric-card--is-critical {
+  min-height: 88px;
+  padding: 0.58rem 0.68rem 0.58rem calc(0.68rem + 4px);
+  box-shadow: var(--elevation-2);
 }
 
-#screen-processes .process-summary-cards .rh-metric-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background: #dbe1ff;
-  color: #0049c8;
-  font-size: 1.25rem;
-}
-
-#screen-processes
-  .process-summary-cards
-  .rh-metric-card.is-eliminated
-  .rh-metric-icon {
-  background: #dce3f0;
-  color: #585f6a;
-}
-
-#screen-processes
-  .process-summary-cards
-  .rh-metric-card.is-analysis
-  .rh-metric-icon {
-  background: #ffdad6;
-  color: #ba1a1a;
-}
-
-#screen-processes
-  .process-summary-cards
-  .rh-metric-card:not(.is-approved):not(.is-eliminated):not(.is-analysis)
-  .rh-metric-icon {
-  background: #d8e3fb;
-  color: #0049c8;
+#screen-processes .process-summary-cards .rh-metric-card--is-attention,
+#screen-processes .process-summary-cards .rh-metric-card--is-positive {
+  padding: 0.58rem 0.68rem 0.58rem calc(0.68rem + 4px);
 }
 
 #screen-processes .process-summary-cards .rh-metric-label {
@@ -15075,13 +15278,6 @@
   text-transform: uppercase;
 }
 
-#screen-processes .process-summary-cards .rh-metric-value {
-  margin-top: 0.14rem;
-  color: #111c2d;
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
 #screen-processes .process-filter-panel.rh-section-card {
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-border-strong);
@@ -15090,17 +15286,14 @@
   box-shadow: none;
 }
 
-#screen-processes .process-filter-panel .rh-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-#screen-processes .process-filter-panel .rh-filter-field label {
-  display: none;
-}
-
+/*
+ * Rodada 2 de promt.txt: filtro compacto (.rh-filter-bar, layout.css)
+ * substituiu o padrão "input-input-input-input-botão" — o grid de 4
+ * colunas + coluna "auto" do botão morto não se aplica mais; o painel
+ * secundário expansível reaproveita o .rh-filter-grid genérico (3
+ * colunas), agora com os rótulos visíveis (antes ocultos por caber tudo
+ * numa única barra sempre visível).
+ */
 #screen-processes .process-filter-panel .form-select {
   min-height: 30px;
   border: 1px solid var(--color-border-strong);
@@ -15110,27 +15303,79 @@
   font-size: 0.78rem;
 }
 
-#screen-processes .process-dashboard-filter-action {
+/* Pedido do RH: lista breve (uma linha por processo) de processos abertos,
+   com destaque para os que têm candidatos pendentes de decisão. */
+#screen-processes .process-brief-list {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-#screen-processes .process-filter-apply-btn {
-  min-height: 30px;
-  display: inline-flex;
+#screen-processes .process-brief-list-row {
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
-  border: 0;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 0.32rem 1rem;
-  background: #1d61f2;
-  color: #fff;
-  font-size: 0.78rem;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+#screen-processes .process-brief-list-row:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-primary-soft);
+}
+
+#screen-processes .process-brief-list-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+#screen-processes .process-brief-list-meta {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+}
+
+#screen-processes .process-brief-list-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
-#screen-processes .process-filter-apply-btn .material-symbols-outlined {
+#screen-processes .process-brief-list-badge.is-pending {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+#screen-processes .process-brief-list-badge.is-ok {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+#screen-processes .process-brief-list-row .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
   font-size: 1.05rem;
+}
+
+#screen-processes .process-brief-list-more {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 }
 
 #screen-processes .process-progress-card .rh-section-card-header,
@@ -15589,22 +15834,7 @@
   }
 }
 
-@media (max-width: 700px) {
-  #screen-menu .home-quick-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow: visible;
-  }
-
-  #screen-menu .home-quick-action {
-    width: 100%;
-    min-width: 0;
-    flex-basis: auto;
-  }
-}
-
 @media (max-width: 460px) {
-  #screen-menu .home-quick-grid,
   #screen-menu .day-summary-stats {
     grid-template-columns: 1fr;
   }

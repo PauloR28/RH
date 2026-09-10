@@ -9,9 +9,11 @@ import {
   baixarLogsAuditoria,
   criarItemConfiguracao,
   criarUsuario,
+  criarUsuarioRapido,
   desativarItemConfiguracao,
   excluirUsuario,
   lerAutomacaoNotificacoes,
+  lerCandidatosProcessos,
   listarCatalogoConfiguracoes,
   listarLogsAuditoria,
   listarPerfis,
@@ -21,6 +23,7 @@ import {
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
 } from '../../app/controlador-aplicacao.js';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { listarOperacoes } from '../../services/api/operations.js';
@@ -337,8 +340,13 @@ function Icone({ name, className = '' }) {
   `;
 }
 
+// Redesign 10/set/2026 (achado transversal nº3, ver design/wireframes/
+// README.md): trocado de fundo pastel liso (.c24-badge) para o mesmo
+// padrão contorno+ponto (rh-status-pill) já usado no resto do app — um
+// só ponto de mudança corrige as ~12 chamadas deste componente no arquivo.
 function Badge({ label, tone = 'info' }) {
-  return html`<span class=${`c24-badge is-${tone}`}>${label}</span>`;
+  const classe = tone === 'success' ? 'is-finished' : tone === 'danger' ? 'is-unsaved' : tone === 'muted' ? '' : 'is-neutral';
+  return html`<span class=${`rh-status-pill ${classe}`}>${label}</span>`;
 }
 
 function StatCard({ icon, label, value, helper, tone = 'blue' }) {
@@ -502,6 +510,16 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [formUsuario, setFormUsuario] = useState(FORM_USUARIO_INICIAL);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
+  // "Criar usuário rápido" — nome, e-mail e senha para candidatos aprovados
+  // que vão fazer treinamento; a atribuição do treinamento em si fica com a
+  // Gestão de Treinamentos, não aqui.
+  const [drawerUsuarioRapidoAberto, setDrawerUsuarioRapidoAberto] = useState(false);
+  const [formUsuarioRapido, setFormUsuarioRapido] = useState({ nome: '', email: '', senha: '' });
+  const [candidatosAprovados, setCandidatosAprovados] = useState([]);
+  const [carregandoCandidatosAprovados, setCarregandoCandidatosAprovados] = useState(false);
+  const [salvandoUsuarioRapido, setSalvandoUsuarioRapido] = useState(false);
+  const [erroUsuarioRapido, setErroUsuarioRapido] = useState('');
+  const [buscaCandidatoRapido, setBuscaCandidatoRapido] = useState('');
   const [filtrosUsuarios, setFiltrosUsuarios] = useState({
     busca: '',
     status: '',
@@ -820,6 +838,75 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       setSalvando(false);
     }
   };
+
+  const abrirCriacaoUsuarioRapido = async () => {
+    setFormUsuarioRapido({ nome: '', email: '', senha: '' });
+    setErroUsuarioRapido('');
+    setBuscaCandidatoRapido('');
+    setDrawerUsuarioRapidoAberto(true);
+    setCarregandoCandidatosAprovados(true);
+    try {
+      const candidatos = await lerCandidatosProcessos();
+      const aprovados = (Array.isArray(candidatos) ? candidatos : []).filter(
+        (candidato) =>
+          canonicalizeCandidateStatus(candidato.status_fluxo || candidato.status_candidato) === 'Aprovado',
+      );
+      setCandidatosAprovados(aprovados);
+    } catch (error) {
+      setErroUsuarioRapido('Não foi possível carregar a lista de candidatos aprovados.');
+    } finally {
+      setCarregandoCandidatosAprovados(false);
+    }
+  };
+
+  const fecharUsuarioRapido = () => {
+    setDrawerUsuarioRapidoAberto(false);
+    setErroUsuarioRapido('');
+  };
+
+  const selecionarCandidatoAprovadoRapido = (candidato) => {
+    setFormUsuarioRapido({
+      ...formUsuarioRapido,
+      nome: candidato.nome_candidato || candidato.nome || '',
+      email: candidato.email || '',
+    });
+  };
+
+  const salvarUsuarioRapido = async (event) => {
+    event.preventDefault();
+    const email = String(formUsuarioRapido.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErroUsuarioRapido('Informe um e-mail válido.');
+      return;
+    }
+    if (!formUsuarioRapido.nome.trim()) {
+      setErroUsuarioRapido('Informe o nome.');
+      return;
+    }
+    if (!formUsuarioRapido.senha) {
+      setErroUsuarioRapido('Informe uma senha.');
+      return;
+    }
+    setSalvandoUsuarioRapido(true);
+    setErroUsuarioRapido('');
+    try {
+      await criarUsuarioRapido({ nome: formUsuarioRapido.nome.trim(), email, senha: formUsuarioRapido.senha });
+      setFeedback('Usuário de treinamento criado com sucesso. A atribuição do treinamento fica a cargo da Gestão de Treinamentos.');
+      setDrawerUsuarioRapidoAberto(false);
+      await carregarAba(abaRenderizada);
+    } catch (error) {
+      setErroUsuarioRapido(error?.message || 'Não foi possível criar o usuário.');
+    } finally {
+      setSalvandoUsuarioRapido(false);
+    }
+  };
+
+  const candidatosAprovadosFiltrados = candidatosAprovados.filter((candidato) => {
+    const termo = buscaCandidatoRapido.trim().toLowerCase();
+    if (!termo) return true;
+    return String(candidato.nome_candidato || candidato.nome || '').toLowerCase().includes(termo)
+      || String(candidato.email || '').toLowerCase().includes(termo);
+  });
 
   const alterarStatus = async (usuario, acao) => {
     setErro('');
@@ -1962,6 +2049,89 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               </button>
               <button type="submit" class="btn btn-primary" disabled=${salvando || !podeSalvar}>
                 ${salvando ? 'Salvando...' : 'Salvar'}
+              </button>
+            </footer>
+          </form>
+        </${ModalPadrao}>
+
+        <${ModalPadrao}
+          aberto=${drawerUsuarioRapidoAberto}
+          titulo="Criar usuário rápido"
+          subtitulo="Login para um candidato aprovado fazer treinamento. A atribuição do treinamento fica com a Gestão de Treinamentos."
+          onClose=${fecharUsuarioRapido}
+        >
+          <form class="users-drawer-form" onSubmit=${salvarUsuarioRapido}>
+            <div class="users-drawer-body">
+              ${erroUsuarioRapido ? html`<div class="alert alert-danger c24-feedback">${erroUsuarioRapido}</div>` : null}
+
+              <div class="rh-filter-field">
+                <label>Candidatos aprovados</label>
+                <input
+                  type="search"
+                  class="form-control"
+                  placeholder="Buscar candidato aprovado por nome ou e-mail..."
+                  value=${buscaCandidatoRapido}
+                  onInput=${(event) => setBuscaCandidatoRapido(event.target.value)}
+                />
+              </div>
+              ${carregandoCandidatosAprovados
+      ? html`<p class="text-muted">Carregando candidatos aprovados...</p>`
+      : candidatosAprovadosFiltrados.length
+        ? html`
+                    <ul class="quick-user-candidate-list">
+                      ${candidatosAprovadosFiltrados.slice(0, 20).map((candidato) => html`
+                        <li key=${candidato.id_registro || candidato.id_teste}>
+                          <button
+                            type="button"
+                            class="quick-user-candidate-item"
+                            onClick=${() => selecionarCandidatoAprovadoRapido(candidato)}
+                          >
+                            <span class="quick-user-candidate-name">${candidato.nome_candidato || candidato.nome || '-'}</span>
+                            <span class="quick-user-candidate-email">${candidato.email || 'sem e-mail'}</span>
+                          </button>
+                        </li>
+                      `)}
+                    </ul>
+                  `
+        : html`<p class="text-muted">Nenhum candidato aprovado encontrado.</p>`}
+
+              <div class="rh-filter-field" style=${{ marginTop: '8px' }}>
+                <label>Nome</label>
+                <input
+                  class="form-control"
+                  value=${formUsuarioRapido.nome}
+                  onInput=${(event) => setFormUsuarioRapido({ ...formUsuarioRapido, nome: event.target.value })}
+                  required
+                />
+              </div>
+              <div class="rh-filter-field">
+                <label>E-mail</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  value=${formUsuarioRapido.email}
+                  onInput=${(event) => setFormUsuarioRapido({ ...formUsuarioRapido, email: event.target.value })}
+                  required
+                />
+              </div>
+              <div class="rh-filter-field">
+                <label>Senha</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  value=${formUsuarioRapido.senha}
+                  onInput=${(event) => setFormUsuarioRapido({ ...formUsuarioRapido, senha: event.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <footer class="rh-modal-footer">
+              <button type="button" class="btn btn-outline-secondary" disabled=${salvandoUsuarioRapido} onClick=${fecharUsuarioRapido}>
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" disabled=${salvandoUsuarioRapido}>
+                ${salvandoUsuarioRapido ? 'Criando...' : 'Criar usuário'}
               </button>
             </footer>
           </form>
@@ -3921,6 +4091,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 onClick=${() => carregarAba(abaRenderizada)}
               >
                 <${Icone} name="refresh" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                title="Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento"
+                disabled=${!controlador.possuiPermissao('usuarios.criar')}
+                onClick=${abrirCriacaoUsuarioRapido}
+              >
+                Criar usuário rápido
               </button>
               <button
                 type="button"

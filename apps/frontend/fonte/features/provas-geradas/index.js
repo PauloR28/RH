@@ -36,6 +36,9 @@ import { escaparHtml, obterItensPaginados } from '../../utilitarios.js';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js';
 import { TelaConectaProvas } from '../conecta-provas/index.js';
+import { PainelResultadoDisc } from '../disc/index.js';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js';
 import { copiarTexto } from '../../shared/browser-utils.js';
 import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js';
 import {
@@ -48,8 +51,11 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
+  Tabs,
+  TabPanel,
 } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';
@@ -694,6 +700,9 @@ function montarLinhasResultadoDetalhe(respostas = [], questoes = []) {
       numero: questaoIndice + 1,
       questao: resposta.texto_questao_snapshot || resposta.enunciado || resposta.questao || '-',
       resposta: descreverResposta(resposta.resposta),
+      gabarito: resposta.resposta_correta_payload !== undefined && resposta.resposta_correta_payload !== null
+        ? descreverResposta(resposta.resposta_correta_payload)
+        : 'Não disponível',
       nota: formatarScore(resposta.nota),
       status: obterStatusRespostaDetalhe(resposta),
       analiseResposta: montarAnaliseRespostaDetalhe(resposta, questao),
@@ -1583,8 +1592,31 @@ function ModalDetalheProvaGerada({
   onDecisao,
   onDadosCandidato,
 }) {
-  const [mostrarResultadoCompleto, setMostrarResultadoCompleto] = useState(true);
+  // Correções.txt item 13: gabarito e resultado completo ficam ocultos por
+  // padrão e só aparecem via a ação correspondente no menu "Ações".
+  const [mostrarResultadoCompleto, setMostrarResultadoCompleto] = useState(false);
+  const [mostrarGabarito, setMostrarGabarito] = useState(false);
   const [menuAcoesAberto, setMenuAcoesAberto] = useState(false);
+  // Redesign 10/set/2026 (ver design/wireframes/README.md, seção 2): o
+  // conteúdo deste modal (resumo, alertas, testes complementares, feedback
+  // qualitativo, resultado completo) era um scroll único e contínuo — a
+  // organização em abas de nível superior é a mudança estrutural em si,
+  // sem alterar nenhum handler/estado dos blocos movidos para dentro delas.
+  const [abaDetalhe, setAbaDetalhe] = useState('resumo');
+  // Correções.txt item 11: DISC/Fit Cultural/Raciocínio em abas dentro do
+  // modal de resultado — cada painel avisa via aoCarregar se o candidato
+  // possui resultado, e a aba correspondente é desativada quando não possui.
+  const [abaTesteComplementar, setAbaTesteComplementar] = useState('disc');
+  const [statusTestesComplementares, setStatusTestesComplementares] = useState({
+    disc: null,
+    fit_cultural: null,
+    raciocinio: null,
+  });
+  useEffect(() => {
+    setAbaDetalhe('resumo');
+    setAbaTesteComplementar('disc');
+    setStatusTestesComplementares({ disc: null, fit_cultural: null, raciocinio: null });
+  }, [detalhe?.id_prova]);
   const [replayAberto, setReplayAberto] = useState(false);
   const [replay, setReplay] = useState(null);
   const [carregandoReplay, setCarregandoReplay] = useState(false);
@@ -1653,6 +1685,19 @@ function ModalDetalheProvaGerada({
       onClose=${onClose}
     >
       <div class="rh-details-body generated-detail-body">
+        <${Tabs}
+          className="generated-detail-tabs"
+          activeKey=${abaDetalhe}
+          onChange=${setAbaDetalhe}
+          tabs=${[
+            { key: 'resumo', label: 'Resumo' },
+            { key: 'testes', label: 'Testes complementares' },
+            ...(detalhe.feedback_qualitativo ? [{ key: 'qualitativo', label: 'Feedback qualitativo' }] : []),
+            { key: 'respostas', label: 'Respostas' },
+          ]}
+        />
+
+        <${TabPanel} tabKey="resumo" activeKey=${abaDetalhe}>
         <div class="generated-detail-summary-grid">
           ${[
             { icon: 'task_alt', label: 'Status', value: statusProva || '-' },
@@ -1755,23 +1800,74 @@ function ModalDetalheProvaGerada({
             )}
           </div>
         </section>
+        </${TabPanel}>
 
+        <${TabPanel} tabKey="testes" activeKey=${abaDetalhe}>
+        <section class="generated-detail-section generated-complementary-tests">
+          <h3>Análise do candidato</h3>
+          <div class="generated-complementary-tabs" role="tablist">
+            ${[
+              { key: 'disc', label: 'Teste DISC' },
+              { key: 'fit_cultural', label: 'Fit Cultural' },
+              { key: 'raciocinio', label: 'Raciocínio Lógico e Numérico' },
+            ].map((aba) => {
+              const status = statusTestesComplementares[aba.key];
+              const desativada = status === false;
+              return html`
+                <button
+                  type="button"
+                  role="tab"
+                  key=${aba.key}
+                  class=${`generated-complementary-tab ${abaTesteComplementar === aba.key ? 'is-active' : ''} ${desativada ? 'is-empty' : ''}`}
+                  aria-selected=${abaTesteComplementar === aba.key}
+                  title=${desativada ? 'Candidato não realizou este teste' : aba.label}
+                  onClick=${() => setAbaTesteComplementar(aba.key)}
+                >
+                  ${aba.label}
+                </button>
+              `;
+            })}
+          </div>
+          <div class="generated-complementary-panel" hidden=${abaTesteComplementar !== 'disc'}>
+            <${PainelResultadoDisc}
+              idTeste=${detalhe.id_teste}
+              aoCarregar=${(status) => setStatusTestesComplementares((valor) => ({ ...valor, disc: status.possuiResultado }))}
+            />
+          </div>
+          <div class="generated-complementary-panel" hidden=${abaTesteComplementar !== 'fit_cultural'}>
+            <${PainelResultadoFitCultural}
+              candidatoProcessoId=${detalhe.id_registro}
+              aoCarregar=${(status) => setStatusTestesComplementares((valor) => ({ ...valor, fit_cultural: status.possuiResultado }))}
+            />
+          </div>
+          <div class="generated-complementary-panel" hidden=${abaTesteComplementar !== 'raciocinio'}>
+            <${PainelResultadoRaciocinio}
+              idTeste=${detalhe.id_teste}
+              aoCarregar=${(status) => setStatusTestesComplementares((valor) => ({ ...valor, raciocinio: status.possuiResultado }))}
+            />
+          </div>
+        </section>
+        </${TabPanel}>
+
+        <${TabPanel} tabKey="qualitativo" activeKey=${abaDetalhe}>
         ${detalhe.feedback_qualitativo
           ? html`
-              <section class="generated-detail-section">
+              <section class="generated-detail-section generated-qualitative-feedback">
                 <h3>Feedback qualitativo automático</h3>
-                <div class="rh-feedback-qualitativo-resumo">
+                <p class="generated-qualitative-summary">
                   ${detalhe.feedback_qualitativo.resumo_textual || 'Sem resumo qualitativo disponível.'}
-                </div>
+                </p>
                 ${(detalhe.feedback_qualitativo.questoes_erradas || []).length
                   ? html`
-                      <div class="generated-answer-list">
+                      <div class="generated-qualitative-list">
                         ${detalhe.feedback_qualitativo.questoes_erradas.map(
                           (item) => html`
-                            <div class="rh-feedback-qualitativo-item" key=${`fb-${item.questao_indice}-${item.questao_id ?? ''}`}>
-                              <strong>Questão ${Number(item.questao_indice ?? 0) + 1} — ${item.categoria}</strong>
-                              ${item.dificuldade ? html`<span class="text-muted"> (${item.dificuldade})</span>` : null}
-                              <p style=${{ margin: '4px 0 0' }}>${item.feedback_qualitativo}</p>
+                            <div class="generated-qualitative-item" key=${`fb-${item.questao_indice}-${item.questao_id ?? ''}`}>
+                              <span class="generated-qualitative-item-title">
+                                Questão ${Number(item.questao_indice ?? 0) + 1} — ${item.categoria}
+                                ${item.dificuldade ? html`<small>${item.dificuldade}</small>` : null}
+                              </span>
+                              <p>${item.feedback_qualitativo}</p>
                             </div>
                           `,
                         )}
@@ -1781,19 +1877,24 @@ function ModalDetalheProvaGerada({
               </section>
             `
           : null}
+        </${TabPanel}>
 
-        <section class="generated-detail-section generated-full-result">
-          <button
-            type="button"
-            class="generated-detail-section-title generated-section-toggle"
-            onClick=${() => setMostrarResultadoCompleto((valor) => !valor)}
-            aria-expanded=${mostrarResultadoCompleto}
-          >
-            <h3>Resultado completo</h3>
-            <span class="material-symbols-outlined">${IconeSvg(mostrarResultadoCompleto ? 'keyboard_arrow_up' : 'keyboard_arrow_down')}</span>
-          </button>
-          ${mostrarResultadoCompleto
-            ? linhasResultado.length
+        <${TabPanel} tabKey="respostas" activeKey=${abaDetalhe}>
+        ${!mostrarResultadoCompleto
+          ? html`
+              <${EmptyState}
+                title="Resultado completo oculto"
+                text="Use Ações → Ver resultado completo para exibir as respostas, notas e gabarito desta prova."
+              />
+            `
+          : null}
+        ${mostrarResultadoCompleto
+          ? html`
+              <section class="generated-detail-section generated-full-result">
+                <div class="generated-detail-section-title">
+                  <h3>Resultado completo</h3>
+                </div>
+                ${linhasResultado.length
               ? html`
                   <div class="generated-result-table-shell">
                     <table class="generated-result-table">
@@ -1802,6 +1903,7 @@ function ModalDetalheProvaGerada({
                           <th># & Etapa</th>
                           <th>Questão</th>
                           ${possuiRespostas ? html`<th>Resposta</th>` : null}
+                          ${mostrarGabarito ? html`<th>Gabarito</th>` : null}
                           <th>Nota</th>
                           <th>Status</th>
                         </tr>
@@ -1816,6 +1918,7 @@ function ModalDetalheProvaGerada({
                               </td>
                               <td>${linha.questao}</td>
                               ${possuiRespostas ? html`<td>${linha.resposta}</td>` : null}
+                              ${mostrarGabarito ? html`<td>${linha.gabarito}</td>` : null}
                               <td><strong>${linha.nota}</strong></td>
                               <td>
                                 <span class=${`generated-answer-status ${linha.status.className}`}>
@@ -1881,53 +1984,11 @@ function ModalDetalheProvaGerada({
                   <div class="generated-full-result-fallback">
                     <p>As respostas completas ainda não estão salvas para esta prova.</p>
                   </div>
-                `
-            : null}
-        </section>
-
-        ${false && mostrarResultadoCompleto
-          ? html`
-              <section class="generated-detail-section generated-full-result">
-                <h3>Resultado completo</h3>
-                ${respostas.length
-                  ? html`
-                      <div class="generated-answer-list">
-                        ${respostas.map(
-                          (resposta) => html`
-                            <article class="generated-answer-card" key=${resposta.id_resposta}>
-                              <div>
-                                <strong>
-                                  ${Number(resposta.questao_indice ?? 0) + 1}. ${resposta.categoria || 'Questão'}
-                                </strong>
-                                <p>${resposta.texto_questao_snapshot || '-'}</p>
-                              </div>
-                              <dl>
-                                <div>
-                                  <dt>Resposta</dt>
-                                  <dd>${descreverResposta(resposta.resposta)}</dd>
-                                </div>
-                                <div>
-                                  <dt>Nota</dt>
-                                  <dd>${formatarScore(resposta.nota)}</dd>
-                                </div>
-                                <div>
-                                  <dt>Status</dt>
-                                  <dd>${resposta.correta === true || resposta.correta === 1 ? 'Correta' : resposta.correta === false || resposta.correta === 0 ? 'Incorreta' : 'Manual'}</dd>
-                                </div>
-                              </dl>
-                            </article>
-                          `,
-                        )}
-                      </div>
-                    `
-                  : html`
-                      <div class="generated-full-result-fallback">
-                        <p>As respostas completas ainda não estão salvas para esta prova.</p>
-                      </div>
-                    `}
+                `}
               </section>
             `
           : null}
+        </${TabPanel}>
       </div>
       <footer class="rh-modal-footer generated-detail-footer">
         <${BotaoAcaoProva} icon="close" label="Fechar" variant="neutral" onClick=${onClose} />
@@ -1979,6 +2040,21 @@ function ModalDetalheProvaGerada({
                   }}>
                     <span class="material-symbols-outlined">${IconeSvg('menu_book')}</span>
                     Inserir Manualmente
+                  </button>
+                  <button type="button" role="menuitem" onClick=${() => {
+                    setMenuAcoesAberto(false);
+                    setMostrarResultadoCompleto((valor) => !valor);
+                  }}>
+                    <span class="material-symbols-outlined">${IconeSvg('checklist')}</span>
+                    ${mostrarResultadoCompleto ? 'Ocultar resultado completo' : 'Ver resultado completo'}
+                  </button>
+                  <button type="button" role="menuitem" onClick=${() => {
+                    setMenuAcoesAberto(false);
+                    setMostrarGabarito((valor) => !valor);
+                    setMostrarResultadoCompleto(true);
+                  }}>
+                    <span class="material-symbols-outlined">${IconeSvg('fact_check')}</span>
+                    ${mostrarGabarito ? 'Ocultar gabarito' : 'Ver gabarito'}
                   </button>
                   <button
                     type="button"
@@ -2476,6 +2552,27 @@ export function TelaProvasResultados({ controlador }) {
     }
   };
 
+  const imprimirProvaDaLinha = async (prova) => {
+    if (!prova?.id_prova) return;
+    try {
+      setErro('');
+      const dados = await lerProvaGerada(prova.id_prova);
+      const score = dados.score || {};
+      const resultado = dados.resultado || {};
+      const alertas = montarAlertasDetalhe(score);
+      const etapas = montarEtapasResultado(dados);
+      const respostas = Array.isArray(dados.respostas) ? dados.respostas : [];
+      const questoes = Array.isArray(dados.questoes) ? dados.questoes : [];
+      const linhasResultado = montarLinhasResultadoDetalhe(respostas, questoes);
+      const notaGeral = obterNotaFinal(dados) ?? resultado.nota_final_prova;
+      const scoreConecta = obterScoreFinal(dados) ?? score.score_final;
+      const statusProva = dados.status || resultado.status || 'Pendente';
+      imprimirResultadoProva(dados, { etapas, linhasResultado, alertas, notaGeral, scoreConecta, statusProva });
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível imprimir esta prova.');
+    }
+  };
+
   const executarCancelamento = async (prova) => {
     if (!prova?.id_prova) return;
     setErroAcaoSensivel('');
@@ -2745,8 +2842,26 @@ export function TelaProvasResultados({ controlador }) {
                     <tbody>
                   ${provasPaginadas.itens.map((prova) => {
                     const alertas = obterAlertas(prova);
+                    const cancelada = normalizarBusca(prova.status || '').includes('cancelad');
+                    const naoIniciada = !prova.iniciada_em;
+                    const acoesLinha = [
+                      { key: 'ver', label: 'Ver detalhe', icon: 'visibility', onClick: () => abrirDetalhe(prova.id_prova) },
+                      { key: 'imprimir', label: 'Imprimir prova', icon: 'print', onClick: () => imprimirProvaDaLinha(prova) },
+                      { separator: true },
+                      cancelada
+                        ? { key: 'reabrir', label: 'Reabrir prova', icon: 'lock_open', onClick: () => executarReabertura(prova) }
+                        : {
+                          key: 'cancelar',
+                          label: 'Cancelar prova',
+                          icon: 'cancel',
+                          danger: true,
+                          disabled: !naoIniciada,
+                          title: naoIniciada ? '' : 'Prova já iniciada pelo candidato.',
+                          onClick: () => executarCancelamento(prova),
+                        },
+                    ];
                     return html`
-                      <tr key=${prova.id_prova}>
+                      <tr key=${prova.id_prova} class="generated-exams-row" onClick=${() => abrirDetalhe(prova.id_prova)}>
                         <td>
                           <div class="generated-candidate-cell">
                             <span class="generated-candidate-avatar">${obterIniciais(prova.nome_candidato)}</span>
@@ -2768,9 +2883,6 @@ export function TelaProvasResultados({ controlador }) {
                           <span class=${`generated-status-badge ${obterClasseStatusProva(prova.status)}`}>
                             ${prova.status || '-'}
                           </span>
-                          ${prova.decisao_rh
-                            ? html`<span class="generated-decision-badge">Decisao RH: ${prova.decisao_rh}</span>`
-                            : null}
                         </td>
                         <td class="generated-date-cell">${formatarDataSomente(prova.gerada_em)}</td>
                         <td class="generated-score-cell">${formatarScore(obterNotaFinal(prova))}</td>
@@ -2778,20 +2890,15 @@ export function TelaProvasResultados({ controlador }) {
                           <button
                             type="button"
                             class=${`generated-alert-badge ${alertas.length ? 'is-warning' : 'is-empty'}`}
-                            onClick=${() => abrirDetalhe(prova.id_prova)}
+                            onClick=${(event) => { event.stopPropagation(); abrirDetalhe(prova.id_prova); }}
                           >
                             <span class="material-symbols-outlined">${IconeSvg(alertas.length ? 'warning' : 'check_circle')}</span>
                             ${alertas.length ? `${alertas.length} alerta${alertas.length > 1 ? 's' : ''}` : 'Sem alertas'}
                           </button>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end" onClick=${(event) => event.stopPropagation()}>
                           <div class="generated-exams-actions">
-                            <${BotaoAcaoProva}
-                              icon="visibility"
-                              label="Detalhes"
-                              variant="primary"
-                              onClick=${() => abrirDetalhe(prova.id_prova)}
-                            />
+                            <${MenuAcoesProcesso} label="Ações" icon="expand_more" ariaLabel="Ações da prova" triggerClassName="btn btn-primary process-actions-trigger" acoes=${acoesLinha} />
                           </div>
                         </td>
                       </tr>

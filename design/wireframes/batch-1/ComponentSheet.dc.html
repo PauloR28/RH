@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg:#f4f7fb; --surface:#ffffff; --surface-soft:#f6f8fc; --surface-strong:#e9eef7;
+      --border:#dbe4f0; --border-strong:#c7d3e3; --border-subtle:rgba(219,228,240,.7);
+      --text:#101d33; --text-soft:#4d5f79; --text-muted:#7a8aa3;
+      --primary:#086fca; --primary-strong:#014a8a; --primary-soft:#eaf3fb;
+      --success:#13795b; --success-soft:#e7f7f1;
+      --danger:#c23b4d; --danger-soft:#fdecef;
+      --warning:#b97810; --warning-soft:#fff4de;
+      --info:#0c6d9d; --info-soft:#eaf7fd;
+      --r-sm:6px; --r-md:8px; --r-lg:14px; --r-pill:999px;
+      --e1:0 1px 2px rgba(15,33,57,.04); --e2:0 4px 16px rgba(14,33,61,.06); --e3:0 8px 32px rgba(12,31,58,.08);
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+    .num{font-variant-numeric:tabular-nums;}
+    svg.ic{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+    .page{max-width:1392px;margin:0 auto;padding:36px 24px 64px;}
+    .h1{font-size:1.75rem;font-weight:700;margin:0 0 4px;}
+    .h1sub{color:var(--text-muted);font-size:.9rem;margin:0 0 32px;}
+    .section{margin-bottom:36px;}
+    .section h2{font-size:1.05rem;font-weight:700;margin:0 0 4px;}
+    .section .desc{color:var(--text-muted);font-size:.82rem;margin:0 0 16px;max-width:760px;line-height:1.55;}
+    .row{display:flex;gap:32px;align-items:flex-start;}
+    .col{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:20px 22px;}
+    .col-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:14px;}
+    .col-label.bad{color:var(--danger);}
+    .col-label.good{color:var(--success);}
+
+    /* typography */
+    .tsample{display:flex;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid var(--border-subtle);}
+    .tsample:last-child{border:none;}
+    .tsample .tag{width:110px;font-size:.72rem;color:var(--text-muted);font-weight:600;flex:none;}
+    .t-display{font-size:1.75rem;font-weight:700;letter-spacing:-.01em;}
+    .t-heading{font-size:1.48rem;font-weight:700;}
+    .t-subheading{font-size:1rem;font-weight:600;}
+    .t-body{font-size:.92rem;font-weight:400;}
+    .t-caption{font-size:.82rem;color:var(--text-muted);}
+    .t-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);}
+
+    /* color swatches */
+    .swrow{display:flex;gap:8px;margin-bottom:8px;}
+    .sw{flex:1;height:52px;border-radius:var(--r-sm);display:flex;align-items:flex-end;padding:6px 8px;font-size:.66rem;font-weight:700;color:#fff;}
+    .sw.dark-label{color:var(--text-soft);}
+
+    /* buttons old vs new */
+    .btn-old{background:#0d6efd;color:#fff;border:none;border-radius:.375rem;padding:.375rem .75rem;font-size:1rem;font-family:system-ui;font-weight:400;box-shadow:0 1px 2px rgba(0,0,0,.075);}
+    .badge-old{background:#0d6efd;color:#fff;border-radius:.375rem;padding:.35em .65em;font-size:.75em;font-weight:700;display:inline-block;font-family:system-ui;}
+    .btn{border:none;border-radius:var(--r-sm);font-family:inherit;font-size:.84rem;font-weight:600;padding:9px 16px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+    .btn-primary{background:var(--primary);color:#fff;}
+    .btn-outline{background:var(--surface);color:var(--primary);border:1px solid var(--border-strong);}
+    .btn-danger{background:var(--danger-soft);color:var(--danger);}
+    .pill{display:inline-flex;align-items:center;gap:5px;border-radius:var(--r-pill);padding:4px 10px;font-size:.74rem;font-weight:600;}
+    .pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+    .pill.success{background:var(--success-soft);color:var(--success);}
+    .pill.warning{background:var(--warning-soft);color:var(--warning);}
+    .pill.danger{background:var(--danger-soft);color:var(--danger);}
+    .pill.info{background:var(--info-soft);color:var(--info);}
+    .stack{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+    .alert-old{background:#f8d7da;color:#842029;border:1px solid #f5c2c7;border-radius:.375rem;padding:.75rem 1rem;font-family:system-ui;font-size:.9rem;margin-top:10px;}
+    .alert-new{display:flex;align-items:center;gap:10px;background:var(--danger-soft);color:var(--danger);border-radius:var(--r-sm);padding:10px 14px;font-size:.84rem;font-weight:600;margin-top:10px;}
+
+    /* card elevation tiers */
+    .tier{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;flex:1;}
+    .tier1{box-shadow:var(--e1);}
+    .tier2{box-shadow:var(--e2);}
+    .tier3{box-shadow:var(--e3);border-radius:var(--r-lg);border-top:3px solid var(--primary);}
+    .tier .tlabel{font-size:.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;}
+    .tier .tuse{font-size:.78rem;color:var(--text-soft);}
+
+    /* icons */
+    .icongrid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;}
+    .iconcell{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);height:56px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);}
+
+    /* table density */
+    table{width:100%;border-collapse:collapse;font-size:.84rem;}
+    td,th{padding:6px 10px;border-bottom:1px solid var(--border-subtle);text-align:left;}
+    .compact td{padding:5px 10px;}
+    .comfortable td{padding:13px 10px;}
+    th{font-size:.68rem;text-transform:uppercase;color:var(--text-muted);}
+    td.r{text-align:right;}
+
+    .note{background:#fffbea;border:1px solid #eddd9a;border-radius:var(--r-md);padding:14px 16px;font-size:.8rem;line-height:1.55;color:#5c4a12;margin-top:14px;}
+    .note b{color:#3d3008;}
+  </style>
+</helmet>
+
+<div style="background:var(--bg);min-height:1900px;">
+  <div class="page">
+    <h1 class="h1">Sistema de design — Fase 3</h1>
+    <p class="h1sub">Fundação aplicada nesta rodada: tipografia, cor, componentes-base e ícones. Light mode mostrado aqui; os mesmos tokens semânticos já resolvem o par escuro em <code>tokens.css</code>.</p>
+
+    <div class="section">
+      <h2>1 — Botões, badges e alertas: por que "parecem template"</h2>
+      <p class="desc">O componente compartilhado (<code>primitives.js</code>) usa hoje classes literais do Bootstrap 5.3 (<code>btn btn-primary</code>, <code>badge text-bg-*</code>, <code>alert alert-*</code>), carregado via CDN em <code>index.html</code>. Isso não é uma cor errada — é o DOM/classe default de uma biblioteca que qualquer produto genérico usa sem customizar. A correção não é reskinar o Bootstrap, é parar de depender do seu contrato de classes.</p>
+      <div class="row">
+        <div class="col">
+          <div class="col-label bad">Antes — Bootstrap default</div>
+          <div class="stack"><button class="btn-old">Salvar</button><span class="badge-old">Aprovado</span></div>
+          <div class="alert-old">Não foi possível salvar as alterações.</div>
+          <p style="font-size:.78rem;color:var(--text-muted);margin:8px 0 0;">Inter-ish system font, radius .375rem genérico, azul #0d6efd de fábrica, alerta com barra lateral grossa — o mesmo em milhares de outros produtos.</p>
+        </div>
+        <div class="col">
+          <div class="col-label good">Depois — componente próprio Conecta</div>
+          <div class="stack">
+            <button class="btn btn-primary">Salvar</button>
+            <button class="btn btn-outline">Cancelar</button>
+            <button class="btn btn-danger">Excluir</button>
+          </div>
+          <div class="stack">
+            <span class="pill success">Aprovado</span>
+            <span class="pill warning">Em análise</span>
+            <span class="pill danger">Eliminado</span>
+            <span class="pill info">Em processo</span>
+          </div>
+          <div class="alert-new"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--danger);flex:none;"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Não foi possível salvar as alterações.</div>
+          <p style="font-size:.78rem;color:var(--text-muted);margin:8px 0 0;">Azul real da logo, outline+ponto em vez de preenchimento plano, Plus Jakarta Sans, radius-subtle (6px), alerta com ícone + fundo suave em vez de barra sólida.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>2 — Escala tipográfica</h2>
+      <p class="desc">Plus Jakarta Sans mantida (já tem identidade). O papel de cada nível é o que faltava — hoje página e seção usam o mesmo tamanho.</p>
+      <div class="col" style="max-width:640px;">
+        <div class="tsample"><span class="tag">Display</span><span class="t-display">Central de candidatos</span></div>
+        <div class="tsample"><span class="tag">Heading</span><span class="t-heading">Lista geral</span></div>
+        <div class="tsample"><span class="tag">Subheading</span><span class="t-subheading">Resumo geral</span></div>
+        <div class="tsample"><span class="tag">Body</span><span class="t-body">Texto corrido de tabelas e formulários.</span></div>
+        <div class="tsample"><span class="tag">Caption</span><span class="t-caption">Metadado — PS-2026-0148</span></div>
+        <div class="tsample"><span class="tag">Label</span><span class="t-label">Status do candidato</span></div>
+        <div class="tsample"><span class="tag">Numérico</span><span class="t-body num" style="font-weight:700;">R$ 8.412,90 · 92%</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>3 — Paleta (azul da logo como base)</h2>
+      <p class="desc">Azul confirmado como cor principal (amostrado da logo). Cores de status são funcionais, não decorativas — usadas só para comunicar estado real, nunca como enfeite.</p>
+      <div class="swrow">
+        <div class="sw" style="background:#014a8a;">Primary strong</div>
+        <div class="sw" style="background:#086fca;">Primary</div>
+        <div class="sw dark-label" style="background:#eaf3fb;">Primary soft</div>
+        <div class="sw" style="background:#13795b;">Success</div>
+        <div class="sw" style="background:#b97810;">Warning</div>
+        <div class="sw" style="background:#c23b4d;">Danger</div>
+        <div class="sw" style="background:#e2921a;">Accent (∞ símbolo apenas)</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4 — Hierarquia de cartões (3 níveis com propósito)</h2>
+      <p class="desc">Hoje quase todo bloco usa o mesmo <code>.rh-section-card</code> — cartão genérico repetido é um dos sinais mais citados de "template". Três pesos com uso definido:</p>
+      <div class="row">
+        <div class="tier tier1"><div class="tlabel">Elevation 1</div><div class="tuse">Conteúdo padrão — linhas de tabela, cards de lista</div></div>
+        <div class="tier tier2"><div class="tlabel">Elevation 2</div><div class="tuse">Interativo / hover — card clicável, item selecionado</div></div>
+        <div class="tier tier3"><div class="tlabel">Elevation 3 · radius-prominent</div><div class="tuse">Destaque único por tela — painel Resumo, KPI hero</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>5 — Densidade de tabela (função da tarefa, não padrão único)</h2>
+      <p class="desc">Hoje toda tabela usa o mesmo <code>padding</code> do Bootstrap. Números à direita, tabulares, coluna com unidade clara — telas de triagem em massa (Provas, Candidatos) pedem <em>compact</em>; telas de decisão pontual podem usar <em>comfortable</em>.</p>
+      <div class="row">
+        <div class="col">
+          <div class="col-label">Compact</div>
+          <table class="compact"><thead><tr><th>Candidato</th><th class="r">Nota</th></tr></thead>
+            <tbody><tr><td>Marina Costa Ribeiro</td><td class="r num">8.7</td></tr><tr><td>Rafael Nogueira Lima</td><td class="r num">6.2</td></tr><tr><td>Juliana Freitas Souza</td><td class="r num">3.4</td></tr></tbody></table>
+        </div>
+        <div class="col">
+          <div class="col-label">Comfortable</div>
+          <table class="comfortable"><thead><tr><th>Candidato</th><th class="r">Nota</th></tr></thead>
+            <tbody><tr><td>Marina Costa Ribeiro</td><td class="r num">8.7</td></tr><tr><td>Rafael Nogueira Lima</td><td class="r num">6.2</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>6 — Linguagem de ícones</h2>
+      <p class="desc">O conjunto SVG próprio (<code>icones-svg.js</code>, 30+ ícones) já existe e é mantido: contorno, <code>stroke-width</code> 2, cantos arredondados, grade 24×24. A regra desta rodada é de curadoria, não de reconstrução — todo ícone novo segue exatamente este peso.</p>
+      <div class="icongrid">
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1.5-4 4.5-6 7-6s5.5 2 7 6"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><path d="M9 4h6l1 3h4v13H4V7h4z"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V5h5l2 2h9v12z"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="M20 20l-4.5-4.5"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5"/><path d="M18 4v4h-4"/><path d="M20 12a8 8 0 0 1-14 5"/><path d="M6 20v-4h4"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="iconcell"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+      </div>
+    </div>
+
+    <div class="note"><b>Nota para aprovação</b>Esta folha documenta a base (Fase 3). Os componentes novos (botão/badge/tabela próprios) ainda não substituem os atuais em produção — isso só acontece tela por tela, na Fase 5, depois que cada lote de wireframes for aprovado. Nada aqui foi aplicado ao app real ainda.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

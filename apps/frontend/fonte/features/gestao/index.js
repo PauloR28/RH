@@ -76,6 +76,7 @@ import { resolverAvatarUrl } from '../../shared/avatares.js';
 import {
   formatarDataHora,
   obterClasseAderencia,
+  obterClasseFaixaNota,
   obterClasseStatusEntrevista,
 } from '../../shared/helpers-visuais.js';
 import { ModalComporEmail } from '../../shared/components/compose-email-modal.js';
@@ -121,6 +122,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
+  WizardStepper,
+  WizardSummaryStrip,
 } from '../../ui/componentes-compartilhados.js';
 import { BotaoAjudaTour, TourGuiado } from '../../ui/tour-guiado.js';
 
@@ -1717,9 +1720,11 @@ export function TelaLogin({ controlador }) {
           <div class="rh-login-copy-block">
             <h2 class="rh-login-welcome-title">Acesso ao ambiente RH</h2>
             <p class="rh-login-welcome-text">
-              ${exibirLoginLocal
+              ${mensagemErro
       ? 'A autenticação Microsoft não foi concluída. Use seu acesso local para continuar.'
-      : 'Entre com sua conta Microsoft para continuar.'}
+      : exibirLoginLocal
+        ? 'Use seu login e senha para continuar.'
+        : 'Entre com sua conta Microsoft para continuar.'}
             </p>
           </div>
 
@@ -1741,6 +1746,23 @@ export function TelaLogin({ controlador }) {
             </svg>
             <span>${autenticandoMicrosoft ? 'Validando conta Microsoft...' : 'Entrar com a Microsoft'}</span>
           </a>
+
+          ${!exibirLoginLocal
+      ? html`
+                <div class="rh-login-alt-row">
+                  <button
+                    class="rh-login-link-btn rh-login-alt-btn"
+                    type="button"
+                    onClick=${() => {
+          setMensagemErro('');
+          setExibirLoginLocal(true);
+        }}
+                  >
+                    Entrar com login e senha
+                  </button>
+                </div>
+              `
+      : null}
 
           ${exibirLoginLocal
       ? html`
@@ -1995,35 +2017,35 @@ export function TelaInicio({ controlador }) {
         label: 'Candidatos ativos',
         value: candidatosAtivosResumo.length,
         helper: 'Em acompanhamento',
-        variant: 'is-home is-blue',
+        variant: '',
       },
       {
         icon: 'folder_open',
         label: 'Processos abertos',
         value: processosAtivos.length,
         helper: 'Abertos agora',
-        variant: 'is-home is-green',
+        variant: '',
       },
       {
         icon: 'calendar_month',
         label: 'Entrevistas hoje',
         value: entrevistasHoje.length,
         helper: 'Agenda do dia',
-        variant: 'is-home is-yellow',
+        variant: '',
       },
       {
         icon: 'warning',
         label: 'Pendências',
         value: pendenciasResumo,
         helper: pendenciasResumo ? 'Requer atenção' : 'Sem alertas',
-        variant: 'is-home is-red',
+        variant: pendenciasResumo ? 'is-attention' : '',
       },
       {
         icon: 'star',
         label: 'Contratações',
         value: contratacoesResumo.length,
         helper: 'Aprovados',
-        variant: 'is-home is-blue',
+        variant: 'is-positive',
       },
     ],
     [
@@ -2204,7 +2226,7 @@ export function TelaInicio({ controlador }) {
         icon: 'notifications',
         label: 'Notificações do dia',
         value: notificacoesDia.length,
-        variant: 'is-blue',
+        variant: notificacoesDia.length ? 'is-attention' : '',
       },
     ].map(
       (item) => html`
@@ -3217,6 +3239,10 @@ export function TelaCriarProcesso({ controlador }) {
     descricaoAtividades: '',
     descricaoAtividadesEditada: false,
     treinamentosSelecionados: [],
+    // Correções.txt item 9: testes complementares (independentes do Conecta
+    // Provas) oferecidos ao candidato quando a prova deste processo é
+    // liberada — ver montarConfiguracaoProva() e liberarProvaDoProcesso().
+    testesComplementares: { disc: false, fitCultural: false, raciocinioLogico: false },
   });
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [erro, setErro] = useState('');
@@ -3765,6 +3791,14 @@ export function TelaCriarProcesso({ controlador }) {
       tom_prova: formulario.tomProva,
       situacao_pratica_operacao: formulario.personalizacaoInteligente ? '' : formulario.situacaoPraticaOperacao,
       personalizacao,
+      // Correções.txt item 9: lido em montarPayloadLiberacaoProva()
+      // (fonte/features/processos/index.js) para provisionar automaticamente
+      // os testes complementares habilitados quando a prova é liberada.
+      testes_complementares: {
+        disc: Boolean(formulario.testesComplementares?.disc),
+        fit_cultural: Boolean(formulario.testesComplementares?.fitCultural),
+        raciocinio_logico: Boolean(formulario.testesComplementares?.raciocinioLogico),
+      },
       configuracao: {
         blueprint_key: blueprint?.key || '',
         blueprint_label: blueprint?.label || formulario.areaProva || '',
@@ -3917,10 +3951,9 @@ export function TelaCriarProcesso({ controlador }) {
       subtituloMarca="Novo processo seletivo"
       placeholderBusca="Cadastro de novo processo"
       controlador=${controlador}
-      acaoPrimaria=${{
-      label: 'Ver processos',
-      onClick: () => controlador.irParaTelaProtegida('screen-processes'),
-    }}
+      acaoPrimaria=${etapaAtual < 7
+      ? { label: 'Próximo passo', icon: 'arrow_forward', onClick: avancar, disabled: salvando }
+      : { label: salvando ? 'Publicando...' : 'Publicar processo', icon: 'check', onClick: criar, disabled: salvando }}
     >
       <${PageIntro}
         kicker="Console • Novo processo"
@@ -3942,8 +3975,8 @@ export function TelaCriarProcesso({ controlador }) {
       />
 
       <div class="process-create-shell">
-        <div class="process-create-stepper" aria-label="Etapas do processo seletivo">
-          ${[
+        <${WizardStepper}
+          etapas=${[
       ['1', 'Dados do Processo'],
       ['2', 'Configuração da Prova'],
       ['3', 'Disponibilidade de Horários para Entrevistas'],
@@ -3951,19 +3984,23 @@ export function TelaCriarProcesso({ controlador }) {
       ['5', 'Salário e Benefícios'],
       ['6', 'Treinamentos'],
       ['7', 'Publicação'],
-    ].map(([numero, label], indice) => {
-      const etapa = indice + 1;
-      return html`
-              <div class=${`process-create-step ${etapaAtual === etapa ? 'is-active' : ''} ${etapaAtual > etapa ? 'is-done' : ''}`} key=${numero}>
-                <span>${etapaAtual > etapa ? html`<i class="material-symbols-outlined">${IconeSvg('check')}</i>` : numero}</span>
-                <strong>${label}</strong>
-              </div>
-            `;
-    })}
-        </div>
+    ]}
+          etapaAtual=${etapaAtual}
+        />
 
-        <div class="process-create-grid">
-          <div class="process-create-main">
+        <${WizardSummaryStrip}
+          items=${[
+      ['Vaga', formulario.vaga || '-'],
+      ['Quantidade', `${String(formulario.quantidade || 0).padStart(2, '0')} vaga(s)`],
+      ['Encerramento', formatarDataResumoProcesso(formulario.dataEncerramento)],
+      ['Cliente', formulario.operacao || '-'],
+      ['Prova', blueprint?.label || '-'],
+      ['Questões', questoesConfiguradas.length || '-'],
+    ]}
+          note="A prova configurada aqui fica vinculada ao processo seletivo."
+        />
+
+        <div class="process-create-main">
             ${etapaAtual === 1
       ? html`
                   <section class="process-create-card" tour-id="process-create-form">
@@ -4207,6 +4244,48 @@ export function TelaCriarProcesso({ controlador }) {
                           </div>
                         `
           : null}
+                  </section>
+
+                  <section class="process-create-card">
+                    <div class="process-create-section-title">
+                      <span class="material-symbols-outlined">${IconeSvg('quiz')}</span>
+                      <h2>Testes complementares</h2>
+                    </div>
+                    <p class="text-muted" style=${{ marginBottom: '12px' }}>
+                      Testes independentes do Conecta Provas. Quando ativados, ficam disponíveis para os candidatos
+                      deste processo assim que a prova for liberada.
+                    </p>
+                    <div class="row g-3">
+                      ${[
+                        { chave: 'disc', label: 'Teste DISC', descricao: 'Perfil comportamental D-I-S-C.' },
+                        { chave: 'fitCultural', label: 'Fit Cultural', descricao: 'Aderência aos valores da empresa.' },
+                        { chave: 'raciocinioLogico', label: 'Raciocínio Lógico e Numérico', descricao: 'Teste de raciocínio lógico e numérico.' },
+                      ].map(
+                        (teste) => html`
+                          <div class="col-md-4" key=${teste.chave}>
+                            <div class="form-check form-switch pt-2">
+                              <input
+                                class="form-check-input"
+                                id=${`teste-complementar-${teste.chave}`}
+                                type="checkbox"
+                                checked=${Boolean(formulario.testesComplementares?.[teste.chave])}
+                                onChange=${(event) => setFormulario({
+                                  ...formulario,
+                                  testesComplementares: {
+                                    ...formulario.testesComplementares,
+                                    [teste.chave]: event.target.checked,
+                                  },
+                                })}
+                              />
+                              <label class="form-check-label" for=${`teste-complementar-${teste.chave}`}>
+                                <strong>${teste.label}</strong>
+                                <small class="d-block text-muted">${teste.descricao}</small>
+                              </label>
+                            </div>
+                          </div>
+                        `,
+                      )}
+                    </div>
                   </section>
                 `
       : null}
@@ -4649,23 +4728,6 @@ export function TelaCriarProcesso({ controlador }) {
                   </section>
                 `
       : null}
-          </div>
-
-          <aside class="process-create-summary">
-            <h3><span class="material-symbols-outlined">${IconeSvg('info')}</span>Resumo do processo</h3>
-            <dl>
-              <div><dt>Vaga</dt><dd>${formulario.vaga || '-'}</dd></div>
-              <div><dt>Quantidade</dt><dd>${String(formulario.quantidade || 0).padStart(2, '0')} vaga(s)</dd></div>
-              <div><dt>Encerramento</dt><dd>${formatarDataResumoProcesso(formulario.dataEncerramento)}</dd></div>
-              <div><dt>Cliente</dt><dd>${formulario.operacao || '-'}</dd></div>
-              <div><dt>Prova</dt><dd>${blueprint?.label || '-'}</dd></div>
-              <div><dt>Questões</dt><dd>${questoesConfiguradas.length || '-'}</dd></div>
-            </dl>
-            <div class="process-create-summary-note">
-              <span class="material-symbols-outlined">${IconeSvg('verified')}</span>
-              A prova configurada aqui fica vinculada ao processo seletivo.
-            </div>
-          </aside>
         </div>
 
         ${erro ? html`<div class="alert alert-danger mt-3">${erro}</div>` : null}
@@ -4692,23 +4754,14 @@ export function TelaCriarProcesso({ controlador }) {
             >
               Cancelar
             </button>
-            ${etapaAtual < 7
+            ${etapaAtual === 7
       ? html`
-                  <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${avancar}>
-                    Próximo passo
-                    <span class="material-symbols-outlined">${IconeSvg('arrow_forward')}</span>
-                  </button>
-                `
-      : html`
                   <button type="button" class="btn btn-outline-primary" disabled=${salvando} onClick=${() => setModalCompartilharAberto(true)}>
                     <span class="material-symbols-outlined">${IconeSvg('share')}</span>
                     Compartilhar vaga
                   </button>
-                  <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${criar}>
-                    ${salvando ? 'Publicando...' : 'Publicar processo'}
-                    <span class="material-symbols-outlined">${IconeSvg('check')}</span>
-                  </button>
-                `}
+                `
+      : null}
           </div>
         </footer>
       </div>
@@ -4744,6 +4797,7 @@ export function TelaBancoTalentos({ controlador }) {
     habilidade: '',
     tag: '',
   });
+  const [filtrosBancoAbertos, setFiltrosBancoAbertos] = useState(false);
 
   const carregar = async ({ forcar = false } = {}) => {
     setCarregando(true);
@@ -4931,43 +4985,75 @@ export function TelaBancoTalentos({ controlador }) {
 
       ${erro ? html`<div class="rh-inline-alert">${erro}</div>` : null}
 
-      <${SectionCard}
-        title="Filtros"
-        description=""
-        tourId="talent-filters"
-      >
-        <div class="rh-filter-grid rh-filter-grid--wide">
-          <div class="rh-filter-field">
-            <label>Busca por nome</label>
+      <${SectionCard} className="process-filter-panel" tourId="talent-filters">
+        <div class="rh-filter-bar">
+          <div class="rh-filter-bar-search">
+            <span class="material-symbols-outlined">${IconeSvg('search')}</span>
             <input
-              class="form-control"
-              placeholder="Nome, vaga ou processo"
+              type="search"
+              placeholder="Nome, vaga ou processo..."
               value=${filtros.busca}
-              onInput=${(event) =>
-      setFiltros({ ...filtros, busca: event.target.value })}
+              onInput=${(event) => setFiltros({ ...filtros, busca: event.target.value })}
             />
           </div>
-          <div class="rh-filter-field">
-            <label>Habilidade</label>
-            <input
-              class="form-control"
-              placeholder="Excel, Atendimento, TI..."
-              value=${filtros.habilidade}
-              onInput=${(event) =>
-      setFiltros({ ...filtros, habilidade: event.target.value })}
-            />
-          </div>
-          <div class="rh-filter-field">
-            <label>Tag</label>
-            <input
-              class="form-control"
-              placeholder="Prioritário, Boa aderência..."
-              value=${filtros.tag}
-              onInput=${(event) =>
-      setFiltros({ ...filtros, tag: event.target.value })}
-            />
-          </div>
+
+          <button
+            type="button"
+            class="rh-filter-toggle"
+            aria-expanded=${filtrosBancoAbertos}
+            onClick=${() => setFiltrosBancoAbertos(!filtrosBancoAbertos)}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('tune')}</span>
+            Filtros
+            ${(filtros.habilidade ? 1 : 0) + (filtros.tag ? 1 : 0) > 0
+      ? html`<span class="rh-filter-count">${(filtros.habilidade ? 1 : 0) + (filtros.tag ? 1 : 0)}</span>`
+      : null}
+          </button>
+
+          ${filtros.habilidade
+      ? html`
+              <span class="rh-filter-chip">
+                Habilidade: ${filtros.habilidade}
+                <button type="button" aria-label="Remover filtro de habilidade" onClick=${() => setFiltros({ ...filtros, habilidade: '' })}>×</button>
+              </span>
+            `
+      : null}
+          ${filtros.tag
+      ? html`
+              <span class="rh-filter-chip">
+                Tag: ${filtros.tag}
+                <button type="button" aria-label="Remover filtro de tag" onClick=${() => setFiltros({ ...filtros, tag: '' })}>×</button>
+              </span>
+            `
+      : null}
         </div>
+
+        ${filtrosBancoAbertos
+      ? html`
+            <div class="rh-filter-panel-expanded">
+              <div class="rh-filter-grid">
+                <div class="rh-filter-field">
+                  <label>Habilidade</label>
+                  <input
+                    class="form-control"
+                    placeholder="Excel, Atendimento, TI..."
+                    value=${filtros.habilidade}
+                    onInput=${(event) => setFiltros({ ...filtros, habilidade: event.target.value })}
+                  />
+                </div>
+                <div class="rh-filter-field">
+                  <label>Tag</label>
+                  <input
+                    class="form-control"
+                    placeholder="Prioritário, Boa aderência..."
+                    value=${filtros.tag}
+                    onInput=${(event) => setFiltros({ ...filtros, tag: event.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          `
+      : null}
       </${SectionCard}>
 
       <${SectionCard}
@@ -4980,12 +5066,10 @@ export function TelaBancoTalentos({ controlador }) {
                 <table class="table align-middle rh-modern-history-table">
                   <thead>
                     <tr>
-                      <th>Processo</th>
                       <th>Candidato</th>
-                      <th>Cidade</th>
-                      <th>Bairro</th>
-                      <th>Vaga</th>
-                      <th>Nota</th>
+                      <th>Localização</th>
+                      <th>Vaga / Processo</th>
+                      <th class="text-end">Nota</th>
                       <th>Habilidades / tags</th>
                       <th>Observações RH</th>
                       <th>Entrevista</th>
@@ -4995,12 +5079,11 @@ export function TelaBancoTalentos({ controlador }) {
                   </thead>
                   <tbody>
                     ${carregando
-          ? html`<${SkeletonTableRows} colunas=${11} linhas=${6} />`
+          ? html`<${SkeletonTableRows} colunas=${9} linhas=${6} />`
           : linhas.length
           ? linhas.map(
             (linha) => html`
                             <tr key=${linha.id_banco} class="c24-fade-in">
-                              <td>${linha.id_processo || '-'}</td>
                               <td>
                                 <strong>${linha.nome_candidato || '-'}</strong>
                                 <div class="small text-muted mt-1">
@@ -5017,10 +5100,16 @@ export function TelaBancoTalentos({ controlador }) {
               : null}
                                 </div>
                               </td>
-                              <td>${linha.cidade || '-'}</td>
-                              <td>${linha.bairro || '-'}</td>
-                              <td>${linha.vaga || '-'}</td>
-                              <td>${linha.pontuacao_final || '-'}</td>
+                              <td>${[linha.cidade, linha.bairro].filter(Boolean).join(' · ') || '-'}</td>
+                              <td>
+                                <div>${linha.vaga || '-'}</div>
+                                <div class="small text-muted">${linha.id_processo || '-'}</div>
+                              </td>
+                              <td class="text-end">
+                                ${linha.pontuacao_final
+              ? html`<span class=${`candidate-score-badge num ${obterClasseFaixaNota(linha.pontuacao_final)}`}>${linha.pontuacao_final}</span>`
+              : '-'}
+                              </td>
                               <td>
                                 <div class="rh-cell-stack">
                                   <div class="rh-chip-wrap">
@@ -5112,7 +5201,7 @@ export function TelaBancoTalentos({ controlador }) {
           )
           : html`
                           <${TabelaVazia}
-                            colunas=${11}
+                            colunas=${9}
                             texto="Nenhum candidato no banco de talentos."
                             icone="person_off"
                           />

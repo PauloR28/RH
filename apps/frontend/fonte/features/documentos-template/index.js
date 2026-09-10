@@ -152,7 +152,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
                       <tr key=${item.id_template}>
                         <td><strong>${item.titulo}</strong></td>
                         <td>
-                          <span class=${`rh-chip ${item.ativo ? 'is-indicacao' : ''}`}>
+                          <span class=${`rh-status-pill ${item.ativo ? 'is-finished' : ''}`}>
                             ${item.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
