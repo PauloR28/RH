@@ -29,6 +29,8 @@ from ..services.process_flow import (
     CANDIDATE_STATUS_TALENT_BANK,
     CANDIDATE_STATUS_WITHDREW,
     INTERVIEW_OPERATIONAL_STATUSES,
+    PROCESS_STATUS_CLOSED,
+    PROCESS_STATUS_TRAINING,
     build_approved_candidate_locked_message,
     build_candidate_status_action_label,
     build_process_closed_message,
@@ -1617,6 +1619,32 @@ class BaseRepository:
             "processo_destino": normalize_text(last.get("processo_destino")) if last else "",
         }
 
+    def _candidate_has_exam_in_progress(self, cursor, id_teste: str) -> bool:
+        """Correções.txt item 4: uma vez que o candidato já iniciou a prova
+        (id_teste vincula candidatos_processos <-> provas_geradas), nenhuma
+        movimentação de pipeline pode mexer nele — eliminar, aprovar, mover
+        para banco de talentos ou reagendar a entrevista invalidaria uma prova
+        em andamento. Checamos status = 'Em andamento' (não um NOT IN mais
+        amplo) porque register_rh_decision() também passa por
+        _apply_candidate_status_update() para aprovar/eliminar o candidato
+        CONFORME o resultado da prova já finalizada/em avaliação manual — um
+        filtro mais amplo bloquearia essa decisão legítima do RH.
+        """
+        safe_id_teste = normalize_text(id_teste)
+        if not safe_id_teste:
+            return False
+        cursor.execute(
+            """
+            SELECT COUNT(1)
+            FROM dbo.provas_geradas
+            WHERE id_teste = ?
+              AND iniciada_em IS NOT NULL
+              AND status = 'Em andamento'
+            """,
+            (safe_id_teste,),
+        )
+        return bool(int(cursor.fetchone()[0] or 0))
+
     def _apply_candidate_status_update(
         self,
         cursor,
@@ -1648,6 +1676,12 @@ class BaseRepository:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=build_terminal_candidate_locked_message(old_status),
+            )
+
+        if self._candidate_has_exam_in_progress(cursor, id_teste):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este candidato já iniciou a prova e não pode ser movimentado enquanto ela estiver em andamento.",
             )
 
         if not id_processo:
@@ -1797,14 +1831,20 @@ class BaseRepository:
             (vagas_preenchidas, *params),
         )
 
-        if status_processo != "Encerrado" and quantidade_vagas > 0 and vagas_preenchidas >= quantidade_vagas:
+        if (
+            status_processo not in {PROCESS_STATUS_CLOSED, PROCESS_STATUS_TRAINING}
+            and quantidade_vagas > 0
+            and vagas_preenchidas >= quantidade_vagas
+        ):
+            # Pedido do RH: vagas preenchidas não encerram mais o processo —
+            # ele vira "Em treinamento" e continua ativo/gerenciável.
             cursor.execute(
                 f"""
                 UPDATE processos_seletivos
                 SET status = ?
                 WHERE {where_clause}
                 """,
-                ("Encerrado", *params),
+                (PROCESS_STATUS_TRAINING, *params),
             )
 
         interview_synced_statuses = {

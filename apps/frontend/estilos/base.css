@@ -355,7 +355,8 @@ margin-bottom: 0.28rem;
 .rh-aderencia-tag::before,
 .weight-badge::before,
 .rh-result-meta-pill::before,
-.exam-stage-badge::before {
+.exam-stage-badge::before,
+#screen-process-details .process-status-tag::before {
   content: '';
   width: 6px;
   height: 6px;

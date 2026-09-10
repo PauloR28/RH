@@ -334,7 +334,7 @@ export function mapearStageKeyParaEtapa(stageKey = '') {
   if (chave.includes('essay') || chave.includes('redacao')) return 'redacao';
   if (chave.includes('tech') || chave.includes('analysis')) return 'tecnico';
   if (chave.includes('operational') || chave.includes('operacao')) return 'operacional';
-  if (chave.includes('comport')) return 'comportamental';
+  if (chave.includes('comport') || chave.includes('personalidade') || chave.includes('espontane')) return 'comportamental';
   return 'geral';
 }
 

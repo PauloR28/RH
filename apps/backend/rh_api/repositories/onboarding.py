@@ -5,7 +5,12 @@ import json
 from fastapi import HTTPException, status
 
 from ..services.helpers import normalize_text, rows_to_dicts
-from .bootstrap import ensure_notifications_table, ensure_onboarding_tables, ensure_process_trainings_table
+from .bootstrap import (
+    ensure_candidate_training_link_column,
+    ensure_notifications_table,
+    ensure_onboarding_tables,
+    ensure_process_trainings_table,
+)
 
 
 _TRILHA_COLUMNS = """
@@ -803,6 +808,137 @@ class OnboardingRepositoryMixin:
         return self.get_onboarding_progress(id_registro)
 
     # ------------------------------------------------------------------
+    # App mobile do colaborador ("Conecta App", promt.txt): auto-escopo pelo
+    # e-mail do token — nunca aceita id_registro/id_onboarding vindo do
+    # cliente. Mesmo padrão de resolução por identidade usado em
+    # routers/notifications.py (user.username/user.perfil do JWT).
+    # ------------------------------------------------------------------
+    def _resolve_id_registros_por_email(self, cursor, email: str) -> list[int]:
+        safe_email = normalize_text(email)
+        if not safe_email:
+            return []
+        ensure_candidate_training_link_column(cursor)
+        cursor.execute(
+            """
+            SELECT DISTINCT cp.id_registro
+            FROM candidatos_processos cp
+            LEFT JOIN candidatos_metadata cm ON cm.id_teste = cp.id_teste
+            WHERE LOWER(cp.email_login_vinculado) = LOWER(?)
+               OR LOWER(cm.email) = LOWER(?)
+            """,
+            (safe_email, safe_email),
+        )
+        return [int(row[0]) for row in cursor.fetchall() if row[0] is not None]
+
+    def _load_my_training_content(self, cursor, id_trilha_item: int | None) -> dict:
+        if not id_trilha_item:
+            return {"tipo_conteudo": None, "conteudo_url": None, "texto_principal": None, "video_path": None, "secoes": []}
+        cursor.execute(
+            """
+            SELECT tipo_conteudo, conteudo_url, texto_principal, video_path, video_nome_original, secoes_json
+            FROM trilhas_onboarding_itens
+            WHERE id_item = ?
+            """,
+            (int(id_trilha_item),),
+        )
+        rows = rows_to_dicts(cursor, cursor.fetchall())
+        if not rows:
+            return {"tipo_conteudo": None, "conteudo_url": None, "texto_principal": None, "video_path": None, "secoes": []}
+        content = rows[0]
+        content["secoes"] = _parse_json(content.pop("secoes_json", None)) or []
+        return content
+
+    def get_my_trainings(self, email: str, *, apenas_presenciais: bool = False) -> list[dict]:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_onboarding_tables(cursor)
+            id_registros = self._resolve_id_registros_por_email(cursor, email)
+            if not id_registros:
+                return []
+
+            placeholders = ", ".join("?" for _ in id_registros)
+            filtro_presencial = "AND oc.data_prevista IS NOT NULL" if apenas_presenciais else ""
+            cursor.execute(
+                f"""
+                SELECT {_ONBOARDING_COLUMNS}, t.nome AS trilha_nome, t.categoria, t.modalidade
+                FROM onboarding_candidatos oc
+                JOIN trilhas_onboarding t ON t.id_trilha = oc.trilha_id
+                WHERE oc.id_registro IN ({placeholders})
+                {filtro_presencial}
+                ORDER BY oc.iniciado_em DESC, oc.id_onboarding DESC
+                """,
+                tuple(id_registros),
+            )
+            assignments = rows_to_dicts(cursor, cursor.fetchall())
+
+            trainings = []
+            for assignment in assignments:
+                cursor.execute(
+                    f"""
+                    SELECT {_ONBOARDING_ITEM_COLUMNS}, trilha_item_id
+                    FROM onboarding_candidatos_itens
+                    WHERE onboarding_candidato_id = ?
+                    ORDER BY ordem ASC, id_onboarding_item ASC
+                    """,
+                    (int(assignment["id_onboarding"]),),
+                )
+                itens = rows_to_dicts(cursor, cursor.fetchall())
+                for item in itens:
+                    item.update(self._load_my_training_content(cursor, item.get("trilha_item_id")))
+
+                total_itens = len(itens)
+                itens_concluidos = sum(1 for item in itens if item.get("concluido"))
+                percentual = round((itens_concluidos / total_itens) * 100) if total_itens else 0
+                if assignment.get("status") == "concluido" or (total_itens and itens_concluidos == total_itens):
+                    status_exibicao = "concluido"
+                elif itens_concluidos:
+                    status_exibicao = "em_andamento"
+                else:
+                    status_exibicao = "nao_iniciado"
+
+                trainings.append(
+                    {
+                        **assignment,
+                        "titulo": assignment["trilha_nome"],
+                        "status_exibicao": status_exibicao,
+                        "percentual_concluido": percentual,
+                        "total_itens": total_itens,
+                        "itens_concluidos": itens_concluidos,
+                        "modulos": itens,
+                    }
+                )
+            return trainings
+        finally:
+            conn.close()
+
+    def complete_my_training_item(self, email: str, id_onboarding_item: int, *, actor: str = "") -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_onboarding_tables(cursor)
+            id_registros = set(self._resolve_id_registros_por_email(cursor, email))
+
+            cursor.execute(
+                """
+                SELECT oi.id_onboarding_item, oc.id_registro
+                FROM onboarding_candidatos_itens oi
+                JOIN onboarding_candidatos oc ON oc.id_onboarding = oi.onboarding_candidato_id
+                WHERE oi.id_onboarding_item = ?
+                """,
+                (int(id_onboarding_item or 0),),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Módulo não encontrado.")
+            if int(row[1]) not in id_registros:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Este módulo não pertence ao seu treinamento.")
+        finally:
+            conn.close()
+
+        return self.set_onboarding_item_status(id_onboarding_item, True, actor=actor)
+
+    # ------------------------------------------------------------------
     # Visão de gestão (RH): quem está em treinamento, de qual trilha,
     # quando e onde — ver respostas.txt, item "Centro de Treinamentos".
     # ------------------------------------------------------------------
@@ -1031,6 +1167,32 @@ class OnboardingRepositoryMixin:
     # Treinamentos vinculados a um processo seletivo (Correcoes.txt, rodada
     # 03/set/2026) — bloqueio/liberação de vagas por processo.
     # ------------------------------------------------------------------
+    def vincular_trilha_a_processo(self, id_trilha: int, id_processo: str) -> dict:
+        """Correções.txt (10/set/2026): botão "Adicionar treinamento a processo
+        seletivo" na Central de Treinamentos — vincula um treinamento já
+        cadastrado a um processo já aberto, reaproveitando sync_process_trainings
+        (mesma rotina usada ao criar o processo com treinamentos pré-selecionados)."""
+        safe_process_id = normalize_text(id_processo)
+        if not safe_process_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe o processo seletivo.")
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT quantidade_vagas, vaga FROM processos WHERE id_processo = ?",
+                (safe_process_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Processo seletivo não encontrado.")
+            vagas_totais = int(row[0] or 0)
+        finally:
+            conn.close()
+
+        self.sync_process_trainings(safe_process_id, vagas_totais=vagas_totais, trilha_ids=[int(id_trilha)])
+        return {"success": True}
+
     def sync_process_trainings(self, id_processo: str, *, vagas_totais: int, trilha_ids: list[int]) -> None:
         """Chamado ao criar o processo: uma linha por trilha selecionada, com
         todas as vagas do processo inicialmente bloqueadas (AGUARDANDO
@@ -1426,6 +1588,26 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
         return self.get_onboarding_trilha(id_trilha)
+
+    def get_trilha_item_video(self, id_item: int) -> dict:
+        """Promt.txt (app mobile): existia upload de vídeo do módulo
+        (POST /itens/{id}/video), mas nenhuma rota devolvia o arquivo de volta
+        — nem o Conecta web consome video_path hoje. Necessário para a seção
+        "Vídeo Explicativo" do wireframe funcionar."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_onboarding_tables(cursor)
+            cursor.execute(
+                "SELECT video_path, video_nome_original FROM trilhas_onboarding_itens WHERE id_item = ?",
+                (int(id_item or 0),),
+            )
+            row = cursor.fetchone()
+        finally:
+            conn.close()
+        if not row or not row[0]:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Este módulo não tem vídeo.")
+        return {"video_path": row[0], "video_nome_original": row[1]}
 
     # ------------------------------------------------------------------
     # Escalonamento por chamada pendente (job agendado — plano técnico §6).

@@ -21,6 +21,7 @@ from ..services.helpers import (
 )
 from ..services.process_flow import (
     PROCESS_STATUS_CLOSED,
+    PROCESS_STATUS_TRAINING,
     normalize_process_status,
     resolve_effective_process_status,
 )
@@ -763,6 +764,25 @@ def ensure_candidate_approval_columns(cursor) -> None:
             END
             """
         )
+
+
+def ensure_candidate_training_link_column(cursor) -> None:
+    """Promt.txt (rodada do app mobile "Conecta App"): o colaborador loga no
+    app com e-mail (dbo.usuarios.email), mas o registro de treinamento fica em
+    candidatos_processos/candidatos_metadata (mundo do processo seletivo) —
+    tabelas sem nenhum vínculo hoje. O vínculo padrão é automático (mesmo
+    e-mail); esta coluna é só a exceção manual, para o RH corrigir quando o
+    e-mail de login não bate com o e-mail usado no processo seletivo.
+    """
+    cursor.execute(
+        """
+        IF COL_LENGTH('dbo.candidatos_processos', 'email_login_vinculado') IS NULL
+        BEGIN
+            ALTER TABLE dbo.candidatos_processos
+            ADD email_login_vinculado NVARCHAR(180) NULL
+        END
+        """
+    )
 
 
 def ensure_process_columns(cursor) -> None:
@@ -2283,6 +2303,52 @@ def ensure_document_templates_table(cursor) -> None:
     cursor.execute("UPDATE dbo.templates_documentos SET atualizado_em = criado_em WHERE atualizado_em IS NULL")
 
 
+def ensure_documentos_biblioteca_table(cursor) -> None:
+    """Central de Documentos: biblioteca de arquivos de referência por tópico/área (aditivo/idempotente)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.documentos_biblioteca', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.documentos_biblioteca (
+                id_documento INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                titulo NVARCHAR(255) NOT NULL,
+                topico NVARCHAR(120) NOT NULL,
+                area NVARCHAR(120) NULL,
+                descricao NVARCHAR(500) NULL,
+                url_arquivo NVARCHAR(1000) NOT NULL,
+                ativo BIT NOT NULL CONSTRAINT DF_documentos_biblioteca_ativo DEFAULT 1,
+                criado_por NVARCHAR(200) NULL,
+                criado_em DATETIME NOT NULL DEFAULT GETDATE(),
+                atualizado_em DATETIME NOT NULL DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+    for column_name, sql_type in (
+        ("titulo", "NVARCHAR(255)"),
+        ("topico", "NVARCHAR(120)"),
+        ("area", "NVARCHAR(120)"),
+        ("descricao", "NVARCHAR(500)"),
+        ("url_arquivo", "NVARCHAR(1000)"),
+        ("ativo", "BIT"),
+        ("criado_por", "NVARCHAR(200)"),
+        ("criado_em", "DATETIME"),
+        ("atualizado_em", "DATETIME"),
+    ):
+        cursor.execute(
+            f"""
+            IF COL_LENGTH('dbo.documentos_biblioteca', '{column_name}') IS NULL
+            BEGIN
+                ALTER TABLE dbo.documentos_biblioteca
+                ADD {column_name} {sql_type} NULL
+            END
+            """
+        )
+    cursor.execute("UPDATE dbo.documentos_biblioteca SET ativo = 1 WHERE ativo IS NULL")
+    cursor.execute("UPDATE dbo.documentos_biblioteca SET criado_em = GETDATE() WHERE criado_em IS NULL")
+    cursor.execute("UPDATE dbo.documentos_biblioteca SET atualizado_em = criado_em WHERE atualizado_em IS NULL")
+
+
 _DISC_SEED_BLOCOS: list[list[tuple[str, str]]] = [
     [
         ("D", "Gosto de tomar decisões rápidas quando o problema é urgente."),
@@ -2764,7 +2830,19 @@ def ensure_raciocinio_tables(cursor) -> None:
             )
 
 
+_conecta_exams_tables_ready = False
+
+
 def ensure_conecta_exams_tables(cursor) -> None:
+    """Correções.txt item 2: esta checagem faz ~110 round-trips síncronos ao
+    SQL Server (CREATE TABLE/ALTER TABLE condicionais) e era refeita em toda
+    chamada de repositório de provas geradas, inclusive múltiplas vezes numa
+    única requisição (ex.: salvar avaliação manual -> recalcular score ->
+    registrar histórico), fazendo a tela travar ao salvar. O schema não muda
+    em runtime, então validar uma vez por processo é suficiente."""
+    global _conecta_exams_tables_ready
+    if _conecta_exams_tables_ready:
+        return
     cursor.execute(
         """
         IF OBJECT_ID('dbo.provas_geradas', 'U') IS NULL
@@ -3105,6 +3183,8 @@ def ensure_conecta_exams_tables(cursor) -> None:
             """
         )
 
+    _conecta_exams_tables_ready = True
+
 
 def ensure_interviews_table(cursor) -> None:
     cursor.execute(
@@ -3405,6 +3485,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_celebratory_dates_table(cursor)
             ensure_notification_automation_table(cursor)
             ensure_onboarding_tables(cursor)
+            ensure_candidate_training_link_column(cursor)
             ensure_process_trainings_table(cursor)
             ensure_document_templates_table(cursor)
             ensure_disc_tables(cursor)
@@ -3863,7 +3944,14 @@ def process_auto_close_if_full(cursor, process_row_or_ref) -> None:
     vagas_preenchidas = int(row[1] or 0)
     status_processo = normalize_text(row[2])
 
-    if status_processo != "Encerrado" and quantidade_vagas > 0 and vagas_preenchidas >= quantidade_vagas:
+    if (
+        status_processo not in {PROCESS_STATUS_CLOSED, PROCESS_STATUS_TRAINING}
+        and quantidade_vagas > 0
+        and vagas_preenchidas >= quantidade_vagas
+    ):
+        # Pedido do RH: vagas preenchidas não encerram mais o processo — ele
+        # vira "Em treinamento" (o link público ainda é desativado, já que
+        # não há mais vagas para receber novas candidaturas).
         cursor.execute(
             f"""
             UPDATE processos_seletivos
@@ -3873,5 +3961,5 @@ def process_auto_close_if_full(cursor, process_row_or_ref) -> None:
                 link_publico_desativado_em = GETDATE()
             WHERE {where_clause}
             """,
-            ("Encerrado", *params),
+            (PROCESS_STATUS_TRAINING, *params),
         )

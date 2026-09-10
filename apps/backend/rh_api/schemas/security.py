@@ -18,6 +18,15 @@ class UserCreateRequest(BaseSchema):
     operacoes: list[str] = Field(default_factory=list)
 
 
+class QuickTrainingUserCreateRequest(BaseSchema):
+    """Botão "Criar usuário rápido" — nome, e-mail e senha, perfil fixo
+    (Central de Treinamentos), sem atribuir treinamento."""
+
+    nome: str = Field(default="")
+    email: str = Field(default="")
+    senha: str = Field(default="")
+
+
 class UserUpdateRequest(BaseSchema):
     nome: str = Field(default="")
     sobrenome: str = Field(default="")

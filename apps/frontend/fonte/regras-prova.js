@@ -3123,12 +3123,13 @@ export async function validarArquivoExcel(taskId, arquivo, pontos) {
   const validation = validarWorkbookPorTarefa(taskId, workbook, pontos, {
     modeloWorkbook,
   });
-  const resumoChecklist = resumirConclusaoChecklist(validation.completedTasks);
   const validacaoImplementada = possuiValidacaoExcelImplementada(validation);
+  // Correções.txt item 8: nunca expor quantidade de tarefas feitas/detectadas
+  // ao candidato — apenas a mensagem de status, sem números de checklist.
   const statusText = validation.unanswered
-    ? `Arquivo analisado, mas nenhuma tarefa respondida foi detectada. 0/${resumoChecklist.total} tarefa(s) detectada(s).`
+    ? 'Arquivo analisado, mas nenhuma tarefa respondida foi detectada.'
     : validacaoImplementada
-      ? `Arquivo analisado com sucesso.`
+      ? 'Arquivo recebido.'
       : 'Arquivo recebido, mas esta etapa ainda não possui validação automática completa.';
 
   return {

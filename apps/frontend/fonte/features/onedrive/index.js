@@ -58,6 +58,18 @@ function iconeDoItem(item) {
   return categoria?.icone || 'insert_drive_file';
 }
 
+const TOM_POR_CATEGORIA = {
+  pasta: 'warning',
+  pdf: 'danger',
+  documento: 'info',
+  planilha: 'success',
+};
+
+function tomDoItem(item) {
+  if (item.tipo === 'pasta') return TOM_POR_CATEGORIA.pasta;
+  return TOM_POR_CATEGORIA[obterCategoriaExtensao(item.nome)] || 'neutro';
+}
+
 function formatarTamanho(bytes) {
   const valor = Number(bytes || 0);
   if (!valor) return '-';
@@ -534,10 +546,11 @@ export function TelaOneDriveArquivos({ controlador }) {
       return html`
         <button
           type="button"
-          class="btn btn-link p-0 text-decoration-none"
+          class="btn btn-link p-0 text-decoration-none rh-onedrive-row-nome"
           onClick=${() => abrirItem(item)}
         >
-          <${Icone} name=${iconeDoItem(item)} /> ${item.nome}
+          <span class=${`rh-onedrive-row-icon rh-onedrive-row-icon--${tomDoItem(item)}`}><${Icone} name=${iconeDoItem(item)} /></span>
+          ${item.nome}
         </button>
       `;
     }
@@ -773,7 +786,7 @@ export function TelaOneDriveArquivos({ controlador }) {
                             ${selecionado ? html`<span class="material-symbols-outlined">${IconeSvg('check')}</span>` : null}
                           </button>
                           <div class="rh-onedrive-card-actions">${renderMenuAcoes(item)}</div>
-                          <span class="rh-onedrive-card-icon"><${Icone} name=${iconeDoItem(item)} /></span>
+                          <span class=${`rh-onedrive-card-icon rh-onedrive-card-icon--${tomDoItem(item)}`}><${Icone} name=${iconeDoItem(item)} /></span>
                           <button
                             type="button"
                             class="rh-onedrive-card-nome"

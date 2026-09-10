@@ -247,7 +247,9 @@
 #screen-process-details .process-fit-tag.is-medium { color: #c65f00; background: #fff0df; }
 #screen-process-details .process-fit-tag.is-low { color: #b42318; background: #feeceb; }
 
-#screen-process-details .process-status-tag { display: inline-flex; align-items: center; max-width: 190px; border: 1px solid transparent; border-radius: 7px; padding: 0.3rem 0.62rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+/* Ponto de estado (::before) adicionado ao grupo compartilhado em base.css
+   (rodada 10/set/2026) — mesma identidade contorno+ponto do resto do app. */
+#screen-process-details .process-status-tag { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 190px; border: 1px solid transparent; border-radius: 7px; padding: 0.3rem 0.62rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
 #screen-process-details .process-status-tag.is-info { color: #086fca; border-color: #cbdcff; background: #edf3ff; }
 #screen-process-details .process-status-tag.is-success { color: #137a2d; border-color: #cce9d2; background: #ecf8ee; }
 #screen-process-details .process-status-tag.is-warning { color: #c55d00; border-color: #ffd8ae; background: #fff5e9; }

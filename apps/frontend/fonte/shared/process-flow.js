@@ -1,6 +1,9 @@
 const PROCESS_STATUS_CLOSED = 'Encerrado';
 const PROCESS_STATUS_PAUSED = 'Pausado';
 const PROCESS_STATUS_CANCELED = 'Cancelado';
+// Pedido do RH: vagas preenchidas / candidato aprovado não encerram mais o
+// processo — ele vira "Em treinamento" e continua fora de isProcessClosed().
+export const PROCESS_STATUS_TRAINING = 'Em treinamento';
 
 const CANDIDATE_STATUS_ANALYSIS = 'Em análise';
 const CANDIDATE_STATUS_QUALIFIED = 'Qualificado';

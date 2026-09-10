@@ -148,7 +148,7 @@
   border: 1px solid #d7e3f8;
   border-radius: 8px;
   background: #f0f5ff;
-  color: #0758f0;
+  color: #086fca;
 }
 
 .exam-step-icon i { font-size: 2rem; font-variation-settings: 'wght' 350; }
@@ -185,7 +185,7 @@
 .exam-step-state.is-concluida,
 .exam-summary-status.is-complete { color: #157432; background: #eaf7ed; }
 .exam-step-state.is-andamento,
-.exam-summary-status.is-progress { color: #0758f0; background: #eaf1ff; }
+.exam-summary-status.is-progress { color: #086fca; background: #eaf1ff; }
 .exam-step-state.is-nao-iniciada { color: #b42318; background: #fff1f0; }
 .exam-step-state.is-indisponivel { color: #657187; background: #edf0f4; }
 .exam-step-state.is-locked { color: #657187; background: #edf0f4; }
@@ -203,14 +203,14 @@
 .exam-summary-panel h2,
 .exam-info-panel h2 { margin: 0 0 24px; color: #111827; font-size: 1.15rem; font-weight: 700; }
 .exam-summary-total { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
-.exam-summary-total .material-symbols-outlined { color: #0758f0; font-size: 2rem; }
+.exam-summary-total .material-symbols-outlined { color: #086fca; font-size: 2rem; }
 .exam-summary-total strong { font-size: 1.45rem; }
 .exam-summary-panel > p { display: flex; gap: 13px; margin: 0 0 20px 8px; color: #1f2b40; font-size: 1rem; }
 
 .exam-summary-progress { display: grid; gap: 7px; margin: 4px 0 18px; }
 .exam-summary-progress > div { display: flex; justify-content: space-between; color: #53627c; }
 .exam-summary-progress i { overflow: hidden; height: 7px; border-radius: var(--radius-full); background: #e7edf5; }
-.exam-summary-progress b { display: block; height: 100%; border-radius: inherit; background: #0758f0; }
+.exam-summary-progress b { display: block; height: 100%; border-radius: inherit; background: #086fca; }
 .exam-summary-progress small { color: #6a768b; }
 
 .exam-info-panel {
@@ -226,14 +226,14 @@
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 2px solid #0758f0;
+  border: 2px solid #086fca;
   border-radius: var(--radius-full);
-  color: #0758f0;
+  color: #086fca;
 }
 
 .exam-info-panel h2 { margin-bottom: 10px; color: #0646ba; }
 .exam-info-panel p { margin: 0 0 20px; color: #455675; line-height: 1.55; }
-.exam-info-panel a { display: inline-flex; align-items: center; gap: 7px; color: #0758f0; font-weight: 600; text-decoration: none; }
+.exam-info-panel a { display: inline-flex; align-items: center; gap: 7px; color: #086fca; font-weight: 600; text-decoration: none; }
 .exam-info-panel a .material-symbols-outlined { font-size: 1.1rem; }
 .exam-final-submit { min-height: 50px; border-radius: 9px; font-weight: 700; }
 

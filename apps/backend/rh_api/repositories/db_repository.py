@@ -13,6 +13,7 @@ from .bootstrap import (
 from .cv_analysis import CvAnalysisRepositoryMixin
 from .disc import DiscRepositoryMixin
 from .document_templates import DocumentTemplateRepositoryMixin
+from .documentos_biblioteca import DocumentosBibliotecaRepositoryMixin
 from .email_inbox import EmailInboxRepositoryMixin
 from .exam_analytics import ExamAnalyticsRepositoryMixin
 from .communications import CommunicationRepositoryMixin
@@ -54,6 +55,7 @@ class DatabaseRepository(
     CelebratoryDateRepositoryMixin,
     OnboardingRepositoryMixin,
     DocumentTemplateRepositoryMixin,
+    DocumentosBibliotecaRepositoryMixin,
     DiscRepositoryMixin,
     FitCulturalRepositoryMixin,
     RaciocinioLogicoRepositoryMixin,

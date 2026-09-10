@@ -181,22 +181,7 @@
   padding: var(--space-6);
 }
 
-.rh-feedback-qualitativo-resumo {
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-info-soft);
-  color: var(--color-text);
-  font-size: var(--font-sm);
-  margin-bottom: var(--space-4);
-}
-
-.rh-feedback-qualitativo-item {
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-danger-soft);
-  color: var(--color-text);
-  font-size: var(--font-sm);
-  margin-top: var(--space-2);
-}
+/* Correções.txt item 6: o bloco "Feedback qualitativo automático" do modal
+   de resultado de prova (#screen-generated-exams) passou a ter estilo
+   próprio, compacto, em screens.css — não reaproveita mais estas classes,
+   que eram deste módulo (Testes complementares). */

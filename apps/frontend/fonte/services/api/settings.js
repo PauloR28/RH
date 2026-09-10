@@ -63,6 +63,16 @@ export async function criarUsuario(payload) {
   return resultado;
 }
 
+export async function criarUsuarioRapido(payload) {
+  const resultado = await requisitar('/settings/users/quick', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  });
+  invalidarCacheApi('settings:roles', 'settings:users');
+  return resultado;
+}
+
 export async function atualizarUsuario(idUsuario, payload) {
   const resultado = await requisitar(`/settings/users/${encodeURIComponent(idUsuario)}`, {
     method: 'PUT',

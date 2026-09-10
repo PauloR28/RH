@@ -170,7 +170,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.85rem;
-  font-weight: 700;
+  font-weight: 500;
   text-align: left;
   font-size: 0.82rem;
   white-space: nowrap;
@@ -343,12 +343,21 @@
   border-bottom: 1px solid rgba(217, 226, 238, 0.92);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(12px);
+  /* Sticky (rodada 2 de promt.txt): mantém a ação principal da tela
+     (canto superior direito, padrão Z) sempre alcançável em formulários
+     e wizards longos, sem duplicar o botão em cada tela. 68px = altura
+     do .rh-modern-topnav (linha 72), z-index abaixo do dele (1000). */
+  position: sticky;
+  top: 68px;
+  z-index: 999;
 }
 
-.rh-modern-topbar--actions-only {
-  justify-content: flex-end;
-  min-height: 64px;
-}
+/* Correções.txt item 8 (rodada 3): a ação principal da tela deixou de ter
+   uma .rh-modern-topbar dedicada e sticky (ocupava uma faixa inteira só
+   para 1 botão) — agora entra na mesma linha do PageIntro (título à
+   esquerda, ações à direita), via contexto publicado por PainelRh e lido
+   por PageIntro (ver ui/components/layout.js). Estilo em .rh-page-intro-
+   actions, abaixo. */
 
 .rh-modern-topbar-left {
   flex: 1 1 auto;
@@ -1029,13 +1038,61 @@
 }
 
 .rh-onedrive-card-icon {
-  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--color-surface-soft);
   color: var(--color-text-soft);
 }
 
-.rh-onedrive-grid--pequena .rh-onedrive-card-icon {
-  font-size: 1.4rem;
+.rh-onedrive-card-icon .material-symbols-outlined {
+  font-size: 1.75rem;
 }
+
+.rh-onedrive-grid--pequena .rh-onedrive-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.rh-onedrive-grid--pequena .rh-onedrive-card-icon .material-symbols-outlined {
+  font-size: 1.2rem;
+}
+
+.rh-onedrive-card-icon--warning { background: var(--color-warning-soft); color: var(--color-warning); }
+.rh-onedrive-card-icon--danger { background: var(--color-danger-soft); color: var(--color-danger); }
+.rh-onedrive-card-icon--info { background: var(--color-info-soft); color: var(--color-info); }
+.rh-onedrive-card-icon--success { background: var(--color-success-soft); color: var(--color-success); }
+
+.rh-onedrive-row-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rh-onedrive-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+  color: var(--color-text-soft);
+  flex: none;
+}
+
+.rh-onedrive-row-icon .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.rh-onedrive-row-icon--warning { background: var(--color-warning-soft); color: var(--color-warning); }
+.rh-onedrive-row-icon--danger { background: var(--color-danger-soft); color: var(--color-danger); }
+.rh-onedrive-row-icon--info { background: var(--color-info-soft); color: var(--color-info); }
+.rh-onedrive-row-icon--success { background: var(--color-success-soft); color: var(--color-success); }
 
 .rh-onedrive-card-nome {
   appearance: none;
@@ -1330,6 +1387,171 @@
   color: #654fd1;
 }
 
+/*
+ * Peso visual hierárquico dos KPIs (rodada 2 de promt.txt): substitui o
+ * "ícone circular + número" uniforme (diagnóstico #8) por uma barra de
+ * destaque lateral + variação real de tamanho/peso tipográfico, conforme
+ * a urgência REAL da métrica (não o tipo do dado). Aditivo às classes de
+ * cor .is-* acima — continuam funcionando sem mudança nas telas que ainda
+ * não usam peso (`item.variant` do MetricGrid aceita as duas juntas).
+ */
+.rh-metric-card--is-critical,
+.rh-metric-card--is-attention,
+.rh-metric-card--is-positive {
+  position: relative;
+  padding-left: calc(0.68rem + 4px);
+}
+
+.rh-metric-card--is-critical::before,
+.rh-metric-card--is-attention::before,
+.rh-metric-card--is-positive::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: var(--radius-subtle) 0 0 var(--radius-subtle);
+}
+
+.rh-metric-card--is-critical {
+  min-height: 88px;
+  box-shadow: var(--elevation-2);
+}
+
+.rh-metric-card--is-critical::before {
+  background: var(--color-danger);
+}
+
+.rh-metric-card--is-critical .rh-metric-value {
+  font-size: var(--font-display);
+}
+
+.rh-metric-card--is-attention::before {
+  background: var(--color-warning);
+}
+
+.rh-metric-card--is-attention .rh-metric-value {
+  font-size: var(--font-xl);
+}
+
+.rh-metric-card--is-positive::before {
+  background: var(--color-success);
+}
+
+.rh-metric-card--is-neutral .rh-metric-value {
+  font-size: var(--font-lg);
+}
+
+/*
+ * Filtro compacto (rodada 2 de promt.txt): busca única sempre visível +
+ * chips dos filtros ativos + painel secundário colapsável, substituindo o
+ * padrão "input-input-input-input-botão" nas telas migradas. Isolado de
+ * .rh-filter-grid/.rh-filter-field (usadas em 16 telas) — nenhuma tela
+ * fora do escopo desta rodada é afetada.
+ */
+.rh-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rh-filter-bar-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-subtle);
+  background: var(--color-surface);
+}
+
+.rh-filter-bar-search .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--color-text-tertiary);
+}
+
+.rh-filter-bar-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.86rem;
+  color: var(--color-text-primary);
+}
+
+.rh-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.4rem 0.72rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-subtle);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.rh-filter-toggle[aria-expanded='true'] {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+.rh-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.rh-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.3rem 0.24rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.rh-filter-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rh-filter-chip button:hover {
+  background: var(--state-hover-overlay);
+  color: var(--color-text-primary);
+}
+
+.rh-filter-panel-expanded {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
 .rh-action-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1618,6 +1840,18 @@
 .rh-form-footer-hint {
   color: var(--color-text-muted);
   font-size: var(--font-sm);
+}
+
+/*
+ * Rodada 2 de promt.txt: agrupa as ações secundárias/navegação do rodapé
+ * (Voltar, Lista geral, Baixar ficha, Adicionar a processo) — a ação de
+ * decisão principal (Salvar) migrou para o topo (acaoPrimaria do PainelRh).
+ */
+.rh-form-footer-secondary-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .rh-standalone-page {

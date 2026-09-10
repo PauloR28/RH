@@ -52,6 +52,16 @@ export async function atualizarTrilhaOnboarding(idTrilha, payload) {
   return resultado;
 }
 
+export async function vincularTrilhaProcesso(idTrilha, idProcesso) {
+  const resultado = await requisitar(`/onboarding/trilhas/${encodeURIComponent(idTrilha)}/vincular-processo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_processo: idProcesso }),
+  });
+  invalidarCacheApi('onboarding-processos-treinamentos');
+  return resultado;
+}
+
 export async function excluirTrilhaOnboarding(idTrilha) {
   const resultado = await requisitar(`/onboarding/trilhas/${encodeURIComponent(idTrilha)}`, {
     method: 'DELETE',

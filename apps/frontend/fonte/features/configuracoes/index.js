@@ -44,11 +44,39 @@ const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
   { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operações', permissao: 'configuracoes.visualizar', icon: 'apartment' },
-  { id: 'catalogos', tela: 'screen-settings-catalog', label: 'Catálogos', permissao: 'configuracoes.visualizar', icon: 'inventory_2' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
   { id: 'ambiente', tela: 'screen-settings-environment', label: 'Ambiente', permissao: '', icon: 'tune' },
 ];
+// Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
+// os ~20 módulos granulares de permissão (rbac.py) são agrupados nestas 7
+// "sessões" — o mesmo recorte que o usuário navega no Conecta — para que o
+// perfil selecionado mostre uma sessão por vez em vez de todos os módulos
+// abertos ao mesmo tempo (era o que tornava a tela "absurdamente longa").
+const SESSOES_PERMISSAO = [
+  { id: 'curriculos', label: 'Caixa de Currículos', icon: 'badge', modulos: ['Candidatos', 'Vagas'] },
+  { id: 'processos', label: 'Processos', icon: 'route', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
+  { id: 'provas', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
+  { id: 'gestao', label: 'Gestão', icon: 'insights', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações'] },
+  { id: 'drive', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
+  { id: 'treinamentos', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
+  {
+    id: 'configuracoes',
+    label: 'Configurações',
+    icon: 'settings',
+    modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Documentos', 'Operações', 'Logs', 'Políticas'],
+  },
+];
+
+function ToggleSwitch({ checked, disabled, onChange }) {
+  return html`
+    <label class=${`c24-toggle-switch ${disabled ? 'is-disabled' : ''}`.trim()}>
+      <input type="checkbox" checked=${checked} disabled=${disabled} onChange=${onChange} />
+      <span class="c24-toggle-switch-track"><span class="c24-toggle-switch-thumb"></span></span>
+    </label>
+  `;
+}
+
 const ABA_POR_TELA = ABAS.reduce((mapa, aba) => ({ ...mapa, [aba.tela]: aba.id }), {
   'screen-settings': 'usuarios',
 });
@@ -264,16 +292,6 @@ function textoCampos(...campos) {
 
 function contarPor(lista, predicado) {
   return normalizarLista(lista).filter(predicado).length;
-}
-
-function obterIniciais(nome, fallback = 'RH') {
-  const partes = String(nome || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!partes.length) return fallback;
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
 }
 
 function obterStatusTone(status) {
@@ -535,6 +553,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [mostrarSomenteAtivas, setMostrarSomenteAtivas] = useState(false);
   const [perfilComparadoId, setPerfilComparadoId] = useState('');
   const [justificativaPerfil, setJustificativaPerfil] = useState('');
+  const [sessaoPermissaoAtiva, setSessaoPermissaoAtiva] = useState(SESSOES_PERMISSAO[0].id);
+  const [perfisDesbloqueados, setPerfisDesbloqueados] = useState(false);
   const [tipoCatalogo, setTipoCatalogo] = useState('');
   const [formItem, setFormItem] = useState(FORM_ITEM_INICIAL);
   const enderecoPrincipalItem = useMemo(
@@ -1293,11 +1313,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setAbaAtiva('usuarios');
   };
 
-  const abrirUsuarioVinculado = (usuario) => {
-    selecionarUsuario(usuario);
-    setAbaAtiva('usuarios');
-  };
-
   const exportarLogs = async () => {
     setErro('');
     try {
@@ -1473,14 +1488,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     [logsFiltrados, paginaLogs],
   );
 
-  const logsConfiguracoesRecentes = useMemo(
-    () =>
-      logs
-        .filter((log) => normalizarBusca(log.modulo).includes('configur'))
-        .slice(0, 4),
-    [logs],
-  );
-
   const modulosLogs = useMemo(
     () => Array.from(new Set(logs.map((log) => log.modulo).filter(Boolean))).sort(),
     [logs],
@@ -1525,50 +1532,33 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     },
   ];
 
-  const renderAuditoriaRecente = (itens = logsConfiguracoesRecentes) => html`
-    <section class="c24-card settings-audit-strip">
-      <header class="c24-card-header compact">
-        <div>
-          <span class="c24-eyebrow">Auditoria recente</span>
-          <h3>Últimas ações administrativas</h3>
-        </div>
-        ${controlador.possuiPermissao('logs.visualizar')
-      ? html`
-              <button type="button" class="c24-link-btn" onClick=${() => setAbaAtiva('logs')}>
-                Ver todas as ações
-              </button>
-            `
-      : null}
-      </header>
-      ${itens.length
-      ? html`
-            <div class="settings-audit-list">
-              ${itens.map(
-        (log) => html`
-                  <article class="settings-audit-item" key=${log.id_log}>
-                    <span class="settings-audit-icon"><${Icone} name="history" /></span>
-                    <div>
-                      <strong>${log.acao || 'Ação registrada'}</strong>
-                      <small>${log.nome_usuario || '-'} - ${formatarData(log.data_hora)}</small>
-                    </div>
-                    <${Badge}
-                      label=${inferirCriticidadeLog(log)}
-                      tone=${obterStatusTone(inferirCriticidadeLog(log))}
-                    />
-                  </article>
-                `,
-      )}
-            </div>
-          `
-      : html`
-            <${EmptyPanel}
-              icon="history"
-              title="Sem auditoria recente"
-              text="As ações administrativas aparecerão aqui quando forem registradas."
-            />
-          `}
-    </section>
-  `;
+  const metricasOperacoes = useMemo(() => {
+    const secaoOperacoes = catalogo.find((secao) => secao.tipo === 'operacoes');
+    const itensOperacoes = normalizarLista(secaoOperacoes?.items);
+    return [
+      {
+        icon: 'apartment',
+        label: 'Operações cadastradas',
+        value: itensOperacoes.length,
+        helper: `${contarPor(itensOperacoes, (item) => item.ativo)} ativas`,
+        tone: 'blue',
+      },
+      {
+        icon: 'rule_settings',
+        label: 'Itens no catálogo atual',
+        value: itensCatalogo.length,
+        helper: secaoCatalogoAtiva?.label || 'Nenhum catálogo selecionado',
+        tone: 'indigo',
+      },
+      {
+        icon: 'inventory_2',
+        label: 'Catálogos disponíveis',
+        value: catalogo.length,
+        helper: 'Etapas, motivos e operações',
+        tone: 'green',
+      },
+    ];
+  }, [catalogo, itensCatalogo, secaoCatalogoAtiva]);
 
   const renderUsuarios = () => {
     const podeCriar = controlador.possuiPermissao('usuarios.criar');
@@ -1894,28 +1884,28 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         <span>Operações vinculadas</span>
                         <div class="users-operacoes-checklist">
                           ${operacoesDisponiveis.length
-          ? operacoesDisponiveis.map((operacao) => {
-            const valorOperacao = operacao.chave || operacao.nome;
-            const marcado = formUsuario.operacoes.includes(valorOperacao);
-            const idCheckbox = `users-operacao-${operacao.id_item}`;
-            return html`
+        ? operacoesDisponiveis.map((operacao) => {
+          const valorOperacao = operacao.chave || operacao.nome;
+          const marcado = formUsuario.operacoes.includes(valorOperacao);
+          const idCheckbox = `users-operacao-${operacao.id_item}`;
+          return html`
                                 <span key=${operacao.id_item} class="users-operacoes-item">
                                   <input
                                     type="checkbox"
                                     id=${idCheckbox}
                                     checked=${marcado}
                                     onChange=${(event) => {
-                const novaLista = event.target.checked
-                  ? [...formUsuario.operacoes, valorOperacao]
-                  : formUsuario.operacoes.filter((item) => item !== valorOperacao);
-                setFormUsuario({ ...formUsuario, operacoes: novaLista });
-              }}
+              const novaLista = event.target.checked
+                ? [...formUsuario.operacoes, valorOperacao]
+                : formUsuario.operacoes.filter((item) => item !== valorOperacao);
+              setFormUsuario({ ...formUsuario, operacoes: novaLista });
+            }}
                                   />
                                   <label for=${idCheckbox}>${operacao.nome}</label>
                                 </span>
                               `;
-          })
-          : html`<span class="form-text">Nenhuma operação cadastrada.</span>`}
+        })
+        : html`<span class="form-text">Nenhuma operação cadastrada.</span>`}
                         </div>
                         <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações.</span>
                       </label>
@@ -2075,9 +2065,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 />
               </div>
               ${carregandoCandidatosAprovados
-      ? html`<p class="text-muted">Carregando candidatos aprovados...</p>`
-      : candidatosAprovadosFiltrados.length
-        ? html`
+        ? html`<p class="text-muted">Carregando candidatos aprovados...</p>`
+        : candidatosAprovadosFiltrados.length
+          ? html`
                     <ul class="quick-user-candidate-list">
                       ${candidatosAprovadosFiltrados.slice(0, 20).map((candidato) => html`
                         <li key=${candidato.id_registro || candidato.id_teste}>
@@ -2093,7 +2083,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       `)}
                     </ul>
                   `
-        : html`<p class="text-muted">Nenhum candidato aprovado encontrado.</p>`}
+          : html`<p class="text-muted">Nenhum candidato aprovado encontrado.</p>`}
 
               <div class="rh-filter-field" style=${{ marginTop: '8px' }}>
                 <label>Nome</label>
@@ -2141,33 +2131,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   };
 
   const renderPerfis = () => {
-    const renderPreviaUsuarios = (perfil) => {
-      const usuariosPerfil = usuariosPorPerfil[perfil.id] || [];
-      const exibidos = usuariosPerfil.slice(0, 3);
-      return html`
-        <div class="settings-profile-users-preview">
-          <span>Usuários</span>
-          <div class="settings-profile-avatar-stack">
-            ${exibidos.length
-          ? exibidos.map(
-            (usuario) => html`
-                    <span
-                      class="settings-profile-user-avatar"
-                      key=${usuario.id_usuario}
-                      title=${usuario.nome || usuario.email || 'Usuário'}
-                    >
-                      ${obterIniciais(usuario.nome || usuario.email)}
-                    </span>
-                  `,
-          )
-          : html`<span class="settings-profile-users-empty">Sem usuários</span>`}
-            ${usuariosPerfil.length > exibidos.length
-          ? html`<span class="settings-profile-user-more">+${usuariosPerfil.length - exibidos.length}</span>`
-          : null}
-          </div>
-        </div>
-      `;
-    };
+    const podeEditarPerfis = controlador.possuiPermissao('configuracoes.editar');
+    const sessaoAtiva = SESSOES_PERMISSAO.find((sessao) => sessao.id === sessaoPermissaoAtiva) || SESSOES_PERMISSAO[0];
+    const contagemPorSessao = (sessao) =>
+      Object.entries(permissoesPorModulo)
+        .filter(([modulo]) => sessao.modulos.includes(modulo))
+        .reduce((total, [, itens]) => total + itens.length, 0);
+    const permissoesDaSessao = permissoesFiltradasPorModulo.filter(([modulo]) => sessaoAtiva.modulos.includes(modulo));
 
     return html`
       <div class="settings-admin-shell settings-profiles-page">
@@ -2176,290 +2146,212 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         { icon: 'badge', label: 'Total de perfis', value: perfis.length, helper: `${perfilMaisUsado} em destaque`, tone: 'blue' },
         { icon: 'shield', label: 'Permissões cadastradas', value: permissoes.length, helper: `${contarPor(permissoes, (item) => item.critica)} críticas`, tone: 'yellow' },
         { icon: 'groups', label: 'Usuários vinculados', value: usuarios.length, helper: 'Base real cadastrada', tone: 'green' },
-        {
-          icon: 'pending_actions',
-          label: 'Alterações pendentes',
-          value: alteracoesPendentesPerfil,
-          helper: perfilSelecionado?.nome || 'Nenhum perfil selecionado',
-          tone: 'indigo',
-        },
       ]}
         />
 
-        <div class="settings-profile-workspace">
-          <section class="c24-card">
-            <header class="c24-card-header compact">
-              <div>
-                <span class="c24-eyebrow">Perfis</span>
-                <h3>Escopos de acesso</h3>
-              </div>
-            </header>
-            <div class="settings-profile-list">
-              ${perfis.length
-        ? perfis.map(
-          (perfil) => {
-            const selecionado = perfilSelecionado?.id === perfil.id;
-            return html`
-                        <article
-                          key=${perfil.id}
-                          class=${`settings-profile-card ${selecionado ? 'is-active' : ''}`.trim()}
-                        >
-                          <div class="settings-profile-card-top">
-                            <span class="settings-profile-icon"><${Icone} name="badge" /></span>
-                            <span class="settings-profile-title">
-                              <strong>${perfil.nome}</strong>
-                              <small>${normalizarLista(perfil.permissoes).length} permissões</small>
-                            </span>
-                            <span class="settings-profile-badges">
-                              <${Badge} label=${perfil.nivel || 'Nivel'} tone="info" />
-                              ${selecionado ? html`<${Badge} label="Selecionado" tone="success" />` : null}
-                            </span>
-                          </div>
-                          <p>${perfil.descricao || '-'}</p>
-                          <div class="settings-profile-card-meta">
-                            <span>${contagemUsuariosPorPerfil[perfil.id] || 0} usuário(s) vinculados</span>
-                            ${renderPreviaUsuarios(perfil)}
-                          </div>
-                          <button
-                            type="button"
-                            class=${`btn btn-sm ${selecionado ? 'btn-primary' : 'btn-outline-primary'}`.trim()}
-                            onClick=${() => selecionarPerfilPermissoes(perfil.id)}
-                          >
-                            <${Icone} name="admin_panel_settings" />
-                            ${selecionado ? 'Selecionado' : 'Gerenciar permissões'}
-                          </button>
-                        </article>
-                      `;
-          },
-        )
-        : html`
-                    <${EmptyPanel}
-                      icon="group_off"
-                      title="Sem perfis"
-                      text="Nenhum perfil foi retornado pelo backend."
-                    />
-                  `}
-            </div>
-          </section>
+        <div class="settings-profile-matrix">
+          <nav class="settings-profile-rail">
+            <span class="c24-eyebrow">Perfis</span>
+            ${perfis.length
+        ? perfis.map((perfil) => {
+          const selecionado = perfilSelecionado?.id === perfil.id;
+          return html`
+                    <button
+                      type="button"
+                      key=${perfil.id}
+                      class=${`settings-profile-chip ${selecionado ? 'is-active' : ''}`.trim()}
+                      onClick=${() => selecionarPerfilPermissoes(perfil.id)}
+                    >
+                      <span class="settings-profile-chip-icon"><${Icone} name="badge" /></span>
+                      <span class="settings-profile-chip-copy">
+                        <strong>${perfil.nome}</strong>
+                        <small>${contagemUsuariosPorPerfil[perfil.id] || 0} usuário(s)</small>
+                      </span>
+                    </button>
+                  `;
+        })
+        : html`<${EmptyPanel} icon="group_off" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
+          </nav>
 
           ${perfilSelecionado
         ? html`
-                <section class="c24-card settings-linked-users-card">
-                  <header class="c24-card-header compact">
+                <nav class="settings-session-rail">
+                  <span class="c24-eyebrow">${perfilSelecionado.nome}</span>
+                  ${SESSOES_PERMISSAO.map((sessao) => {
+          const ativa = sessao.id === sessaoAtiva.id;
+          const total = contagemPorSessao(sessao);
+          return html`
+                      <button
+                        type="button"
+                        key=${sessao.id}
+                        class=${`settings-session-chip ${ativa ? 'is-active' : ''}`.trim()}
+                        onClick=${() => setSessaoPermissaoAtiva(sessao.id)}
+                      >
+                        <${Icone} name=${sessao.icon} />
+                        <span>${sessao.label}</span>
+                        <small>${total}</small>
+                      </button>
+                    `;
+        })}
+                </nav>
+
+                <section class="c24-card settings-permission-panel">
+                  <header class="c24-card-header settings-permission-head">
                     <div>
-                      <span class="c24-eyebrow">Usuários vinculados</span>
+                      <span class="c24-eyebrow">${sessaoAtiva.label}</span>
                       <h3>${perfilSelecionado.nome}</h3>
                     </div>
                     <div class="settings-card-actions">
                       <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
                       ${usuariosPerfilSelecionado.length
-            ? html`
-                            <button type="button" class="btn btn-outline-primary btn-sm" onClick=${abrirUsuariosDoPerfil}>
-                              Ver todos
+          ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
+          : null}
+                      ${podeEditarPerfis
+          ? html`
+                            <button
+                              type="button"
+                              class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
+                              onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
+                            >
+                              <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
+                              ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
                             </button>
                           `
-            : null}
-                    </div>
-                  </header>
-                  ${usuariosPerfilSelecionado.length
-            ? html`
-                        <div class="settings-linked-user-list">
-                          ${usuariosPerfilSelecionado.slice(0, 5).map(
-              (usuario) => {
-                const areaUsuario = usuario.operacao || usuario.area || usuario.departamento || '';
-                return html`
-                                <article class="settings-linked-user-row" key=${usuario.id_usuario}>
-                                  <span class="settings-avatar">${obterIniciais(usuario.nome || usuario.email)}</span>
-                                  <div class="settings-row-main">
-                                    <strong>${usuario.nome || '-'}</strong>
-                                    <span>${usuario.email || usuario.login || '-'}</span>
-                                    <div class="settings-row-meta">
-                                      <small>${usuario.status || 'Sem status'}</small>
-                                      ${areaUsuario ? html`<small>${areaUsuario}</small>` : null}
-                                    </div>
-                                  </div>
-                                  <div class="settings-row-status">
-                                    <${Badge} label=${usuario.status || 'Sem status'} tone=${obterStatusTone(usuario.status)} />
-                                    <button
-                                      type="button"
-                                      class="c24-icon-btn"
-                                      title="Abrir usuário"
-                                      onClick=${() => abrirUsuarioVinculado(usuario)}
-                                    >
-                                      <${Icone} name="open_in_new" />
-                                    </button>
-                                  </div>
-                                </article>
-                              `;
-              },
-            )}
-                        </div>
-                      `
-            : html`
-                        <p class="settings-linked-users-empty">
-                          Este perfil ainda não possui usuários vinculados.
-                        </p>
-                      `}
-                </section>
-
-                <section class="c24-card settings-permission-panel">
-                  <header class="c24-card-header settings-permission-head">
-                    <div>
-                      <span class="c24-eyebrow">Matriz granular</span>
-                      <h3>${perfilSelecionado.nome}</h3>
-                      <p>${perfilSelecionado.descricao || 'Revise as permissões deste perfil.'}</p>
-                    </div>
-                    <div class="settings-card-actions">
-                      <${Badge}
-                        label=${`${permissoesPerfilDraft.length} ativas`}
-                        tone=${permissoesPerfilDraft.length ? 'success' : 'muted'}
-                      />
-                      <${Badge}
-                        label=${`${alteracoesPendentesPerfil} pendente(s)`}
-                        tone=${alteracoesPendentesPerfil ? 'danger' : 'muted'}
-                      />
+          : null}
                     </div>
                   </header>
 
-                  <div class="c24-filter-bar settings-permission-filter">
-                    <${FilterField} label="Buscar permissão" icon="search">
-                      <input
-                        class="form-control"
-                        placeholder="Módulo, chave ou descrição"
-                        value=${buscaPermissao}
-                        onInput=${(event) => setBuscaPermissao(event.target.value)}
-                      />
-                    </${FilterField}>
-                    <${FilterField} label="Comparar com" icon="compare_arrows">
-                      <select
-                        class="form-select"
-                        value=${perfilComparadoId}
-                        onChange=${(event) => setPerfilComparadoId(event.target.value)}
-                      >
-                        <option value="">Não comparar</option>
-                        ${perfis
+                  ${perfisDesbloqueados
+          ? html`
+                        <div class="c24-filter-bar settings-permission-filter">
+                          <${FilterField} label="Buscar permissão" icon="search">
+                            <input
+                              class="form-control"
+                              placeholder="Módulo, chave ou descrição"
+                              value=${buscaPermissao}
+                              onInput=${(event) => setBuscaPermissao(event.target.value)}
+                            />
+                          </${FilterField}>
+                          <${FilterField} label="Comparar com" icon="compare_arrows">
+                            <select
+                              class="form-select"
+                              value=${perfilComparadoId}
+                              onChange=${(event) => setPerfilComparadoId(event.target.value)}
+                            >
+                              <option value="">Não comparar</option>
+                              ${perfis
             .filter((perfil) => perfil.id !== perfilSelecionado.id)
             .map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
-                      </select>
-                    </${FilterField}>
-                    <label class="c24-check-filter settings-active-filter">
-                      <input
-                        type="checkbox"
-                        checked=${mostrarSomenteAtivas}
-                        onChange=${(event) => setMostrarSomenteAtivas(event.target.checked)}
-                      />
-                      Ver apenas ativas
-                    </label>
-                    <${FilterField} label="Justificativa da alteração" icon="edit_note">
-                      <input
-                        class="form-control"
-                        value=${justificativaPerfil}
-                        placeholder="Opcional, recomendado para alterações críticas"
-                        onInput=${(event) => setJustificativaPerfil(event.target.value)}
-                      />
-                    </${FilterField}>
-                  </div>
+                            </select>
+                          </${FilterField}>
+                          <label class="c24-check-filter settings-active-filter">
+                            <input
+                              type="checkbox"
+                              checked=${mostrarSomenteAtivas}
+                              onChange=${(event) => setMostrarSomenteAtivas(event.target.checked)}
+                            />
+                            Ver apenas ativas
+                          </label>
+                          <${FilterField} label="Justificativa da alteração" icon="edit_note">
+                            <input
+                              class="form-control"
+                              value=${justificativaPerfil}
+                              placeholder="Opcional, recomendado para alterações críticas"
+                              onInput=${(event) => setJustificativaPerfil(event.target.value)}
+                            />
+                          </${FilterField}>
+                        </div>
+                      `
+          : null}
 
                   <div class="settings-permission-groups">
-                    ${permissoesFiltradasPorModulo.length
-            ? permissoesFiltradasPorModulo.map(
-              ([modulo, itens]) => {
-                const ativos = contarPor(itens, (permissao) => permissoesPerfilDraft.includes(permissao.chave));
-                return html`
-                              <details class="settings-permission-group" key=${modulo} open>
-                                <summary>
-                                  <span>
-                                    <strong>${modulo}</strong>
-                                    <small>${ativos}/${itens.length} ativas</small>
-                                  </span>
-                                  <span class="settings-group-actions">
-                                    <button
-                                      type="button"
-                                      onClick=${(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    alterarGrupoPermissoes(itens, true);
-                  }}
-                                    >
-                                      Marcar grupo
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick=${(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    alterarGrupoPermissoes(itens, false);
-                  }}
-                                    >
-                                      Limpar grupo
-                                    </button>
-                                  </span>
-                                </summary>
-                                <div class="settings-permission-list">
-                                  ${itens.map(
-                    (permissao) => {
-                      const ativa = permissoesPerfilDraft.includes(permissao.chave);
-                      const ativaComparado = perfilComparado ? permissaoEstaAtiva(perfilComparado, permissao.chave) : null;
-                      return html`
-                                        <label class=${`settings-permission-row ${ativa ? 'is-active' : ''}`.trim()} key=${permissao.chave}>
-                                          <input
-                                            type="checkbox"
-                                            checked=${ativa}
-                                            onChange=${() => alternarPermissao(permissao.chave)}
-                                          />
-                                          <span class="settings-permission-copy">
-                                            <strong>${permissao.chave}</strong>
-                                            <small>${permissao.descricao || '-'}</small>
-                                          </span>
-                                          <span class="settings-permission-badges">
-                                            <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
-                                            ${perfilComparado
-                          ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`
-                          : null}
-                                          </span>
-                                        </label>
-                                      `;
-                    },
-                  )}
-                                </div>
-                              </details>
-                            `;
-              },
-            )
-            : html`
-                          <${EmptyPanel}
-                            icon="shield_off"
-                            title="Sem permissões"
-                            text="Nenhuma permissão corresponde ao filtro atual."
-                          />
-                        `}
+                    ${permissoesDaSessao.length
+          ? permissoesDaSessao.map(
+            ([modulo, itens]) => {
+              const ativos = contarPor(itens, (permissao) => permissoesPerfilDraft.includes(permissao.chave));
+              return html`
+                            <div class="settings-permission-group" key=${modulo}>
+                              <div class="settings-permission-group-head">
+                                <span>
+                                  <strong>${modulo}</strong>
+                                  <small>${ativos}/${itens.length} ativas</small>
+                                </span>
+                                ${perfisDesbloqueados
+                ? html`
+                                      <span class="settings-group-actions">
+                                        <button type="button" onClick=${() => alterarGrupoPermissoes(itens, true)}>Marcar grupo</button>
+                                        <button type="button" onClick=${() => alterarGrupoPermissoes(itens, false)}>Limpar grupo</button>
+                                      </span>
+                                    `
+                : null}
+                              </div>
+                              <div class="settings-permission-list">
+                                ${itens.map((permissao) => {
+                  const ativa = permissoesPerfilDraft.includes(permissao.chave);
+                  const ativaComparado = perfilComparado ? permissaoEstaAtiva(perfilComparado, permissao.chave) : null;
+                  return html`
+                                    <div class=${`settings-permission-row ${ativa ? 'is-active' : ''}`.trim()} key=${permissao.chave}>
+                                      <${ToggleSwitch}
+                                        checked=${ativa}
+                                        disabled=${!perfisDesbloqueados}
+                                        onChange=${() => alternarPermissao(permissao.chave)}
+                                      />
+                                      <span class="settings-permission-copy">
+                                        <strong>${permissao.chave}</strong>
+                                        <small>${permissao.descricao || '-'}</small>
+                                      </span>
+                                      <span class="settings-permission-badges">
+                                        <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
+                                        ${perfilComparado
+                      ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`
+                      : null}
+                                      </span>
+                                    </div>
+                                  `;
+                })}
+                              </div>
+                            </div>
+                          `;
+            },
+          )
+          : html`
+                        <${EmptyPanel}
+                          icon="shield_off"
+                          title="Sem permissões nesta sessão"
+                          text="Nenhuma permissão corresponde ao filtro atual."
+                        />
+                      `}
                   </div>
 
-                  <footer class="rh-form-footer rh-form-footer--sticky">
-                    <span class="rh-form-footer-hint">
-                      ${alteracoesPendentesPerfil
-            ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
-            : 'Nenhuma alteração pendente.'}
-                    </span>
-                    <div class="settings-card-actions">
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm"
-                        disabled=${salvando}
-                        onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
-                      >
-                        <${Icone} name="restore" /> Restaurar
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-primary btn-sm"
-                        disabled=${salvando || !controlador.possuiPermissao('configuracoes.editar')}
-                        onClick=${salvarPermissoesPerfil}
-                      >
-                        <${Icone} name="save" /> ${salvando ? 'Salvando...' : 'Salvar matriz'}
-                      </button>
-                    </div>
-                  </footer>
+                  ${perfisDesbloqueados
+          ? html`
+                        <footer class="rh-form-footer rh-form-footer--sticky">
+                          <span class="rh-form-footer-hint">
+                            ${alteracoesPendentesPerfil
+              ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
+              : 'Nenhuma alteração pendente.'}
+                          </span>
+                          <div class="settings-card-actions">
+                            <button
+                              type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              disabled=${salvando}
+                              onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
+                            >
+                              <${Icone} name="restore" /> Restaurar
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-primary btn-sm"
+                              disabled=${salvando || !podeEditarPerfis}
+                              onClick=${salvarPermissoesPerfil}
+                            >
+                              <${Icone} name="save" /> ${salvando ? 'Salvando...' : 'Salvar matriz'}
+                            </button>
+                          </div>
+                        </footer>
+                      `
+          : null}
                 </section>
               `
         : html`
@@ -2467,7 +2359,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <${EmptyPanel}
                     icon="rule"
                     title="Selecione um perfil"
-                    text="Selecione um perfil para visualizar e editar permissões."
+                    text="Selecione um perfil à esquerda para visualizar e editar permissões por sessão."
                   />
                 </section>
               `}
@@ -2478,7 +2370,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
   const renderCatalogos = () => html`
     <div class="settings-admin-shell">
-      <${StatGrid} items=${metricasGerais} />
+      <${StatGrid} items=${metricasOperacoes} />
 
       ${tipoCatalogo === 'operacoes'
       ? html`
@@ -2487,7 +2379,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <div>
                 <span class="c24-eyebrow">Endereço principal</span>
                 <h3>Endereço principal da empresa</h3>
-                <p>Usado por operações com Unidade "Em loco". Edição restrita a quem administra Configurações.</p>
               </div>
               ${controlador.possuiPermissao('configuracoes.editar') && !editandoEndereco
           ? html`
@@ -2615,7 +2506,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   <label>
                     <span>Chave/Tag (automática)</span>
                     <input class="form-control" disabled value=${String(formItem.nome || '').toUpperCase() || '—'} />
-                    <small class="text-muted">Gerada a partir do nome, em maiúsculas. Aparece como tag em todo o ambiente da operação.</small>
+                    
                   </label>
                   <label>
                     <span>Cor da tag</span>
@@ -2868,9 +2759,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         <${Icone} name="add" /> Adicionar sistema
                       </button>
                     </div>
-                    <p class="text-muted small mb-2">
-                      Usado para já indicar, na solicitação de credenciais de um novo colaborador desta operação, quais acessos precisam ser criados.
-                    </p>
+                    
                     ${normalizarLista(formItem.sistemasAcesso).length
           ? normalizarLista(formItem.sistemasAcesso).map(
             (sistema, indice) => html`
@@ -3143,8 +3032,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               `}
         </section>
       </div>
-
-      ${renderAuditoriaRecente()}
     </div>
   `;
 

@@ -2,9 +2,11 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import {
   atualizarAgendaTreinamento,
   atualizarTrilhaOnboarding,
+  buscarCandidatosTreinamento,
   criarTrilhaOnboarding,
   excluirAtribuicaoTreinamento,
   excluirTrilhaOnboarding,
+  iniciarOnboardingCandidato,
   liberarVagasTreinamento,
   listarAtribuicoesTreinamento,
   listarCandidatosLiberacaoTreinamento,
@@ -16,12 +18,15 @@ import {
   salvarPresencaTreinamento,
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { vincularTrilhaProcesso } from '../../services/api/onboarding.js';
+import { lerProcessos } from '../../services/api/processes.js';
 import {
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
@@ -84,6 +89,9 @@ const FORM_TRILHA_INICIAL = {
   local_padrao: '',
   itens: [],
   slides: [],
+  // Preservados sem UI própria neste modal — ver normalizarItensParaEnvio.
+  texto_encerramento: '',
+  saiba_mais_treinamento: null,
 };
 const FORM_AGENDAR_INICIAL = {
   id_onboarding: '',
@@ -97,15 +105,33 @@ const FORM_EDITAR_TREINAMENTO_INICIAL = {
   acesso_plataforma: false,
   metodo_login: '',
 };
+const FORM_PARTICIPANTE_INICIAL = {
+  data_prevista: '',
+  local: '',
+  ministrante: '',
+};
 
+// Correções.txt (10/set/2026): este modal edita só nome/categoria/módulos
+// básicos da trilha — não reabre o wizard rico (Saiba+, seções com imagem,
+// tabela). Sem round-trip desses campos aqui, salvar pela tela de edição
+// apagava conteúdo criado no wizard (o backend faz upsert por id_item e
+// sobrescreve as colunas ricas com o que vier no payload — ver
+// apps/backend/rh_api/repositories/onboarding.py, update_onboarding_trilha).
 function normalizarItensParaEnvio(itens) {
   return itens.map((item, index) => ({
+    id_item: item.id_item || null,
     titulo: item.titulo.trim(),
     descricao: (item.descricao || '').trim(),
     ordem: index,
     obrigatorio: !!item.obrigatorio,
     tipo_conteudo: item.tipo_conteudo || '',
     conteudo_url: (item.conteudo_url || '').trim(),
+    subtitulo: item.subtitulo || '',
+    texto_principal: item.texto_principal || '',
+    dica_texto: item.dica_texto || '',
+    tabela: item.tabela || null,
+    saiba_mais: item.saiba_mais || [],
+    secoes: item.secoes || [],
   }));
 }
 
@@ -159,6 +185,32 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const [modalEditarTreinamentoAberto, setModalEditarTreinamentoAberto] = useState(false);
   const [formEditarTreinamento, setFormEditarTreinamento] = useState(FORM_EDITAR_TREINAMENTO_INICIAL);
+
+  // Adicionar treinamento a um processo seletivo já aberto (Correções.txt,
+  // pedido do RH 10/set/2026) — reaproveita a vinculação processo/treinamento
+  // que já existe para processos criados com treinamentos pré-selecionados.
+  const [modalVincularProcessoAberto, setModalVincularProcessoAberto] = useState(false);
+  const [trilhaVincular, setTrilhaVincular] = useState(null);
+  const [processosAbertos, setProcessosAbertos] = useState([]);
+  const [carregandoProcessosAbertos, setCarregandoProcessosAbertos] = useState(false);
+  const [processoSelecionadoVinculo, setProcessoSelecionadoVinculo] = useState('');
+  const [salvandoVinculoProcesso, setSalvandoVinculoProcesso] = useState(false);
+  const [erroVinculoProcesso, setErroVinculoProcesso] = useState('');
+
+  // Adicionar participante avulso a um treinamento já cadastrado, sem
+  // depender de processo seletivo (Correções.txt, pedido do RH 10/set/2026):
+  // busca manual de candidato + ministrante/data/local, usando a mesma rota
+  // que o wizard de criação já usa (POST /candidatos/iniciar).
+  const [modalParticipanteAberto, setModalParticipanteAberto] = useState(false);
+  const [trilhaParticipante, setTrilhaParticipante] = useState(null);
+  const [buscaParticipante, setBuscaParticipante] = useState('');
+  const [resultadosParticipante, setResultadosParticipante] = useState([]);
+  const [buscandoParticipante, setBuscandoParticipante] = useState(false);
+  const [participanteSelecionado, setParticipanteSelecionado] = useState(null);
+  const [formParticipante, setFormParticipante] = useState(FORM_PARTICIPANTE_INICIAL);
+  const [salvandoParticipante, setSalvandoParticipante] = useState(false);
+  const [erroParticipante, setErroParticipante] = useState('');
+  const [mensagemParticipante, setMensagemParticipante] = useState('');
 
   const [presencasPendentes, setPresencasPendentes] = useState({});
   const [salvandoPresenca, setSalvandoPresenca] = useState(false);
@@ -275,13 +327,23 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       modalidade: trilha.modalidade || '',
       local_padrao: trilha.local_padrao || '',
       itens: (trilha.itens || []).map((item) => ({
+        id_item: item.id_item || null,
         titulo: item.titulo || '',
         descricao: item.descricao || '',
         obrigatorio: !!item.obrigatorio,
         tipo_conteudo: item.tipo_conteudo || '',
         conteudo_url: item.conteudo_url || '',
+        // Preservados sem UI própria neste modal (ver normalizarItensParaEnvio).
+        subtitulo: item.subtitulo || '',
+        texto_principal: item.texto_principal || '',
+        dica_texto: item.dica_texto || '',
+        tabela: item.tabela || null,
+        saiba_mais: item.saiba_mais || [],
+        secoes: item.secoes || [],
       })),
       slides: slides.map((slide) => ({ titulo: slide.titulo || '', texto: slide.texto || '' })),
+      texto_encerramento: trilha.texto_encerramento || '',
+      saiba_mais_treinamento: trilha.saiba_mais_treinamento || null,
     });
     setErroTrilha('');
     setModalTrilhaAberto(true);
@@ -361,6 +423,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           .filter((slide) => slide.titulo.trim() || slide.texto.trim())
           .map((slide) => ({ titulo: slide.titulo.trim(), texto: slide.texto.trim() })),
       }),
+      texto_encerramento: formTrilha.texto_encerramento || '',
+      saiba_mais_treinamento: formTrilha.saiba_mais_treinamento || null,
     };
 
     setSalvandoTrilha(true);
@@ -390,6 +454,130 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       setErro(error?.message || 'Não foi possível excluir este treinamento.');
     } finally {
       setExcluindoTrilhaId(null);
+    }
+  };
+
+  // -- Adicionar treinamento a um processo seletivo já aberto -------------
+
+  const abrirVincularProcesso = async (trilha) => {
+    setTrilhaVincular(trilha);
+    setProcessoSelecionadoVinculo('');
+    setErroVinculoProcesso('');
+    setModalVincularProcessoAberto(true);
+    setCarregandoProcessosAbertos(true);
+    try {
+      const dados = await lerProcessos({ forcar: true });
+      const lista = Array.isArray(dados) ? dados : [];
+      setProcessosAbertos(
+        lista.filter((processo) => !normalizarBuscaTreino(processo.status).includes('encerrad') && !normalizarBuscaTreino(processo.status).includes('cancelad')),
+      );
+    } catch (error) {
+      setErroVinculoProcesso(error?.message || 'Não foi possível carregar os processos seletivos abertos.');
+    } finally {
+      setCarregandoProcessosAbertos(false);
+    }
+  };
+
+  const fecharModalVincularProcesso = () => {
+    setModalVincularProcessoAberto(false);
+    setTrilhaVincular(null);
+    setProcessosAbertos([]);
+    setProcessoSelecionadoVinculo('');
+    setErroVinculoProcesso('');
+  };
+
+  const salvarVinculoProcesso = async () => {
+    if (!trilhaVincular || !processoSelecionadoVinculo) {
+      setErroVinculoProcesso('Selecione um processo seletivo.');
+      return;
+    }
+    setSalvandoVinculoProcesso(true);
+    setErroVinculoProcesso('');
+    try {
+      await vincularTrilhaProcesso(trilhaVincular.id_trilha, processoSelecionadoVinculo);
+      fecharModalVincularProcesso();
+      await carregarTreinamentosProcesso();
+    } catch (error) {
+      setErroVinculoProcesso(error?.message || 'Não foi possível vincular o treinamento a este processo.');
+    } finally {
+      setSalvandoVinculoProcesso(false);
+    }
+  };
+
+  // -- Adicionar participante avulso (sem processo seletivo) --------------
+
+  const abrirAdicionarParticipante = (trilha) => {
+    setTrilhaParticipante(trilha);
+    setBuscaParticipante('');
+    setResultadosParticipante([]);
+    setParticipanteSelecionado(null);
+    setFormParticipante({ ...FORM_PARTICIPANTE_INICIAL, local: trilha.local_padrao || '' });
+    setErroParticipante('');
+    setMensagemParticipante('');
+    setModalParticipanteAberto(true);
+  };
+
+  const fecharModalParticipante = () => {
+    setModalParticipanteAberto(false);
+    setTrilhaParticipante(null);
+    setBuscaParticipante('');
+    setResultadosParticipante([]);
+    setParticipanteSelecionado(null);
+    setFormParticipante(FORM_PARTICIPANTE_INICIAL);
+    setErroParticipante('');
+  };
+
+  useEffect(() => {
+    if (!modalParticipanteAberto || participanteSelecionado) return undefined;
+    const termo = buscaParticipante.trim();
+    setBuscandoParticipante(true);
+    const timer = setTimeout(async () => {
+      try {
+        const resultados = await buscarCandidatosTreinamento(termo);
+        setResultadosParticipante(Array.isArray(resultados) ? resultados : []);
+      } catch (error) {
+        setResultadosParticipante([]);
+      } finally {
+        setBuscandoParticipante(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [buscaParticipante, modalParticipanteAberto, participanteSelecionado]);
+
+  const selecionarParticipante = (candidato) => {
+    setParticipanteSelecionado(candidato);
+    setResultadosParticipante([]);
+  };
+
+  const trocarParticipanteSelecionado = () => {
+    setParticipanteSelecionado(null);
+    setBuscaParticipante('');
+  };
+
+  const confirmarAdicaoParticipante = async () => {
+    if (!participanteSelecionado || !trilhaParticipante) {
+      setErroParticipante('Busque e selecione um candidato antes de salvar.');
+      return;
+    }
+    setSalvandoParticipante(true);
+    setErroParticipante('');
+    try {
+      await iniciarOnboardingCandidato({
+        id_registro: participanteSelecionado.id_registro,
+        trilha_id: trilhaParticipante.id_trilha,
+        data_prevista: formParticipante.data_prevista ? new Date(formParticipante.data_prevista).toISOString() : null,
+        local: formParticipante.local.trim(),
+        ministrante: formParticipante.ministrante.trim(),
+      });
+      setMensagemParticipante(`${participanteSelecionado.nome_candidato} foi adicionado a "${trilhaParticipante.nome}" e já pode acessar o treinamento.`);
+      await Promise.all([carregarAtribuicoes(), carregarTrilhas()]);
+      setParticipanteSelecionado(null);
+      setBuscaParticipante('');
+      setFormParticipante({ ...FORM_PARTICIPANTE_INICIAL, local: trilhaParticipante.local_padrao || '' });
+    } catch (error) {
+      setErroParticipante(error?.message || 'Não foi possível adicionar este candidato ao treinamento.');
+    } finally {
+      setSalvandoParticipante(false);
     }
   };
 
@@ -610,21 +798,39 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                         </span>
                       </td>
                       <td>
-                        <div class="d-flex gap-2">
-                          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicaoTrilha(item)}>
-                            <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn-outline-danger btn-sm"
-                            disabled=${excluindoTrilhaId === item.id_trilha}
-                            onClick=${() => excluirTrilhaCadastrada(item)}
-                          >
-                            <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
-                            ${excluindoTrilhaId === item.id_trilha ? 'Excluindo...' : 'Excluir'}
-                          </button>
-                        </div>
+                        <${MenuAcoesProcesso}
+                          label="Ações"
+                          acoes=${[
+              {
+                label: 'Adicionar participante',
+                icon: 'person_add',
+                disabled: !podeEditar,
+                title: 'Adicionar um candidato a este treinamento sem precisar de um processo seletivo',
+                onClick: () => abrirAdicionarParticipante(item),
+              },
+              {
+                label: 'Adicionar a processo seletivo',
+                icon: 'link',
+                disabled: !podeEditar,
+                title: 'Vincular este treinamento a um processo seletivo já aberto',
+                onClick: () => abrirVincularProcesso(item),
+              },
+              {
+                label: 'Editar',
+                icon: 'edit',
+                disabled: !podeEditar,
+                onClick: () => abrirEdicaoTrilha(item),
+              },
+              { separator: true },
+              {
+                label: excluindoTrilhaId === item.id_trilha ? 'Excluindo...' : 'Excluir',
+                icon: 'delete',
+                danger: true,
+                disabled: !podeEditar || excluindoTrilhaId === item.id_trilha,
+                onClick: () => excluirTrilhaCadastrada(item),
+              },
+            ]}
+                        />
                       </td>
                     </tr>
                   `,
@@ -695,8 +901,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                           class="form-select form-select-sm"
                           disabled=${!podeEditar}
                           value=${presencasPendentes[item.id_onboarding] === undefined
-          ? (item.presenca || '')
-          : (presencasPendentes[item.id_onboarding] ? 'presente' : 'falta')}
+              ? (item.presenca || '')
+              : (presencasPendentes[item.id_onboarding] ? 'presente' : 'falta')}
                           onChange=${(event) => alternarPresencaPendente(item.id_onboarding, event.target.value === 'presente')}
                         >
                           <option value="">-</option>
@@ -716,13 +922,13 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                             <span class="material-symbols-outlined">${IconeSvg('stop_circle')}</span>
                           </button>
                           ${podeComecarTreinamento(item)
-          ? html`
+              ? html`
                                 <button type="button" class="btn btn-primary btn-sm" onClick=${() => comecarTreinamento(item)}>
                                   <span class="material-symbols-outlined">${IconeSvg('play_circle')}</span>
                                   Começar treinamento
                                 </button>
                               `
-          : null}
+              : null}
                         </div>
                       </td>
                     </tr>
@@ -922,13 +1128,13 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       controlador=${controlador}
       acoesTopo=${html`
         ${podeCriar
-      ? html`
+        ? html`
               <button type="button" class="btn btn-primary rh-modern-primary-btn" onClick=${() => controlador.irParaTelaProtegida('screen-training-create')}>
                 <span class="material-symbols-outlined">${IconeSvg('add')}</span>
                 Criar Treinamento
               </button>
             `
-      : null}
+        : null}
       `}
     >
       <${PageIntro}
@@ -936,16 +1142,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         title="Treinamentos"
       />
 
-      <div class="c24-tabs" style=${{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-        <button type="button" class=${`c24-pill-tab ${abaAtiva === 'trilhas' ? 'is-active' : ''}`} onClick=${() => irParaAba('trilhas')}>
-          <span class="material-symbols-outlined">${IconeSvg('school')}</span>
-          Treinamentos
-        </button>
-        <button type="button" class=${`c24-pill-tab ${abaAtiva === 'atribuicoes' ? 'is-active' : ''}`} onClick=${() => irParaAba('atribuicoes')}>
-          <span class="material-symbols-outlined">${IconeSvg('assignment_ind')}</span>
-          Atribuições
-        </button>
-      </div>
+      
 
       ${abaAtiva === 'trilhas'
       ? renderTrilhas()
@@ -1045,7 +1242,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           <div class="rh-filter-field">
             <label>Módulos do treinamento</label>
             ${formTrilha.itens.map(
-      (item, index) => html`
+          (item, index) => html`
                 <div key=${index} class="rh-section-card rh-section-card--flat" style=${{ padding: '12px', marginBottom: '8px' }}>
                   <div class="row g-2 align-items-start">
                     <div class="col-md-5">
@@ -1109,7 +1306,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                   </div>
                 </div>
               `,
-    )}
+        )}
             <button type="button" class="btn btn-outline-primary btn-sm" onClick=${adicionarItemTrilha}>
               <span class="material-symbols-outlined">${IconeSvg('add')}</span>
               Adicionar módulo
@@ -1122,7 +1319,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               Cada slide vira uma tela do curso online que o ministrante apresenta ao iniciar o treinamento.
             </p>
             ${formTrilha.slides.map(
-      (slide, index) => html`
+          (slide, index) => html`
                 <div key=${index} class="rh-section-card rh-section-card--flat" style=${{ padding: '12px', marginBottom: '8px' }}>
                   <div class="row g-2">
                     <div class="col-md-11">
@@ -1148,7 +1345,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                   </div>
                 </div>
               `,
-    )}
+        )}
             <button type="button" class="btn btn-outline-primary btn-sm" onClick=${adicionarSlideTrilha}>
               <span class="material-symbols-outlined">${IconeSvg('add')}</span>
               Adicionar slide
@@ -1168,6 +1365,161 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               onClick=${salvarTrilha}
             >
               ${salvandoTrilha ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${modalVincularProcessoAberto}
+        titulo="Adicionar a processo seletivo"
+        subtitulo=${trilhaVincular ? `Vincular "${trilhaVincular.nome}" a um processo seletivo já aberto.` : ''}
+        onClose=${fecharModalVincularProcesso}
+      >
+        <div class="rh-details-body">
+          ${erroVinculoProcesso ? html`<div class="alert alert-warning">${erroVinculoProcesso}</div>` : null}
+
+          <div class="rh-filter-field">
+            <label>Processo seletivo</label>
+            ${carregandoProcessosAbertos
+      ? html`<p class="text-muted small mb-0">Carregando processos abertos...</p>`
+      : html`
+                  <select
+                    class="form-select"
+                    value=${processoSelecionadoVinculo}
+                    onChange=${(event) => setProcessoSelecionadoVinculo(event.target.value)}
+                  >
+                    <option value="">Selecione um processo...</option>
+                    ${processosAbertos.map(
+        (processo) => html`
+                        <option key=${processo.id_processo} value=${processo.id_processo}>
+                          ${processo.vaga} — ${processo.id_processo} (${processo.status})
+                        </option>
+                      `,
+      )}
+                  </select>
+                `}
+            ${!carregandoProcessosAbertos && !processosAbertos.length
+      ? html`<small class="text-muted">Nenhum processo seletivo aberto no momento.</small>`
+      : null}
+          </div>
+        </div>
+
+        <footer class="rh-modal-footer">
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoVinculoProcesso} onClick=${fecharModalVincularProcesso}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled=${salvandoVinculoProcesso || !processoSelecionadoVinculo}
+              onClick=${salvarVinculoProcesso}
+            >
+              ${salvandoVinculoProcesso ? 'Vinculando...' : 'Vincular treinamento'}
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${modalParticipanteAberto}
+        titulo="Adicionar participante"
+        subtitulo=${trilhaParticipante ? `Liberar "${trilhaParticipante.nome}" para um candidato — não precisa de processo seletivo.` : ''}
+        onClose=${fecharModalParticipante}
+      >
+        <div class="rh-details-body">
+          ${erroParticipante ? html`<div class="alert alert-warning">${erroParticipante}</div>` : null}
+          ${mensagemParticipante ? html`<div class="alert alert-success">${mensagemParticipante}</div>` : null}
+
+          <div class="rh-filter-field">
+            <label>Candidato</label>
+            ${participanteSelecionado
+      ? html`
+                  <div class="training-participant-picked">
+                    <span class="material-symbols-outlined">${IconeSvg('person')}</span>
+                    <div>
+                      <strong>${participanteSelecionado.nome_candidato}</strong>
+                      ${participanteSelecionado.vaga ? html`<small>${participanteSelecionado.vaga}</small>` : null}
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${trocarParticipanteSelecionado}>
+                      Trocar
+                    </button>
+                  </div>
+                `
+      : html`
+                  <input
+                    class="form-control"
+                    placeholder="Buscar candidato por nome..."
+                    value=${buscaParticipante}
+                    onInput=${(event) => setBuscaParticipante(event.target.value)}
+                  />
+                  <div class="training-participant-results">
+                    ${buscandoParticipante
+          ? html`<p class="text-muted small mb-0">Buscando...</p>`
+          : resultadosParticipante.length
+            ? resultadosParticipante.map(
+              (candidato) => html`
+                              <button
+                                type="button"
+                                key=${candidato.id_registro}
+                                class="training-participant-result"
+                                onClick=${() => selecionarParticipante(candidato)}
+                              >
+                                <strong>${candidato.nome_candidato}</strong>
+                                <small>${candidato.vaga || 'Sem vaga vinculada'} ${candidato.status_candidato ? `· ${candidato.status_candidato}` : ''}</small>
+                              </button>
+                            `,
+            )
+            : html`<p class="text-muted small mb-0">Nenhum candidato encontrado.</p>`}
+                  </div>
+                `}
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Data e horário previstos (opcional)</label>
+            <input
+              type="datetime-local"
+              class="form-control"
+              value=${formParticipante.data_prevista}
+              onInput=${(event) => setFormParticipante({ ...formParticipante, data_prevista: event.target.value })}
+            />
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Local</label>
+            <input
+              class="form-control"
+              value=${formParticipante.local}
+              onInput=${(event) => setFormParticipante({ ...formParticipante, local: event.target.value })}
+              placeholder="Ex.: Sala 2, ou link da videochamada"
+            />
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Quem vai aplicar o treinamento</label>
+            <input
+              class="form-control"
+              value=${formParticipante.ministrante}
+              onInput=${(event) => setFormParticipante({ ...formParticipante, ministrante: event.target.value })}
+              placeholder="Nome do ministrante"
+            />
+          </div>
+        </div>
+
+        <footer class="rh-modal-footer">
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoParticipante} onClick=${fecharModalParticipante}>
+              Concluir
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled=${salvandoParticipante || !participanteSelecionado}
+              onClick=${confirmarAdicaoParticipante}
+            >
+              <span class="material-symbols-outlined">${IconeSvg('person_add')}</span>
+              ${salvandoParticipante ? 'Adicionando...' : 'Adicionar ao treinamento'}
             </button>
           </div>
         </footer>
@@ -1337,7 +1689,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       ? html`
               <div class="rh-details-body">
                 ${treinamentoEmAndamento.slides.length
-        ? html`
+          ? html`
                       <div class="rh-section-card rh-section-card--flat" style=${{ padding: '20px' }}>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                           <strong>${treinamentoEmAndamento.slides[slideAtual]?.titulo || `Slide ${slideAtual + 1}`}</strong>
@@ -1365,7 +1717,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                         </div>
                       </div>
                     `
-        : html`<p class="text-muted">Este treinamento ainda não tem slides/script cadastrados — cadastre em "Editar treinamento".</p>`}
+          : html`<p class="text-muted">Este treinamento ainda não tem slides/script cadastrados — cadastre em "Editar treinamento".</p>`}
                 <p class="text-muted small mt-3">
                   Ao final da apresentação, use "Presença" na lista de colaboradores para marcar quem assistiu.
                 </p>

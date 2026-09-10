@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
+import { createContext, html, useContext, useEffect, useRef, useState } from '../../infraestrutura-react.js';
 import { BuscaGlobalTopbar } from '../busca-global.js';
 import { obterTourDaTela } from '../../shared/tour-config.js';
 import { TourGuiado, orientacoesAtivas } from '../tour-guiado.js';
@@ -9,6 +9,14 @@ import { IconeSvg } from '../icone.js';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
+
+// Correções.txt (rodada 3): a ação principal da tela (acaoPrimaria/acoesTopo,
+// props de PainelRh) precisa aparecer dentro do PageIntro — título/descrição
+// à esquerda, botões à direita, tudo numa linha só — mas PageIntro é chamado
+// por cada tela dentro de `children`, fora do controle de PainelRh. Contexto
+// evita ter que tocar as ~16 telas que usam PainelRh: PainelRh publica a ação
+// principal, PageIntro lê e desenha no seu próprio slot de ações.
+const AcoesPaginaContext = createContext(null);
 
 function BotaoVoltarGlobal() {
   return html`
@@ -190,27 +198,15 @@ export function BarraLateral({
       permissao: 'configuracoes.visualizar',
     },
     {
-      tela: 'screen-settings-catalog',
-      icone: 'inventory_2',
-      label: 'Catálogos',
-      permissao: 'configuracoes.visualizar',
-    },
-    {
       tela: 'screen-settings-logs',
       icone: 'history_edu',
       label: 'Logs',
       permissao: 'logs.visualizar',
     },
     {
-      tela: 'screen-settings-policies',
-      icone: 'policy',
-      label: 'Políticas',
-      permissao: 'politicas.editar',
-    },
-    {
       tela: 'screen-settings-document-templates',
       icone: 'description',
-      label: 'Templates de Documentos',
+      label: 'Central de Documentos',
       permissao: 'documentos_templates.editar',
     },
     {
@@ -258,9 +254,7 @@ export function BarraLateral({
     'screen-settings-users',
     'screen-settings-profiles',
     'screen-settings-operations',
-    'screen-settings-catalog',
     'screen-settings-logs',
-    'screen-settings-policies',
     'screen-settings-document-templates',
     'screen-settings-administracao',
   ];
@@ -706,6 +700,32 @@ export function PageIntro({
   actions = null,
   tourId = 'page-intro',
 }) {
+  // Correções.txt (rodada 3): a ação principal da tela (acaoPrimaria/
+  // acoesTopo, publicada por PainelRh via contexto) entra na MESMA linha de
+  // ações do PageIntro, junto de qualquer `actions` que a tela já passe —
+  // título/descrição à esquerda, todos os botões à direita.
+  const acaoPagina = useContext(AcoesPaginaContext);
+  const acoesCombinadas = [
+    acaoPagina?.acaoPrimaria
+      ? html`
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-tour-id="topbar-primary-action"
+            disabled=${acaoPagina.acaoPrimaria.disabled}
+            onClick=${acaoPagina.acaoPrimaria.onClick}
+          >
+            ${acaoPagina.acaoPrimaria.icon
+          ? html`<span class="material-symbols-outlined">${IconeSvg(acaoPagina.acaoPrimaria.icon)}</span>`
+          : null}
+            ${acaoPagina.acaoPrimaria.label}
+          </button>
+        `
+      : null,
+    acaoPagina?.acoesTopo || null,
+    actions,
+  ].filter(Boolean);
+
   return html`
     <section class="rh-page-intro" data-tour-id=${tourId || null}>
       <div>
@@ -715,8 +735,8 @@ export function PageIntro({
       ? html`<p class="rh-modern-description">${description}</p>`
       : null}
       </div>
-      ${actions
-      ? html`<div class="rh-page-intro-actions">${actions}</div>`
+      ${acoesCombinadas.length
+      ? html`<div class="rh-page-intro-actions">${acoesCombinadas}</div>`
       : null}
     </section>
   `;
@@ -738,14 +758,16 @@ export function SectionCard({
       ${title || description || actions
       ? html`
             <header class="rh-section-card-header">
-              <div>
-                ${title ? html`<h3>${title}</h3>` : null}
-                ${description
-          ? html`<p class="rh-section-card-description">
-                      ${description}
-                    </p>`
-          : null}
-              </div>
+              ${title || description
+        ? html`
+                    <div>
+                      ${title ? html`<h3>${title}</h3>` : null}
+                      ${description
+            ? html`<p class="rh-section-card-description">${description}</p>`
+            : null}
+                    </div>
+                  `
+        : null}
               ${actions}
             </header>
           `
@@ -759,7 +781,7 @@ export function Tabs({ tabs = [], activeKey, onChange, className = '' }) {
   return html`
     <div class=${`rh-tabs ${className}`.trim()} role="tablist">
       ${tabs.map(
-        (tab) => html`
+    (tab) => html`
           <button
             key=${tab.key}
             type="button"
@@ -773,7 +795,7 @@ export function Tabs({ tabs = [], activeKey, onChange, className = '' }) {
             ${tab.label}
           </button>
         `,
-      )}
+  )}
     </div>
   `;
 }
@@ -1020,7 +1042,7 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
             ? html`
                     <ul class="c24-notif-list">
                       ${notificacoes.map(
-                (item) => html`
+              (item) => html`
                           <li
                             key=${item.id}
                             class=${`c24-notif-item ${item.lida ? 'is-lida' : ''}`.trim()}
@@ -1042,7 +1064,7 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
                             <span>${item.texto}</span>
                           </li>
                         `,
-              )}
+            )}
                     </ul>
                   `
             : html`<p class="c24-notif-empty">Nenhuma notificação por aqui.</p>`}
@@ -1083,7 +1105,19 @@ export function PainelRh({
   const abrirTour = () => setTourReopenSignal((valor) => valor + 1);
   const ambiente = String(window.RUNTIME_CONFIG?.APP_ENV || '').toLowerCase();
   const exibirAmbiente = ambiente === 'dev' || ambiente === 'hml';
-  const mostrarTopbarSecundaria = Boolean(mostrarAcaoPrimaria || acoesTopo);
+  const acaoPaginaContexto = mostrarAcaoPrimaria || acoesTopo
+    ? {
+      acaoPrimaria: mostrarAcaoPrimaria
+        ? {
+          label: acaoPrimaria.label,
+          icon: acaoPrimaria.icon,
+          disabled: Boolean(acaoPrimaria.disabled),
+          onClick: acaoPrimaria.onClick,
+        }
+        : null,
+      acoesTopo: acoesTopo || null,
+    }
+    : null;
 
   return html`
     <section class="active screen" id=${screenId}>
@@ -1100,33 +1134,10 @@ export function PainelRh({
         />
 
         <div class="rh-modern-main">
-          ${mostrarTopbarSecundaria
-      ? html`
-                <header class="rh-modern-topbar rh-modern-topbar--actions-only">
-                  <div class="rh-modern-topbar-actions">
-                    ${mostrarAcaoPrimaria
-          ? html`
-                          <button
-                            type="button"
-                            class="btn btn-primary rh-modern-primary-btn"
-                            data-tour-id="topbar-primary-action"
-                            onClick=${acaoPrimaria.onClick}
-                          >
-                            ${acaoPrimaria.icon
-              ? html`<span class="material-symbols-outlined">${IconeSvg(acaoPrimaria.icon)}</span>`
-              : null}
-                            ${acaoPrimaria.label}
-                          </button>
-                        `
-          : null}
-                    ${acoesTopo}
-                  </div>
-                </header>
-              `
-      : null}
-
           <main class="rh-modern-page">
-            ${children}
+            <${AcoesPaginaContext.Provider} value=${acaoPaginaContexto}>
+              ${children}
+            </${AcoesPaginaContext.Provider}>
             ${tour?.steps?.length && orientacoesAtivas()
       ? html`
                   <${TourGuiado}

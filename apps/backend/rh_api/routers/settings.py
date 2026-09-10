@@ -13,6 +13,7 @@ from ..schemas.security import (
     LgpdRequestCreate,
     NotificationAutomationSettingsRequest,
     RolePermissionsUpdateRequest,
+    QuickTrainingUserCreateRequest,
     UserCreateRequest,
     UserPasswordRequest,
     UserStatusRequest,
@@ -63,6 +64,15 @@ def create_user(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.create_system_user(payload.model_dump(), actor=user)
+
+
+@router.post("/users/quick", dependencies=[Depends(require_permissions("usuarios.criar"))])
+def create_quick_training_user(
+    payload: QuickTrainingUserCreateRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.create_quick_training_user(payload.model_dump(), actor=user)
 
 
 @router.put("/users/{id_usuario}", dependencies=[Depends(require_permissions("usuarios.editar"))])

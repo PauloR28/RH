@@ -11,7 +11,7 @@ from fastapi import HTTPException, status
 
 from ..auth import AuthenticatedUser
 from ..passwords import hash_password, verify_password
-from .bootstrap import ensure_email_change_requests_table
+from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
 from conecta.infrastructure.security.encryption import (
     SecretEncryptionError,
     decrypt_secret,
@@ -25,6 +25,7 @@ from conecta.infrastructure.security.totp import (
 from ..rbac import (
     PERMISSION_DEFINITIONS,
     ROLE_DEFINITIONS,
+    ROLE_EMPLOYEE,
     ROLE_INTERN,
     SETTINGS_CATALOGS,
     get_role_definition,
@@ -1343,6 +1344,72 @@ class SecurityRepositoryMixin:
             return {"success": True, "id_usuario": id_usuario}
         finally:
             conn.close()
+
+    def create_quick_training_user(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
+        """Botão "Criar usuário rápido": cadastra login (nome/e-mail/senha) para
+        um candidato aprovado que vai fazer treinamento — perfil fixo
+        `funcionario` (Central de Treinamentos), sem atribuir treinamento
+        nenhum (isso continua a cargo da Gestão de Treinamentos). O vínculo
+        com o candidato é automático por e-mail (ver
+        `_resolve_id_registros_por_email`, `email_login_vinculado`) desde que
+        o e-mail usado aqui seja o mesmo do cadastro no processo seletivo.
+        """
+        safe_name = normalize_text(data.get("nome"))
+        safe_email = _normalize_email(data.get("email"))
+        safe_password = normalize_text(data.get("senha"))
+
+        if not safe_name or not safe_email or not safe_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome, e-mail e senha são obrigatórios.",
+            )
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_usuario FROM usuarios WHERE LOWER(email) = LOWER(?)", (safe_email,))
+            if cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Já existe um usuário cadastrado com este e-mail.",
+                )
+        finally:
+            conn.close()
+
+        resultado = self.create_system_user(
+            {
+                "nome": safe_name,
+                "email": safe_email,
+                "login": safe_email,
+                "senha": safe_password,
+                "perfil": ROLE_EMPLOYEE,
+                "status": "Ativo",
+                "provedor_autenticacao": "local",
+            },
+            actor=actor,
+        )
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notifications_table(cursor)
+            # Mesmo grupo de papéis notificado pelos outros eventos de
+            # treinamento (ver _PAPEIS_GESTAO_TREINAMENTO em onboarding.py).
+            for papel in ("rh", "gestor", "administrador"):
+                self._criar_notificacao(
+                    cursor,
+                    destinatario_papel=papel,
+                    titulo="Novo usuário de treinamento criado",
+                    mensagem=f"{safe_name} ({safe_email}) já pode ser atribuído a um treinamento.",
+                    categoria="usuario_colaborador_criado",
+                    entidade="usuario",
+                    entidade_id=str(resultado.get("id_usuario") or ""),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+        return resultado
 
     def _get_system_user_by_id(self, cursor, id_usuario: int) -> dict:
         cursor.execute(

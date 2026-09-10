@@ -55,6 +55,41 @@ class DiscRepositoryMixin:
             conn.close()
         return {"success": True, "id_bloco": id_bloco}
 
+    def update_disc_bloco(self, id_bloco: int, data: dict) -> dict:
+        """Correções.txt item 7: edição de um bloco já cadastrado (frases e
+        ordem) — as 4 frases são casadas por id_frase, então respostas já
+        registradas em dbo.disc_respostas continuam válidas (FK intacta)."""
+        frases = data.get("frases") or []
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_disc_tables(cursor)
+            cursor.execute("SELECT id_bloco FROM dbo.disc_blocos WHERE id_bloco = ? AND ativo = 1", (int(id_bloco),))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bloco DISC não encontrado.")
+
+            cursor.execute(
+                "UPDATE dbo.disc_blocos SET ordem = ? WHERE id_bloco = ?",
+                (int(data.get("ordem") or 0), int(id_bloco)),
+            )
+
+            cursor.execute("SELECT id_frase FROM dbo.disc_frases WHERE bloco_id = ? ORDER BY ordem ASC, id_frase ASC", (int(id_bloco),))
+            frases_existentes = [int(row[0]) for row in cursor.fetchall()]
+            if len(frases_existentes) != len(frases):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="O bloco precisa continuar com exatamente 4 frases.",
+                )
+            for id_frase, frase in zip(frases_existentes, frases):
+                cursor.execute(
+                    "UPDATE dbo.disc_frases SET dimensao = ?, texto = ? WHERE id_frase = ? AND bloco_id = ?",
+                    (frase.get("dimensao"), normalize_text(frase.get("texto")), id_frase, int(id_bloco)),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True, "id_bloco": int(id_bloco)}
+
     # ------------------------------------------------------------------
     # Aplicação por candidato
     # ------------------------------------------------------------------

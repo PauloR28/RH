@@ -13,6 +13,11 @@ PROCESS_STATUS_OPEN = "Aberto"
 PROCESS_STATUS_CLOSED = "Encerrado"
 PROCESS_STATUS_PAUSED = "Pausado"
 PROCESS_STATUS_CANCELED = "Cancelado"
+# Pedido do RH: quando as vagas se preenchem (ou um candidato é aprovado num
+# processo de vaga única), o processo não deve virar "Encerrado" (arquivado)
+# — vira "Em treinamento", que continua contando como processo ATIVO
+# (não entra em is_process_closed) até alguém encerrá-lo manualmente.
+PROCESS_STATUS_TRAINING = "Em treinamento"
 
 CANDIDATE_STATUS_ANALYSIS = "Analise"
 CANDIDATE_STATUS_QUALIFIED = "Qualificado"

@@ -85,6 +85,7 @@ export {
   salvarRespostasConectaProvas,
 } from './services/api/generated-exams.js?v=20260902-correcoes-rh';
 export {
+  atualizarBlocoDisc,
   criarAplicacaoDisc,
   criarBlocoDisc,
   finalizarAplicacaoDiscPublica,
@@ -234,6 +235,7 @@ export {
   baixarLogsAuditoria,
   criarItemConfiguracao,
   criarUsuario,
+  criarUsuarioRapido,
   desativarItemConfiguracao,
   excluirUsuario,
   lerAutomacaoNotificacoes,

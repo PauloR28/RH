@@ -5976,6 +5976,194 @@
   min-height: 180px;
 }
 
+/* Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
+ * 3 trilhas (perfis / sessões / conteúdo) em vez de tudo empilhado — a
+ * própria altura da tela deixa de crescer com o número de módulos, porque
+ * só a sessão selecionada é exibida por vez. */
+.settings-profile-matrix {
+  display: grid;
+  grid-template-columns: 220px 240px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.settings-profile-rail,
+.settings-session-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
+  background: var(--color-surface);
+}
+
+.settings-profile-rail .c24-eyebrow,
+.settings-session-rail .c24-eyebrow {
+  padding: 0 0.3rem 0.2rem;
+}
+
+.settings-profile-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.settings-profile-chip:hover {
+  background: var(--color-surface-soft);
+}
+
+.settings-profile-chip.is-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.settings-profile-chip-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.settings-profile-chip-copy {
+  min-width: 0;
+  display: grid;
+}
+
+.settings-profile-chip-copy strong,
+.settings-profile-chip-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-profile-chip-copy strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.settings-profile-chip-copy small {
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+}
+
+.settings-session-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.settings-session-chip:hover {
+  background: var(--color-surface-soft);
+}
+
+.settings-session-chip.is-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.settings-session-chip span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-session-chip small {
+  color: var(--color-text-soft);
+  font-weight: 700;
+}
+
+.settings-session-chip.is-active small {
+  color: var(--color-primary);
+}
+
+.settings-permission-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.68rem 0.78rem;
+  border-bottom: 1px solid rgba(217, 226, 238, 0.72);
+}
+
+.settings-permission-group-head strong,
+.settings-permission-group-head small {
+  display: block;
+}
+
+.settings-permission-group-head small {
+  color: var(--color-text-soft);
+  font-size: 0.74rem;
+}
+
+.c24-toggle-switch {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.c24-toggle-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.c24-toggle-switch-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  transition: background var(--transition-xs);
+}
+
+.c24-toggle-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-xs);
+}
+
+.c24-toggle-switch input:checked + .c24-toggle-switch-track {
+  background: var(--color-primary);
+}
+
+.c24-toggle-switch input:checked + .c24-toggle-switch-track .c24-toggle-switch-thumb {
+  transform: translateX(16px);
+}
+
+.c24-toggle-switch.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .settings-permission-head {
   position: sticky;
   top: 0;
@@ -6385,8 +6573,20 @@
 
   .settings-users-workspace,
   .settings-profile-workspace,
-  .settings-catalog-workspace {
+  .settings-catalog-workspace,
+  .settings-profile-matrix {
     grid-template-columns: 1fr;
+  }
+
+  .settings-profile-rail,
+  .settings-session-rail {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .settings-profile-chip,
+  .settings-session-chip {
+    flex: 1 1 220px;
   }
 
   .settings-detail-panel {
@@ -11852,6 +12052,64 @@
   font-size: 1.1rem;
 }
 
+/* Modal "Adicionar participante" em Treinamentos (Correções.txt, 10/set/
+ * 2026): busca manual de candidato, sem depender de processo seletivo. */
+.training-participant-results {
+  margin-top: var(--space-2);
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.training-participant-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-subtle);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-participant-result:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border-strong);
+}
+
+.training-participant-result small {
+  color: var(--color-text-muted);
+}
+
+.training-participant-picked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-subtle);
+  background: var(--color-primary-soft);
+}
+
+.training-participant-picked > .material-symbols-outlined {
+  color: var(--color-primary-strong);
+}
+
+.training-participant-picked div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.training-participant-picked small {
+  color: var(--color-text-soft);
+}
+
 /* Redesign 10/set/2026 (lote 2): "Calendário" não tinha nenhuma grade ou
  * visual de calendário — eram 2 tabelas simples (ver design/wireframes/
  * README.md). Datas comemorativas viram cartões estilo folhinha em vez de
@@ -14573,7 +14831,7 @@
 
 #screen-generated-exams .generated-exam-detail-dialog .rh-modal-header {
   align-items: center;
-  padding: 1.55rem 2rem;
+  padding: 1rem 2rem;
   border-bottom: 1px solid rgba(195, 198, 216, 0.55);
   background: var(--color-surface);
 }
@@ -14637,7 +14895,7 @@
   overflow: auto;
   display: grid;
   gap: 1.1rem;
-  padding: 2rem 2rem 4.8rem;
+  padding: 1rem 2rem 4.8rem;
   background: #f9f9ff;
 }
 
@@ -14649,6 +14907,64 @@
  * sem !important e sem alterar o componente compartilhado. */
 #screen-generated-exams .generated-detail-tabs {
   margin-bottom: 0.2rem;
+}
+
+/* Central de Documentos (Correções.txt, rodada 10/set/2026): biblioteca de
+ * documentos agrupada por tópico. */
+.c24-doc-library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.c24-doc-library-topic {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.c24-doc-library-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.c24-doc-library-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
+  background: var(--color-surface);
+}
+
+.c24-doc-library-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.c24-doc-library-item-main p {
+  width: 100%;
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+.c24-doc-library-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
 }
 
 #screen-generated-exams .generated-detail-body > .rh-tab-panel > * + * {

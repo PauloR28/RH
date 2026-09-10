@@ -14,17 +14,10 @@ export function TelaMural({ controlador }) {
       <${PageIntro}
         kicker="Gestão"
         title="Mural"
-        description="Feed de avisos, comunicados, fotos, vídeos e publicações do RH — com publicação simultânea no Conecta e nas intranets (SharePoint) das operações."
+        
       />
 
-      <${SectionCard} title="Mural — em desenvolvimento" className="rh-section-card--flat">
-        <div class="d-flex align-items-start gap-3">
-          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('upcoming')}</span>
-          <p class="rh-section-card-description mb-0">
-            Esta página está desativada e entrará no Conecta em breve.
-          </p>
-        </div>
-      </${SectionCard}>
+      
 
       <${SectionCard} title="Publicações" className="rh-section-card--flat">
         <button type="button" class="btn btn-primary rh-modern-primary-btn mb-4" disabled title="Em breve">

@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..schemas.disc import DiscAplicacaoCreateRequest, DiscBlocoCreateRequest, DiscFinalizarRequest
+from ..schemas.disc import (
+    DiscAplicacaoCreateRequest,
+    DiscBlocoCreateRequest,
+    DiscBlocoUpdateRequest,
+    DiscFinalizarRequest,
+)
 
 
 router = APIRouter(prefix="/disc", tags=["disc"], dependencies=[Depends(get_current_user)])
@@ -31,6 +36,26 @@ def create_disc_bloco(
         acao="criar_bloco_disc",
         entidade="disc_bloco",
         entidade_id=str(result.get("id_bloco") or ""),
+        valor_novo=payload.model_dump(),
+    )
+    return result
+
+
+@router.put("/blocos/{id_bloco}", dependencies=[Depends(require_permissions("provas.questoes_criar"))])
+def update_disc_bloco(
+    id_bloco: int,
+    payload: DiscBlocoUpdateRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    result = repository.update_disc_bloco(id_bloco, payload.model_dump())
+    audit_action(
+        repository,
+        user,
+        modulo="Conecta Provas - DISC",
+        acao="editar_bloco_disc",
+        entidade="disc_bloco",
+        entidade_id=str(id_bloco),
         valor_novo=payload.model_dump(),
     )
     return result

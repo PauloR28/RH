@@ -24,6 +24,7 @@ from ..schemas.onboarding import (
     OnboardingTrilhaUpdateRequest,
     ProcessTrainingReleaseRequest,
     TreinamentoWizardCreateRequest,
+    VincularTrilhaProcessoRequest,
 )
 from ..services.office_conversion import convert_office_document_to_pdf
 from ..services.training_uploads import (
@@ -165,6 +166,29 @@ def release_process_training_slots(
     return result
 
 
+@router.post(
+    "/trilhas/{id_trilha}/vincular-processo",
+    dependencies=[Depends(require_permissions("onboarding.editar"))],
+)
+def vincular_trilha_a_processo(
+    id_trilha: int,
+    payload: VincularTrilhaProcessoRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    result = repository.vincular_trilha_a_processo(id_trilha, payload.id_processo)
+    audit_action(
+        repository,
+        user,
+        modulo="Onboarding",
+        acao="vincular_treinamento_processo",
+        entidade="processo_treinamento",
+        entidade_id=payload.id_processo,
+        valor_novo={"id_trilha": id_trilha},
+    )
+    return result
+
+
 @router.get("/trilhas/{id_trilha}", dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))])
 def get_onboarding_trilha(id_trilha: int, repository: DatabaseRepository = Depends(get_repository)):
     return repository.get_onboarding_trilha(id_trilha)
@@ -282,6 +306,51 @@ def set_onboarding_item_status(
 
 
 # ----------------------------------------------------------------------
+# App mobile do colaborador ("Conecta App", promt.txt). Auto-escopo pelo
+# e-mail do token (user.email) — nunca aceita id_registro/id_onboarding vindo
+# do cliente, mesmo padrão de routers/notifications.py.
+# ----------------------------------------------------------------------
+@router.get("/meus-treinamentos", dependencies=[Depends(require_permissions("onboarding.visualizar"))])
+def list_my_trainings(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.get_my_trainings(user.email)
+
+
+@router.get(
+    "/meus-treinamentos/presenciais",
+    dependencies=[Depends(require_permissions("onboarding.visualizar"))],
+)
+def list_my_presencial_trainings(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.get_my_trainings(user.email, apenas_presenciais=True)
+
+
+@router.post(
+    "/meus-treinamentos/itens/{id_onboarding_item}/concluir",
+    dependencies=[Depends(require_permissions("onboarding.concluir_proprio"))],
+)
+def complete_my_training_item(
+    id_onboarding_item: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    result = repository.complete_my_training_item(user.email, id_onboarding_item, actor=user.username)
+    audit_action(
+        repository,
+        user,
+        modulo="Onboarding",
+        acao="colaborador_concluiu_item_onboarding",
+        entidade="onboarding_item",
+        entidade_id=str(id_onboarding_item),
+    )
+    return result
+
+
+# ----------------------------------------------------------------------
 # Wizard de criação de treinamento (Prompt.txt, rodada 06/set/2026) — ver
 # docs/central-treinamentos/01-plano-tecnico.md.
 # ----------------------------------------------------------------------
@@ -386,6 +455,19 @@ async def upload_item_video(
         valor_novo={"nome_arquivo": upload.original_filename},
     )
     return result
+
+
+@router.get(
+    "/itens/{id_item}/video",
+    dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))],
+)
+def baixar_item_video(id_item: int, repository: DatabaseRepository = Depends(get_repository)):
+    video = repository.get_trilha_item_video(id_item)
+    caminho = Path(video["video_path"])
+    if not caminho.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de vídeo não encontrado.")
+    media_type = "video/webm" if caminho.suffix.lower() == ".webm" else "video/mp4"
+    return FileResponse(caminho, media_type=media_type, filename=video.get("video_nome_original") or caminho.name)
 
 
 @router.post("/itens/{id_item}/secoes-imagens", dependencies=[Depends(require_permissions("onboarding.editar"))])

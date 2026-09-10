@@ -235,6 +235,18 @@ class OnboardingAttendanceRequest(BaseSchema):
     presencas: list[OnboardingAttendanceEntry] = []
 
 
+class VincularTrilhaProcessoRequest(BaseSchema):
+    id_processo: str = ""
+
+    @field_validator("id_processo")
+    @classmethod
+    def validate_id_processo(cls, value: str) -> str:
+        safe_value = str(value or "").strip()
+        if not safe_value:
+            raise ValueError("Selecione o processo seletivo.")
+        return safe_value
+
+
 class ProcessTrainingReleaseRequest(BaseSchema):
     candidatos: list[int] = []
 

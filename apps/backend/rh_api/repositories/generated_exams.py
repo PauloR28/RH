@@ -529,6 +529,7 @@ class GeneratedExamRepositoryMixin:
     @staticmethod
     def _public_stage_key_for_question(question: dict, index: int = 0) -> str:
         q_type = normalize_text(question.get("type"))
+        stage_key_raw = normalize_compare_text(question.get("stageKey") or question.get("stage") or "")
         label = normalize_compare_text(
             question.get("stageKey")
             or question.get("stage")
@@ -536,8 +537,23 @@ class GeneratedExamRepositoryMixin:
             or question.get("title")
             or ""
         )
-        if q_type in {"essay", "redacao", "professional_essay"} or "redacao" in label:
+        expected = question.get("expected") if isinstance(question.get("expected"), dict) else {}
+        # Redação usa a mesma fábrica de pergunta "word" (texto livre) das demais
+        # etapas discursivas — o único jeito de identificá-la de verdade é pelo
+        # stageKey/flag de essay, nunca pelo "type" bruto. Precisa ser checado
+        # ANTES do branch "word" abaixo, senão toda redação cai em "word" e o
+        # candidato recebe "Etapa não encontrada" ao concluir (espelha
+        # etapaEhRedacao() em conecta-provas/index.js).
+        has_essay_flag = bool(expected.get("essay") or question.get("essay"))
+        if stage_key_raw == "professional_essay" or has_essay_flag or q_type in {"essay", "redacao"} or "redacao" in label:
             return "redacao"
+        # Personalidade/espontaneidade também usam a fábrica "word" e precisam de
+        # etapa própria — sem isso, caem no branch "word" logo abaixo e se
+        # misturam à prova de Word (Correções.txt item 7).
+        if any(term in stage_key_raw for term in ("personalidade", "espontane")) or any(
+            term in label for term in ("personalidade", "espontane")
+        ):
+            return "personalidade"
         if q_type == "excel_external" or "excel" in label:
             return "excel"
         if q_type == "word" or "word" in label:
@@ -548,7 +564,7 @@ class GeneratedExamRepositoryMixin:
             return "conhecimentos_gerais"
         if "conhecimento" in label:
             return "conhecimentos"
-        raw_key = normalize_compare_text(question.get("stageKey") or question.get("stage") or "")
+        raw_key = stage_key_raw
         return re.sub(r"[^a-z0-9]+", "-", raw_key).strip("-") or f"etapa-{index + 1}"
 
     @staticmethod
@@ -1818,14 +1834,46 @@ class GeneratedExamRepositoryMixin:
         id_teste = normalize_text(row.get("id_teste"))
         cursor.execute("DELETE FROM dbo.respostas_provas WHERE id_prova = ?", (id_prova,))
         graded = graded or []
+        if not questions:
+            return
+
+        rows_params: list[tuple] = []
         for index, question in enumerate(questions):
             answer = answers[index] if index < len(answers) else None
             if isinstance(answer, str):
                 answer = sanitize_rich_text_html(answer)
             grade = graded[index] if index < len(graded) else {}
             correct_answer = question.get("answer", question.get("correctIndex"))
+            rows_params.append(
+                (
+                    id_prova,
+                    id_teste,
+                    index,
+                    normalize_text(question.get("id") or question.get("title") or f"q-{index + 1}"),
+                    normalize_text(question.get("description") or question.get("title")),
+                    _json_dumps(question.get("options") or []),
+                    _json_dumps(answer),
+                    _json_dumps(correct_answer),
+                    normalize_text(question.get("stage") or question.get("stageKey") or question.get("category")),
+                    float(question.get("points") or 0),
+                    1 if grade.get("correct") is True else 0 if grade.get("correct") is False else None,
+                    grade.get("score"),
+                )
+            )
+
+        # Correções.txt item 9: "concluir etapa" no Excel demorava muito porque
+        # cada questão virava um round-trip HTTP->SQL isolado (uma prova com 20-30
+        # questões = 20-30 INSERTs sequenciais). Um único INSERT multi-linha por
+        # lote reduz isso a poucos round-trips, mantendo os mesmos parâmetros
+        # ligados por posição (sem risco de truncar o resposta_json grande do
+        # Excel, ao contrário de fast_executemany com colunas NVARCHAR(MAX)).
+        CHUNK_SIZE = 100
+        for start in range(0, len(rows_params), CHUNK_SIZE):
+            chunk = rows_params[start : start + CHUNK_SIZE]
+            values_sql = ", ".join(["(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())"] * len(chunk))
+            flat_params = [param for row_params in chunk for param in row_params]
             cursor.execute(
-                """
+                f"""
                 INSERT INTO dbo.respostas_provas
                 (
                     id_prova,
@@ -1843,22 +1891,9 @@ class GeneratedExamRepositoryMixin:
                     respondida_em,
                     atualizado_em
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
+                VALUES {values_sql}
                 """,
-                (
-                    id_prova,
-                    id_teste,
-                    index,
-                    normalize_text(question.get("id") or question.get("title") or f"q-{index + 1}"),
-                    normalize_text(question.get("description") or question.get("title")),
-                    _json_dumps(question.get("options") or []),
-                    _json_dumps(answer),
-                    _json_dumps(correct_answer),
-                    normalize_text(question.get("stage") or question.get("stageKey") or question.get("category")),
-                    float(question.get("points") or 0),
-                    1 if grade.get("correct") is True else 0 if grade.get("correct") is False else None,
-                    grade.get("score"),
-                ),
+                flat_params,
             )
 
     def public_save_answers(self, data: dict, *, status_value: str = EXAM_STATUS_IN_PROGRESS) -> dict:
@@ -1975,8 +2010,15 @@ class GeneratedExamRepositoryMixin:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa nÃ£o encontrada.")
             config = safe_json_loads(row.get("configuracao_json"), {})
             current_state = self._internal_stage_states(config).get(stage_key) or {}
-            if normalize_compare_text(current_state.get("status")) == "interrompida":
+            current_status = normalize_compare_text(current_state.get("status"))
+            if current_status == "interrompida":
                 return {"success": True, "etapa": {"key": stage_key, "status": "realizada"}}
+            if current_status == "concluida":
+                # Etapa já concluída não pode ser derrubada por um beacon de saída
+                # (ex.: reload da página) — sem essa checagem, um pagehide tardio ou
+                # duplicado reabre uma etapa já entregue como "interrompida", e ela
+                # passa a aparecer indisponível para o candidato (Correções.txt item 12).
+                return {"success": True, "etapa": {"key": stage_key, "status": "concluida"}}
 
             self._save_answer_rows(cursor, row, answers, questions)
             next_config = self._set_stage_state(
@@ -2024,6 +2066,8 @@ class GeneratedExamRepositoryMixin:
         technical_max = 0.0
         lgpd_score = 0.0
         lgpd_max = 0.0
+        essay_score = 0.0
+        essay_max = 0.0
 
         weights_by_stage = {
             normalize_text(item.get("key") or item.get("stageKey")): float(item.get("weight") or 0)
@@ -2099,20 +2143,34 @@ class GeneratedExamRepositoryMixin:
                 excel_score += score
                 excel_max += points
             else:
+                # Correções.txt item 12: `score` (usado abaixo em graded[]/
+                # stage["rawScore"]) NÃO era preenchido aqui antes — só o
+                # acumulador agregado de comunicação era. Isso fazia cada
+                # questão de Word/Redação/Personalidade (e a etapa inteira,
+                # já que rawScore nunca saía de 0) aparecer com nota zerada
+                # mesmo quando havia texto respondido e a heurística abaixo
+                # calculava um valor positivo.
                 manual = True
                 pending_manual = True
                 text = _strip_html(
                     (answer.get("content") or answer.get("text")) if isinstance(answer, dict) else answer
                 )
                 if text:
-                    communication_score += min(points, max(0, len(text) / 80))
-                communication_max += points
+                    score = min(points, max(0, len(text) / 80))
+                if public_stage_key == "redacao":
+                    essay_score += score
+                    essay_max += points
+                else:
+                    communication_score += score
+                    communication_max += points
 
             if stage_interrupted:
                 if q_type in {"multiple", "compact_choice_group"}:
                     objective_score = max(0.0, objective_score - score)
                 elif q_type == "excel_external":
                     excel_score = max(0.0, excel_score - score)
+                elif public_stage_key == "redacao":
+                    essay_score = max(0.0, essay_score - score)
                 else:
                     communication_score = max(0.0, communication_score - score)
                 score = 0.0
@@ -2177,7 +2235,15 @@ class GeneratedExamRepositoryMixin:
         nota_comunicacao = round((communication_score / communication_max) * 100, 2) if communication_max else None
         nota_tecnica = round((technical_score / technical_max) * 100, 2) if technical_max else None
         nota_lgpd = round((lgpd_score / lgpd_max) * 100, 2) if lgpd_max else None
-        valid_scores = [item for item in (nota_objetiva, nota_excel, nota_comunicacao, nota_tecnica) if item is not None]
+        # Correções.txt item 12: a redação usava sempre nota_redacao=None (nunca
+        # calculada aqui, só via avaliação manual do RH) — agora recebe a mesma
+        # heurística por tamanho de texto usada nas demais questões dissertativas,
+        # como estimativa automática sujeita a revisão manual (pendingManual=True).
+        nota_redacao = round((essay_score / essay_max) * 100, 2) if essay_max else None
+        valid_scores = [
+            item for item in (nota_objetiva, nota_excel, nota_comunicacao, nota_tecnica, nota_redacao)
+            if item is not None
+        ]
         nota_final = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else 0.0
         score_por_categoria = {
             key: round((value["score"] / value["max"]) * 100, 2) if value["max"] else 0
@@ -2191,6 +2257,7 @@ class GeneratedExamRepositoryMixin:
             "nota_comunicacao": nota_comunicacao,
             "nota_tecnica": nota_tecnica,
             "nota_lgpd": nota_lgpd,
+            "nota_redacao": nota_redacao,
             "nota_final_prova": nota_final,
             "score_por_categoria": score_por_categoria,
             "resumo_etapas": resumo_etapas,
@@ -2266,7 +2333,7 @@ class GeneratedExamRepositoryMixin:
             exists = cursor.fetchone()
             result_values = (
                 grade["nota_objetiva"],
-                None,
+                grade["nota_redacao"],
                 grade["nota_excel"],
                 grade["nota_tecnica"],
                 grade["nota_comunicacao"],

@@ -28,6 +28,7 @@ from .routers.curriculos_ia import router as curriculos_ia_router
 from .routers.disc import public_router as disc_public_router
 from .routers.disc import router as disc_router
 from .routers.document_templates import router as document_templates_router
+from .routers.documentos_biblioteca import router as documentos_biblioteca_router
 from .routers.email_inbox import router as email_inbox_router
 from .routers.email_send import router as email_send_router
 from .routers.exam_analytics import router as exam_analytics_router
@@ -377,6 +378,7 @@ def create_app() -> FastAPI:
     app.include_router(onboarding_router)
     app.include_router(notifications_router)
     app.include_router(document_templates_router)
+    app.include_router(documentos_biblioteca_router)
     app.include_router(disc_router)
     app.include_router(disc_public_router)
     app.include_router(fit_cultural_router)

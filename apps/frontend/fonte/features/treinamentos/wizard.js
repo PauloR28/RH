@@ -11,7 +11,7 @@ import {
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { atualizarTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
-import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
+import { PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const CATEGORIAS_TREINAMENTO = ['LGPD', 'Segurança da Informação', 'Tecnologia', 'Operações', 'Onboarding', 'Produto', 'Outro'];
@@ -1271,7 +1271,9 @@ export function TelaCriarTreinamento({ controlador }) {
       subtituloMarca="Criar treinamento"
       placeholderBusca="Novo treinamento"
       controlador=${controlador}
-      acaoPrimaria=${{ label: 'Ver treinamentos', onClick: () => controlador.irParaTelaProtegida('screen-training-trilhas') }}
+      acaoPrimaria=${etapaAtual < 6
+        ? { label: 'Próximo', icon: 'arrow_forward', onClick: avancar, disabled: salvando }
+        : { label: salvando ? 'Publicando...' : 'Publicar treinamento', icon: 'check', onClick: publicar, disabled: salvando }}
     >
       <${PageIntro}
         kicker="Central de Treinamentos • Novo treinamento"
@@ -1280,32 +1282,20 @@ export function TelaCriarTreinamento({ controlador }) {
       />
 
       <div class="process-create-shell">
-        <div class="process-create-stepper" aria-label="Etapas do treinamento">
-          ${ETAPAS.map(([numero, label], indice) => {
-            const etapa = indice + 1;
-            return html`
-              <div class=${`process-create-step ${etapaAtual === etapa ? 'is-active' : ''} ${etapaAtual > etapa ? 'is-done' : ''}`} key=${numero}>
-                <span>${etapaAtual > etapa ? html`<i class="material-symbols-outlined">${IconeSvg('check')}</i>` : numero}</span>
-                <strong>${label}</strong>
-              </div>
-            `;
-          })}
-        </div>
+        <${WizardStepper} etapas=${ETAPAS} etapaAtual=${etapaAtual} />
 
-        <div class="process-create-grid">
-          <div class="process-create-main">
-            ${conteudoPorEtapa[etapaAtual]()}
-          </div>
-          <aside class="process-create-summary">
-            <h3><span class="material-symbols-outlined">${IconeSvg('info')}</span>Resumo</h3>
-            <dl>
-              <div><dt>Nome</dt><dd>${formulario.nome || '-'}</dd></div>
-              <div><dt>Ocorrências</dt><dd>${formulario.ocorrencias.length}</dd></div>
-              <div><dt>Participantes</dt><dd>${formulario.participantes.length}</dd></div>
-              <div><dt>Módulos</dt><dd>${formulario.itens.length}</dd></div>
-            </dl>
-            ${progressoPublicacao ? html`<div class="process-create-summary-note">${progressoPublicacao}</div>` : null}
-          </aside>
+        <${WizardSummaryStrip}
+          items=${[
+            ['Nome', formulario.nome || '-'],
+            ['Ocorrências', formulario.ocorrencias.length],
+            ['Participantes', formulario.participantes.length],
+            ['Módulos', formulario.itens.length],
+          ]}
+          note=${progressoPublicacao}
+        />
+
+        <div class="process-create-main">
+          ${conteudoPorEtapa[etapaAtual]()}
         </div>
 
         ${erro ? html`<div class="alert alert-danger mt-3">${erro}</div>` : null}
@@ -1319,9 +1309,6 @@ export function TelaCriarTreinamento({ controlador }) {
             <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${() => controlador.irParaTelaProtegida('screen-training-trilhas')}>
               Cancelar
             </button>
-            ${etapaAtual < 6
-              ? html`<button type="button" class="btn btn-primary" disabled=${salvando} onClick=${avancar}>Próximo</button>`
-              : html`<button type="button" class="btn btn-primary" disabled=${salvando} onClick=${publicar}>${salvando ? 'Publicando...' : 'Publicar treinamento'}</button>`}
           </div>
         </footer>
       </div>

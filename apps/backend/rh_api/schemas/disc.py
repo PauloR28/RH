@@ -41,6 +41,10 @@ class DiscBlocoCreateRequest(BaseSchema):
         return value
 
 
+class DiscBlocoUpdateRequest(DiscBlocoCreateRequest):
+    """Correções.txt item 7: mesma validação de criação (4 frases, uma por dimensão)."""
+
+
 class DiscAplicacaoCreateRequest(BaseSchema):
     id_teste: str = ""
     id_processo_ref: int | None = None

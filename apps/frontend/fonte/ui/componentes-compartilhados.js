@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20260904-identidade-conecta';
+} from './components/layout.js?v=20260908-redesign-z';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
@@ -33,3 +33,4 @@ export {
   Table,
   ToastAlert,
 } from './components/primitives.js';
+export { WizardStepper, WizardSummaryStrip } from './components/wizard.js';

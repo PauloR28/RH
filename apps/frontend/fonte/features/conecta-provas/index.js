@@ -299,8 +299,22 @@ function formatarLabelResumoEtapa(valor = '') {
   return normalizarTexto(valor).replace(/_/g, ' ').toUpperCase() || 'ETAPA';
 }
 
+function tituloEhNumeracaoGenerica(titulo) {
+  return /^quest[aã]o\s*\d+$/i.test(String(titulo || '').trim());
+}
+
 function obterTituloQuestao(questao = {}, indice = 0) {
-  return etapaEhRedacao(questao) ? 'Redação' : questao.title || `Questão ${indice + 1}`;
+  if (etapaEhRedacao(questao)) return 'Redação';
+  // Correções.txt item 5: várias questões do banco trazem um "titulo" tipo
+  // "Questão 6" herdado da posição no documento de origem — isso não é um
+  // título de verdade, é numeração obsoleta. Se deixarmos passar, ele
+  // sobrescreve a numeração dinâmica por etapa (o candidato via "Questão 6"
+  // no cabeçalho mas "Questão 1 de 7" no status, ambos vindos do mesmo
+  // índice). Só um título realmente descritivo (ex.: "Redação") deve vencer
+  // o fallback abaixo.
+  const tituloBruto = String(questao.title || '').trim();
+  if (tituloBruto && !tituloEhNumeracaoGenerica(tituloBruto)) return tituloBruto;
+  return `Questão ${indice + 1}`;
 }
 
 function obterResumoEtapas(prova = {}) {
@@ -908,6 +922,13 @@ function obterGrupoJornadaQuestao(questao = {}, indice = 0) {
   if (etapaEhRedacao(questao)) {
     return { key: 'redacao', label: 'Redação', icon: 'edit_note', description: 'Produção de texto com tema orientado' };
   }
+  if (chave.includes('personalidade') || chave.includes('espontane')) {
+    // Correções.txt item 7: personalidade/espontaneidade usa a mesma fábrica de
+    // pergunta "word" (texto livre) das etapas discursivas — precisa de etapa
+    // própria, checada ANTES do branch "word" abaixo, senão a questão some
+    // dentro da Prova de Word (mesmo padrão de etapaEhRedacao() acima).
+    return { key: 'personalidade', label: 'Perfil e comportamento', icon: 'diversity_3', description: 'Questões sobre personalidade e espontaneidade' };
+  }
   if (questao.type === 'excel_external' || chave.includes('excel')) {
     return { key: 'excel', label: 'Prova de Excel', icon: 'table_view', description: 'Atividades em planilha e interpretação de dados' };
   }
@@ -1107,7 +1128,20 @@ function obterTemaAtualRedacao(questao = {}, proposta = '') {
   const temaConfigurado = limparTextoVisivelCandidato(
     dados.theme || dados.tema || questao.theme || questao.tema || '',
   );
-  if (temaConfigurado && !/^reda[cç][aã]o$/i.test(temaConfigurado)) return temaConfigurado;
+  const propostaNormalizada = limparTextoVisivelCandidato(proposta).toLowerCase();
+  // Correções.txt item 10: tema precisa ser curto e direto, nunca o mesmo
+  // trecho com que a proposta começa — se o dado de origem não foi revisado
+  // (tema = cópia da abertura da proposta), isso é sinal de erro, não um tema
+  // válido, então cai no fallback abaixo em vez de exibir a duplicidade.
+  const pareceCopiaDaProposta =
+    temaConfigurado.length >= 20 &&
+    propostaNormalizada.startsWith(temaConfigurado.toLowerCase().slice(0, 60));
+  const temaValido =
+    temaConfigurado &&
+    !/^reda[cç][aã]o$/i.test(temaConfigurado) &&
+    temaConfigurado.length <= 260 &&
+    !pareceCopiaDaProposta;
+  if (temaValido) return temaConfigurado;
   if (/tema\s+livre/i.test(proposta)) return 'Tema Livre';
   const temaNaProposta = proposta.match(/tema\s*[:\-]\s*([^.!\n]{4,120})/i)?.[1];
   return limparTextoVisivelCandidato(temaNaProposta) || 'Tema Livre';
@@ -1281,7 +1315,7 @@ function QuestaoProva({
       <div class="conecta-provas-exam-head">
         <div>
           <span class="conecta-provas-step">${questao.stage || 'Etapa'}</span>
-          <h1>${ehRedacao ? 'Redação' : questao.title || `Questão ${indice + 1}`}</h1>
+          <h1>${obterTituloQuestao(questao, indice)}</h1>
         </div>
         <div class="conecta-provas-status-card">
           <span>${`Questão ${indice + 1} de ${total}`}</span>
@@ -2326,8 +2360,8 @@ export function TelaConectaProvas({ modoPreview = false, sessaoInicial = null, o
             <${QuestaoProva}
               questao=${questaoAtual}
               resposta=${respostas[indiceAtual]}
-              indice=${indiceAtual}
-              total=${questoes.length}
+              indice=${posicaoNaEtapa >= 0 ? posicaoNaEtapa : indiceAtual}
+              total=${indicesEtapaAtiva.length || questoes.length}
               tempoRestante=${timestampTermino ? segundosRestantes : obterTempoTotalSegundos(sessao)}
               tempoRestanteEtapa=${timestampTerminoEtapa ? segundosRestantesEtapa : null}
               progresso=${progresso}

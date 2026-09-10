@@ -244,11 +244,28 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
             "Configurar quem pode criar/gerenciar treinamentos na Central de Treinamentos.",
             critical=True,
         ),
+        _permission(
+            "onboarding.concluir_proprio",
+            "Onboarding",
+            "Marcar como concluído um módulo do próprio treinamento (app do colaborador).",
+        ),
         _permission("documentos_templates.visualizar", "Templates de Documentos", "Visualizar templates e gerar documentos a partir deles."),
         _permission(
             "documentos_templates.editar",
             "Templates de Documentos",
             "Cadastrar ou editar templates de documentos.",
+            critical=True,
+        ),
+        _permission(
+            "documentos_biblioteca.visualizar",
+            "Central de Documentos",
+            "Visualizar e baixar documentos da biblioteca (Central de Documentos). Somente Administrador.",
+            critical=True,
+        ),
+        _permission(
+            "documentos_biblioteca.editar",
+            "Central de Documentos",
+            "Cadastrar, editar ou remover documentos da biblioteca (Central de Documentos). Somente Administrador.",
             critical=True,
         ),
         _permission("fit_cultural.visualizar", "Fit Cultural", "Visualizar valores da empresa e resultados de fit cultural dos candidatos."),
@@ -396,11 +413,15 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "inicio.visualizar",
         "notificacoes.visualizar",
         "onboarding.visualizar",
+        # Promt.txt (app mobile "Conecta App"): colaborador conclui os
+        # próprios módulos, nunca os de terceiros (auto-escopo na rota).
+        "onboarding.concluir_proprio",
     },
     ROLE_OPERATOR: {
         "inicio.visualizar",
         "notificacoes.visualizar",
         "onboarding.visualizar",
+        "onboarding.concluir_proprio",
     },
     ROLE_SUPERVISOR: {
         "inicio.visualizar",

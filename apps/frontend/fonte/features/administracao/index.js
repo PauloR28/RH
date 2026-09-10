@@ -28,13 +28,6 @@ const STATUS_BADGE_AMBIENTE = {
 
 const MODULOS_DISPONIVEIS = [
   {
-    tela: 'screen-settings-users',
-    icone: 'person',
-    titulo: 'Usuários',
-    descricao: 'Criação de usuários, vínculo com operação e nível de acesso.',
-    permissao: 'usuarios.visualizar',
-  },
-  {
     tela: 'screen-settings-profiles',
     icone: 'admin_panel_settings',
     titulo: 'Perfis e permissões',
@@ -46,13 +39,6 @@ const MODULOS_DISPONIVEIS = [
     icone: 'apartment',
     titulo: 'Operações',
     descricao: 'Cadastro de operações e produtos usados em processos, provas e treinamentos.',
-    permissao: 'configuracoes.visualizar',
-  },
-  {
-    tela: 'screen-settings-catalog',
-    icone: 'inventory_2',
-    titulo: 'Catálogos',
-    descricao: 'Listas e regras reutilizáveis do sistema (motivos, status, modelos de e-mail).',
     permissao: 'configuracoes.visualizar',
   },
   {

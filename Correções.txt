@@ -1,13 +1,41 @@
 Correções: 
-Tela inicial - Retire o botão no topo de "Gerar Prova", adicione como um botão/opção em "Acessos Rápidos". 
-Tela de administração: - Em Parâmetros, especificamente em SharePoint, altere o "Adicionar Parêmtro" para "Adicionar ambiente"
-Aqui vai uma operação importante e exige cautela. "Adcionar ambiente" é simplesmente linkar o Conecta com as intranets, atualmente ele só esta conectado com a intranet do RH (lembra ?), a intenção é que outras intranets das operações possam ser conectadas ao RH, lembra do mural que adicionamos ? Eles serão usados estritamente ali, sendo assim, verifique se somente o campo "Chave" em "Novo parâmetro (que deverá ser "Novo ambiente") é o suficiente para criamos essa conecção, ao ponto de fazermos publicações direta nas intranets atráves do Conecta (creio que não seja) sendo assim, crie uma pagina dedidcada a isso. Um form especifico, detalhista, e intuitivo que faça com que o administrador saiba o que fazer, como fazer, o que precisar, como conseguir. 
-Para o OneDrive não serão necessários, pois ficará padronizado o que já usam, sendo assim, apenas mistre as configurações existentes e retire o botão de "Novo parâmetro deles".
-A aba de "Email" será configurada todo o canal de email, todas as configurações possíveis serão listadas ali.
-Retire a aba "outros". 
-Está faltando as demais configurações na aba de usuário para o administrador. O Adm poderá mexer em tudo relacionado ao usuário. 
-Para ficar melhor, adicionei um login para você: 
-login: rh@central24horas.com.br
-senha:1234
-o login é de nível administrador
-aproveite e veja as pendências que ficaram para trás porque dependiam de prints e acesso as telas. 
+Treinamentos - 
+*Em editar, preciso do botão para editar o conteúdo já criando, parece que não ficou salvo. Eu fiz a criação do treinamento, porem o conteúdo não aparece para a pessoa quye for fazer o treino no aplicativo. Cade o Saiba + ou Dicas, como estava no whareframe ? Assim como, em editar treinamento, eu preciso que a tela seja otimizada e os módulos mais fácil de alterar e configurar. 
+*Para cada treinamento, adicione o botão "Ações", um dropdown para "Adicionar participante", "Editar" e "Excluir" treino. *Adicione também o botão de "Adicionar treinamento a processo seletivo" para adcionar o treinamento a um processos que já está aberto.
+
+*Em "adicionar participante, eu preciso também ter um campo de busca para buscar a pessoa que quero adicionar no treino. 
+
+Telas de configuração: 
+* Retire toda caixa: "Auditoria recente - Últimas ações administrativas" não há necessidade. Retire de todas as paginas que ele aparece!
+*Na pagina de Configuração - Operações: 
+retire: Retire totalmente a pagina de "Catalogo" pois é a mesma pagina de operações. 
+* Pagina de perfis e permissões - A CAIXA DE PERFIS e escopos de acessos, está desalinhado. Organize e otmize o tamanho dos elementos. 
+* Na tela de Operações: "c24-card settings-catalog-list-card"(Itens cadastrados) - Precisa ser um sidebar lateral e expansivo (ocupar menos espaço), além disso, precisa ter um botão de "Ações" com todos os botões que já existe listados ali: "Editar, Duplicar, Arquivar"
+*Reconfigure e redefine TOTALEMNTE a área de "Áreas de configuração" (c24-card settings-area-panel), não faz sentido esse form de configuração, esse desing, é um a cara do outro, o form está muito grande, tem campos desnecessários e acredito que não esteja funcionando. Redefine, retrabalhe. 
+* Em Operações: o "c24-stat-grid" não faz sentido mto esses grids, mostram informações não mto coerentes, faça com que eles mostrem
+* Tela de Políticas institucionais - Pode excluir essa tela, não faz sendido e não serve pra nada.  
+* Tela de Templates e documentos. - Aqui, altere o nome da pagina para Central de Documentos. Aqui ficará todos os documentos e documentação baseado em funções do conecta. Haverá uma lista, do tipo dropdown, com um botão simples em cada para "baixar documento", aqui por exemplo, ficará o documento que você fez sobre como configurar o Microsoft Entra ID para o Sharepoint. Nessa tela, deverá ser didvidida em tópicos e áreas. E somente o ADM terá acesso a essa pagina. 
+* Na tela de configuração de usuário. O tamanho eespaçamento do form precisa ser mais otimizado, experimente uma organização em formato de Z. Alemd isso, em editar senha, ter um campo para configurar senha. Os botões de: "Bloquear usuário", "Redefinir MFA", "Excluir usuário" deve estar otimizados e alinhados lado a lado. Inclua também, no topo do botão, um botão pequeno para "Editar", ao ser clicado, todos os campos editar usuário estarão disponíveis para serem alterados. Na lista de usuários, todo usuário será clicável (atualmente ele está como selecionado), ao ser cliclado ele abre o modal de informações do usuário (o atual modal de editar usuário). Com isso, a coluna "Ações" na lista de usuário passa a não existir. 
+*Tela de administração: Retire o módulo: Usuários da lista (isso porque no drop Configurações já tem o link para a pagina de usuários)
+*Tela de Perfins e permissões: Essa tela está absurdamente longa, precisa de um redesing total que seja da seguinte forma:
+Um lista lateral com os níveis de perfil: Estágiário, DP, Gestor, Analista(RH+FUNCIONÁRIO), Operador(Candidado), Administrador e Supervisor. Esses serão os perfis. 
+A lista terá uma sublistagem, cada item dessa sublista será uma sessão diferente do Conecta, e cada item dessa lista, ao ser clicado, abrirá uma session que irá preencher o conteúdo da pagina,e essa exemplo:
+*Caixa de Currículos
+*Processos
+*Provas
+*Gestão
+*Drive
+*Treinamentos
+*Configurações
+em cada area será listada as funções e ações de cada sessão, cada item terá um botão do tipo: Turn on/off, que irá configurar se aquele usário terá ou não acesso a aquele item/função/sessão. 
+Todo esse desing precisa estar presente na tela. De forma otmizada e responsiva, facil entendimento e sem ficar rolando a pagina pra baixo ou para a lateral. 
+Cada perfil terá uma configuração padrão, terá um botão nessa pagina para editar as configurações padrões, que irá "desbloquar" a pagina para alterarem as permissões, no entanto, esse botão só estará disponível para o administrador. 
+Em treinamento, para perfil de Supervisor, haverá uma lista de treinamento que está listado pra ele dar, inclusive com data, horario, local e quantidade de pessoa que irá assitir. Ao clicar no treinamento, havera um botão de "Ações" para: "Iniciar treinamento", "Editar treinamento". 
+Clicando em iniciar treinamento, abrirá a tela do curso, com as informações do treinamento, o slide que será apresentado, a listagem de pessoas que irão assitir, e o botão de "Iniciar". Ao ser clicado, o slide abrirá em tela cheia para ele começar a aplicar o treinamento. Ao fim da apresentação, ele terá que marcar a presença de dos colaboradores que estão presentes. 
+Na tela do Gestor, ele terá um calendário de treinamentos proximos, que dará, inclivise a listagem de presença. 
+* Drive - No drive seria bom cada tipo de arquivo ter um visual diferenciado, por exemplo: Pastas (fundo amarelado), arquivos PDFs (fundos avermelhado), docs(fundos azulado), planilhas (fundos esverdeado). 
+* Tela de Gestão - Dashboard de funil e métricas: Esses gráficos estão gigantes, ocupando a tela inteira, espaçosos, desalinhados. Dê um maximo de otmizada neles. Não quero ter que ficar deslizando a pagina para baixo ou para os lados. 
+* MURAL - Aqui demanda uam atenão. Será uma area para postagem ! Como um blog, ao clicar em "+ Nova publicação" abrira um modal para fazer a postagem, uma caixa de texto, com opções de formatação, cor, tamanho, alinhamento, fonte. Um espaço para colocar imagens, inclusive poder alterar a pulicação colocando a imagem no meio do texto, ou tambem postar somente a imagem. Em baixo uma lista das intranets disponível para a postagem. 
+A abaixo, uma lista das publicações feitas.
+* Tela de provas e resultados - Modal de resultados da prova, há um espaçamento entre o titulo e os libs das abas imenso ! Reduza!
+Retire o :"<header class="rh-section-card-header"></header>" das paginas em que não há nada aqui. Eles estão criando um espaçamento absurdo entre o titulo e o elemento. 

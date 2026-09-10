@@ -10,6 +10,7 @@ from ..services.helpers import normalize_compare_text, normalize_text, rows_to_d
 from ..services.interviews import build_interview_message, normalize_interview_status
 from ..services.pipeline import infer_pipeline_stage
 from ..services.process_flow import (
+    CANDIDATE_STATUS_CANCELED,
     CANDIDATE_STATUS_CONFIRMED,
     CANDIDATE_STATUS_ELIMINATED,
     CANDIDATE_STATUS_PENDING_CONFIRMATION,
@@ -913,6 +914,14 @@ class InterviewRepositoryMixin:
                 new_slot_id = int(data.get("id_slot") or 0) if "id_slot" in data else current_slot_id
                 slot_changed = new_slot_id != current_slot_id
 
+                # Correções.txt item 4: reagendar (trocar o slot) fica bloqueado
+                # depois que o candidato já iniciou a prova.
+                if slot_changed and self._candidate_has_exam_in_progress(cursor, current.get("id_teste")):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Este candidato já iniciou a prova e a entrevista não pode mais ser reagendada.",
+                    )
+
                 if slot_changed and new_slot_id:
                     slot_row = self._select_slot_for_update(cursor, new_slot_id)
                     self._assert_slot_available(cursor, slot_row, current_interview_id=id_entrevista)
@@ -1034,9 +1043,17 @@ class InterviewRepositoryMixin:
                     )
                     candidate_rows = rows_to_dicts(cursor, cursor.fetchall())
                     candidate_row = candidate_rows[0] if candidate_rows else None
+                    canonical_interview_status = canonicalize_candidate_status(interview_status)
+                    # Correções.txt item 2: cancelar a entrevista precisa eliminar o
+                    # candidato (Reprovados) — antes disso, o candidato ficava com
+                    # status_candidato = "Cancelado", um estado sem tela própria e
+                    # fora de INTERVIEW_SCHEDULING_ALLOWED_STATUSES (só QUALIFIED),
+                    # ou seja, ele "sumia" do fluxo sem chegar a lugar nenhum, no
+                    # mesmo padrão do bug de CV não qualificado (item 1).
+                    candidato_eliminado_por_cancelamento = canonical_interview_status == CANDIDATE_STATUS_CANCELED
                     candidate_target_status = (
                         CANDIDATE_STATUS_ELIMINATED
-                        if canonicalize_candidate_status(interview_status) == CANDIDATE_STATUS_WITHDREW
+                        if canonical_interview_status in (CANDIDATE_STATUS_WITHDREW, CANDIDATE_STATUS_CANCELED)
                         else interview_status
                     )
                     if candidate_row and canonicalize_candidate_status(candidate_row.get("status_candidato")) != canonicalize_candidate_status(candidate_target_status):
@@ -1056,7 +1073,12 @@ class InterviewRepositoryMixin:
                                     "etapa_eliminacao": "Entrevista",
                                 }
                                 if candidate_target_status == CANDIDATE_STATUS_ELIMINATED
-                                and canonicalize_candidate_status(interview_status) == CANDIDATE_STATUS_WITHDREW
+                                and canonical_interview_status == CANDIDATE_STATUS_WITHDREW
+                                else {
+                                    "motivo_eliminacao": "Entrevista cancelada",
+                                    "etapa_eliminacao": "Entrevista",
+                                }
+                                if candidato_eliminado_por_cancelamento
                                 else None
                             ),
                         )

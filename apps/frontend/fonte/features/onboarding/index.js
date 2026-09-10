@@ -189,7 +189,7 @@ export function TelaOnboarding({ controlador }) {
       <${PageIntro}
         kicker="Configurações"
         title="Trilhas de onboarding"
-        description="Cadastre o checklist de integração de novos colaboradores. A trilha ativa fica disponível para iniciar o onboarding na ficha do candidato aprovado."
+       
       />
 
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
@@ -289,7 +289,7 @@ export function TelaOnboarding({ controlador }) {
           <div class="rh-filter-field">
             <label>Itens do checklist</label>
             ${form.itens.map(
-      (item, index) => html`
+          (item, index) => html`
                 <div key=${index} class="rh-section-card rh-section-card--flat" style=${{ padding: '12px', marginBottom: '8px' }}>
                   <div class="row g-2 align-items-start">
                     <div class="col-md-5">
@@ -333,7 +333,7 @@ export function TelaOnboarding({ controlador }) {
                   </div>
                 </div>
               `,
-    )}
+        )}
             <button type="button" class="btn btn-outline-primary btn-sm" onClick=${adicionarItem}>
               <span class="material-symbols-outlined">${IconeSvg('add')}</span>
               Adicionar item
@@ -452,7 +452,7 @@ export function PainelOnboardingCandidato({ idRegistro, controlador, vagaCandida
       <div class="rh-filter-field">
         <p class="text-muted">Nenhum onboarding iniciado para este candidato.</p>
         ${trilhas.length
-      ? html`
+        ? html`
               <div class="d-flex gap-2 align-items-center">
                 <select
                   class="form-select"
@@ -460,8 +460,8 @@ export function PainelOnboardingCandidato({ idRegistro, controlador, vagaCandida
                   onChange=${(event) => setTrilhaSelecionada(event.target.value)}
                 >
                   ${trilhasOrdenadas.map(
-        (trilha) => html`<option key=${trilha.id_trilha} value=${trilha.id_trilha}>${trilha.nome}${String(trilha.id_trilha) === trilhaSugeridaId ? ' (sugerida para esta vaga)' : ''}</option>`,
-      )}
+          (trilha) => html`<option key=${trilha.id_trilha} value=${trilha.id_trilha}>${trilha.nome}${String(trilha.id_trilha) === trilhaSugeridaId ? ' (sugerida para esta vaga)' : ''}</option>`,
+        )}
                 </select>
                 <button
                   type="button"
@@ -473,10 +473,10 @@ export function PainelOnboardingCandidato({ idRegistro, controlador, vagaCandida
                 </button>
               </div>
               ${trilhaSugeridaId
-        ? html`<small class="text-muted">Sugerida com base na vaga do candidato. Você pode escolher outra trilha na lista.</small>`
-        : null}
+            ? html`<small class="text-muted">Sugerida com base na vaga do candidato. Você pode escolher outra trilha na lista.</small>`
+            : null}
             `
-      : html`<p class="text-muted">Nenhuma trilha ativa cadastrada. Cadastre uma trilha em Configurações &gt; Trilhas de onboarding.</p>`}
+        : html`<p class="text-muted">Nenhuma trilha ativa cadastrada. Cadastre uma trilha em Configurações &gt; Trilhas de onboarding.</p>`}
       </div>
     `;
   }
@@ -489,7 +489,7 @@ export function PainelOnboardingCandidato({ idRegistro, controlador, vagaCandida
       </div>
       <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
         ${progresso.itens.map(
-      (item) => html`
+    (item) => html`
             <li key=${item.id_onboarding_item} class="d-flex align-items-start gap-2">
               <input
                 type="checkbox"
@@ -500,12 +500,12 @@ export function PainelOnboardingCandidato({ idRegistro, controlador, vagaCandida
               <span class=${item.concluido ? 'text-decoration-line-through text-muted' : ''}>
                 ${item.titulo}
                 ${item.obrigatorio
-          ? html`<span class="rh-chip is-indicacao ms-2" style=${{ fontSize: '11px' }}>Obrigatório</span>`
-          : null}
+        ? html`<span class="rh-chip is-indicacao ms-2" style=${{ fontSize: '11px' }}>Obrigatório</span>`
+        : null}
               </span>
             </li>
           `,
-    )}
+  )}
       </ul>
     </div>
   `;

@@ -82,11 +82,19 @@ export function EditorTextoRich({
   mostrarContador = true,
 }) {
   const editorRef = useRef(null);
+  const ultimoValorEmitido = useRef(null);
   const limite = Number(limiteCaracteres || 0);
   const caracteresUsados = obterTextoPlanoRichText(valor).length;
 
   useEffect(() => {
     if (!editorRef.current) return;
+    // Correções.txt item 11: reescrever innerHTML a cada digitação destrói o
+    // Range do contentEditable e joga o cursor pro início do texto. Só
+    // reescrevemos quando a mudança de `valor` NÃO veio do próprio editor
+    // (ex.: troca de questão, resposta carregada do servidor) — quando o
+    // valor recebido é exatamente o que este editor acabou de emitir via
+    // onInput, o DOM já está correto e não deve ser tocado.
+    if (valor === ultimoValorEmitido.current) return;
     const valorSeguro = normalizarConteudoRichText(valor);
     if (editorRef.current.innerHTML !== valorSeguro) {
       editorRef.current.innerHTML = valorSeguro;
@@ -116,6 +124,7 @@ export function EditorTextoRich({
     if (limitado.truncated) {
       editorRef.current.innerHTML = limitado.content;
     }
+    ultimoValorEmitido.current = limitado.content;
     onChange(limitado.content);
   };
 
@@ -176,6 +185,7 @@ export function EditorTextoRich({
           <option value="5">18</option>
           <option value="6">24</option>
         </select>
+        <span class="rh-editor-toolbar-divider" aria-hidden="true"></span>
         <button
           type="button"
           class="rh-editor-toolbar-btn"
@@ -212,6 +222,7 @@ export function EditorTextoRich({
         >
           <span class="material-symbols-outlined">${IconeSvg('format_align_justify')}</span>
         </button>
+        <span class="rh-editor-toolbar-divider" aria-hidden="true"></span>
         <button
           type="button"
           class="rh-editor-toolbar-btn"

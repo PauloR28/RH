@@ -1,5 +1,6 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import {
+  atualizarBlocoDisc,
   criarBlocoDisc,
   finalizarAplicacaoDiscPublica,
   lerAplicacaoDiscPublica,
@@ -8,7 +9,6 @@ import {
 } from '../../servico-api.js';
 import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { obterIdAplicacaoDiscPorHash } from '../../rotas.js';
 import { IconeSvg } from '../../ui/icone.js';
 
@@ -28,6 +28,13 @@ export function TelaDiscAdmin({ controlador }) {
   const [form, setForm] = useState(FORM_INICIAL());
   const [salvando, setSalvando] = useState(false);
   const [erroForm, setErroForm] = useState('');
+  // Correções.txt item 7: blocos compactados/dobráveis + edição.
+  const [editandoId, setEditandoId] = useState(null);
+  const [blocosExpandidos, setBlocosExpandidos] = useState({});
+
+  const alternarBloco = (idBloco) => {
+    setBlocosExpandidos((atual) => ({ ...atual, [idBloco]: !atual[idBloco] }));
+  };
 
   const carregar = async () => {
     setCarregando(true);
@@ -47,13 +54,25 @@ export function TelaDiscAdmin({ controlador }) {
   }, []);
 
   const abrirNovo = () => {
+    setEditandoId(null);
     setForm({ ...FORM_INICIAL(), ordem: blocos.length ? Math.max(...blocos.map((b) => b.ordem || 0)) + 1 : 1 });
+    setErroForm('');
+    setModalAberto(true);
+  };
+
+  const abrirEdicao = (bloco) => {
+    setEditandoId(bloco.id_bloco);
+    setForm({
+      ordem: bloco.ordem || 0,
+      frases: (bloco.frases || []).map((frase) => ({ dimensao: frase.dimensao || '', texto: frase.texto || '' })),
+    });
     setErroForm('');
     setModalAberto(true);
   };
 
   const fechar = () => {
     setModalAberto(false);
+    setEditandoId(null);
     setErroForm('');
   };
 
@@ -76,10 +95,15 @@ export function TelaDiscAdmin({ controlador }) {
     }
     setSalvando(true);
     try {
-      await criarBlocoDisc({
+      const payload = {
         ordem: Number(form.ordem) || 0,
         frases: form.frases.map((f) => ({ dimensao: f.dimensao, texto: f.texto.trim() })),
-      });
+      };
+      if (editandoId) {
+        await atualizarBlocoDisc(editandoId, payload);
+      } else {
+        await criarBlocoDisc(payload);
+      }
       fechar();
       await carregar();
     } catch (error) {
@@ -112,45 +136,55 @@ export function TelaDiscAdmin({ controlador }) {
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
 
       <${SectionCard} title="Blocos cadastrados" className="rh-section-card--flat">
-        <div class="table-responsive">
-          <table class="table align-middle rh-modern-history-table">
-            <thead>
-              <tr>
-                <th>Ordem</th>
-                <th>Frases (dimensão)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${carregando
-        ? html`<${SkeletonTableRows} colunas=${2} linhas=${3} />`
-        : blocos.length
-          ? blocos.map(
-            (bloco) => html`
-                      <tr key=${bloco.id_bloco}>
-                        <td>${bloco.ordem}</td>
-                        <td>
-                          <div class="rh-cell-stack">
-                            ${(bloco.frases || []).map(
-              (frase) => html`
-                                <span key=${frase.id_frase}>
-                                  <strong>${frase.dimensao}</strong> — ${frase.texto}
-                                </span>
-                              `,
-            )}
-                          </div>
-                        </td>
-                      </tr>
-                    `,
-          )
-          : html`<${TabelaVazia} colunas=${2} texto="Nenhum bloco DISC cadastrado." icone="insights" />`}
-            </tbody>
-          </table>
-        </div>
+        ${carregando
+          ? html`<p class="text-muted">Carregando blocos...</p>`
+          : blocos.length
+            ? html`
+                <div class="rh-disc-bloco-list">
+                  ${blocos.map((bloco) => {
+                    const expandido = Boolean(blocosExpandidos[bloco.id_bloco]);
+                    return html`
+                      <div class="rh-disc-bloco-card" key=${bloco.id_bloco}>
+                        <button
+                          type="button"
+                          class="rh-disc-bloco-header"
+                          aria-expanded=${expandido}
+                          onClick=${() => alternarBloco(bloco.id_bloco)}
+                        >
+                          <span class="material-symbols-outlined">${IconeSvg(expandido ? 'expand_less' : 'expand_more')}</span>
+                          <strong>Bloco ${bloco.ordem}</strong>
+                          <small>${(bloco.frases || []).length} frases</small>
+                        </button>
+                        ${expandido
+                          ? html`
+                              <div class="rh-disc-bloco-body">
+                                <div class="rh-cell-stack">
+                                  ${(bloco.frases || []).map(
+                                    (frase) => html`
+                                      <span key=${frase.id_frase}>
+                                        <strong>${frase.dimensao}</strong> — ${frase.texto}
+                                      </span>
+                                    `,
+                                  )}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onClick=${() => abrirEdicao(bloco)}>
+                                  <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                                  Editar
+                                </button>
+                              </div>
+                            `
+                          : null}
+                      </div>
+                    `;
+                  })}
+                </div>
+              `
+            : html`<div class="table-responsive"><table class="table"><tbody><${TabelaVazia} colunas=${2} texto="Nenhum bloco DISC cadastrado." icone="insights" /></tbody></table></div>`}
       </${SectionCard}>
 
       <${ModalPadrao}
         aberto=${modalAberto}
-        titulo="Novo bloco DISC"
+        titulo=${editandoId ? 'Editar bloco DISC' : 'Novo bloco DISC'}
         subtitulo="Cadastre exatamente 4 frases, uma para cada dimensão."
         onClose=${fechar}
         className="rh-modal-dialog--lg"
@@ -398,7 +432,7 @@ export function TelaDiscTestePublico() {
 // ----------------------------------------------------------------------
 // Painel de resultado (embutido na ficha do candidato)
 // ----------------------------------------------------------------------
-export function PainelResultadoDisc({ idTeste }) {
+export function PainelResultadoDisc({ idTeste, aoCarregar }) {
   const [resultado, setResultado] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -406,12 +440,19 @@ export function PainelResultadoDisc({ idTeste }) {
   useEffect(() => {
     if (!idTeste) {
       setCarregando(false);
+      aoCarregar?.({ possuiResultado: false });
       return;
     }
     setCarregando(true);
     lerResultadoDiscCandidato(idTeste)
-      .then(setResultado)
-      .catch((error) => setErro(error?.message || 'Não foi possível carregar o resultado do DISC.'))
+      .then((dados) => {
+        setResultado(dados);
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+      })
+      .catch((error) => {
+        setErro(error?.message || 'Não foi possível carregar o resultado do DISC.');
+        aoCarregar?.({ possuiResultado: false });
+      })
       .finally(() => setCarregando(false));
   }, [idTeste]);
 

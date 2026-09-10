@@ -15,6 +15,16 @@ export async function criarBlocoDisc(payload) {
   return resultado;
 }
 
+export async function atualizarBlocoDisc(idBloco, payload) {
+  const resultado = await requisitar(`/disc/blocos/${encodeURIComponent(idBloco)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  });
+  invalidarCacheApi('disc-blocos');
+  return resultado;
+}
+
 // RH: gerar uma aplicação do teste DISC para um candidato.
 export async function criarAplicacaoDisc(payload) {
   const resultado = await requisitar('/disc/aplicacoes', {

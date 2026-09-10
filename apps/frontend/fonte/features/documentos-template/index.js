@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -8,6 +8,13 @@ import {
   listarVariaveisTemplatesDocumentos,
 } from '../../servico-api.js';
 import {
+  atualizarDocumentoBiblioteca,
+  criarDocumentoBiblioteca,
+  excluirDocumentoBiblioteca,
+  listarDocumentosBiblioteca,
+} from '../../services/api/documentos-biblioteca.js';
+import {
+  EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
@@ -18,6 +25,7 @@ import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const FORM_INICIAL = { id_template: '', titulo: '', corpo_texto: '', ativo: true };
+const FORM_DOC_INICIAL = { id_documento: '', titulo: '', topico: '', area: '', descricao: '', url_arquivo: '', ativo: true };
 
 export function TelaTemplatesDocumentos({ controlador }) {
   const [templates, setTemplates] = useState([]);
@@ -28,6 +36,16 @@ export function TelaTemplatesDocumentos({ controlador }) {
   const [form, setForm] = useState(FORM_INICIAL);
   const [salvando, setSalvando] = useState(false);
   const [erroForm, setErroForm] = useState('');
+
+  const podeVerBiblioteca = controlador.possuiPermissao('documentos_biblioteca.visualizar');
+  const podeEditarBiblioteca = controlador.possuiPermissao('documentos_biblioteca.editar');
+  const [documentos, setDocumentos] = useState([]);
+  const [carregandoDocs, setCarregandoDocs] = useState(podeVerBiblioteca);
+  const [erroDocs, setErroDocs] = useState('');
+  const [modalDocAberto, setModalDocAberto] = useState(false);
+  const [formDoc, setFormDoc] = useState(FORM_DOC_INICIAL);
+  const [salvandoDoc, setSalvandoDoc] = useState(false);
+  const [erroFormDoc, setErroFormDoc] = useState('');
 
   const carregar = async () => {
     setCarregando(true);
@@ -46,9 +64,97 @@ export function TelaTemplatesDocumentos({ controlador }) {
     }
   };
 
+  const carregarDocumentos = async () => {
+    if (!podeVerBiblioteca) return;
+    setCarregandoDocs(true);
+    setErroDocs('');
+    try {
+      const resposta = await listarDocumentosBiblioteca();
+      setDocumentos(Array.isArray(resposta) ? resposta : []);
+    } catch (error) {
+      setErroDocs(error?.message || 'Não foi possível carregar a biblioteca de documentos.');
+    } finally {
+      setCarregandoDocs(false);
+    }
+  };
+
   useEffect(() => {
     carregar();
+    carregarDocumentos();
   }, []);
+
+  const documentosPorTopico = useMemo(() => {
+    const grupos = new Map();
+    documentos.forEach((item) => {
+      const chave = item.topico || 'Outros';
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      grupos.get(chave).push(item);
+    });
+    return Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
+  }, [documentos]);
+
+  const abrirNovoDoc = () => {
+    setFormDoc(FORM_DOC_INICIAL);
+    setErroFormDoc('');
+    setModalDocAberto(true);
+  };
+
+  const abrirEdicaoDoc = (item) => {
+    setFormDoc({
+      id_documento: item.id_documento,
+      titulo: item.titulo || '',
+      topico: item.topico || '',
+      area: item.area || '',
+      descricao: item.descricao || '',
+      url_arquivo: item.url_arquivo || '',
+      ativo: !!item.ativo,
+    });
+    setErroFormDoc('');
+    setModalDocAberto(true);
+  };
+
+  const fecharDoc = () => {
+    setModalDocAberto(false);
+    setFormDoc(FORM_DOC_INICIAL);
+    setErroFormDoc('');
+  };
+
+  const salvarDoc = async () => {
+    setErroFormDoc('');
+    const payload = {
+      titulo: formDoc.titulo.trim(),
+      topico: formDoc.topico.trim(),
+      area: formDoc.area.trim(),
+      descricao: formDoc.descricao.trim(),
+      url_arquivo: formDoc.url_arquivo.trim(),
+      ativo: !!formDoc.ativo,
+    };
+
+    setSalvandoDoc(true);
+    try {
+      if (formDoc.id_documento) {
+        await atualizarDocumentoBiblioteca(formDoc.id_documento, payload);
+      } else {
+        await criarDocumentoBiblioteca(payload);
+      }
+      fecharDoc();
+      await carregarDocumentos();
+    } catch (error) {
+      setErroFormDoc(error?.message || 'Não foi possível salvar o documento.');
+    } finally {
+      setSalvandoDoc(false);
+    }
+  };
+
+  const excluirDoc = async (item) => {
+    if (!window.confirm(`Excluir o documento "${item.titulo}"?`)) return;
+    try {
+      await excluirDocumentoBiblioteca(item.id_documento);
+      await carregarDocumentos();
+    } catch (error) {
+      setErroDocs(error?.message || 'Não foi possível excluir o documento.');
+    }
+  };
 
   const abrirNovo = () => {
     setForm(FORM_INICIAL);
@@ -111,29 +217,111 @@ export function TelaTemplatesDocumentos({ controlador }) {
     setForm((atual) => ({ ...atual, corpo_texto: `${atual.corpo_texto}{{${variavel}}}` }));
   };
 
+  const acoesTemplate = html`
+    <button
+      type="button"
+      class="btn btn-primary btn-sm"
+      onClick=${abrirNovo}
+      disabled=${!controlador.possuiPermissao('documentos_templates.editar')}
+    >
+      <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+      Novo template
+    </button>
+  `;
+
+  const acoesBiblioteca = podeEditarBiblioteca
+    ? html`
+        <button type="button" class="btn btn-primary btn-sm" onClick=${abrirNovoDoc}>
+          <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+          Novo documento
+        </button>
+      `
+    : null;
+
   return html`
     <${PainelRh}
       screenId="screen-settings-document-templates"
       navAtiva="screen-settings-document-templates"
-      subtituloMarca="Templates de documentos"
-      placeholderBusca="Templates de documentos"
+      subtituloMarca="Central de Documentos"
+      placeholderBusca="Central de Documentos"
       controlador=${controlador}
-      acaoPrimaria=${{
-      label: 'Novo template',
-      icon: 'add',
-      onClick: abrirNovo,
-      permissao: 'documentos_templates.editar',
-    }}
     >
       <${PageIntro}
         kicker="Configurações"
-        title="Templates de documentos"
-        description="Cadastre modelos de texto com variáveis {{variavel}} para gerar documentos rapidamente a partir dos dados do candidato/processo."
+        title="Central de Documentos"
+        description="Biblioteca de documentos e documentação por função do Conecta, além dos modelos de texto com variáveis {{variavel}} usados para gerar documentos a partir dos dados do candidato/processo."
       />
 
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
 
-      <${SectionCard} title="Templates cadastrados" className="rh-section-card--flat">
+      ${podeVerBiblioteca
+      ? html`
+            <${SectionCard}
+              title="Biblioteca de documentos"
+              description="Documentos e guias por tópico/área. Apenas administradores gerenciam esta lista."
+              actions=${acoesBiblioteca}
+              className="rh-section-card--flat"
+            >
+              ${erroDocs ? html`<div class="alert alert-warning">${erroDocs}</div>` : null}
+              ${carregandoDocs
+          ? html`<${SkeletonTableRows} colunas=${1} linhas=${2} />`
+          : documentosPorTopico.length
+            ? html`
+                    <div class="c24-doc-library">
+                      ${documentosPorTopico.map(
+              ([topico, itens]) => html`
+                          <div class="c24-doc-library-group" key=${topico}>
+                            <h4 class="c24-doc-library-topic">${topico}</h4>
+                            <ul class="c24-doc-library-list">
+                              ${itens.map(
+                (item) => html`
+                                  <li class="c24-doc-library-item" key=${item.id_documento}>
+                                    <div class="c24-doc-library-item-main">
+                                      <strong>${item.titulo}</strong>
+                                      ${item.area ? html`<span class="rh-status-pill is-neutral">${item.area}</span>` : null}
+                                      ${item.descricao ? html`<p>${item.descricao}</p>` : null}
+                                    </div>
+                                    <div class="c24-doc-library-item-actions">
+                                      <a
+                                        class="btn btn-outline-secondary btn-sm"
+                                        href=${item.url_arquivo}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <span class="material-symbols-outlined">${IconeSvg('download')}</span>
+                                        Baixar documento
+                                      </a>
+                                      ${podeEditarBiblioteca
+                    ? html`
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicaoDoc(item)}>
+                                              <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluirDoc(item)}>
+                                              <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                                            </button>
+                                          `
+                    : null}
+                                    </div>
+                                  </li>
+                                `,
+              )}
+                            </ul>
+                          </div>
+                        `,
+            )}
+                    </div>
+                  `
+            : html`
+                    <${EmptyState}
+                      title="Nenhum documento cadastrado"
+                      text="Cadastre o primeiro documento da biblioteca (ex.: guia de configuração do Microsoft Entra ID para o SharePoint)."
+                    />
+                  `}
+            </${SectionCard}>
+          `
+      : null}
+
+      <${SectionCard} title="Modelos de documento" description="Modelos de texto gerados automaticamente a partir dos dados do candidato/processo." actions=${acoesTemplate} className="rh-section-card--flat">
         <div class="table-responsive">
           <table class="table align-middle rh-modern-history-table">
             <thead>
@@ -268,6 +456,97 @@ export function TelaTemplatesDocumentos({ controlador }) {
               onClick=${salvar}
             >
               ${salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${modalDocAberto}
+        titulo=${formDoc.id_documento ? 'Editar documento' : 'Novo documento'}
+        subtitulo="Documento de referência para consulta e download (ex.: guias e manuais internos)."
+        onClose=${fecharDoc}
+      >
+        <div class="rh-details-body">
+          ${erroFormDoc ? html`<div class="alert alert-warning">${erroFormDoc}</div>` : null}
+
+          <div class="rh-filter-field">
+            <label>Título</label>
+            <input
+              class="form-control"
+              value=${formDoc.titulo}
+              onInput=${(event) => setFormDoc({ ...formDoc, titulo: event.target.value })}
+              placeholder="Ex.: Como configurar o Microsoft Entra ID para o SharePoint"
+            />
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="rh-filter-field">
+                <label>Tópico</label>
+                <input
+                  class="form-control"
+                  value=${formDoc.topico}
+                  onInput=${(event) => setFormDoc({ ...formDoc, topico: event.target.value })}
+                  placeholder="Ex.: Integrações"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="rh-filter-field">
+                <label>Área (opcional)</label>
+                <input
+                  class="form-control"
+                  value=${formDoc.area}
+                  onInput=${(event) => setFormDoc({ ...formDoc, area: event.target.value })}
+                  placeholder="Ex.: TI / Configurações"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Descrição (opcional)</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              value=${formDoc.descricao}
+              onInput=${(event) => setFormDoc({ ...formDoc, descricao: event.target.value })}
+            ></textarea>
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Link do arquivo</label>
+            <input
+              class="form-control"
+              value=${formDoc.url_arquivo}
+              onInput=${(event) => setFormDoc({ ...formDoc, url_arquivo: event.target.value })}
+              placeholder="Link do SharePoint/OneDrive ou outro repositório"
+            />
+          </div>
+
+          <label class="d-flex align-items-center gap-2">
+            <input
+              type="checkbox"
+              checked=${formDoc.ativo}
+              onChange=${(event) => setFormDoc({ ...formDoc, ativo: !!event.target.checked })}
+            />
+            <span>Documento ativo</span>
+          </label>
+        </div>
+
+        <footer class="rh-modal-footer">
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoDoc} onClick=${fecharDoc}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled=${salvandoDoc || !formDoc.titulo.trim() || !formDoc.topico.trim() || !formDoc.url_arquivo.trim()}
+              onClick=${salvarDoc}
+            >
+              ${salvandoDoc ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </footer>

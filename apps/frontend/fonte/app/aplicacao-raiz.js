@@ -6,7 +6,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260904-identidade-conecta';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260908-redesign-z';
 import {
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
@@ -102,7 +102,7 @@ const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.j
 const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260904-identidade-conecta'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260904-identidade-conecta'), 'TelaEntrevistas');
-const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260904-identidade-conecta'), 'TelaOneDriveArquivos');
+const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260910-correcoes-txt'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
 const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260904-identidade-conecta'), 'TelaProvasResultados');
@@ -111,19 +111,18 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260908-correcoes-ambiente'),
+  () => import('../features/configuracoes/index.js?v=20260910-correcoes-txt'),
   'TelaConfiguracoesSistema',
 );
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260904-identidade-conecta'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260906-correcoes-txt'), 'TelaMural');
-const TelaPoliticas = carregarTela(() => import('../features/politicas/index.js?v=20260904-identidade-conecta'), 'TelaPoliticas');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260910-correcoes-txt'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
   () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),
   'TelaDashboardFunil',
 );
 const TelaTemplatesDocumentos = carregarTela(
-  () => import('../features/documentos-template/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/documentos-template/index.js?v=20260910-correcoes-txt'),
   'TelaTemplatesDocumentos',
 );
 const TelaTreinamentos = carregarTela(
@@ -139,7 +138,7 @@ const TelaProvasConfiguracao = carregarTela(
   'TelaProvasConfiguracao',
 );
 const TelaAdministracao = carregarTela(
-  () => import('../features/administracao/index.js?v=20260908-correcoes-ambiente'),
+  () => import('../features/administracao/index.js?v=20260910-correcoes-txt'),
   'TelaAdministracao',
 );
 const TelaNovoAmbienteSharePoint = carregarTela(
@@ -408,7 +407,6 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     telaResolvida === 'screen-settings-users' ||
     telaResolvida === 'screen-settings-profiles' ||
     telaResolvida === 'screen-settings-operations' ||
-    telaResolvida === 'screen-settings-catalog' ||
     telaResolvida === 'screen-settings-notifications' ||
     telaResolvida === 'screen-settings-logs' ||
     telaResolvida === 'screen-settings-environment'
@@ -419,10 +417,6 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
         telaAtual=${telaResolvida}
       />
     `;
-  }
-
-  if (telaResolvida === 'screen-settings-policies') {
-    return html`<${TelaPoliticas} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-calendario') {
