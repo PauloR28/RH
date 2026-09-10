@@ -83,7 +83,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260908-correcoes-ambiente');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260910-correcoes-txt');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260904-identidade-conecta');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -101,7 +101,7 @@ const TelaProcessos = carregarTela(importarProcessos, 'TelaProcessos');
 const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260904-identidade-conecta'), 'TelaCandidatos');
 const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260904-identidade-conecta'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
-const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260904-identidade-conecta'), 'TelaEntrevistas');
+const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260910-correcoes-txt'), 'TelaEntrevistas');
 const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260910-correcoes-txt'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
@@ -141,6 +141,11 @@ const TelaAdministracao = carregarTela(
   () => import('../features/administracao/index.js?v=20260910-correcoes-txt'),
   'TelaAdministracao',
 );
+const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260910-correcoes-txt');
+const TelaLgpd = carregarTela(importarCatalogoDedicado, 'TelaLgpd');
+const TelaMotivosEliminacao = carregarTela(importarCatalogoDedicado, 'TelaMotivosEliminacao');
+const TelaModelosEmail = carregarTela(importarCatalogoDedicado, 'TelaModelosEmail');
+const TelaEtapasProcesso = carregarTela(importarCatalogoDedicado, 'TelaEtapasProcesso');
 const TelaNovoAmbienteSharePoint = carregarTela(
   () => import('../features/administracao/novo-ambiente.js?v=20260908-correcoes-ambiente'),
   'TelaNovoAmbienteSharePoint',
@@ -417,6 +422,22 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
         telaAtual=${telaResolvida}
       />
     `;
+  }
+
+  if (telaResolvida === 'screen-settings-lgpd') {
+    return html`<${TelaLgpd} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-motivos-eliminacao') {
+    return html`<${TelaMotivosEliminacao} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-modelos-email') {
+    return html`<${TelaModelosEmail} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-etapas') {
+    return html`<${TelaEtapasProcesso} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-calendario') {

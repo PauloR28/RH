@@ -14980,13 +14980,55 @@
   gap: var(--space-5);
 }
 
+/* Correções.txt item 6: tópicos viram um accordion (botão que expande/
+ * recolhe), em vez de grupos sempre abertos. */
+.c24-doc-library-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-standard);
+  background: var(--color-surface-soft);
+  overflow: hidden;
+}
+
 .c24-doc-library-topic {
-  margin: 0 0 var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.c24-doc-library-topic h4 {
+  margin: 0;
   font-size: var(--font-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
+}
+
+.c24-doc-library-topic-count {
+  color: var(--color-text-soft);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.c24-doc-library-topic-chevron {
+  flex: none;
+  font-size: 20px;
+  color: var(--color-text-soft);
+  transition: transform var(--transition-xs);
+}
+
+.c24-doc-library-group.is-open .c24-doc-library-topic-chevron {
+  transform: rotate(180deg);
+}
+
+.c24-doc-library-group .c24-doc-library-list {
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 .c24-doc-library-list {

@@ -46,6 +46,19 @@ export function TelaTemplatesDocumentos({ controlador }) {
   const [formDoc, setFormDoc] = useState(FORM_DOC_INICIAL);
   const [salvandoDoc, setSalvandoDoc] = useState(false);
   const [erroFormDoc, setErroFormDoc] = useState('');
+  const [topicosAbertos, setTopicosAbertos] = useState(() => new Set());
+
+  const alternarTopico = (topico) => {
+    setTopicosAbertos((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(topico)) {
+        proximo.delete(topico);
+      } else {
+        proximo.add(topico);
+      }
+      return proximo;
+    });
+  };
 
   const carregar = async () => {
     setCarregando(true);
@@ -82,6 +95,16 @@ export function TelaTemplatesDocumentos({ controlador }) {
     carregar();
     carregarDocumentos();
   }, []);
+
+  // Abre o primeiro tópico por padrão assim que a biblioteca carrega, para
+  // a tela não nascer com tudo recolhido.
+  useEffect(() => {
+    if (documentos.length && topicosAbertos.size === 0) {
+      const primeiro = documentos[0]?.topico || 'Outros';
+      setTopicosAbertos(new Set([primeiro]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentos]);
 
   const documentosPorTopico = useMemo(() => {
     const grupos = new Map();
@@ -269,9 +292,22 @@ export function TelaTemplatesDocumentos({ controlador }) {
             ? html`
                     <div class="c24-doc-library">
                       ${documentosPorTopico.map(
-              ([topico, itens]) => html`
-                          <div class="c24-doc-library-group" key=${topico}>
-                            <h4 class="c24-doc-library-topic">${topico}</h4>
+              ([topico, itens]) => {
+                const aberto = topicosAbertos.has(topico);
+                return html`
+                          <div class=${`c24-doc-library-group ${aberto ? 'is-open' : ''}`.trim()} key=${topico}>
+                            <button
+                              type="button"
+                              class="c24-doc-library-topic"
+                              aria-expanded=${aberto}
+                              onClick=${() => alternarTopico(topico)}
+                            >
+                              <span class="material-symbols-outlined c24-doc-library-topic-chevron">${IconeSvg('expand_more')}</span>
+                              <h4>${topico}</h4>
+                              <span class="c24-doc-library-topic-count">${itens.length}</span>
+                            </button>
+                            ${aberto
+                  ? html`
                             <ul class="c24-doc-library-list">
                               ${itens.map(
                 (item) => html`
@@ -306,9 +342,11 @@ export function TelaTemplatesDocumentos({ controlador }) {
                                 `,
               )}
                             </ul>
+                          `
+                  : null}
                           </div>
-                        `,
-            )}
+                        `;
+              })}
                     </div>
                   `
             : html`

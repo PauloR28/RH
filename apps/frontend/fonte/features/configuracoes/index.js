@@ -201,19 +201,17 @@ const UNIDADE_TIPOS_OPERACAO = [
 
 const CATALOGO_ICONS = {
   geral: 'settings',
-  lgpd: 'shield_lock',
-  motivos_eliminacao: 'delete',
-  status_candidatos: 'person_check',
-  modelos_email: 'mail',
-  tipos_documentos: 'description',
-  documentos_pacotes: 'folder_open',
-  etapas: 'route',
-  trilhas: 'timeline',
-  provas: 'quiz',
-  questoes: 'help',
-  notificacoes: 'notifications',
   operacoes: 'apartment',
 };
+
+// Correções.txt item 5: LGPD, Motivos de Eliminação, Modelos de E-mail,
+// Etapas do Processo e Banco de Provas (DISC/Fit Cultural/Raciocínio, ver
+// features/catalogo-dedicado) ganharam páginas próprias e saem deste
+// switcher; Status dos candidatos, Tipos de documentos, Pacotes
+// documentais, Trilhas de avaliação, Questões e Regras de notificação
+// foram removidos (ver auditoria: nenhum tinha referência ativa fora deste
+// switcher). Só "Geral" (endereço principal) e "Operações" continuam aqui.
+const AREAS_OPERACOES_VISIVEIS = new Set(['geral', 'operacoes']);
 
 const STATUS_USUARIO = ['', 'Ativo', 'Inativo', 'Bloqueado'];
 const STATUS_ITEM = [
@@ -2455,7 +2453,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             </div>
           </header>
           <div class="settings-area-list">
-            ${catalogo.map(
+            ${catalogo.filter((secao) => AREAS_OPERACOES_VISIVEIS.has(secao.tipo)).map(
         (secao) => {
           const ativos = contarPor(secao.items, (item) => item.ativo);
           return html`

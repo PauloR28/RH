@@ -1,0 +1,463 @@
+import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import {
+  EmptyState,
+  ModalConfirmacaoAcao,
+  PageIntro,
+  PainelRh,
+  SectionCard,
+} from '../../ui/componentes-compartilhados.js';
+import { Badge } from '../../ui/components/primitives.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import { IconeSvg } from '../../ui/icone.js';
+import {
+  atualizarItemConfiguracao,
+  criarItemConfiguracao,
+  desativarItemConfiguracao,
+  listarCatalogoConfiguracoes,
+} from '../../services/api/settings.js';
+
+// Correções.txt item 5: LGPD e Retenção, Motivos de Eliminação, Modelos de
+// E-mail e Etapas do Processo saem do switcher interno de Operações e viram
+// páginas próprias — mas continuam lendo/gravando as MESMAS tabelas de
+// catálogo genérico já usadas por Operações (settings.catalog/{tipo}), já
+// que nenhuma tem FK ou schema especial (ver auditoria antes desta rodada).
+// Este componente é compartilhado pelas 4 páginas para não duplicar o
+// CRUD de lista+formulário quatro vezes.
+
+function dividirCsv(valor) {
+  return String(valor || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizarLista(valor) {
+  return Array.isArray(valor) ? valor : [];
+}
+
+function formInicial(config) {
+  const base = { id_item: '', nome: '', descricao: '', ativo: true };
+  config.camposExtras.forEach((campo) => {
+    base[campo.chave] = campo.inicial ?? '';
+  });
+  return base;
+}
+
+export function TelaCatalogoDedicado({ controlador, config }) {
+  const podeEditar = controlador.possuiPermissao(config.permissaoEditar || 'configuracoes.editar');
+  const [itens, setItens] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [form, setForm] = useState(() => formInicial(config));
+  const [salvando, setSalvando] = useState(false);
+  const [itemRemover, setItemRemover] = useState(null);
+  const [removendo, setRemovendo] = useState(false);
+
+  const carregar = async () => {
+    setCarregando(true);
+    setErro('');
+    try {
+      const resultado = await listarCatalogoConfiguracoes();
+      const secao = (resultado?.sections || []).find((item) => item.tipo === config.tipo);
+      const lista = Array.isArray(secao?.items) ? secao.items : [];
+      setItens(config.ordenar ? config.ordenar(lista) : lista);
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível carregar os itens.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!feedback) return undefined;
+    const timer = window.setTimeout(() => setFeedback(''), 4000);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
+
+  const limparForm = () => setForm(formInicial(config));
+
+  const editarItem = (item) => {
+    const preenchido = {
+      id_item: item.id_item,
+      nome: item.nome || '',
+      descricao: item.descricao || '',
+      ativo: Boolean(item.ativo),
+    };
+    config.camposExtras.forEach((campo) => {
+      preenchido[campo.chave] = campo.doPayload
+        ? campo.doPayload(item.payload || {})
+        : (item.payload || {})[campo.chave] ?? campo.inicial ?? '';
+    });
+    setForm(preenchido);
+    setErro('');
+  };
+
+  const salvar = async (event) => {
+    event.preventDefault();
+    if (!form.nome.trim()) {
+      setErro('Informe um nome.');
+      return;
+    }
+    setSalvando(true);
+    setErro('');
+    try {
+      let payload = {};
+      config.camposExtras.forEach((campo) => {
+        payload[campo.chave] = campo.paraPayload ? campo.paraPayload(form[campo.chave]) : form[campo.chave];
+      });
+      if (config.payloadExtra) {
+        payload = { ...payload, ...config.payloadExtra(form, { itens }) };
+      }
+      const data = {
+        chave: String(form.nome || '')
+          .trim()
+          .toUpperCase()
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .replace(/[^A-Z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, ''),
+        nome: form.nome,
+        descricao: form.descricao,
+        categoria: config.tipo,
+        payload,
+        ativo: form.ativo,
+        justificativa: form.id_item ? `${config.rotuloItem || 'Item'} atualizado em ${config.titulo}.` : `${config.rotuloItem || 'Item'} criado em ${config.titulo}.`,
+      };
+      if (form.id_item) {
+        await atualizarItemConfiguracao(config.tipo, form.id_item, data);
+        setFeedback(`${config.rotuloItem || 'Item'} atualizado com sucesso.`);
+      } else {
+        await criarItemConfiguracao(config.tipo, data);
+        setFeedback(`${config.rotuloItem || 'Item'} criado com sucesso.`);
+      }
+      limparForm();
+      await carregar();
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const confirmarRemocao = async ({ justificativa }) => {
+    if (!itemRemover) return;
+    setRemovendo(true);
+    try {
+      await desativarItemConfiguracao(config.tipo, itemRemover.id_item, justificativa);
+      setItemRemover(null);
+      setFeedback(`${config.rotuloItem || 'Item'} arquivado.`);
+      await carregar();
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível arquivar este item.');
+    } finally {
+      setRemovendo(false);
+    }
+  };
+
+  const mover = config.podeReordenar
+    ? async (item, direcao) => {
+      const indice = itens.findIndex((atual) => atual.id_item === item.id_item);
+      const alvo = indice + direcao;
+      if (alvo < 0 || alvo >= itens.length) return;
+      const atual = itens[indice];
+      const vizinho = itens[alvo];
+      const ordemAtual = atual.payload?.ordem ?? indice;
+      const ordemVizinho = vizinho.payload?.ordem ?? alvo;
+      setSalvando(true);
+      setErro('');
+      try {
+        await atualizarItemConfiguracao(config.tipo, atual.id_item, {
+          chave: atual.chave,
+          nome: atual.nome,
+          descricao: atual.descricao,
+          categoria: atual.categoria || config.tipo,
+          ativo: atual.ativo,
+          payload: { ...atual.payload, ordem: ordemVizinho },
+          justificativa: `Reordenado em ${config.titulo}.`,
+        });
+        await atualizarItemConfiguracao(config.tipo, vizinho.id_item, {
+          chave: vizinho.chave,
+          nome: vizinho.nome,
+          descricao: vizinho.descricao,
+          categoria: vizinho.categoria || config.tipo,
+          ativo: vizinho.ativo,
+          payload: { ...vizinho.payload, ordem: ordemAtual },
+          justificativa: `Reordenado em ${config.titulo}.`,
+        });
+        await carregar();
+      } catch (error) {
+        setErro(error?.message || 'Não foi possível reordenar.');
+      } finally {
+        setSalvando(false);
+      }
+    }
+    : null;
+
+  return html`
+    <${PainelRh} screenId=${config.screenId} navAtiva=${config.navAtiva} controlador=${controlador} placeholderBusca=${config.titulo}>
+      <${PageIntro} kicker=${config.kicker || 'Configurações'} title=${config.titulo} description=${config.descricao || ''} />
+
+      ${feedback ? html`<div class="alert alert-success">${feedback}</div>` : null}
+      ${erro ? html`<div class="alert alert-danger">${erro}</div>` : null}
+
+      <${SectionCard}
+        title=${form.id_item ? `Editar ${config.rotuloItem || 'item'}` : `Novo ${config.rotuloItem || 'item'}`}
+        className="rh-section-card--flat"
+      >
+        <form class="c24-form-grid" onSubmit=${salvar}>
+          <label>
+            <span>Nome</span>
+            <input
+              class="form-control"
+              required
+              disabled=${!podeEditar}
+              value=${form.nome}
+              onInput=${(event) => setForm((valor) => ({ ...valor, nome: event.target.value }))}
+            />
+          </label>
+          <label class="users-toggle-row">
+            <span>${form.ativo ? 'Ativo' : 'Inativo'}</span>
+            <button
+              type="button"
+              class=${`users-switch ${form.ativo ? 'is-on' : ''}`.trim()}
+              role="switch"
+              aria-checked=${form.ativo}
+              disabled=${!podeEditar}
+              onClick=${() => setForm((valor) => ({ ...valor, ativo: !valor.ativo }))}
+            >
+              <i></i>
+            </button>
+          </label>
+          <label class="is-wide">
+            <span>Descrição</span>
+            <textarea
+              class="form-control"
+              rows="2"
+              disabled=${!podeEditar}
+              value=${form.descricao}
+              onInput=${(event) => setForm((valor) => ({ ...valor, descricao: event.target.value }))}
+            ></textarea>
+          </label>
+          ${config.camposExtras.map(
+      (campo) => html`
+              <label class=${campo.wide ? 'is-wide' : ''} key=${campo.chave}>
+                <span>${campo.label}</span>
+                ${campo.tipo === 'textarea'
+          ? html`
+                      <textarea
+                        class="form-control"
+                        rows=${campo.linhas || 3}
+                        disabled=${!podeEditar}
+                        placeholder=${campo.placeholder || ''}
+                        value=${form[campo.chave]}
+                        onInput=${(event) => setForm((valor) => ({ ...valor, [campo.chave]: event.target.value }))}
+                      ></textarea>
+                    `
+          : html`
+                      <input
+                        class="form-control"
+                        type=${campo.tipo === 'url' ? 'url' : 'text'}
+                        disabled=${!podeEditar}
+                        placeholder=${campo.placeholder || ''}
+                        value=${form[campo.chave]}
+                        onInput=${(event) => setForm((valor) => ({ ...valor, [campo.chave]: event.target.value }))}
+                      />
+                    `}
+                ${campo.helper ? html`<small class="text-muted">${campo.helper}</small>` : null}
+              </label>
+            `,
+    )}
+          <footer class="settings-form-footer is-wide">
+            <button type="submit" class="btn btn-primary" disabled=${salvando || !podeEditar}>
+              <${IconeSvgSpan} name="check" /> ${salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+            ${form.id_item
+      ? html`<button type="button" class="btn btn-outline-secondary" onClick=${limparForm}>Cancelar edição</button>`
+      : null}
+          </footer>
+        </form>
+      </${SectionCard}>
+
+      <${SectionCard} title="Itens cadastrados" className="rh-section-card--flat">
+        ${carregando
+      ? html`<p class="text-muted mb-0">Carregando...</p>`
+      : itens.length
+        ? html`
+                <div class="table-responsive">
+                  <table class="table rh-table-compact align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${itens.map(
+          (item, indice) => html`
+                          <tr key=${item.id_item}>
+                            <td>${item.nome}</td>
+                            <td>${item.descricao || '-'}</td>
+                            <td><${Badge} label=${item.ativo ? 'Ativo' : 'Inativo'} tone=${item.ativo ? 'success' : 'secondary'} /></td>
+                            <td class="text-end">
+                              ${podeEditar
+              ? html`
+                                    <${MenuAcoesProcesso}
+                                      ariaLabel="Ações do item"
+                                      acoes=${[
+                  { key: 'editar', label: 'Editar', icon: 'edit', onClick: () => editarItem(item) },
+                  ...(mover
+                    ? [
+                      { key: 'subir', label: 'Mover para cima', icon: 'arrow_upward', disabled: indice === 0, onClick: () => mover(item, -1) },
+                      { key: 'descer', label: 'Mover para baixo', icon: 'arrow_downward', disabled: indice === itens.length - 1, onClick: () => mover(item, 1) },
+                    ]
+                    : []),
+                  {
+                    key: 'arquivar',
+                    label: 'Arquivar',
+                    icon: 'archive',
+                    danger: true,
+                    disabled: !item.ativo,
+                    onClick: () => setItemRemover(item),
+                  },
+                ]}
+                                    />
+                                  `
+              : null}
+                            </td>
+                          </tr>
+                        `,
+        )}
+                    </tbody>
+                  </table>
+                </div>
+              `
+        : html`
+                <${EmptyState}
+                  icon="inventory_2"
+                  title="Sem itens"
+                  text=${`Cadastre o primeiro item em "${config.titulo}".`}
+                />
+              `}
+      </${SectionCard}>
+
+      <${ModalConfirmacaoAcao}
+        aberto=${Boolean(itemRemover)}
+        titulo=${`Arquivar ${config.rotuloItem || 'item'}`}
+        descricao=${`Deseja arquivar "${itemRemover?.nome || ''}"?`}
+        consequencia="O item deixa de aparecer como opção ativa, mas pode ser reativado depois (não é removido fisicamente)."
+        reversibilidade="É possível reativar este item a qualquer momento."
+        textoConfirmar="Arquivar"
+        tipo="destrutivo"
+        carregando=${removendo}
+        onClose=${() => setItemRemover(null)}
+        onConfirm=${confirmarRemocao}
+      />
+    </${PainelRh}>
+  `;
+}
+
+function IconeSvgSpan({ name }) {
+  return html`<span class="material-symbols-outlined">${IconeSvg(name)}</span>`;
+}
+
+const CONFIG_LGPD = {
+  tipo: 'lgpd',
+  screenId: 'screen-settings-lgpd',
+  navAtiva: 'screen-settings-lgpd',
+  titulo: 'LGPD e Retenção',
+  descricao: 'Documentação de proteção de dados e política de retenção da empresa.',
+  rotuloItem: 'documento',
+  camposExtras: [
+    {
+      chave: 'link_documento',
+      label: 'Link do documento',
+      tipo: 'url',
+      wide: true,
+      placeholder: 'https://...',
+      helper: 'Link do arquivo hospedado no SharePoint, OneDrive ou Drive-Conecta — mesmo padrão já usado na Central de Documentos (sem upload direto de arquivo).',
+    },
+  ],
+};
+
+const CONFIG_MOTIVOS_ELIMINACAO = {
+  tipo: 'motivos_eliminacao',
+  screenId: 'screen-settings-motivos-eliminacao',
+  navAtiva: 'screen-settings-motivos-eliminacao',
+  titulo: 'Motivos de Eliminação',
+  descricao: 'Motivos usados ao eliminar um candidato de um processo seletivo.',
+  rotuloItem: 'motivo',
+  camposExtras: [
+    {
+      chave: 'sub_causas_texto',
+      label: 'Sub-causas (opcional)',
+      tipo: 'text',
+      wide: true,
+      placeholder: 'Separadas por vírgula. Ex.: Não atendeu ligação, Cancelou por WhatsApp, Não justificou',
+      helper: 'Aparecem como detalhamento opcional ao eliminar um candidato com este motivo.',
+      inicial: '',
+      doPayload: (payload) => normalizarLista(payload.sub_causas).join(', '),
+      paraPayload: (valor) => dividirCsv(valor),
+    },
+  ],
+};
+
+const CONFIG_MODELOS_EMAIL = {
+  tipo: 'modelos_email',
+  screenId: 'screen-settings-modelos-email',
+  navAtiva: 'screen-settings-modelos-email',
+  titulo: 'Modelos de E-mail',
+  descricao: 'Modelos prontos, selecionáveis sempre que uma mensagem for enviada por e-mail no Conecta.',
+  rotuloItem: 'modelo',
+  camposExtras: [
+    { chave: 'assunto', label: 'Assunto', tipo: 'text', wide: true, placeholder: 'Assunto padrão do e-mail' },
+    {
+      chave: 'corpo_html',
+      label: 'Corpo do e-mail',
+      tipo: 'textarea',
+      wide: true,
+      linhas: 8,
+      placeholder: 'Texto do e-mail (aceita HTML simples).',
+    },
+  ],
+};
+
+const CONFIG_ETAPAS = {
+  tipo: 'etapas',
+  screenId: 'screen-settings-etapas',
+  navAtiva: 'screen-settings-etapas',
+  titulo: 'Etapas do Processo',
+  descricao: 'Etapas disponíveis para compor um processo seletivo, na ordem em que devem ser exibidas.',
+  rotuloItem: 'etapa',
+  podeReordenar: true,
+  ordenar: (lista) => [...lista].sort((a, b) => Number(a.payload?.ordem ?? 0) - Number(b.payload?.ordem ?? 0)),
+  payloadExtra: (form, { itens }) => ({
+    ordem: form.id_item
+      ? itens.find((item) => String(item.id_item) === String(form.id_item))?.payload?.ordem ?? itens.length
+      : itens.length,
+  }),
+  camposExtras: [],
+};
+
+export function TelaLgpd({ controlador }) {
+  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_LGPD} />`;
+}
+
+export function TelaMotivosEliminacao({ controlador }) {
+  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_MOTIVOS_ELIMINACAO} />`;
+}
+
+export function TelaModelosEmail({ controlador }) {
+  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_MODELOS_EMAIL} />`;
+}
+
+export function TelaEtapasProcesso({ controlador }) {
+  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_ETAPAS} />`;
+}

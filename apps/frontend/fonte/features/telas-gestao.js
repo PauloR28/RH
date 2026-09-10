@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20260908-correcoes-ambiente';
+} from './gestao/index.js?v=20260910-correcoes-txt';

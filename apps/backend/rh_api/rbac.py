@@ -485,17 +485,20 @@ SETTINGS_CATALOGS: dict[str, dict[str, str]] = {
     "geral": {"table": "configuracoes_sistema", "label": "Geral"},
     "lgpd": {"table": "configuracoes_lgpd", "label": "LGPD e Retenção"},
     "motivos_eliminacao": {"table": "motivos_eliminacao", "label": "Motivos de eliminação"},
-    "status_candidatos": {"table": "status_candidatos", "label": "Status dos candidatos"},
     "modelos_email": {"table": "modelos_email", "label": "Modelos de e-mail"},
-    "tipos_documentos": {"table": "documentos_tipos", "label": "Tipos de documentos"},
-    "documentos_pacotes": {"table": "documentos_pacotes", "label": "Pacotes documentais"},
     "etapas": {"table": "etapas", "label": "Etapas do processo"},
-    "trilhas": {"table": "trilhas", "label": "Trilhas de avaliação"},
-    "provas": {"table": "provas", "label": "Banco de provas"},
-    "questoes": {"table": "questoes", "label": "Questões"},
-    "notificacoes": {"table": "notificacoes_regras", "label": "Regras de notificação"},
     "operacoes": {"table": "operacoes", "label": "Operações"},
 }
+# Correções.txt item 5: "Status dos candidatos", "Tipos de documentos",
+# "Pacotes documentais", "Trilhas de avaliação", "Questões" e "Regras de
+# notificação" foram removidos deste catálogo — auditoria confirmou que
+# nenhum tinha código lendo essas tabelas fora deste próprio mecanismo
+# genérico (o bootstrap simplesmente para de criar/tocar essas tabelas;
+# dados existentes não são apagados fisicamente). "lgpd", "motivos_
+# eliminacao", "modelos_email" e "etapas" continuam aqui (mesmas tabelas,
+# mesmos endpoints) mas ganharam páginas dedicadas no frontend — ver
+# apps/frontend/fonte/features/catalogo-dedicado/index.js — em vez do
+# switcher interno de Operações.
 
 
 def normalize_role_id(value: str | None) -> str:

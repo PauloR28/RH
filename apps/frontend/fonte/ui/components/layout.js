@@ -120,8 +120,8 @@ export function BarraLateral({
     },
     {
       tela: 'screen-provas-configuracao',
-      icone: 'tune',
-      label: 'Configuração',
+      icone: 'quiz',
+      label: 'Banco de Provas',
       permissao: 'configuracoes.visualizar',
     },
   ];
@@ -198,6 +198,30 @@ export function BarraLateral({
       permissao: 'configuracoes.visualizar',
     },
     {
+      tela: 'screen-settings-etapas',
+      icone: 'route',
+      label: 'Etapas do Processo',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
+      tela: 'screen-settings-motivos-eliminacao',
+      icone: 'person_remove',
+      label: 'Motivos de Eliminação',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
+      tela: 'screen-settings-modelos-email',
+      icone: 'mail',
+      label: 'Modelos de E-mail',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
+      tela: 'screen-settings-lgpd',
+      icone: 'shield_lock',
+      label: 'LGPD e Retenção',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
       tela: 'screen-settings-logs',
       icone: 'history_edu',
       label: 'Logs',
@@ -254,6 +278,10 @@ export function BarraLateral({
     'screen-settings-users',
     'screen-settings-profiles',
     'screen-settings-operations',
+    'screen-settings-etapas',
+    'screen-settings-motivos-eliminacao',
+    'screen-settings-modelos-email',
+    'screen-settings-lgpd',
     'screen-settings-logs',
     'screen-settings-document-templates',
     'screen-settings-administracao',

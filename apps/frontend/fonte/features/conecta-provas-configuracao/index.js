@@ -48,7 +48,8 @@ export function TelaProvasConfiguracao({ controlador }) {
     >
       <${PageIntro}
         kicker="Conecta Provas"
-        title="Configuração"
+        title="Banco de Provas"
+        description="Gestão total do banco de questões — DISC, Fit Cultural, Raciocínio Lógico e as diretrizes usadas nas provas do Conecta."
       />
 
       <${SectionCard} title="Diretrizes da prova" className="rh-section-card--flat">
