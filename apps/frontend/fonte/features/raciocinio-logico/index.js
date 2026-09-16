@@ -572,7 +572,7 @@ export function PainelResultadoRaciocinio({ idTeste, aoCarregar }) {
     lerResultadoRaciocinioCandidato(idTeste)
       .then((dados) => {
         setResultado(dados);
-        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado), resultado: dados });
       })
       .catch((error) => {
         setErro(error?.message || 'Não foi possível carregar o resultado de raciocínio lógico.');

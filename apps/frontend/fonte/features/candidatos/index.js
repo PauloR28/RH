@@ -887,6 +887,48 @@ function montarFormularioPerfil(candidato) {
   };
 }
 
+function montarAnaliseBreveTestes(estados) {
+  const frases = [];
+
+  const disc = estados.disc?.resultado?.resultado;
+  const percentuaisDisc = disc?.perfil?.percentuais || {};
+  if (disc) {
+    const dimensaoDominante = Object.entries(percentuaisDisc).sort(([, a], [, b]) => (b || 0) - (a || 0))[0];
+    if (dimensaoDominante) {
+      frases.push(`Perfil DISC predominante: ${LABEL_DIMENSAO_DISC[dimensaoDominante[0]] || dimensaoDominante[0]} (${dimensaoDominante[1] || 0}%).`);
+    }
+    const aderencia = disc?.aderencia_call_center;
+    if (aderencia?.percentual_aderencia != null) {
+      frases.push(`Aderência ao perfil Call Center: ${aderencia.percentual_aderencia}% (${aderencia.faixa || 'não classificada'}).`);
+    }
+  }
+
+  const fitCultural = estados.fitCultural?.resultado;
+  if (fitCultural?.score_geral != null) {
+    const faixa = fitCultural.score_geral >= 70 ? 'alto alinhamento' : fitCultural.score_geral >= 40 ? 'alinhamento moderado' : 'baixo alinhamento';
+    frases.push(`Fit Cultural: ${fitCultural.score_geral}% — ${faixa} com os valores da empresa.`);
+  }
+
+  const raciocinio = estados.raciocinio?.resultado?.resultado;
+  if (raciocinio?.nota != null) {
+    frases.push(`Raciocínio Lógico: nota ${raciocinio.nota} (${raciocinio.acertos ?? 0}/${raciocinio.total_questoes ?? 0} acertos).`);
+  }
+
+  return frases.join(' ');
+}
+
+const LABEL_DIMENSAO_DISC = { D: 'Dominância', I: 'Influência', S: 'Estabilidade', C: 'Conformidade' };
+
+function RotuloCampo({ texto, valor, obrigatorio = true }) {
+  const vazio = obrigatorio && !String(valor ?? '').trim();
+  return html`
+    <label class=${`form-label${vazio ? ' is-vazio' : ''}`}>
+      ${texto}
+      ${vazio ? html`<span class="form-label-flag" title="Campo vazio ou incompleto">Vazio</span>` : null}
+    </label>
+  `;
+}
+
 function aplicarDadosFichaAoCandidato(candidato, ficha) {
   if (!ficha?.candidato) return candidato || {};
   const dados = ficha.candidato || {};
@@ -1934,6 +1976,7 @@ export function TelaCandidatos({ controlador }) {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [paginaCandidatos, setPaginaCandidatos] = useState(1);
   const [detalhe, setDetalhe] = useState(null);
+  const [resultadosTestesDetalhe, setResultadosTestesDetalhe] = useState({ disc: null, fitCultural: null, raciocinio: null });
   const [candidatoEditando, setCandidatoEditando] = useState(null);
   const [formPerfil, setFormPerfil] = useState(montarFormularioPerfil(null));
   const [camposPerfilAlterados, setCamposPerfilAlterados] = useState({});
@@ -3013,7 +3056,7 @@ export function TelaCandidatos({ controlador }) {
                           <${TabelaVazia}
                             colunas=${8}
                             texto="Nenhum candidato encontrado."
-                            icone="person_off"
+                            icone="person_search"
                           />
                         `}
                   </tbody>
@@ -3124,7 +3167,7 @@ export function TelaCandidatos({ controlador }) {
                 >
                   <div class="row g-2">
                     <div class="col-md-6">
-                      <label class="form-label">Nome completo</label>
+                      <${RotuloCampo} texto="Nome completo" valor=${formPerfil.nome_candidato} />
                       <input
                         class="form-control"
                         value=${formPerfil.nome_candidato}
@@ -3132,7 +3175,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label">E-mail</label>
+                      <${RotuloCampo} texto="E-mail" valor=${formPerfil.email} />
                       <input
                         class="form-control"
                         value=${formPerfil.email}
@@ -3140,7 +3183,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Telefone</label>
+                      <${RotuloCampo} texto="Telefone" valor=${formPerfil.telefone || formPerfil.whatsapp} />
                       <input
                         class="form-control"
                         value=${formPerfil.telefone}
@@ -3148,7 +3191,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">WhatsApp</label>
+                      <${RotuloCampo} texto="WhatsApp" valor=${formPerfil.whatsapp || formPerfil.telefone} />
                       <input
                         class="form-control"
                         value=${formPerfil.whatsapp}
@@ -3156,7 +3199,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-6">
-                      <label class="form-label">Endereço</label>
+                      <${RotuloCampo} texto="Endereço" valor=${formPerfil.endereco} obrigatorio=${false} />
                       <input
                         class="form-control"
                         value=${formPerfil.endereco}
@@ -3164,7 +3207,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Cidade</label>
+                      <${RotuloCampo} texto="Cidade" valor=${formPerfil.cidade} obrigatorio=${false} />
                       <input
                         class="form-control"
                         value=${formPerfil.cidade}
@@ -3172,7 +3215,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Bairro</label>
+                      <${RotuloCampo} texto="Bairro" valor=${formPerfil.bairro} obrigatorio=${false} />
                       <input
                         class="form-control"
                         value=${formPerfil.bairro}
@@ -3180,7 +3223,7 @@ export function TelaCandidatos({ controlador }) {
                       />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Data de nascimento</label>
+                      <${RotuloCampo} texto="Data de nascimento" valor=${formPerfil.data_nascimento} obrigatorio=${false} />
                       <input
                         type="date"
                         class="form-control"
@@ -3193,7 +3236,7 @@ export function TelaCandidatos({ controlador }) {
                       <input class="form-control" readonly value=${detalhe.idade ? `${detalhe.idade} anos` : 'Não informado'} />
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Escolaridade</label>
+                      <${RotuloCampo} texto="Escolaridade" valor=${formPerfil.escolaridade} obrigatorio=${false} />
                       <input
                         class="form-control"
                         value=${formPerfil.escolaridade}
@@ -3234,15 +3277,6 @@ export function TelaCandidatos({ controlador }) {
                         onInput=${(event) => atualizarCampoPerfil('justificativa_indicacao', event.target.value)}
                       ></textarea>
                     </div>
-                    <div class="col-12">
-                      <label class="form-label">Observações</label>
-                      <textarea
-                        class="form-control"
-                        rows="2"
-                        value=${formPerfil.observacao_rh}
-                        onInput=${(event) => atualizarCampoPerfil('observacao_rh', event.target.value)}
-                      ></textarea>
-                    </div>
                   </div>
                 </${SectionCard}>
 
@@ -3271,6 +3305,33 @@ export function TelaCandidatos({ controlador }) {
                       <label class="form-label">Rede social</label>
                       <input class="form-control" value=${formPerfil.rede_social} onInput=${(event) => atualizarCampoPerfil('rede_social', event.target.value)} />
                     </div>
+                  </div>
+
+                  ${(resultadosTestesDetalhe.disc?.possuiResultado || resultadosTestesDetalhe.fitCultural?.possuiResultado || resultadosTestesDetalhe.raciocinio?.possuiResultado)
+            ? html`
+                        <div class="candidate-sheet-test-results">
+                          <span class="candidate-sheet-test-results-title">Resultados de testes complementares</span>
+                          <p class="candidate-sheet-test-results-analysis">${montarAnaliseBreveTestes(resultadosTestesDetalhe)}</p>
+                        </div>
+                      `
+            : null}
+                  <div style=${{ display: resultadosTestesDetalhe.disc?.possuiResultado ? 'block' : 'none' }}>
+                    <${PainelResultadoDisc}
+                      idTeste=${detalhe.id_teste}
+                      aoCarregar=${(estado) => setResultadosTestesDetalhe((atual) => ({ ...atual, disc: estado }))}
+                    />
+                  </div>
+                  <div style=${{ display: resultadosTestesDetalhe.fitCultural?.possuiResultado ? 'block' : 'none' }}>
+                    <${PainelResultadoFitCultural}
+                      candidatoProcessoId=${detalhe.id_registro_processo}
+                      aoCarregar=${(estado) => setResultadosTestesDetalhe((atual) => ({ ...atual, fitCultural: estado }))}
+                    />
+                  </div>
+                  <div style=${{ display: resultadosTestesDetalhe.raciocinio?.possuiResultado ? 'block' : 'none' }}>
+                    <${PainelResultadoRaciocinio}
+                      idTeste=${detalhe.id_teste}
+                      aoCarregar=${(estado) => setResultadosTestesDetalhe((atual) => ({ ...atual, raciocinio: estado }))}
+                    />
                   </div>
                 </${SectionCard}>
 

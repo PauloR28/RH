@@ -57,9 +57,9 @@ const ABAS = [
 // abertos ao mesmo tempo (era o que tornava a tela "absurdamente longa").
 const SESSOES_PERMISSAO = [
   { id: 'curriculos', label: 'Caixa de Currículos', icon: 'badge', modulos: ['Candidatos', 'Vagas'] },
-  { id: 'processos', label: 'Processos', icon: 'route', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
+  { id: 'processos', label: 'Processos', icon: 'checklist', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
   { id: 'provas', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
-  { id: 'gestao', label: 'Gestão', icon: 'insights', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações'] },
+  { id: 'gestao', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
   { id: 'drive', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
   { id: 'treinamentos', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   {
@@ -69,6 +69,21 @@ const SESSOES_PERMISSAO = [
     modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Documentos', 'Operações', 'Logs', 'Políticas'],
   },
 ];
+
+// Ícone por perfil na árvore de Perfis e permissões — antes todo perfil usava
+// o mesmo ícone genérico "badge"; um por papel ajuda a distinguir a lista
+// de relance. IDs batem com rbac.py (ROLE_INTERN, ROLE_DP, etc.).
+const ICONE_POR_PERFIL = {
+  estagiario: 'school',
+  dp: 'assignment_ind',
+  gestor: 'supervisor_account',
+  rh: 'groups',
+  candidato: 'person_search',
+  administrador: 'admin_panel_settings',
+  funcionario: 'badge',
+  supervisor: 'shield_person',
+  operador: 'support_agent',
+};
 
 function ToggleSwitch({ checked, disabled, onChange }) {
   return html`
@@ -203,15 +218,6 @@ const CATALOGO_ICONS = {
   geral: 'settings',
   operacoes: 'apartment',
 };
-
-// Correções.txt item 5: LGPD, Motivos de Eliminação, Modelos de E-mail,
-// Etapas do Processo e Banco de Provas (DISC/Fit Cultural/Raciocínio, ver
-// features/catalogo-dedicado) ganharam páginas próprias e saem deste
-// switcher; Status dos candidatos, Tipos de documentos, Pacotes
-// documentais, Trilhas de avaliação, Questões e Regras de notificação
-// foram removidos (ver auditoria: nenhum tinha referência ativa fora deste
-// switcher). Só "Geral" (endereço principal) e "Operações" continuam aqui.
-const AREAS_OPERACOES_VISIVEIS = new Set(['geral', 'operacoes']);
 
 const STATUS_USUARIO = ['', 'Ativo', 'Inativo', 'Bloqueado'];
 const STATUS_ITEM = [
@@ -1059,12 +1065,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
   };
 
-  const selecionarCatalogo = (tipo) => {
-    setTipoCatalogo(tipo);
-    setFormItem(FORM_ITEM_INICIAL);
-    setFiltrosCatalogo({ busca: '', status: 'todos' });
-  };
-
   const editarItem = (item) => {
     const payload = item.payload || {};
     setFormItem({
@@ -1791,7 +1791,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               `
         : html`
                 <${EmptyPanel}
-                  icon="group_off"
+                  icon="groups"
                   title="Sem usuários"
                   text="Nenhum usuário corresponde aos filtros atuais."
                   action=${html`<button type="button" class="btn btn-primary btn-sm" disabled=${!podeCriar} onClick=${iniciarNovoUsuario}>Criar usuário</button>`}
@@ -2136,12 +2136,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
   const renderPerfis = () => {
     const podeEditarPerfis = controlador.possuiPermissao('configuracoes.editar');
-    const sessaoAtiva = SESSOES_PERMISSAO.find((sessao) => sessao.id === sessaoPermissaoAtiva) || SESSOES_PERMISSAO[0];
+    const sessaoAtiva = sessaoPermissaoAtiva ? SESSOES_PERMISSAO.find((sessao) => sessao.id === sessaoPermissaoAtiva) : null;
     const contagemPorSessao = (sessao) =>
       Object.entries(permissoesPorModulo)
         .filter(([modulo]) => sessao.modulos.includes(modulo))
         .reduce((total, [, itens]) => total + itens.length, 0);
-    const permissoesDaSessao = permissoesFiltradasPorModulo.filter(([modulo]) => sessaoAtiva.modulos.includes(modulo));
+    const permissoesDaSessao = sessaoAtiva
+      ? permissoesFiltradasPorModulo.filter(([modulo]) => sessaoAtiva.modulos.includes(modulo))
+      : [];
 
     return html`
       <div class="settings-admin-shell settings-profiles-page">
@@ -2152,6 +2154,24 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         { icon: 'groups', label: 'Usuários vinculados', value: usuarios.length, helper: 'Base real cadastrada', tone: 'green' },
       ]}
         />
+
+        <div class="settings-profiles-toolbar">
+          <p class="settings-profiles-toolbar-hint">
+            Desbloqueie para editar as permissões de qualquer perfil e sessão nesta página.
+          </p>
+          ${podeEditarPerfis
+        ? html`
+                <button
+                  type="button"
+                  class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
+                  onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
+                >
+                  <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
+                  ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
+                </button>
+              `
+        : null}
+        </div>
 
         ${perfis.length
         ? html`
@@ -2166,7 +2186,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         aria-expanded=${expandido}
                         onClick=${() => selecionarPerfilPermissoes(expandido ? '' : perfil.id)}
                       >
-                        <span class="settings-permission-tree-profile-icon"><${Icone} name="badge" /></span>
+                        <span class="settings-permission-tree-profile-icon"><${Icone} name=${ICONE_POR_PERFIL[perfil.id] || 'badge'} /></span>
                         <span class="settings-permission-tree-label">
                           <strong>${perfil.nome}</strong>
                         </span>
@@ -2177,24 +2197,23 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               ? html`
                             <div class="settings-permission-tree-children">
                               ${SESSOES_PERMISSAO.map((sessao) => {
-                  const sessaoExpandida = sessao.id === sessaoAtiva.id;
-                  const total = contagemPorSessao(sessao);
-                  return html`
+                const sessaoExpandida = sessaoAtiva?.id === sessao.id;
+                const total = contagemPorSessao(sessao);
+                return html`
                                   <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoExpandida ? 'is-expanded' : ''}`.trim()} key=${sessao.id}>
                                     <button
                                       type="button"
                                       class=${`settings-permission-tree-session ${sessaoExpandida ? 'is-active' : ''}`.trim()}
                                       aria-expanded=${sessaoExpandida}
-                                      onClick=${() => setSessaoPermissaoAtiva(sessao.id)}
+                                      onClick=${() => setSessaoPermissaoAtiva(sessaoExpandida ? '' : sessao.id)}
                                     >
-                                      <${Icone} name=${sessao.icon} />
                                       <span>${sessao.label}</span>
                                       <small>${total}</small>
                                       <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
                                     </button>
 
                                     ${sessaoExpandida
-                      ? html`
+                    ? html`
                                           <div class="settings-permission-tree-content">
                                             <header class="c24-card-header settings-permission-head">
                                               <div>
@@ -2204,20 +2223,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                               <div class="settings-card-actions">
                                                 <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
                                                 ${usuariosPerfilSelecionado.length
-                          ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
-                          : null}
-                                                ${podeEditarPerfis
-                          ? html`
-                                                      <button
-                                                        type="button"
-                                                        class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
-                                                        onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
-                                                      >
-                                                        <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
-                                                        ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
-                                                      </button>
-                                                    `
-                          : null}
+                        ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
+                        : null}
                                               </div>
                                             </header>
 
@@ -2240,8 +2247,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                       >
                                                         <option value="">Não comparar</option>
                                                         ${perfis
-                          .filter((perfil2) => perfil2.id !== perfilSelecionado.id)
-                          .map((perfil2) => html`<option key=${perfil2.id} value=${perfil2.id}>${perfil2.nome}</option>`)}
+                            .filter((perfil2) => perfil2.id !== perfilSelecionado.id)
+                            .map((perfil2) => html`<option key=${perfil2.id} value=${perfil2.id}>${perfil2.nome}</option>`)}
                                                       </select>
                                                     </${FilterField}>
                                                     <label class="c24-check-filter settings-active-filter">
@@ -2316,7 +2323,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         )
                         : html`
                                                     <${EmptyPanel}
-                                                      icon="shield_off"
+                                                      icon="shield"
                                                       title="Sem permissões nesta sessão"
                                                       text="Nenhuma permissão corresponde ao filtro atual."
                                                     />
@@ -2328,8 +2335,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                   <footer class="rh-form-footer rh-form-footer--sticky">
                                                     <span class="rh-form-footer-hint">
                                                       ${alteracoesPendentesPerfil
-                          ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
-                          : 'Nenhuma alteração pendente.'}
+                            ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
+                            : 'Nenhuma alteração pendente.'}
                                                     </span>
                                                     <div class="settings-card-actions">
                                                       <button
@@ -2338,7 +2345,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                         disabled=${salvando}
                                                         onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
                                                       >
-                                                        <${Icone} name="restore" /> Restaurar
+                                                        <${Icone} name="settings_backup_restore" /> Restaurar
                                                       </button>
                                                       <button
                                                         type="button"
@@ -2354,10 +2361,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         : null}
                                           </div>
                                         `
-                      : null}
+                    : null}
                                   </div>
                                 `;
-                })}
+              })}
                             </div>
                           `
               : null}
@@ -2366,7 +2373,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         })}
               </nav>
             `
-        : html`<${EmptyPanel} icon="group_off" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
+        : html`<${EmptyPanel} icon="groups" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
       </div>
     `;
   };
@@ -2441,38 +2448,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         `
       : null}
 
-      <div
-        class="settings-catalog-workspace"
-        style=${{ '--catalog-list-col': listaCatalogoRecolhida ? '56px' : undefined }}
-      >
-        <section class="c24-card settings-area-panel">
-          <header class="c24-card-header compact">
-            <div>
-              <span class="c24-eyebrow">Catálogos</span>
-              <h3>Áreas de configuração</h3>
-            </div>
-          </header>
-          <div class="settings-area-list">
-            ${catalogo.filter((secao) => AREAS_OPERACOES_VISIVEIS.has(secao.tipo)).map(
-        (secao) => {
-          const ativos = contarPor(secao.items, (item) => item.ativo);
-          return html`
-                  <button
-                    type="button"
-                    key=${secao.tipo}
-                    class=${`settings-area-button ${secaoCatalogoAtiva?.tipo === secao.tipo ? 'is-active' : ''}`.trim()}
-                    onClick=${() => selecionarCatalogo(secao.tipo)}
-                  >
-                    <span><${Icone} name=${CATALOGO_ICONS[secao.tipo] || 'settings'} /></span>
-                    <strong>${secao.label}</strong>
-                    <small>${ativos}/${normalizarLista(secao.items).length} ativos</small>
-                  </button>
-                `;
-        },
-      )}
-          </div>
-        </section>
-
+      <div class="settings-catalog-workspace settings-catalog-workspace--single">
         <section class="c24-card settings-rule-form-card">
           <header class="c24-card-header">
             <div>
@@ -2663,8 +2639,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
             ${secaoCatalogoAtiva?.tipo === 'operacoes'
       ? html`
-                  <div class="settings-form-section">
-                  <h4 class="settings-form-section-title">Cliente e escopo</h4>
+                  <details class="settings-form-section settings-form-accordion">
+                  <summary class="settings-form-section-title">Cliente e escopo</summary>
                   <label>
                     <span>Cliente</span>
                     <input
@@ -2763,10 +2739,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         `}
                     <small class="text-muted">Usado para personalizar automaticamente provas e a análise de currículo desta operação.</small>
                   </label>
-                  </div>
+                  </details>
 
-                  <div class="settings-form-section">
-                  <h4 class="settings-form-section-title">Sistemas e acesso</h4>
+                  <details class="settings-form-section settings-form-accordion">
+                  <summary class="settings-form-section-title">Sistemas e acesso</summary>
                   <div class="is-wide">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                       <span>Sistemas e portais de acesso necessários</span>
@@ -2810,10 +2786,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           )
           : html`<p class="text-muted small mb-0">Nenhum sistema adicionado ainda.</p>`}
                   </div>
-                  </div>
+                  </details>
 
-                  <div class="settings-form-section">
-                  <h4 class="settings-form-section-title">Localização e jornada</h4>
+                  <details class="settings-form-section settings-form-accordion">
+                  <summary class="settings-form-section-title">Localização e jornada</summary>
                   <label>
                     <span>Unidade</span>
                     <select
@@ -2913,10 +2889,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     />
                     <span>Necessita disponibilidade de horário</span>
                   </label>
-                  </div>
+                  </details>
 
-                  <div class="settings-form-section">
-                  <h4 class="settings-form-section-title">Descrição detalhada</h4>
+                  <details class="settings-form-section settings-form-accordion">
+                  <summary class="settings-form-section-title">Descrição detalhada</summary>
                   <label class="is-wide">
                     <span>Descrição do cliente</span>
                     <textarea
@@ -2936,7 +2912,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       onInput=${(event) => setFormItem({ ...formItem, descricaoAtividades: event.target.value })}
                     ></textarea>
                   </label>
-                  </div>
+                  </details>
                 `
       : null}
             <label class="is-wide">
@@ -2982,7 +2958,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   onClick=${() => setListaCatalogoRecolhida(false)}
                 >
                   <${Icone} name="chevron_left" />
-                  <span>${itensCatalogo.length}</span>
+                  
                 </button>
               `
       : html`
@@ -3003,7 +2979,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       <${Icone} name="chevron_right" />
                     </button>
                     <button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
-                      <${Icone} name="add" /> Novo item
+                      <${Icone} name="add" />
                     </button>
                   </div>
                 </header>
@@ -3024,8 +3000,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       onChange=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, status: event.target.value })}
                     >
                       ${STATUS_ITEM.map(
-          (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
-        )}
+        (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
+      )}
                     </select>
                   </${FilterField}>
                 </div>
@@ -3915,7 +3891,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <option value="Falha">Falha</option>
             </select>
           </${FilterField}>
-          <${FilterField} label="Período" icon="date_range">
+          <${FilterField} label="Período" icon="calendar_month">
             <select
               class="form-select"
               value=${filtrosLogs.periodo}
@@ -4002,7 +3978,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             `
       : html`
               <${EmptyPanel}
-                icon="history_off"
+                icon="history"
                 title="Sem logs"
                 text="Nenhum evento de auditoria corresponde aos filtros atuais."
               />

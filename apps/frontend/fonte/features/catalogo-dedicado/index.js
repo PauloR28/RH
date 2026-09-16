@@ -2,6 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
+  ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
@@ -13,6 +14,7 @@ import {
   atualizarItemConfiguracao,
   criarItemConfiguracao,
   desativarItemConfiguracao,
+  excluirItemConfiguracao,
   listarCatalogoConfiguracoes,
 } from '../../services/api/settings.js';
 
@@ -53,6 +55,9 @@ export function TelaCatalogoDedicado({ controlador, config }) {
   const [salvando, setSalvando] = useState(false);
   const [itemRemover, setItemRemover] = useState(null);
   const [removendo, setRemovendo] = useState(false);
+  const [itemExcluir, setItemExcluir] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [modalFormAberto, setModalFormAberto] = useState(false);
 
   const carregar = async () => {
     setCarregando(true);
@@ -82,6 +87,12 @@ export function TelaCatalogoDedicado({ controlador, config }) {
 
   const limparForm = () => setForm(formInicial(config));
 
+  const abrirNovo = () => {
+    limparForm();
+    setErro('');
+    setModalFormAberto(true);
+  };
+
   const editarItem = (item) => {
     const preenchido = {
       id_item: item.id_item,
@@ -96,6 +107,41 @@ export function TelaCatalogoDedicado({ controlador, config }) {
     });
     setForm(preenchido);
     setErro('');
+    setModalFormAberto(true);
+  };
+
+  const alternarAtivo = async (item) => {
+    setErro('');
+    try {
+      await atualizarItemConfiguracao(config.tipo, item.id_item, {
+        chave: item.chave,
+        nome: item.nome,
+        descricao: item.descricao,
+        categoria: item.categoria || config.tipo,
+        payload: item.payload || {},
+        ativo: !item.ativo,
+        justificativa: `${item.ativo ? 'Desativado' : 'Ativado'} em ${config.titulo}.`,
+      });
+      setFeedback(`${config.rotuloItem || 'Item'} ${item.ativo ? 'desativado' : 'ativado'}.`);
+      await carregar();
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível alterar o status deste item.');
+    }
+  };
+
+  const confirmarExclusao = async ({ justificativa }) => {
+    if (!itemExcluir) return;
+    setExcluindo(true);
+    try {
+      await excluirItemConfiguracao(config.tipo, itemExcluir.id_item, justificativa);
+      setItemExcluir(null);
+      setFeedback(`${config.rotuloItem || 'Item'} excluído.`);
+      await carregar();
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível excluir este item.');
+    } finally {
+      setExcluindo(false);
+    }
   };
 
   const salvar = async (event) => {
@@ -137,6 +183,7 @@ export function TelaCatalogoDedicado({ controlador, config }) {
         setFeedback(`${config.rotuloItem || 'Item'} criado com sucesso.`);
       }
       limparForm();
+      setModalFormAberto(false);
       await carregar();
     } catch (error) {
       setErro(error?.message || 'Não foi possível salvar.');
@@ -199,16 +246,25 @@ export function TelaCatalogoDedicado({ controlador, config }) {
     }
     : null;
 
+  const acoesTopo = podeEditar
+    ? html`
+        <button type="button" class="btn btn-primary" onClick=${abrirNovo}>
+          <${IconeSvgSpan} name="add" /> Adicionar ${config.rotuloItem || 'item'}
+        </button>
+      `
+    : null;
+
   return html`
     <${PainelRh} screenId=${config.screenId} navAtiva=${config.navAtiva} controlador=${controlador} placeholderBusca=${config.titulo}>
-      <${PageIntro} kicker=${config.kicker || 'Configurações'} title=${config.titulo} description=${config.descricao || ''} />
+      <${PageIntro} kicker=${config.kicker || 'Configurações'} title=${config.titulo} description=${config.descricao || ''} actions=${acoesTopo} />
 
       ${feedback ? html`<div class="alert alert-success">${feedback}</div>` : null}
       ${erro ? html`<div class="alert alert-danger">${erro}</div>` : null}
 
-      <${SectionCard}
-        title=${form.id_item ? `Editar ${config.rotuloItem || 'item'}` : `Novo ${config.rotuloItem || 'item'}`}
-        className="rh-section-card--flat"
+      <${ModalPadrao}
+        aberto=${modalFormAberto}
+        titulo=${form.id_item ? `Editar ${config.rotuloItem || 'item'}` : `${config.generoFeminino ? 'Nova' : 'Novo'} ${config.rotuloItem || 'item'}`}
+        onClose=${() => { setModalFormAberto(false); limparForm(); setErro(''); }}
       >
         <form class="c24-form-grid" onSubmit=${salvar}>
           <label>
@@ -277,12 +333,10 @@ export function TelaCatalogoDedicado({ controlador, config }) {
             <button type="submit" class="btn btn-primary" disabled=${salvando || !podeEditar}>
               <${IconeSvgSpan} name="check" /> ${salvando ? 'Salvando...' : 'Salvar'}
             </button>
-            ${form.id_item
-      ? html`<button type="button" class="btn btn-outline-secondary" onClick=${limparForm}>Cancelar edição</button>`
-      : null}
+            <button type="button" class="btn btn-outline-secondary" onClick=${() => { setModalFormAberto(false); limparForm(); }}>Cancelar</button>
           </footer>
         </form>
-      </${SectionCard}>
+      </${ModalPadrao}>
 
       <${SectionCard} title="Itens cadastrados" className="rh-section-card--flat">
         ${carregando
@@ -319,14 +373,32 @@ export function TelaCatalogoDedicado({ controlador, config }) {
                       { key: 'descer', label: 'Mover para baixo', icon: 'arrow_downward', disabled: indice === itens.length - 1, onClick: () => mover(item, 1) },
                     ]
                     : []),
-                  {
-                    key: 'arquivar',
-                    label: 'Arquivar',
-                    icon: 'archive',
-                    danger: true,
-                    disabled: !item.ativo,
-                    onClick: () => setItemRemover(item),
-                  },
+                  ...(config.podeExcluir
+                    ? [
+                      {
+                        key: 'alternar-ativo',
+                        label: item.ativo ? 'Desativar' : 'Ativar',
+                        icon: item.ativo ? 'block' : 'check_circle',
+                        onClick: () => alternarAtivo(item),
+                      },
+                      {
+                        key: 'excluir',
+                        label: 'Excluir',
+                        icon: 'delete',
+                        danger: true,
+                        onClick: () => setItemExcluir(item),
+                      },
+                    ]
+                    : [
+                      {
+                        key: 'arquivar',
+                        label: 'Arquivar',
+                        icon: 'archive',
+                        danger: true,
+                        disabled: !item.ativo,
+                        onClick: () => setItemRemover(item),
+                      },
+                    ]),
                 ]}
                                     />
                                   `
@@ -359,6 +431,19 @@ export function TelaCatalogoDedicado({ controlador, config }) {
         carregando=${removendo}
         onClose=${() => setItemRemover(null)}
         onConfirm=${confirmarRemocao}
+      />
+
+      <${ModalConfirmacaoAcao}
+        aberto=${Boolean(itemExcluir)}
+        titulo=${`Excluir ${config.rotuloItem || 'item'}`}
+        descricao=${`Deseja excluir "${itemExcluir?.nome || ''}" definitivamente?`}
+        consequencia="O item é removido por completo do catálogo. Registros que já usaram este valor no passado não são alterados, mas ele deixa de existir como opção daqui pra frente."
+        reversibilidade="Esta ação não pode ser desfeita."
+        textoConfirmar="Excluir"
+        tipo="destrutivo"
+        carregando=${excluindo}
+        onClose=${() => setItemExcluir(null)}
+        onConfirm=${confirmarExclusao}
       />
     </${PainelRh}>
   `;
@@ -394,6 +479,7 @@ const CONFIG_MOTIVOS_ELIMINACAO = {
   titulo: 'Motivos de Eliminação',
   descricao: 'Motivos usados ao eliminar um candidato de um processo seletivo.',
   rotuloItem: 'motivo',
+  podeExcluir: true,
   camposExtras: [
     {
       chave: 'sub_causas_texto',
@@ -436,6 +522,7 @@ const CONFIG_ETAPAS = {
   titulo: 'Etapas do Processo',
   descricao: 'Etapas disponíveis para compor um processo seletivo, na ordem em que devem ser exibidas.',
   rotuloItem: 'etapa',
+  generoFeminino: true,
   podeReordenar: true,
   ordenar: (lista) => [...lista].sort((a, b) => Number(a.payload?.ordem ?? 0) - Number(b.payload?.ordem ?? 0)),
   payloadExtra: (form, { itens }) => ({
@@ -446,8 +533,29 @@ const CONFIG_ETAPAS = {
   camposExtras: [],
 };
 
+function TelaEmConstrucao({ controlador, screenId, navAtiva, titulo }) {
+  return html`
+    <${PainelRh} screenId=${screenId} navAtiva=${navAtiva} controlador=${controlador} placeholderBusca=${titulo}>
+      <${PageIntro} kicker="Configurações" title=${titulo} description="" />
+      <${EmptyState}
+        icon="construction"
+        title="Página ainda em construção"
+        text="Em breve novas atualizações."
+      />
+    </${PainelRh}>
+  `;
+}
+
+// Correções.txt item 6: LGPD e Retenção desativada (página + link no menu).
 export function TelaLgpd({ controlador }) {
-  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_LGPD} />`;
+  return html`
+    <${TelaEmConstrucao}
+      controlador=${controlador}
+      screenId=${CONFIG_LGPD.screenId}
+      navAtiva=${CONFIG_LGPD.navAtiva}
+      titulo=${CONFIG_LGPD.titulo}
+    />
+  `;
 }
 
 export function TelaMotivosEliminacao({ controlador }) {
@@ -458,6 +566,14 @@ export function TelaModelosEmail({ controlador }) {
   return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_MODELOS_EMAIL} />`;
 }
 
+// Correções.txt item 3: Etapas do processo travada até novo aviso.
 export function TelaEtapasProcesso({ controlador }) {
-  return html`<${TelaCatalogoDedicado} controlador=${controlador} config=${CONFIG_ETAPAS} />`;
+  return html`
+    <${TelaEmConstrucao}
+      controlador=${controlador}
+      screenId=${CONFIG_ETAPAS.screenId}
+      navAtiva=${CONFIG_ETAPAS.navAtiva}
+      titulo=${CONFIG_ETAPAS.titulo}
+    />
+  `;
 }

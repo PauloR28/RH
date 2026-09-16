@@ -1,180 +1,71 @@
-PROMPT DE CORREÇÃO — CONECTA (Rodada de Ajustes Pós-Revisão)
+Correções: 
+1 - Tela de Perfis e permissões: 
+* Torne o elemento: "settings-permission-tree-session is-active" na tela de Perfis e permissões, clicavel e dobrável, ao ser clicado, ele irá fechar. 
+* Ainda na tela de "Perfis e Permissões" adicione o botão de editar configuração no topo da pagina e não dentro da sublista. Será 1 botão para a pagina toda ao invés de um botaõ de editar por vaga e nível. 
+* Retire o ícone que esta dentro de: "settings-permission-tree-session", fica visualmente poluído. 
+* Altere o desing dos grids: "c24-stat-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. 
 
-Você vai corrigir uma série de problemas identificados em testes reais do sistema Conecta. Este não é um redesign visual — é uma correção funcional e estrutural de telas específicas. Leia cada item por completo antes de mexer em qualquer código. Onde eu disser "NÃO RESOLVIDO", significa que já foi pedido antes e continua pendente — não me entregue uma correção parcial ou cosmética, resolva a causa raiz.
+2  - Tela de Configurações: Operações: 
+* Em "Areas de configuração" - Retire a aba 'Geral', deixe apenas Operações, não faz sentido essa aba geral! 
+* Retire todo o :"c24-card settings-area-panel" - Catalogos, a pagina é excluiva para Operações.  
+* Alinhe e otmize o espaço de: "c24-card settings-rule-form-card" as linhas estão com espaçamentos diferentes, tudo precisa esta alinhado, otimizado, com um desing clean. 
+* Altere o desing dos grids: "c24-stat-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. 
+ 
+3 - Tela de Configurações: - Etapas do processo.
+* TRANQUE ESSA PAGINA. Adicione um comunicado: "Pagina ainda em construção - Em breve novas atualizações", não vou trabalhar nela por enquanto. E também tranque o link no submenu, coloque como um link desativado. 
 
-Regra geral para todo o trabalho: não invente comportamento que não está descrito aqui. Se algo estiver ambíguo, implemente a interpretação mais simples e mais próxima do padrão já usado no restante do sistema, e sinalize no changelog final o que você assumiu.
+4 - Tela de Configurações: Tela motivos de eliminação: 
+* Construa na tela uma lista de motivos de eliminação que estão disponíveis hoje no Conecta. Adicione um botão de editar em cada motivo e um de excluir também, e um botão de turn off/on para ativar e desativar o motivo. Também, no topo da pagina adicione um botão de um adicionar motivo (ao ser clicado, abrirá um modal, um form pedindo para inserir: O motivo = texto / uma breve descrição / uma subcausa opcional, um botão turn off/on de ativo ou inativo para ativar o motivo).
 
-1. Tela de Perfis e Permissões — navegação lateral unificada
+5 - Tela de Configurações: Tela de Modelos de Email:
+* Tela com defeito. Aplique o mesmo modelo da tela de "motivos de eliminação", mas com o diferencial de que, cada modelo precisará de um titulo, e uma descrição(o texto de fato), aqui será necessário adicionar tambem uma lista de variáveis, como {nome_candidato}/{data}/{horário}. Porque, pode-se entender que, quanod o RH for usar esse modelo, o texto precisar ser dinamico para cada candidato. Essas variáveis serão preenchidas manualmente OU automaticamente caso sejam usadas em um processo seletivo. Por exemplo: Se o modelo for: "Caro candidato {nome_candidato}, compareça a central no dia {dia} e no horário {horario}, para completarmos o seu processo", se o RH for usar esse modelo ao enviar um email, é claro que ele poderá inserir o nome do candidato o dia e horáiro manualmente, mas caso queira usar como resposta em um processo seletivo, aí essas variaveis serão preenchidas automaticamente com o nome do candidato em questão. 
 
-Problema: a lista lateral de perfis e a sublista de permissões estão separadas/desconectadas visualmente e funcionalmente.
+6 - Tela de Configurações: Tela de LGPD e Retenção: Desative essa pagina e o link no menu
 
-O que fazer:
+7 - Tela de Configurações: Administração
+*Altere o nome da pagina "Administração" para "Parâmetros"
+*Atualize as informações que serão deletadas na Zona de Risco - depois que eu implementei, teve várias mudanças"
+*Adicione tambem uma questão de segurança: Ao clicar em "Limpar o Conecta" - que deve ser alterado para: "Aplicar" mas mantendo o tom vermelho de alerta), abriá um modal, com uma lista completa do que será deletado, inclusive com a o botão turn on/off em cada item para escolher o que será deletado. Aquipe tambem uma opção de alterar, ao ser clicado ele irá permitir alterar ou selecionar os campos que serão deletados. E quando a pessoa clilcar em "Aplicar" dentro desse modal, aparecerá um modal de aviso dizendo que essa ação não pode ser refeita, deve ser feita com cuidado e responsabilidade, inclusive ele deve pedir para se autenticar novamente para ter certeza que é o ADM questa fazendo aquela ação. 
 
-Unifique a lista de perfis e a sublista de permissões em um único componente de navegação lateral, no modelo de menu lateral expansível (accordion/tree nav) — o padrão clássico onde cada item pai, ao ser clicado, expande inline revelando seus filhos, sem trocar de painel nem abrir modal.
-Ao clicar em um perfil (item pai), o subnível de permissões daquele perfil deve expandir imediatamente abaixo dele, empurrando os itens seguintes da lista para baixo (comportamento padrão de accordion), não sobrepondo conteúdo.
-Apenas um perfil expandido por vez é aceitável, mas se for mais simples manter múltiplos abertos simultaneamente, tudo bem — priorize o comportamento de navegação fluida sobre a restrição.
-Mantenha indicação visual clara de qual perfil está selecionado/expandido (destaque de fundo ou borda lateral).
-2. Vazamento de mensagens de confirmação entre telas de configuração
+8 - Tela Treinamentos; Editar treinamentos:
+*A tela de editar um treinamento esta dando erro pois não está deixando eu passar a primeira parte pois pede: "Informe a data/horário de todas as ocorrências, ou marque "sem horário definido"". senod que estou alterando/editando um treinamento já feito, não deve ter configuração de hora. 
+* Quando eu acesso pelo login de Supervisor, ele deveria abrir diretamente na pagina inicial de Treinamentos (na visão do Supervisor), independe de qual for o link, a tela de Treinamento sempre será a primeira tela que o Supervisor irá ver ! Assim como a tela de operador sempre será a de treino.
 
-Problema: ao salvar uma alteração na tela de Perfis e Permissões (ex: "Permissões do perfil atualizadas."), a mensagem de confirmação (toast/snackbar) permanece visível mesmo depois de navegar para outra tela (ex: Operações).
+10 - Tela Treinamentos:
+* Datas comemorativas devem ser automaticamente postadas na Intranet do Conecta ! Uma vez que o RH cadastrar uma data na Tela de Calndedário, ele deve automaticamente criar um evento no canlendário da Intranet. O form do calendário será da seguinte forma:
+Titulo - Campo de titulo de evento
+Data inicio - campo de data
+Data final - campo de data
+Dia inteiro - checkbox
+Local - campo de endereço (aparecer o endereços cadastrados listados)
+Link - campo para link (opcional)
+Categoria - campo select com as opções (Reunião / Feriado / Aniversário / Evento / Confraternização / Data especial )
+Sobre o evento - Campo de texto para escrever sobre o texto ! 
+Opção de upload de imagem. 
+- Ao inserir essas informações ao cadastrar um evento no Conecta, ele automaticamente ocupará uma data no calendário da Intranet do Conecta, ocupando as informações do Sharepoint com os mesmo campos exatamente igual ao coneta, ou seja: 
+Titulo (Conecta) = Titulo (Sharepoint) 
+Data inicio (Conecta) = data inicio (Sharepoint) e assim por diante...
 
-Causa provável: o estado do toast está sendo mantido em um contexto global ou em um componente que não é desmontado na troca de rota, ou o timeout de dismissal não está sendo limpo corretamente.
+11 - Modal Ficha do Candidato: 
+* Ajuste o alinhamento e posicionamento das divs: "rh-metric-grid" elas estão cortando a informação daos texto ou o texto está sobressaindo da caixa. 
+* O Formulário precisa indicar campos que está vazios ou incompletos
+* Retire o campo: "Observações" uma vez que já existe o campo: "Justificativa / observações do RH"
+* Em Pesquisa cultural adicione o resultado dos outros testes também, como fit cultural e outros. Aqui, o Conecta precisa apresentar uma breve analise do candidato caso ele tenha algo preenchido. Se não houver nada, não precisa mostrar nada. 
+vale lembrar que os campos de "Pesquisa Cultural" virá do email. 
+* Ajuste o alinhamento dos elementos de :"rh-section-card rh-section-card--flat" tem linhas muito espaçadas, botões fluturando o meio da Div (deveria estar posicionaod a direita no canto. 
 
-O que fazer:
+12 - Tela Processo seletivos: 
+* Altere o desing dos grids: "rh-metric-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. Existe fontes desalinhadas, tamanhos diferentes, linhas coladas, margens espaçadas. 
+* Aplique a mesma correção para: "rh-section-card process-brief-list-card" que sofre do mesmo problema. Espaçamentos muito largos, linhas espaçadas.  
 
-Garanta que qualquer notificação de sucesso/erro tenha seu tempo de vida (timeout) limpo e o componente desmontado ao ocorrer uma mudança de rota, independentemente de o timeout original já ter disparado ou não.
-Se as notificações usam um sistema de fila/contexto global (ex: um ToastProvider), adicione um listener de mudança de rota que force o dismiss de qualquer toast ativo ao navegar.
-Teste especificamente o cenário descrito: salvar em Perfis e Permissões → navegar para Operações → confirmar que nenhuma mensagem da tela anterior aparece.
-Essa correção deve ser aplicada de forma genérica ao sistema de notificações, não só para esse par específico de telas, já que o problema é estrutural.
-3. Central de Treinamentos — conteúdo do treinamento não aparece no app + tela de edição precisa de otimização (NÃO RESOLVIDO)
+13 - Tela inicial: 
+* Corrija o desing de: rh-section-card home-quick-card, retire o gradiente, simplifique os ícones, deixe a imagem dos ícones maiores, como imagem de fundo, em uma tonalidade cinza (quase transparente), fica um estilo legal. 
+* Aba de Próximas entrevista, altere para "Próximos eventos" aqui ficará listados todos os eventos do calendário + entrevista. Ele deve mostrar um card do dia, com os eventos listados no dia em questão, se não houver Evento ou algum processo, diga: "Sem compromissos hoje"
+PS: O calendário de entrevista e o calendário da Gestão devem ser unificados ! Isto é! No calendário da gestão deve aparecer, os eventos cadastrados e as entrevistas agendadas - SOMENTE AS AGENDAS e CONFIRMADAS. Slots de entrevista não devem aparecer no calendário.
+*Ajuste o alinhamento dos elementos, o posicionamento deles está desalinhado: Por exemplo: o final da div "Mural" está completamente fora da linha onde termina a div "Processos aberto".
 
-Problema A: o treinamento é criado no Conecta, mas o conteúdo (módulos, "Saiba mais" e "Dicas") não aparece para o colaborador que faz o treinamento no aplicativo mobile.
+14 - Tela de Entrevista:
+*  Box "Criar disponibilidade", transforme em um botão que fica no topo da pagina. Ao ser clicado, ele abrirá o modal com o form de criar disponibilidade. 
+* Ajuste o desing de 'Visão Executiva', 
 
-O que fazer:
-
-Investigue a cadeia completa: criação do treinamento → persistência no banco → exposição via API → consumo pelo app mobile. Verifique se os campos de "Saiba mais" e "Dicas" estão de fato sendo salvos no banco ao criar/editar um treinamento, e se o endpoint da API que o app consome está retornando esses campos.
-Compare com o wireframe original do app (a referência é o wireframe salvo em: C:\Users\psilva\OneDrive - Empresa Brasileira de Soluções e Serviços em Teleatendimento Ltda\Projetos\RH\docs\Desing\Aplicativo - Wareframe) para confirmar onde e como "Saiba mais" e "Dicas" devem aparecer na tela do treinamento no app.
-Corrija o ponto de quebra encontrado (pode ser: campo não salvo, campo não exposto na API, ou campo não renderizado no app) e valide de ponta a ponta: crie um treinamento de teste com "Saiba mais", "Dicas" e link, e confirme que aparece corretamente no app.
-
-Problema B: a tela de "Editar treinamento" precisa ser otimizada — os módulos devem ficar mais fáceis de alterar e configurar.
-
-O que fazer:
-
-Redesenhe a tela de edição de treinamento para que cada módulo seja um bloco/card independente e colapsável, com ações claras de editar, reordenar (drag and drop, se viável) e remover, sem precisar abrir uma tela nova para cada módulo.
-Dentro de cada módulo, os campos de conteúdo, "Saiba mais", dicas e links devem estar todos visíveis e editáveis no mesmo bloco, sem navegação adicional — confirme que essa edição inline realmente reflete no que é salvo (ligação direta com o Problema A).
-Priorize menos cliques: hoje o fluxo de editar um módulo deve estar exigindo múltiplas etapas; reduza para o mínimo necessário.
-4. Tela de Operações (NÃO RESOLVIDO)
-
-Este item tem três partes:
-
-4a. "Itens cadastrados" (c24-card settings-catalog-list-card)
-Converta esse card em um sidebar lateral expansível/recolhível, ocupando menos espaço horizontal na tela principal (pense em um painel que pode ser aberto/fechado, tipo drawer).
-Adicione um botão único de "Ações" (menu dropdown) para cada item da lista, agrupando as ações que hoje estão soltas: "Editar", "Duplicar", "Arquivar". Não deixe os três botões soltos lado a lado — condense em um menu de contexto (ícone de três pontos ou botão "Ações" com dropdown).
-4b. "Áreas de configuração" (c24-card settings-area-panel) — redesenho total
-Este componente precisa ser reconstruído do zero, não ajustado. O formulário atual é grande demais, tem campos desnecessários e aparentemente não está funcionando corretamente.
-Antes de implementar, primeiro liste todos os campos atualmente existentes nesse formulário e classifique cada um como: necessário, redundante ou quebrado. Remova os redundantes.
-Redesenhe o layout para ser compacto, sem exigir rolagem excessiva, e valide que cada campo restante de fato persiste e funciona ao salvar.
-Sugestão de estrutura: divida em seções curtas e objetivas (ex: "Identificação", "Regras", "Vínculos") em vez de um formulário único e longo.
-4c. c24-stat-grid — métricas sem sentido
-Os cards de estatística atual mostram informações incoerentes ou pouco relevantes para o contexto de Operações.
-Substitua por métricas que realmente façam sentido operacional, por exemplo: total de itens ativos, itens pendentes de configuração, itens arquivados, última atualização. Ajuste conforme os dados reais disponíveis no domínio de Operações — não invente métricas que não existem no banco.
-Se não houver dados suficientes para popular métricas relevantes, é preferível reduzir o grid a menos cards, mas corretos, do que manter cards com números sem contexto.
-5. Reestruturação da navegação lateral de Operações
-
-Problema: a lista lateral atual mistura vários módulos que deveriam ser páginas de configuração independentes.
-
-Ação: remova da navegação lateral os seguintes itens (como estão hoje) e recrie cada um como página de configuração própria, autocontida, com toda a configuração relacionada àquele tema centralizada ali dentro:
-
-Item atual	Ação
-LGPD e Retenção	Nova página dedicada: upload/gestão de documentação de proteção de dados (importação de arquivos de política/LGPD).
-Motivos de Eliminação	Nova página: listar, criar, editar e deletar motivos de eliminação usados no processo seletivo.
-Status dos candidatos	Remover completamente (funcionalidade descontinuada).
-Modelos de e-mail	Nova página: listar, criar, editar e deletar modelos de e-mail prontos. Esses modelos devem aparecer como opção selecionável sempre que o usuário for enviar uma mensagem por e-mail em qualquer parte do sistema.
-Tipos de documentos	Remover completamente.
-Pacotes documentais	Remover completamente.
-Etapas do processo	Nova página: configuração das etapas do processo seletivo, incluindo ordem/sequência das etapas.
-Trilhas de avaliação	Remover completamente.
-Banco de Provas	Nova página completa: gestão total do banco de questões — listar, criar, editar, deletar e configurar todos os aspectos das provas/questões aqui.
-Questões	Remover completamente (a funcionalidade de questões passa a viver dentro de "Banco de Provas").
-Regras de Notificação	Remover completamente.
-Operações	Este item deixa de ser um item genérico solto; seu conteúdo é redistribuído entre as páginas acima.
-
-Diretriz importante: antes de remover qualquer item marcado como "Remover completamente", confirme que não há dados ou referências ativas dependendo dele em outras partes do sistema (ex: um processo seletivo em andamento que referencia "Status dos candidatos"). Se houver dependência ativa, sinalize antes de apagar em vez de quebrar silenciosamente uma funcionalidade em uso.
-
-Cada nova página deve seguir o mesmo padrão visual e estrutural das demais páginas de configuração do Conecta (mesma navbar superior, mesmos componentes de lista/formulário já usados no sistema), para manter consistência.
-
-6. Renomear "Templates e Documentos" para "Central de Documentos" (NÃO RESOLVIDO)
-
-O que fazer:
-
-Renomeie a página e seu item de menu de "Templates e Documentos" para "Central de Documentos".
-Reestruture o conteúdo como uma central de arquivos organizada por tópicos/áreas (ex: "RH", "TI", "Processos Seletivos" — ajuste as categorias reais conforme os documentos existentes).
-Implemente uma lista em formato dropdown/accordion por tópico, e dentro de cada tópico, os documentos daquela área, cada um com um botão simples de "Baixar documento".
-Exemplo de conteúdo real que deve estar acessível ali: o documento de como configurar o Microsoft Entra ID para o SharePoint.
-Restrinja o acesso a essa página exclusivamente a usuários com perfil ADM — implemente a checagem de permissão tanto na rota/navegação (esconder o item de menu para não-ADMs) quanto no backend (bloquear a requisição de dados mesmo que alguém tente acessar a rota diretamente).
-7. Tela de configuração de usuário — reorganização e otimização (NÃO RESOLVIDO)
-
-O que fazer:
-
-Reorganize o layout do formulário de configuração de usuário em um fluxo de leitura em "Z" (informações mais importantes seguindo o padrão de leitura ocidental: topo-esquerda → topo-direita → diagonal → baixo-direita), reduzindo o espaçamento excessivo atual.
-Em "editar senha", adicione um campo de fato para configurar/definir a nova senha (hoje aparentemente não existe esse campo, ou não está funcional — confirme e implemente).
-Os botões de ação crítica — "Bloquear usuário", "Redefinir MFA", "Excluir usuário" — devem ficar otimizados visualmente e alinhados lado a lado em uma única barra de ações, com hierarquia visual clara (ex: "Excluir usuário" com destaque de cor de alerta/perigo, os outros dois em estilo secundário).
-Adicione um botão pequeno de "Editar" no topo da tela/modal do usuário. Ao clicar, todos os campos de edição do usuário se tornam editáveis (hoje presumivelmente estão sempre travados ou sempre abertos — implemente o toggle de modo leitura/edição).
-Na lista de usuários: torne cada linha/item de usuário inteiramente clicável (hoje, aparentemente, é necessário selecionar via checkbox ou botão específico). Ao clicar em qualquer parte da linha, deve abrir o modal de informações do usuário (o mesmo modal que hoje é o de "editar usuário").
-Como consequência direta da mudança acima, remova a coluna "Ações" da tabela/lista de usuários — ela deixa de ser necessária porque clicar na linha já dá acesso a todas as ações.
-8. Tela de carregamento duplicada / espaço desnecessário
-
-Problema: ao carregar qualquer tela, aparecem 2 blocos de skeleton/placeholder de perfil, além de espaço em branco desnecessário (conforme print anexado pelo usuário).
-
-O que fazer:
-
-Localize o componente de loading state (skeleton) usado nas telas afetadas e identifique por que ele está sendo renderizado duas vezes — causas comuns: o componente pai e o componente filho renderizam o mesmo skeleton simultaneamente, ou há uma duplicação de chamada do estado de loading (ex: dois hooks de fetch para o mesmo dado, cada um com seu próprio skeleton).
-Corrija para que exista apenas uma instância do skeleton de carregamento por tela/seção.
-Remova o espaçamento excedente associado a esse bug — provavelmente um container/wrapper que reserva espaço fixo mesmo quando o conteúdo real é menor que o skeleton duplicado.
-Valide em pelo menos 3 telas diferentes do sistema que usam esse mesmo padrão de loading, para confirmar que a correção é aplicada de forma global e não pontual.
-9. Tela de Administração — Parâmetros: ações em conexões com falha
-
-Problema: quando uma conexão (ex: SharePoint ou qualquer outra integração) falha, não há ação disponível para o usuário lidar com isso.
-
-O que fazer:
-
-Ao lado (ou dentro) de qualquer conexão com status de falha, adicione um botão de "Editar" que permita:
-Alterar as credenciais/parâmetros da conexão.
-Testar novamente a conexão (retry) sem precisar editar nada, se o usuário só quiser tentar de novo.
-Deletar a conexão por completo.
-Esses três sub-comportamentos podem ser um menu de ações (dropdown) ou um modal único de "Editar conexão" com as três opções disponíveis — escolha o padrão mais consistente com o resto do sistema de Administração.
-Ao testar novamente, mostre feedback visual claro de sucesso ou falha (reaproveitando o sistema de notificação corrigido no item 2).
-10. Central de Treinamentos — fluxo do Supervisor e do Gestor
-
-Este item cobre um fluxo novo, não apenas uma correção. Trate como uma implementação de feature completa.
-
-10a. Lista de treinamentos do Supervisor
-Crie uma lista, visível para o perfil Supervisor, com os treinamentos que ele está designado a ministrar. Cada item da lista deve mostrar: data, horário, local e quantidade de pessoas inscritas/que irão assistir.
-Ao clicar em um treinamento da lista, exiba um botão de "Ações" com duas opções: "Iniciar treinamento" e "Editar treinamento".
-10b. Fluxo de "Iniciar treinamento"
-Ao clicar em "Iniciar treinamento", abra uma tela dedicada ao curso contendo:
-Informações gerais do treinamento.
-O material de slide que será apresentado.
-A lista de pessoas que irão assistir.
-Um botão de "Iniciar".
-Ao clicar em "Iniciar" (dentro dessa tela), o slide deve abrir em modo tela cheia (fullscreen) para o Supervisor conduzir a apresentação.
-Ao final da apresentação (quando o Supervisor sair do modo fullscreen ou avançar até o último slide e confirmar encerramento), apresente uma tela/lista de chamada onde o Supervisor marca a presença de cada colaborador esperado, um a um (presente/ausente).
-Salve o resultado da lista de presença vinculado àquele treinamento específico, para consulta posterior.
-10c. Calendário do Gestor
-Na tela do perfil Gestor, adicione um calendário de treinamentos próximos (visualização mensal ou por período, conforme o padrão de calendário já usado em outras partes do sistema, se existir).
-Ao interagir com um treinamento no calendário, o Gestor deve conseguir ver a listagem de presença já registrada (proveniente do fluxo 10b) para treinamentos já realizados, e os detalhes básicos (data, horário, local, supervisor responsável) para treinamentos futuros.
-11. Dashboard de funil e métricas (tela de Gestão) — otimização de layout
-
-Problema: os gráficos estão gigantes, ocupam a tela inteira, estão espaçosos demais e desalinhados, exigindo rolagem excessiva vertical e horizontal.
-
-O que fazer:
-
-Redimensione todos os gráficos do dashboard para caberem de forma compacta e organizada em grid, eliminando a necessidade de scroll horizontal completamente.
-Reduza a necessidade de scroll vertical ao máximo possível — o objetivo é que a maior parte (idealmente a totalidade) das informações-chave seja visível sem rolar, ou com o mínimo de rolagem vertical necessário.
-Alinhe os gráficos em uma grade consistente (mesmo número de colunas, mesmo alinhamento de bordas, mesmo espaçamento entre cards).
-Revise se todos os gráficos atuais são realmente necessários nessa visão consolidada; se algum for redundante ou puder ser condensado com outro, condense.
-12. Mural — nova funcionalidade de publicações (estilo blog interno)
-
-Este é um módulo novo. Trate como implementação completa de feature, não como correção.
-
-12a. Criação de publicação
-Adicione um botão "+ Nova publicação" que abre um modal de criação de post.
-Dentro do modal, inclua um editor de texto rico (rich text editor) com opções de:
-Formatação (negrito, itálico, sublinhado).
-Cor do texto.
-Tamanho da fonte.
-Alinhamento (esquerda, centro, direita, justificado).
-Escolha de fonte.
-Inclua a possibilidade de inserir imagens de duas formas:
-Imagem embutida dentro do texto (o usuário pode posicionar a imagem no meio do conteúdo).
-Publicação somente com imagem, sem texto, se o usuário preferir.
-Abaixo do editor, inclua uma lista de seleção (checkboxes ou multi-select) das intranets/canais disponíveis onde essa publicação poderá ser exibida, permitindo publicar em um ou mais canais simultaneamente.
-12b. Listagem de publicações
-Abaixo da área de criação, exiba a lista de publicações já feitas, em ordem cronológica (mais recente primeiro), mostrando pelo menos: autor, data, um preview do conteúdo (texto truncado e/ou thumbnail da imagem) e os canais/intranets onde foi publicada.
-Cada publicação da lista deve ser clicável para expandir/visualizar o conteúdo completo.
-Diretrizes gerais de execução
-Ordem sugerida de execução: resolva primeiro os bugs estruturais que afetam múltiplas telas (itens 2 e 8), depois as correções pontuais de telas existentes (itens 1, 4, 7, 9), depois as reestruturações de navegação e conteúdo (itens 5 e 6), e por último as features novas (itens 3, 10, 12), já que dependem de infraestrutura mais estável.
-Não regrida funcionalidade existente: qualquer tela mexida deve continuar funcionando para os fluxos que já funcionavam antes, a menos que este documento explicitamente peça a remoção daquele comportamento.
-Consistência visual: qualquer tela nova ou redesenhada deve seguir os componentes, cores e padrões de espaçamento já estabelecidos no restante do Conecta — não crie um padrão visual novo isolado para uma única tela.
-Validação por item: ao final de cada item numerado, faça um teste manual do fluxo descrito antes de passar para o próximo. Para os itens marcados "NÃO RESOLVIDO", teste com atenção redobrada, já que uma tentativa anterior já falhou.
-Entregável final: ao concluir, produza um changelog curto listando, item por item (1 a 12), o que foi alterado e qualquer decisão de design que você teve que tomar por conta própria diante de uma ambiguidade no texto original.
+15 - Banco de talentos: Ao abrir um processo seletivo, o Conecta deve automaticamente indicar os candidatos que estõa no Banco de Talentos para serem aproveitados no processo. Isso deve aparecer em um modal, ao concluir a criação do processo seletivo. 

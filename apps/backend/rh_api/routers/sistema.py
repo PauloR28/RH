@@ -97,6 +97,13 @@ def delete_ambiente_sharepoint(
     return repository.excluir_ambiente_sharepoint(id_ambiente, actor=user, justificativa=justificativa)
 
 
+@router.get("/resetar/categorias", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def listar_categorias_reset(
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.listar_categorias_reset()
+
+
 @router.post("/resetar", dependencies=[Depends(require_permissions("configuracoes.editar"))])
 def resetar_dados_conecta(
     payload: ResetarDadosConectaRequest,
@@ -108,4 +115,9 @@ def resetar_dados_conecta(
     # para outro papel (Correções.txt: "botão... fica restrito ao ADM apenas").
     if user.perfil != ROLE_ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)
-    return repository.resetar_dados_conecta(actor=user, confirmacao=payload.confirmacao)
+    return repository.resetar_dados_conecta(
+        actor=user,
+        confirmacao=payload.confirmacao,
+        senha=payload.senha,
+        categorias=payload.categorias,
+    )

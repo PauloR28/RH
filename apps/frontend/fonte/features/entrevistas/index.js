@@ -591,6 +591,14 @@ export function TelaEntrevistas({ controlador }) {
             <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('refresh')}</span>
             Atualizar
           </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onClick=${() => setDisponibilidadeExpandida(true)}
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>
+            Criar disponibilidade
+          </button>
         `}
       />
 
@@ -706,24 +714,13 @@ export function TelaEntrevistas({ controlador }) {
               `}
         </${SectionCard}>
 
-      <${SectionCard}
-        title="Criar disponibilidade"
-        className="availability-card"
-        actions=${html`
-          <button
-            type="button"
-            class="availability-fold-btn"
-            aria-expanded=${disponibilidadeExpandida}
-            aria-label=${disponibilidadeExpandida ? 'Recolher criação de disponibilidade' : 'Expandir criação de disponibilidade'}
-            onClick=${() => setDisponibilidadeExpandida((valor) => !valor)}
-          >
-            <span class="material-symbols-outlined">${IconeSvg(disponibilidadeExpandida ? 'expand_less' : 'expand_more')}</span>
-          </button>
-        `}
+      <${ModalPadrao}
+        aberto=${disponibilidadeExpandida}
+        titulo="Criar disponibilidade"
+        subtitulo="Gere novos horários/slots de entrevista para um processo."
+        onClose=${() => setDisponibilidadeExpandida(false)}
+        className="availability-modal"
       >
-        ${!disponibilidadeExpandida
-          ? html`<p class="availability-fold-hint text-muted small mb-0">Recolhido para economizar espaço — clique na seta para gerar novos slots.</p>`
-          : html`
         <div class="availability-form-grid">
           <div class="rh-filter-field">
             <label>Processo</label>
@@ -850,8 +847,7 @@ export function TelaEntrevistas({ controlador }) {
             ${salvando ? 'Salvando...' : 'Gerar slots'}
           </button>
         </div>
-        `}
-      </${SectionCard}>
+      </${ModalPadrao}>
       </div>
 
       <${SectionCard}

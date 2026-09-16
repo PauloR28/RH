@@ -10,8 +10,8 @@ import {
   alternarDownloadAnexo,
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { atualizarTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
-import { PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
+import { atualizarTrilhaOnboarding, lerTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
+import { LoadingState, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 const CATEGORIAS_TREINAMENTO = ['LGPD', 'Segurança da Informação', 'Tecnologia', 'Operações', 'Onboarding', 'Produto', 'Outro'];
@@ -60,6 +60,49 @@ const MODULO_INICIAL = {
 const SAIBA_MAIS_ITEM_INICIAL = { tipo: 'dica', texto: '', url: '' };
 const SECAO_MODULO_INICIAL = { subtitulo: '', texto: '', imagens: [] };
 
+// Chave usada para passar o id da trilha a editar para esta tela (mesmo
+// padrão de CHAVE_PROCESSO_DETALHE em features/processos/state.js) — setada
+// por abrirEdicaoTrilha em treinamentos/index.js antes de navegar para cá.
+export const CHAVE_TRILHA_EDICAO = 'rh_trilha_edicao_atual';
+
+// Converte a trilha carregada da API (GET /onboarding/trilhas/{id}) para o
+// formato interno do formulário do wizard, reaproveitando a mesma UI rica de
+// criação para editar (Correções.txt: conteúdo do módulo — texto/imagem
+// intercalados, Dica, Saiba+, tabela — precisa ficar visível e editável).
+function mapearTrilhaParaFormulario(trilha) {
+  const itens = (trilha.itens || []).map((item) => ({
+    id_item: item.id_item || null,
+    titulo: item.titulo || '',
+    subtitulo: item.subtitulo || '',
+    descricao: item.descricao || '',
+    texto_principal: item.texto_principal || '',
+    obrigatorio: item.obrigatorio !== false,
+    tipo_conteudo: item.tipo_conteudo || '',
+    conteudo_url: item.conteudo_url || '',
+    dica_texto: item.dica_texto || '',
+    tabela: item.tabela || null,
+    saiba_mais: Array.isArray(item.saiba_mais) ? item.saiba_mais : [],
+    secoes: normalizarSecoesImportadas(item.secoes),
+    anexos: [],
+    _videoFile: null,
+    video_nome_original: item.video_nome_original || '',
+  }));
+  return {
+    nome: trilha.nome || '',
+    descricao: trilha.descricao || '',
+    categoria: trilha.categoria || 'Onboarding',
+    id_operacao: trilha.id_operacao ? String(trilha.id_operacao) : '',
+    modalidade: trilha.modalidade || '',
+    local_padrao: trilha.local_padrao || '',
+    tipo_obrigatorio: !!trilha.tipo_obrigatorio,
+    ocorrencias: [{ ...OCORRENCIA_INICIAL }],
+    participantes: [],
+    itens: itens.length ? itens : [{ ...MODULO_INICIAL }],
+    pptxFile: null,
+    texto_encerramento: trilha.texto_encerramento || TEXTO_ENCERRAMENTO_PADRAO,
+  };
+}
+
 const FORM_INICIAL = {
   nome: '',
   descricao: '',
@@ -102,6 +145,9 @@ function normalizarSecoesImportadas(secoes) {
 }
 
 export function TelaCriarTreinamento({ controlador }) {
+  const [idTrilhaEdicao] = useState(() => sessionStorage.getItem(CHAVE_TRILHA_EDICAO) || '');
+  const modoEdicao = !!idTrilhaEdicao;
+
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [formulario, setFormulario] = useState(FORM_INICIAL);
   const [operacoes, setOperacoes] = useState([]);
@@ -109,12 +155,35 @@ export function TelaCriarTreinamento({ controlador }) {
   const [salvando, setSalvando] = useState(false);
   const [progressoPublicacao, setProgressoPublicacao] = useState('');
 
+  const [trilhaOriginal, setTrilhaOriginal] = useState(null);
+  const [carregandoEdicao, setCarregandoEdicao] = useState(modoEdicao);
+
+  useEffect(() => {
+    if (!modoEdicao) return;
+    lerTrilhaOnboarding(idTrilhaEdicao)
+      .then((dados) => {
+        setTrilhaOriginal(dados);
+        setFormulario(mapearTrilhaParaFormulario(dados));
+      })
+      .catch((error) => setErro(error?.message || 'Não foi possível carregar o treinamento para edição.'))
+      .finally(() => setCarregandoEdicao(false));
+  }, [modoEdicao, idTrilhaEdicao]);
+
   const [buscaParticipante, setBuscaParticipante] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState([]);
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
 
   const [modalTermoAberto, setModalTermoAberto] = useState(null); // { moduloIndex, anexoId }
   const [importandoTreinamento, setImportandoTreinamento] = useState(false);
+  const [modulosColapsados, setModulosColapsados] = useState(() => new Set());
+  const alternarColapsoModulo = (index) => {
+    setModulosColapsados((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(index)) proximo.delete(index);
+      else proximo.add(index);
+      return proximo;
+    });
+  };
 
   useEffect(() => {
     listarOperacoes()
@@ -548,8 +617,12 @@ export function TelaCriarTreinamento({ controlador }) {
   const validarEtapa = (etapa) => {
     if (etapa === 1) {
       if (!formulario.nome.trim()) return 'Informe o nome do treinamento.';
-      const semData = formulario.ocorrencias.some((item) => !item.data_prevista && !item.sem_horario_definido);
-      if (semData) return 'Informe a data/horário de todas as ocorrências, ou marque "sem horário definido".';
+      // Correções.txt item 8: ao editar um treinamento já realizado, as
+      // ocorrências passadas não precisam de data/horário reconfirmados.
+      if (!modoEdicao) {
+        const semData = formulario.ocorrencias.some((item) => !item.data_prevista && !item.sem_horario_definido);
+        if (semData) return 'Informe a data/horário de todas as ocorrências, ou marque "sem horário definido".';
+      }
       return '';
     }
     if (etapa === 3) {
@@ -605,6 +678,52 @@ export function TelaCriarTreinamento({ controlador }) {
     })),
   });
 
+  // Envia vídeo/anexos/imagens pendentes de cada módulo (upload que só é
+  // possível depois que o módulo já existe, com id_item) e devolve os itens
+  // locais com as URLs de imagem resolvidas + se algo foi enviado — usado
+  // tanto na criação quanto na edição (mesma lógica, muda só o payload base).
+  const enviarArquivosPendentesDosModulos = async (idTrilha, itensCriados) => {
+    const itensAtualizados = formulario.itens.map((item) => ({
+      ...item,
+      secoes: (item.secoes || []).map((secao) => ({ ...secao, imagens: [...(secao.imagens || [])] })),
+    }));
+    let houveUploadDeImagem = false;
+
+    for (let index = 0; index < formulario.itens.length; index += 1) {
+      const moduloLocal = formulario.itens[index];
+      const moduloCriado = itensCriados[index];
+      if (!moduloCriado?.id_item) continue;
+
+      if (moduloLocal._videoFile) {
+        setProgressoPublicacao(`Enviando vídeo do módulo "${moduloLocal.titulo}"...`);
+        await uploadVideoModulo(moduloCriado.id_item, moduloLocal._videoFile);
+      }
+
+      for (const anexo of moduloLocal.anexos || []) {
+        setProgressoPublicacao(`Enviando anexo "${anexo.file.name}" (${moduloLocal.titulo})...`);
+        const resultadoAnexo = await uploadAnexoTreinamento(idTrilha, anexo.file, moduloCriado.id_item);
+        if (anexo.permite_download && resultadoAnexo?.id_anexo) {
+          await alternarDownloadAnexo(resultadoAnexo.id_anexo, { permite_download: true, termo_aceito: true });
+        }
+      }
+
+      const secoesModulo = moduloLocal.secoes || [];
+      for (let s = 0; s < secoesModulo.length; s += 1) {
+        const imagensSecao = secoesModulo[s].imagens || [];
+        for (let i = 0; i < imagensSecao.length; i += 1) {
+          const imagem = imagensSecao[i];
+          if (imagem.tipo !== 'upload' || !imagem.file) continue;
+          setProgressoPublicacao(`Enviando imagem "${imagem.nome}" (${moduloLocal.titulo})...`);
+          const resultadoImagem = await uploadImagemSecaoModulo(moduloCriado.id_item, imagem.file);
+          itensAtualizados[index].secoes[s].imagens[i] = { ...imagem, _urlResolvida: resultadoImagem.url };
+          houveUploadDeImagem = true;
+        }
+      }
+    }
+
+    return { itensAtualizados, houveUploadDeImagem };
+  };
+
   const publicar = async () => {
     setSalvando(true);
     setErro('');
@@ -639,43 +758,7 @@ export function TelaCriarTreinamento({ controlador }) {
         await uploadSlideTreinamento(idTrilha, formulario.pptxFile);
       }
 
-      const itensAtualizados = formulario.itens.map((item) => ({
-        ...item,
-        secoes: (item.secoes || []).map((secao) => ({ ...secao, imagens: [...(secao.imagens || [])] })),
-      }));
-      let houveUploadDeImagem = false;
-
-      for (let index = 0; index < formulario.itens.length; index += 1) {
-        const moduloLocal = formulario.itens[index];
-        const moduloCriado = itensCriados[index];
-        if (!moduloCriado?.id_item) continue;
-
-        if (moduloLocal._videoFile) {
-          setProgressoPublicacao(`Enviando vídeo do módulo "${moduloLocal.titulo}"...`);
-          await uploadVideoModulo(moduloCriado.id_item, moduloLocal._videoFile);
-        }
-
-        for (const anexo of moduloLocal.anexos || []) {
-          setProgressoPublicacao(`Enviando anexo "${anexo.file.name}" (${moduloLocal.titulo})...`);
-          const resultadoAnexo = await uploadAnexoTreinamento(idTrilha, anexo.file, moduloCriado.id_item);
-          if (anexo.permite_download && resultadoAnexo?.id_anexo) {
-            await alternarDownloadAnexo(resultadoAnexo.id_anexo, { permite_download: true, termo_aceito: true });
-          }
-        }
-
-        const secoesModulo = moduloLocal.secoes || [];
-        for (let s = 0; s < secoesModulo.length; s += 1) {
-          const imagensSecao = secoesModulo[s].imagens || [];
-          for (let i = 0; i < imagensSecao.length; i += 1) {
-            const imagem = imagensSecao[i];
-            if (imagem.tipo !== 'upload' || !imagem.file) continue;
-            setProgressoPublicacao(`Enviando imagem "${imagem.nome}" (${moduloLocal.titulo})...`);
-            const resultadoImagem = await uploadImagemSecaoModulo(moduloCriado.id_item, imagem.file);
-            itensAtualizados[index].secoes[s].imagens[i] = { ...imagem, _urlResolvida: resultadoImagem.url };
-            houveUploadDeImagem = true;
-          }
-        }
-      }
+      const { itensAtualizados, houveUploadDeImagem } = await enviarArquivosPendentesDosModulos(idTrilha, itensCriados);
 
       if (houveUploadDeImagem) {
         setProgressoPublicacao('Salvando imagens dos módulos...');
@@ -696,6 +779,63 @@ export function TelaCriarTreinamento({ controlador }) {
       controlador.irParaTelaProtegida('screen-training-trilhas');
     } catch (error) {
       setErro(error?.message || 'Não foi possível publicar o treinamento.');
+    } finally {
+      setSalvando(false);
+      setProgressoPublicacao('');
+    }
+  };
+
+  // Payload base da edição: nome/categoria/etc. vêm do formulário (editável
+  // aqui), mas `ativo`/`conteudo_json` (slides legados)/`saiba_mais_treinamento`
+  // não têm campo nesta tela — são devolvidos sem alteração a partir da trilha
+  // original para não apagar dado que este wizard não gerencia (mesmo cuidado
+  // do bug de perda de dados já corrigido em abrirEdicaoTrilha/normalizarItensParaEnvio).
+  const montarPayloadBaseEdicao = (itens) => ({
+    nome: formulario.nome.trim(),
+    descricao: formulario.descricao.trim(),
+    ativo: trilhaOriginal?.ativo !== false,
+    categoria: formulario.categoria,
+    id_operacao: formulario.id_operacao ? Number(formulario.id_operacao) : null,
+    modalidade: formulario.modalidade,
+    local_padrao: formulario.local_padrao.trim(),
+    tipo_obrigatorio: !!formulario.tipo_obrigatorio,
+    texto_encerramento: formulario.texto_encerramento.trim(),
+    conteudo_json: trilhaOriginal?.conteudo_json ?? null,
+    saiba_mais_treinamento: trilhaOriginal?.saiba_mais_treinamento ?? null,
+    itens,
+  });
+
+  const salvarEdicao = async () => {
+    setSalvando(true);
+    setErro('');
+    try {
+      const idTrilha = trilhaOriginal.id_trilha;
+      setProgressoPublicacao('Salvando alterações...');
+      let resultado = await atualizarTrilhaOnboarding(
+        idTrilha,
+        montarPayloadBaseEdicao(formulario.itens.map((item, index) => montarPayloadItem(item, index, item.id_item || null))),
+      );
+      let itensAtuais = resultado.itens || [];
+
+      if (formulario.pptxFile) {
+        setProgressoPublicacao('Enviando novo slide de apresentação...');
+        await uploadSlideTreinamento(idTrilha, formulario.pptxFile);
+      }
+
+      const { itensAtualizados, houveUploadDeImagem } = await enviarArquivosPendentesDosModulos(idTrilha, itensAtuais);
+
+      if (houveUploadDeImagem) {
+        setProgressoPublicacao('Salvando imagens dos módulos...');
+        await atualizarTrilhaOnboarding(
+          idTrilha,
+          montarPayloadBaseEdicao(itensAtualizados.map((item, index) => montarPayloadItem(item, index, itensAtuais[index]?.id_item || item.id_item || null))),
+        );
+      }
+
+      sessionStorage.removeItem(CHAVE_TRILHA_EDICAO);
+      controlador.irParaTelaProtegida('screen-training-trilhas');
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível salvar as alterações do treinamento.');
     } finally {
       setSalvando(false);
       setProgressoPublicacao('');
@@ -755,6 +895,9 @@ export function TelaCriarTreinamento({ controlador }) {
       </label>
     </section>
 
+    ${modoEdicao
+      ? null
+      : html`
     <section class="process-create-card mt-3">
       <div class="process-create-section-title">
         <span class="material-symbols-outlined">${IconeSvg('event')}</span>
@@ -873,24 +1016,40 @@ export function TelaCriarTreinamento({ controlador }) {
           `
         : null}
     </section>
+      `}
   `;
 
-  const renderModuloForm = (modulo, index) => html`
+  const renderModuloForm = (modulo, index) => {
+    const colapsado = modulosColapsados.has(index);
+    return html`
     <div key=${index} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '14px' }}>
-      <div class="row g-2">
-        <div class="col-md-6">
-          <label class="process-create-field mb-2">
-            <span>Título do módulo</span>
-            <input value=${modulo.titulo} onInput=${(event) => atualizarModulo(index, 'titulo', event.target.value)} />
-          </label>
-        </div>
-        <div class="col-md-6">
-          <label class="process-create-field mb-2">
-            <span>Subtítulo (opcional)</span>
-            <input value=${modulo.subtitulo} onInput=${(event) => atualizarModulo(index, 'subtitulo', event.target.value)} />
-          </label>
+      <div class="d-flex align-items-start gap-2">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          title=${colapsado ? 'Expandir módulo' : 'Recolher módulo'}
+          onClick=${() => alternarColapsoModulo(index)}
+        >
+          <span class="material-symbols-outlined">${IconeSvg(colapsado ? 'expand_more' : 'expand_less')}</span>
+        </button>
+        <div class="row g-2 flex-grow-1">
+          <div class="col-md-6">
+            <label class="process-create-field mb-2">
+              <span>Título do módulo</span>
+              <input value=${modulo.titulo} onInput=${(event) => atualizarModulo(index, 'titulo', event.target.value)} />
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="process-create-field mb-2">
+              <span>Subtítulo (opcional)</span>
+              <input value=${modulo.subtitulo} onInput=${(event) => atualizarModulo(index, 'subtitulo', event.target.value)} />
+            </label>
+          </div>
         </div>
       </div>
+      ${colapsado
+        ? null
+        : html`
       <label class="process-create-field mb-2">
         <span>Texto principal</span>
         <textarea rows="3" value=${modulo.texto_principal} onInput=${(event) => atualizarModulo(index, 'texto_principal', event.target.value)}></textarea>
@@ -914,7 +1073,11 @@ export function TelaCriarTreinamento({ controlador }) {
           <label class="process-create-field mb-2">
             <span>Ou anexar vídeo (upload)</span>
             <input type="file" accept=".mp4,.webm" onChange=${(event) => atualizarModulo(index, '_videoFile', event.target.files?.[0] || null)} />
-            ${modulo._videoFile ? html`<small class="text-muted">${modulo._videoFile.name}</small>` : null}
+            ${modulo._videoFile
+              ? html`<small class="text-muted">${modulo._videoFile.name}</small>`
+              : modulo.video_nome_original
+                ? html`<small class="text-muted">Atual: ${modulo.video_nome_original}</small>`
+                : null}
           </label>
         </div>
       </div>
@@ -1084,6 +1247,7 @@ export function TelaCriarTreinamento({ controlador }) {
           `,
         )}
       </div>
+      `}
 
       <div class="d-flex align-items-center justify-content-between">
         <label class="d-flex align-items-center gap-2 mb-0">
@@ -1105,6 +1269,7 @@ export function TelaCriarTreinamento({ controlador }) {
       </div>
     </div>
   `;
+  };
 
   const renderEtapa2 = () => html`
     <section class="process-create-card">
@@ -1157,7 +1322,7 @@ export function TelaCriarTreinamento({ controlador }) {
   const renderEtapa3 = () => html`
     <section class="process-create-card">
       <div class="process-create-section-title">
-        <span class="material-symbols-outlined">${IconeSvg('view_module')}</span>
+        <span class="material-symbols-outlined">${IconeSvg('grid_view')}</span>
         <h2>Módulos do treinamento</h2>
       </div>
       <div class="d-flex flex-wrap gap-2 mb-3">
@@ -1188,6 +1353,9 @@ export function TelaCriarTreinamento({ controlador }) {
       <p class="text-muted small">
         Este é o material que o responsável vai apresentar ao vivo durante o treinamento (modo "Iniciar Treinamento").
       </p>
+      ${modoEdicao && trilhaOriginal?.pptx_nome_original && !formulario.pptxFile
+        ? html`<p class="text-muted small mb-2">Slide atual: <strong>${trilhaOriginal.pptx_nome_original}</strong> — escolha um novo arquivo abaixo para substituir.</p>`
+        : null}
       <input
         type="file"
         accept=".pptx"
@@ -1226,10 +1394,21 @@ export function TelaCriarTreinamento({ controlador }) {
           ['Operação', nomeOperacao],
           ['Modalidade', MODALIDADES_TREINAMENTO.find((m) => m.value === formulario.modalidade)?.label || '-'],
           ['Obrigatório', formulario.tipo_obrigatorio ? 'Sim' : 'Não'],
-          ['Ocorrências', String(formulario.ocorrencias.length)],
-          ['Participantes', String(formulario.participantes.length)],
+          ...(modoEdicao
+            ? []
+            : [
+                ['Ocorrências', String(formulario.ocorrencias.length)],
+                ['Participantes', String(formulario.participantes.length)],
+              ]),
           ['Módulos', String(formulario.itens.length)],
-          ['Slide (.pptx)', formulario.pptxFile ? formulario.pptxFile.name : 'Não enviado'],
+          [
+            'Slide (.pptx)',
+            formulario.pptxFile
+              ? formulario.pptxFile.name
+              : modoEdicao && trilhaOriginal?.pptx_nome_original
+                ? `${trilhaOriginal.pptx_nome_original} (atual, mantido)`
+                : 'Não enviado',
+          ],
           [
             'Documentos anexos (por módulo)',
             String(formulario.itens.reduce((total, item) => total + (item.anexos?.length || 0), 0)),
@@ -1264,21 +1443,38 @@ export function TelaCriarTreinamento({ controlador }) {
     6: renderEtapa6,
   };
 
+  if (carregandoEdicao) {
+    return html`
+      <${PainelRh} screenId="screen-training-create" navAtiva="screen-training-create" controlador=${controlador}>
+        <${LoadingState} titulo="Carregando treinamento" />
+      <//>
+    `;
+  }
+
+  const cancelarEVoltar = () => {
+    if (modoEdicao) sessionStorage.removeItem(CHAVE_TRILHA_EDICAO);
+    controlador.irParaTelaProtegida('screen-training-trilhas');
+  };
+
   return html`
     <${PainelRh}
       screenId="screen-training-create"
       navAtiva="screen-training-create"
-      subtituloMarca="Criar treinamento"
-      placeholderBusca="Novo treinamento"
+      subtituloMarca=${modoEdicao ? 'Editar treinamento' : 'Criar treinamento'}
+      placeholderBusca=${modoEdicao ? 'Editar treinamento' : 'Novo treinamento'}
       controlador=${controlador}
       acaoPrimaria=${etapaAtual < 6
         ? { label: 'Próximo', icon: 'arrow_forward', onClick: avancar, disabled: salvando }
-        : { label: salvando ? 'Publicando...' : 'Publicar treinamento', icon: 'check', onClick: publicar, disabled: salvando }}
+        : modoEdicao
+          ? { label: salvando ? 'Salvando...' : 'Salvar alterações', icon: 'check', onClick: salvarEdicao, disabled: salvando }
+          : { label: salvando ? 'Publicando...' : 'Publicar treinamento', icon: 'check', onClick: publicar, disabled: salvando }}
     >
       <${PageIntro}
-        kicker="Central de Treinamentos • Novo treinamento"
+        kicker=${`Central de Treinamentos • ${modoEdicao ? 'Editar treinamento' : 'Novo treinamento'}`}
         title=${`Etapa ${etapaAtual}: ${ETAPAS[etapaAtual - 1][1]}`}
-        description="Cadastre o treinamento em etapas, do jeito mais simples e direto possível."
+        description=${modoEdicao
+          ? 'Atualize os módulos, textos, imagens e demais conteúdos deste treinamento.'
+          : 'Cadastre o treinamento em etapas, do jeito mais simples e direto possível.'}
       />
 
       <div class="process-create-shell">
@@ -1287,8 +1483,12 @@ export function TelaCriarTreinamento({ controlador }) {
         <${WizardSummaryStrip}
           items=${[
             ['Nome', formulario.nome || '-'],
-            ['Ocorrências', formulario.ocorrencias.length],
-            ['Participantes', formulario.participantes.length],
+            ...(modoEdicao
+              ? []
+              : [
+                  ['Ocorrências', formulario.ocorrencias.length],
+                  ['Participantes', formulario.participantes.length],
+                ]),
             ['Módulos', formulario.itens.length],
           ]}
           note=${progressoPublicacao}
@@ -1301,12 +1501,12 @@ export function TelaCriarTreinamento({ controlador }) {
         ${erro ? html`<div class="alert alert-danger mt-3">${erro}</div>` : null}
 
         <footer class="process-create-actions">
-          <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${() => (etapaAtual > 1 ? voltar() : controlador.irParaTelaProtegida('screen-training-trilhas'))}>
+          <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${() => (etapaAtual > 1 ? voltar() : cancelarEVoltar())}>
             <span class="material-symbols-outlined">${IconeSvg('arrow_back')}</span>
             Voltar
           </button>
           <div>
-            <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${() => controlador.irParaTelaProtegida('screen-training-trilhas')}>
+            <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${cancelarEVoltar}>
               Cancelar
             </button>
           </div>

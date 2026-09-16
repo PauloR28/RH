@@ -7,7 +7,7 @@ import {
 import { ModalPadrao, ToastAlert } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
-const PADRAO_VARIAVEL = /{{\s*([a-zA-Z0-9_]+)\s*}}/g;
+const PADRAO_VARIAVEL = /{\s*([a-zA-Z0-9_]+)\s*}/g;
 
 function extrairVariaveis(...textos) {
   const nomes = new Set();
@@ -142,6 +142,7 @@ export function ModalComporEmail({
   controlador,
   destinatariosIniciais = [],
   anexosIniciais = [],
+  variaveisIniciais = {},
   onEnviado = null,
 }) {
   const podeUsarModelo = controlador?.possuiPermissao?.('emails.enviar_modelo');
@@ -189,10 +190,11 @@ export function ModalComporEmail({
     setVariaveis((atual) => {
       const proximo = {};
       nomesVariaveis.forEach((nome) => {
-        proximo[nome] = atual[nome] || '';
+        proximo[nome] = atual[nome] || variaveisIniciais[nome] || '';
       });
       return proximo;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modeloSelecionado]);
 
   if (!aberto) return null;

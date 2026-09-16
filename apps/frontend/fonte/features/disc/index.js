@@ -179,7 +179,7 @@ export function TelaDiscAdmin({ controlador }) {
                   })}
                 </div>
               `
-            : html`<div class="table-responsive"><table class="table"><tbody><${TabelaVazia} colunas=${2} texto="Nenhum bloco DISC cadastrado." icone="insights" /></tbody></table></div>`}
+            : html`<div class="table-responsive"><table class="table"><tbody><${TabelaVazia} colunas=${2} texto="Nenhum bloco DISC cadastrado." icone="bar_chart" /></tbody></table></div>`}
       </${SectionCard}>
 
       <${ModalPadrao}
@@ -447,7 +447,7 @@ export function PainelResultadoDisc({ idTeste, aoCarregar }) {
     lerResultadoDiscCandidato(idTeste)
       .then((dados) => {
         setResultado(dados);
-        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado), resultado: dados });
       })
       .catch((error) => {
         setErro(error?.message || 'Não foi possível carregar o resultado do DISC.');

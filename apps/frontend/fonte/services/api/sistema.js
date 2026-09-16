@@ -16,11 +16,15 @@ export async function listarInfraestruturaCredenciais() {
   return requisitar('/sistema/parametros/infraestrutura', { method: 'GET' });
 }
 
-export async function resetarDadosConecta(confirmacao) {
+export async function listarCategoriasReset() {
+  return requisitar('/sistema/resetar/categorias', { method: 'GET' });
+}
+
+export async function resetarDadosConecta({ confirmacao, senha, categorias }) {
   return requisitar('/sistema/resetar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ confirmacao }),
+    body: JSON.stringify({ confirmacao, senha, categorias }),
   });
 }
 

@@ -15,6 +15,7 @@ import {
   atualizarAmbienteSharePoint,
   excluirAmbienteSharePoint,
   listarAmbientesSharePoint,
+  listarCategoriasReset,
   listarInfraestruturaCredenciais,
   listarParametrosSistema,
   resetarDadosConecta,
@@ -73,7 +74,7 @@ const FORM_PARAMETRO_INICIAL = {
 const RESET_FRASE_CONFIRMACAO = 'LIMPAR CONECTA';
 
 const GRUPOS_PARAMETRO = [
-  { chave: 'sharepoint', label: 'SharePoint', icone: 'cloud_sync' },
+  { chave: 'sharepoint', label: 'SharePoint', icone: 'sync' },
   { chave: 'email', label: 'E-mail', icone: 'mail' },
   { chave: 'onedrive', label: 'OneDrive', icone: 'cloud' },
 ];
@@ -212,7 +213,14 @@ export function TelaAdministracao({ controlador }) {
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [erroEdicao, setErroEdicao] = useState('');
 
+  const [categoriasReset, setCategoriasReset] = useState([]);
+  const [carregandoCategoriasReset, setCarregandoCategoriasReset] = useState(false);
+  const [modalCategoriasResetAberto, setModalCategoriasResetAberto] = useState(false);
+  const [categoriasResetSelecionadas, setCategoriasResetSelecionadas] = useState({});
+  const [categoriasResetDesbloqueadas, setCategoriasResetDesbloqueadas] = useState(false);
+
   const [modalResetAberto, setModalResetAberto] = useState(false);
+  const [senhaReset, setSenhaReset] = useState('');
   const [resetando, setResetando] = useState(false);
   const [erroReset, setErroReset] = useState('');
 
@@ -400,18 +408,58 @@ export function TelaAdministracao({ controlador }) {
     }
   };
 
+  const abrirModalCategoriasReset = async () => {
+    setErroReset('');
+    setCategoriasResetDesbloqueadas(false);
+    setModalCategoriasResetAberto(true);
+    if (categoriasReset.length) return;
+    setCarregandoCategoriasReset(true);
+    try {
+      const resultado = await listarCategoriasReset();
+      const itens = Array.isArray(resultado?.categorias) ? resultado.categorias : [];
+      setCategoriasReset(itens);
+      setCategoriasResetSelecionadas(
+        Object.fromEntries(itens.map((item) => [item.chave, true])),
+      );
+    } catch (error) {
+      setErroCarregamento(error?.message || 'Não foi possível carregar as categorias da Zona de risco.');
+    } finally {
+      setCarregandoCategoriasReset(false);
+    }
+  };
+
+  const avancarParaConfirmacaoReset = () => {
+    const selecionadas = Object.entries(categoriasResetSelecionadas).filter(([, marcado]) => marcado);
+    if (!selecionadas.length) {
+      setErroReset('Selecione ao menos uma categoria de dados para limpar.');
+      return;
+    }
+    setModalCategoriasResetAberto(false);
+    setSenhaReset('');
+    setErroReset('');
+    setModalResetAberto(true);
+  };
+
   const confirmarResetConecta = async ({ justificativa }) => {
     const digitado = String(justificativa || '').trim().toUpperCase();
     if (digitado !== RESET_FRASE_CONFIRMACAO) {
       setErroReset(`Digite exatamente "${RESET_FRASE_CONFIRMACAO}" para confirmar.`);
       return;
     }
+    if (!senhaReset) {
+      setErroReset('Digite sua senha para confirmar que é você quem está realizando esta ação.');
+      return;
+    }
+    const categorias = Object.entries(categoriasResetSelecionadas)
+      .filter(([, marcado]) => marcado)
+      .map(([chave]) => chave);
     setResetando(true);
     setErroReset('');
     try {
-      await resetarDadosConecta(digitado);
+      await resetarDadosConecta({ confirmacao: digitado, senha: senhaReset, categorias });
       setModalResetAberto(false);
-      setFeedback('Conecta zerado com sucesso. Recarregue a página para começar a reconfigurar o sistema.');
+      setSenhaReset('');
+      setFeedback('Dados selecionados removidos com sucesso. Recarregue a página para continuar.');
     } catch (error) {
       setErroReset(error?.message || 'Não foi possível limpar os dados do Conecta.');
     } finally {
@@ -666,13 +714,13 @@ export function TelaAdministracao({ controlador }) {
     <${PainelRh}
       screenId="screen-settings-administracao"
       navAtiva="screen-settings-administracao"
-      subtituloMarca="Administração do Conecta"
-      placeholderBusca="Administração"
+      subtituloMarca="Parâmetros do Conecta"
+      placeholderBusca="Parâmetros"
       controlador=${controlador}
     >
       <${PageIntro}
         kicker="Configurações"
-        title="Administração"
+        title="Parâmetros"
         description=""
       />
 
@@ -682,7 +730,7 @@ export function TelaAdministracao({ controlador }) {
       <${Tabs}
         tabs=${[
         { key: 'modulos', label: 'Módulos' },
-        ...(podeVerConfiguracoes ? [{ key: 'parametros', label: 'Parâmetros' }] : []),
+        ...(podeVerConfiguracoes ? [{ key: 'parametros', label: 'Conectores Externos' }] : []),
         ...(ehAdministrador ? [{ key: 'risco', label: 'Zona de risco' }] : []),
       ]}
         activeKey=${abaAdminAtiva}
@@ -719,7 +767,7 @@ export function TelaAdministracao({ controlador }) {
       ? html`
             <${TabPanel} tabKey="parametros" activeKey=${abaAdminAtiva}>
               <${SectionCard}
-                title="Parâmetros"
+                title="Conectores Externos"
                 className="rh-section-card--flat"
                 actions=${podeEditarConfiguracoes
           ? modoEdicaoParametros
@@ -761,15 +809,13 @@ export function TelaAdministracao({ controlador }) {
             <${TabPanel} tabKey="risco" activeKey=${abaAdminAtiva}>
               <${SectionCard} title="Zona de risco" className="rh-section-card--flat rh-danger-zone">
                 <p class="rh-admin-hint">
-                  Apaga todos os dados operacionais (usuários exceto administradores, processos,
-                  candidatos, provas, treinamentos, operações) — não pode ser desfeito.
+                  Remove permanentemente os dados operacionais do Conecta que você escolher abaixo —
+                  não pode ser desfeito. Você poderá revisar e alterar exatamente o que será apagado
+                  antes de confirmar.
                 </p>
-                <button type="button" class="btn btn-danger" onClick=${() => {
-          setErroReset('');
-          setModalResetAberto(true);
-        }}>
+                <button type="button" class="btn btn-danger" onClick=${abrirModalCategoriasReset}>
                   <span class="material-symbols-outlined">${IconeSvg('delete_forever')}</span>
-                  Limpar o Conecta
+                  Aplicar
                 </button>
               </${SectionCard}>
             </${TabPanel}>
@@ -919,21 +965,130 @@ export function TelaAdministracao({ controlador }) {
         onConfirm=${confirmarRemocaoAmbiente}
       />
 
-      <${ModalConfirmacaoAcao}
+      <${ModalPadrao}
+        aberto=${modalCategoriasResetAberto}
+        titulo="Aplicar — o que será removido"
+        subtitulo="Revise o que será apagado. Use Alterar seleção para escolher exatamente o que remover."
+        onClose=${() => setModalCategoriasResetAberto(false)}
+        className="rh-action-modal rh-action-modal--destrutivo"
+      >
+        <div class="rh-action-modal-body">
+          ${carregandoCategoriasReset
+      ? html`<p class="text-muted mb-0">Carregando categorias...</p>`
+      : html`
+                <div class="rh-reset-category-toolbar">
+                  <span class="text-muted small">
+                    ${categoriasResetDesbloqueadas
+            ? 'Selecione as categorias que serão removidas.'
+            : 'Por padrão, tudo é removido. Clique em "Alterar seleção" para escolher.'}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    onClick=${() => setCategoriasResetDesbloqueadas((atual) => !atual)}
+                  >
+                    <span class="material-symbols-outlined">${IconeSvg(categoriasResetDesbloqueadas ? 'lock' : 'edit')}</span>
+                    ${categoriasResetDesbloqueadas ? 'Concluir seleção' : 'Alterar seleção'}
+                  </button>
+                </div>
+                <ul class="rh-reset-category-list">
+                  ${categoriasReset.map(
+        (categoria) => html`
+                      <li key=${categoria.chave} class="rh-reset-category-item">
+                        <span>
+                          <strong>${categoria.label}</strong>
+                          ${categoria.total_tabelas != null
+            ? html`<small class="text-muted"> — ${categoria.total_tabelas} tabela(s)</small>`
+            : null}
+                        </span>
+                        <button
+                          type="button"
+                          class=${`users-switch ${categoriasResetSelecionadas[categoria.chave] ? 'is-on' : ''}`.trim()}
+                          role="switch"
+                          aria-checked=${Boolean(categoriasResetSelecionadas[categoria.chave])}
+                          disabled=${!categoriasResetDesbloqueadas}
+                          onClick=${() =>
+              setCategoriasResetSelecionadas((atual) => ({
+                ...atual,
+                [categoria.chave]: !atual[categoria.chave],
+              }))}
+                        >
+                          <i></i>
+                        </button>
+                      </li>
+                    `,
+      )}
+                </ul>
+              `}
+          ${erroReset ? html`<div class="alert alert-danger mt-3 mb-0">${erroReset}</div>` : null}
+        </div>
+        <footer class="rh-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onClick=${() => setModalCategoriasResetAberto(false)}>
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" onClick=${avancarParaConfirmacaoReset}>
+            Aplicar
+          </button>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
         aberto=${modalResetAberto}
-        titulo="Limpar o Conecta"
-        descricao="Esta ação apaga os dados operacionais do Conecta e não pode ser desfeita."
-        consequencia="Usuários (exceto administradores), processos seletivos, candidatos, banco de talentos, provas, treinamentos, slots/agendamentos, operações e trilhas pré-definidas serão removidos."
-        reversibilidade="Não é possível desfazer esta ação depois de confirmada."
-        labelJustificativa=${`Digite "${RESET_FRASE_CONFIRMACAO}" para confirmar`}
-        justificativaObrigatoria=${true}
-        textoConfirmar="Limpar dados agora"
-        tipo="destrutivo"
-        carregando=${resetando}
-        erro=${erroReset}
-        onClose=${() => setModalResetAberto(false)}
-        onConfirm=${confirmarResetConecta}
-      />
+        titulo="Confirme sua identidade"
+        subtitulo="Esta ação não pode ser desfeita. Confirme digitando a frase abaixo e sua senha."
+        onClose=${resetando ? () => null : () => setModalResetAberto(false)}
+        className="rh-action-modal rh-action-modal--destrutivo"
+      >
+        <${FormularioConfirmacaoReset}
+          resetando=${resetando}
+          erro=${erroReset}
+          senha=${senhaReset}
+          onSenha=${setSenhaReset}
+          onConfirm=${confirmarResetConecta}
+        />
+      </${ModalPadrao}>
     </${PainelRh}>
+  `;
+}
+
+function FormularioConfirmacaoReset({ resetando, erro, senha, onSenha, onConfirm }) {
+  const [frase, setFrase] = useState('');
+
+  return html`
+    <div class="rh-action-modal-body">
+      <p class="rh-action-modal-consequence">
+        Os dados das categorias selecionadas serão removidos permanentemente. Certifique-se de que é
+        realmente você o Administrador realizando esta ação.
+      </p>
+      <label class="form-label" for="rh-reset-frase">Digite "${RESET_FRASE_CONFIRMACAO}" para confirmar</label>
+      <input
+        id="rh-reset-frase"
+        class="form-control mb-3"
+        value=${frase}
+        disabled=${resetando}
+        onInput=${(event) => setFrase(event.target.value)}
+      />
+      <label class="form-label" for="rh-reset-senha">Sua senha</label>
+      <input
+        id="rh-reset-senha"
+        type="password"
+        class="form-control mb-1"
+        value=${senha}
+        disabled=${resetando}
+        onInput=${(event) => onSenha(event.target.value)}
+        autocomplete="current-password"
+      />
+      ${erro ? html`<div class="alert alert-danger mt-3 mb-0">${erro}</div>` : null}
+    </div>
+    <footer class="rh-modal-footer">
+      <button
+        type="button"
+        class="btn btn-danger"
+        disabled=${resetando}
+        onClick=${() => onConfirm({ justificativa: frase })}
+      >
+        ${resetando ? 'Aplicando...' : 'Aplicar agora'}
+      </button>
+    </footer>
   `;
 }

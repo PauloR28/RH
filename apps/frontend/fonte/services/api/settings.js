@@ -168,6 +168,15 @@ export async function desativarItemConfiguracao(tipo, idItem, justificativa = ''
   return resultado;
 }
 
+export async function excluirItemConfiguracao(tipo, idItem, justificativa = '') {
+  const resultado = await requisitar(
+    `/settings/catalog/${encodeURIComponent(tipo)}/${encodeURIComponent(idItem)}/permanente${montarQuery({ justificativa })}`,
+    { method: 'DELETE' },
+  );
+  invalidarCacheApi('settings:catalog');
+  return resultado;
+}
+
 export async function registrarSolicitacaoLgpd(payload) {
   return requisitar('/settings/lgpd/requests', {
     method: 'POST',

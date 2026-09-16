@@ -255,6 +255,17 @@ def deactivate_settings_item(
     return repository.deactivate_configuration_item(tipo, id_item, actor=user, justificativa=justificativa)
 
 
+@router.delete("/catalog/{tipo}/{id_item}/permanente", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def delete_settings_item_permanently(
+    tipo: str,
+    id_item: int,
+    justificativa: str = Query(default=""),
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.delete_configuration_item(tipo, id_item, actor=user, justificativa=justificativa)
+
+
 @router.post("/lgpd/requests", dependencies=[Depends(require_permissions("lgpd.registrar_solicitacao"))])
 def register_lgpd_request(
     payload: LgpdRequestCreate,

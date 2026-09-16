@@ -15,6 +15,8 @@ class ParametroSistemaRequest(BaseSchema):
 
 class ResetarDadosConectaRequest(BaseSchema):
     confirmacao: str = Field(default="")
+    senha: str = Field(default="")
+    categorias: list[str] = Field(default_factory=list)
 
 
 class AmbienteSharePointRequest(BaseSchema):

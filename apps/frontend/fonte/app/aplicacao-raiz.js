@@ -190,6 +190,20 @@ function resolverTelaProtegida(telaAtual, controlador) {
     return 'screen-processes';
   }
 
+  // Correções.txt item 8: para Operador e Supervisor, a Central de
+  // Treinamentos é sempre a primeira/única tela — independe de qual link
+  // trouxe a pessoa até aqui. Precisa vir ANTES do gate de permissão
+  // genérico abaixo: esses perfis normalmente não têm "inicio.visualizar"
+  // (a permissão da tela de menu padrão), então sem este redirecionamento
+  // primeiro, screen-menu cairia em screen-forbidden antes de chegar aqui.
+  if (
+    (telaAtual === 'screen-menu' || telaAtual === 'screen-login') &&
+    (estado.perfilUsuario === 'operador' || estado.perfilUsuario === 'supervisor') &&
+    controlador.podeAcessarTela('screen-training')
+  ) {
+    return 'screen-training';
+  }
+
   if (!controlador.podeAcessarTela(telaAtual)) {
     return 'screen-forbidden';
   }

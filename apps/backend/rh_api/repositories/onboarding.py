@@ -830,12 +830,26 @@ class OnboardingRepositoryMixin:
         )
         return [int(row[0]) for row in cursor.fetchall() if row[0] is not None]
 
+    _MY_TRAINING_CONTENT_EMPTY = {
+        "tipo_conteudo": None,
+        "conteudo_url": None,
+        "subtitulo": None,
+        "texto_principal": None,
+        "video_path": None,
+        "video_nome_original": None,
+        "dica_texto": None,
+        "tabela": None,
+        "saiba_mais": [],
+        "secoes": [],
+    }
+
     def _load_my_training_content(self, cursor, id_trilha_item: int | None) -> dict:
         if not id_trilha_item:
-            return {"tipo_conteudo": None, "conteudo_url": None, "texto_principal": None, "video_path": None, "secoes": []}
+            return dict(self._MY_TRAINING_CONTENT_EMPTY)
         cursor.execute(
             """
-            SELECT tipo_conteudo, conteudo_url, texto_principal, video_path, video_nome_original, secoes_json
+            SELECT tipo_conteudo, conteudo_url, subtitulo, texto_principal, video_path, video_nome_original,
+                   dica_texto, tabela_json, saiba_mais_itens_json, secoes_json
             FROM trilhas_onboarding_itens
             WHERE id_item = ?
             """,
@@ -843,8 +857,10 @@ class OnboardingRepositoryMixin:
         )
         rows = rows_to_dicts(cursor, cursor.fetchall())
         if not rows:
-            return {"tipo_conteudo": None, "conteudo_url": None, "texto_principal": None, "video_path": None, "secoes": []}
+            return dict(self._MY_TRAINING_CONTENT_EMPTY)
         content = rows[0]
+        content["tabela"] = _parse_json(content.pop("tabela_json", None))
+        content["saiba_mais"] = _parse_json(content.pop("saiba_mais_itens_json", None)) or []
         content["secoes"] = _parse_json(content.pop("secoes_json", None)) or []
         return content
 

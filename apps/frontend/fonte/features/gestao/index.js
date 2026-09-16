@@ -1,4 +1,5 @@
 import { IconeSvg } from '../../ui/icone.js';
+import { listarMural } from '../../services/api/mural.js';
 
 ﻿import {
   html,
@@ -56,6 +57,7 @@ import {
   marcarEmailRecebidoComoLido,
   excluirEmailRecebido,
   lerEmailsRecebidos,
+  lerCandidatosSugeridosProcesso,
   removerBancoTalentos,
   revalidarBancoTalentos,
   usarCandidatoDoBancoTalentos,
@@ -112,7 +114,9 @@ import { listarOperacoes } from '../../services/api/operations.js';
 import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20260904-correcoes-txt3';
 import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js';
 import {
+  AcceptanceDonutChart,
   AvatarUsuario,
+  BarComparisonChart,
   EmptyState,
   GrupoPaginacao,
   LoadingState,
@@ -1851,6 +1855,7 @@ export function TelaInicio({ controlador }) {
   const [processos, setProcessos] = useState([]);
   const [candidatosProcessos, setCandidatosProcessos] = useState([]);
   const [entrevistas, setEntrevistas] = useState([]);
+  const [muralRecente, setMuralRecente] = useState([]);
   const [paginaRecentes, setPaginaRecentes] = useState(1);
   const [detalheAberto, setDetalheAberto] = useState(null);
   const nomeUsuarioLogado = normalizarTextoPainel(
@@ -1867,13 +1872,20 @@ export function TelaInicio({ controlador }) {
         resultadoProcessos,
         resultadoCandidatos,
         resultadoEntrevistas,
+        resultadoMural,
       ] =
         await Promise.allSettled([
           lerHistorico(),
           lerProcessos({ forcar }),
           lerCandidatosProcessos({ forcar }),
           lerEntrevistas(),
+          controlador.possuiPermissao('mural.visualizar') ? listarMural('') : Promise.resolve({ itens: [] }),
         ]);
+      setMuralRecente(
+        resultadoMural.status === 'fulfilled' && Array.isArray(resultadoMural.value?.itens)
+          ? resultadoMural.value.itens.slice(0, 3)
+          : [],
+      );
       const historico =
         resultadoHistorico.status === 'fulfilled'
           ? resultadoHistorico.value
@@ -2281,12 +2293,43 @@ export function TelaInicio({ controlador }) {
           <${SectionCard}
             title="Mural"
             className="home-mural-card compact-dashboard-card"
+            actions=${muralRecente.length
+              ? html`
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    onClick=${() => controlador.irParaTelaProtegida('screen-mural')}
+                  >
+                    Ver todos
+                  </button>
+                `
+              : null}
           >
-            <div class="home-empty-state">
-              <span class="material-symbols-outlined">${IconeSvg('dashboard')}</span>
-              <h3>Mural desativado</h3>
-              <p>Feed de avisos, comunicados, fotos e vídeos do RH. Em breve no Conecta.</p>
-            </div>
+            ${muralRecente.length
+              ? html`
+                  <div class="mural-home-preview">
+                    ${muralRecente.map(
+                      (publicacao) => html`
+                        <button
+                          key=${publicacao.id_publicacao}
+                          type="button"
+                          class="mural-home-preview-item"
+                          onClick=${() => controlador.irParaTelaProtegida('screen-mural')}
+                        >
+                          <strong>${publicacao.titulo}</strong>
+                          <span>${publicacao.categoria || 'Aviso'} · ${formatarDataHora(publicacao.publicado_em || publicacao.criado_em)}</span>
+                        </button>
+                      `,
+                    )}
+                  </div>
+                `
+              : html`
+                  <div class="home-empty-state">
+                    <span class="material-symbols-outlined">${IconeSvg('article')}</span>
+                    <h3>Nenhuma publicação ainda</h3>
+                    <p>Avisos, comunicados, fotos e vídeos do RH aparecem aqui.</p>
+                  </div>
+                `}
           </${SectionCard}>
         </div>
 
@@ -3249,6 +3292,11 @@ export function TelaCriarProcesso({ controlador }) {
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [modalTalentosAberto, setModalTalentosAberto] = useState(false);
+  const [processoRecemCriado, setProcessoRecemCriado] = useState('');
+  const [sugestoesTalentos, setSugestoesTalentos] = useState([]);
+  const [carregandoSugestoesTalentos, setCarregandoSugestoesTalentos] = useState(false);
+  const [usandoTalentoId, setUsandoTalentoId] = useState(null);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
   const [operacoesCadastradas, setOperacoesCadastradas] = useState([]);
   const [trilhasDisponiveis, setTrilhasDisponiveis] = useState([]);
@@ -3938,11 +3986,38 @@ export function TelaCriarProcesso({ controlador }) {
         }
       }
 
-      controlador.irParaTelaProtegida('screen-processes');
+      // Correções.txt item 15: ao concluir a criação, mostra automaticamente
+      // candidatos do Banco de Talentos compatíveis com a vaga — sempre
+      // abre o modal, mesmo sem sugestões (feedback explícito de "nenhum
+      // candidato compatível" em vez de navegar direto em silêncio).
+      setProcessoRecemCriado(idProcessoCriado);
+      setModalTalentosAberto(true);
+      setCarregandoSugestoesTalentos(true);
+      lerCandidatosSugeridosProcesso(idProcessoCriado)
+        .then((resultado) => setSugestoesTalentos(Array.isArray(resultado?.candidatos) ? resultado.candidatos : []))
+        .catch(() => setSugestoesTalentos([]))
+        .finally(() => setCarregandoSugestoesTalentos(false));
     } catch (error) {
       setErro(error?.message || 'Não foi possível criar o processo.');
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const fecharModalTalentosENavegar = () => {
+    setModalTalentosAberto(false);
+    controlador.irParaTelaProtegida('screen-processes');
+  };
+
+  const adicionarTalentoAoProcesso = async (candidato) => {
+    setUsandoTalentoId(candidato.id_banco);
+    try {
+      await usarCandidatoDoBancoTalentos(candidato.id_banco, { id_processo: processoRecemCriado });
+      setSugestoesTalentos((atual) => atual.filter((item) => item.id_banco !== candidato.id_banco));
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível adicionar este candidato ao processo.');
+    } finally {
+      setUsandoTalentoId(null);
     }
   };
 
@@ -4775,6 +4850,49 @@ export function TelaCriarProcesso({ controlador }) {
         responsabilidades=${responsabilidadesCompartilhamento}
         onClose=${() => setModalCompartilharAberto(false)}
       />
+
+      <${ModalPadrao}
+        aberto=${modalTalentosAberto}
+        titulo="Candidatos do Banco de Talentos compatíveis"
+        subtitulo=${`Sugestões para a vaga "${formulario.vaga}", com base em palavras-chave em comum.`}
+        onClose=${fecharModalTalentosENavegar}
+        className="rh-talent-matches-dialog"
+      >
+        <div class="rh-details-body">
+          ${carregandoSugestoesTalentos
+      ? html`<p class="text-muted mb-0">Buscando candidatos compatíveis...</p>`
+      : sugestoesTalentos.length
+        ? html`
+                <ul class="rh-talent-matches-list">
+                  ${sugestoesTalentos.map(
+          (candidato) => html`
+                      <li key=${candidato.id_banco} class="rh-talent-matches-item">
+                        <div class="rh-talent-matches-info">
+                          <strong>${candidato.nome_candidato}</strong>
+                          <span class="rh-talent-matches-pct">${candidato.percentual_compatibilidade}% compatível</span>
+                          <small class="text-muted">${candidato.motivo}</small>
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm"
+                          disabled=${usandoTalentoId === candidato.id_banco}
+                          onClick=${() => adicionarTalentoAoProcesso(candidato)}
+                        >
+                          ${usandoTalentoId === candidato.id_banco ? 'Adicionando...' : 'Adicionar ao processo'}
+                        </button>
+                      </li>
+                    `,
+        )}
+                </ul>
+              `
+        : html`<p class="text-muted mb-0">Nenhum candidato compatível encontrado no Banco de Talentos para esta vaga.</p>`}
+        </div>
+        <footer class="rh-modal-footer">
+          <button type="button" class="btn btn-primary" onClick=${fecharModalTalentosENavegar}>
+            Ir para o processo
+          </button>
+        </footer>
+      </${ModalPadrao}>
     </${PainelRh}>
   `;
 }
@@ -5205,7 +5323,7 @@ export function TelaBancoTalentos({ controlador }) {
                           <${TabelaVazia}
                             colunas=${9}
                             texto="Nenhum candidato no banco de talentos."
-                            icone="person_off"
+                            icone="person_search"
                           />
                         `}
                   </tbody>
@@ -5537,6 +5655,23 @@ export function TelaAnaliseCandidatos({ controlador }) {
       }),
     [linhas, filtrosRelatorio.processo, filtrosRelatorio.status],
   );
+  const rankingResumoVisual = useMemo(() => {
+    const comNota = rankingAnaliticoFiltrado
+      .map((linha) => ({
+        label: linha.nome_candidato || 'Candidato',
+        value: Number(String(linha.nota_final ?? '0').replace(',', '.')) || 0,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+    const aceitos = rankingAnaliticoFiltrado.filter(
+      (linha) => getCandidateVisibleStatus(linha) === 'Aprovado',
+    ).length;
+    const reprovados = rankingAnaliticoFiltrado.filter((linha) => {
+      const status = getCandidateVisibleStatus(linha);
+      return status === 'Eliminado' || status === 'Reprovado';
+    }).length;
+    return { comNota, aceitos, reprovados };
+  }, [rankingAnaliticoFiltrado]);
   const filtrosRelatorioAtivos = [
     filtrosRelatorio.dataInicial,
     filtrosRelatorio.dataFinal,
@@ -5944,6 +6079,24 @@ export function TelaAnaliseCandidatos({ controlador }) {
             `
           : relatorioAtivo === 'ranking'
             ? html`
+              ${rankingResumoVisual.comNota.length
+                ? html`
+                    <div class="reports-charts-row">
+                      <${SectionCard} title="Comparativo de notas" className="reports-chart-card">
+                        <${BarComparisonChart}
+                          items=${rankingResumoVisual.comNota}
+                          valueFormatter=${(valor) => valor.toFixed(1)}
+                        />
+                      </${SectionCard}>
+                      <${SectionCard} title="Aprovação" className="reports-chart-card reports-chart-card--donut">
+                        <${AcceptanceDonutChart}
+                          aceitos=${rankingResumoVisual.aceitos}
+                          reprovados=${rankingResumoVisual.reprovados}
+                        />
+                      </${SectionCard}>
+                    </div>
+                  `
+                : null}
               <div class="reports-table-shell">
                 <table class="table align-middle rh-modern-history-table reports-ranking-table">
                   <thead>

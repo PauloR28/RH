@@ -166,7 +166,7 @@ export function BarraLateral({
     },
     {
       tela: 'screen-mural',
-      icone: 'dashboard',
+      icone: 'article',
       label: 'Mural',
     },
   ];
@@ -199,9 +199,10 @@ export function BarraLateral({
     },
     {
       tela: 'screen-settings-etapas',
-      icone: 'route',
+      icone: 'checklist',
       label: 'Etapas do Processo',
       permissao: 'configuracoes.visualizar',
+      desativado: true,
     },
     {
       tela: 'screen-settings-motivos-eliminacao',
@@ -220,6 +221,7 @@ export function BarraLateral({
       icone: 'shield_lock',
       label: 'LGPD e Retenção',
       permissao: 'configuracoes.visualizar',
+      desativado: true,
     },
     {
       tela: 'screen-settings-logs',
@@ -236,7 +238,7 @@ export function BarraLateral({
     {
       tela: 'screen-settings-administracao',
       icone: 'verified_user',
-      label: 'Administração',
+      label: 'Parâmetros',
       permissao: 'configuracoes.visualizar',
     },
   ];
@@ -680,13 +682,15 @@ export function BarraLateral({
                             <button
                               key=${subitem.tela}
                               type="button"
-                              class=${`rh-modern-subnav-btn ${subitemConfiguracaoAtivo(subitem) ? 'is-active' : ''
+                              class=${`rh-modern-subnav-btn ${subitemConfiguracaoAtivo(subitem) ? 'is-active' : ''} ${subitem.desativado ? 'is-disabled' : ''
                 }`.trim()}
-                              title=${subitem.label}
+                              title=${subitem.desativado ? `${subitem.label} (em construção)` : subitem.label}
                               role="menuitem"
+                              aria-disabled=${subitem.desativado ? 'true' : null}
                               aria-current=${subitemConfiguracaoAtivo(subitem) ? 'page' : null
               }
                               onClick=${() => {
+                if (subitem.desativado) return;
                 setGrupoAberto(null);
                 controlador.irParaTelaProtegida(subitem.tela);
               }}
@@ -694,7 +698,7 @@ export function BarraLateral({
                               <span
                                 class="material-symbols-outlined"
                                 aria-hidden="true"
-                              >${IconeSvg(subitem.icone)}</span>
+                              >${IconeSvg(subitem.desativado ? 'lock' : subitem.icone)}</span>
                               <span>${subitem.label}</span>
                             </button>
                           `,

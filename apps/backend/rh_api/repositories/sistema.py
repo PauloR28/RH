@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException, status
 
 from ..auth import AuthenticatedUser
+from ..passwords import verify_password
 from ..rbac import ROLE_ADMIN, SETTINGS_CATALOGS
 from ..services.graph_client import GraphClient, GraphClientError
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -84,6 +85,88 @@ _RESET_TABLE_ORDER: tuple[str, ...] = (
     "usuarios_operacoes",
     "ambientes_sharepoint",
     "operacoes",
+    "mural_publicacoes",
+    "mural_publicacao_imagens",
+    "mural_publicacao_ambientes",
+    "documentos_biblioteca",
+)
+
+# Correções.txt item 7: a Zona de Risco precisa listar o que será apagado,
+# com um toggle por categoria (agrupamento lógico em vez de uma lista de
+# ~60 tabelas soltas). Cada chave aqui é usada tanto pelo endpoint de
+# listagem (o frontend monta o modal a partir disso) quanto pelo reset
+# seletivo — sempre que uma tabela nova entrar em _RESET_TABLE_ORDER,
+# adicione-a também a uma destas categorias, senão ela é ignorada no reset
+# seletivo por categoria (fica de fora mesmo estando na lista completa).
+RESET_CATEGORIES: dict[str, dict[str, object]] = {
+    "processos_candidatos": {
+        "label": "Processos e candidatos",
+        "tabelas": [
+            "candidatos_metadata", "candidatos_anexos", "candidatos_movimentacoes",
+            "processos_dossie_anotacoes", "scorecards_avaliacao", "cv_pre_analises",
+            "analises_curriculo_ia", "decisoes_rh", "candidatos_processos", "candidatos",
+            "processos_seletivos", "processos_alertas_inatividade",
+            "solicitacoes_alteracao_email", "email_inbox_items",
+        ],
+    },
+    "provas_testes": {
+        "label": "Provas e testes (DISC, Fit Cultural, Raciocínio Lógico)",
+        "tabelas": [
+            "analise_excel_detalhes", "analise_texto_detalhes", "analise_metricas_respostas",
+            "analise_sessoes_etapas", "analise_jobs_provas", "resultados_analiticos_categorias",
+            "historico_resultados_analiticos", "mapeamentos_categorias_analiticas",
+            "perfis_ideais_analiticos", "pesos_analiticos_processos",
+            "configuracoes_analiticas_processos", "categorias_analiticas",
+            "resultados_analiticos_processos", "historico_correcoes_manuais_provas",
+            "respostas_provas", "resultados_provas", "disc_respostas", "disc_aplicacoes",
+            "disc_frases", "disc_blocos", "fit_cultural_respostas", "valores_empresa_frases",
+            "valores_empresa", "raciocinio_respostas", "raciocinio_aplicacoes",
+            "raciocinio_perguntas", "provas_geradas", "gabaritos", "historico_provas",
+            "scores_conecta",
+        ],
+    },
+    "entrevistas": {
+        "label": "Entrevistas (agendamentos e disponibilidade)",
+        "tabelas": ["entrevistas_agendadas", "entrevista_slots"],
+    },
+    "treinamentos": {
+        "label": "Central de Treinamentos",
+        "tabelas": [
+            "onboarding_candidatos_itens", "onboarding_candidatos", "trilhas_onboarding_anexos",
+            "trilhas_onboarding_itens", "trilhas_onboarding", "processos_treinamentos",
+        ],
+    },
+    "banco_talentos": {
+        "label": "Banco de talentos",
+        "tabelas": ["banco_talentos"],
+    },
+    "mural_comunicacoes": {
+        "label": "Mural, notificações e calendário",
+        "tabelas": [
+            "mural_publicacoes", "mural_publicacao_imagens", "mural_publicacao_ambientes",
+            "notificacoes", "datas_comemorativas", "configuracoes_notificacoes_automaticas",
+        ],
+    },
+    "documentos_politicas": {
+        "label": "Documentos e políticas institucionais",
+        "tabelas": ["templates_documentos", "documentos_biblioteca", "politicas", "politicas_confirmacoes"],
+    },
+    "cadastros_ambientes": {
+        "label": "Operações e ambientes SharePoint",
+        "tabelas": ["usuarios_operacoes", "ambientes_sharepoint", "operacoes"],
+    },
+    "catalogos_configuracao": {
+        "label": "Catálogos de configuração (motivos, modelos de e-mail, LGPD, etapas)",
+        "tabelas": [],  # preenchido dinamicamente a partir de SETTINGS_CATALOGS abaixo.
+    },
+    "usuarios": {
+        "label": "Usuários (exceto administradores)",
+        "tabelas": [],  # tratamento especial: DELETE ... WHERE perfil_id <> ROLE_ADMIN.
+        "especial": True,
+    },
+}
+RESET_CATEGORIES["catalogos_configuracao"]["tabelas"] = sorted(
+    {definition["table"] for definition in SETTINGS_CATALOGS.values()}
 )
 
 
@@ -469,11 +552,25 @@ class SistemaRepositoryMixin:
         finally:
             conn.close()
 
+    def listar_categorias_reset(self) -> dict:
+        return {
+            "categorias": [
+                {
+                    "chave": chave,
+                    "label": definicao["label"],
+                    "total_tabelas": len(definicao["tabelas"]) if not definicao.get("especial") else None,
+                }
+                for chave, definicao in RESET_CATEGORIES.items()
+            ]
+        }
+
     def resetar_dados_conecta(
         self,
         *,
         actor: AuthenticatedUser,
         confirmacao: str,
+        senha: str = "",
+        categorias: list[str] | None = None,
     ) -> dict:
         if normalize_text(confirmacao).strip().upper() != RESET_CONFIRMATION_PHRASE:
             raise HTTPException(
@@ -481,20 +578,46 @@ class SistemaRepositoryMixin:
                 detail=f'Confirmação inválida. Digite exatamente "{RESET_CONFIRMATION_PHRASE}" para prosseguir.',
             )
 
-        tabelas_catalogo = {definition["table"] for definition in SETTINGS_CATALOGS.values()}
-        tabelas = list(_RESET_TABLE_ORDER) + [
-            tabela for tabela in sorted(tabelas_catalogo) if tabela not in _RESET_TABLE_ORDER
-        ]
+        id_usuario = actor.id_usuario if isinstance(actor, AuthenticatedUser) else None
+        if not id_usuario:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida para confirmar esta ação.")
 
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            cursor.execute(
+                "SELECT senha_hash, provedor_autenticacao FROM usuarios WHERE id_usuario = ?",
+                (int(id_usuario),),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida para confirmar esta ação.")
+            senha_hash, provedor = row[0], row[1]
+            if normalize_text(provedor) == "local":
+                if not verify_password(normalize_text(senha), senha_hash):
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Senha incorreta. Reautenticação necessária para limpar dados do Conecta.")
+
+            categorias_validas = [chave for chave in (categorias or []) if chave in RESET_CATEGORIES]
+            if not categorias_validas:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selecione ao menos uma categoria de dados para limpar.")
+
+            limpar_usuarios = "usuarios" in categorias_validas
+            tabelas_selecionadas: list[str] = []
+            for chave in categorias_validas:
+                for tabela in RESET_CATEGORIES[chave]["tabelas"]:
+                    if tabela not in tabelas_selecionadas:
+                        tabelas_selecionadas.append(tabela)
+            tabelas = [tabela for tabela in _RESET_TABLE_ORDER if tabela in tabelas_selecionadas] + [
+                tabela for tabela in tabelas_selecionadas if tabela not in _RESET_TABLE_ORDER
+            ]
+
             ensure_parametros_sistema_table(cursor)
 
             for tabela in tabelas:
                 cursor.execute(f"IF OBJECT_ID('dbo.{tabela}', 'U') IS NOT NULL DELETE FROM dbo.{tabela}")
 
-            cursor.execute("DELETE FROM dbo.usuarios WHERE perfil_id <> ?", (ROLE_ADMIN,))
+            if limpar_usuarios:
+                cursor.execute("DELETE FROM dbo.usuarios WHERE perfil_id <> ?", (ROLE_ADMIN,))
 
             nome_ator = _nome_ator(actor)
             cursor.execute("SELECT id_parametro FROM dbo.parametros_sistema WHERE chave = ?", (RESET_FLAG_KEY,))
@@ -529,8 +652,8 @@ class SistemaRepositoryMixin:
                 entidade="sistema",
                 entidade_id="reset_geral",
                 valor_anterior=None,
-                valor_novo={"tabelas_afetadas": len(tabelas)},
-                justificativa="Limpeza total dos dados operacionais do Conecta solicitada pelo Administrador.",
+                valor_novo={"categorias": categorias_validas, "tabelas_afetadas": len(tabelas), "usuarios_limpos": limpar_usuarios},
+                justificativa="Limpeza de dados do Conecta solicitada pelo Administrador (reautenticado).",
                 sucesso=True,
             )
             conn.commit()

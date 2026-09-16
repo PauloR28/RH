@@ -402,7 +402,7 @@ export function PainelResultadoFitCultural({ candidatoProcessoId, aoCarregar }) 
     lerResultadoFitCultural(candidatoProcessoId)
       .then((dados) => {
         setResultado(dados);
-        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado) });
+        aoCarregar?.({ possuiResultado: Boolean(dados?.possui_resultado), resultado: dados });
       })
       .catch((error) => {
         setErro(error?.message || 'Não foi possível carregar o resultado de fit cultural.');

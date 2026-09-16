@@ -24,11 +24,12 @@ UNCONFIGURED_MESSAGE = (
     "e a variável definida em RH_EMAIL_SEND_CLIENT_SECRET_ENV."
 )
 
-_VARIABLE_PATTERN = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
+_VARIABLE_PATTERN = re.compile(r"{\s*([a-zA-Z0-9_]+)\s*}")
 
 
 def render_template(text: str, variables: dict, *, escape_html: bool = False) -> str:
-    """Substitui {{variavel}} pelo valor informado.
+    """Substitui {variavel} pelo valor informado (sintaxe de chave simples,
+    ex.: {nome_candidato} — ver Correções.txt item 5).
 
     ``escape_html`` deve ser True ao renderizar dentro do corpo HTML do
     e-mail, para que o valor de uma variável (preenchido livremente por

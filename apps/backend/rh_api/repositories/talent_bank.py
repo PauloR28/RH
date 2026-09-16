@@ -807,6 +807,17 @@ class TalentBankRepositoryMixin:
                     )
 
                 pontuacao_match = round(len(palavras_em_comum) * 10 + (scorecard_medio or 0), 1)
+                # Correções.txt item 15: percentual de compatibilidade exibido
+                # ao RH — proporção das palavras-chave da vaga que este
+                # candidato do Banco de Talentos também tem, sem inventar uma
+                # métrica de IA. Cap em 100% (candidato pode ter mais
+                # palavras em comum do que o próprio conjunto da vaga, por
+                # sinônimos capturados nas tags/habilidades).
+                percentual_compatibilidade = (
+                    min(100, round((len(palavras_em_comum) / len(vaga_keywords)) * 100))
+                    if vaga_keywords
+                    else 0
+                )
 
                 resultados.append(
                     {
@@ -818,6 +829,7 @@ class TalentBankRepositoryMixin:
                         "scorecard_medio": scorecard_medio,
                         "palavras_em_comum": palavras_em_comum,
                         "pontuacao_match": pontuacao_match,
+                        "percentual_compatibilidade": percentual_compatibilidade,
                         "motivo": " • ".join(motivos),
                         "habilidades": perfil.get("habilidades", []) or [],
                         "tags": perfil.get("tags", []) or [],

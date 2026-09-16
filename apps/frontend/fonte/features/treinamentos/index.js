@@ -19,6 +19,7 @@ import {
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { vincularTrilhaProcesso } from '../../services/api/onboarding.js';
+import { CHAVE_TRILHA_EDICAO } from './wizard.js';
 import { lerProcessos } from '../../services/api/processes.js';
 import {
   ModalPadrao,
@@ -309,44 +310,13 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   // -- Trilhas -----------------------------------------------------------
 
+  // Edição do conteúdo da trilha (módulos, textos, imagens, dica, saiba+)
+  // agora abre o wizard de criação em modo edição, que já tem a UI completa
+  // para isso — o modal pequeno abaixo (modalTrilhaAberto/formTrilha) ficou
+  // sem chamador. Ver CHAVE_TRILHA_EDICAO em wizard.js.
   const abrirEdicaoTrilha = (trilha) => {
-    let slides = [];
-    try {
-      const conteudo = JSON.parse(trilha.conteudo_json || '{}');
-      slides = Array.isArray(conteudo.slides) ? conteudo.slides : [];
-    } catch (error) {
-      slides = [];
-    }
-    setFormTrilha({
-      id_trilha: trilha.id_trilha,
-      nome: trilha.nome || '',
-      descricao: trilha.descricao || '',
-      ativo: !!trilha.ativo,
-      categoria: trilha.categoria || 'Onboarding',
-      id_operacao: trilha.id_operacao || '',
-      modalidade: trilha.modalidade || '',
-      local_padrao: trilha.local_padrao || '',
-      itens: (trilha.itens || []).map((item) => ({
-        id_item: item.id_item || null,
-        titulo: item.titulo || '',
-        descricao: item.descricao || '',
-        obrigatorio: !!item.obrigatorio,
-        tipo_conteudo: item.tipo_conteudo || '',
-        conteudo_url: item.conteudo_url || '',
-        // Preservados sem UI própria neste modal (ver normalizarItensParaEnvio).
-        subtitulo: item.subtitulo || '',
-        texto_principal: item.texto_principal || '',
-        dica_texto: item.dica_texto || '',
-        tabela: item.tabela || null,
-        saiba_mais: item.saiba_mais || [],
-        secoes: item.secoes || [],
-      })),
-      slides: slides.map((slide) => ({ titulo: slide.titulo || '', texto: slide.texto || '' })),
-      texto_encerramento: trilha.texto_encerramento || '',
-      saiba_mais_treinamento: trilha.saiba_mais_treinamento || null,
-    });
-    setErroTrilha('');
-    setModalTrilhaAberto(true);
+    sessionStorage.setItem(CHAVE_TRILHA_EDICAO, String(trilha.id_trilha));
+    controlador.irParaTelaProtegida('screen-training-create');
   };
 
   const adicionarSlideTrilha = () => {
@@ -1129,7 +1099,14 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       acoesTopo=${html`
         ${podeCriar
         ? html`
-              <button type="button" class="btn btn-primary rh-modern-primary-btn" onClick=${() => controlador.irParaTelaProtegida('screen-training-create')}>
+              <button
+                type="button"
+                class="btn btn-primary rh-modern-primary-btn"
+                onClick=${() => {
+                  sessionStorage.removeItem(CHAVE_TRILHA_EDICAO);
+                  controlador.irParaTelaProtegida('screen-training-create');
+                }}
+              >
                 <span class="material-symbols-outlined">${IconeSvg('add')}</span>
                 Criar Treinamento
               </button>

@@ -1932,6 +1932,52 @@ class SecurityRepositoryMixin:
         finally:
             conn.close()
 
+    def delete_configuration_item(
+        self,
+        tipo: str,
+        id_item: int,
+        *,
+        actor: AuthenticatedUser | dict | None = None,
+        justificativa: str = "",
+    ) -> dict:
+        """Exclusão física de um item de catálogo genérico (diferente de
+        deactivate_configuration_item, que só marca ativo=0). Usado pelas
+        telas que pedem um botão de "Excluir" além de "Ativar/Desativar"
+        (ex.: Motivos de Eliminação, Modelos de E-mail). As tabelas destes
+        catálogos não têm FK — outras tabelas guardam o texto/nome como
+        valor livre, não uma referência — então excluir aqui não quebra
+        registros históricos já salvos."""
+        definition = SETTINGS_CATALOGS.get(normalize_text(tipo))
+        if not definition:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catálogo de configuração não encontrado.")
+
+        table = definition["table"]
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT TOP 1 * FROM {table} WHERE id_item = ?", (int(id_item),))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item de configuração não encontrado.")
+            previous = rows_to_dicts(cursor, [row])[0]
+            cursor.execute(f"DELETE FROM {table} WHERE id_item = ?", (int(id_item),))
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Configurações",
+                acao="excluir_configuracao",
+                entidade=table,
+                entidade_id=str(id_item),
+                valor_anterior=previous,
+                valor_novo=None,
+                justificativa=justificativa,
+                sucesso=True,
+            )
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
     def register_lgpd_request(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
         payload = {
             "tipo_solicitacao": normalize_text(data.get("tipo_solicitacao")),
