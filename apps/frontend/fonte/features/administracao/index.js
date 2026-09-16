@@ -11,6 +11,7 @@ import {
 } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import { ToggleSwitch } from '../../ui/components/primitives.js';
 import {
   atualizarAmbienteSharePoint,
   excluirAmbienteSharePoint,
@@ -994,27 +995,22 @@ export function TelaAdministracao({ controlador }) {
                 <ul class="rh-reset-category-list">
                   ${categoriasReset.map(
         (categoria) => html`
-                      <li key=${categoria.chave} class="rh-reset-category-item">
-                        <span>
-                          <strong>${categoria.label}</strong>
-                          ${categoria.total_tabelas != null
-            ? html`<small class="text-muted"> — ${categoria.total_tabelas} tabela(s)</small>`
-            : null}
-                        </span>
-                        <button
-                          type="button"
-                          class=${`users-switch ${categoriasResetSelecionadas[categoria.chave] ? 'is-on' : ''}`.trim()}
-                          role="switch"
-                          aria-checked=${Boolean(categoriasResetSelecionadas[categoria.chave])}
+                      <li key=${categoria.chave} class=${`rh-reset-category-item ${categoriasResetSelecionadas[categoria.chave] ? 'is-active' : ''}`.trim()}>
+                        <${ToggleSwitch}
+                          checked=${Boolean(categoriasResetSelecionadas[categoria.chave])}
                           disabled=${!categoriasResetDesbloqueadas}
-                          onClick=${() =>
+                          onChange=${() =>
               setCategoriasResetSelecionadas((atual) => ({
                 ...atual,
                 [categoria.chave]: !atual[categoria.chave],
               }))}
-                        >
-                          <i></i>
-                        </button>
+                        />
+                        <span class="settings-permission-copy">
+                          <strong>${categoria.label}</strong>
+                          ${categoria.total_tabelas != null
+            ? html`<small>${categoria.total_tabelas} tabela(s)</small>`
+            : null}
+                        </span>
                       </li>
                     `,
       )}

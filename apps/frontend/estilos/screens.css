@@ -4585,10 +4585,10 @@
 .home-quick-action .material-symbols-outlined {
   position: absolute;
   top: 50%;
-  right: -6px;
+  right: 13px;
   color: var(--color-text-muted);
   opacity: 0.16;
-  font-size: 2.6rem;
+  font-size: 2.8rem;
   line-height: 1;
   transform: translateY(-50%);
   pointer-events: none;
@@ -4605,7 +4605,7 @@
   z-index: 1;
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.74rem;
+  font-size: 0.9rem;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4930,6 +4930,18 @@
 
 .candidate-sheet-dialog textarea.form-control {
   min-height: 68px;
+}
+
+/* Correções.txt item 11: linhas de "Contexto complementar"/"Currículo"
+   usavam o gutter padrão do Bootstrap (.row.g-3 = 1rem), largo demais
+   dentro de um modal compacto. */
+.candidate-sheet-dialog .rh-section-card--flat .row {
+  --bs-gutter-x: 0.6rem;
+  --bs-gutter-y: 0.4rem;
+}
+
+.candidate-sheet-dialog .rh-section-card--flat .row > div > div {
+  margin-bottom: 0.2rem;
 }
 
 .candidate-sheet-body {
@@ -6324,38 +6336,6 @@ display: grid;
   overflow: visible;
 }
 
-/* Correções.txt item 4a: "Itens cadastrados" vira um sidebar recolhível —
- * recolhido, é só uma faixa estreita com o total; expandido, volta a ser o
- * card completo (largura controlada via grid-template-columns inline no
- * .settings-catalog-workspace). */
-.settings-catalog-list-card.is-collapsed {
-  padding: 8px;
-  display: flex;
-}
-
-.settings-catalog-list-collapsed-toggle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text-soft);
-}
-
-.settings-catalog-list-collapsed-toggle:hover {
-  background: var(--color-surface-soft);
-  color: var(--color-primary);
-}
-
-.settings-catalog-list-collapsed-toggle span {
-  font-size: 0.78rem;
-  /*font-weight: 700;*/
-}
-
 .settings-toggle-line {
   grid-column: 1 / -1;
   display: inline-flex !important;
@@ -6594,7 +6574,8 @@ display: grid;
 
   .settings-users-workspace,
   .settings-profile-workspace,
-  .settings-catalog-workspace {
+  .settings-catalog-workspace,
+  #screen-settings .settings-catalog-workspace--single {
     grid-template-columns: 1fr;
   }
 
@@ -12314,6 +12295,13 @@ display: grid;
     var(--catalog-list-col, minmax(300px, 380px));
 }
 
+/* Correções.txt item 2: Operações não tem mais o painel de "Áreas de
+   configuração" (só o formulário + a lista de itens cadastrados) — 2
+   colunas, sem a 3ª reservada para o switcher que não existe mais aqui. */
+#screen-settings .settings-catalog-workspace--single {
+  grid-template-columns: minmax(420px, 1.5fr) minmax(320px, 1fr);
+}
+
 #screen-settings .settings-users-workspace {
   grid-template-columns: minmax(420px, 1.1fr) minmax(320px, 0.9fr);
 }
@@ -16317,14 +16305,18 @@ display: grid;
 }
 
 .rh-reset-category-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  gap: 0.62rem;
+  padding: 0.58rem 0.62rem;
+  border: 1px solid rgba(217, 226, 238, 0.72);
+  border-radius: 8px;
+  background: #fafcff;
+}
+
+.rh-reset-category-item.is-active {
+  background: var(--color-primary-soft);
 }
 
 .rh-talent-matches-list {

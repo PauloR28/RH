@@ -17,6 +17,18 @@ export function Badge({ label, tone = 'secondary', className = '' }) {
   return html`<span class=${`badge text-bg-${tone} ${className}`.trim()}>${label}</span>`;
 }
 
+// Mesmo componente/estilo usado em Perfis e Permissões (configuracoes/index.js)
+// — extraído para cá para ser reaproveitado por outras telas (Correções.txt
+// item 7: Zona de risco precisa do mesmo estilo turn on/off).
+export function ToggleSwitch({ checked, disabled, onChange }) {
+  return html`
+    <label class=${`c24-toggle-switch ${disabled ? 'is-disabled' : ''}`.trim()}>
+      <input type="checkbox" checked=${checked} disabled=${disabled} onChange=${onChange} />
+      <span class="c24-toggle-switch-track"><span class="c24-toggle-switch-thumb"></span></span>
+    </label>
+  `;
+}
+
 export function FormField({ label, help = '', error = '', required = false, children }) {
   return html`
     <label class="form-field">

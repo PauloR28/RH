@@ -2947,67 +2947,44 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           </form>
         </section>
 
-        <section class=${`c24-card settings-catalog-list-card ${listaCatalogoRecolhida ? 'is-collapsed' : ''}`.trim()}>
-          ${listaCatalogoRecolhida
+        <section class="c24-card settings-catalog-list-card">
+          <header class="c24-card-header">
+            <div>
+              <span class="c24-eyebrow">${secaoCatalogoAtiva?.label || 'Regras'}</span>
+              <h3>Itens cadastrados</h3>
+              <p>Desative itens usados nos fluxos; não remova fisicamente.</p>
+            </div>
+            <div class="settings-card-actions">
+              <button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
+                <${Icone} name="add" />
+              </button>
+            </div>
+          </header>
+
+          <div class="c24-filter-bar settings-catalog-filter">
+            <${FilterField} label="Buscar" icon="search">
+              <input
+                class="form-control"
+                value=${filtrosCatalogo.busca}
+                placeholder="Nome, chave ou categoria"
+                onInput=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: event.target.value })}
+              />
+            </${FilterField}>
+            <${FilterField} label="Status">
+              <select
+                class="form-select"
+                value=${filtrosCatalogo.status}
+                onChange=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, status: event.target.value })}
+              >
+                ${STATUS_ITEM.map(
+      (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
+    )}
+              </select>
+            </${FilterField}>
+          </div>
+
+          ${itensCatalogoFiltrados.length
       ? html`
-                <button
-                  type="button"
-                  class="settings-catalog-list-collapsed-toggle"
-                  title="Expandir itens cadastrados"
-                  aria-expanded="false"
-                  onClick=${() => setListaCatalogoRecolhida(false)}
-                >
-                  <${Icone} name="chevron_left" />
-                  
-                </button>
-              `
-      : html`
-                <header class="c24-card-header">
-                  <div>
-                    <span class="c24-eyebrow">${secaoCatalogoAtiva?.label || 'Regras'}</span>
-                    <h3>Itens cadastrados</h3>
-                    <p>Desative itens usados nos fluxos; não remova fisicamente.</p>
-                  </div>
-                  <div class="settings-card-actions">
-                    <button
-                      type="button"
-                      class="c24-icon-btn"
-                      title="Recolher itens cadastrados"
-                      aria-expanded="true"
-                      onClick=${() => setListaCatalogoRecolhida(true)}
-                    >
-                      <${Icone} name="chevron_right" />
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
-                      <${Icone} name="add" />
-                    </button>
-                  </div>
-                </header>
-
-                <div class="c24-filter-bar settings-catalog-filter">
-                  <${FilterField} label="Buscar" icon="search">
-                    <input
-                      class="form-control"
-                      value=${filtrosCatalogo.busca}
-                      placeholder="Nome, chave ou categoria"
-                      onInput=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: event.target.value })}
-                    />
-                  </${FilterField}>
-                  <${FilterField} label="Status">
-                    <select
-                      class="form-select"
-                      value=${filtrosCatalogo.status}
-                      onChange=${(event) => setFiltrosCatalogo({ ...filtrosCatalogo, status: event.target.value })}
-                    >
-                      ${STATUS_ITEM.map(
-        (item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`,
-      )}
-                    </select>
-                  </${FilterField}>
-                </div>
-
-                ${itensCatalogoFiltrados.length
-          ? html`
                       <div class="settings-catalog-items">
                         ${itensCatalogoFiltrados.map(
             (item) => html`
@@ -3061,7 +3038,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         action=${html`<button type="button" class="btn btn-primary btn-sm" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>Novo item</button>`}
                       />
                     `}
-              `}
         </section>
       </div>
     </div>

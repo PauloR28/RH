@@ -34,6 +34,7 @@ import {
   TabPanel,
 } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
@@ -246,26 +247,29 @@ function renderizarAcoesCandidatoCentral({
   );
   const acoes = [
     {
-      valor: 'detalhes',
+      key: 'detalhes',
       label: 'Ver detalhes',
-      executar: () => onDetalhes(candidato),
+      icon: 'visibility',
+      onClick: () => onDetalhes(candidato),
     },
   ];
 
   if (podeEditar && candidato?.id_teste && typeof onEditar === 'function') {
     acoes.push({
-      valor: 'editar',
+      key: 'editar',
       label: 'Editar',
-      executar: () => onEditar(candidato),
+      icon: 'edit',
+      onClick: () => onEditar(candidato),
     });
   }
 
   if (estadoAcoes.canApprove && podeAprovar) {
     acoes.push({
-      valor: 'aprovar',
+      key: 'aprovar',
       label: 'Aprovar',
+      icon: 'check_circle',
       disabled: salvando,
-      executar: () => onAprovar(candidato),
+      onClick: () => onAprovar(candidato),
     });
   }
 
@@ -276,54 +280,40 @@ function renderizarAcoesCandidatoCentral({
     podeMover
   ) {
     acoes.push({
-      valor: 'banco',
+      key: 'banco',
       label: 'Enviar ao Banco',
+      icon: 'inventory_2',
       disabled: salvando,
-      executar: () => onBanco(candidato),
+      onClick: () => onBanco(candidato),
     });
   }
 
   if (candidatoPodeAtrelar(candidato) && podeCriar) {
     acoes.push({
-      valor: 'atrelar',
+      key: 'atrelar',
       label: 'Adicionar a processo seletivo',
+      icon: 'person_add',
       disabled: salvando,
-      executar: () => onAtrelar(candidato),
+      onClick: () => onAtrelar(candidato),
     });
   }
 
   if (estadoAcoes.canEliminate && podeEliminar) {
     acoes.push({
-      valor: 'descartar',
+      key: 'descartar',
       label: 'Descartar',
+      icon: 'person_remove',
+      danger: true,
       disabled: salvando,
-      executar: () => onEliminar(candidato),
+      onClick: () => onEliminar(candidato),
     });
   }
 
   return html`
-    <select
-      class="form-select form-select-sm candidate-row-action-select"
-      aria-label=${`Ações para ${candidato.nome_candidato || 'candidato'}`}
-      value=""
-      onChange=${(event) => {
-      const acaoSelecionada = acoes.find(
-        (acao) => acao.valor === event.target.value,
-      );
-      event.target.value = '';
-      if (!acaoSelecionada || acaoSelecionada.disabled) return;
-      acaoSelecionada.executar();
-    }}
-    >
-      <option value="">Ações</option>
-      ${acoes.map(
-      (acao) => html`
-          <option key=${acao.valor} value=${acao.valor} disabled=${!!acao.disabled}>
-            ${acao.label}
-          </option>
-        `,
-    )}
-    </select>
+    <${MenuAcoesProcesso}
+      ariaLabel=${`Ações para ${candidato.nome_candidato || 'candidato'}`}
+      acoes=${acoes}
+    />
   `;
 }
 

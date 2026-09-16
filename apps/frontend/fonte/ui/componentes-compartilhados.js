@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20260908-redesign-z';
+} from './components/layout.js?v=20260916-correcoes-txt';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
@@ -34,3 +34,10 @@ export {
   ToastAlert,
 } from './components/primitives.js';
 export { WizardStepper, WizardSummaryStrip } from './components/wizard.js';
+export {
+  AcceptanceDonutChart,
+  BarComparisonChart,
+  ScoreDistributionChart,
+  ScoreRadarChart,
+  StageFunnelChart,
+} from './components/charts.js';
