@@ -4895,7 +4895,7 @@
 }
 
 .candidate-sheet-dialog {
-  width: fit-content;
+  width: min(760px, 100%);
 }
 
 .candidate-sheet-dialog .rh-modal-content {
@@ -4942,6 +4942,23 @@
 
 .candidate-sheet-dialog .rh-section-card--flat .row > div > div {
   margin-bottom: 0.2rem;
+}
+
+/* Correções.txt item 11: dentro da ficha, "rh-metric-grid" mostra dados
+   variáveis (vaga, processo, e-mail) em vez de KPIs curtos — o truncamento
+   com reticências herdado do dashboard cortava a informação. Aqui o valor
+   precisa quebrar linha em vez de truncar. */
+.candidate-sheet-dialog .rh-metric-card {
+  align-items: flex-start;
+  min-height: 0;
+}
+
+.candidate-sheet-dialog .rh-metric-label,
+.candidate-sheet-dialog .rh-metric-value {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: unset;
+  word-break: break-word;
 }
 
 .candidate-sheet-body {
@@ -12022,15 +12039,58 @@ display: grid;
   color: var(--color-text-soft);
 }
 
-#screen-calendario .calendar-date-content .rh-chip {
-  align-self: flex-start;
+/* Correções.txt item 10: local/link/categoria/status de sincronização do
+   evento com o calendário da Intranet (SharePoint). */
+#screen-calendario .calendar-date-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-soft);
+}
+
+#screen-calendario .calendar-date-meta .material-symbols-outlined {
+  font-size: 15px;
+}
+
+#screen-calendario .calendar-date-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
   margin-top: 2px;
+}
+
+#screen-calendario .calendar-date-chips .rh-chip {
+  margin: 0;
+}
+
+#screen-calendario .calendar-date-category {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+#screen-calendario a.calendar-date-link {
+  text-decoration: none;
 }
 
 #screen-calendario .calendar-date-actions {
   flex: none;
   display: flex;
   gap: 4px;
+}
+
+.calendar-event-image-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.calendar-event-image-preview img {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 #screen-candidates .rh-modern-history-table .btn,
@@ -15377,8 +15437,19 @@ display: grid;
  * a .process-summary-cards, restauram o tamanho/destaque pretendido sem
  * tocar o padrão compacto usado no restante da tela.
  */
+/* Correções.txt item 12: "Abertos"/"Encerrados" usam a variante
+   is-neutral, que não tinha override aqui — ficavam com a altura/margem
+   menores herdadas de #screen-processes .rh-metric-card (min-height 41px),
+   enquanto is-critical/attention/positive tinham só o padding restaurado.
+   Resultado: os 4 cards da mesma linha não alinhavam. Agora todos os 4
+   compartilham a mesma altura mínima; só o card critical mantém o destaque
+   extra (sombra), coerente com a hierarquia de peso pretendida. */
+#screen-processes .process-summary-cards .rh-metric-card {
+  min-height: 72px;
+  padding: 0.58rem 0.68rem;
+}
+
 #screen-processes .process-summary-cards .rh-metric-card--is-critical {
-  min-height: 88px;
   padding: 0.58rem 0.68rem 0.58rem calc(0.68rem + 4px);
   box-shadow: var(--elevation-2);
 }
@@ -16349,4 +16420,55 @@ display: grid;
 .rh-talent-matches-pct {
   color: var(--color-success);
   font-size: var(--font-sm);
+}
+
+/* Correções.txt itens 4/5: ações visíveis (editar/excluir/turn on-off) nas
+   telas de catálogo dedicado (Motivos de Eliminação, Modelos de E-mail). */
+.rh-row-actions-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.rh-variable-hint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.rh-variable-hint-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-soft);
+}
+
+.rh-variable-hint-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rh-variable-chip {
+  border: 1px solid var(--color-primary-soft);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rh-variable-chip:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.rh-variable-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

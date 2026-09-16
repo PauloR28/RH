@@ -256,10 +256,13 @@ export {
 } from './services/api/policies.js';
 export {
   atualizarDataComemorativa,
+  buscarEnderecoEmpresaCalendario,
   criarDataComemorativa,
+  listarAmbientesCalendario,
   listarDatasComemorativas,
   listarEventosCalendario,
   removerDataComemorativa,
+  uploadImagemCalendario,
 } from './services/api/calendar.js';
 export {
   atualizarAgendaTreinamento,

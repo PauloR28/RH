@@ -1822,6 +1822,23 @@ def ensure_celebratory_dates_table(cursor) -> None:
         ("criado_por", "NVARCHAR(180)"),
         ("criado_em", "DATETIME"),
         ("atualizado_em", "DATETIME"),
+        # Correções.txt item 10: evento completo (data exata, não só dia/mês
+        # recorrente) + publicação automática num calendário do SharePoint.
+        # dia/mes continuam existindo e sendo derivados de data_inicio (ver
+        # celebratory_dates.py) para não quebrar o widget de "próxima
+        # ocorrência anual" já usado pelo dashboard/tela de calendário.
+        ("data_inicio", "DATETIME2"),
+        ("data_fim", "DATETIME2"),
+        ("dia_inteiro", "BIT"),
+        ("local", "NVARCHAR(300)"),
+        ("link", "NVARCHAR(500)"),
+        ("categoria", "NVARCHAR(60)"),
+        ("imagem_url", "NVARCHAR(500)"),
+        ("id_ambiente", "INT"),
+        ("status_sincronizacao", "NVARCHAR(20)"),
+        ("mensagem_sincronizacao", "NVARCHAR(500)"),
+        ("sharepoint_web_url", "NVARCHAR(1000)"),
+        ("sharepoint_item_id", "NVARCHAR(80)"),
     ):
         cursor.execute(
             f"""
@@ -1841,6 +1858,11 @@ def ensure_celebratory_dates_table(cursor) -> None:
     cursor.execute(
         """
         UPDATE dbo.datas_comemorativas SET atualizado_em = criado_em WHERE atualizado_em IS NULL
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE dbo.datas_comemorativas SET dia_inteiro = 1 WHERE dia_inteiro IS NULL
         """
     )
 

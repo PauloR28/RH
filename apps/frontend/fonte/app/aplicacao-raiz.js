@@ -84,7 +84,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
 ]);
 
 const importarGestao = () => import('../features/telas-gestao.js?v=20260916-correcoes-txt');
-const importarProcessos = () => import('../features/telas-processos.js?v=20260904-identidade-conecta');
+const importarProcessos = () => import('../features/telas-processos.js?v=20260916-correcoes-round3');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
 const TelaAnaliseCandidatos = carregarTela(importarGestao, 'TelaAnaliseCandidatos');
@@ -114,7 +114,7 @@ const TelaConfiguracoesSistema = carregarTela(
   () => import('../features/configuracoes/index.js?v=20260916-correcoes-txt'),
   'TelaConfiguracoesSistema',
 );
-const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260904-identidade-conecta'), 'TelaCalendario');
+const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round3'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260910-correcoes-txt'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
@@ -141,7 +141,7 @@ const TelaAdministracao = carregarTela(
   () => import('../features/administracao/index.js?v=20260916-correcoes-txt'),
   'TelaAdministracao',
 );
-const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-txt');
+const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
 const TelaLgpd = carregarTela(importarCatalogoDedicado, 'TelaLgpd');
 const TelaMotivosEliminacao = carregarTela(importarCatalogoDedicado, 'TelaMotivosEliminacao');
 const TelaModelosEmail = carregarTela(importarCatalogoDedicado, 'TelaModelosEmail');

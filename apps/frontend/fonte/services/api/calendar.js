@@ -35,3 +35,20 @@ export async function removerDataComemorativa(idData) {
 export async function listarEventosCalendario() {
   return requisitar('/calendar/events', { method: 'GET' });
 }
+
+export async function listarAmbientesCalendario() {
+  return requisitar('/celebratory-dates/ambientes', { method: 'GET' });
+}
+
+export async function buscarEnderecoEmpresaCalendario() {
+  return requisitar('/celebratory-dates/endereco-empresa', { method: 'GET' });
+}
+
+export async function uploadImagemCalendario(arquivo) {
+  const formData = new FormData();
+  formData.append('arquivo', arquivo);
+  return requisitar('/celebratory-dates/imagens', {
+    method: 'POST',
+    body: formData,
+  });
+}

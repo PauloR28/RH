@@ -7,9 +7,20 @@ from .common import BaseSchema
 
 class CelebratoryDateCreateRequest(BaseSchema):
     titulo: str = ""
+    # dia/mes continuam aceitos por compatibilidade (formulários antigos),
+    # mas quando data_inicio é enviado ele é a fonte da verdade — ver
+    # repositories/celebratory_dates.py._resolver_dados_evento.
     dia: int = 0
     mes: int = 0
     descricao: str = ""
+    data_inicio: str = ""
+    data_fim: str = ""
+    dia_inteiro: bool = True
+    local: str = ""
+    link: str = ""
+    categoria: str = ""
+    imagem_url: str = ""
+    id_ambiente: int | None = None
 
     @field_validator("titulo")
     @classmethod
@@ -24,14 +35,14 @@ class CelebratoryDateCreateRequest(BaseSchema):
     @field_validator("dia")
     @classmethod
     def validate_dia(cls, value: int) -> int:
-        if value < 1 or value > 31:
+        if value and (value < 1 or value > 31):
             raise ValueError("Informe um dia válido (1 a 31).")
         return value
 
     @field_validator("mes")
     @classmethod
     def validate_mes(cls, value: int) -> int:
-        if value < 1 or value > 12:
+        if value and (value < 1 or value > 12):
             raise ValueError("Informe um mês válido (1 a 12).")
         return value
 

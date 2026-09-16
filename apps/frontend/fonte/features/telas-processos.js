@@ -4,4 +4,4 @@ export {
   TelaProcessosDecisoesPendentes,
   TelaProcessosEncerrados,
   TelaProcessos,
-} from './processos/index.js?v=20260906-central-treinamentos';
+} from './processos/index.js?v=20260916-correcoes-round3';

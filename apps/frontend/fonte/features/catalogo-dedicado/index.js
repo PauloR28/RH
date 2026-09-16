@@ -7,8 +7,7 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { Badge } from '../../ui/components/primitives.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import { Badge, ToggleSwitch } from '../../ui/components/primitives.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
   atualizarItemConfiguracao,
@@ -279,16 +278,11 @@ export function TelaCatalogoDedicado({ controlador, config }) {
           </label>
           <label class="users-toggle-row">
             <span>${form.ativo ? 'Ativo' : 'Inativo'}</span>
-            <button
-              type="button"
-              class=${`users-switch ${form.ativo ? 'is-on' : ''}`.trim()}
-              role="switch"
-              aria-checked=${form.ativo}
+            <${ToggleSwitch}
+              checked=${form.ativo}
               disabled=${!podeEditar}
-              onClick=${() => setForm((valor) => ({ ...valor, ativo: !valor.ativo }))}
-            >
-              <i></i>
-            </button>
+              onChange=${() => setForm((valor) => ({ ...valor, ativo: !valor.ativo }))}
+            />
           </label>
           <label class="is-wide">
             <span>Descrição</span>
@@ -329,6 +323,32 @@ export function TelaCatalogoDedicado({ controlador, config }) {
               </label>
             `,
     )}
+          ${config.variaveisDisponiveis?.length
+      ? html`
+                <div class="is-wide rh-variable-hint">
+                  <span class="rh-variable-hint-label">Variáveis disponíveis (clique para inserir no corpo do e-mail):</span>
+                  <div class="rh-variable-hint-chips">
+                    ${config.variaveisDisponiveis.map(
+          (variavel) => html`
+                        <button
+                          type="button"
+                          class="rh-variable-chip"
+                          disabled=${!podeEditar}
+                          title=${variavel.label}
+                          onClick=${() =>
+              setForm((valor) => ({
+                ...valor,
+                [config.campoInsercaoVariavel]: `${valor[config.campoInsercaoVariavel] || ''}{${variavel.chave}}`,
+              }))}
+                        >
+                          {${variavel.chave}}
+                        </button>
+                      `,
+        )}
+                  </div>
+                </div>
+              `
+      : null}
           <footer class="settings-form-footer is-wide">
             <button type="submit" class="btn btn-primary" disabled=${salvando || !podeEditar}>
               <${IconeSvgSpan} name="check" /> ${salvando ? 'Salvando...' : 'Salvar'}
@@ -349,8 +369,8 @@ export function TelaCatalogoDedicado({ controlador, config }) {
                       <tr>
                         <th>Nome</th>
                         <th>Descrição</th>
-                        <th>Status</th>
-                        <th></th>
+                        <th>Ativo</th>
+                        <th class="text-end">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -359,48 +379,74 @@ export function TelaCatalogoDedicado({ controlador, config }) {
                           <tr key=${item.id_item}>
                             <td>${item.nome}</td>
                             <td>${item.descricao || '-'}</td>
-                            <td><${Badge} label=${item.ativo ? 'Ativo' : 'Inativo'} tone=${item.ativo ? 'success' : 'secondary'} /></td>
+                            <td>
+                              ${config.podeExcluir
+              ? html`
+                                    <${ToggleSwitch}
+                                      checked=${Boolean(item.ativo)}
+                                      disabled=${!podeEditar}
+                                      onChange=${() => alternarAtivo(item)}
+                                    />
+                                  `
+              : html`<${Badge} label=${item.ativo ? 'Ativo' : 'Inativo'} tone=${item.ativo ? 'success' : 'secondary'} />`}
+                            </td>
                             <td class="text-end">
                               ${podeEditar
               ? html`
-                                    <${MenuAcoesProcesso}
-                                      ariaLabel="Ações do item"
-                                      acoes=${[
-                  { key: 'editar', label: 'Editar', icon: 'edit', onClick: () => editarItem(item) },
-                  ...(mover
-                    ? [
-                      { key: 'subir', label: 'Mover para cima', icon: 'arrow_upward', disabled: indice === 0, onClick: () => mover(item, -1) },
-                      { key: 'descer', label: 'Mover para baixo', icon: 'arrow_downward', disabled: indice === itens.length - 1, onClick: () => mover(item, 1) },
-                    ]
-                    : []),
-                  ...(config.podeExcluir
-                    ? [
-                      {
-                        key: 'alternar-ativo',
-                        label: item.ativo ? 'Desativar' : 'Ativar',
-                        icon: item.ativo ? 'block' : 'check_circle',
-                        onClick: () => alternarAtivo(item),
-                      },
-                      {
-                        key: 'excluir',
-                        label: 'Excluir',
-                        icon: 'delete',
-                        danger: true,
-                        onClick: () => setItemExcluir(item),
-                      },
-                    ]
-                    : [
-                      {
-                        key: 'arquivar',
-                        label: 'Arquivar',
-                        icon: 'archive',
-                        danger: true,
-                        disabled: !item.ativo,
-                        onClick: () => setItemRemover(item),
-                      },
-                    ]),
-                ]}
-                                    />
+                                    <div class="rh-row-actions-inline">
+                                      ${mover
+                ? html`
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-secondary btn-sm"
+                                              title="Mover para cima"
+                                              disabled=${indice === 0}
+                                              onClick=${() => mover(item, -1)}
+                                            >
+                                              <span class="material-symbols-outlined">${IconeSvg('arrow_upward')}</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-secondary btn-sm"
+                                              title="Mover para baixo"
+                                              disabled=${indice === itens.length - 1}
+                                              onClick=${() => mover(item, 1)}
+                                            >
+                                              <span class="material-symbols-outlined">${IconeSvg('arrow_downward')}</span>
+                                            </button>
+                                          `
+                : null}
+                                      <button
+                                        type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        title="Editar"
+                                        onClick=${() => editarItem(item)}
+                                      >
+                                        <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
+                                      </button>
+                                      ${config.podeExcluir
+                ? html`
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-danger btn-sm"
+                                              title="Excluir"
+                                              onClick=${() => setItemExcluir(item)}
+                                            >
+                                              <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
+                                            </button>
+                                          `
+                : html`
+                                            <button
+                                              type="button"
+                                              class="btn btn-outline-danger btn-sm"
+                                              title="Arquivar"
+                                              disabled=${!item.ativo}
+                                              onClick=${() => setItemRemover(item)}
+                                            >
+                                              <span class="material-symbols-outlined">${IconeSvg('archive')}</span>
+                                            </button>
+                                          `}
+                                    </div>
                                   `
               : null}
                             </td>
@@ -502,6 +548,16 @@ const CONFIG_MODELOS_EMAIL = {
   titulo: 'Modelos de E-mail',
   descricao: 'Modelos prontos, selecionáveis sempre que uma mensagem for enviada por e-mail no Conecta.',
   rotuloItem: 'modelo',
+  podeExcluir: true,
+  campoInsercaoVariavel: 'corpo_html',
+  variaveisDisponiveis: [
+    { chave: 'nome_candidato', label: 'Nome do candidato' },
+    { chave: 'vaga', label: 'Vaga/processo seletivo' },
+    { chave: 'dia', label: 'Dia da entrevista/convocação' },
+    { chave: 'horario', label: 'Horário da entrevista/convocação' },
+    { chave: 'local', label: 'Local da entrevista' },
+    { chave: 'empresa', label: 'Nome da empresa' },
+  ],
   camposExtras: [
     { chave: 'assunto', label: 'Assunto', tipo: 'text', wide: true, placeholder: 'Assunto padrão do e-mail' },
     {
@@ -510,7 +566,8 @@ const CONFIG_MODELOS_EMAIL = {
       tipo: 'textarea',
       wide: true,
       linhas: 8,
-      placeholder: 'Texto do e-mail (aceita HTML simples).',
+      placeholder: 'Texto do e-mail. Use variáveis como {nome_candidato}, {dia} e {horario} — elas são preenchidas manualmente ou, quando o modelo é usado em resposta a um processo seletivo, automaticamente com os dados do candidato.',
+      helper: 'As variáveis usam chave simples: {nome_candidato}, {dia}, {horario}. Veja a lista completa abaixo.',
     },
   ],
 };
