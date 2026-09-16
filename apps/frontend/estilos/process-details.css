@@ -40,13 +40,13 @@
   margin: 0 0 1.15rem;
   font-size: clamp(1.45rem, 2vw, 1.9rem);
   line-height: 1.1;
-  font-weight: 700;
+  /*font-weight: 700;*/
 }
 
 #screen-process-details .process-header h2 {
   margin: 0;
   font-size: clamp(1.1rem, 1.65vw, 1.45rem);
-  font-weight: 600;
+  /*font-weight: 600;*/
 }
 
 #screen-process-details .process-back-button {
@@ -80,7 +80,7 @@
   border: 0;
   background: transparent;
   color: var(--process-blue);
-  font-weight: 600;
+  /*font-weight: 600;*/
 }
 
 #screen-process-details .process-link-button .material-symbols-outlined,
@@ -151,7 +151,7 @@
   padding: 0 0.2rem;
   background: transparent;
   color: #35435d;
-  font-weight: 600;
+  /*font-weight: 600;*/
 }
 
 #screen-process-details .process-tabs button.is-active { border-bottom-color: var(--process-blue); color: var(--process-blue); }
@@ -209,7 +209,7 @@
 #screen-process-details .process-table-shell { overflow: hidden; border: 1px solid var(--process-border); border-radius: 10px; background: var(--color-surface); }
 #screen-process-details .process-table-shell .c24-pagination-bar { margin: 0; border-top: 1px solid var(--process-border); padding: 0.75rem 1rem; }
 #screen-process-details .process-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-#screen-process-details .process-table th { padding: 0.78rem 0.85rem; background: #fbfcfe; color: #182236; font-size: 0.75rem; font-weight: 700; text-align: left; white-space: nowrap; }
+#screen-process-details .process-table th { padding: 0.78rem 0.85rem; background: #fbfcfe; color: #182236; font-size: 0.75rem; /*font-weight: 700;*/ text-align: left; white-space: nowrap; }
 #screen-process-details .process-table td { border-top: 1px solid #e8ecf2; padding: 0.72rem 0.85rem; color: #24334f; vertical-align: middle; }
 #screen-process-details .process-table tr.is-selected td { background: #f5f8ff; }
 #screen-process-details .process-table .is-check { width: 42px; text-align: center; }
@@ -226,7 +226,7 @@
   border: 0;
   background: transparent;
   color: var(--process-blue);
-  font-weight: 700;
+  /*font-weight: 700;*/
   font-size: inherit;
   font-family: inherit;
   text-align: left;
@@ -238,18 +238,18 @@
 }
 #screen-process-details .process-candidate-cell small,
 #screen-process-details .process-cell-subtitle { display: block; color: #64728a; font-size: 0.72rem; }
-#screen-process-details .process-avatar { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: var(--radius-full); background: #e8f0ff; color: var(--process-blue); font-weight: 700; }
+#screen-process-details .process-avatar { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: var(--radius-full); background: #e8f0ff; color: var(--process-blue); /*font-weight: 700;*/ }
 #screen-process-details .process-score-cell { gap: 0.75rem; min-width: 135px; }
 #screen-process-details .process-score-cell > div { display: grid; }
 #screen-process-details .process-score-cell small { color: #64728a; font-size: 0.68rem; }
-#screen-process-details .process-fit-tag { border-radius: 6px; padding: 0.28rem 0.55rem; font-size: 0.7rem; font-weight: 600; }
+#screen-process-details .process-fit-tag { border-radius: 6px; padding: 0.28rem 0.55rem; font-size: 0.7rem; /*font-weight: 600;*/ }
 #screen-process-details .process-fit-tag.is-high { color: #147a2b; background: #e8f7ec; }
 #screen-process-details .process-fit-tag.is-medium { color: #c65f00; background: #fff0df; }
 #screen-process-details .process-fit-tag.is-low { color: #b42318; background: #feeceb; }
 
 /* Ponto de estado (::before) adicionado ao grupo compartilhado em base.css
    (rodada 10/set/2026) — mesma identidade contorno+ponto do resto do app. */
-#screen-process-details .process-status-tag { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 190px; border: 1px solid transparent; border-radius: 7px; padding: 0.3rem 0.62rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+#screen-process-details .process-status-tag { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 190px; border: 1px solid transparent; border-radius: 7px; padding: 0.3rem 0.62rem; font-size: 0.72rem; /*font-weight: 600;*/ white-space: nowrap; }
 #screen-process-details .process-status-tag.is-info { color: #086fca; border-color: #cbdcff; background: #edf3ff; }
 #screen-process-details .process-status-tag.is-success { color: #137a2d; border-color: #cce9d2; background: #ecf8ee; }
 #screen-process-details .process-status-tag.is-warning { color: #c55d00; border-color: #ffd8ae; background: #fff5e9; }
@@ -258,7 +258,7 @@
 #screen-process-details .process-next-action { gap: 0.42rem; min-width: 150px; color: #41506a; }
 #screen-process-details .process-next-action i { font-size: 1rem; }
 #screen-process-details .process-result-cell { display: grid; justify-items: center; }
-#screen-process-details .process-result-cell small { color: #16813a; font-weight: 700; }
+#screen-process-details .process-result-cell small { color: #16813a; /*font-weight: 700;*/ }
 #screen-process-details .process-empty-row { padding: 2rem !important; color: #68758c !important; text-align: center !important; }
 
 #screen-process-details .quick-actions-panel { align-self: start; display: grid; gap: 0.65rem; border: 1px solid var(--process-border); border-radius: 10px; padding: 1.1rem; background: var(--color-surface); }
@@ -278,6 +278,8 @@
 #screen-process-details .process-section-heading { justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
 #screen-process-details .process-section-heading h3 { margin: 0 0 0.25rem; font-size: 1.1rem; }
 #screen-process-details .process-section-heading p { margin: 0; color: var(--process-muted); }
+#screen-process-details .process-dossier-chart { margin-bottom: 1rem; }
+#screen-process-details .process-dossier-chart-card.rh-section-card { border: 1px solid var(--process-border); }
 #screen-process-details .process-history-list { display: grid; gap: 0.7rem; }
 #screen-process-details .process-history-list article { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; border: 1px solid var(--process-border); border-radius: 10px; padding: 0.9rem; background: var(--color-surface); }
 #screen-process-details .process-history-list p { margin: 0.2rem 0; color: #465570; }
@@ -316,11 +318,11 @@
 #screen-process-details .process-dossier-note-list { display: grid; gap: 0.5rem; }
 #screen-process-details .process-dossier-note-list article { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--color-border); padding-top: 0.65rem; }
 #screen-process-details .process-dossier-note-list small { color: #7b8799; }
-#screen-process-details .dossier-note-mention { color: var(--process-blue); font-weight: 700; }
+#screen-process-details .dossier-note-mention { color: var(--process-blue); /*font-weight: 700;*/ }
 
 #screen-process-details .process-find-heading > div:last-child { display: flex; gap: 0.55rem; flex-wrap: wrap; }
 #screen-process-details .process-find-subtabs { display: flex; gap: 0.35rem; margin-bottom: 0.7rem; border-bottom: 1px solid var(--process-border); }
-#screen-process-details .process-find-subtabs button { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 40px; border: 0; border-bottom: 2px solid transparent; padding: 0 0.8rem; background: transparent; color: #465570; font-weight: 600; }
+#screen-process-details .process-find-subtabs button { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 40px; border: 0; border-bottom: 2px solid transparent; padding: 0 0.8rem; background: transparent; color: #465570; /*font-weight: 600;*/ }
 #screen-process-details .process-find-subtabs button.is-active { border-bottom-color: var(--process-blue); color: var(--process-blue); }
 #screen-process-details .process-find-subtabs button span { border-radius: var(--radius-full); padding: 0.1rem 0.45rem; background: #eef3fb; font-size: 0.68rem; }
 #screen-process-details .process-find-toolbar { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.65rem; }
@@ -347,7 +349,7 @@
 #screen-process-details .candidate-stage-result-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 9px; color: var(--process-blue); background: #eaf1ff; }
 #screen-process-details .candidate-stage-result-main { min-width: 0; }
 #screen-process-details .candidate-stage-result-main small,
-#screen-process-details .candidate-stage-result-score span { color: #6b778b; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; }
+#screen-process-details .candidate-stage-result-score span { color: #6b778b; font-size: 0.66rem; /*font-weight: 700;*/ text-transform: uppercase; }
 #screen-process-details .candidate-stage-result-main h4 { margin: 0.08rem 0 0.2rem; font-size: 0.92rem; }
 #screen-process-details .candidate-stage-result-main p { margin: 0; color: #465570; font-size: 0.75rem; }
 #screen-process-details .candidate-stage-result-main > span { display: block; margin-top: 0.2rem; color: #758198; font-size: 0.68rem; }
@@ -362,10 +364,10 @@
 #screen-process-details .candidate-rh-evaluation-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 #screen-process-details .candidate-rh-evaluation-head > div { display: grid; }
 #screen-process-details .candidate-rh-evaluation-head span { color: #6a768b; font-size: 0.72rem; }
-#screen-process-details .candidate-rh-current-status { border-radius: var(--radius-full); padding: 0.3rem 0.65rem; background: #edf1f6; color: #59667a !important; font-weight: 700; }
+#screen-process-details .candidate-rh-current-status { border-radius: var(--radius-full); padding: 0.3rem 0.65rem; background: #edf1f6; color: #59667a !important; /*font-weight: 700;*/ }
 #screen-process-details .candidate-rh-current-status.is-defined { background: #e9f2ff; color: var(--process-blue) !important; }
 #screen-process-details .candidate-rh-choice-field { margin: 0; border: 0; padding: 0; }
-#screen-process-details .candidate-rh-choice-field legend { margin-bottom: 0.35rem; color: #35435c; font-size: 0.72rem; font-weight: 700; }
+#screen-process-details .candidate-rh-choice-field legend { margin-bottom: 0.35rem; color: #35435c; font-size: 0.72rem; /*font-weight: 700;*/ }
 #screen-process-details .candidate-sheet-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
 #screen-process-details .candidate-sheet-choice { display: flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 44px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.5rem 0.65rem; background: var(--color-surface); cursor: pointer; }
 #screen-process-details .candidate-sheet-choice input { position: absolute; opacity: 0; pointer-events: none; }
@@ -375,7 +377,7 @@
 #screen-process-details .candidate-rh-clear { min-height: 28px; margin-top: 0.25rem; padding: 0; font-size: 0.7rem; }
 #screen-process-details .candidate-rh-text-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 #screen-process-details .candidate-rh-text-grid label { display: grid; gap: 0.2rem; }
-#screen-process-details .candidate-rh-text-grid label > span { color: #35435c; font-weight: 700; }
+#screen-process-details .candidate-rh-text-grid label > span { color: #35435c; /*font-weight: 700;*/ }
 #screen-process-details .candidate-rh-text-grid label > small { color: #768298; }
 #screen-process-details .candidate-rh-text-grid textarea { width: 100%; min-height: 82px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.65rem 0.75rem; resize: vertical; }
 
@@ -385,7 +387,7 @@
  }
 #screen-process-details .candidate-sheet-dialog--profile .rh-modal-header { border-bottom: 1px solid var(--color-border); padding: 1rem 1.35rem; background: var(--color-surface); }
 #screen-process-details .candidate-profile-page { padding: 1.1rem 1.25rem 1.3rem; overflow-y: auto; }
-#screen-process-details .candidate-profile-back { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.9rem; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--color-surface); color: var(--process-blue); font-weight: 700; }
+#screen-process-details .candidate-profile-back { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.9rem; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--color-surface); color: var(--process-blue); /*font-weight: 700;*/ }
 #screen-process-details .candidate-profile-back .material-symbols-outlined { font-size: 1.05rem; }
 #screen-process-details .candidate-profile-layout { display: grid; grid-template-columns: minmax(240px, 310px) minmax(0, 1fr); gap: 1rem; align-items: start; }
 #screen-process-details .candidate-profile-sidebar,
@@ -417,8 +419,8 @@
 #screen-process-details .candidate-timeline-card { display: grid; gap: 0.85rem; }
 #screen-process-details .candidate-timeline-card .process-history-list { max-height: 320px; overflow-y: auto; padding-right: 0.15rem; }
 #screen-process-details .candidate-info-row { display: grid; grid-template-columns: minmax(180px, 32%) minmax(0, 1fr); gap: 1rem; align-items: center; min-height: 58px; border-bottom: 1px solid var(--color-border); padding: 0.65rem 0.15rem; }
-#screen-process-details .candidate-info-row > span { color: #35435c; font-weight: 600; }
-#screen-process-details .candidate-info-row > strong { color: #41516e; font-weight: 600; }
+#screen-process-details .candidate-info-row > span { color: #35435c; /*font-weight: 600;*/ }
+#screen-process-details .candidate-info-row > strong { color: #41516e; /*font-weight: 600;*/ }
 #screen-process-details .candidate-score-composite { display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; }
 #screen-process-details .candidate-score-composite b,
 #screen-process-details .candidate-score-badge { border-radius: 7px; padding: 0.35rem 0.65rem; background: #e8f6ea; color: #187334; font-size: 1rem; font-style: normal; }
@@ -426,20 +428,20 @@
 #screen-process-details .candidate-score-composite strong { color: #168135; font-size: 1.05rem; }
 #screen-process-details .candidate-score-composite small { color: #53617a; }
 #screen-process-details .candidate-score-badge.is-blue {     background: #edf4ff00; color: var(--process-blue); }
-#screen-process-details .candidate-fit-label { width: max-content; border-radius: 7px; padding: 0.35rem 0.65rem; font-weight: 700; font-style: normal; }
+#screen-process-details .candidate-fit-label { width: max-content; border-radius: 7px; padding: 0.35rem 0.65rem; /*font-weight: 700;*/ font-style: normal; }
 #screen-process-details .candidate-fit-label.is-high { background: #e7f6ea; color: #187334; }
 #screen-process-details .candidate-fit-label.is-medium { background: #fff4dd; color: #a35b00; }
 #screen-process-details .candidate-fit-label.is-low { background: #ffeaea; color: #ba2e2e; }
 #screen-process-details .candidate-fit-label.is-neutral { background: #eef1f5; color: #5b687c; }
 #screen-process-details .candidate-proof-score { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-#screen-process-details .candidate-proof-score button { display: inline-flex; align-items: center; border: 0; background: transparent; color: var(--process-blue); font-weight: 700; }
+#screen-process-details .candidate-proof-score button { display: inline-flex; align-items: center; border: 0; background: transparent; color: var(--process-blue); /*font-weight: 700;*/ }
 #screen-process-details .candidate-proof-score button:disabled { color: #8d98aa; cursor: not-allowed; }
 #screen-process-details .candidate-proof-score .material-symbols-outlined { font-size: 1.05rem; }
-#screen-process-details .candidate-proof-score > small { color: #7a8699; font-weight: 600; }
+#screen-process-details .candidate-proof-score > small { color: #7a8699; /*font-weight: 600;*/ }
 #screen-process-details .candidate-info-row--list { align-items: start; }
 #screen-process-details .candidate-info-row--list ul { display: grid; gap: 0.3rem; margin: 0; padding-left: 1rem; color: #53627b; }
 #screen-process-details .candidate-info-row--skills > div { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-#screen-process-details .candidate-info-row--skills em { border: 1px solid #cfe0ff; border-radius: 7px; padding: 0.35rem 0.65rem; background: #f5f8ff; color: var(--process-blue); font-size: 0.72rem; font-style: normal; font-weight: 700; }
+#screen-process-details .candidate-info-row--skills em { border: 1px solid #cfe0ff; border-radius: 7px; padding: 0.35rem 0.65rem; background: #f5f8ff; color: var(--process-blue); font-size: 0.72rem; font-style: normal; /*font-weight: 700;*/ }
 #screen-process-details .candidate-cv-inline-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; padding-top: 0.85rem; }
 #screen-process-details .candidate-rh-notes-card { display: grid; gap: 0.75rem; padding: 1.1rem 1.25rem; }
 #screen-process-details .candidate-rh-notes-card > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }

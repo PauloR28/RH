@@ -64,7 +64,7 @@ export function BarraLateral({
   mostrarAjuda = false,
 }) {
   const itensPrincipais = [
-    { tela: 'screen-menu', icone: 'home', label: 'Início' },
+    { tela: 'screen-menu', icone: 'home', label: 'Início', permissao: 'inicio.visualizar' },
     {
       tela: 'screen-email-inbox',
       icone: 'mail',
@@ -127,6 +127,12 @@ export function BarraLateral({
   ];
   const sublinksTreinamentos = [
     {
+      tela: 'screen-training-mine',
+      icone: 'play_circle',
+      label: 'Meus treinamentos',
+      permissao: 'onboarding.visualizar',
+    },
+    {
       tela: 'screen-training-trilhas',
       icone: 'school',
       label: 'Treinamentos',
@@ -163,11 +169,13 @@ export function BarraLateral({
       tela: 'screen-calendario',
       icone: 'celebration',
       label: 'Calendário',
+      permissao: 'calendario.visualizar',
     },
     {
       tela: 'screen-mural',
       icone: 'article',
       label: 'Mural',
+      permissao: 'mural.visualizar',
     },
   ];
   const itensDriveConecta = [
@@ -265,6 +273,7 @@ export function BarraLateral({
     'screen-training',
     'screen-training-trilhas',
     'screen-training-assignments',
+    'screen-training-mine',
   ];
   const telasRelacionadasGestao = [
     'screen-analysis-candidates',

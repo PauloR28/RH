@@ -1,163 +1,75 @@
-Redesign Visual Completo do Conecta
+Prompt para Claude Code — Integração Conecta ↔ Intranet (SharePoint/Microsoft Graph)
+Contexto do projeto
 
-0. Seu papel neste projeto
+O Conecta é uma plataforma de recrutamento construída em React (frontend) com backend próprio. O sistema já possui:
 
-Você não é um assistente de programação fazendo uma limpeza de código ou um ajuste pontual de layout. A partir de agora, e apenas para esta tarefa, você assume o papel de um Design Lead Full Stack: alguém que acumula três funções ao mesmo tempo —
+Autenticação de usuários via Microsoft (Client ID e Client Secret já configurados e funcionando para login).
+Uma integração existente com uma intranet do RH, incluindo uso do OneDrive dela.
+Uma aba de configuração de ambiente relacionada a essa intranet, que já existe no sistema mas precisa ser expandida.
 
-UI/UX Designer sênior, com repertório de produtos corporativos modernos (SaaS de RH, plataformas de gestão, dashboards internos), que sabe justificar cada escolha visual e de layout.
-Consultor de usabilidade, que analisa fluxos, hierarquia de informação, carga cognitiva de cada tela e reorganiza o que for preciso — mesmo que isso signifique mover um elemento para outra tela, transformar um campo em dropdown, fundir duas telas em uma, ou eliminar algo que hoje existe mas não deveria estar ali.
-Desenvolvedor front-end capaz de implementar tudo isso em React sem quebrar nenhuma função existente.
+Antes de qualquer implementação, explore o repositório para entender:
 
-Isso já foi tentado uma vez com um prompt anterior (revisão de tokens de cor inspirada no Slack) e o resultado foi insuficiente: poucas telas mudaram, e o sistema como um todo ainda "parece feito por IA" — genérico, previsível, sem identidade. Esta rodada precisa ser radicalmente diferente da anterior. Não é permitido repetir a mesma abordagem superficial.
+Onde está a aba/tela de configuração de ambiente da intranet hoje (arquivo de frontend e, se existir, model/schema de backend associado).
+Como a autenticação Microsoft atual está implementada (fluxo, biblioteca usada, onde ficam armazenados client_id/secret hoje — variável de ambiente, banco, key vault etc.).
+Como a integração atual com o OneDrive/intranet do RH funciona (para reaproveitar padrões de chamada ao Microsoft Graph, se já existirem).
+A estrutura de rotas de backend e o padrão de autorização por papel de usuário (admin/RH vs colaborador comum) já usado no projeto.
 
-Isto não é uma instrução de tom, é uma instrução de processo. Não basta adotar a postura de "Design Lead" na sua escrita — você precisa produzir, para cada tela, evidência concreta de análise: o que exatamente é problemático, por que aquilo é reconhecível como genérico/gerado por IA, e qual decisão de design resolve especificamente aquele problema. Se você não consegue escrever essa cadeia (problema → diagnóstico → decisão → referência) para um elemento, não mude aquele elemento só por mudar — significa que você ainda não analisou o suficiente.
+Não presuma nomes de arquivos ou pastas — descubra a estrutura real antes de escrever código. Siga os padrões de nomenclatura, estilo de código e organização de pastas já existentes no projeto.
 
-O que significa "parecer feito por IA" (o que você deve evitar)
+Objetivo desta tarefa
 
-Não existe uma lista fixa aqui de propósito: se eu te desse uma checklist fechada, você só evitaria esses itens específicos e cairia em outros igualmente genéricos. Em vez disso, antes de desenhar qualquer coisa, você precisa desenvolver esse julgamento sozinho, e depois aplicá-lo ativamente sobre o Conecta real, elemento por elemento — não apenas guardar o critério na cabeça. Para isso:
+Implementar a base de um "Mural de publicações" dentro do Conecta, onde admins/RH podem criar publicações (texto, foto) que são gravadas diretamente numa lista do SharePoint da intranet, via Microsoft Graph API — sem necessidade de endpoint público próprio, sem polling, sem sistema de fila.
 
-Pesquise ativamente (na Fase 1, abaixo) o que hoje é reconhecido no mercado, por designers e por artigos de crítica de produto, como padrão visual "genérico de IA" ou "template de SaaS" — cores, tipografia, componentes, layout, ícones, espaçamento, tudo.
-Abra cada tela do Conecta e, olhando para ela como um crítico externo, aponte explicitamente: "este elemento aqui existe porque uma IA generativa escolheu o caminho mais previsível, e é reconhecível porque...". Se não conseguir apontar o motivo, não assuma que é genérico — investigue mais.
-Compare essas descobertas com o estado atual do Conecta, tela por tela, e registre, para cada tela, uma lista concreta do que foi identificado como "cara de IA" nela especificamente (não uma impressão geral do sistema todo).
-Use esse diagnóstico próprio — não uma lista que eu te dei — como critério para decidir o que precisa mudar.
+Escopo desta etapa: uma intranet configurada por vez, mas a modelagem de dados e o código devem já estar preparados para múltiplos ambientes/intranets no futuro (não é para implementar seleção múltipla ou publicação simultânea em vários destinos agora — só não pode ser algo que exija reescrever tudo quando isso for adicionado).
 
-O objetivo é que você seja capaz de olhar para qualquer tela, mesmo uma que nunca discutimos, e reconhecer sozinho se ela "parece feito por IA" ou não, apontar exatamente quais elementos e por quê, e não apenas dizer que "vai deixar mais profissional".
+Parte 1 — Expandir a aba de configuração de ambiente da intranet
 
-O que você deve fazer em vez disso
+Localize a tela/aba de configuração de ambiente da intranet já existente no Conecta e expanda-a para incluir todos os campos necessários para a conexão com o SharePoint via Microsoft Graph:
 
-Antes de tocar em qualquer arquivo, você precisa pensar como um consultor olhando o produto pela primeira vez, fazendo perguntas do tipo:
+nome_ambiente (texto, nome amigável, ex: "Intranet RH Central")
+tenant_id (texto)
+client_id (texto) — se o Conecta já tiver um client_id/secret únicos usados para login, permita que este campo seja reaproveitado desse valor OU sobrescrito com um valor específico para este ambiente. Pergunte ao usuário via comentário no código ou levante a dúvida se não estiver claro qual comportamento faz mais sentido dado o que já existe.
+client_secret (texto, sensível — deve ser armazenado de forma criptografada, nunca em texto puro; siga o padrão de segredos já usado no projeto para outras credenciais, se existir; caso não exista, use uma biblioteca de criptografia simétrica padrão e documente a variável de ambiente com a chave de criptografia)
+sharepoint_site_url (texto, ex: "https://empresa.sharepoint.com/sites/RH")
+site_id (texto — pode ser preenchido manualmente ou, idealmente, incluir um botão "Buscar site_id" que chama o Graph (GET /sites/{hostname}:/sites/{caminho}) usando as credenciais já preenchidas no formulário, e auto-preenche o campo)
+list_id ou list_name (texto — mesma lógica: idealmente um botão "Buscar listas disponíveis" que lista as listas do site via Graph e permite selecionar de um dropdown)
+ativo (boolean — permite desativar um ambiente sem excluí-lo)
+status_conexao (calculado/exibido, não editável — resultado do último teste de conexão: sucesso, falha, nunca testado)
 
-"Esse estilo dessa página não está legal — ficaria melhor dividida assim..."
-"Esse elemento faria mais sentido como dropdown / accordion / stepper..."
-"Esse fundo não comunica nada, vou trocar por..."
-"Esse botão não faz sentido nesse lugar, o usuário não vai procurar a ação aqui..."
-"Essa fonte é genérica demais para um produto corporativo, vou usar..."
-"Essa página está com excesso de informação achatada, vou criar hierarquia visual..."
-"A leitura dessa tela está confusa, o olho não sabe por onde começar..."
-"Essa tela tem poucos elementos, dá pra trazer aqui outras informações relevantes que hoje estão escondidas ou em outra tela..."
-"Esse campo está enorme e flutuando sem contexto no layout, vou integrá-lo..."
+Adicione um botão "Testar conexão" nesta tela que:
 
-Essa é a régua de qualidade esperada — não uma organização, um redesign de verdade.
+Executa o Client Credentials Flow com as credenciais preenchidas.
+Faz uma chamada simples ao Graph (ex: GET /sites/{site_id}) para confirmar que o token funciona e o site é acessível.
+Exibe sucesso ou o erro retornado pela Microsoft de forma legível (ex: traduzir erros comuns como permissão ausente, admin consent pendente, client_secret expirado).
+Atualiza o campo status_conexao.
 
-1. Escopo
+Modele isso como uma nova entidade/tabela caso a aba atual seja apenas de configuração simples (chave-valor) e não suporte múltiplos ambientes ainda. Se a estrutura atual já for uma lista de ambientes, apenas adicione os campos novos ao modelo existente.
 
-Cobertura: absolutamente todas as telas, todos os fluxos e todos os estados do Conecta, sem exceção. Isso inclui, mas não se limita a:
+Parte 2 — Backend: publicação via Microsoft Graph
 
-Todas as páginas de listagem (candidatos, processos seletivos, vagas, banco de talentos, etc.)
-Todos os formulários e wizards de criação/edição
-Todas as telas de detalhe/perfil (candidato, vaga, processo)
-Todas as telas de correção de provas e resultados
-Dashboards e relatórios (incluindo gráficos)
-Navegação (navbar superior — isso permanece fixo, não migrar para sidebar), breadcrumbs, menus, dropdowns
-Modais, tooltips, notificações/toasts, estados de loading, estados vazios (empty states), estados de erro
-Botões, inputs, selects, checkboxes, radios, tabelas, badges, tags, avatares, paginação
-Imagens, ícones, ilustrações e uso de espaço em branco
-Light mode e dark mode — os dois precisam funcionar igualmente bem, com o mesmo padrão de qualidade
+Implemente no backend:
 
-Escopo de produto (não mexer no propósito): o Conecta é e continua sendo uma plataforma de RH voltada a recrutamento e seleção — gestão de candidatos, vagas, processos seletivos, provas/avaliações, entrevistas, banco de talentos, treinamentos e relatórios. Você tem total liberdade visual e de reorganização de UI, mas não invente funcionalidades de outro domínio (não é uma rede social, não é um ERP financeiro, não é um CRM de vendas). Toda referência visual que você trouxer de fora deve ser adaptada ao contexto de RH, não copiada literalmente de outro tipo de produto.
+Modelo de dados de publicações (publicacoes ou nome equivalente ao padrão do projeto):
+id, titulo, texto, autor_id, status (rascunho / publicado / arquivado), data_publicacao, data_criacao, ambiente_intranet_id (referência ao ambiente configurado na Parte 1), sharepoint_item_id (guarda o ID do item criado no SharePoint, para permitir edição/exclusão futura), foto_url (ou tabela relacionada publicacao_fotos se houver mais de uma foto por publicação).
+Função de autenticação Graph reutilizável: recebe tenant_id, client_id, client_secret como parâmetros (não fixos no código) e retorna um access token via Client Credentials Flow (POST https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token, grant_type=client_credentials, scope=https://graph.microsoft.com/.default). Trate cache de token com expiração para evitar autenticar a cada chamada.
+Função de upload de foto: sobe a imagem para uma biblioteca de documentos do SharePoint (POST /sites/{site-id}/drive/root:/Publicacoes/{nome-arquivo}:/content) e retorna a URL do arquivo.
+Função de criação de item na lista: POST /sites/{site-id}/lists/{list-id}/items com os campos da publicação. Deve buscar as credenciais e IDs do ambiente configurado (Parte 1) em vez de valores fixos.
+Endpoint de publicação (ex: POST /api/publicacoes): recebe os dados da publicação vindos do frontend, salva no banco local com status apropriado, chama a função de upload de foto (se houver) e a função de criação de item na lista, salva o sharepoint_item_id retornado, e trata erros de forma que uma falha na chamada ao Graph não deixe o registro local em estado inconsistente (ex: salvar como "falha_publicacao" e permitir reprocessar).
+Restrinja esse endpoint e os de gestão de publicações (criar/editar/despublicar) ao papel de admin/RH, seguindo o padrão de autorização já usado no projeto.
+Parte 3 — Frontend: tela de mural
 
-Autonomia concedida:
+Crie ou adapte a tela de "Mural" dentro do Conecta, visível para admins/RH, com:
 
-Pode reposicionar qualquer elemento dentro da tela ou entre telas.
-Pode transformar o tipo de componente (ex: campo de texto → dropdown, lista → tabela, tabs → accordion) sempre que isso melhorar a experiência.
-Pode criar novos componentes visuais que hoje não existem, se isso resolver um problema real de organização ou hierarquia.
-Pode fundir, dividir ou reordenar seções dentro de uma página.
-Pode alterar o backend somente se for estritamente necessário para sustentar uma mudança de UI (ex: um novo agrupamento de dados que hoje não vem pronto da API). Isso só se aplica na Fase 5 (implementação), nunca durante a Fase 4 (wireframes) — nessa fase você ainda não deve tocar em código de produção, backend incluso. Quando implementar, valide que tudo continua funcionando de ponta a ponta antes de seguir para a próxima tela.
+Lista das publicações existentes (com status: rascunho, publicado, falha de publicação, arquivado).
+Botão "Nova publicação" abrindo um formulário com: título, texto (editor simples, pode ser rich text se o projeto já tiver algum componente desse tipo), upload de foto, seleção do ambiente de intranet configurado (dropdown vindo da Parte 1 — nesta etapa, normalmente um único ambiente ativo, mas o campo já deve existir para o futuro).
+Botão "Publicar" que chama o endpoint da Parte 2.
+Indicação visual clara de sucesso/falha da publicação no SharePoint (não apenas "salvo no Conecta", mas "publicado na intranet" vs "erro ao publicar na intranet: [motivo]").
+Opção de tentar publicar novamente uma publicação que falhou.
+Requisitos não funcionais
+Nunca logar ou expor client_secret em logs, respostas de API ou no frontend após salvo (mostrar mascarado, ex: ••••••1234, e permitir apenas substituição, não visualização do valor salvo).
+Todas as chamadas ao Microsoft Graph devem ter tratamento de erro específico para: credencial inválida, admin consent pendente (erro 403 típico), site/lista não encontrados, token expirado.
+Documente no README (ou onde o projeto já documenta configuração) os passos que precisam ser feitos manualmente no Azure Portal antes desta funcionalidade funcionar: registrar/ajustar o App Registration com a permissão Sites.ReadWrite.All (Application permission) e obter admin consent do tenant.
+Escreva testes (seguindo o framework de testes já usado no projeto, se houver) pelo menos para: a função de obtenção de token, a função de criação de item na lista (mockando a chamada HTTP), e o endpoint de publicação (casos de sucesso e de falha na chamada ao Graph).
+Antes de começar
 
-O que não pode:
-
-Não pode quebrar nenhuma funcionalidade existente. Qualquer mudança estrutural precisa ser testada antes de você considerar a tela "concluída".
-Não pode fugir do propósito de RH do produto.
-Não pode trocar a navegação principal de navbar superior para sidebar lateral.
-Não pode entregar "mais do mesmo" — se ao final de uma tela você não consegue apontar o que mudou estruturalmente (não só cor), a tela não está pronta.
-Não pode implementar em código de produção nenhuma tela cujo wireframe eu ainda não tenha aprovado (ver Fase 4 e Fase 5).
-2. Processo obrigatório (siga nesta ordem, sem pular etapas)
-Fase 1 — Pesquisa de referências (fundação geral)
-
-Antes de desenhar qualquer coisa, pesquise ativamente por referências reais de produtos corporativos modernos com afinidade com o Conecta. Priorize categorias como:
-
-Plataformas de RH e recrutamento (ATS) modernas
-Dashboards administrativos corporativos B2B
-Design systems públicos de produtos SaaS bem avaliados
-Sites como Mobbin, Land-book, Dribbble (buscas por "HR platform", "ATS dashboard", "recruitment software UI", "admin dashboard design", "SaaS design system") e referências de produtos reais conhecidos por bom design B2B
-
-Reúna referências de verdade — não invente uma estética genérica "porque parece profissional". Anote, para você mesmo, quais padrões concretos vai importar (ex: tipo de tipografia, tratamento de cards, estilo de gráfico, padrão de navegação secundária, estilo de tabela) e por quê cada escolha serve ao Conecta especificamente.
-
-Importante: esta fase estabelece a linguagem visual geral (Fase 3). Ela não substitui a busca de referência específica que você fará para cada página individual na Fase 4 (wireframes) — são pesquisas diferentes, com propósitos diferentes, e as duas são obrigatórias.
-
-Fase 2 — Auditoria e diagnóstico
-
-Mapeie o sistema atual, tela por tela. Para cada tela, produza um diagnóstico curto (pode ser em um arquivo de notas interno seu, não precisa mostrar ao usuário) identificando:
-
-O que está confuso, desorganizado ou sem hierarquia
-O que está genérico demais (visual "de IA")
-O que poderia ser reagrupado, movido ou transformado em outro tipo de componente
-Onde falta densidade de informação útil e onde sobra ruído visual
-Fase 3 — Sistema de design (fundação antes da aplicação)
-
-Antes de mexer em qualquer tela individual, defina e documente um sistema de design consistente para todo o Conecta:
-
-Paleta de cores completa (não só tokens isolados) para light mode e dark mode, coerente com a identidade visual já existente do Conecta (símbolo "∞" em gradiente laranja/âmbar + "necta" em gradiente azul royal a azul petróleo) — a paleta nova deve conversar com essa logo, não ignorá-la.
-Escala tipográfica (família de fonte com personalidade — evite fontes genéricas de sistema sem tratamento — pesos, tamanhos, hierarquia de títulos/corpo/legendas)
-Grid, espaçamentos e densidade (defina uma escala de espaçamento proposital, não uniforme por padrão)
-Estilo de componentes-base (botões, inputs, cards, tabelas, badges, modais) com estados (hover, focus, disabled, erro)
-Estilo de ícones (escolha uma linguagem de ícone consistente e com peso definido, não a biblioteca padrão sem curadoria)
-Padrões de layout de página (como uma página "padrão" do Conecta se estrutura: cabeçalho de contexto, ações primárias, corpo, estados vazios)
-
-Implemente esse sistema como base reutilizável no código (tokens, componentes compartilhados) antes de sair aplicando tela por tela — para garantir consistência real, e não retrabalho.
-
-Fase 4 — Wireframes do novo design (checkpoint de aprovação — nenhum código de produção ainda)
-
-Com o sistema de design pronto (Fase 3), você vai projetar o redesign completo de todas as telas antes de implementar qualquer uma delas em código de produção. Este é o momento em que eu reviso e aprovo a direção visual e estrutural, tela por tela, antes de qualquer esforço de implementação ser gasto — isso evita retrabalho grande caso alguma direção precise de ajuste.
-
-Para cada tela, sem exceção, siga estes passos:
-
-Diagnóstico da tela: liste o que está errado nela especificamente — confuso, genérico, desalinhado com o restante do sistema, com "cara de IA" (aponte o quê e por quê, como definido na Seção 0).
-Busca de referência específica desta tela: faça uma pesquisa na web voltada exatamente para o tipo de tela em questão (ex: se é uma tela de listagem de candidatos, busque referências reais de "candidate list UI", "ATS candidate table design"; se é um wizard de criação de vaga, busque "job posting creation flow UI", "multi-step form design"). Não reaproveite apenas a pesquisa geral da Fase 1 — cada tela tem um problema de layout específico que merece sua própria referência. Registre qual referência encontrou e o que dela está sendo aplicado aqui.
-Decisão estrutural: diga o que você decidiu mudar estruturalmente (não só visualmente) e por que a referência encontrada resolve o problema diagnosticado no passo 1.
-Produção do wireframe: gere um wireframe/mockup navegável dessa tela já com o novo design aplicado — layout, hierarquia, componentes, posicionamento, e já usando a paleta e tipografia definidas na Fase 3 (não precisa ser pixel-perfect, mas precisa ser fiel o suficiente para eu avaliar a direção real). Antes de escolher a ferramenta, verifique se você tem acesso a algum plugin, MCP ou integração de design (ex: Figma, ou equivalente) disponível neste ambiente — se tiver, use-o como ferramenta preferencial para este passo, já que produz um mockup mais fiel, editável e fácil de avaliar do que um HTML estático. Se não houver essa integração disponível, use como alternativa HTML/CSS estático, uma tela de protótipo em React isolada, ou uma imagem/mockup — o formato que for mais rápido de produzir e mais fácil para eu visualizar, desde que represente fielmente como a tela ficaria. Em qualquer um dos casos: não edite o código de produção da tela nesta etapa.
-Guarde o wireframe em uma pasta própria do projeto (ex: /design/wireframes/ ou equivalente), nomeada de forma clara por tela, para consulta posterior — inclusive depois da aprovação, como referência de implementação.
-Siga para a próxima tela e repita, até ter wireframes de todas as telas do sistema.
-
-Se você chegar ao passo 4 sem ter uma referência real do passo 2 anotada, pare — significa que está aplicando gosto pessoal genérico, não uma decisão fundamentada, e é exatamente esse o comportamento que já falhou antes.
-
-Ao final desta fase, com todos os wireframes prontos, apresente-os para minha avaliação e aguarde minha aprovação explícita — tela por tela ou em lote, conforme eu preferir — antes de avançar para a Fase 5. Não implemente nenhuma tela em produção sem essa aprovação, mesmo que tenha certeza de que o wireframe está bom. Se eu pedir ajustes em algum wireframe, refaça apenas aquele wireframe e aguarde nova aprovação antes de seguir.
-
-Fase 5 — Implementação tela por tela (somente após aprovação)
-
-Depois que eu aprovar o(s) wireframe(s) de uma tela, implemente essa tela em código de produção, seguindo fielmente o wireframe aprovado (não é o momento de reabrir decisões de design já aprovadas — pequenos ajustes técnicos de implementação são normais, mas mudanças estruturais não combinadas devem ser consultadas). Para cada tela aprovada:
-
-Implemente a tela em React, replicando fielmente o wireframe aprovado guardado na Fase 4.
-Teste que a tela continua funcional (todas as ações, todos os estados, light e dark mode).
-Só então siga para a próxima tela aprovada.
-
-Trate isso como um trabalho iterativo e extenso — é aceitável (e esperado) que isso leve várias sessões de trabalho, dado que o escopo é o sistema inteiro. Você pode alternar entre lotes: eu aprovo um grupo de wireframes na Fase 4, você implementa esse grupo na Fase 5, enquanto outro grupo de wireframes ainda está em avaliação — não é necessário que todas as telas do sistema estejam aprovadas antes de você começar a implementar as primeiras.
-
-3. Em caso de dúvida
-
-Se em qualquer momento você tiver dúvida sobre:
-
-Uma decisão que muda significativamente um fluxo de trabalho do usuário,
-Uma mudança que exigiria alteração de backend mais profunda do que o esperado,
-Ou qualquer ambiguidade sobre o que uma tela deveria fazer,
-
-pare e me consulte antes de prosseguir. Não presuma a resposta "mais provável" e siga — pergunte.
-
-4. Critério de aceite (como saber se terminou bem)
-
-Para cada wireframe (Fase 4), antes de me apresentar para aprovação:
-
-Você consegue apontar, para essa tela específica, qual referência real da web foi buscada e o que dela foi aplicado aqui?
-Existe pelo menos uma decisão estrutural (não só de cor/fonte) que muda como a informação está organizada nessa tela?
-O visual é coerente com a logo e identidade existentes do Conecta e com o sistema de design da Fase 3?
-O wireframe está guardado no local combinado, identificável e consultável depois?
-O resultado parece ter sido desenhado por um designer humano com repertório de mercado — e não por uma IA "arrumando a casa"?
-
-Para cada tela implementada (Fase 5), antes de considerá-la concluída:
-
-A implementação é fiel ao wireframe que eu aprovei para essa tela?
-Um usuário que já usa o sistema hoje notaria imediatamente que isso é uma versão nova, não um ajuste?
-A tela funciona igualmente bem em light e dark mode?
-Nenhuma funcionalidade quebrou?
-
-Se qualquer resposta for "não", a tela não está pronta.
+Rode uma exploração do código existente e me apresente um resumo do que encontrou (estrutura da aba de ambiente atual, como a autenticação Microsoft está implementada hoje, e onde ficam guardadas credenciais sensíveis atualmente) antes de implementar, para validar se as suposições acima batem com a realidade do projeto. Se algo neste prompt conflitar com um padrão já estabelecido no código, siga o padrão existente e avise sobre a divergência.

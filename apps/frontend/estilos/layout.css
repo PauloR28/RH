@@ -1353,7 +1353,7 @@
     display: block;
     margin-top: 0.08rem;
     overflow: hidden;
-    font-size: clamp(0.92rem, 1.08vw, 1.24rem);
+    font-size: clamp(0.92rem, 1.08vw, 0.24rem);
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1735,6 +1735,20 @@
 .rh-modal-content,
 .rh-details-body {
   padding: var(--space-4);
+}
+
+/* Correções.txt (rodada 16/set/2026): modal "Criar/Editar evento" do
+   Calendário reaproveita .rh-filter-field empilhado dentro de
+   .rh-details-body, que por padrão não tem espaçamento vertical entre
+   linhas (fica pensado para grades lado a lado). Isola a correção nesta
+   classe para não alterar os outros ~15 usos de .rh-details-body. */
+.calendar-event-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.calendar-event-form .users-toggle-row {
+  gap: var(--space-3);
 }
 
 .rh-modal-title {

@@ -60,7 +60,7 @@ async function carregarJsonUrl(url) {
     );
   }
 
-  const resposta = await fetch(url, { cache: 'no-store' });
+  const resposta = await fetch(new URL(url, import.meta.url), { cache: 'no-store' });
   if (!resposta.ok) {
     throw new Error(
       `Nao foi possivel carregar o banco de questoes (${resposta.status}).`,

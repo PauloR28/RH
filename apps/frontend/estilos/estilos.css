@@ -1,10 +1,12 @@
-@import url('./tokens.css?v=20260907-redesign-topbar');
-@import url('./base.css?v=20260907-redesign-topbar');
-@import url('./layout.css?v=20260916-correcoes-round3');
-@import url('./screens.css?v=20260916-correcoes-round3');
-@import url('./process-details.css?v=20260906-central-treinamentos');
+@import url('./tokens.css?v=20260914-design-system');
+@import url('./base.css?v=20260914-design-system-2');
+@import url('./layout.css?v=20260916-correcoes-round4');
+@import url('./screens.css?v=20260916-correcoes-round4');
+@import url('./process-details.css?v=20260914-design-system');
 @import url('./exam-steps.css?v=20260906-central-treinamentos');
 @import url('./exam-analytics.css?v=20260906-central-treinamentos');
 @import url('./testes-complementares.css?v=20260906-central-treinamentos');
 @import url('./dashboard-funil.css?v=20260824-dashboard-funil-v1');
+@import url('./charts.css?v=20260914-design-system');
+@import url('./mural.css?v=20260915-mural');
 @import url('./print.css');

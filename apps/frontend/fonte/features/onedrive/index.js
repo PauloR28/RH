@@ -480,7 +480,7 @@ export function TelaOneDriveArquivos({ controlador }) {
           <${Icone} name="more_vert" />
         </button>
         ${aberto
-          ? html`
+        ? html`
               <div
                 class="process-row-actions-dropdown"
                 role="menu"
@@ -488,26 +488,26 @@ export function TelaOneDriveArquivos({ controlador }) {
                 onClick=${(event) => event.stopPropagation()}
               >
                 ${acoes.map(
-                  (acao) => html`
+          (acao) => html`
                     <button
                       key=${acao.key}
                       type="button"
                       role="menuitem"
                       class=${`process-row-actions-item ${acao.perigo ? 'is-danger' : ''}`.trim()}
                       onClick=${() => {
-                        setMenuAcoesAbertoId('');
-                        setMenuAcoesPosicao(null);
-                        acao.onClick();
-                      }}
+              setMenuAcoesAbertoId('');
+              setMenuAcoesPosicao(null);
+              acao.onClick();
+            }}
                     >
                       <${Icone} name=${acao.icone} />
                       <span>${acao.label}</span>
                     </button>
                   `,
-                )}
+        )}
               </div>
             `
-          : null}
+        : null}
       </div>
     `;
   };
@@ -585,9 +585,9 @@ export function TelaOneDriveArquivos({ controlador }) {
         actions=${html`
           <div class="d-flex gap-2">
             ${podeEnviar
-              ? html`
+        ? html`
                   <button type="button" class="btn btn-outline-secondary" onClick=${() => setModalNovaPastaAberto(true)}>
-                    <${Icone} name="create_new_folder" /> Nova pasta
+                    <${Icone} name="folder" /> Nova pasta
                   </button>
                   <button
                     type="button"
@@ -604,7 +604,7 @@ export function TelaOneDriveArquivos({ controlador }) {
                     onChange=${enviarArquivoSelecionado}
                   />
                 `
-              : null}
+        : null}
           </div>
         `}
       />
@@ -614,26 +614,26 @@ export function TelaOneDriveArquivos({ controlador }) {
 
       <${SectionCard}>
         ${segmentosBreadcrumb.length
-          ? html`
+      ? html`
               <nav class="rh-breadcrumb mb-3" aria-label="Caminho de pastas">
                 <button type="button" class="btn btn-link p-0 text-decoration-none" onClick=${() => irParaSegmento(-1)}>
                   <${Icone} name="home" /> Raiz
                 </button>
                 ${segmentosBreadcrumb.map(
-                  (segmento, indice) => html`
+        (segmento, indice) => html`
                     <span key=${`sep-${indice}`} class="rh-breadcrumb-sep" aria-hidden="true">/</span>
                     ${indice === segmentosBreadcrumb.length - 1
-                      ? html`<span key=${indice} class="rh-breadcrumb-current">${segmento}</span>`
-                      : html`
+            ? html`<span key=${indice} class="rh-breadcrumb-current">${segmento}</span>`
+            : html`
                           <button key=${indice} type="button" class="btn btn-link p-0 text-decoration-none" onClick=${() => irParaSegmento(indice)}>
                             ${segmento}
                           </button>
                         `}
                   `,
-                )}
+      )}
               </nav>
             `
-          : null}
+      : null}
 
         <div class="rh-onedrive-toolbar">
           <div class="rh-onedrive-toolbar-row">
@@ -663,7 +663,7 @@ export function TelaOneDriveArquivos({ controlador }) {
                 title="Grade pequena"
                 onClick=${() => setModoVisualizacao('grade-pequena')}
               >
-                <${Icone} name="apps" />
+                <${Icone} name="view_kanban" />
               </button>
               <button
                 type="button"
@@ -693,8 +693,8 @@ export function TelaOneDriveArquivos({ controlador }) {
                 onChange=${(event) => setFiltroExtensao(event.target.value)}
               >
                 ${CATEGORIAS_EXTENSAO.map(
-                  (categoria) => html`<option key=${categoria.valor} value=${categoria.valor}>${categoria.label}</option>`,
-                )}
+        (categoria) => html`<option key=${categoria.valor} value=${categoria.valor}>${categoria.label}</option>`,
+      )}
               </select>
             </label>
             <label class="form-field">
@@ -727,17 +727,17 @@ export function TelaOneDriveArquivos({ controlador }) {
               />
             </label>
             ${filtrosAtivos
-              ? html`
+      ? html`
                   <button type="button" class="btn btn-outline-secondary btn-sm rh-onedrive-clear-filters" onClick=${limparFiltros}>
                     <${Icone} name="filter_alt_off" /> Limpar filtros
                   </button>
                 `
-              : null}
+      : null}
           </div>
         </div>
 
         ${itensSelecionados.size
-          ? html`
+      ? html`
               <div class="rh-onedrive-selection-bar">
                 <span>${itensSelecionados.size} ${itensSelecionados.size === 1 ? 'item selecionado' : 'itens selecionados'}</span>
                 <div class="rh-onedrive-selection-actions">
@@ -745,29 +745,29 @@ export function TelaOneDriveArquivos({ controlador }) {
                     Cancelar seleção
                   </button>
                   ${podeExcluir
-                    ? html`
+          ? html`
                         <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setConfirmarExclusaoLoteAberto(true)}>
                           <${Icone} name="delete" /> Excluir selecionados
                         </button>
                       `
-                    : null}
+          : null}
                 </div>
               </div>
             `
-          : null}
+      : null}
 
         ${carregando
-          ? html`<${LoadingState} titulo="Carregando arquivos" />`
-          : itensFiltrados.length
-            ? modoVisualizacao === 'lista'
-              ? html`<${Table} columns=${colunas} rows=${itensFiltrados} rowKey="id" renderCell=${renderCell} />`
-              : html`
+      ? html`<${LoadingState} titulo="Carregando arquivos" />`
+      : itensFiltrados.length
+        ? modoVisualizacao === 'lista'
+          ? html`<${Table} columns=${colunas} rows=${itensFiltrados} rowKey="id" renderCell=${renderCell} />`
+          : html`
                   <div class=${`rh-onedrive-grid ${modoVisualizacao === 'grade-pequena' ? 'rh-onedrive-grid--pequena' : ''}`}>
                     ${itensFiltrados.map(
-                      (item) => {
-                        const clicavel = item.tipo === 'pasta' || itemEhVisualizavel(item);
-                        const selecionado = itensSelecionados.has(item.id);
-                        return html`
+            (item) => {
+              const clicavel = item.tipo === 'pasta' || itemEhVisualizavel(item);
+              const selecionado = itensSelecionados.has(item.id);
+              return html`
                         <div
                           class=${`rh-onedrive-card ${clicavel ? 'is-clickable' : ''} ${selecionado ? 'is-selected' : ''} ${String(menuAcoesAbertoId) === String(item.id) ? 'has-menu-open' : ''}`}
                           key=${item.id}
@@ -779,9 +779,9 @@ export function TelaOneDriveArquivos({ controlador }) {
                             class="rh-onedrive-card-select"
                             aria-label=${selecionado ? `Remover seleção de ${item.nome}` : `Selecionar ${item.nome}`}
                             onClick=${(event) => {
-                              event.stopPropagation();
-                              alternarSelecao(item);
-                            }}
+                  event.stopPropagation();
+                  alternarSelecao(item);
+                }}
                           >
                             ${selecionado ? html`<span class="material-symbols-outlined">${IconeSvg('check')}</span>` : null}
                           </button>
@@ -791,9 +791,9 @@ export function TelaOneDriveArquivos({ controlador }) {
                             type="button"
                             class="rh-onedrive-card-nome"
                             onClick=${(event) => {
-                              if (clicavel) event.stopPropagation();
-                              abrirItem(item);
-                            }}
+                  if (clicavel) event.stopPropagation();
+                  abrirItem(item);
+                }}
                           >
                             ${item.nome}
                           </button>
@@ -803,16 +803,16 @@ export function TelaOneDriveArquivos({ controlador }) {
                           </span>
                         </div>
                       `;
-                      },
-                    )}
+            },
+          )}
                   </div>
                 `
-            : html`
+        : html`
                 <${EmptyState}
                   titulo=${filtrosAtivos ? 'Nenhum resultado para os filtros aplicados' : 'Pasta vazia'}
                   descricao=${filtrosAtivos
-                    ? 'Ajuste a pesquisa ou os filtros para ver outros arquivos e pastas.'
-                    : 'Nenhum arquivo ou pasta encontrado neste local.'}
+            ? 'Ajuste a pesquisa ou os filtros para ver outros arquivos e pastas.'
+            : 'Nenhum arquivo ou pasta encontrado neste local.'}
                 />
               `}
       </${SectionCard}>
@@ -849,16 +849,16 @@ export function TelaOneDriveArquivos({ controlador }) {
         onClose=${fecharVisualizacao}
       >
         ${previewCarregando
-          ? html`<${LoadingState} titulo="Gerando visualização" />`
-          : previewErro
-            ? html`<${EmptyState} titulo="Não foi possível visualizar" descricao=${previewErro} />`
-            : previewTipo === 'texto'
-              ? html`<pre class="rh-onedrive-preview-text">${previewConteudo}</pre>`
-              : previewTipo === 'pdf'
-                ? html`<iframe class="rh-onedrive-preview-frame" src=${previewConteudo} title="Visualização do PDF" />`
-                : previewTipo === 'office'
-                  ? html`<iframe class="rh-onedrive-preview-frame" src=${previewConteudo} title="Visualização do documento" />`
-                  : null}
+      ? html`<${LoadingState} titulo="Gerando visualização" />`
+      : previewErro
+        ? html`<${EmptyState} titulo="Não foi possível visualizar" descricao=${previewErro} />`
+        : previewTipo === 'texto'
+          ? html`<pre class="rh-onedrive-preview-text">${previewConteudo}</pre>`
+          : previewTipo === 'pdf'
+            ? html`<iframe class="rh-onedrive-preview-frame" src=${previewConteudo} title="Visualização do PDF" />`
+            : previewTipo === 'office'
+              ? html`<iframe class="rh-onedrive-preview-frame" src=${previewConteudo} title="Visualização do documento" />`
+              : null}
       </${ModalPadrao}>
 
       <${ModalConfirmacaoAcao}
@@ -888,17 +888,17 @@ export function TelaOneDriveArquivos({ controlador }) {
       />
 
       ${podeComporEmail
-        ? html`
+      ? html`
             <${ModalComporEmail}
               aberto=${Boolean(itemParaEnviarEmail)}
               controlador=${controlador}
               anexosIniciais=${itemParaEnviarEmail
-                ? [{ caminho: [caminho, itemParaEnviarEmail.nome].filter(Boolean).join('/'), nome: itemParaEnviarEmail.nome }]
-                : []}
+          ? [{ caminho: [caminho, itemParaEnviarEmail.nome].filter(Boolean).join('/'), nome: itemParaEnviarEmail.nome }]
+          : []}
               onClose=${() => setItemParaEnviarEmail(null)}
             />
           `
-        : null}
+      : null}
     </${PainelRh}>
   `;
 }

@@ -1,71 +1,35 @@
-Correções: 
-1 - Tela de Perfis e permissões: 
-* Torne o elemento: "settings-permission-tree-session is-active" na tela de Perfis e permissões, clicavel e dobrável, ao ser clicado, ele irá fechar. 
-* Ainda na tela de "Perfis e Permissões" adicione o botão de editar configuração no topo da pagina e não dentro da sublista. Será 1 botão para a pagina toda ao invés de um botaõ de editar por vaga e nível. 
-* Retire o ícone que esta dentro de: "settings-permission-tree-session", fica visualmente poluído. 
-* Altere o desing dos grids: "c24-stat-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. 
+Correções não APLICADAS ou aplicadas com erro ou não estão funcionando.: 
 
-2  - Tela de Configurações: Operações: 
-* Em "Areas de configuração" - Retire a aba 'Geral', deixe apenas Operações, não faz sentido essa aba geral! 
-* Retire todo o :"c24-card settings-area-panel" - Catalogos, a pagina é excluiva para Operações.  
-* Alinhe e otmize o espaço de: "c24-card settings-rule-form-card" as linhas estão com espaçamentos diferentes, tudo precisa esta alinhado, otimizado, com um desing clean. 
-* Altere o desing dos grids: "c24-stat-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. 
- 
-3 - Tela de Configurações: - Etapas do processo.
-* TRANQUE ESSA PAGINA. Adicione um comunicado: "Pagina ainda em construção - Em breve novas atualizações", não vou trabalhar nela por enquanto. E também tranque o link no submenu, coloque como um link desativado. 
+
+Para a visão do Supervisor, no menu superior ainda aparece as opções de Gestão, com os links Calendário e Mural. e também o link de Inicio. Isso está errado ! A tela "Inicial" do supervisor deverá ser, obrigatoriamente a tela de Treinamentos. Nessa tela inicial, no topo, deve constar links como: "Meus treinamentos (lista os treinamentos que estão cadastrados e agendados para ele dar - inclusive a data, hora e local). Na tela inicial também deverá constar como uma versão "reduzida" do calendário, mas diferente do calendário do Conecta, nele só mostrará o horário e os treinamentos que ele tem para dar naquele dia. 
+
+Em "Meus treinamentos", estará listados todos os treinamentos que ele dá, ou que estão agendados para dar. Haverá um botão de "Ações" onde ele poderá "Iniciar" (inicia o treinamento) / "Presença" caso ele queria fazer a presença ou alterar a presença de alguém não que estava listado para receber o treinamento mas não esteve presente. 
+
+Ao clicar em "Iniciar", abrirá a tela inical do curso, onde estará listado algumas informações sobre o Treinamento, como lista de candidatos que terão o treinamento, o slide que será usado (inclusive com o botão para editar - mas só ADM ou GESTÃO pode alterar um treinamento), ao clicar em "Iniciar", o slide abre em modo apresentação, com direito a botões de progresso. No fim da apresentação, haverá um botão para fazer a listagem de presença daqueles que assistiram o treinamento, e depois finalizar! Uma vez finalizado, o treinamento é dado como concluído. 
+
+1 - CALENDÁRIO DE DATAS
+* Deu falha ao postar a data na Intranet: "Falha ao publicar".
+* Ajuste os espaçamentos do modal de "Criar evento", os elementos e linhas estão muito colados um nos outros. 
+* Uma vez a opção "Dia inteiro" ativada, o campo: "Data final" será bloqueado (pois entende-se que se vai ocorrer o dia inteiro não tem dia final)
 
 4 - Tela de Configurações: Tela motivos de eliminação: 
-* Construa na tela uma lista de motivos de eliminação que estão disponíveis hoje no Conecta. Adicione um botão de editar em cada motivo e um de excluir também, e um botão de turn off/on para ativar e desativar o motivo. Também, no topo da pagina adicione um botão de um adicionar motivo (ao ser clicado, abrirá um modal, um form pedindo para inserir: O motivo = texto / uma breve descrição / uma subcausa opcional, um botão turn off/on de ativo ou inativo para ativar o motivo).
+* A pagina diz: "Cadastre o primeiro item em "Motivos de Eliminação". mas já tem motivos de eliminação cadastrados.
 
-5 - Tela de Configurações: Tela de Modelos de Email:
-* Tela com defeito. Aplique o mesmo modelo da tela de "motivos de eliminação", mas com o diferencial de que, cada modelo precisará de um titulo, e uma descrição(o texto de fato), aqui será necessário adicionar tambem uma lista de variáveis, como {nome_candidato}/{data}/{horário}. Porque, pode-se entender que, quanod o RH for usar esse modelo, o texto precisar ser dinamico para cada candidato. Essas variáveis serão preenchidas manualmente OU automaticamente caso sejam usadas em um processo seletivo. Por exemplo: Se o modelo for: "Caro candidato {nome_candidato}, compareça a central no dia {dia} e no horário {horario}, para completarmos o seu processo", se o RH for usar esse modelo ao enviar um email, é claro que ele poderá inserir o nome do candidato o dia e horáiro manualmente, mas caso queira usar como resposta em um processo seletivo, aí essas variaveis serão preenchidas automaticamente com o nome do candidato em questão. 
+*Postagem do mural continua a importar a imagem e o texto separadamente. As publicações no Conecta chegam juntas. Para ficar mais fácil, faça com que a categoria entre automaticamente como prefixo do Titulo. Para o usuário, não vai mudar nada, ele ainda vai colcar o Titulo da publicação normal, vai selecionar a categoria (coloque como campo obrigatório), e vai escrever a publicação dele ou enviar a imagem, o Conecta, vai pegar essa categoria e vai colocar a frente do titulo com um "-" depois. Assim:
+Titulo da publicação: Nova auditoria em breve
+Categoria: Aviso
 
-6 - Tela de Configurações: Tela de LGPD e Retenção: Desative essa pagina e o link no menu
+O que Conecta irá enviar para o Sharepoint assim:
+Titulo: AVISO - Nova auditoria em breve. 
 
-7 - Tela de Configurações: Administração
-*Altere o nome da pagina "Administração" para "Parâmetros"
-*Atualize as informações que serão deletadas na Zona de Risco - depois que eu implementei, teve várias mudanças"
-*Adicione tambem uma questão de segurança: Ao clicar em "Limpar o Conecta" - que deve ser alterado para: "Aplicar" mas mantendo o tom vermelho de alerta), abriá um modal, com uma lista completa do que será deletado, inclusive com a o botão turn on/off em cada item para escolher o que será deletado. Aquipe tambem uma opção de alterar, ao ser clicado ele irá permitir alterar ou selecionar os campos que serão deletados. E quando a pessoa clilcar em "Aplicar" dentro desse modal, aparecerá um modal de aviso dizendo que essa ação não pode ser refeita, deve ser feita com cuidado e responsabilidade, inclusive ele deve pedir para se autenticar novamente para ter certeza que é o ADM questa fazendo aquela ação. 
+Sempre a categoria a frente e em maiúsculo (fica mais fácil de filtrar no SharePoint)
+*A postagem do mural não está codificando caracteres especiais como "Ç" ou "~". 
 
-8 - Tela Treinamentos; Editar treinamentos:
-*A tela de editar um treinamento esta dando erro pois não está deixando eu passar a primeira parte pois pede: "Informe a data/horário de todas as ocorrências, ou marque "sem horário definido"". senod que estou alterando/editando um treinamento já feito, não deve ter configuração de hora. 
-* Quando eu acesso pelo login de Supervisor, ele deveria abrir diretamente na pagina inicial de Treinamentos (na visão do Supervisor), independe de qual for o link, a tela de Treinamento sempre será a primeira tela que o Supervisor irá ver ! Assim como a tela de operador sempre será a de treino.
+*Nova publicação - Tela do mural: O filtro de negrito continua se ativando sozinho quando clico fora da caixa de texto, o que me impede de clicar para começar a escrever na tela. 
 
-10 - Tela Treinamentos:
-* Datas comemorativas devem ser automaticamente postadas na Intranet do Conecta ! Uma vez que o RH cadastrar uma data na Tela de Calndedário, ele deve automaticamente criar um evento no canlendário da Intranet. O form do calendário será da seguinte forma:
-Titulo - Campo de titulo de evento
-Data inicio - campo de data
-Data final - campo de data
-Dia inteiro - checkbox
-Local - campo de endereço (aparecer o endereços cadastrados listados)
-Link - campo para link (opcional)
-Categoria - campo select com as opções (Reunião / Feriado / Aniversário / Evento / Confraternização / Data especial )
-Sobre o evento - Campo de texto para escrever sobre o texto ! 
-Opção de upload de imagem. 
-- Ao inserir essas informações ao cadastrar um evento no Conecta, ele automaticamente ocupará uma data no calendário da Intranet do Conecta, ocupando as informações do Sharepoint com os mesmo campos exatamente igual ao coneta, ou seja: 
-Titulo (Conecta) = Titulo (Sharepoint) 
-Data inicio (Conecta) = data inicio (Sharepoint) e assim por diante...
+*Adicione o botão: "ver currículo dentro de ações"
 
-11 - Modal Ficha do Candidato: 
-* Ajuste o alinhamento e posicionamento das divs: "rh-metric-grid" elas estão cortando a informação daos texto ou o texto está sobressaindo da caixa. 
-* O Formulário precisa indicar campos que está vazios ou incompletos
-* Retire o campo: "Observações" uma vez que já existe o campo: "Justificativa / observações do RH"
-* Em Pesquisa cultural adicione o resultado dos outros testes também, como fit cultural e outros. Aqui, o Conecta precisa apresentar uma breve analise do candidato caso ele tenha algo preenchido. Se não houver nada, não precisa mostrar nada. 
-vale lembrar que os campos de "Pesquisa Cultural" virá do email. 
-* Ajuste o alinhamento dos elementos de :"rh-section-card rh-section-card--flat" tem linhas muito espaçadas, botões fluturando o meio da Div (deveria estar posicionaod a direita no canto. 
+*Em treinamentos, em "Ações" adicione uma opção de "Próximos treinos" onde abrirá um modal, e mostrará o dia e o horário que aquele treinamento está agendado, também mostrará quem irá administrar e quantos alunos terão. 
 
-12 - Tela Processo seletivos: 
-* Altere o desing dos grids: "rh-metric-grid", eles precisam ser otimizados, limpos, didáticos e estarem perfeitamente alinhado e ajustado. Existe fontes desalinhadas, tamanhos diferentes, linhas coladas, margens espaçadas. 
-* Aplique a mesma correção para: "rh-section-card process-brief-list-card" que sofre do mesmo problema. Espaçamentos muito largos, linhas espaçadas.  
-
-13 - Tela inicial: 
-* Corrija o desing de: rh-section-card home-quick-card, retire o gradiente, simplifique os ícones, deixe a imagem dos ícones maiores, como imagem de fundo, em uma tonalidade cinza (quase transparente), fica um estilo legal. 
-* Aba de Próximas entrevista, altere para "Próximos eventos" aqui ficará listados todos os eventos do calendário + entrevista. Ele deve mostrar um card do dia, com os eventos listados no dia em questão, se não houver Evento ou algum processo, diga: "Sem compromissos hoje"
-PS: O calendário de entrevista e o calendário da Gestão devem ser unificados ! Isto é! No calendário da gestão deve aparecer, os eventos cadastrados e as entrevistas agendadas - SOMENTE AS AGENDAS e CONFIRMADAS. Slots de entrevista não devem aparecer no calendário.
-*Ajuste o alinhamento dos elementos, o posicionamento deles está desalinhado: Por exemplo: o final da div "Mural" está completamente fora da linha onde termina a div "Processos aberto".
-
-14 - Tela de Entrevista:
-*  Box "Criar disponibilidade", transforme em um botão que fica no topo da pagina. Ao ser clicado, ele abrirá o modal com o form de criar disponibilidade. 
-* Ajuste o desing de 'Visão Executiva', 
-
-15 - Banco de talentos: Ao abrir um processo seletivo, o Conecta deve automaticamente indicar os candidatos que estõa no Banco de Talentos para serem aproveitados no processo. Isso deve aparecer em um modal, ao concluir a criação do processo seletivo. 
+APLICATIVO CONECTA - APP: 
+Para acessar o aplicativo, esqueça a senha ! Só será necessário o email do aluno. Idependente do que está configurado para aquele usuário. Se é operador, só terá email de login. Isso porque, o Operador não terá acesso a plataforma web, somente ao aplicativo. 

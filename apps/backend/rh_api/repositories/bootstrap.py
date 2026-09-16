@@ -197,6 +197,20 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
             """
         )
 
+    cursor.execute(
+        """
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'IX_logs_auditoria_data_hora'
+              AND object_id = OBJECT_ID('dbo.logs_auditoria')
+        )
+        BEGIN
+            CREATE INDEX IX_logs_auditoria_data_hora
+            ON dbo.logs_auditoria(data_hora DESC, id_log DESC)
+        END
+        """
+    )
+
     for role in ROLE_DEFINITIONS.values():
         cursor.execute(
             """
@@ -2369,6 +2383,105 @@ def ensure_documentos_biblioteca_table(cursor) -> None:
     cursor.execute("UPDATE dbo.documentos_biblioteca SET ativo = 1 WHERE ativo IS NULL")
     cursor.execute("UPDATE dbo.documentos_biblioteca SET criado_em = GETDATE() WHERE criado_em IS NULL")
     cursor.execute("UPDATE dbo.documentos_biblioteca SET atualizado_em = criado_em WHERE atualizado_em IS NULL")
+
+
+def ensure_mural_publicacoes_table(cursor) -> None:
+    """Mural: publicacoes de avisos/comunicados com texto rico e imagens (aditivo/idempotente)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.mural_publicacoes', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.mural_publicacoes (
+                id_publicacao INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                titulo NVARCHAR(255) NOT NULL,
+                resumo NVARCHAR(500) NULL,
+                conteudo_html NVARCHAR(MAX) NOT NULL,
+                categoria NVARCHAR(80) NULL,
+                status NVARCHAR(20) NOT NULL CONSTRAINT DF_mural_publicacoes_status DEFAULT 'rascunho',
+                fixado BIT NOT NULL CONSTRAINT DF_mural_publicacoes_fixado DEFAULT 0,
+                publicado_em DATETIME NULL,
+                criado_por NVARCHAR(200) NULL,
+                atualizado_por NVARCHAR(200) NULL,
+                criado_em DATETIME NOT NULL DEFAULT GETDATE(),
+                atualizado_em DATETIME NOT NULL DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+    for column_name, sql_type in (
+        ("titulo", "NVARCHAR(255)"),
+        ("resumo", "NVARCHAR(500)"),
+        ("conteudo_html", "NVARCHAR(MAX)"),
+        ("categoria", "NVARCHAR(80)"),
+        ("status", "NVARCHAR(20)"),
+        ("fixado", "BIT"),
+        ("publicado_em", "DATETIME"),
+        ("criado_por", "NVARCHAR(200)"),
+        ("atualizado_por", "NVARCHAR(200)"),
+        ("criado_em", "DATETIME"),
+        ("atualizado_em", "DATETIME"),
+    ):
+        cursor.execute(
+            f"""
+            IF COL_LENGTH('dbo.mural_publicacoes', '{column_name}') IS NULL
+            BEGIN
+                ALTER TABLE dbo.mural_publicacoes
+                ADD {column_name} {sql_type} NULL
+            END
+            """
+        )
+    cursor.execute("UPDATE dbo.mural_publicacoes SET status = 'rascunho' WHERE status IS NULL")
+    cursor.execute("UPDATE dbo.mural_publicacoes SET fixado = 0 WHERE fixado IS NULL")
+    cursor.execute("UPDATE dbo.mural_publicacoes SET criado_em = GETDATE() WHERE criado_em IS NULL")
+    cursor.execute("UPDATE dbo.mural_publicacoes SET atualizado_em = criado_em WHERE atualizado_em IS NULL")
+
+
+def ensure_mural_publicacao_imagens_table(cursor) -> None:
+    """Mural: imagens anexadas/embutidas em uma publicacao (aditivo/idempotente)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.mural_publicacao_imagens', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.mural_publicacao_imagens (
+                id_imagem INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                id_publicacao INT NOT NULL,
+                url NVARCHAR(500) NOT NULL,
+                nome_arquivo_original NVARCHAR(255) NULL,
+                ordem INT NOT NULL DEFAULT 0,
+                criado_em DATETIME NOT NULL DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+
+
+def ensure_mural_publicacao_ambientes_table(cursor) -> None:
+    """Mural: intranets (ambientes_sharepoint) alvo de cada publicacao e status do envio (aditivo/idempotente)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.mural_publicacao_ambientes', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.mural_publicacao_ambientes (
+                id_publicacao INT NOT NULL,
+                id_ambiente INT NOT NULL,
+                status_envio NVARCHAR(20) NOT NULL DEFAULT 'pendente',
+                enviado_em DATETIME NULL,
+                mensagem_erro NVARCHAR(500) NULL,
+                sharepoint_web_url NVARCHAR(1000) NULL,
+                CONSTRAINT PK_mural_publicacao_ambientes PRIMARY KEY (id_publicacao, id_ambiente)
+            )
+        END
+        """
+    )
+    cursor.execute(
+        """
+        IF COL_LENGTH('dbo.mural_publicacao_ambientes', 'sharepoint_list_item_id') IS NULL
+        BEGIN
+            ALTER TABLE dbo.mural_publicacao_ambientes
+            ADD sharepoint_list_item_id NVARCHAR(80) NULL
+        END
+        """
+    )
 
 
 _DISC_SEED_BLOCOS: list[list[tuple[str, str]]] = [

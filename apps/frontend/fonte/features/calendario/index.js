@@ -287,11 +287,11 @@ export function TelaCalendario({ controlador }) {
       controlador=${controlador}
       acaoPrimaria=${podeEditar
       ? {
-          label: 'Novo evento',
-          icon: 'add',
-          onClick: abrirNovo,
-          permissao: 'calendario.editar',
-        }
+        label: 'Novo evento',
+        icon: 'add',
+        onClick: abrirNovo,
+        permissao: 'calendario.editar',
+      }
       : null}
     >
       <${ToastHost} />
@@ -416,7 +416,7 @@ export function TelaCalendario({ controlador }) {
         subtitulo="Datas de RH e da empresa — quando publicadas numa intranet, aparecem automaticamente no calendário do SharePoint."
         onClose=${fechar}
       >
-        <div class="rh-details-body">
+        <div class="rh-details-body calendar-event-form">
           ${erroForm ? html`<div class="alert alert-warning">${erroForm}</div>` : null}
 
           <div class="rh-filter-field">
@@ -435,12 +435,18 @@ export function TelaCalendario({ controlador }) {
               checked=${form.dia_inteiro}
               onChange=${(event) => {
       const diaInteiro = event.target.checked;
-      setForm((valor) => ({
-        ...valor,
-        dia_inteiro: diaInteiro,
-        data_inicio: diaInteiro ? valor.data_inicio.slice(0, 10) : valor.data_inicio,
-        data_fim: diaInteiro ? valor.data_fim.slice(0, 10) : valor.data_fim,
-      }));
+      setForm((valor) => {
+        const dataInicio = diaInteiro ? valor.data_inicio.slice(0, 10) : valor.data_inicio;
+        return {
+          ...valor,
+          dia_inteiro: diaInteiro,
+          data_inicio: dataInicio,
+          // Correções.txt (rodada 16/set/2026): com "Dia inteiro" ativado não
+          // faz sentido ter uma data final diferente — trava e espelha a
+          // data de início.
+          data_fim: diaInteiro ? dataInicio : valor.data_fim,
+        };
+      });
     }}
             />
           </label>
@@ -452,7 +458,11 @@ export function TelaCalendario({ controlador }) {
                 type=${form.dia_inteiro ? 'date' : 'datetime-local'}
                 class="form-control"
                 value=${form.data_inicio}
-                onInput=${(event) => setForm({ ...form, data_inicio: event.target.value })}
+                onInput=${(event) => setForm((valor) => ({
+      ...valor,
+      data_inicio: event.target.value,
+      data_fim: valor.dia_inteiro ? event.target.value : valor.data_fim,
+    }))}
               />
             </div>
             <div class="rh-filter-field">
@@ -461,6 +471,8 @@ export function TelaCalendario({ controlador }) {
                 type=${form.dia_inteiro ? 'date' : 'datetime-local'}
                 class="form-control"
                 value=${form.data_fim}
+                disabled=${form.dia_inteiro}
+                title=${form.dia_inteiro ? 'Evento de dia inteiro não tem data final diferente da data de início.' : ''}
                 onInput=${(event) => setForm({ ...form, data_fim: event.target.value })}
               />
             </div>
@@ -481,7 +493,7 @@ export function TelaCalendario({ controlador }) {
                 disabled=${buscandoEndereco}
                 onClick=${usarEnderecoEmpresa}
               >
-                ${buscandoEndereco ? 'Buscando...' : 'Usar endereço da empresa'}
+                ${buscandoEndereco ? 'Buscando...' : 'Endereço padrão'}
               </button>
             </div>
           </div>
@@ -555,12 +567,12 @@ export function TelaCalendario({ controlador }) {
             >
               <option value="">Não publicar</option>
               ${ambientesDisponiveis.map(
-      (ambiente) => html`
+        (ambiente) => html`
                   <option key=${ambiente.id_ambiente} value=${String(ambiente.id_ambiente)}>
                     ${ambiente.nome}${ambiente.operacao_nome ? ` · ${ambiente.operacao_nome}` : ''}
                   </option>
                 `,
-    )}
+      )}
             </select>
             ${!ambientesDisponiveis.length
       ? html`<small class="text-muted">Nenhuma intranet conectada ainda — cadastre em Parâmetros › Conectores Externos.</small>`

@@ -91,7 +91,7 @@ export function MenuAcoesProcesso({
         aria-expanded=${aberto}
         onClick=${alternarMenu}
       >
-        ${label ? html`<span>${label}</span>` : null}
+       
         <span class="material-symbols-outlined">${IconeSvg(icon)}</span>
       </button>
       ${aberto

@@ -21,6 +21,7 @@ from ..rbac import get_role_definition, get_role_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.auth import (
     ActivateLocalLoginRequest,
+    AppEmailLoginRequest,
     E2ETestLoginRequest,
     LoginRequest,
     LoginResponse,
@@ -172,6 +173,21 @@ def _build_login_response(token: str, user: AuthenticatedUser) -> LoginResponse:
     )
 
 
+# Correções.txt (rodada 16/set/2026): "o Operador não terá acesso a
+# plataforma web, somente ao aplicativo" — bloqueia depois de autenticado
+# (não antes) para não vazar, por diferença de mensagem, se um login/e-mail
+# existe ou não.
+_PERFIS_SEM_ACESSO_WEB = {"operador"}
+
+
+def _bloquear_perfil_sem_acesso_web(user: AuthenticatedUser) -> None:
+    if user.perfil in _PERFIS_SEM_ACESSO_WEB:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Este perfil acessa só pelo aplicativo Conecta, não pela plataforma web.",
+        )
+
+
 @router.post("/login", response_model=LoginResponse)
 def login(
     payload: LoginRequest,
@@ -197,6 +213,34 @@ def login(
         origem=origem,
         mfa_code=payload.mfa_code,
     )
+    _bloquear_perfil_sem_acesso_web(user)
+    login_limiter.reset(limiter_key)
+    return _build_login_response(token, user)
+
+
+@router.post("/app/login-email", response_model=LoginResponse)
+def login_app_email(
+    payload: AppEmailLoginRequest,
+    request: Request = None,
+    repository: DatabaseRepository = Depends(get_repository),
+) -> LoginResponse:
+    """Correções.txt (rodada 16/set/2026): login do app-treinamento-
+    colaborador — só e-mail, sem senha, restrito a perfis operador/
+    funcionario (ver repositories/security.py, authenticate_app_email)."""
+    origem = request.client.host if request and request.client else ""
+    settings = get_settings()
+    limiter_key = f"app-email:{origem}:{payload.email.strip().lower()}"
+    if request is not None and not login_limiter.allow(
+        limiter_key,
+        limit=settings.auth_login_rate_limit,
+        window_seconds=settings.auth_login_rate_window_seconds,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de login. Aguarde e tente novamente.",
+        )
+    record = repository.authenticate_app_email(payload.email, origem=origem)
+    token, user = create_session_for_user_record(record)
     login_limiter.reset(limiter_key)
     return _build_login_response(token, user)
 
@@ -522,6 +566,7 @@ def complete_microsoft_login(
 
     user_record = repository.get_system_user_for_session(int(id_usuario))
     token, user = create_session_for_user_record(user_record)
+    _bloquear_perfil_sem_acesso_web(user)
     return _build_login_response(token, user)
 
 

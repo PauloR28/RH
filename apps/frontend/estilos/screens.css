@@ -4894,9 +4894,9 @@
   opacity: 0.65;
 }
 
-.candidate-sheet-dialog {
+/*.candidate-sheet-dialog {
   width: min(760px, 100%);
-}
+}*/
 
 .candidate-sheet-dialog .rh-modal-content {
   padding: 0.85rem;
@@ -11966,7 +11966,7 @@ display: grid;
  * dia/mês) para manter o escopo seguro nesta rodada. */
 #screen-calendario .calendar-date-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /*grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));*/
   gap: var(--space-3);
 }
 
@@ -16471,4 +16471,21 @@ display: grid;
 .rh-variable-chip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Correções.txt (rodada 16/set/2026): "Hoje" no topo de Meus treinamentos
+   (Supervisor) — lista simples, sem marcadores, com divisor de 1px entre
+   linhas (grade de 8px: padding vertical de var(--space-2)). */
+.rh-simple-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rh-simple-list li {
+  padding: var(--space-2) 0;
+}
+
+.rh-simple-list li + li {
+  border-top: 1px solid var(--color-border);
 }

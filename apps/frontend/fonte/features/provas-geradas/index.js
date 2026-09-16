@@ -232,23 +232,23 @@ function aplicarSugestoesDaVaga(formulario = {}) {
 function obterAreaInicial(candidato, processo, opcaoVaga) {
   return primeiroTexto(
     candidato.area_prova ||
-      candidato.area ||
-      candidato.area_vaga ||
-      candidato.area_cargo ||
-      candidato.area_tecnica ||
-      candidato.departamento ||
-      candidato.trilha ||
-      candidato.track ||
-      processo.area_prova ||
-      processo.area ||
-      processo.area_vaga ||
-      processo.area_cargo ||
-      processo.area_tecnica ||
-      processo.departamento ||
-      processo.trilha ||
-      processo.track ||
-      opcaoVaga?.track ||
-      '',
+    candidato.area ||
+    candidato.area_vaga ||
+    candidato.area_cargo ||
+    candidato.area_tecnica ||
+    candidato.departamento ||
+    candidato.trilha ||
+    candidato.track ||
+    processo.area_prova ||
+    processo.area ||
+    processo.area_vaga ||
+    processo.area_cargo ||
+    processo.area_tecnica ||
+    processo.departamento ||
+    processo.trilha ||
+    processo.track ||
+    opcaoVaga?.track ||
+    '',
   );
 }
 
@@ -275,9 +275,9 @@ function montarOpcoesComValor(opcoes = [], valor = '') {
 function resolverTrilhaBlueprint(formulario = {}) {
   return normalizarTrilha(
     formulario.area_prova ||
-      formulario.trilha ||
-      obterOpcaoVaga(formulario.vaga)?.track ||
-      '',
+    formulario.trilha ||
+    obterOpcaoVaga(formulario.vaga)?.track ||
+    '',
   );
 }
 
@@ -338,22 +338,22 @@ function montarFormularioInicial(contexto = {}) {
     id_processo: normalizarTexto(processo.id_processo || candidato.id_processo || ''),
     id_processo_ref: normalizarTexto(
       processo.id_processo_ref ||
-        candidato.id_processo_ref ||
-        candidato.id_processo ||
-        '',
+      candidato.id_processo_ref ||
+      candidato.id_processo ||
+      '',
     ),
     vaga,
     area_prova: area,
     operacao: normalizarTexto(
       candidato.setor_cliente ||
-        candidato.operacao ||
-        candidato.cliente ||
-        candidato.setor ||
-        processo.setor_cliente ||
-        processo.operacao ||
-        processo.cliente ||
-        processo.setor ||
-        '',
+      candidato.operacao ||
+      candidato.cliente ||
+      candidato.setor ||
+      processo.setor_cliente ||
+      processo.operacao ||
+      processo.cliente ||
+      processo.setor ||
+      '',
     ),
     trilha,
     nivel,
@@ -371,9 +371,9 @@ function montarFormularioInicial(contexto = {}) {
     tom_prova: normalizarTexto(candidato.configuracao?.personalizacao?.tom_prova || 'Humanizado'),
     situacao_pratica_operacao: normalizarTexto(
       candidato.situacao_pratica_operacao ||
-        processo.situacao_pratica_operacao ||
-        processo.contexto_vaga ||
-        '',
+      processo.situacao_pratica_operacao ||
+      processo.contexto_vaga ||
+      '',
     ),
     expira_em: normalizarTexto(candidato.expira_em || ''),
     login_method: normalizarTexto(candidato.login_method || ''),
@@ -426,9 +426,9 @@ function obterCompetenciasDasQuestoes(questoes = []) {
 function statusPermiteGerarProva(candidato = {}) {
   const status = normalizarTexto(
     candidato.status_fluxo ||
-      candidato.status_candidato ||
-      candidato.status_entrevista ||
-      'Agendado',
+    candidato.status_candidato ||
+    candidato.status_entrevista ||
+    'Agendado',
   );
   return STATUS_APTOS_GERAR_PROVA.has(status);
 }
@@ -564,10 +564,10 @@ function montarEtapasResultado(detalhe = {}) {
     const status = interrompida
       ? 'Etapa interrompida - nota zerada'
       : temNota
-      ? pendencias > 0
-        ? 'Pendente'
-        : 'Corrigido'
-      : 'Não avaliado';
+        ? pendencias > 0
+          ? 'Pendente'
+          : 'Corrigido'
+        : 'Não avaliado';
 
     return {
       key: etapa.key || etapa.stageKey || etapa.label || `etapa-${indice}`,
@@ -999,23 +999,23 @@ export function ModalGerarProva({
         personalizacao_inteligente: Boolean(formulario.personalizacao_inteligente),
         personalizacao: formulario.personalizacao_inteligente
           ? {
-              ...personalizacao,
-              operacao: operacaoPayload,
-              setor_cliente: operacaoPayload,
-              tom_prova: formulario.tom_prova,
-              situacao_pratica_operacao: formulario.situacao_pratica_operacao,
-              situacao_pratica: formulario.situacao_pratica_operacao,
-              tipos_atendimento: tiposAtendimento,
-              perfil_operacao: configuracaoPersonalizacao.perfilOperacao,
-              nivel_personalizacao: configuracaoPersonalizacao.nivelPersonalizacao,
-              historico: resultadoPersonalizacao.historico,
-              alertas: resultadoPersonalizacao.alertas || [],
-            }
+            ...personalizacao,
+            operacao: operacaoPayload,
+            setor_cliente: operacaoPayload,
+            tom_prova: formulario.tom_prova,
+            situacao_pratica_operacao: formulario.situacao_pratica_operacao,
+            situacao_pratica: formulario.situacao_pratica_operacao,
+            tipos_atendimento: tiposAtendimento,
+            perfil_operacao: configuracaoPersonalizacao.perfilOperacao,
+            nivel_personalizacao: configuracaoPersonalizacao.nivelPersonalizacao,
+            historico: resultadoPersonalizacao.historico,
+            alertas: resultadoPersonalizacao.alertas || [],
+          }
           : {
-              enabled: false,
-              opcional: true,
-              mensagem: 'Prova padrão gerada sem personalização por operação/cliente.',
-            },
+            enabled: false,
+            opcional: true,
+            mensagem: 'Prova padrão gerada sem personalização por operação/cliente.',
+          },
         entrevista_obrigatoria: false,
       },
     };
@@ -1049,7 +1049,7 @@ export function ModalGerarProva({
       <div class="rh-details-body generated-exam-modal">
         ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
         ${resultado
-          ? html`
+      ? html`
               <div class="alert alert-success">
                 ${contexto.provaEditar ? 'Prova atualizada com sucesso.' : 'Prova gerada com sucesso. Código de acesso:'}
                 <strong>${resultado.codigo_acesso}</strong>
@@ -1062,7 +1062,7 @@ export function ModalGerarProva({
                 </button>` : null}
               </div>
             `
-          : null}
+      : null}
 
         <${SectionCard}
           title="Dados do candidato"
@@ -1128,8 +1128,8 @@ export function ModalGerarProva({
               >
                 <option value="">Selecione...</option>
                 ${OPCOES_VAGAS_PROVA.map(
-                  (opcao) => html`<option key=${opcao.label} value=${opcao.label}>${opcao.label}</option>`,
-                )}
+        (opcao) => html`<option key=${opcao.label} value=${opcao.label}>${opcao.label}</option>`,
+      )}
               </select>
             </div>
             <div class="col-md-4">
@@ -1158,8 +1158,8 @@ export function ModalGerarProva({
               >
                 <option value="">Selecione...</option>
                 ${opcoesAreasFormulario.map(
-                  (opcao) => html`<option key=${opcao} value=${opcao}>${opcao}</option>`,
-                )}
+        (opcao) => html`<option key=${opcao} value=${opcao}>${opcao}</option>`,
+      )}
               </select>
             </div>
             <div class="col-md-4">
@@ -1171,8 +1171,8 @@ export function ModalGerarProva({
               >
                 <option value="">Selecione...</option>
                 ${opcoesNivelFormulario.map(
-                  (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
-                )}
+        (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
+      )}
               </select>
             </div>
             <div class="col-md-4">
@@ -1249,22 +1249,22 @@ export function ModalGerarProva({
               type="checkbox"
               checked=${formulario.personalizacao_inteligente}
               onChange=${(event) => {
-                const ativa = event.target.checked;
-                setFormulario((anterior) => ({
-                  ...anterior,
-                  personalizacao_inteligente: ativa,
-                  ...(!ativa
-                    ? {
-                        clientes_personalizacao: [],
-                        cliente_outro: '',
-                        tipos_atendimento: [],
-                        tipo_atendimento_outro: '',
-                        situacao_pratica_operacao: '',
-                      }
-                    : {}),
-                }));
-                setErro('');
-              }}
+      const ativa = event.target.checked;
+      setFormulario((anterior) => ({
+        ...anterior,
+        personalizacao_inteligente: ativa,
+        ...(!ativa
+          ? {
+            clientes_personalizacao: [],
+            cliente_outro: '',
+            tipos_atendimento: [],
+            tipo_atendimento_outro: '',
+            situacao_pratica_operacao: '',
+          }
+          : {}),
+      }));
+      setErro('');
+    }}
             />
             <span class="form-check-label fw-semibold">
               Desejo personalizar esta prova por operação/cliente
@@ -1272,7 +1272,7 @@ export function ModalGerarProva({
           </label>
 
           ${formulario.personalizacao_inteligente
-            ? html`
+      ? html`
                 <div class="row g-3 mt-1">
                   <div class="col-md-6">
                     <label class="form-label">Cliente/Operação</label>
@@ -1280,19 +1280,19 @@ export function ModalGerarProva({
                       class="form-select"
                       value=${primeiroValorLista(formulario.clientes_personalizacao)}
                       onChange=${(event) =>
-                        atualizarCampo(
-                          'clientes_personalizacao',
-                          event.target.value ? [event.target.value] : [],
-                        )}
+          atualizarCampo(
+            'clientes_personalizacao',
+            event.target.value ? [event.target.value] : [],
+          )}
                     >
                       <option value="">Selecione...</option>
                       ${[...opcoesOperacaoModal, OPCAO_OUTRO].map(
-                        (opcao) => html`
+            (opcao) => html`
                           <option key=${opcao} value=${opcao}>
                             ${opcao}
                           </option>
                         `,
-                      )}
+          )}
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -1301,23 +1301,23 @@ export function ModalGerarProva({
                       class="form-select"
                       value=${primeiroValorLista(formulario.tipos_atendimento)}
                       onChange=${(event) =>
-                        atualizarCampo(
-                          'tipos_atendimento',
-                          event.target.value ? [event.target.value] : [],
-                        )}
+          atualizarCampo(
+            'tipos_atendimento',
+            event.target.value ? [event.target.value] : [],
+          )}
                     >
                       <option value="">Selecione...</option>
                       ${TIPOS_ATENDIMENTO_PERSONALIZACAO.map(
-                        (opcao) => html`
+            (opcao) => html`
                           <option key=${opcao} value=${opcao}>
                             ${opcao}
                           </option>
                         `,
-                      )}
+          )}
                     </select>
                   </div>
                   ${formulario.clientes_personalizacao.includes(OPCAO_OUTRO)
-                    ? html`
+          ? html`
                         <div class="col-md-6">
                           <label class="form-label">Outro cliente/operação</label>
                           <input
@@ -1327,9 +1327,9 @@ export function ModalGerarProva({
                           />
                         </div>
                       `
-                    : null}
+          : null}
                   ${formulario.tipos_atendimento.includes(OPCAO_OUTRO)
-                    ? html`
+          ? html`
                         <div class="col-md-6">
                           <label class="form-label">Outro tipo de atendimento</label>
                           <input
@@ -1339,7 +1339,7 @@ export function ModalGerarProva({
                           />
                         </div>
                       `
-                    : null}
+          : null}
                   <div class="col-md-6">
                     <label class="form-label">Nível de personalização</label>
                     <select
@@ -1348,12 +1348,12 @@ export function ModalGerarProva({
                       onChange=${(event) => atualizarCampo('nivel_personalizacao', event.target.value)}
                     >
                       ${NIVEIS_PERSONALIZACAO.map(
-                        (nivel) => html`
+            (nivel) => html`
                           <option key=${nivel.id} value=${nivel.id}>
                             ${nivel.label}: ${nivel.descricao}
                           </option>
                         `,
-                      )}
+          )}
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -1364,8 +1364,8 @@ export function ModalGerarProva({
                       onChange=${(event) => atualizarCampo('tom_prova', event.target.value)}
                     >
                       ${OPCOES_TOM_PROVA.map(
-                        (opcao) => html`<option key=${opcao} value=${opcao}>${opcao}</option>`,
-                      )}
+            (opcao) => html`<option key=${opcao} value=${opcao}>${opcao}</option>`,
+          )}
                     </select>
                   </div>
                   <div class="col-md-12">
@@ -1387,13 +1387,13 @@ export function ModalGerarProva({
                     >
                       <option value="">Selecione...</option>
                       ${OPCOES_LOGIN_CONECTA_PROVA.map(
-                        (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
-                      )}
+            (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
+          )}
                     </select>
                   </div>
                 </div>
               `
-            : null}
+      : null}
         </${SectionCard}>
 
         <${SectionCard}
@@ -1403,11 +1403,11 @@ export function ModalGerarProva({
         >
           <${MetricGrid}
             items=${[
-              { label: 'E-mail de acesso', value: formulario.email || '-' },
-              { label: 'Telefone de acesso', value: formulario.telefone || '-' },
-              { label: 'Código', value: resultado?.codigo_acesso || 'Gerado ao salvar' },
-              { label: 'Link fixo', value: LINK_CONECTA_PROVAS },
-            ]}
+      { label: 'E-mail de acesso', value: formulario.email || '-' },
+      { label: 'Telefone de acesso', value: formulario.telefone || '-' },
+      { label: 'Código', value: resultado?.codigo_acesso || 'Gerado ao salvar' },
+      { label: 'Link fixo', value: LINK_CONECTA_PROVAS },
+    ]}
           />
         </${SectionCard}>
 
@@ -1427,8 +1427,8 @@ export function ModalGerarProva({
             <span><strong>Tempo</strong>${`${formulario.tempo_total || 0} min`}</span>
             <span><strong>Tom</strong>${formulario.personalizacao_inteligente ? formulario.tom_prova || '-' : 'Padrão'}</span>
             ${formulario.personalizacao_inteligente
-              ? html`<span><strong>Login no Conecta Prova</strong>${OPCOES_LOGIN_CONECTA_PROVA.find((opcao) => opcao.value === formulario.login_method)?.label || 'Não definido'}</span>`
-              : null}
+      ? html`<span><strong>Login no Conecta Prova</strong>${OPCOES_LOGIN_CONECTA_PROVA.find((opcao) => opcao.value === formulario.login_method)?.label || 'Não definido'}</span>`
+      : null}
             <span><strong>E-mail de acesso</strong>${formulario.email || '-'}</span>
             <span><strong>Telefone de acesso</strong>${formulario.telefone || '-'}</span>
             <span><strong>Etapas</strong>${etapas.map((item) => item.label).join(', ') || '-'}</span>
@@ -1441,10 +1441,10 @@ export function ModalGerarProva({
         </button>
         <button type="button" class="btn btn-primary" disabled=${salvando || !!resultado} onClick=${gerar}>
           ${salvando
-            ? contexto.provaEditar ? 'Salvando...' : 'Gerando...'
-            : resultado
-              ? contexto.provaEditar ? 'Prova atualizada' : 'Prova gerada'
-              : contexto.provaEditar ? 'Salvar alterações' : 'Gerar prova'}
+      ? contexto.provaEditar ? 'Salvando...' : 'Gerando...'
+      : resultado
+        ? contexto.provaEditar ? 'Prova atualizada' : 'Prova gerada'
+        : contexto.provaEditar ? 'Salvar alterações' : 'Gerar prova'}
         </button>
       </footer>
     </${ModalPadrao}>
@@ -1497,7 +1497,7 @@ function imprimirResultadoProva(detalhe, { etapas, linhasResultado, alertas, not
           * { box-sizing: border-box; }
           body { margin: 0; color: #172033; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
           .toolbar { display: flex; justify-content: flex-end; margin: 0 0 16px; }
-          .toolbar button { border: 1px solid #1b5fc1; border-radius: 6px; background: #1b5fc1; color: #fff; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+          .toolbar button { border: 1px solid #1b5fc1; border-radius: 6px; background: #1b5fc1; color: #fff; padding: 8px 14px; /*font-weight: 700;*/ cursor: pointer; }
           header { border-bottom: 2px solid #1b5fc1; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
           header h1 { margin: 0 0 4px; font-size: 22px; }
           header small { color: #627085; }
@@ -1690,46 +1690,46 @@ function ModalDetalheProvaGerada({
           activeKey=${abaDetalhe}
           onChange=${setAbaDetalhe}
           tabs=${[
-            { key: 'resumo', label: 'Resumo' },
-            { key: 'testes', label: 'Testes complementares' },
-            ...(detalhe.feedback_qualitativo ? [{ key: 'qualitativo', label: 'Feedback qualitativo' }] : []),
-            { key: 'respostas', label: 'Respostas' },
-          ]}
+      { key: 'resumo', label: 'Resumo' },
+      { key: 'testes', label: 'Testes complementares' },
+      ...(detalhe.feedback_qualitativo ? [{ key: 'qualitativo', label: 'Feedback qualitativo' }] : []),
+      { key: 'respostas', label: 'Respostas' },
+    ]}
         />
 
         <${TabPanel} tabKey="resumo" activeKey=${abaDetalhe}>
         <div class="generated-detail-summary-grid">
           ${[
-            { icon: 'task_alt', label: 'Status', value: statusProva || '-' },
-            { icon: 'tag', label: 'Código', value: detalhe.codigo_acesso || '-' },
-            { icon: 'insert_chart', label: 'Nota geral', value: formatarScore(notaGeral) },
-            { icon: 'trending_up', label: 'Score Conecta', value: formatarScore(scoreConecta) },
-            { icon: 'person_check', label: 'Classificação', value: score.classificacao || detalhe.classificacao || '-' },
-            { icon: 'shield', label: 'Confiabilidade', value: score.confiabilidade || detalhe.confiabilidade || '-' },
-          ].map(
-            (item) => html`
+      { icon: 'task_alt', label: 'Status', value: statusProva || '-' },
+      { icon: 'tag', label: 'Código', value: detalhe.codigo_acesso || '-' },
+      { icon: 'insert_chart', label: 'Nota geral', value: formatarScore(notaGeral) },
+      { icon: 'trending_up', label: 'Score Conecta', value: formatarScore(scoreConecta) },
+      { icon: 'person_check', label: 'Classificação', value: score.classificacao || detalhe.classificacao || '-' },
+      { icon: 'shield', label: 'Confiabilidade', value: score.confiabilidade || detalhe.confiabilidade || '-' },
+    ].map(
+      (item) => html`
               <article class="generated-detail-summary-card" key=${item.label}>
                 <span class="material-symbols-outlined">${IconeSvg(item.icon)}</span>
                 <small>${item.label}</small>
                 <strong>${item.value}</strong>
               </article>
             `,
-          )}
+    )}
         </div>
 
         <div class="generated-detail-date-strip">
           ${[
-            { icon: 'calendar_month', label: 'Data de geração', value: formatarDataHoraDetalhe(detalhe.gerada_em) },
-            { icon: 'play_arrow', label: 'Início', value: formatarDataHoraDetalhe(detalhe.iniciada_em, 'Não iniciado') },
-            { icon: 'stop', label: 'Finalização', value: formatarDataHoraDetalhe(detalhe.finalizada_em, 'Não finalizado') },
-          ].map(
-            (item) => html`
+      { icon: 'calendar_month', label: 'Data de geração', value: formatarDataHoraDetalhe(detalhe.gerada_em) },
+      { icon: 'play_arrow', label: 'Início', value: formatarDataHoraDetalhe(detalhe.iniciada_em, 'Não iniciado') },
+      { icon: 'stop', label: 'Finalização', value: formatarDataHoraDetalhe(detalhe.finalizada_em, 'Não finalizado') },
+    ].map(
+      (item) => html`
               <div class="generated-detail-date-item" key=${item.label}>
                 <span class="material-symbols-outlined">${IconeSvg(item.icon)}</span>
                 <span>${item.label}: <strong>${item.value}</strong></span>
               </div>
             `,
-          )}
+    )}
         </div>
 
         <section class="generated-detail-section">
@@ -1737,13 +1737,13 @@ function ModalDetalheProvaGerada({
             <h3>Resultado da prova por etapa</h3>
           </div>
           ${etapas.length
-            ? html`
+      ? html`
                 <div class="generated-stage-result-grid">
                   ${etapas.map(
-                    (etapa) => {
-                      const percentual = obterPercentualEtapaDetalhe(etapa);
-                      const tom = obterTomEtapaDetalhe(etapa);
-                      return html`
+        (etapa) => {
+          const percentual = obterPercentualEtapaDetalhe(etapa);
+          const tom = obterTomEtapaDetalhe(etapa);
+          return html`
                       <article class=${`generated-stage-result-card is-${tom}`} key=${etapa.key}>
                         <div class="generated-stage-card-head">
                           <span class="material-symbols-outlined">${IconeSvg(etapa.icon)}</span>
@@ -1755,8 +1755,8 @@ function ModalDetalheProvaGerada({
                         <div class="generated-stage-score-row">
                           <strong class="generated-stage-score">
                           ${etapa.score === null || etapa.score === undefined || Number.isNaN(Number(etapa.score))
-                            ? '-'
-                            : formatarScore(etapa.score)}
+              ? '-'
+              : formatarScore(etapa.score)}
                           </strong>
                           <small>Score</small>
                         </div>
@@ -1765,39 +1765,39 @@ function ModalDetalheProvaGerada({
                         </div>
                       </article>
                     `;
-                    },
-                  )}
+        },
+      )}
                 </div>
               `
-            : html`<${EmptyState} title="Sem etapas registradas" text="A prova ainda não possui resultado por etapa salvo." />`}
+      : html`<${EmptyState} title="Sem etapas registradas" text="A prova ainda não possui resultado por etapa salvo." />`}
         </section>
 
         <section class="generated-detail-section">
           <h3>Alertas e notificações</h3>
           <div class="generated-alert-columns">
             ${[
-              { key: 'fortes', icon: 'check_circle', title: 'Pontos fortes', tone: 'success', items: alertas.fortes },
-              { key: 'atencao', icon: 'warning', title: 'Pontos de atenção', tone: 'warning', items: alertas.atencao },
-              { key: 'criticos', icon: 'error', title: 'Alertas críticos', tone: 'danger', items: alertas.criticos },
-            ].map(
-              (coluna) => html`
+      { key: 'fortes', icon: 'check_circle', title: 'Pontos fortes', tone: 'success', items: alertas.fortes },
+      { key: 'atencao', icon: 'warning', title: 'Pontos de atenção', tone: 'warning', items: alertas.atencao },
+      { key: 'criticos', icon: 'error', title: 'Alertas críticos', tone: 'danger', items: alertas.criticos },
+    ].map(
+      (coluna) => html`
                 <div class=${`generated-alert-column is-${coluna.tone}`} key=${coluna.key}>
                   <div class="generated-alert-column-title">
                     <span class="generated-alert-dot"></span>
                     <strong>${coluna.title}</strong>
                   </div>
                   ${coluna.items.length
-                    ? coluna.items.map(
-                        (item) => html`
+          ? coluna.items.map(
+            (item) => html`
                           <span class="generated-alert-item" key=${item}>
                             ${item}
                           </span>
                         `,
-                      )
-                    : html`<span class="generated-alert-empty">Nenhum ponto registrado.</span>`}
+          )
+          : html`<span class="generated-alert-empty">Nenhum ponto registrado.</span>`}
                 </div>
               `,
-            )}
+    )}
           </div>
         </section>
         </${TabPanel}>
@@ -1807,13 +1807,13 @@ function ModalDetalheProvaGerada({
           <h3>Análise do candidato</h3>
           <div class="generated-complementary-tabs" role="tablist">
             ${[
-              { key: 'disc', label: 'Teste DISC' },
-              { key: 'fit_cultural', label: 'Fit Cultural' },
-              { key: 'raciocinio', label: 'Raciocínio Lógico e Numérico' },
-            ].map((aba) => {
-              const status = statusTestesComplementares[aba.key];
-              const desativada = status === false;
-              return html`
+      { key: 'disc', label: 'Teste DISC' },
+      { key: 'fit_cultural', label: 'Fit Cultural' },
+      { key: 'raciocinio', label: 'Raciocínio Lógico e Numérico' },
+    ].map((aba) => {
+      const status = statusTestesComplementares[aba.key];
+      const desativada = status === false;
+      return html`
                 <button
                   type="button"
                   role="tab"
@@ -1826,7 +1826,7 @@ function ModalDetalheProvaGerada({
                   ${aba.label}
                 </button>
               `;
-            })}
+    })}
           </div>
           <div class="generated-complementary-panel" hidden=${abaTesteComplementar !== 'disc'}>
             <${PainelResultadoDisc}
@@ -1851,17 +1851,17 @@ function ModalDetalheProvaGerada({
 
         <${TabPanel} tabKey="qualitativo" activeKey=${abaDetalhe}>
         ${detalhe.feedback_qualitativo
-          ? html`
+      ? html`
               <section class="generated-detail-section generated-qualitative-feedback">
                 <h3>Feedback qualitativo automático</h3>
                 <p class="generated-qualitative-summary">
                   ${detalhe.feedback_qualitativo.resumo_textual || 'Sem resumo qualitativo disponível.'}
                 </p>
                 ${(detalhe.feedback_qualitativo.questoes_erradas || []).length
-                  ? html`
+          ? html`
                       <div class="generated-qualitative-list">
                         ${detalhe.feedback_qualitativo.questoes_erradas.map(
-                          (item) => html`
+            (item) => html`
                             <div class="generated-qualitative-item" key=${`fb-${item.questao_indice}-${item.questao_id ?? ''}`}>
                               <span class="generated-qualitative-item-title">
                                 Questão ${Number(item.questao_indice ?? 0) + 1} — ${item.categoria}
@@ -1870,32 +1870,32 @@ function ModalDetalheProvaGerada({
                               <p>${item.feedback_qualitativo}</p>
                             </div>
                           `,
-                        )}
+          )}
                       </div>
                     `
-                  : html`<p class="text-muted">Nenhuma questão errada com feedback registrado.</p>`}
+          : html`<p class="text-muted">Nenhuma questão errada com feedback registrado.</p>`}
               </section>
             `
-          : null}
+      : null}
         </${TabPanel}>
 
         <${TabPanel} tabKey="respostas" activeKey=${abaDetalhe}>
         ${!mostrarResultadoCompleto
-          ? html`
+      ? html`
               <${EmptyState}
                 title="Resultado completo oculto"
                 text="Use Ações → Ver resultado completo para exibir as respostas, notas e gabarito desta prova."
               />
             `
-          : null}
+      : null}
         ${mostrarResultadoCompleto
-          ? html`
+      ? html`
               <section class="generated-detail-section generated-full-result">
                 <div class="generated-detail-section-title">
                   <h3>Resultado completo</h3>
                 </div>
                 ${linhasResultado.length
-              ? html`
+          ? html`
                   <div class="generated-result-table-shell">
                     <table class="generated-result-table">
                       <thead>
@@ -1910,7 +1910,7 @@ function ModalDetalheProvaGerada({
                       </thead>
                       <tbody>
                         ${linhasResultado.map(
-                          (linha) => html`
+            (linha) => html`
                             <tr key=${linha.id}>
                               <td>
                                 <strong>${linha.numero}. ${linha.etapa}</strong>
@@ -1927,17 +1927,17 @@ function ModalDetalheProvaGerada({
                               </td>
                             </tr>
                           `,
-                        )}
+          )}
                       </tbody>
                     </table>
                   </div>
                   ${linhasComAnalise.length
-                    ? html`
+              ? html`
                         <div class="generated-answer-list">
                           ${linhasComAnalise.map((linha) => {
-                            const analise = linha.analiseResposta;
-                            const dados = analise.dados_analisados || {};
-                            return html`
+                const analise = linha.analiseResposta;
+                const dados = analise.dados_analisados || {};
+                return html`
                               <article class="generated-answer-card" key=${`analise-${linha.id}`}>
                                 <div>
                                   <strong>Análise de Resposta — questão ${linha.numero}</strong>
@@ -1957,37 +1957,37 @@ function ModalDetalheProvaGerada({
                                     <dd>${(analise.pontos_atencao || []).join(' ') || 'Nenhum ponto automático registrado.'}</dd>
                                   </div>
                                   ${dados.o_que_deve_ser_avaliado
-                                    ? html`
+                    ? html`
                                         <div>
                                           <dt>O que deve ser avaliado</dt>
                                           <dd>${dados.o_que_deve_ser_avaliado}</dd>
                                         </div>
                                       `
-                                    : null}
+                    : null}
                                   ${dados.rubrica_interna
-                                    ? html`
+                    ? html`
                                         <div>
                                           <dt>Rubrica interna</dt>
                                           <dd>${dados.rubrica_interna}</dd>
                                         </div>
                                       `
-                                    : null}
+                    : null}
                                 </dl>
                               </article>
                             `;
-                          })}
+              })}
                         </div>
                       `
-                    : null}
+              : null}
                 `
-              : html`
+          : html`
                   <div class="generated-full-result-fallback">
                     <p>As respostas completas ainda não estão salvas para esta prova.</p>
                   </div>
                 `}
               </section>
             `
-          : null}
+      : null}
         </${TabPanel}>
       </div>
       <footer class="rh-modal-footer generated-detail-footer">
@@ -2000,59 +2000,59 @@ function ModalDetalheProvaGerada({
             onClick=${() => setMenuAcoesAberto((aberto) => !aberto)}
           />
           ${menuAcoesAberto
-            ? html`
+      ? html`
                 <div class="generated-actions-dropdown" role="menu">
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    onCopiarCodigo?.();
-                  }}>
+          setMenuAcoesAberto(false);
+          onCopiarCodigo?.();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('content_copy')}</span>
                     Copiar Código
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    try {
-                      imprimirResultadoProva(detalhe, { etapas, linhasResultado, alertas, notaGeral, scoreConecta, statusProva });
-                    } catch (error) {
-                      window.alert(error?.message || 'Não foi possível gerar o PDF do resultado.');
-                    }
-                  }}>
+          setMenuAcoesAberto(false);
+          try {
+            imprimirResultadoProva(detalhe, { etapas, linhasResultado, alertas, notaGeral, scoreConecta, statusProva });
+          } catch (error) {
+            window.alert(error?.message || 'Não foi possível gerar o PDF do resultado.');
+          }
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('picture_as_pdf')}</span>
                     Exportar PDF
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    abrirReplay();
-                  }}>
+          setMenuAcoesAberto(false);
+          abrirReplay();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('history')}</span>
                     Ver replay
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    abrirPreview();
-                  }}>
+          setMenuAcoesAberto(false);
+          abrirPreview();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('visibility')}</span>
                     Pré-visualizar
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    onAvaliacaoManual?.();
-                  }}>
+          setMenuAcoesAberto(false);
+          onAvaliacaoManual?.();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('menu_book')}</span>
                     Inserir Manualmente
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    setMostrarResultadoCompleto((valor) => !valor);
-                  }}>
+          setMenuAcoesAberto(false);
+          setMostrarResultadoCompleto((valor) => !valor);
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('checklist')}</span>
                     ${mostrarResultadoCompleto ? 'Ocultar resultado completo' : 'Ver resultado completo'}
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    setMostrarGabarito((valor) => !valor);
-                    setMostrarResultadoCompleto(true);
-                  }}>
+          setMenuAcoesAberto(false);
+          setMostrarGabarito((valor) => !valor);
+          setMostrarResultadoCompleto(true);
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('fact_check')}</span>
                     ${mostrarGabarito ? 'Ocultar gabarito' : 'Ver gabarito'}
                   </button>
@@ -2061,37 +2061,37 @@ function ModalDetalheProvaGerada({
                     role="menuitem"
                     disabled=${!possuiNota}
                     onClick=${() => {
-                      setMenuAcoesAberto(false);
-                      onRecalcular?.();
-                    }}
+          setMenuAcoesAberto(false);
+          onRecalcular?.();
+        }}
                   >
                     <span class="material-symbols-outlined">${IconeSvg('sync')}</span>
                     Recalcular Score
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    (provaCancelada ? onReabrir : onCancelar)?.();
-                  }}>
+          setMenuAcoesAberto(false);
+          (provaCancelada ? onReabrir : onCancelar)?.();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg(provaCancelada ? 'history' : 'delete')}</span>
                     ${provaCancelada ? 'Reabrir Prova' : 'Cancelar'}
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    onDecisao?.();
-                  }}>
+          setMenuAcoesAberto(false);
+          onDecisao?.();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('person_add')}</span>
                     Decisão RH
                   </button>
                   <button type="button" role="menuitem" onClick=${() => {
-                    setMenuAcoesAberto(false);
-                    onDadosCandidato?.();
-                  }}>
+          setMenuAcoesAberto(false);
+          onDadosCandidato?.();
+        }}>
                     <span class="material-symbols-outlined">${IconeSvg('badge')}</span>
                     Dados Candidato
                   </button>
                 </div>
               `
-            : null}
+      : null}
         </div>
       </footer>
     </${ModalPadrao}>
@@ -2676,11 +2676,11 @@ export function TelaProvasResultados({ controlador }) {
       placeholderBusca="Buscar provas, candidatos e códigos"
       controlador=${controlador}
       acaoPrimaria=${{
-        label: 'Gerar prova',
-        icon: 'assignment_add',
-        permissoes: ['provas.criar', 'provas.enviar'],
-        onClick: () => setModalGerarAberto(true),
-      }}
+      label: 'Gerar prova',
+      icon: 'assignment_add',
+      permissoes: ['provas.criar', 'provas.enviar'],
+      onClick: () => setModalGerarAberto(true),
+    }}
     >
       <${PageIntro}
         kicker="CONECTA PROVAS > SCORE CONECTA"
@@ -2699,11 +2699,11 @@ export function TelaProvasResultados({ controlador }) {
 
       <${MetricGrid}
         items=${[
-          { label: 'Provas geradas', value: resumo.total, icon: 'assignment' },
-          { label: 'Finalizadas', value: resumo.finalizadas, icon: 'task_alt' },
-          { label: 'Pendências manuais', value: resumo.pendentes, icon: 'rate_review' },
-          { label: 'Score médio', value: resumo.mediaScore === null ? '-' : formatarNotaVisual(resumo.mediaScore, 1), icon: 'trending_up' },
-        ]}
+      { label: 'Provas geradas', value: resumo.total, icon: 'assignment' },
+      { label: 'Finalizadas', value: resumo.finalizadas, icon: 'task_alt' },
+      { label: 'Pendências manuais', value: resumo.pendentes, icon: 'rate_review' },
+      { label: 'Score médio', value: resumo.mediaScore === null ? '-' : formatarNotaVisual(resumo.mediaScore, 1), icon: 'trending_up' },
+    ]}
       />
 
       <${SectionCard}
@@ -2818,14 +2818,14 @@ export function TelaProvasResultados({ controlador }) {
           </button>
         </div>
         ${carregando
-          ? html`
+      ? html`
               <${LoadingState}
                 titulo="Carregando provas"
                 descricao="Buscando provas geradas, status e resultados."
               />
             `
-          : provasFiltradas.length
-            ? html`
+      : provasFiltradas.length
+        ? html`
                 <div class="table-responsive generated-exams-table">
                   <table class="table align-middle">
                     <thead>
@@ -2841,26 +2841,26 @@ export function TelaProvasResultados({ controlador }) {
                     </thead>
                     <tbody>
                   ${provasPaginadas.itens.map((prova) => {
-                    const alertas = obterAlertas(prova);
-                    const cancelada = normalizarBusca(prova.status || '').includes('cancelad');
-                    const naoIniciada = !prova.iniciada_em;
-                    const acoesLinha = [
-                      { key: 'ver', label: 'Ver detalhe', icon: 'visibility', onClick: () => abrirDetalhe(prova.id_prova) },
-                      { key: 'imprimir', label: 'Imprimir prova', icon: 'print', onClick: () => imprimirProvaDaLinha(prova) },
-                      { separator: true },
-                      cancelada
-                        ? { key: 'reabrir', label: 'Reabrir prova', icon: 'lock_open', onClick: () => executarReabertura(prova) }
-                        : {
-                          key: 'cancelar',
-                          label: 'Cancelar prova',
-                          icon: 'cancel',
-                          danger: true,
-                          disabled: !naoIniciada,
-                          title: naoIniciada ? '' : 'Prova já iniciada pelo candidato.',
-                          onClick: () => executarCancelamento(prova),
-                        },
-                    ];
-                    return html`
+          const alertas = obterAlertas(prova);
+          const cancelada = normalizarBusca(prova.status || '').includes('cancelad');
+          const naoIniciada = !prova.iniciada_em;
+          const acoesLinha = [
+            { key: 'ver', label: 'Ver detalhe', icon: 'visibility', onClick: () => abrirDetalhe(prova.id_prova) },
+            { key: 'imprimir', label: 'Imprimir prova', icon: 'print', onClick: () => imprimirProvaDaLinha(prova) },
+            { separator: true },
+            cancelada
+              ? { key: 'reabrir', label: 'Reabrir prova', icon: 'lock_open', onClick: () => executarReabertura(prova) }
+              : {
+                key: 'cancelar',
+                label: 'Cancelar prova',
+                icon: 'cancel',
+                danger: true,
+                disabled: !naoIniciada,
+                title: naoIniciada ? '' : 'Prova já iniciada pelo candidato.',
+                onClick: () => executarCancelamento(prova),
+              },
+          ];
+          return html`
                       <tr key=${prova.id_prova} class="generated-exams-row" onClick=${() => abrirDetalhe(prova.id_prova)}>
                         <td>
                           <div class="generated-candidate-cell">
@@ -2903,7 +2903,7 @@ export function TelaProvasResultados({ controlador }) {
                         </td>
                       </tr>
                     `;
-                  })}
+        })}
                     </tbody>
                   </table>
                 </div>
@@ -2936,29 +2936,29 @@ export function TelaProvasResultados({ controlador }) {
                   </div>
                 </div>
               `
-            : provas.length
-              ? html`
+        : provas.length
+          ? html`
                   <${EmptyState}
                     icon="filter_alt_off"
                     title="Nenhuma prova encontrada com esses filtros"
                     text="Ajuste ou limpe os filtros aplicados para visualizar as provas geradas."
                     action=${{
-                      label: 'Limpar filtros',
-                      icon: 'filter_alt_off',
-                      onClick: limparFiltros,
-                    }}
+              label: 'Limpar filtros',
+              icon: 'filter_alt_off',
+              onClick: limparFiltros,
+            }}
                   />
                 `
-              : html`
+          : html`
                   <${EmptyState}
                     ilustracao=${html`<${IlustracaoEstadoVazio} />`}
                     title="Nenhuma prova gerada ainda"
                     text="Quando uma prova for gerada para um candidato, ela aparecerá aqui com status, nota e alertas de correção."
                     action=${{
-                      label: 'Gerar primeira prova',
-                      icon: 'assignment_add',
-                      onClick: () => setModalGerarAberto(true),
-                    }}
+              label: 'Gerar primeira prova',
+              icon: 'assignment_add',
+              onClick: () => setModalGerarAberto(true),
+            }}
                   />
                 `}
       </${SectionCard}>
@@ -2968,32 +2968,32 @@ export function TelaProvasResultados({ controlador }) {
         titulo=${acaoSensivel?.tipo === 'cancelar' ? 'Cancelar prova' : 'Reabrir prova'}
         descricao=${`Prova de ${acaoSensivel?.prova?.nome_candidato || 'candidato'} para ${acaoSensivel?.prova?.vaga || 'vaga não informada'}.`}
         consequencia=${acaoSensivel?.tipo === 'cancelar'
-          ? 'O cancelamento interromperá a disponibilidade da prova e ficará registrado para auditoria.'
-          : 'A reabertura permitirá nova continuidade da prova, mantendo respostas conforme a regra atual.'}
+      ? 'O cancelamento interromperá a disponibilidade da prova e ficará registrado para auditoria.'
+      : 'A reabertura permitirá nova continuidade da prova, mantendo respostas conforme a regra atual.'}
         reversibilidade=${acaoSensivel?.tipo === 'cancelar'
-          ? 'Esta ação poderá ser revertida posteriormente por reabertura autorizada.'
-          : 'Esta ação poderá ser revertida posteriormente por novo cancelamento autorizado.'}
+      ? 'Esta ação poderá ser revertida posteriormente por reabertura autorizada.'
+      : 'Esta ação poderá ser revertida posteriormente por novo cancelamento autorizado.'}
         labelJustificativa=${acaoSensivel?.tipo === 'cancelar'
-          ? 'Justificativa do cancelamento'
-          : 'Justificativa da reabertura'}
+      ? 'Justificativa do cancelamento'
+      : 'Justificativa da reabertura'}
         justificativaObrigatoria=${true}
         textoConfirmar=${acaoSensivel?.tipo === 'cancelar'
-          ? 'Confirmar cancelamento'
-          : 'Confirmar reabertura'}
+      ? 'Confirmar cancelamento'
+      : 'Confirmar reabertura'}
         textoCancelar="Voltar"
         tipo=${acaoSensivel?.tipo === 'cancelar' ? 'destrutivo' : 'aviso'}
         carregando=${salvandoAcaoSensivel}
         erro=${erroAcaoSensivel}
         onClose=${() => {
-          if (!salvandoAcaoSensivel) setAcaoSensivel(null);
-        }}
+      if (!salvandoAcaoSensivel) setAcaoSensivel(null);
+    }}
         onConfirm=${({ justificativa }) => {
-          if (acaoSensivel?.tipo === 'cancelar') {
-            confirmarCancelamento(acaoSensivel.prova, justificativa);
-            return;
-          }
-          confirmarReabertura(acaoSensivel?.prova, justificativa);
-        }}
+      if (acaoSensivel?.tipo === 'cancelar') {
+        confirmarCancelamento(acaoSensivel.prova, justificativa);
+        return;
+      }
+      confirmarReabertura(acaoSensivel?.prova, justificativa);
+    }}
       />
 
       <${ModalGerarProva}
@@ -3002,8 +3002,8 @@ export function TelaProvasResultados({ controlador }) {
         controlador=${controlador}
         onClose=${() => setModalGerarAberto(false)}
         onGerada=${async () => {
-          await carregar();
-        }}
+      await carregar();
+    }}
       />
 
       <${ModalDetalheProvaGerada}
@@ -3016,12 +3016,12 @@ export function TelaProvasResultados({ controlador }) {
         onCancelar=${() => executarCancelamento(detalhe)}
         onDecisao=${() => setDecisaoRh(detalhe)}
         onDadosCandidato=${async () => {
-          try {
-            await abrirFichaCandidatoDaProva(detalhe);
-          } catch (error) {
-            window.alert('Não foi possível localizar a ficha deste candidato.');
-          }
-        }}
+      try {
+        await abrirFichaCandidatoDaProva(detalhe);
+      } catch (error) {
+        window.alert('Não foi possível localizar a ficha deste candidato.');
+      }
+    }}
       />
 
       <${ModalAvaliacaoManual}
@@ -3079,9 +3079,9 @@ export function TelaProvasResultados({ controlador }) {
                             <div
                               class="generated-heatmap-bar-fill"
                               style=${{
-              width: `${Math.round(item.taxa_acerto * 100)}%`,
-              background: item.taxa_acerto < 0.4 ? '#d92d20' : item.taxa_acerto < 0.7 ? '#f79009' : '#12b76a',
-            }}
+                  width: `${Math.round(item.taxa_acerto * 100)}%`,
+                  background: item.taxa_acerto < 0.4 ? '#d92d20' : item.taxa_acerto < 0.7 ? '#f79009' : '#12b76a',
+                }}
                             ></div>
                           </div>
                           <span class="generated-heatmap-item-percent">${Math.round(item.taxa_acerto * 100)}% de acerto</span>

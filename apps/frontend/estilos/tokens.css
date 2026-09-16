@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Inter', sans-serif;
   --font-mono: 'DM Mono', monospace;
   --font-xs: 0.72rem;
   --font-sm: 0.82rem;
@@ -101,6 +101,70 @@
   --color-chart-sequential-4: #4b9cd6;
   --color-chart-sequential-5: #8dc0e6;
   --color-chart-sequential-6: #c6dff2;
+
+  /*
+   * Camada de tokens "DESIGN_SYSTEM.md" (rodada de sistema de design
+   * central, 14/set/2026 — ver DESIGN_SYSTEM.md na raiz do projeto).
+   * Esta é a fonte da verdade para NOVO trabalho e para componentes
+   * migrados. As variáveis semânticas antigas acima (--color-primary,
+   * --color-surface, --color-border, --color-text, --color-success etc.)
+   * passam a ser ALIAS destas, então todo o app (~15 800 linhas de
+   * screens.css inclusive) herda qualquer ajuste automaticamente sem
+   * precisar editar tela por tela.
+   */
+  --brand: #0a4b8c;
+  --brand-ink: #00274d;
+  --brand-soft: #e8f0f9;
+  --ink: #14181f;
+  --ink-soft: #5b6472;
+  --ink-faint: #8b93a1;
+  --paper: #ffffff;
+  --paper-sunken: #f7f8fa;
+  --line: #e4e7ec;
+  --line-strong: #c9ced8;
+  --status-success: #0f7b4a;
+  --status-success-bg: #e7f6ef;
+  --status-warning: #b7791f;
+  --status-warning-bg: #fbf0dd;
+  --status-danger: #c0392b;
+  --status-danger-bg: #faeae8;
+  --status-info: #0a4b8c;
+  --status-info-bg: #e8f0f9;
+  --status-neutral: #6b7280;
+  --status-neutral-bg: #f1f2f4;
+
+  /* Escala tipográfica nomeada (px fixo, base do sistema = 14px). */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* Radius do novo sistema (badges usam --radius-sm; o resto, --radius). */
+  --radius: var(--radius-subtle);
+  --radius-sm: 4px;
+
+  /* Aliases: tokens semânticos antigos agora resolvem para a camada nova. */
+  --color-primary: var(--brand);
+  --color-primary-strong: var(--brand-ink);
+  --color-primary-soft: var(--brand-soft);
+  --color-surface: var(--paper);
+  --color-surface-soft: var(--paper-sunken);
+  --color-border: var(--line);
+  --color-border-strong: var(--line-strong);
+  --color-text: var(--ink);
+  --color-text-soft: var(--ink-soft);
+  --color-text-muted: var(--ink-faint);
+  --color-success: var(--status-success);
+  --color-success-soft: var(--status-success-bg);
+  --color-danger: var(--status-danger);
+  --color-danger-soft: var(--status-danger-bg);
+  --color-warning: var(--status-warning);
+  --color-warning-soft: var(--status-warning-bg);
+  --color-info: var(--status-info);
+  --color-info-soft: var(--status-info-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -171,4 +235,26 @@
   --color-focus-ring: 0 0 0 3px rgba(61, 139, 219, 0.34);
   --state-disabled-opacity: 0.5;
   --state-hover-overlay: rgba(232, 237, 246, 0.06);
+
+  /* Camada DESIGN_SYSTEM.md — equivalentes escuros dos tokens novos. */
+  --brand: #3d8bdb;
+  --brand-ink: #7fb8ff;
+  --brand-soft: #16273f;
+  --ink: #e8edf6;
+  --ink-soft: #b6c2d6;
+  --ink-faint: #8a97b0;
+  --paper: #171f2e;
+  --paper-sunken: #1c2536;
+  --line: #2c3a52;
+  --line-strong: #3a4a67;
+  --status-success: #3fc793;
+  --status-success-bg: #123227;
+  --status-warning: #f0ac4f;
+  --status-warning-bg: #3a2b12;
+  --status-danger: #ea6a7c;
+  --status-danger-bg: #3a1b22;
+  --status-info: #4fb8e6;
+  --status-info-bg: #12303d;
+  --status-neutral: #9aa4b2;
+  --status-neutral-bg: #232e42;
 }

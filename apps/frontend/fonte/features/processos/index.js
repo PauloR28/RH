@@ -1,7 +1,7 @@
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 
-﻿import {
+import {
   html,
   lazy,
   useEffect,
@@ -146,6 +146,7 @@ import {
   ModalPadrao,
   PageIntro,
   PainelRh,
+  ScoreRadarChart,
   SectionCard,
   ToastAlert,
 } from '../../ui/componentes-compartilhados.js';
@@ -612,7 +613,7 @@ function imprimirFichaCandidato(ficha, formulario) {
             background: #1b5fc1;
             color: #fff;
             padding: 8px 14px;
-            font-weight: 700;
+            /*font-weight: 700;*/
             cursor: pointer;
           }
           header {
@@ -688,7 +689,7 @@ function imprimirFichaCandidato(ficha, formulario) {
             display: block;
             color: #64748b;
             font-size: 8px;
-            font-weight: 700;
+            /*font-weight: 700;*/
             letter-spacing: .04em;
             text-transform: uppercase;
           }
@@ -733,7 +734,7 @@ function imprimirFichaCandidato(ficha, formulario) {
           .candidate-results th:nth-child(2) { width: 18%; }
           .candidate-results th:nth-child(3), .candidate-results th:nth-child(4) { width: 11%; }
           .candidate-results th:nth-child(5) { width: 35%; }
-          .candidate-adherence { display: flex; justify-content: flex-end; gap: 12px; padding: 6px 7px; border-top: 1px solid #64748b; font-weight: 700; }
+          .candidate-adherence { display: flex; justify-content: flex-end; gap: 12px; padding: 6px 7px; border-top: 1px solid #64748b; /*font-weight: 700;*/ }
           .candidate-competencies { margin: 0; padding: 6px 10px 6px 24px; border: 1px solid #94a3b8; }
           .candidate-competencies li { margin: 0 0 3px; }
           .candidate-competencies li:last-child { margin-bottom: 0; }
@@ -2960,12 +2961,23 @@ function ModalFichaCandidato({
                 ariaLabel="Ações da ficha do candidato"
                 triggerClassName="btn btn-primary process-actions-trigger"
                 acoes=${[
-                  { label: 'Aprovar', icon: 'check', onClick: onAprovar },
-                  { label: 'Editar candidato', icon: 'edit', onClick: onEditar },
-                  { label: 'Baixar ficha', icon: 'download', onClick: onPrint },
-                  typeof onBanco === 'function' ? { label: 'Enviar para banco de talentos', icon: 'inventory_2', onClick: onBanco } : null,
-                  { label: 'Eliminar', icon: 'delete', danger: true, onClick: onEliminar },
-                ].filter(Boolean)}
+      { label: 'Aprovar', icon: 'check', onClick: onAprovar },
+      { label: 'Editar candidato', icon: 'edit', onClick: onEditar },
+      curriculo.disponivel
+        ? {
+          label: 'Ver currículo',
+          icon: 'description',
+          onClick: () =>
+            onAbrirCurriculo({
+              id_teste: candidato.id_teste || candidato.id,
+              cv_disponivel: curriculo.disponivel,
+            }),
+        }
+        : null,
+      { label: 'Baixar ficha', icon: 'download', onClick: onPrint },
+      typeof onBanco === 'function' ? { label: 'Enviar para banco de talentos', icon: 'inventory_2', onClick: onBanco } : null,
+      { label: 'Eliminar', icon: 'delete', danger: true, onClick: onEliminar },
+    ].filter(Boolean)}
               />
             </footer>
           </main>
@@ -4055,7 +4067,7 @@ export function TelaProcessos({ controlador }) {
 
       <${SectionCard}
         title="Processos Abertos e Pendentes"
-        description="Visão rápida dos processos ativos — os que têm candidatos aguardando decisão aparecem primeiro."
+        
         className="process-brief-list-card"
       >
         ${processosAbertosResumoBreve.length
@@ -4067,16 +4079,16 @@ export function TelaProcessos({ controlador }) {
                       <span class="process-brief-list-name">${processo.vaga || obterCodigoProcessoUsuario(processo)}</span>
                       <span class="process-brief-list-meta">${candidatos} candidato${candidatos === 1 ? '' : 's'}</span>
                       ${pendentes
-      ? html`<span class="process-brief-list-badge is-pending">${pendentes} pendente${pendentes === 1 ? '' : 's'}</span>`
-      : html`<span class="process-brief-list-badge is-ok">Em dia</span>`}
+          ? html`<span class="process-brief-list-badge is-pending">${pendentes} pendente${pendentes === 1 ? '' : 's'}</span>`
+          : html`<span class="process-brief-list-badge is-ok">Em dia</span>`}
                       <span class="material-symbols-outlined">${IconeSvg('chevron_right')}</span>
                     </button>
                   </li>
                 `)}
               </ul>
               ${processosAbertosResumoBreve.length > 8
-      ? html`<p class="process-brief-list-more">+${processosAbertosResumoBreve.length - 8} outros processos abertos.</p>`
-      : null}
+          ? html`<p class="process-brief-list-more">+${processosAbertosResumoBreve.length - 8} outros processos abertos.</p>`
+          : null}
             `
       : html`<p class="text-muted">Nenhum processo aberto no momento.</p>`}
       </${SectionCard}>
@@ -4149,7 +4161,7 @@ export function TelaProcessos({ controlador }) {
                     class="form-select"
                     value=${filtros.operacao}
                     onChange=${(event) =>
-        setFiltros({ ...filtros, operacao: event.target.value })}
+          setFiltros({ ...filtros, operacao: event.target.value })}
                   >
                     ${renderizarOpcoesFiltro(opcoesOperacaoProcessos, 'Operação / Cliente')}
                   </select>
@@ -4160,7 +4172,7 @@ export function TelaProcessos({ controlador }) {
                     class="form-select"
                     value=${filtros.notaCorte}
                     onChange=${(event) =>
-        setFiltros({ ...filtros, notaCorte: event.target.value })}
+          setFiltros({ ...filtros, notaCorte: event.target.value })}
                   >
                     <option value="">Nota de corte</option>
                     <option value="sim">Sim</option>
@@ -4173,7 +4185,7 @@ export function TelaProcessos({ controlador }) {
                     class="form-select"
                     value=${filtros.status}
                     onChange=${(event) =>
-        setFiltros({ ...filtros, status: event.target.value })}
+          setFiltros({ ...filtros, status: event.target.value })}
                   >
                     <option value="">Status</option>
                     <option value="aberto">Aberto</option>
@@ -5772,11 +5784,11 @@ function ModalScorecardCandidato({
       onClose=${onClose}
     >
       ${carregando
-        ? html`<${LoadingState} titulo="Carregando scorecard" descricao="Buscando avaliações registradas para esta etapa." />`
-        : html`
+      ? html`<${LoadingState} titulo="Carregando scorecard" descricao="Buscando avaliações registradas para esta etapa." />`
+      : html`
             <div class="process-scorecard-form">
               ${CRITERIOS_SCORECARD_PADRAO.map(
-                (criterio) => html`
+        (criterio) => html`
                   <div key=${criterio} class="process-scorecard-criterion">
                     <div class="process-scorecard-criterion-head">
                       <strong>${criterio}</strong>
@@ -5789,7 +5801,7 @@ function ModalScorecardCandidato({
                       step="1"
                       value=${notas[criterio] || 3}
                       onInput=${(event) =>
-                        setNotas({ ...notas, [criterio]: Number(event.target.value) })}
+            setNotas({ ...notas, [criterio]: Number(event.target.value) })}
                     />
                     <textarea
                       class="form-control"
@@ -5797,11 +5809,11 @@ function ModalScorecardCandidato({
                       placeholder="Comentário opcional"
                       value=${comentarios[criterio] || ''}
                       onInput=${(event) =>
-                        setComentarios({ ...comentarios, [criterio]: event.target.value })}
+            setComentarios({ ...comentarios, [criterio]: event.target.value })}
                     ></textarea>
                   </div>
                 `,
-              )}
+      )}
               ${erro ? html`<div class="rh-inline-alert">${erro}</div>` : null}
             </div>
           `}
@@ -5982,29 +5994,29 @@ function KanbanCandidatosProcesso({
   return html`
     <div class="process-kanban-wrap">
       ${toast
-        ? html`
+      ? html`
             <${ToastAlert}
               tone=${toast.tom === 'danger' ? 'danger' : 'warning'}
               message=${toast.mensagem}
               onClose=${() => setToast(null)}
             />
           `
-        : null}
+      : null}
       <div class="process-kanban-board" data-tour-id="process-candidates-kanban">
         ${colunas.map(
-          (coluna) => html`
+        (coluna) => html`
             <section
               key=${coluna.status}
               class=${`process-kanban-column ${colunaEmHover === coluna.status ? 'is-drop-target' : ''}`}
               onDragOver=${(event) => {
-                event.preventDefault();
-                if (colunaEmHover !== coluna.status) setColunaEmHover(coluna.status);
-              }}
+            event.preventDefault();
+            if (colunaEmHover !== coluna.status) setColunaEmHover(coluna.status);
+          }}
               onDragLeave=${() => setColunaEmHover('')}
               onDrop=${(event) => {
-                event.preventDefault();
-                soltarNaColuna(coluna);
-              }}
+            event.preventDefault();
+            soltarNaColuna(coluna);
+          }}
             >
               <header class="process-kanban-column-header">
                 <strong>${coluna.label}</strong>
@@ -6012,10 +6024,10 @@ function KanbanCandidatosProcesso({
               </header>
               <div class="process-kanban-column-body">
                 ${coluna.itens.length
-                  ? coluna.itens.map((candidato) => {
-                      const id = String(candidato.id_registro || '');
-                      const media = mediasScorecard[candidato.id_registro];
-                      return html`
+            ? coluna.itens.map((candidato) => {
+              const id = String(candidato.id_registro || '');
+              const media = mediasScorecard[candidato.id_registro];
+              return html`
                         <article
                           key=${id}
                           class=${`process-kanban-card ${movendoId === id ? 'is-moving' : ''}`}
@@ -6031,8 +6043,8 @@ function KanbanCandidatosProcesso({
                           </div>
                           <div class="process-kanban-card-meta">
                             ${processo?.urgente
-                              ? html`<span class="process-urgent-badge" title="Botão Vaga Urgente: contratação urgente">Urgente</span>`
-                              : null}
+                  ? html`<span class="process-urgent-badge" title="Botão Vaga Urgente: contratação urgente">Urgente</span>`
+                  : null}
                             <span class="process-kanban-score-badge" title="Média das notas do scorecard">
                               <span class="material-symbols-outlined">${IconeSvg('star')}</span>
                               ${media === null || media === undefined ? 'Sem scorecard' : media.toFixed(1)}
@@ -6040,12 +6052,12 @@ function KanbanCandidatosProcesso({
                           </div>
                         </article>
                       `;
-                    })
-                  : html`<div class="process-kanban-empty">Nenhum candidato nesta etapa.</div>`}
+            })
+            : html`<div class="process-kanban-empty">Nenhum candidato nesta etapa.</div>`}
               </div>
             </section>
           `,
-        )}
+      )}
       </div>
 
       <${ModalScorecardCandidato}
@@ -6435,6 +6447,29 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
 
           ${aba === 'dossie' ? html`
             <div class="process-section-heading"><div><h3>Dossiê do processo</h3><p>Comparativo consolidado com os dados reais dos candidatos.</p></div></div>
+            ${dossie.length >= 2 ? html`
+              <div class="process-dossier-chart">
+                <${SectionCard} title="Comparativo de notas por dimensão" className="process-dossier-chart-card">
+                  <${ScoreRadarChart}
+                    axes=${[
+          { key: 'curriculo', label: 'Currículo' },
+          { key: 'prova', label: 'Prova' },
+          { key: 'entrevista', label: 'Entrevista' },
+          { key: 'final', label: 'Nota final' },
+        ]}
+                    series=${dossie.slice(0, 4).map((item) => ({
+          name: item.nome,
+          values: {
+            curriculo: (converterNumeroDossie(item.scoreCv) || 0) * 10,
+            prova: (converterNumeroDossie(item.notaProva) || 0) * 10,
+            entrevista: (converterNumeroDossie(item.raw?.nota_entrevista) || 0) * 10,
+            final: (converterNumeroDossie(item.raw?.nota_final ?? item.mediaGeral) || 0) * 10,
+          },
+        }))}
+                  />
+                </${SectionCard}>
+              </div>
+            ` : null}
             <div class="process-table-shell"><table class="process-table process-dossier-table"><thead><tr><th>Candidato</th><th>Currículo</th><th>Prova</th><th>Entrevista</th><th>Nota final</th><th>Status</th><th>Parecer / observação</th><th>Decisão RH</th></tr></thead><tbody>
               ${dossie.length ? dossie.map((item) => html`<tr key=${item.id}><td><strong>${item.nome}</strong><small class="process-cell-subtitle">${item.email || '-'}</small></td><td>${formatarNumeroDossie(item.scoreCv)}</td><td>${formatarNumeroDossie(item.notaProva)}</td><td>${formatarNumeroDossie(item.raw?.nota_entrevista)}</td><td><strong>${formatarNumeroDossie(item.raw?.nota_final || item.mediaGeral)}</strong></td><td><span class=${`process-status-tag ${obterStatusClasseVisual(item.status)}`}>${item.status}</span></td><td>${item.raw?.parecer_rh || item.raw?.observacao_rh || '-'}</td><td>${item.raw?.decisao_rh || item.status || '-'}</td></tr>`) : html`<tr><td colspan="8" class="process-empty-row">O dossiê ainda não possui candidatos.</td></tr>`}
             </tbody></table></div>
@@ -6477,8 +6512,8 @@ function DetalhesProcessoRedesenhado({ model, state, actions }) {
             ${subAbaEncontrar === 'sugeridos' ? html`
               <div class="process-friendly-notice"><span class="material-symbols-outlined">${IconeSvg('auto_awesome')}</span>Cruza palavras-chave da vaga com o perfil de cada candidato do Banco de Talentos — sem custo, sem IA. Quem já está neste processo não aparece aqui.</div>
               ${carregandoSugeridos
-                ? html`<div class="process-empty-row">Buscando sugestões para esta vaga...</div>`
-                : html`<div class="process-table-shell"><table class="process-table process-find-table"><thead><tr><th>Candidato</th><th>Por que combina</th><th>Pontuação</th><th>Ação</th></tr></thead><tbody>${sugeridosProcesso.length ? sugeridosProcesso.map((candidato) => html`<tr key=${candidato.id_banco || candidato.id_teste}><td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div><strong>${candidato.nome_candidato || '-'}</strong><small>${candidato.vaga_anterior || candidato.origem || '-'}</small></div></div></td><td><small class="process-cell-subtitle">${candidato.motivo || '-'}</small></td><td><strong>${candidato.pontuacao_match ?? '-'}</strong></td><td><button type="button" class="btn btn-sm btn-primary" disabled=${actions.usandoTalento} onClick=${() => actions.iniciarUsoTalento(candidato)}>Atrelar ao processo</button>${actions.talentoPendente === String(candidato.id_banco || '') ? html`<${PainelIndicacaoUso} formulario=${actions.formIndicacaoTalento} salvando=${actions.usandoTalento} onChange=${actions.setFormIndicacaoTalento} onConfirmar=${actions.confirmarUsoTalento} onCancelar=${actions.cancelarUsoTalento} />` : null}</td></tr>`) : html`<tr><td colspan="4" class="process-empty-row">Nenhuma sugestão encontrada — tente ampliar os requisitos publicados da vaga.</td></tr>`}</tbody></table></div>`}
+          ? html`<div class="process-empty-row">Buscando sugestões para esta vaga...</div>`
+          : html`<div class="process-table-shell"><table class="process-table process-find-table"><thead><tr><th>Candidato</th><th>Por que combina</th><th>Pontuação</th><th>Ação</th></tr></thead><tbody>${sugeridosProcesso.length ? sugeridosProcesso.map((candidato) => html`<tr key=${candidato.id_banco || candidato.id_teste}><td><div class="process-candidate-cell"><span class="process-avatar">${obterIniciaisCandidato(candidato.nome_candidato)}</span><div><strong>${candidato.nome_candidato || '-'}</strong><small>${candidato.vaga_anterior || candidato.origem || '-'}</small></div></div></td><td><small class="process-cell-subtitle">${candidato.motivo || '-'}</small></td><td><strong>${candidato.pontuacao_match ?? '-'}</strong></td><td><button type="button" class="btn btn-sm btn-primary" disabled=${actions.usandoTalento} onClick=${() => actions.iniciarUsoTalento(candidato)}>Atrelar ao processo</button>${actions.talentoPendente === String(candidato.id_banco || '') ? html`<${PainelIndicacaoUso} formulario=${actions.formIndicacaoTalento} salvando=${actions.usandoTalento} onChange=${actions.setFormIndicacaoTalento} onConfirmar=${actions.confirmarUsoTalento} onCancelar=${actions.cancelarUsoTalento} />` : null}</td></tr>`) : html`<tr><td colspan="4" class="process-empty-row">Nenhuma sugestão encontrada — tente ampliar os requisitos publicados da vaga.</td></tr>`}</tbody></table></div>`}
             ` : null}
           ` : null}
         </div>
@@ -9924,14 +9959,14 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
       voltar: () => controlador.irParaTelaProtegida('screen-processes'),
       abrirResultadosAnaliticos: controlador.possuiPermissao('provas.visualizar')
         ? () => {
-            const processoId = processo?.id_processo_ref || processo?.id_processo;
-            if (!processoId) return;
-            window.history.pushState(null, '', `/processos/${encodeURIComponent(processoId)}/resultados-analiticos`);
-            const eventoNavegacao = typeof PopStateEvent === 'function'
-              ? new PopStateEvent('popstate')
-              : new Event('popstate');
-            window.dispatchEvent(eventoNavegacao);
-          }
+          const processoId = processo?.id_processo_ref || processo?.id_processo;
+          if (!processoId) return;
+          window.history.pushState(null, '', `/processos/${encodeURIComponent(processoId)}/resultados-analiticos`);
+          const eventoNavegacao = typeof PopStateEvent === 'function'
+            ? new PopStateEvent('popstate')
+            : new Event('popstate');
+          window.dispatchEvent(eventoNavegacao);
+        }
         : null,
       compartilhar: compartilharVaga,
       abrirResumoVaga: () => setResumoVagaAberto(true),
@@ -10690,7 +10725,7 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                     <${TabelaVazia}
                       colunas=${7}
                       texto="Nenhum candidato inscrito pela página pública."
-                      icone="person_off"
+                      icone="person_search"
                     />
                   `}
             </tbody>
@@ -11932,7 +11967,7 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                     </select>
                   </div>
                   ${subCausasEliminacaoDisponiveis.length
-        ? html`
+          ? html`
                         <div class="col-md-12">
                           <label class="form-label">Sub-causa (opcional)</label>
                           <select
@@ -11953,7 +11988,7 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                           </select>
                         </div>
                       `
-        : null}
+          : null}
                   ${formularioEliminacao.motivo_eliminacao === 'Eliminado na entrevista'
           ? html`
                         <div class="col-md-12">

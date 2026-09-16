@@ -67,7 +67,7 @@
     display: block;
     color: #555;
     font-size: 6.8pt;
-    font-weight: 700;
+    /*font-weight: 700;*/
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
@@ -75,7 +75,7 @@
   .print-candidate-header h1 {
     margin: 0.8mm 0 0;
     font-size: 14pt;
-    font-weight: 700;
+    /*font-weight: 700;*/
     line-height: 1.1;
     overflow-wrap: anywhere;
   }
@@ -113,7 +113,7 @@
   .print-candidate-section h2 {
     margin: 0 0 1.8mm;
     font-size: 9pt;
-    font-weight: 700;
+    /*font-weight: 700;*/
     text-transform: uppercase;
   }
 
@@ -136,7 +136,7 @@
     display: block;
     margin-top: 0.8mm;
     font-size: 8pt;
-    font-weight: 600;
+    /*font-weight: 600;*/
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
@@ -204,7 +204,7 @@
   .print-candidate-results-table th {
     background: #f0f0f0 !important;
     font-size: 7pt;
-    font-weight: 700;
+    /*font-weight: 700;*/
     text-align: left;
     text-transform: uppercase;
   }
@@ -236,7 +236,7 @@
   }
 
   .print-candidate-adherence span {
-    font-weight: 700;
+    /*font-weight: 700;*/
   }
 
   .print-candidate-adherence strong {

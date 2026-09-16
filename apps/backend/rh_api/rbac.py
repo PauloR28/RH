@@ -280,6 +280,25 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
             "Operações",
             "Visualizar operações cadastradas (usadas em processos, provas e treinamentos).",
         ),
+        _permission("mural.visualizar", "Mural", "Visualizar o feed de avisos e comunicados do Mural."),
+        _permission(
+            "mural.criar",
+            "Mural",
+            "Criar publicações no Mural (texto, imagens e envio para intranets).",
+            critical=True,
+        ),
+        _permission(
+            "mural.editar",
+            "Mural",
+            "Editar, fixar/desafixar e arquivar publicações do Mural.",
+            critical=True,
+        ),
+        _permission(
+            "mural.excluir",
+            "Mural",
+            "Excluir publicações do Mural.",
+            critical=True,
+        ),
     )
 }
 
@@ -313,6 +332,7 @@ OPERATIONAL_SELECTION_PERMISSIONS = {
     "documentos.marcar_recebido",
     "emails.enviar_modelo",
     "operacoes.visualizar",
+    "mural.visualizar",
 }
 
 
@@ -369,6 +389,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "lgpd.visualizar",
         "onedrive.visualizar",
         "operacoes.visualizar",
+        "mural.visualizar",
         # Prompt.txt (rodada 06/set/2026): Gestor precisa ver e criar
         # treinamentos na Central de Treinamentos — faltava por completo
         # (achado da auditoria em docs/central-treinamentos/00-auditoria-inicial.md §3).
@@ -406,6 +427,9 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "onedrive.excluir",
         "emails.enviar_livre",
         "emails.configurar_modelos",
+        "mural.criar",
+        "mural.editar",
+        "mural.excluir",
     },
     ROLE_CANDIDATE: set(),
     ROLE_ADMIN: set(PERMISSION_DEFINITIONS.keys()),
@@ -416,15 +440,20 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         # Promt.txt (app mobile "Conecta App"): colaborador conclui os
         # próprios módulos, nunca os de terceiros (auto-escopo na rota).
         "onboarding.concluir_proprio",
+        "mural.visualizar",
     },
     ROLE_OPERATOR: {
         "inicio.visualizar",
         "notificacoes.visualizar",
         "onboarding.visualizar",
         "onboarding.concluir_proprio",
+        "mural.visualizar",
     },
     ROLE_SUPERVISOR: {
-        "inicio.visualizar",
+        # Correções.txt (rodada 16/set/2026): visão do Supervisor é
+        # obrigatoriamente a Central de Treinamentos — sem "inicio.visualizar"
+        # nem "mural.visualizar" o topo do menu para de listar Início/Mural
+        # (o link de Calendário já não era concedido a este perfil).
         "dashboard.visualizar",
         "notificacoes.visualizar",
         "candidatos.visualizar",
@@ -456,10 +485,12 @@ SCREEN_PERMISSIONS: dict[str, str] = {
     "screen-talent-bank": "candidatos.visualizar",
     "screen-training": "onboarding.visualizar",
     "screen-training-trilhas": "onboarding.visualizar",
+    "screen-training-mine": "onboarding.visualizar",
     "screen-training-assignments": "onboarding.visualizar",
     "screen-training-create": "onboarding.criar",
     "screen-training-manage": "onboarding.gerenciar",
     "screen-onedrive-files": "onedrive.visualizar",
+    "screen-mural": "mural.visualizar",
     "screen-settings": "configuracoes.visualizar",
     "screen-settings-users": "usuarios.visualizar",
     "screen-settings-profiles": "configuracoes.visualizar",

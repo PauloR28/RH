@@ -34,7 +34,7 @@
   margin: 4px 0 8px;
   color: #111827;
   font-size: clamp(1.65rem, 2.5vw, 2.25rem);
-  font-weight: 700;
+  /*font-weight: 700;*/
   letter-spacing: -0.025em;
 }
 
@@ -128,7 +128,7 @@
   background: #0a58d8;
   color: #fff;
   font-size: 0.95rem;
-  font-weight: 700;
+  /*font-weight: 700;*/
   box-shadow: 0 0 0 5px #f8fafc;
 }
 
@@ -153,7 +153,7 @@
 
 .exam-step-icon i { font-size: 2rem; font-variation-settings: 'wght' 350; }
 .exam-step-copy small { display: block; margin-bottom: 7px; color: #334463; font-size: 0.78rem; }
-.exam-step-copy h2 { margin: 0 0 7px; color: #0d1423; font-size: clamp(1.1rem, 1.5vw, 1.35rem); font-weight: 700; }
+.exam-step-copy h2 { margin: 0 0 7px; color: #0d1423; font-size: clamp(1.1rem, 1.5vw, 1.35rem); /*font-weight: 700;*/ }
 .exam-step-copy p { margin: 0; color: #53627c; }
 
 .exam-step-action {
@@ -166,7 +166,7 @@
   min-width: 142px;
   min-height: 46px;
   border-radius: 8px;
-  font-weight: 600;
+  /*font-weight: 600;*/
 }
 
 .exam-step-complete-tag,
@@ -178,7 +178,7 @@
   border-radius: var(--radius-full);
   padding: 4px 8px;
   font-size: 0.74rem;
-  font-weight: 700;
+  /*font-weight: 700;*/
 }
 
 .exam-step-complete-tag,
@@ -201,7 +201,7 @@
 }
 
 .exam-summary-panel h2,
-.exam-info-panel h2 { margin: 0 0 24px; color: #111827; font-size: 1.15rem; font-weight: 700; }
+.exam-info-panel h2 { margin: 0 0 24px; color: #111827; font-size: 1.15rem; /*font-weight: 700;*/ }
 .exam-summary-total { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
 .exam-summary-total .material-symbols-outlined { color: #086fca; font-size: 2rem; }
 .exam-summary-total strong { font-size: 1.45rem; }
@@ -233,9 +233,9 @@
 
 .exam-info-panel h2 { margin-bottom: 10px; color: #0646ba; }
 .exam-info-panel p { margin: 0 0 20px; color: #455675; line-height: 1.55; }
-.exam-info-panel a { display: inline-flex; align-items: center; gap: 7px; color: #086fca; font-weight: 600; text-decoration: none; }
+.exam-info-panel a { display: inline-flex; align-items: center; gap: 7px; color: #086fca; /*font-weight: 600;*/ text-decoration: none; }
 .exam-info-panel a .material-symbols-outlined { font-size: 1.1rem; }
-.exam-final-submit { min-height: 50px; border-radius: 9px; font-weight: 700; }
+.exam-final-submit { min-height: 50px; border-radius: 9px; /*font-weight: 700;*/ }
 
 @media (max-width: 980px) {
   .exam-steps-layout { grid-template-columns: 1fr; }

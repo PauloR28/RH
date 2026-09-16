@@ -2,6 +2,7 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import {
   atualizarAgendaTreinamento,
   atualizarTrilhaOnboarding,
+  baixarPdfSlideTreinamento,
   buscarCandidatosTreinamento,
   criarTrilhaOnboarding,
   excluirAtribuicaoTreinamento,
@@ -162,7 +163,13 @@ function paraInputDatetimeLocal(valor) {
 }
 
 export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-trilhas' }) {
-  const abaAtiva = telaAtual === 'screen-training-manage' ? 'gestao' : telaAtual === 'screen-training-assignments' ? 'atribuicoes' : 'trilhas';
+  const abaAtiva = telaAtual === 'screen-training-manage'
+    ? 'gestao'
+    : telaAtual === 'screen-training-assignments'
+      ? 'atribuicoes'
+      : telaAtual === 'screen-training-mine'
+        ? 'meus-treinamentos'
+        : 'trilhas';
   const podeEditar = controlador?.possuiPermissao?.('onboarding.editar');
   const podeCriar = controlador?.possuiPermissao?.('onboarding.criar');
 
@@ -218,6 +225,21 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const [treinamentoEmAndamento, setTreinamentoEmAndamento] = useState(null);
   const [slideAtual, setSlideAtual] = useState(0);
+  // Correções.txt (rodada 16/set/2026): "Iniciar" passa a mostrar o slide
+  // enviado na criação do treinamento (pptx_pdf_path), buscado autenticado e
+  // virando blob local — ver nota em services/api/onboarding.js.
+  const [pdfSlideUrl, setPdfSlideUrl] = useState('');
+  const [carregandoPdfSlide, setCarregandoPdfSlide] = useState(false);
+  const [erroPdfSlide, setErroPdfSlide] = useState('');
+
+  // "Meus treinamentos" (visão do Supervisor/ministrante) e a marcação de
+  // presença de uma ocorrência, com opção de adicionar alguém que não
+  // estava na lista original de convocados.
+  const [modalPresencaAberto, setModalPresencaAberto] = useState(false);
+  const [grupoPresencaAtivo, setGrupoPresencaAtivo] = useState(null);
+
+  const [modalProximosTreinosAberto, setModalProximosTreinosAberto] = useState(false);
+  const [trilhaProximosTreinos, setTrilhaProximosTreinos] = useState(null);
 
   const [treinamentosProcesso, setTreinamentosProcesso] = useState([]);
   const [modalLiberarAberto, setModalLiberarAberto] = useState(false);
@@ -476,12 +498,20 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   // -- Adicionar participante avulso (sem processo seletivo) --------------
 
-  const abrirAdicionarParticipante = (trilha) => {
+  const abrirAdicionarParticipante = (trilha, prefill = null) => {
     setTrilhaParticipante(trilha);
     setBuscaParticipante('');
     setResultadosParticipante([]);
     setParticipanteSelecionado(null);
-    setFormParticipante({ ...FORM_PARTICIPANTE_INICIAL, local: trilha.local_padrao || '' });
+    setFormParticipante({
+      ...FORM_PARTICIPANTE_INICIAL,
+      local: prefill?.local ?? (trilha.local_padrao || ''),
+      // Correções.txt (rodada 16/set/2026): "Presença" de uma ocorrência já
+      // agendada precisa adicionar o colaborador NA MESMA ocorrência (data/
+      // ministrante), não deixar em branco para o RH preencher de novo.
+      data_prevista: prefill?.data_prevista ?? '',
+      ministrante: prefill?.ministrante ?? '',
+    });
     setErroParticipante('');
     setMensagemParticipante('');
     setModalParticipanteAberto(true);
@@ -662,28 +692,179 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   // -- Começar Treinamento (ministrante) -----------------------------------
 
+  const dentroJanelaInicio = (dataPrevista) => {
+    if (!dataPrevista) return false;
+    const agora = Date.now();
+    const previsto = new Date(dataPrevista).getTime();
+    const duasHoras = 2 * 60 * 60 * 1000;
+    return agora >= previsto - duasHoras && agora <= previsto + duasHoras;
+  };
+
   const podeComecarTreinamento = (atribuicao) => {
     if (!atribuicao.data_prevista) return false;
     const nomeUsuario = normalizarBuscaTreino(controlador?.estado?.nomeUsuarioAutenticado || '');
     const ministrante = normalizarBuscaTreino(atribuicao.ministrante || '');
     if (!ministrante || !nomeUsuario || !ministrante.includes(nomeUsuario)) return false;
-    const agora = Date.now();
-    const previsto = new Date(atribuicao.data_prevista).getTime();
-    const duasHoras = 2 * 60 * 60 * 1000;
-    return agora >= previsto - duasHoras && agora <= previsto + duasHoras;
+    return dentroJanelaInicio(atribuicao.data_prevista);
   };
 
-  const comecarTreinamento = (atribuicao) => {
-    const trilha = trilhas.find((item) => String(item.id_trilha) === String(atribuicao.trilha_id));
-    let slides = [];
+  const carregarSlideTextoTrilha = (trilha) => {
     try {
       const conteudo = JSON.parse(trilha?.conteudo_json || '{}');
-      slides = Array.isArray(conteudo.slides) ? conteudo.slides : [];
+      return Array.isArray(conteudo.slides) ? conteudo.slides : [];
     } catch (error) {
-      slides = [];
+      return [];
     }
+  };
+
+  const comecarTreinamento = async (atribuicao) => {
+    const trilha = trilhas.find((item) => String(item.id_trilha) === String(atribuicao.trilha_id));
     setSlideAtual(0);
-    setTreinamentoEmAndamento({ atribuicao, slides });
+    setPdfSlideUrl('');
+    setErroPdfSlide('');
+    const temSlideEnviado = !!trilha?.pptx_pdf_path;
+    setTreinamentoEmAndamento({
+      atribuicao,
+      slides: temSlideEnviado ? [] : carregarSlideTextoTrilha(trilha),
+    });
+    if (!temSlideEnviado) return;
+    setCarregandoPdfSlide(true);
+    try {
+      const arquivo = await baixarPdfSlideTreinamento(trilha.id_trilha);
+      setPdfSlideUrl(URL.createObjectURL(arquivo.blob));
+    } catch (error) {
+      setErroPdfSlide('Não foi possível carregar o slide enviado — mostrando o roteiro em texto, se houver.');
+      setTreinamentoEmAndamento({ atribuicao, slides: carregarSlideTextoTrilha(trilha) });
+    } finally {
+      setCarregandoPdfSlide(false);
+    }
+  };
+
+  const fecharTreinamentoEmAndamento = () => {
+    if (pdfSlideUrl) URL.revokeObjectURL(pdfSlideUrl);
+    setTreinamentoEmAndamento(null);
+    setPdfSlideUrl('');
+    setErroPdfSlide('');
+  };
+
+  // -- "Meus treinamentos" (agrupa atribuições da mesma ocorrência: mesma
+  // trilha, data, local e ministrante) e presença --------------------------
+
+  const chaveOcorrencia = (item) =>
+    `${item.trilha_id}|${item.data_prevista || ''}|${item.local || ''}|${item.ministrante || ''}`;
+
+  const nomeUsuarioAtual = normalizarBuscaTreino(controlador?.estado?.nomeUsuarioAutenticado || '');
+
+  const meusTreinamentos = useMemo(() => {
+    const grupos = new Map();
+    atribuicoes.forEach((item) => {
+      const ministrante = normalizarBuscaTreino(item.ministrante || '');
+      if (!ministrante || !nomeUsuarioAtual || !ministrante.includes(nomeUsuarioAtual)) return;
+      if (!item.data_prevista) return;
+      if (!['pendente_chamada', 'em_andamento'].includes(item.status)) return;
+      const chave = chaveOcorrencia(item);
+      if (!grupos.has(chave)) {
+        grupos.set(chave, {
+          chave,
+          trilha_id: item.trilha_id,
+          trilha_nome: item.trilha_nome,
+          data_prevista: item.data_prevista,
+          local: item.local,
+          ministrante: item.ministrante,
+          participantes: [],
+        });
+      }
+      grupos.get(chave).participantes.push(item);
+    });
+    return Array.from(grupos.values()).sort(
+      (a, b) => new Date(a.data_prevista) - new Date(b.data_prevista),
+    );
+  }, [atribuicoes, nomeUsuarioAtual]);
+
+  const meusTreinamentosHoje = useMemo(() => {
+    const hoje = new Date();
+    return meusTreinamentos.filter((grupo) => {
+      const data = new Date(grupo.data_prevista);
+      return (
+        data.getFullYear() === hoje.getFullYear() &&
+        data.getMonth() === hoje.getMonth() &&
+        data.getDate() === hoje.getDate()
+      );
+    });
+  }, [meusTreinamentos]);
+
+  const abrirPresencaOcorrencia = (grupo) => {
+    setGrupoPresencaAtivo(grupo);
+    setModalPresencaAberto(true);
+  };
+
+  const fecharModalPresenca = () => {
+    setModalPresencaAberto(false);
+    setGrupoPresencaAtivo(null);
+  };
+
+  // Mantém a lista de participantes do modal de presença em dia depois de
+  // adicionar alguém que não estava convocado originalmente.
+  useEffect(() => {
+    if (!modalPresencaAberto || !grupoPresencaAtivo) return;
+    const participantesAtuais = atribuicoes.filter(
+      (item) => chaveOcorrencia(item) === grupoPresencaAtivo.chave,
+    );
+    if (participantesAtuais.length !== grupoPresencaAtivo.participantes.length) {
+      setGrupoPresencaAtivo((atual) => (atual ? { ...atual, participantes: participantesAtuais } : atual));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atribuicoes, modalPresencaAberto]);
+
+  const irParaPresencaDoTreinamentoEmAndamento = () => {
+    const atribuicao = treinamentoEmAndamento?.atribuicao;
+    if (!atribuicao) return;
+    const grupo = {
+      chave: chaveOcorrencia(atribuicao),
+      trilha_id: atribuicao.trilha_id,
+      trilha_nome: atribuicao.trilha_nome,
+      data_prevista: atribuicao.data_prevista,
+      local: atribuicao.local,
+      ministrante: atribuicao.ministrante,
+      participantes: atribuicoes.filter((item) => chaveOcorrencia(item) === chaveOcorrencia(atribuicao)),
+    };
+    fecharTreinamentoEmAndamento();
+    abrirPresencaOcorrencia(grupo);
+  };
+
+  // -- "Próximos treinos" (Ações da trilha, qualquer ministrante) ---------
+
+  const abrirProximosTreinos = (trilha) => {
+    const grupos = new Map();
+    atribuicoes
+      .filter(
+        (item) =>
+          String(item.trilha_id) === String(trilha.id_trilha) &&
+          item.data_prevista &&
+          ['pendente_chamada', 'em_andamento'].includes(item.status),
+      )
+      .forEach((item) => {
+        const chave = `${item.data_prevista}|${item.local || ''}|${item.ministrante || ''}`;
+        if (!grupos.has(chave)) {
+          grupos.set(chave, {
+            data_prevista: item.data_prevista,
+            local: item.local,
+            ministrante: item.ministrante,
+            alunos: 0,
+          });
+        }
+        grupos.get(chave).alunos += 1;
+      });
+    setTrilhaProximosTreinos({
+      trilha,
+      ocorrencias: Array.from(grupos.values()).sort((a, b) => new Date(a.data_prevista) - new Date(b.data_prevista)),
+    });
+    setModalProximosTreinosAberto(true);
+  };
+
+  const fecharModalProximosTreinos = () => {
+    setModalProximosTreinosAberto(false);
+    setTrilhaProximosTreinos(null);
   };
 
   // -- Treinamentos por processo (AGUARDANDO PROCESSO / ABERTO) -----------
@@ -771,6 +952,12 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                         <${MenuAcoesProcesso}
                           label="Ações"
                           acoes=${[
+              {
+                label: 'Próximos treinos',
+                icon: 'event',
+                title: 'Ver dia, horário, ministrante e número de alunos das próximas ocorrências agendadas',
+                onClick: () => abrirProximosTreinos(item),
+              },
               {
                 label: 'Adicionar participante',
                 icon: 'person_add',
@@ -905,6 +1092,110 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                   `,
         )
         : html`<${TabelaVazia} colunas=${9} texto="Nenhum colaborador em treinamento no momento." icone="assignment_ind" />`}
+          </tbody>
+        </table>
+      </div>
+    </${SectionCard}>
+  `;
+
+  // Correções.txt (rodada 16/set/2026): tela inicial do Supervisor —
+  // "Meus treinamentos" (o que ele dá/vai dar) + um resumo do dia, com
+  // Ações "Iniciar" e "Presença" por ocorrência agendada.
+  const renderMeusTreinamentos = () => html`
+    ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
+    <${SectionCard}
+      title="Hoje"
+      className="rh-section-card--flat"
+      description="Treinamentos que você vai dar hoje — só o horário e o nome, sem o restante da agenda do Conecta."
+    >
+      ${carregando
+      ? html`<${SkeletonTableRows} colunas=${3} linhas=${2} />`
+      : meusTreinamentosHoje.length
+        ? html`
+              <ul class="rh-simple-list">
+                ${meusTreinamentosHoje.map(
+              (grupo) => html`
+                    <li key=${grupo.chave} class="d-flex align-items-center justify-content-between gap-3 py-2">
+                      <div>
+                        <strong>${new Date(grupo.data_prevista).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>
+                        <span class="ms-2">${grupo.trilha_nome}</span>
+                        <div class="text-muted small">${grupo.local || 'Local não informado'} · ${grupo.participantes.length} aluno(s)</div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        ${dentroJanelaInicio(grupo.data_prevista)
+                  ? html`
+                            <button type="button" class="btn btn-primary btn-sm" onClick=${() => comecarTreinamento(grupo.participantes[0])}>
+                              <span class="material-symbols-outlined">${IconeSvg('play_circle')}</span>
+                              Iniciar
+                            </button>
+                          `
+                  : null}
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirPresencaOcorrencia(grupo)}>
+                          <span class="material-symbols-outlined">${IconeSvg('how_to_reg')}</span>
+                          Presença
+                        </button>
+                      </div>
+                    </li>
+                  `,
+            )}
+              </ul>
+            `
+        : html`<p class="text-muted small mb-0">Sem compromissos de treinamento hoje.</p>`}
+    </${SectionCard}>
+
+    <${SectionCard}
+      title="Meus treinamentos"
+      className="rh-section-card--flat mt-4"
+      description="Treinamentos cadastrados e agendados para você dar, com data, hora e local."
+    >
+      <div class="table-responsive">
+        <table class="table align-middle rh-modern-history-table">
+          <thead>
+            <tr>
+              <th>Treinamento</th>
+              <th>Data/hora</th>
+              <th>Local</th>
+              <th>Alunos</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${carregando
+      ? html`<${SkeletonTableRows} colunas=${5} linhas=${3} />`
+      : meusTreinamentos.length
+        ? meusTreinamentos.map(
+          (grupo) => html`
+                    <tr key=${grupo.chave}>
+                      <td><strong>${grupo.trilha_nome}</strong></td>
+                      <td>${formatarDataHora(grupo.data_prevista)}</td>
+                      <td>${grupo.local || '-'}</td>
+                      <td>${grupo.participantes.length}</td>
+                      <td>
+                        <${MenuAcoesProcesso}
+                          label="Ações"
+                          acoes=${[
+                {
+                  label: 'Iniciar',
+                  icon: 'play_circle',
+                  disabled: !dentroJanelaInicio(grupo.data_prevista),
+                  title: dentroJanelaInicio(grupo.data_prevista)
+                    ? 'Abrir o treinamento e apresentar o slide'
+                    : 'Disponível a partir de 2h antes do horário agendado',
+                  onClick: () => comecarTreinamento(grupo.participantes[0]),
+                },
+                {
+                  label: 'Presença',
+                  icon: 'how_to_reg',
+                  title: 'Marcar presença ou adicionar alguém que não estava na lista',
+                  onClick: () => abrirPresencaOcorrencia(grupo),
+                },
+              ]}
+                        />
+                      </td>
+                    </tr>
+                  `,
+        )
+        : html`<${TabelaVazia} colunas=${5} texto="Nenhum treinamento agendado para você no momento." icone="school" />`}
           </tbody>
         </table>
       </div>
@@ -1067,7 +1358,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                     </tr>
                   `,
         )
-        : html`<${TabelaVazia} colunas=${5} texto="Sem dados ainda." icone="percent" />`}
+        : html`<${TabelaVazia} colunas=${5} texto="Sem dados ainda." icone="bar_chart" />`}
           </tbody>
         </table>
       </div>
@@ -1092,7 +1383,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
   return html`
     <${PainelRh}
       screenId="screen-training"
-      navAtiva=${telaAtual === 'screen-training-assignments' || telaAtual === 'screen-training-manage' ? telaAtual : 'screen-training-trilhas'}
+      navAtiva=${['screen-training-assignments', 'screen-training-manage', 'screen-training-mine'].includes(telaAtual) ? telaAtual : 'screen-training-trilhas'}
       subtituloMarca="Treinamentos"
       placeholderBusca="Treinamentos"
       controlador=${controlador}
@@ -1125,7 +1416,9 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       ? renderTrilhas()
       : abaAtiva === 'gestao'
         ? renderGestao()
-        : html`${renderAtribuicoes()}${renderTreinamentosProcesso()}`}
+        : abaAtiva === 'meus-treinamentos'
+          ? renderMeusTreinamentos()
+          : html`${renderAtribuicoes()}${renderTreinamentosProcesso()}`}
 
       <${ModalPadrao}
         aberto=${modalTrilhaAberto}
@@ -1659,15 +1952,26 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         aberto=${!!treinamentoEmAndamento}
         titulo="Começar treinamento"
         subtitulo=${treinamentoEmAndamento?.atribuicao?.trilha_nome || ''}
-        onClose=${() => setTreinamentoEmAndamento(null)}
+        onClose=${fecharTreinamentoEmAndamento}
         className="rh-modal-dialog--lg"
       >
         ${treinamentoEmAndamento
       ? html`
               <div class="rh-details-body">
-                ${treinamentoEmAndamento.slides.length
-          ? html`
+                ${carregandoPdfSlide
+          ? html`<p class="text-muted">Carregando o slide enviado...</p>`
+          : pdfSlideUrl
+            ? html`
+                      <iframe
+                        src=${pdfSlideUrl}
+                        title="Slide do treinamento"
+                        style=${{ width: '100%', height: '65vh', border: '1px solid var(--color-border)', borderRadius: '8px' }}
+                      ></iframe>
+                    `
+            : treinamentoEmAndamento.slides.length
+              ? html`
                       <div class="rh-section-card rh-section-card--flat" style=${{ padding: '20px' }}>
+                        ${erroPdfSlide ? html`<div class="alert alert-warning">${erroPdfSlide}</div>` : null}
                         <div class="d-flex justify-content-between align-items-center mb-2">
                           <strong>${treinamentoEmAndamento.slides[slideAtual]?.titulo || `Slide ${slideAtual + 1}`}</strong>
                           <span class="text-muted small">${slideAtual + 1} / ${treinamentoEmAndamento.slides.length}</span>
@@ -1694,15 +1998,152 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                         </div>
                       </div>
                     `
-          : html`<p class="text-muted">Este treinamento ainda não tem slides/script cadastrados — cadastre em "Editar treinamento".</p>`}
+              : html`<p class="text-muted">Este treinamento ainda não tem slide enviado nem script cadastrado — cadastre em "Editar treinamento".</p>`}
                 <p class="text-muted small mt-3">
-                  Ao final da apresentação, use "Presença" na lista de colaboradores para marcar quem assistiu.
+                  Ao final da apresentação, use "Ir para presença" para marcar quem assistiu.
                 </p>
               </div>
             `
       : null}
         <footer class="rh-modal-footer">
-          <button type="button" class="btn btn-outline-secondary" onClick=${() => setTreinamentoEmAndamento(null)}>
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" onClick=${fecharTreinamentoEmAndamento}>
+              Fechar
+            </button>
+            <button type="button" class="btn btn-primary" onClick=${irParaPresencaDoTreinamentoEmAndamento}>
+              <span class="material-symbols-outlined">${IconeSvg('how_to_reg')}</span>
+              Ir para presença
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${modalPresencaAberto}
+        titulo="Presença"
+        subtitulo=${grupoPresencaAtivo ? `${grupoPresencaAtivo.trilha_nome} · ${formatarDataHora(grupoPresencaAtivo.data_prevista)}` : ''}
+        onClose=${fecharModalPresenca}
+      >
+        ${grupoPresencaAtivo
+      ? html`
+              <div class="rh-details-body">
+                <p class="text-muted small">
+                  Marque quem esteve presente. Também é possível adicionar alguém que não estava na lista original de
+                  convocados, mas participou do treinamento.
+                </p>
+                <div class="table-responsive">
+                  <table class="table align-middle rh-modern-history-table">
+                    <thead>
+                      <tr>
+                        <th>Colaborador</th>
+                        <th>Presença</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${grupoPresencaAtivo.participantes.map(
+          (item) => html`
+                          <tr key=${item.id_onboarding}>
+                            <td>${item.nome_candidato || `Registro ${item.id_registro}`}</td>
+                            <td>
+                              <select
+                                class="form-select form-select-sm"
+                                value=${presencasPendentes[item.id_onboarding] === undefined
+              ? (item.presenca || '')
+              : (presencasPendentes[item.id_onboarding] ? 'presente' : 'falta')}
+                                onChange=${(event) => alternarPresencaPendente(item.id_onboarding, event.target.value === 'presente')}
+                              >
+                                <option value="">-</option>
+                                <option value="presente">Presente</option>
+                                <option value="falta">Falta</option>
+                              </select>
+                            </td>
+                          </tr>
+                        `,
+        )}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  onClick=${() => {
+          const trilha = trilhas.find((t) => String(t.id_trilha) === String(grupoPresencaAtivo.trilha_id))
+            || { id_trilha: grupoPresencaAtivo.trilha_id, nome: grupoPresencaAtivo.trilha_nome };
+          abrirAdicionarParticipante(trilha, {
+            local: grupoPresencaAtivo.local || '',
+            data_prevista: paraInputDatetimeLocal(grupoPresencaAtivo.data_prevista),
+            ministrante: grupoPresencaAtivo.ministrante || '',
+          });
+        }}
+                >
+                  <span class="material-symbols-outlined">${IconeSvg('person_add')}</span>
+                  Adicionar colaborador não convocado
+                </button>
+              </div>
+            `
+      : null}
+        <footer class="rh-modal-footer">
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" onClick=${fecharModalPresenca}>
+              Fechar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled=${salvandoPresenca || !Object.keys(presencasPendentes).length}
+              onClick=${async () => {
+          await salvarListaPresenca();
+          fecharModalPresenca();
+        }}
+            >
+              ${salvandoPresenca ? 'Salvando...' : 'Salvar presença e finalizar'}
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
+        aberto=${modalProximosTreinosAberto}
+        titulo="Próximos treinos"
+        subtitulo=${trilhaProximosTreinos?.trilha?.nome || ''}
+        onClose=${fecharModalProximosTreinos}
+      >
+        ${trilhaProximosTreinos
+      ? html`
+              <div class="rh-details-body">
+                ${trilhaProximosTreinos.ocorrencias.length
+          ? html`
+                      <div class="table-responsive">
+                        <table class="table align-middle rh-modern-history-table">
+                          <thead>
+                            <tr>
+                              <th>Data/hora</th>
+                              <th>Local</th>
+                              <th>Ministrante</th>
+                              <th>Alunos</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${trilhaProximosTreinos.ocorrencias.map(
+              (ocorrencia, index) => html`
+                                <tr key=${index}>
+                                  <td>${formatarDataHora(ocorrencia.data_prevista)}</td>
+                                  <td>${ocorrencia.local || '-'}</td>
+                                  <td>${ocorrencia.ministrante || '-'}</td>
+                                  <td>${ocorrencia.alunos}</td>
+                                </tr>
+                              `,
+            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    `
+          : html`<p class="text-muted small mb-0">Nenhuma ocorrência agendada para este treinamento no momento.</p>`}
+              </div>
+            `
+      : null}
+        <footer class="rh-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onClick=${fecharModalProximosTreinos}>
             Fechar
           </button>
         </footer>

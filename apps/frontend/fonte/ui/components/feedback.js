@@ -21,7 +21,7 @@ export function GrupoPaginacao({ paginaAtual, totalPaginas, onChange }) {
   return html`
     <div class="rh-pagination-wrap">
       ${itens.map(
-        (item) => html`
+    (item) => html`
           <${BotaoPaginacao}
             key=${item.pagina}
             pagina=${item.pagina}
@@ -29,7 +29,7 @@ export function GrupoPaginacao({ paginaAtual, totalPaginas, onChange }) {
             onClick=${() => onChange(item.pagina)}
           />
         `,
-      )}
+  )}
     </div>
   `;
 }
@@ -38,7 +38,7 @@ export function MetricGrid({ items = [] }) {
   return html`
     <div class="rh-metric-grid">
       ${items.map(
-        (item, indice) => html`
+    (item, indice) => html`
           <article
             key=${item.label || indice}
             class=${`rh-metric-card ${item.variant || ''} ${item.onClick ? 'is-clickable' : ''}`.trim()}
@@ -46,29 +46,27 @@ export function MetricGrid({ items = [] }) {
             tabIndex=${item.onClick ? 0 : null}
             onClick=${item.onClick || null}
             onKeyDown=${item.onClick
-              ? (event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    item.onClick();
-                  }
-                }
-              : null}
+        ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            item.onClick();
+          }
+        }
+        : null}
           >
             ${item.icon
-              ? html`
+        ? html`
                   <span class="material-symbols-outlined rh-metric-icon">${IconeSvg(item.icon)}</span>
                 `
-              : null}
+        : null}
             <span class="rh-metric-content">
               <span class="rh-metric-label">${item.label}</span>
               <strong class="rh-metric-value">${item.value}</strong>
-              ${item.helper
-                ? html`<span class="rh-metric-helper">${item.helper}</span>`
-                : null}
+            
             </span>
           </article>
         `,
-      )}
+  )}
     </div>
   `;
 }
@@ -97,28 +95,28 @@ export function EmptyState({ title, text, icon = '', ilustracao = null, action =
   return html`
     <div class="rh-empty-state">
       ${ilustracao
-        ? ilustracao
-        : icon
-          ? html`
+      ? ilustracao
+      : icon
+        ? html`
             <span class="rh-empty-state-icon material-symbols-outlined" aria-hidden="true">${IconeSvg(icon)}</span>
           `
-          : null}
+        : null}
       <h3>${title}</h3>
       <p>${text}</p>
       ${action
-        ? html`
+      ? html`
             <button
               type="button"
               class="btn btn-primary rh-empty-state-action"
               onClick=${action.onClick}
             >
               ${action.icon
-                ? html`<span class="material-symbols-outlined">${IconeSvg(action.icon)}</span>`
-                : null}
+          ? html`<span class="material-symbols-outlined">${IconeSvg(action.icon)}</span>`
+          : null}
               ${action.label}
             </button>
           `
-        : null}
+      : null}
     </div>
   `;
 }

@@ -233,6 +233,7 @@ function renderizarAcoesCandidatoCentral({
   onEliminar,
   onBanco,
   onAtrelar,
+  onCurriculo,
   controlador,
 }) {
   const estadoAcoes = obterEstadoAcoesCentral(candidato);
@@ -240,6 +241,7 @@ function renderizarAcoesCandidatoCentral({
   const podeEliminar = controlador?.possuiPermissao?.('candidatos.eliminar');
   const podeMover = controlador?.possuiPermissao?.('candidatos.mover_etapa');
   const podeCriar = controlador?.possuiPermissao?.('candidatos.criar');
+  const podeBaixarCurriculo = controlador?.possuiPermissao?.('candidatos.baixar_curriculo');
   const podeEditar = controlador?.possuiAlgumaPermissao?.(
     'candidatos.editar',
     'candidatos.editar_basico',
@@ -253,6 +255,18 @@ function renderizarAcoesCandidatoCentral({
       onClick: () => onDetalhes(candidato),
     },
   ];
+
+  // Correções.txt (rodada 16/set/2026): "Adicione o botão ver currículo
+  // dentro de ações" — a Central de Candidatos só tinha o ícone solto na
+  // linha da tabela, sem entrada correspondente no menu de Ações.
+  if (candidato?.cv_disponivel && podeBaixarCurriculo && typeof onCurriculo === 'function') {
+    acoes.push({
+      key: 'ver-curriculo',
+      label: 'Ver currículo',
+      icon: 'description',
+      onClick: () => onCurriculo(candidato),
+    });
+  }
 
   if (podeEditar && candidato?.id_teste && typeof onEditar === 'function') {
     acoes.push({
@@ -3026,6 +3040,7 @@ export function TelaCandidatos({ controlador }) {
                     onDetalhes: abrirTelaDetalhesCandidato,
                     onEditar: abrirEdicaoCandidato,
                     onAprovar: abrirAprovacao,
+                    onCurriculo: abrirCurriculo,
                     onEliminar: (item) =>
                       aplicarStatus(
                         item,

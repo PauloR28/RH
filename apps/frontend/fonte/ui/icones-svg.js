@@ -350,6 +350,11 @@ export const ICONES = {
     PAGE_FOLD,
     ['rect', { x: '7', y: '13', width: '8', height: '4', rx: '1' }],
   ],
+  print: [
+    ['path', { d: 'M6 9V4H18V9' }],
+    ['rect', { x: '4', y: '9', width: '16', height: '7', rx: '1' }],
+    ['rect', { x: '8', y: '15', width: '8', height: '5', rx: '1' }],
+  ],
   table_chart: [
     ['rect', { x: '3', y: '4', width: '18', height: '16', rx: '2' }],
     ['path', { d: 'M3 10H21' }],
@@ -782,6 +787,11 @@ export const ICONES = {
   ],
   shield: [
     SHIELD_BASE,
+  ],
+  shield_lock: [
+    SHIELD_BASE,
+    ['rect', { x: '9', y: '11', width: '6', height: '5', rx: '1' }],
+    ['path', { d: 'M10.5 11V9.5a1.5 1.5 0 0 1 3 0V11' }],
   ],
   cloud: [
     ['path', { d: 'M7 18H17C19 18 21 16.2 21 14C21 12 19.5 10.3 17.5 10.1C17 7.7 14.8 6 12.3 6C9.5 6 7.2 8 7 10.6C4.7 11 3 13 3 15C3 16.7 5 18 7 18Z' }],

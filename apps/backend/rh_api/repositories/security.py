@@ -436,6 +436,130 @@ class SecurityRepositoryMixin:
         finally:
             conn.close()
 
+    # Correções.txt (rodada 16/set/2026): "APLICATIVO CONECTA - APP" — o
+    # aluno/colaborador do app-treinamento-colaborador entra só com o
+    # e-mail, sem senha, "independente do que está configurado para aquele
+    # usuário". Restrito aos perfis "operador"/"funcionario" (autoatendimento
+    # + Central de Treinamentos, sem nenhuma tela administrativa — ver
+    # ROLE_OPERATOR/ROLE_EMPLOYEE em rbac.py) para não virar um jeito de
+    # entrar sem senha em contas RH/Admin. Reaproveita create_session_for_
+    # user_record (mesmo mecanismo do login Microsoft, que também não usa
+    # senha).
+    APP_EMAIL_LOGIN_PERFIS = ("operador", "funcionario")
+
+    def authenticate_app_email(self, email: str, *, origem: str = "") -> dict:
+        safe_email = _normalize_email(email)
+        if not safe_email:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Informe o e-mail cadastrado.")
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT TOP 1
+                    usuarios.id_usuario,
+                    usuarios.login,
+                    usuarios.nome,
+                    usuarios.sobrenome,
+                    usuarios.cargo,
+                    usuarios.email,
+                    usuarios.perfil_id,
+                    perfis.nome AS perfil_nome,
+                    perfis.nivel,
+                    usuarios.status,
+                    usuarios.avatar_ilustrado,
+                    usuarios.provedor_autenticacao,
+                    usuarios.criado_em,
+                    usuarios.ultimo_acesso_em,
+                    usuarios.criado_por,
+                    usuarios.atualizado_por,
+                    usuarios.atualizado_em
+                FROM usuarios
+                LEFT JOIN perfis ON perfis.id_perfil = usuarios.perfil_id
+                WHERE LOWER(LTRIM(RTRIM(usuarios.email))) = LOWER(?)
+                ORDER BY usuarios.id_usuario
+                """,
+                (safe_email,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                self._insert_audit_log(
+                    cursor,
+                    modulo="Autenticação",
+                    acao="login_app_negado",
+                    entidade="usuario",
+                    entidade_id=_mask_email(safe_email),
+                    justificativa="E-mail não cadastrado.",
+                    origem=origem,
+                    sucesso=False,
+                )
+                conn.commit()
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail não encontrado.")
+
+            user_row = rows_to_dicts(cursor, [row])[0]
+            user_context = self._serialize_system_user(user_row)
+            perfil_id = normalize_text(user_row.get("perfil_id")).lower()
+
+            if perfil_id not in self.APP_EMAIL_LOGIN_PERFIS:
+                self._insert_audit_log(
+                    cursor,
+                    user=user_context,
+                    modulo="Autenticação",
+                    acao="login_app_negado",
+                    entidade="usuario",
+                    entidade_id=str(user_row.get("id_usuario") or ""),
+                    justificativa=f"Perfil {perfil_id or 'indefinido'} não usa login só por e-mail.",
+                    origem=origem,
+                    sucesso=False,
+                )
+                conn.commit()
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Este e-mail não está liberado para o aplicativo. Fale com o RH.",
+                )
+
+            if normalize_text(user_row.get("status")).lower() != "ativo":
+                self._insert_audit_log(
+                    cursor,
+                    user=user_context,
+                    modulo="Autenticação",
+                    acao="login_app_negado",
+                    entidade="usuario",
+                    entidade_id=str(user_row.get("id_usuario") or ""),
+                    justificativa=f"Usuário com status {user_row.get('status') or 'indefinido'}.",
+                    origem=origem,
+                    sucesso=False,
+                )
+                conn.commit()
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo ou bloqueado.")
+
+            permissions = self._get_role_permissions_from_db(cursor, user_row.get("perfil_id"))
+            cursor.execute(
+                """
+                UPDATE usuarios
+                SET ultimo_acesso_em = GETDATE(), atualizado_em = GETDATE()
+                WHERE id_usuario = ?
+                """,
+                (user_row.get("id_usuario"),),
+            )
+            operacoes = self._get_user_operacoes(cursor, user_row.get("id_usuario"))
+            result = self._serialize_system_user(user_row, permissions, operacoes)
+            self._insert_audit_log(
+                cursor,
+                user=result,
+                modulo="Autenticação",
+                acao="login_app",
+                entidade="usuario",
+                entidade_id=str(user_row.get("id_usuario") or ""),
+                origem=origem,
+                sucesso=True,
+            )
+            conn.commit()
+            return result
+        finally:
+            conn.close()
+
     def authenticate_microsoft_user(
         self,
         *,

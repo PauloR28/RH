@@ -1,12 +1,11 @@
 ﻿import { html, lazy, Suspense, useEffect, useState } from '../infraestrutura-react.js';
-"Teste de commit - AplicaÃ§Ã£o Raiz";
 import {
   navegarParaTela,
   usarTelaAtual,
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260916-correcoes-txt';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260916-correcoes-round4';
 import {
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
@@ -98,8 +97,8 @@ const TelaDetalhesProcesso = carregarTela(importarProcessos, 'TelaDetalhesProces
 const TelaProcessosDecisoesPendentes = carregarTela(importarProcessos, 'TelaProcessosDecisoesPendentes');
 const TelaProcessosEncerrados = carregarTela(importarProcessos, 'TelaProcessosEncerrados');
 const TelaProcessos = carregarTela(importarProcessos, 'TelaProcessos');
-const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-txt'), 'TelaCandidatos');
-const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-txt'), 'TelaDetalhesCandidato');
+const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaCandidatos');
+const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
 const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260910-correcoes-txt'), 'TelaOneDriveArquivos');
@@ -114,8 +113,8 @@ const TelaConfiguracoesSistema = carregarTela(
   () => import('../features/configuracoes/index.js?v=20260916-correcoes-txt'),
   'TelaConfiguracoesSistema',
 );
-const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round3'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260910-correcoes-txt'), 'TelaMural');
+const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round4'), 'TelaCalendario');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260916-correcoes-round4'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
   () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),
@@ -126,7 +125,7 @@ const TelaTemplatesDocumentos = carregarTela(
   'TelaTemplatesDocumentos',
 );
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20260908-modulo-secoes-imagens'),
+  () => import('../features/treinamentos/index.js?v=20260916-correcoes-round4'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
@@ -196,6 +195,19 @@ function resolverTelaProtegida(telaAtual, controlador) {
   // genérico abaixo: esses perfis normalmente não têm "inicio.visualizar"
   // (a permissão da tela de menu padrão), então sem este redirecionamento
   // primeiro, screen-menu cairia em screen-forbidden antes de chegar aqui.
+  //
+  // Correções.txt (rodada 16/set/2026): para o Supervisor especificamente,
+  // essa tela inicial passa a ser "Meus treinamentos" (o que ele dá/vai
+  // dar), não a lista geral de trilhas — Operador continua indo para
+  // screen-training normalmente.
+  if (
+    (telaAtual === 'screen-menu' || telaAtual === 'screen-login') &&
+    estado.perfilUsuario === 'supervisor' &&
+    controlador.podeAcessarTela('screen-training-mine')
+  ) {
+    return 'screen-training-mine';
+  }
+
   if (
     (telaAtual === 'screen-menu' || telaAtual === 'screen-login') &&
     (estado.perfilUsuario === 'operador' || estado.perfilUsuario === 'supervisor') &&
@@ -505,7 +517,8 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
   if (
     telaResolvida === 'screen-training' ||
     telaResolvida === 'screen-training-trilhas' ||
-    telaResolvida === 'screen-training-assignments'
+    telaResolvida === 'screen-training-assignments' ||
+    telaResolvida === 'screen-training-mine'
   ) {
     return html`
       <${TelaTreinamentos}

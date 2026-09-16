@@ -122,7 +122,7 @@ def _add_days(value, days: int):
 
 
 def _yes_no(value) -> str:
-    return "SIM" if bool(value) else "NÃƒO"
+    return "SIM" if bool(value) else "NÃO"
 
 
 def _candidate_is_approved(status_value: str) -> bool:
@@ -353,7 +353,7 @@ class AnalyticsRepositoryMixin:
             "nome": item.get("nome_candidato") or "",
             "telefone": item.get("whatsapp") or item.get("telefone") or "",
             "e_mail": item.get("email") or "",
-            "processo_relatorio": normalize_text(item.get("id_processo_ref")) or normalize_text(item.get("id_processo")) or "",
+            "processo_relatorio": normalize_text(item.get("id_processo")) or normalize_text(item.get("id_processo_ref")) or "",
             "vaga_relatorio": item.get("vaga") or "",
             "data_entrada": _format_report_date_br(data_entrada),
             "movimentacoes_completas": movement_summary.get("movimentacoes") or "",

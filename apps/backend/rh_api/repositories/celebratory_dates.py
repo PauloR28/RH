@@ -411,10 +411,16 @@ class CelebratoryDateRepositoryMixin:
         item_id_existente: str | None,
     ) -> str | None:
         site_prefix = f"/sites/{quote(site_id, safe=',')}"
+        # Correções.txt (rodada 16/set/2026): "Falha ao publicar" no
+        # Calendário. evento["data_inicio"/"data_fim"] são datetime *naive*
+        # (sem timezone) — .isoformat() sozinho gera "2026-09-20T09:00:00",
+        # sem designador de fuso. Colunas DateTime de lista do SharePoint via
+        # Graph API rejeitam esse formato (exigem um "Z"/offset explícito);
+        # é essa rejeição que o RH via como falha genérica de publicação.
         campos: dict = {
             "Title": evento["titulo"],
-            "EventDate": evento["data_inicio"].isoformat() if evento.get("data_inicio") else None,
-            "EndDate": evento["data_fim"].isoformat() if evento.get("data_fim") else None,
+            "EventDate": f"{evento['data_inicio'].isoformat()}Z" if evento.get("data_inicio") else None,
+            "EndDate": f"{evento['data_fim'].isoformat()}Z" if evento.get("data_fim") else None,
             "fAllDayEvent": bool(evento.get("dia_inteiro")),
         }
         if evento.get("local"):

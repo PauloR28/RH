@@ -12,7 +12,7 @@ const DIRETRIZES = [
   },
   {
     tela: 'screen-settings-disc',
-    icone: 'insights',
+    icone: 'bar_chart',
     titulo: 'Teste DISC',
     descricao: 'Perguntas, perfis e critérios de avaliação do teste comportamental DISC.',
     permissao: 'provas.questoes_criar',

@@ -15,6 +15,14 @@ class LoginRequest(BaseSchema):
     mfa_code: str = Field(default="", max_length=12)
 
 
+class AppEmailLoginRequest(BaseSchema):
+    """Correções.txt (rodada 16/set/2026): login do app-treinamento-
+    colaborador — só e-mail, sem senha (ver routers/auth.py, login_app_email
+    / repositories/security.py, authenticate_app_email)."""
+
+    email: str = Field(default="", max_length=200)
+
+
 class E2ETestLoginRequest(BaseSchema):
     """Achado QA-001/S-23: bypass de autenticação restrito à suíte E2E, nunca
     disponível em produção — ver routers/auth.py (`e2e_test_login`)."""

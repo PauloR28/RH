@@ -21,6 +21,7 @@ from .fit_cultural import FitCulturalRepositoryMixin
 from .generated_exams import GeneratedExamRepositoryMixin
 from .history import HistoryRepositoryMixin
 from .interviews import InterviewRepositoryMixin
+from .mural import MuralRepositoryMixin
 from .onboarding import OnboardingRepositoryMixin
 from .pipeline import PipelineRepositoryMixin
 from .policies import PolicyRepositoryMixin
@@ -61,6 +62,7 @@ class DatabaseRepository(
     RaciocinioLogicoRepositoryMixin,
     ScorecardRepositoryMixin,
     SistemaRepositoryMixin,
+    MuralRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""
