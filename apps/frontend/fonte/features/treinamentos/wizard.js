@@ -1,4 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
+import { formatarDocumentoRichText } from '../../regras-prova.js';
 import {
   buscarCandidatosTreinamento,
   baixarModeloModulo,
@@ -13,6 +14,118 @@ import { listarOperacoes } from '../../services/api/operations.js';
 import { atualizarTrilhaOnboarding, lerTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
 import { LoadingState, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
+
+function limparHtmlVazioModulo(valor) {
+  const conteudo = String(valor || '').trim();
+  if (!conteudo || /^((<div><br><\/div>)|(<br\s*\/?>)|(&nbsp;)|\s)+$/i.test(conteudo)) {
+    return '';
+  }
+  return conteudo;
+}
+
+// Editor rico do texto de módulo/seção (Correções.txt, 17/set/2026): mesma base
+// (document.execCommand) do editor do Mural — ver ui/components/mural-editor.js —
+// mas com o conjunto de botões pedido aqui (negrito, itálico, tachado, listas,
+// cor da letra, tamanho). Componente próprio em vez de generalizar o do Mural
+// para não mexer numa tela já validada com o RH.
+function EditorRicoModulo({ valor, onChange, placeholder }) {
+  const editorRef = useRef(null);
+  const ultimoValorEmitido = useRef(null);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (valor === ultimoValorEmitido.current) return;
+    if (editorRef.current.innerHTML !== (valor || '')) {
+      editorRef.current.innerHTML = valor || '';
+    }
+  }, [valor]);
+
+  const sincronizarConteudo = () => {
+    if (!editorRef.current) return;
+    const conteudo = limparHtmlVazioModulo(editorRef.current.innerHTML);
+    ultimoValorEmitido.current = conteudo;
+    onChange(conteudo);
+  };
+
+  const aplicarComando = (comando, argumento = null) => (event) => {
+    event.preventDefault();
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    formatarDocumentoRichText(comando, argumento);
+    sincronizarConteudo();
+  };
+
+  return html`
+    <div class="rh-editor-card">
+      <div class="rh-editor-toolbar">
+        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Negrito" onMouseDown=${aplicarComando('bold')}>
+          <strong>B</strong>
+        </button>
+        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Itálico" onMouseDown=${aplicarComando('italic')}>
+          <em>I</em>
+        </button>
+        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Tachado" onMouseDown=${aplicarComando('strikeThrough')}>
+          <s>S</s>
+        </button>
+        <span class="rh-editor-toolbar-divider" aria-hidden="true"></span>
+        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Lista com marcadores" onMouseDown=${aplicarComando('insertUnorderedList')}>
+          <span class="material-symbols-outlined">${IconeSvg('format_list_bulleted')}</span>
+        </button>
+        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Lista numerada" onMouseDown=${aplicarComando('insertOrderedList')}>
+          <span class="material-symbols-outlined">${IconeSvg('format_list_numbered')}</span>
+        </button>
+        <span class="rh-editor-toolbar-divider" aria-hidden="true"></span>
+        <label class="rh-editor-toolbar-btn" title="Cor da letra" onMouseDown=${(event) => event.preventDefault()}>
+          <span class="material-symbols-outlined">${IconeSvg('format_color_text')}</span>
+          <input
+            type="color"
+            tabIndex="-1"
+            style=${{ width: 0, height: 0, opacity: 0, position: 'absolute' }}
+            onInput=${(event) => {
+              if (!editorRef.current) return;
+              editorRef.current.focus();
+              formatarDocumentoRichText('foreColor', event.target.value);
+              sincronizarConteudo();
+            }}
+          />
+        </label>
+        <select
+          class="rh-editor-font-size"
+          title="Tamanho da fonte"
+          value=""
+          onChange=${(event) => {
+            const tamanho = event.target.value;
+            if (!tamanho || !editorRef.current) return;
+            editorRef.current.focus();
+            formatarDocumentoRichText('fontSize', tamanho);
+            sincronizarConteudo();
+            event.target.value = '';
+          }}
+        >
+          <option value="">Tamanho</option>
+          <option value="2">12</option>
+          <option value="3">14</option>
+          <option value="4">16</option>
+          <option value="5">18</option>
+          <option value="6">24</option>
+        </select>
+      </div>
+      <div
+        ref=${editorRef}
+        class="form-control word-editor"
+        contentEditable="true"
+        data-placeholder=${placeholder || ''}
+        spellcheck="true"
+        suppressContentEditableWarning=${true}
+        data-gramm="false"
+        data-gramm_editor="false"
+        data-enable-grammarly="false"
+        onInput=${sincronizarConteudo}
+        onBlur=${sincronizarConteudo}
+      ></div>
+    </div>
+  `;
+}
 
 const CATEGORIAS_TREINAMENTO = ['LGPD', 'Segurança da Informação', 'Tecnologia', 'Operações', 'Onboarding', 'Produto', 'Outro'];
 const MODALIDADES_TREINAMENTO = [
@@ -58,7 +171,8 @@ const MODULO_INICIAL = {
 };
 
 const SAIBA_MAIS_ITEM_INICIAL = { tipo: 'dica', texto: '', url: '' };
-const SECAO_MODULO_INICIAL = { subtitulo: '', texto: '', imagens: [] };
+const SECAO_MODULO_INICIAL = { subtitulo: '', texto: '', dica: '', link: '', imagens: [] };
+const MAX_IMAGENS_SECAO = 4;
 
 // Chave usada para passar o id da trilha a editar para esta tela (mesmo
 // padrão de CHAVE_PROCESSO_DETALHE em features/processos/state.js) — setada
@@ -138,6 +252,8 @@ function normalizarSecoesImportadas(secoes) {
   return (Array.isArray(secoes) ? secoes : []).map((secao) => ({
     subtitulo: secao?.subtitulo || '',
     texto: secao?.texto || '',
+    dica: secao?.dica || '',
+    link: secao?.link || '',
     imagens: (Array.isArray(secao?.imagens) ? secao.imagens : [])
       .filter((url) => typeof url === 'string' && url.trim())
       .map((url) => ({ tipo: 'link', valor: url })),
@@ -482,7 +598,7 @@ export function TelaCriarTreinamento({ controlador }) {
           ? {
               ...item,
               secoes: (item.secoes || []).map((secao, idxSecao) =>
-                idxSecao === secaoIndex
+                idxSecao === secaoIndex && (secao.imagens || []).length < MAX_IMAGENS_SECAO
                   ? { ...secao, imagens: [...(secao.imagens || []), { tipo: 'link', valor: '' }] }
                   : secao,
               ),
@@ -501,7 +617,7 @@ export function TelaCriarTreinamento({ controlador }) {
           ? {
               ...item,
               secoes: (item.secoes || []).map((secao, idxSecao) =>
-                idxSecao === secaoIndex
+                idxSecao === secaoIndex && (secao.imagens || []).length < MAX_IMAGENS_SECAO
                   ? { ...secao, imagens: [...(secao.imagens || []), { tipo: 'upload', file: arquivo, nome: arquivo.name }] }
                   : secao,
               ),
@@ -671,6 +787,8 @@ export function TelaCriarTreinamento({ controlador }) {
     secoes: (item.secoes || []).map((secao) => ({
       subtitulo: (secao.subtitulo || '').trim(),
       texto: (secao.texto || '').trim(),
+      dica: (secao.dica || '').trim(),
+      link: (secao.link || '').trim(),
       imagens: (secao.imagens || [])
         .map((imagem) => (imagem.tipo === 'upload' ? imagem._urlResolvida : imagem.valor))
         .map((url) => (url || '').trim())
@@ -1022,8 +1140,8 @@ export function TelaCriarTreinamento({ controlador }) {
   const renderModuloForm = (modulo, index) => {
     const colapsado = modulosColapsados.has(index);
     return html`
-    <div key=${index} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '14px' }}>
-      <div class="d-flex align-items-start gap-2">
+    <div key=${index} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '16px' }}>
+      <div class="d-flex align-items-start gap-2 mb-2">
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"
@@ -1050,13 +1168,17 @@ export function TelaCriarTreinamento({ controlador }) {
       ${colapsado
         ? null
         : html`
-      <label class="process-create-field mb-2">
+      <label class="process-create-field mb-3">
         <span>Texto principal</span>
-        <textarea rows="3" value=${modulo.texto_principal} onInput=${(event) => atualizarModulo(index, 'texto_principal', event.target.value)}></textarea>
+        <${EditorRicoModulo}
+          valor=${modulo.texto_principal}
+          onChange=${(valor) => atualizarModulo(index, 'texto_principal', valor)}
+          placeholder="Conteúdo principal deste módulo..."
+        />
       </label>
-      <div class="row g-2">
+      <div class="row g-2 mb-3">
         <div class="col-md-4">
-          <label class="process-create-field mb-2">
+          <label class="process-create-field mb-0">
             <span>Tipo de conteúdo</span>
             <select value=${modulo.tipo_conteudo} onChange=${(event) => atualizarModulo(index, 'tipo_conteudo', event.target.value)}>
               ${TIPOS_CONTEUDO.map((opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`)}
@@ -1064,13 +1186,13 @@ export function TelaCriarTreinamento({ controlador }) {
           </label>
         </div>
         <div class="col-md-4">
-          <label class="process-create-field mb-2">
+          <label class="process-create-field mb-0">
             <span>Link/embed (vídeo, slide, intranet...)</span>
             <input value=${modulo.conteudo_url} onInput=${(event) => atualizarModulo(index, 'conteudo_url', event.target.value)} disabled=${!modulo.tipo_conteudo} />
           </label>
         </div>
         <div class="col-md-4">
-          <label class="process-create-field mb-2">
+          <label class="process-create-field mb-0">
             <span>Ou anexar vídeo (upload)</span>
             <input type="file" accept=".mp4,.webm" onChange=${(event) => atualizarModulo(index, '_videoFile', event.target.files?.[0] || null)} />
             ${modulo._videoFile
@@ -1081,39 +1203,64 @@ export function TelaCriarTreinamento({ controlador }) {
           </label>
         </div>
       </div>
-      <label class="process-create-field mb-2">
+      <label class="process-create-field mb-3">
         <span>Bloco "Dica" (opcional)</span>
         <textarea rows="2" value=${modulo.dica_texto} onInput=${(event) => atualizarModulo(index, 'dica_texto', event.target.value)}></textarea>
       </label>
 
-      <div class="mb-2">
-        <span class="d-block mb-1 small text-muted">
-          Seções de conteúdo (subtítulos ao longo do módulo, cada um com zero, uma ou várias imagens — opcional)
+      <div class="mb-3">
+        <span class="d-block mb-2 small text-muted">
+          Adicionar texto (subtítulos ao longo do módulo, cada um com texto, dica, link e zero a ${MAX_IMAGENS_SECAO} imagens — opcional)
         </span>
         ${(modulo.secoes || []).map(
           (secao, secaoIndex) => html`
-            <div key=${secaoIndex} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '10px' }}>
-              <div class="d-flex align-items-center justify-content-between mb-1">
+            <div key=${secaoIndex} class="rh-section-card rh-section-card--flat mb-2" style=${{ padding: '16px' }}>
+              <div class="d-flex align-items-center gap-2 mb-2">
                 <input
-                  class="form-control form-control-sm"
-                  style=${{ maxWidth: '70%' }}
+                  class="form-control form-control-sm flex-grow-1"
                   placeholder="Subtítulo desta seção"
                   value=${secao.subtitulo}
                   onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'subtitulo', event.target.value)}
                 />
-                <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerSecaoModulo(index, secaoIndex)}>
+                <button type="button" class="btn btn-outline-danger btn-sm flex-shrink-0" onClick=${() => removerSecaoModulo(index, secaoIndex)}>
                   <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
-                  Remover seção
+                  Remover
                 </button>
               </div>
-              <textarea
-                class="form-control form-control-sm mb-2"
-                rows="2"
-                placeholder="Texto desta seção"
-                value=${secao.texto}
-                onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'texto', event.target.value)}
-              ></textarea>
-              <span class="d-block mb-1 small text-muted">Imagens desta seção (opcional — link ou upload)</span>
+              <div class="mb-2">
+                <${EditorRicoModulo}
+                  valor=${secao.texto}
+                  onChange=${(valor) => atualizarSecaoModulo(index, secaoIndex, 'texto', valor)}
+                  placeholder="Texto desta seção..."
+                />
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                  <label class="process-create-field mb-0">
+                    <span>Dica (opcional)</span>
+                    <input
+                      class="form-control form-control-sm"
+                      placeholder="Uma dica rápida sobre esta seção"
+                      value=${secao.dica}
+                      onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'dica', event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div class="col-md-6">
+                  <label class="process-create-field mb-0">
+                    <span>Link (opcional)</span>
+                    <input
+                      class="form-control form-control-sm"
+                      placeholder="https://..."
+                      value=${secao.link}
+                      onInput=${(event) => atualizarSecaoModulo(index, secaoIndex, 'link', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <span class="d-block mb-2 small text-muted">
+                Imagens desta seção (opcional — link ou upload, máx. ${MAX_IMAGENS_SECAO})
+              </span>
               ${(secao.imagens || []).map(
                 (imagem, imagemIndex) => html`
                   <div key=${imagemIndex} class="d-flex gap-2 mb-1 align-items-center">
@@ -1142,40 +1289,44 @@ export function TelaCriarTreinamento({ controlador }) {
                   </div>
                 `,
               )}
-              <div class="d-flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  onClick=${() => adicionarImagemLinkSecao(index, secaoIndex)}
-                >
-                  <span class="material-symbols-outlined">${IconeSvg('add')}</span>
-                  Adicionar link de imagem
-                </button>
-                <label class="btn btn-outline-secondary btn-sm mb-0">
-                  <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
-                  Enviar imagem do computador
-                  <input
-                    type="file"
-                    accept=".png,.jpg,.jpeg"
-                    style=${{ display: 'none' }}
-                    onChange=${(event) => {
-                      adicionarImagemUploadSecao(index, secaoIndex, event.target.files?.[0]);
-                      event.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
+              ${(secao.imagens || []).length >= MAX_IMAGENS_SECAO
+                ? html`<span class="small text-muted">Limite de ${MAX_IMAGENS_SECAO} imagens por seção atingido.</span>`
+                : html`
+                    <div class="d-flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        onClick=${() => adicionarImagemLinkSecao(index, secaoIndex)}
+                      >
+                        <span class="material-symbols-outlined">${IconeSvg('add')}</span>
+                        Adicionar link de imagem
+                      </button>
+                      <label class="btn btn-outline-secondary btn-sm mb-0">
+                        <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+                        Enviar imagem do computador
+                        <input
+                          type="file"
+                          accept=".png,.jpg,.jpeg"
+                          style=${{ display: 'none' }}
+                          onChange=${(event) => {
+                            adicionarImagemUploadSecao(index, secaoIndex, event.target.files?.[0]);
+                            event.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
+                  `}
             </div>
           `,
         )}
         <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => adicionarSecaoModulo(index)}>
           <span class="material-symbols-outlined">${IconeSvg('add')}</span>
-          Adicionar seção
+          Adicionar texto
         </button>
       </div>
 
-      <div class="mb-2">
-        <span class="d-block mb-1 small text-muted">Saiba + (dicas e links externos do módulo)</span>
+      <div class="mb-3">
+        <span class="d-block mb-2 small text-muted">Saiba + (dicas e links externos do módulo)</span>
         ${(modulo.saiba_mais || []).map(
           (entrada, entradaIndex) => html`
             <div key=${entradaIndex} class="row g-2 mb-1 align-items-center">

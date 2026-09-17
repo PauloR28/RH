@@ -18,6 +18,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["run.py", "--no-reload", "--port", "8010"],
       "port": 8010
+    },
+    {
+      "name": "conecta-rh-session3",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["run.py", "--no-reload", "--port", "8020"],
+      "port": 8020
     }
   ]
 }

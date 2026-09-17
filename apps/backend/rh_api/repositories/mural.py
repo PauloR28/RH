@@ -341,7 +341,11 @@ class MuralRepositoryMixin:
                 f'<img src="data:{mime};base64,{conteudo_b64}" alt="" style="max-width:100%;margin:12px 0;border-radius:8px;" />'
             )
 
-        titulo = normalize_text(publicacao.get("titulo"))
+        # Correções.txt (17/set/2026): o <title>/<h1> do arquivo publicado
+        # ficava com o título "cru", sem o prefixo de categoria — só o item
+        # da lista "Mural Publicacoes" (_publicar_item_lista_mural) recebia o
+        # prefixo. Usa a mesma função aqui para os dois ficarem iguais.
+        titulo = _titulo_mural_com_categoria(publicacao)
         conteudo_html = str(publicacao.get("conteudo_html") or "")
         publicado_em = normalize_text(publicacao.get("publicado_em"))
         return f"""<!DOCTYPE html>
@@ -429,10 +433,17 @@ class MuralRepositoryMixin:
         corpo = {
             "displayName": nome_lista,
             "list": {"template": "genericList"},
+            # maxLength > 255 numa coluna de linha única faz o Graph API rejeitar
+            # a criação da lista inteira com um erro genérico ("One of the
+            # provided arguments is not acceptable") — achado ao investigar o
+            # mesmo bug em celebratory_dates.py (Correções.txt 17/set/2026).
+            # Não deu erro nesta lista porque ela já existia desde 15/set, antes
+            # deste limite ter sido excedido — mas quebraria a criação em
+            # qualquer ambiente SharePoint novo.
             "columns": [
                 {"name": "Resumo", "text": {"allowMultipleLines": True, "maxLength": 500}},
-                {"name": "Imagem", "text": {"maxLength": 400}},
-                {"name": "LinkPublicacao", "text": {"maxLength": 400}},
+                {"name": "Imagem", "text": {"maxLength": 255}},
+                {"name": "LinkPublicacao", "text": {"maxLength": 255}},
             ],
         }
         resposta = client.request("POST", f"{site_prefix}/lists", json_body=corpo)

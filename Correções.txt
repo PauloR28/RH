@@ -1,20 +1,6 @@
-Correções não APLICADAS ou aplicadas com erro ou não estão funcionando.: 
-
-
-Para a visão do Supervisor, no menu superior ainda aparece as opções de Gestão, com os links Calendário e Mural. e também o link de Inicio. Isso está errado ! A tela "Inicial" do supervisor deverá ser, obrigatoriamente a tela de Treinamentos. Nessa tela inicial, no topo, deve constar links como: "Meus treinamentos (lista os treinamentos que estão cadastrados e agendados para ele dar - inclusive a data, hora e local). Na tela inicial também deverá constar como uma versão "reduzida" do calendário, mas diferente do calendário do Conecta, nele só mostrará o horário e os treinamentos que ele tem para dar naquele dia. 
-
-Em "Meus treinamentos", estará listados todos os treinamentos que ele dá, ou que estão agendados para dar. Haverá um botão de "Ações" onde ele poderá "Iniciar" (inicia o treinamento) / "Presença" caso ele queria fazer a presença ou alterar a presença de alguém não que estava listado para receber o treinamento mas não esteve presente. 
-
-Ao clicar em "Iniciar", abrirá a tela inical do curso, onde estará listado algumas informações sobre o Treinamento, como lista de candidatos que terão o treinamento, o slide que será usado (inclusive com o botão para editar - mas só ADM ou GESTÃO pode alterar um treinamento), ao clicar em "Iniciar", o slide abre em modo apresentação, com direito a botões de progresso. No fim da apresentação, haverá um botão para fazer a listagem de presença daqueles que assistiram o treinamento, e depois finalizar! Uma vez finalizado, o treinamento é dado como concluído. 
-
-1 - CALENDÁRIO DE DATAS
-* Deu falha ao postar a data na Intranet: "Falha ao publicar".
-* Ajuste os espaçamentos do modal de "Criar evento", os elementos e linhas estão muito colados um nos outros. 
-* Uma vez a opção "Dia inteiro" ativada, o campo: "Data final" será bloqueado (pois entende-se que se vai ocorrer o dia inteiro não tem dia final)
-
-4 - Tela de Configurações: Tela motivos de eliminação: 
-* A pagina diz: "Cadastre o primeiro item em "Motivos de Eliminação". mas já tem motivos de eliminação cadastrados.
-
+Correções: 
+*A tela de "Meus treinamentos" - Está indo para a tela inicial!
+*A criação de datas comemorativas em: "Calendário de datas comemorativas" ainda estão dando "Falha ao publicar"
 *Postagem do mural continua a importar a imagem e o texto separadamente. As publicações no Conecta chegam juntas. Para ficar mais fácil, faça com que a categoria entre automaticamente como prefixo do Titulo. Para o usuário, não vai mudar nada, ele ainda vai colcar o Titulo da publicação normal, vai selecionar a categoria (coloque como campo obrigatório), e vai escrever a publicação dele ou enviar a imagem, o Conecta, vai pegar essa categoria e vai colocar a frente do titulo com um "-" depois. Assim:
 Titulo da publicação: Nova auditoria em breve
 Categoria: Aviso
@@ -31,5 +17,15 @@ Sempre a categoria a frente e em maiúsculo (fica mais fácil de filtrar no Shar
 
 *Em treinamentos, em "Ações" adicione uma opção de "Próximos treinos" onde abrirá um modal, e mostrará o dia e o horário que aquele treinamento está agendado, também mostrará quem irá administrar e quantos alunos terão. 
 
-APLICATIVO CONECTA - APP: 
-Para acessar o aplicativo, esqueça a senha ! Só será necessário o email do aluno. Idependente do que está configurado para aquele usuário. Se é operador, só terá email de login. Isso porque, o Operador não terá acesso a plataforma web, somente ao aplicativo. 
+*Tela de editar treinamentos: 
+*Adicione botões de ferramentas na caixa de texto principal do módulo, como Texto Negrito, Italico, Tachado, Lista numerada, Listas, Cor da letra e tamanho.
+*Ainda na tela de Criar e Editar módulo, adicione um botão de "Adicionar texto", ao ser clicado, ele abrirá uma segunda caixa de texto principal com direito a um subtítulo. 
+*Os subtítulos sempre estarão em destaque, em negrito e destacados no texto. (Isso no APP Conecta)
+*Se o Json importado não trazer subtítulos, não tem problemas. Mas o conecta deve aprender a identificar subtítulos, inclusive trazer os subtítulos já no json modelo. 
+*Só pra ficar melhor entendido. Na criação/edição do Modulo no treinamento, será organizado da seguinte forma:
+CADA MÓDULO SERÁ UM BLOCO, CADA BLOCO TERÁ TITULO E SESSÃO, CADA SESSÃO TERÁ: Subtitulo, texto principal, upload de imagem (apenas no máximo 4 imagens por sessão), campo de dicas e campo de link, ambos com caixa de texto e espaço para URL. Além disso, cada módulo terá direito a upload de 1 vídeo. 
+*A sessão de Dicas e Saiba+ no aplicativo deve seguir exatamente o desing que eu projeitei no wareframe. 
+*Também não será possível adicionar o mesmo treinamento mais de uma vez um ususário, se ele já tem o trenamento, então ele deve concluir, não poderá adicionar o mesmo treinamento para a mesma pessoa mais de uma vez. 
+*No botões de ação, em Treinamentos, adicione uma opção de "Agendar treinamento" ao ser clicado, ele irá abrir um modal para agendar aquele treinamento, solicitando o dia, o local, a pessoa que irá aplicar o treino e quem vai receber o treinamento. Traga a opção de "Adicionar o processo seletivo" dentro desse modal também. 
+
+

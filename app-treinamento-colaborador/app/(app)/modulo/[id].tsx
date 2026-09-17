@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTheme } from "@/theme/useTheme";
@@ -8,8 +8,28 @@ import { useCompleteTrainingItem, useMyTrainings } from "@/services/queries";
 import { moduleVideoUrl, resolveMediaUrl } from "@/services/media";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/Card";
+import type { SaibaMaisItem } from "@/types/Module";
 
 const SCROLL_END_THRESHOLD_PX = 24;
+
+// texto_principal/secao.texto agora podem vir com marcação HTML (o editor rico
+// do Conecta web usa document.execCommand — ver features/treinamentos/wizard.js,
+// Correções.txt 17/set/2026). O app não tem renderizador de rich text (fora de
+// escopo deste pedido, que era só o visual de Dica/Saiba+), então mostramos o
+// texto puro em vez de tags quebradas na tela.
+function stripHtml(valor: string | null | undefined): string {
+  if (!valor) return "";
+  return valor
+    .replace(/<(p|div|br)[^>]*>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 export default function ModuleScreen() {
   const { id, trainingId } = useLocalSearchParams<{ id: string; trainingId: string }>();
@@ -94,7 +114,7 @@ export default function ModuleScreen() {
 
             {modulo.texto_principal ? (
               <Card style={{ marginTop: spacing.xl }}>
-                <Text style={[typography.body, { color: colors.text }]}>{modulo.texto_principal}</Text>
+                <Text style={[typography.body, { color: colors.text }]}>{stripHtml(modulo.texto_principal)}</Text>
               </Card>
             ) : null}
 
@@ -104,9 +124,12 @@ export default function ModuleScreen() {
                 {modulo.secoes.map((secao, secaoIndex) => (
                   <View key={secaoIndex}>
                     {secao.subtitulo ? (
-                      <Text style={[typography.bodyMedium, { color: colors.text, marginBottom: spacing.xs }]}>{secao.subtitulo}</Text>
+                      <Text style={[typography.subheading, { color: colors.primaryStrong, marginBottom: spacing.xs }]}>
+                        {secao.subtitulo}
+                      </Text>
                     ) : null}
-                    {secao.texto ? <Text style={[typography.body, { color: colors.textSoft }]}>{secao.texto}</Text> : null}
+                    {secao.texto ? <Text style={[typography.body, { color: colors.textSoft }]}>{stripHtml(secao.texto)}</Text> : null}
+                    {secao.link ? <LinkChip url={secao.link} /> : null}
                     {secao.imagens.map((imagem, imagemIndex) => (
                       <Image
                         key={imagemIndex}
@@ -119,6 +142,26 @@ export default function ModuleScreen() {
                 ))}
               </View>
             ) : null}
+
+            {(() => {
+              // Correções.txt (17/set/2026): a caixa de Dica deve vir no final
+              // do texto do módulo (junto com o Saiba+), não intercalada entre
+              // as seções — junta a Dica do módulo inteiro com a de cada seção.
+              const dicas = [
+                modulo.dica_texto,
+                ...modulo.secoes.map((secao) => secao.dica),
+              ].filter((texto): texto is string => Boolean(texto));
+              if (!dicas.length) return null;
+              return (
+                <View style={{ marginTop: spacing.xl }}>
+                  {dicas.map((texto, index) => (
+                    <DicaCard key={index} texto={texto} />
+                  ))}
+                </View>
+              );
+            })()}
+
+            {modulo.saiba_mais?.length ? <SaibaMaisSection itens={modulo.saiba_mais} /> : null}
 
             <View style={{ height: spacing.xl }} />
 
@@ -158,6 +201,85 @@ function FooterButton({ label, onPress, disabled }: { label: string; onPress: ()
     <Pressable accessibilityRole="button" accessibilityState={{ disabled }} onPress={onPress} disabled={disabled} style={styles.footerButton} hitSlop={8}>
       <Text style={[typography.bodyMedium, { color: disabled ? colors.textMuted : colors.primary }]}>{label}</Text>
     </Pressable>
+  );
+}
+
+// Correções.txt (rodada 17/set/2026): visual de Dica e Saiba+ seguindo
+// exatamente o wireframe "Visão Curso 1" (docs/Desing/Aplicativo - Wareframe)
+// — cartão verde-claro com selo circular (lâmpada) sobrepondo o canto
+// superior direito para a Dica, e um cartão com ícone + pílula colorida
+// para cada link de Saiba+. Sem nova lib de ícones (app não usava nenhuma
+// até agora) — selo com emoji simples, leve e sem dependência nova.
+function DicaCard({ texto }: { texto: string }) {
+  const { colors, spacing, radius, typography } = useTheme();
+  return (
+    <View style={{ marginTop: spacing.lg }}>
+      <View
+        style={[
+          styles.dicaCard,
+          { backgroundColor: colors.successSoft, borderRadius: radius.prominent, padding: spacing.lg },
+        ]}
+      >
+        <Text style={[typography.body, { color: colors.text }]}>{texto}</Text>
+      </View>
+      <View style={[styles.dicaBadge, { backgroundColor: colors.successSoft, borderColor: colors.bg }]}>
+        <Text style={{ fontSize: 20 }}>💡</Text>
+      </View>
+    </View>
+  );
+}
+
+function LinkChip({ url }: { url: string }) {
+  const { colors, spacing, radius, typography } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => Linking.openURL(url)}
+      style={[styles.linkChip, { backgroundColor: colors.infoSoft, borderRadius: radius.pill, marginTop: spacing.sm }]}
+      hitSlop={8}
+    >
+      <Text style={[typography.caption, { color: colors.info }]} numberOfLines={1}>
+        🔗 {url}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SaibaMaisSection({ itens }: { itens: SaibaMaisItem[] }) {
+  const { colors, spacing, radius, typography } = useTheme();
+  const dicas = itens.filter((item) => item.tipo === "dica" && item.texto);
+  const links = itens.filter((item) => item.tipo === "link" && item.url);
+  if (!dicas.length && !links.length) return null;
+
+  return (
+    <View style={{ marginTop: spacing.xl }}>
+      <Text style={[typography.subheading, { color: colors.primaryStrong }]}>Saiba +</Text>
+      {dicas.map((item, index) => (
+        <Text key={`dica-${index}`} style={[typography.body, { color: colors.textSoft, marginTop: spacing.sm }]}>
+          • {item.texto}
+        </Text>
+      ))}
+      {links.map((item, index) => (
+        <Pressable
+          key={`link-${index}`}
+          accessibilityRole="link"
+          onPress={() => Linking.openURL(item.url)}
+          style={[
+            styles.saibaMaisCard,
+            { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.prominent, marginTop: spacing.md, padding: spacing.md, gap: spacing.md },
+          ]}
+        >
+          <View style={[styles.saibaMaisIcon, { backgroundColor: colors.infoSoft }]}>
+            <Text style={{ fontSize: 16 }}>🔗</Text>
+          </View>
+          <View style={[styles.saibaMaisPill, { backgroundColor: colors.infoSoft, borderRadius: radius.pill, paddingHorizontal: spacing.lg }]}>
+            <Text style={[typography.bodyMedium, { color: colors.info }]} numberOfLines={1}>
+              {(item.texto || item.url).toUpperCase()}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -207,6 +329,43 @@ const styles = StyleSheet.create({
   },
   primaryFooterButton: {
     minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dicaCard: {
+    position: "relative",
+  },
+  dicaBadge: {
+    position: "absolute",
+    top: -14,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  linkChip: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  saibaMaisCard: {
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  saibaMaisIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saibaMaisPill: {
+    flex: 1,
+    minHeight: 40,
     alignItems: "center",
     justifyContent: "center",
   },

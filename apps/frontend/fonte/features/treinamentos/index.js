@@ -1,6 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import {
-  atualizarAgendaTreinamento,
   atualizarTrilhaOnboarding,
   baixarPdfSlideTreinamento,
   buscarCandidatosTreinamento,
@@ -70,14 +69,6 @@ const STATUS_TOM = {
   encerrado_sem_chamada: 'is-critico',
 };
 
-const METODOS_LOGIN_TREINAMENTO = [
-  { value: '', label: 'Não definido' },
-  { value: 'microsoft', label: 'Microsoft' },
-  { value: 'telefone', label: 'Telefone' },
-  { value: 'email', label: 'E-mail' },
-  { value: 'nome', label: 'Nome' },
-];
-
 const SLIDE_INICIAL = { titulo: '', texto: '' };
 const ITEM_INICIAL = { titulo: '', descricao: '', obrigatorio: true, tipo_conteudo: '', conteudo_url: '' };
 const FORM_TRILHA_INICIAL = {
@@ -94,18 +85,6 @@ const FORM_TRILHA_INICIAL = {
   // Preservados sem UI própria neste modal — ver normalizarItensParaEnvio.
   texto_encerramento: '',
   saiba_mais_treinamento: null,
-};
-const FORM_AGENDAR_INICIAL = {
-  id_onboarding: '',
-  data_prevista: '',
-  local: '',
-  ministrante: '',
-};
-const FORM_EDITAR_TREINAMENTO_INICIAL = {
-  id_onboarding: '',
-  status: 'em_andamento',
-  acesso_plataforma: false,
-  metodo_login: '',
 };
 const FORM_PARTICIPANTE_INICIAL = {
   data_prevista: '',
@@ -186,14 +165,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const [excluindoTrilhaId, setExcluindoTrilhaId] = useState(null);
 
-  const [modalAgendarAberto, setModalAgendarAberto] = useState(false);
-  const [formAgendar, setFormAgendar] = useState(FORM_AGENDAR_INICIAL);
-  const [salvandoAgenda, setSalvandoAgenda] = useState(false);
-  const [erroAgenda, setErroAgenda] = useState('');
-
-  const [modalEditarTreinamentoAberto, setModalEditarTreinamentoAberto] = useState(false);
-  const [formEditarTreinamento, setFormEditarTreinamento] = useState(FORM_EDITAR_TREINAMENTO_INICIAL);
-
   // Adicionar treinamento a um processo seletivo já aberto (Correções.txt,
   // pedido do RH 10/set/2026) — reaproveita a vinculação processo/treinamento
   // que já existe para processos criados com treinamentos pré-selecionados.
@@ -219,6 +190,25 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
   const [salvandoParticipante, setSalvandoParticipante] = useState(false);
   const [erroParticipante, setErroParticipante] = useState('');
   const [mensagemParticipante, setMensagemParticipante] = useState('');
+
+  // Agendar treinamento (Correções.txt, 17/set/2026): item novo no catálogo —
+  // igual a "Adicionar participante" (busca candidato + dia/local/ministrante),
+  // mas com a opção de já vincular a trilha a um processo seletivo aberto no
+  // mesmo modal, sem precisar abrir "Adicionar a processo seletivo" à parte.
+  const [modalAgendarTreinamentoAberto, setModalAgendarTreinamentoAberto] = useState(false);
+  const [trilhaAgendarTreinamento, setTrilhaAgendarTreinamento] = useState(null);
+  const [buscaAgendarParticipante, setBuscaAgendarParticipante] = useState('');
+  const [resultadosAgendarParticipante, setResultadosAgendarParticipante] = useState([]);
+  const [buscandoAgendarParticipante, setBuscandoAgendarParticipante] = useState(false);
+  const [participanteAgendarSelecionado, setParticipanteAgendarSelecionado] = useState(null);
+  const [formAgendarTreinamento, setFormAgendarTreinamento] = useState(FORM_PARTICIPANTE_INICIAL);
+  const [vincularProcessoAoAgendar, setVincularProcessoAoAgendar] = useState(false);
+  const [processosAgendarAbertos, setProcessosAgendarAbertos] = useState([]);
+  const [carregandoProcessosAgendar, setCarregandoProcessosAgendar] = useState(false);
+  const [processoAgendarSelecionado, setProcessoAgendarSelecionado] = useState('');
+  const [salvandoAgendarTreinamento, setSalvandoAgendarTreinamento] = useState(false);
+  const [erroAgendarTreinamento, setErroAgendarTreinamento] = useState('');
+  const [mensagemAgendarTreinamento, setMensagemAgendarTreinamento] = useState('');
 
   const [presencasPendentes, setPresencasPendentes] = useState({});
   const [salvandoPresenca, setSalvandoPresenca] = useState(false);
@@ -581,80 +571,109 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     }
   };
 
-  // -- Atribuições: Agendar / Editar / Encerrar ---------------------------
+  // -- Agendar treinamento (catálogo) --------------------------------------
 
-  const abrirAgendar = (atribuicao) => {
-    setFormAgendar({
-      id_onboarding: atribuicao.id_onboarding,
-      data_prevista: paraInputDatetimeLocal(atribuicao.data_prevista),
-      local: atribuicao.local || '',
-      ministrante: atribuicao.ministrante || '',
-    });
-    setErroAgenda('');
-    setModalAgendarAberto(true);
+  const abrirAgendarTreinamento = (trilha) => {
+    setTrilhaAgendarTreinamento(trilha);
+    setBuscaAgendarParticipante('');
+    setResultadosAgendarParticipante([]);
+    setParticipanteAgendarSelecionado(null);
+    setFormAgendarTreinamento({ ...FORM_PARTICIPANTE_INICIAL, local: trilha.local_padrao || '' });
+    setVincularProcessoAoAgendar(false);
+    setProcessosAgendarAbertos([]);
+    setProcessoAgendarSelecionado('');
+    setErroAgendarTreinamento('');
+    setMensagemAgendarTreinamento('');
+    setModalAgendarTreinamentoAberto(true);
   };
 
-  const fecharModalAgendar = () => {
-    setModalAgendarAberto(false);
-    setFormAgendar(FORM_AGENDAR_INICIAL);
-    setErroAgenda('');
+  const fecharModalAgendarTreinamento = () => {
+    setModalAgendarTreinamentoAberto(false);
+    setTrilhaAgendarTreinamento(null);
+    setResultadosAgendarParticipante([]);
+    setParticipanteAgendarSelecionado(null);
+    setFormAgendarTreinamento(FORM_PARTICIPANTE_INICIAL);
+    setVincularProcessoAoAgendar(false);
+    setErroAgendarTreinamento('');
   };
 
-  const salvarAgendamento = async () => {
-    setSalvandoAgenda(true);
-    setErroAgenda('');
+  useEffect(() => {
+    if (!modalAgendarTreinamentoAberto || participanteAgendarSelecionado) return undefined;
+    const termo = buscaAgendarParticipante.trim();
+    setBuscandoAgendarParticipante(true);
+    const timer = setTimeout(async () => {
+      try {
+        const resultados = await buscarCandidatosTreinamento(termo);
+        setResultadosAgendarParticipante(Array.isArray(resultados) ? resultados : []);
+      } catch (error) {
+        setResultadosAgendarParticipante([]);
+      } finally {
+        setBuscandoAgendarParticipante(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [buscaAgendarParticipante, modalAgendarTreinamentoAberto, participanteAgendarSelecionado]);
+
+  useEffect(() => {
+    if (!vincularProcessoAoAgendar || processosAgendarAbertos.length || carregandoProcessosAgendar) return undefined;
+    setCarregandoProcessosAgendar(true);
+    (async () => {
+      try {
+        const dados = await lerProcessos({ forcar: true });
+        const lista = Array.isArray(dados) ? dados : [];
+        setProcessosAgendarAbertos(
+          lista.filter((processo) => !normalizarBuscaTreino(processo.status).includes('encerrad') && !normalizarBuscaTreino(processo.status).includes('cancelad')),
+        );
+      } catch (error) {
+        setErroAgendarTreinamento(error?.message || 'Não foi possível carregar os processos seletivos abertos.');
+      } finally {
+        setCarregandoProcessosAgendar(false);
+      }
+    })();
+    return undefined;
+  }, [vincularProcessoAoAgendar]);
+
+  const confirmarAgendarTreinamento = async () => {
+    if (!participanteAgendarSelecionado || !trilhaAgendarTreinamento) {
+      setErroAgendarTreinamento('Busque e selecione um candidato antes de salvar.');
+      return;
+    }
+    if (vincularProcessoAoAgendar && !processoAgendarSelecionado) {
+      setErroAgendarTreinamento('Selecione um processo seletivo ou desmarque a opção de vincular.');
+      return;
+    }
+    setSalvandoAgendarTreinamento(true);
+    setErroAgendarTreinamento('');
     try {
-      await atualizarAgendaTreinamento(formAgendar.id_onboarding, {
-        data_prevista: formAgendar.data_prevista ? new Date(formAgendar.data_prevista).toISOString() : null,
-        local: formAgendar.local.trim(),
-        ministrante: formAgendar.ministrante.trim(),
+      await iniciarOnboardingCandidato({
+        id_registro: participanteAgendarSelecionado.id_registro,
+        trilha_id: trilhaAgendarTreinamento.id_trilha,
+        data_prevista: formAgendarTreinamento.data_prevista ? new Date(formAgendarTreinamento.data_prevista).toISOString() : null,
+        local: formAgendarTreinamento.local.trim(),
+        ministrante: formAgendarTreinamento.ministrante.trim(),
       });
-      fecharModalAgendar();
-      await carregarAtribuicoes();
+      if (vincularProcessoAoAgendar && processoAgendarSelecionado) {
+        await vincularTrilhaProcesso(trilhaAgendarTreinamento.id_trilha, processoAgendarSelecionado);
+      }
+      setMensagemAgendarTreinamento(`${participanteAgendarSelecionado.nome_candidato} foi agendado(a) em "${trilhaAgendarTreinamento.nome}".`);
+      await Promise.all([carregarAtribuicoes(), carregarTrilhas(), carregarTreinamentosProcesso()]);
+      setParticipanteAgendarSelecionado(null);
+      setBuscaAgendarParticipante('');
+      setFormAgendarTreinamento({ ...FORM_PARTICIPANTE_INICIAL, local: trilhaAgendarTreinamento.local_padrao || '' });
+      setVincularProcessoAoAgendar(false);
+      setProcessoAgendarSelecionado('');
     } catch (error) {
-      setErroAgenda(error?.message || 'Não foi possível salvar a agenda do treinamento.');
+      setErroAgendarTreinamento(error?.message || 'Não foi possível agendar este treinamento.');
     } finally {
-      setSalvandoAgenda(false);
+      setSalvandoAgendarTreinamento(false);
     }
   };
 
-  const abrirEditarTreinamento = (atribuicao) => {
-    setFormEditarTreinamento({
-      id_onboarding: atribuicao.id_onboarding,
-      status: atribuicao.status || 'em_andamento',
-      acesso_plataforma: !!atribuicao.acesso_plataforma,
-      metodo_login: atribuicao.metodo_login || '',
-    });
-    setErroAgenda('');
-    setModalEditarTreinamentoAberto(true);
-  };
-
-  const fecharModalEditarTreinamento = () => {
-    setModalEditarTreinamentoAberto(false);
-    setFormEditarTreinamento(FORM_EDITAR_TREINAMENTO_INICIAL);
-  };
-
-  const salvarEdicaoTreinamento = async () => {
-    setSalvandoAgenda(true);
-    setErroAgenda('');
-    try {
-      const atribuicaoAtual = atribuicoes.find((item) => String(item.id_onboarding) === String(formEditarTreinamento.id_onboarding));
-      await atualizarAgendaTreinamento(formEditarTreinamento.id_onboarding, {
-        data_prevista: atribuicaoAtual?.data_prevista || null,
-        local: atribuicaoAtual?.local || '',
-        ministrante: atribuicaoAtual?.ministrante || '',
-        status: formEditarTreinamento.status,
-        acesso_plataforma: !!formEditarTreinamento.acesso_plataforma,
-        metodo_login: formEditarTreinamento.metodo_login,
-      });
-      fecharModalEditarTreinamento();
-      await carregarAtribuicoes();
-    } catch (error) {
-      setErroAgenda(error?.message || 'Não foi possível salvar as configurações do treinamento.');
-    } finally {
-      setSalvandoAgenda(false);
-    }
-  };
+  // -- Atribuições: Encerrar ------------------------------------------------
+  // Correções.txt (17/set/2026): "Agendar"/"Editar" removidos desta lista —
+  // uma vez iniciado/realizado o treinamento do colaborador, não faz mais
+  // sentido reagendar ou alterar. O agendamento agora nasce no catálogo,
+  // ver "Agendar treinamento" em MenuAcoesProcesso da aba Treinamentos.
 
   const encerrarTreinamentoColaborador = async (atribuicao) => {
     if (!window.confirm(`Encerrar/excluir o treinamento "${atribuicao.trilha_nome}" de ${atribuicao.nome_candidato || 'colaborador'}?`)) return;
@@ -959,6 +978,13 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                 onClick: () => abrirProximosTreinos(item),
               },
               {
+                label: 'Agendar treinamento',
+                icon: 'event_available',
+                disabled: !podeEditar,
+                title: 'Agendar dia, local e ministrante para um novo aluno, com opção de já vincular a um processo seletivo',
+                onClick: () => abrirAgendarTreinamento(item),
+              },
+              {
                 label: 'Adicionar participante',
                 icon: 'person_add',
                 disabled: !podeEditar,
@@ -1069,12 +1095,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                       </td>
                       <td>
                         <div class="d-flex flex-wrap gap-2">
-                          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${!podeEditar} onClick=${() => abrirAgendar(item)} title="Agendar">
-                            <span class="material-symbols-outlined">${IconeSvg('event')}</span>
-                          </button>
-                          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${!podeEditar} onClick=${() => abrirEditarTreinamento(item)} title="Editar">
-                            <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
-                          </button>
                           <button type="button" class="btn btn-outline-danger btn-sm" disabled=${!podeEditar} onClick=${() => encerrarTreinamentoColaborador(item)} title="Encerrar">
                             <span class="material-symbols-outlined">${IconeSvg('stop_circle')}</span>
                           </button>
@@ -1693,6 +1713,131 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       </${ModalPadrao}>
 
       <${ModalPadrao}
+        aberto=${modalAgendarTreinamentoAberto}
+        titulo="Agendar treinamento"
+        subtitulo=${trilhaAgendarTreinamento ? `Dia, local e ministrante para "${trilhaAgendarTreinamento.nome}".` : ''}
+        onClose=${fecharModalAgendarTreinamento}
+      >
+        <div class="rh-details-body">
+          ${erroAgendarTreinamento ? html`<div class="alert alert-warning">${erroAgendarTreinamento}</div>` : null}
+          ${mensagemAgendarTreinamento ? html`<div class="alert alert-success">${mensagemAgendarTreinamento}</div>` : null}
+
+          <div class="rh-filter-field">
+            <label>Quem vai receber o treinamento</label>
+            ${participanteAgendarSelecionado
+      ? html`
+                  <div class="training-participant-picked">
+                    <span class="material-symbols-outlined">${IconeSvg('person')}</span>
+                    <div>
+                      <strong>${participanteAgendarSelecionado.nome_candidato}</strong>
+                      ${participanteAgendarSelecionado.vaga ? html`<small>${participanteAgendarSelecionado.vaga}</small>` : null}
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setParticipanteAgendarSelecionado(null)}>
+                      Trocar
+                    </button>
+                  </div>
+                `
+      : html`
+                  <input
+                    class="form-control"
+                    placeholder="Buscar candidato por nome..."
+                    value=${buscaAgendarParticipante}
+                    onInput=${(event) => setBuscaAgendarParticipante(event.target.value)}
+                  />
+                  <div class="training-participant-results">
+                    ${buscandoAgendarParticipante
+          ? html`<p class="text-muted small mb-0">Buscando...</p>`
+          : resultadosAgendarParticipante.length
+            ? resultadosAgendarParticipante.map(
+              (candidato) => html`
+                              <button
+                                type="button"
+                                key=${candidato.id_registro}
+                                class="training-participant-result"
+                                onClick=${() => { setParticipanteAgendarSelecionado(candidato); setResultadosAgendarParticipante([]); }}
+                              >
+                                <strong>${candidato.nome_candidato}</strong>
+                                <small>${candidato.vaga || 'Sem vaga vinculada'} ${candidato.status_candidato ? `· ${candidato.status_candidato}` : ''}</small>
+                              </button>
+                            `,
+            )
+            : html`<p class="text-muted small mb-0">Nenhum candidato encontrado.</p>`}
+                  </div>
+                `}
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Dia e horário</label>
+            <input
+              type="datetime-local"
+              class="form-control"
+              value=${formAgendarTreinamento.data_prevista}
+              onInput=${(event) => setFormAgendarTreinamento({ ...formAgendarTreinamento, data_prevista: event.target.value })}
+            />
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Local</label>
+            <input
+              class="form-control"
+              value=${formAgendarTreinamento.local}
+              onInput=${(event) => setFormAgendarTreinamento({ ...formAgendarTreinamento, local: event.target.value })}
+              placeholder="Ex.: Sala 2, ou link da videochamada"
+            />
+          </div>
+
+          <div class="rh-filter-field">
+            <label>Quem vai aplicar o treinamento</label>
+            <input
+              class="form-control"
+              value=${formAgendarTreinamento.ministrante}
+              onInput=${(event) => setFormAgendarTreinamento({ ...formAgendarTreinamento, ministrante: event.target.value })}
+              placeholder="Nome do ministrante"
+            />
+          </div>
+
+          <label class="d-flex align-items-center gap-2">
+            <input
+              type="checkbox"
+              checked=${vincularProcessoAoAgendar}
+              onChange=${(event) => setVincularProcessoAoAgendar(!!event.target.checked)}
+            />
+            <span>Adicionar o processo seletivo</span>
+          </label>
+
+          ${vincularProcessoAoAgendar
+      ? html`
+              <div class="rh-filter-field">
+                <label>Processo seletivo</label>
+                <select
+                  class="form-select"
+                  value=${processoAgendarSelecionado}
+                  onChange=${(event) => setProcessoAgendarSelecionado(event.target.value)}
+                  disabled=${carregandoProcessosAgendar}
+                >
+                  <option value="">${carregandoProcessosAgendar ? 'Carregando...' : 'Selecione um processo'}</option>
+                  ${processosAgendarAbertos.map(
+                    (processo) => html`<option key=${processo.id_processo} value=${processo.id_processo}>${processo.vaga || processo.titulo || processo.id_processo}</option>`,
+                  )}
+                </select>
+              </div>
+            `
+      : null}
+        </div>
+
+        <footer class="rh-modal-footer">
+          <div class="rh-modal-footer-actions">
+            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoAgendarTreinamento} onClick=${fecharModalAgendarTreinamento}>
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" disabled=${salvandoAgendarTreinamento} onClick=${confirmarAgendarTreinamento}>
+              ${salvandoAgendarTreinamento ? 'Salvando...' : 'Agendar'}
+            </button>
+          </div>
+        </footer>
+      </${ModalPadrao}>
+
+      <${ModalPadrao}
         aberto=${modalParticipanteAberto}
         titulo="Adicionar participante"
         subtitulo=${trilhaParticipante ? `Liberar "${trilhaParticipante.nome}" para um candidato — não precisa de processo seletivo.` : ''}
@@ -1790,115 +1935,6 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
             >
               <span class="material-symbols-outlined">${IconeSvg('person_add')}</span>
               ${salvandoParticipante ? 'Adicionando...' : 'Adicionar ao treinamento'}
-            </button>
-          </div>
-        </footer>
-      </${ModalPadrao}>
-
-      <${ModalPadrao}
-        aberto=${modalAgendarAberto}
-        titulo="Agendar treinamento"
-        subtitulo="Dia, horário, local e quem vai aplicar o treinamento."
-        onClose=${fecharModalAgendar}
-      >
-        <div class="rh-details-body">
-          ${erroAgenda ? html`<div class="alert alert-warning">${erroAgenda}</div>` : null}
-
-          <div class="rh-filter-field">
-            <label>Data e horário previstos</label>
-            <input
-              type="datetime-local"
-              class="form-control"
-              value=${formAgendar.data_prevista}
-              onInput=${(event) => setFormAgendar({ ...formAgendar, data_prevista: event.target.value })}
-            />
-          </div>
-
-          <div class="rh-filter-field">
-            <label>Local (sala)</label>
-            <input
-              class="form-control"
-              value=${formAgendar.local}
-              onInput=${(event) => setFormAgendar({ ...formAgendar, local: event.target.value })}
-              placeholder="Ex.: Sala 2, ou link da videochamada"
-            />
-          </div>
-
-          <div class="rh-filter-field">
-            <label>Quem vai aplicar o treinamento</label>
-            <input
-              class="form-control"
-              value=${formAgendar.ministrante}
-              onInput=${(event) => setFormAgendar({ ...formAgendar, ministrante: event.target.value })}
-              placeholder="Nome do ministrante"
-            />
-          </div>
-        </div>
-
-        <footer class="rh-modal-footer">
-          <div class="rh-modal-footer-actions">
-            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoAgenda} onClick=${fecharModalAgendar}>
-              Cancelar
-            </button>
-            <button type="button" class="btn btn-primary" disabled=${salvandoAgenda} onClick=${salvarAgendamento}>
-              ${salvandoAgenda ? 'Salvando...' : 'Salvar'}
-            </button>
-          </div>
-        </footer>
-      </${ModalPadrao}>
-
-      <${ModalPadrao}
-        aberto=${modalEditarTreinamentoAberto}
-        titulo="Editar treinamento"
-        subtitulo="Conteúdo aplicado, status e acesso ao aplicativo/plataforma auxiliar."
-        onClose=${fecharModalEditarTreinamento}
-      >
-        <div class="rh-details-body">
-          ${erroAgenda ? html`<div class="alert alert-warning">${erroAgenda}</div>` : null}
-
-          <div class="rh-filter-field">
-            <label>Status</label>
-            <select
-              class="form-select"
-              value=${formEditarTreinamento.status}
-              onChange=${(event) => setFormEditarTreinamento({ ...formEditarTreinamento, status: event.target.value })}
-            >
-              ${STATUS_ATRIBUICAO_EDITAVEL.map((opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`)}
-            </select>
-          </div>
-
-          <label class="d-flex align-items-center gap-2">
-            <input
-              type="checkbox"
-              checked=${formEditarTreinamento.acesso_plataforma}
-              onChange=${(event) => setFormEditarTreinamento({ ...formEditarTreinamento, acesso_plataforma: !!event.target.checked })}
-            />
-            <span>Colaborador terá acesso ao aplicativo/plataforma auxiliar</span>
-          </label>
-
-          ${formEditarTreinamento.acesso_plataforma
-      ? html`
-              <div class="rh-filter-field">
-                <label>Forma de login</label>
-                <select
-                  class="form-select"
-                  value=${formEditarTreinamento.metodo_login}
-                  onChange=${(event) => setFormEditarTreinamento({ ...formEditarTreinamento, metodo_login: event.target.value })}
-                >
-                  ${METODOS_LOGIN_TREINAMENTO.map((opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`)}
-                </select>
-              </div>
-            `
-      : null}
-        </div>
-
-        <footer class="rh-modal-footer">
-          <div class="rh-modal-footer-actions">
-            <button type="button" class="btn btn-outline-secondary" disabled=${salvandoAgenda} onClick=${fecharModalEditarTreinamento}>
-              Cancelar
-            </button>
-            <button type="button" class="btn btn-primary" disabled=${salvandoAgenda} onClick=${salvarEdicaoTreinamento}>
-              ${salvandoAgenda ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </footer>

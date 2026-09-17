@@ -51,19 +51,25 @@ class SecaoModuloInput(BaseSchema):
     """Bloco de conteúdo dentro do módulo: um subtítulo com seu texto e, opcionalmente,
     uma ou mais imagens — ao contrário do vídeo (um por módulo), o módulo pode ter
     nenhuma, uma ou várias imagens, distribuídas em vários subtítulos ao longo do
-    conteúdo (Correções.txt, rodada de 08/set/2026)."""
+    conteúdo (Correções.txt, rodada de 08/set/2026).
+
+    dica/link (Correções.txt, rodada de 17/set/2026): cada seção passa a ter seu
+    próprio campo de dica e de link, além dos já existentes Dica/Saiba+ do módulo
+    inteiro — aditivo, os campos de nível de módulo continuam existindo."""
 
     subtitulo: str = ""
     texto: str = ""
     imagens: list[str] = []
+    dica: str = ""
+    link: str = ""
 
     @field_validator("imagens")
     @classmethod
     def validate_imagens(cls, value: list[str]) -> list[str]:
         safe_urls = [str(item or "").strip() for item in (value or [])]
         safe_urls = [item for item in safe_urls if item]
-        if len(safe_urls) > 20:
-            raise ValueError("Limite de 20 imagens por seção do módulo.")
+        if len(safe_urls) > 4:
+            raise ValueError("Limite de 4 imagens por seção do módulo.")
         return safe_urls
 
 

@@ -392,10 +392,15 @@ class CelebratoryDateRepositoryMixin:
         corpo = {
             "displayName": nome_lista,
             "list": {"template": "events"},
+            # maxLength > 255 faz o Graph API rejeitar a criação da lista inteira
+            # com um erro genérico ("One of the provided arguments is not
+            # acceptable", sem indicar qual campo) — 255 é o limite de uma coluna
+            # de texto de linha única no SharePoint. Causa raiz confirmada da
+            # falha de publicação do Calendário via reprodução isolada.
             "columns": [
                 {"name": "CategoriaConecta", "text": {"maxLength": 60}},
-                {"name": "LinkConecta", "text": {"maxLength": 400}},
-                {"name": "ImagemConecta", "text": {"maxLength": 400}},
+                {"name": "LinkConecta", "text": {"maxLength": 255}},
+                {"name": "ImagemConecta", "text": {"maxLength": 255}},
             ],
         }
         resposta = client.request("POST", f"{site_prefix}/lists", json_body=corpo)

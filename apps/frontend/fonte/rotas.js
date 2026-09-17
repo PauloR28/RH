@@ -36,6 +36,7 @@ export const ROTAS_POR_TELA = {
   'screen-generated-exams': 'processos/provas-resultados',
   'screen-process-analytical-results': 'processos/resultados-analiticos',
   'screen-training': 'processos/treinamentos',
+  'screen-training-mine': 'processos/treinamentos/meus',
   'screen-training-trilhas': 'processos/treinamentos/trilhas',
   'screen-training-assignments': 'processos/treinamentos/atribuicoes',
   'screen-training-create': 'processos/treinamentos/criar',

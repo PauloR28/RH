@@ -634,6 +634,24 @@ class OnboardingRepositoryMixin:
 
             candidato = self._get_candidate_process_row(cursor, id_registro)
 
+            # Correções.txt: não permitir o mesmo treinamento em aberto duas
+            # vezes para a mesma pessoa — só pode adicionar de novo depois
+            # que o anterior for concluído (status 'aplicado') ou encerrado.
+            cursor.execute(
+                """
+                SELECT TOP 1 id_onboarding
+                FROM onboarding_candidatos
+                WHERE id_registro = ? AND trilha_id = ?
+                  AND status IN ('em_andamento', 'pendente_chamada')
+                """,
+                (int(candidato["id_registro"]), int(trilha_id or 0)),
+            )
+            if cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Este candidato já possui esse treinamento em andamento. Conclua a presença antes de adicionar novamente.",
+                )
+
             cursor.execute(
                 f"""
                 SELECT {_TRILHA_COLUMNS}

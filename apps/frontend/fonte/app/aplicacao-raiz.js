@@ -125,11 +125,11 @@ const TelaTemplatesDocumentos = carregarTela(
   'TelaTemplatesDocumentos',
 );
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20260916-correcoes-round4'),
+  () => import('../features/treinamentos/index.js?v=20260917-correcoes-txt'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
-  () => import('../features/treinamentos/wizard.js?v=20260916-correcoes-txt'),
+  () => import('../features/treinamentos/wizard.js?v=20260917-correcoes-txt'),
   'TelaCriarTreinamento',
 );
 const TelaProvasConfiguracao = carregarTela(

@@ -669,11 +669,15 @@ _MODELO_MODULO_JSON = {
         {
             "subtitulo": "Ex: Passo 1 — Acessando o sistema",
             "texto": "Ex: Explique aqui o primeiro passo, com detalhes.",
+            "dica": "Ex: Dica específica desta seção (opcional).",
+            "link": "Ex: https://exemplo.com/link-desta-secao (opcional)",
             "imagens": ["Ex: https://exemplo.sharepoint.com/imagem-passo-1.png"],
         },
         {
             "subtitulo": "Ex: Passo 2 — Configurando sua conta",
-            "texto": "Ex: Seção sem imagem — a lista pode ficar vazia.",
+            "texto": "Ex: Seção sem imagem, dica ou link — os campos podem ficar vazios.",
+            "dica": "",
+            "link": "",
             "imagens": [],
         },
     ],

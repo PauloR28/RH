@@ -9,7 +9,17 @@
 export interface ModuleSection {
   subtitulo: string;
   texto: string;
+  // Correções.txt (rodada 17/set/2026): dica e link por seção — aditivo,
+  // além da Dica/Saiba+ que já existiam em nível de módulo abaixo.
+  dica?: string;
+  link?: string;
   imagens: string[];
+}
+
+export interface SaibaMaisItem {
+  tipo: "dica" | "link";
+  texto: string;
+  url: string;
 }
 
 export interface Module {
@@ -26,6 +36,8 @@ export interface Module {
   tipo_conteudo: string | null;
   conteudo_url: string | null;
   texto_principal: string | null;
+  dica_texto?: string | null;
+  saiba_mais?: SaibaMaisItem[];
   video_path: string | null;
   video_nome_original: string | null;
   secoes: ModuleSection[];
