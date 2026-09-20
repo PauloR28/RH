@@ -664,3 +664,28 @@ def test_rotas_negam_perfis_sem_permissao_e_operador_nao_exporta(repo, cenario):
     ok = cliente.get("/monitoria/relatorios/monitorias/exportar?formato=csv&operacao=" + OP, headers=cab(cenario["qual"]))
     assert ok.status_code == 200 and ok.headers["content-type"].startswith("text/csv")
     assert cliente.get("/monitoria/logos/..%2F..%2Fetc.png").status_code in (404, 422)
+
+
+def test_vazamento_por_url_e_api_devolve_404_fora_do_escopo(repo, cenario):
+    """M35: acesso direto por URL/API nunca revela dados de outra operação/equipe/operador."""
+    from fastapi.testclient import TestClient
+
+    from rh_api.auth import _build_token
+    from rh_api.main import app
+
+    r = _criar(repo, cenario)
+    repo.mon_aplicar_feedback(cenario["sup1"], r["codigo"], {"observacao": "ok"})
+    cliente = TestClient(app)
+
+    def cab(user):
+        return {"Authorization": f"Bearer {_build_token(user)}"}
+
+    for ator in ("sup2", "sup_crf", "op2"):
+        assert cliente.get(f"/monitoria/monitorias/{r['codigo']}", headers=cab(cenario[ator])).status_code == 404, ator
+        assert cliente.get(f"/monitoria/monitorias/{r['id_monitoria']}", headers=cab(cenario[ator])).status_code == 404, ator
+    ok = cliente.get(f"/monitoria/monitorias/{r['codigo']}", headers=cab(cenario["sup1"]))
+    assert ok.status_code == 200 and ok.json()["codigo"] == r["codigo"]
+    # exportação, dashboard e listagem também respeitam o escopo
+    assert cliente.post("/monitoria/exportar/monitorias", json={"ids": [r["id_monitoria"]]}, headers=cab(cenario["sup_crf"])).status_code == 404
+    assert cliente.get(f"/monitoria/monitorias?codigo={r['codigo']}", headers=cab(cenario["sup_crf"])).json()["total"] == 0
+    assert cliente.get("/monitoria/dashboard?operacao=" + OP, headers=cab(cenario["sup_crf"])).json()["resumo"]["quantidade_realizadas"] == 0

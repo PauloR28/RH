@@ -111,6 +111,8 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
             ${eixosPilar.length >= 3 ? html`<${ScoreRadarChart} axes=${eixosPilar} series=${[{ name: 'Média', values: valoresPilar }]} size=${200} />` : html`<p class="rh-chart-empty">Sem dados de pilares.</p>`}</div>
           <div class="mon-card"><h3>Desempenho por bloco (% de acerto)</h3>
             <${BarComparisonChart} items=${(d.desempenho_blocos || []).map((b) => ({ label: b.bloco, value: b.percentual_medio || 0 }))} valueFormatter=${(v) => `${formatarNota(v)}%`} /></div>
+          ${!ehOperador && (d.por_operador || []).length ? html`<div class="mon-card"><h3>Nota média por operador</h3>
+            <${BarComparisonChart} items=${d.por_operador.filter((o) => o.nota_media !== null).slice(0, 15).map((o) => ({ label: o.rotulo, value: o.nota_media }))} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
           <div class="mon-card"><h3>Distribuição por faixa de nota</h3>
             <${BarComparisonChart} items=${(r.distribuicao_faixas || []).map((f) => ({ label: f.label, value: f.quantidade, color: f.cor }))} valueFormatter=${(v) => v} /></div>
         </div>

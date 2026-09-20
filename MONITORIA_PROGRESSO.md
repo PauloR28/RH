@@ -4,7 +4,7 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 
 ## Fase atual
 - Fase A CONCLUÍDA (3 rodadas; "pode implementar" recebido em 20/set/2026).
-- Fase B aprovada (20/set/2026). C1 (b544aac), C2+C3 (d4a97e3), C4 (b3de26b) e **C5 concluídas**. Próxima: Fase D (auditoria única).
+- Fase B aprovada (20/set/2026). C1 (b544aac), C2+C3 (d4a97e3), C4 (b3de26b) e **C5 concluídas**. **Fase D (auditoria) concluída.**
 - Depois: Fase C (C1..C5, commit por fase) → Fase D (auditoria).
 
 ## Decisões da rodada 3
@@ -82,11 +82,11 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - [x] M32 Cor primária e logo por operação
 - [x] M33 Gestor e Adm com acesso à Central de Monitoria
 ### D — Auditoria final
-- [ ] M34 Não-regressão
-- [ ] M35 Vazamento entre operações
-- [ ] M36 Imutabilidade
-- [ ] M37 Cobertura M01–M33
-- [ ] M38 Relatório final
+- [x] M34 Não-regressão
+- [x] M35 Vazamento entre operações
+- [x] M36 Imutabilidade
+- [x] M37 Cobertura M01–M33
+- [x] M38 Relatório final
 
 ## Notas de implementação C1
 - Schema: fonte única `repositories/monitoria_schema.py` → V037 gerada (teste garante igualdade). 12 tabelas imutáveis com trigger INSTEAD OF UPDATE/DELETE.
@@ -111,3 +111,10 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - Tema/logo por operação aplicados só a quem pertence à operação (perfis globais nunca); usuário com 2+ operações escolhe o design 1x (modal), Adm libera nova escolha.
 - Caddyfile ganhou `/monitoria/*`.
 - Não executado: Playwright e2e (sem node_modules no ambiente). Pendências conscientes: identidade visual (cor/logo) fica em Configurações > Central de Monitoria (não em "Ambiente"); campos turno/equipe/supervisores estão na tela Monitoria > Usuários (o formulário antigo de Configurações > Usuários só ganhou filtro por operação e ocultação de perfis).
+
+## Fase D — auditoria única (20/set/2026)
+- M34 não-regressão: suíte backend 466 testes; as 10 falhas restantes são as MESMAS do HEAD limpo (dependem do `.env`: OneDrive configurado, prova de produção, insert Microsoft) — não são regressão. Playwright não executado (sem node_modules). Adm/Gestão mantêm a tela inicial antiga.
+- M35 vazamento: testes por API/URL (detalhe, exportação, listagem, dashboard, compartilhamento) devolvem 404/vazio fora do escopo (`test_vazamento_por_url_e_api_devolve_404_fora_do_escopo` e afins).
+- M36 imutabilidade: UPDATE/DELETE direto nas 12 tabelas imutáveis falham por trigger; matriz nova não recalcula monitoria antiga; contestação/reanálise não alteram a original.
+- M37 cobertura M01–M33 conferida item a item contra o código (ver notas C1–C5).
+- M38 relatório final na resposta ao RH.
