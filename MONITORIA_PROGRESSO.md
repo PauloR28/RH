@@ -4,7 +4,7 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 
 ## Fase atual
 - Fase A CONCLUÍDA (3 rodadas; "pode implementar" recebido em 20/set/2026).
-- Fase B aprovada (20/set/2026). **C1 CONCLUÍDA** (commit de fase). Próxima: C2.
+- Fase B aprovada (20/set/2026). C1 concluída (b544aac). **C2+C3 backend concluídos** (API+testes); as telas de M14/M15/M17/M18/M19 ([~]) entram na C5. Falta M21 (plano de ação) e C4.
 - Depois: Fase C (C1..C5, commit por fase) → Fase D (auditoria).
 
 ## Decisões da rodada 3
@@ -53,19 +53,19 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - [x] M07 Tag de operação nos resultados
 - [x] M08 Isolamento de treinamentos por operação (aditivo)
 ### C2 — Motor de matriz e monitoria
-- [ ] M09 Modelo de matriz/versão/blocos/critérios/pilares/escala
-- [ ] M10 Seed da matriz 1.0
-- [ ] M11 Motor de cálculo único
-- [ ] M12 Snapshot imutável (+ trigger/constraint)
-- [ ] M13 ID de 8 dígitos único
-- [ ] M14 Formulário de monitoria no Conecta
-- [ ] M15 Gestão de formulário versionado
+- [x] M09 Modelo de matriz/versão/blocos/critérios/pilares/escala
+- [x] M10 Seed da matriz 1.0
+- [x] M11 Motor de cálculo único
+- [x] M12 Snapshot imutável (+ trigger/constraint)
+- [x] M13 ID de 8 dígitos único
+- [~] M14 Formulário de monitoria no Conecta
+- [~] M15 Gestão de formulário versionado
 ### C3 — Fluxo, SLA e automações
-- [ ] M16 Máquina de status + linha do tempo
-- [ ] M17 Feedback
-- [ ] M18 Confirmação/contestação do operador
-- [ ] M19 Reanálise do supervisor
-- [ ] M20 Job de SLA idempotente + log
+- [x] M16 Máquina de status + linha do tempo
+- [~] M17 Feedback
+- [~] M18 Confirmação/contestação do operador
+- [~] M19 Reanálise do supervisor
+- [x] M20 Job de SLA idempotente + log
 - [ ] M21 Plano de Ação + revisões + relatório
 ### C4 — Análise e saída
 - [ ] M22 Dashboard
@@ -93,3 +93,8 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - Escopo: `services/monitoria_scope.py`; M08 em `services/operacao_escopo.py` (trilhas/assignments/relatórios de treinamento).
 - Falhas pré-existentes da suíte (10, dependem do .env: onedrive/e2e prod/microsoft insert) — confirmadas idênticas no HEAD limpo; não são regressão.
 - Frontend C1: filtro Operação + perfis ocultos em Configurações→Usuários. Campos turno/equipe/supervisores do usuário e a tela 'Usuários' da Monitoria entram na C5.
+
+## Notas C2/C3
+- Backend: `services/monitoria_engine.py` (motor único), `services/monitoria_workflow.py` (status/SLA), `repositories/monitoria.py` (matriz, criação com snapshot, consulta), `repositories/monitoria_fluxo.py` (feedback/confirmar/contestar/réplica/reanálise/anexos/job SLA), job APScheduler a cada 5 min.
+- Decisão: Operador só enxerga a monitoria depois do feedback aplicado (disponibilizada para manifestação). 'Baixada' = 'Anulada'. Docx 10.14 tinha exemplo errado (88); correto = 90 (teste cobre).
+- Testes de integração criam a operação TESTE_AUTO no banco DEV e a desativam ao final; linhas das tabelas imutáveis permanecem (só dev).

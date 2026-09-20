@@ -21,6 +21,8 @@ from .fit_cultural import FitCulturalRepositoryMixin
 from .generated_exams import GeneratedExamRepositoryMixin
 from .history import HistoryRepositoryMixin
 from .interviews import InterviewRepositoryMixin
+from .monitoria import MonitoriaRepositoryMixin
+from .monitoria_fluxo import MonitoriaFluxoRepositoryMixin
 from .monitoria_org import MonitoriaOrgRepositoryMixin
 from .mural import MuralRepositoryMixin
 from .onboarding import OnboardingRepositoryMixin
@@ -64,6 +66,8 @@ class DatabaseRepository(
     ScorecardRepositoryMixin,
     SistemaRepositoryMixin,
     MuralRepositoryMixin,
+    MonitoriaRepositoryMixin,
+    MonitoriaFluxoRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
     BaseRepository,
 ):

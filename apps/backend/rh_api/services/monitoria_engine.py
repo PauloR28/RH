@@ -341,3 +341,72 @@ def media_pilar(notas: dict[str, int]) -> float | None:
     if not notas:
         return None
     return float(arredondar(sum(notas.values()) / len(notas)))
+
+
+# ---------------------------------------------------------------------------
+# Normalização da configuração vinda do editor de matriz
+# ---------------------------------------------------------------------------
+
+
+def _num(valor: Any) -> float | int:
+    numero = _dec(valor)
+    return int(numero) if numero == numero.to_integral_value() else float(numero)
+
+
+def normalizar_config(bruto: dict[str, Any]) -> dict[str, Any]:
+    """Limpa e completa a configuração recebida do editor: textos aparados,
+    números coerentes e identificadores estáveis atribuídos a blocos/critérios
+    novos. Não valida regras de negócio (ver `validar_config`)."""
+    padrao = config_padrao()
+    usados_blocos: set[str] = set()
+    usados_criterios: set[str] = set()
+    blocos: list[dict[str, Any]] = []
+    for indice, bloco in enumerate(bruto.get("blocos") or [], start=1):
+        bid = str(bloco.get("id") or "").strip()
+        if not bid or bid in usados_blocos:
+            n = indice
+            while f"b{n}" in usados_blocos:
+                n += 1
+            bid = f"b{n}"
+        usados_blocos.add(bid)
+        criterios = []
+        for pos, criterio in enumerate(bloco.get("criterios") or [], start=1):
+            cid = str(criterio.get("id") or "").strip()
+            if not cid or cid in usados_criterios:
+                n = pos
+                while f"{bid}c{n}" in usados_criterios:
+                    n += 1
+                cid = f"{bid}c{n}"
+            usados_criterios.add(cid)
+            criterios.append(
+                {"id": cid, "texto": str(criterio.get("texto") or "").strip(), "peso": _num(criterio.get("peso"))}
+            )
+        blocos.append({"id": bid, "nome": str(bloco.get("nome") or "").strip(), "valor": _num(bloco.get("valor")), "criterios": criterios})
+
+    pilares_bruto = bruto.get("pilares") or {}
+    pilares = {}
+    for tipo in ("encantamento", "conhecimento"):
+        lista = pilares_bruto.get(tipo) or padrao["pilares"][tipo]
+        pilares[tipo] = [
+            {"chave": str(item.get("chave") or "").strip(), "desc": str(item.get("desc") or "").strip()}
+            for item in lista
+            if str(item.get("chave") or "").strip()
+        ]
+    escala_bruta = bruto.get("escala") or padrao["escala"]
+    faixas = [
+        {
+            "min": float(_dec(item.get("min"))),
+            "max": float(_dec(item.get("max"))),
+            "label": str(item.get("label") or "").strip(),
+            "cor": str(item.get("cor") or "").strip(),
+            "acao": str(item.get("acao") or "").strip(),
+        }
+        for item in (bruto.get("faixas") or padrao["faixas"])
+    ]
+    return {
+        "blocos": blocos,
+        "pilares": pilares,
+        "escala": {"min": int(escala_bruta.get("min", 1)), "max": int(escala_bruta.get("max", 10))},
+        "faixas": faixas,
+        "min_blocos": int(bruto.get("min_blocos") or MIN_BLOCOS_PADRAO),
+    }

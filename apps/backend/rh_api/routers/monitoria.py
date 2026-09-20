@@ -6,14 +6,22 @@ acrescentados nas fases seguintes (C2–C4) neste mesmo router."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi.responses import FileResponse
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.monitoria import (
     CatalogoRequest,
+    ContestacaoRequest,
     EquipeRequest,
+    FeedbackRequest,
+    MatrizConfigRequest,
+    MonitoriaCriarRequest,
+    RascunhoRequest,
+    ReanaliseRequest,
+    ReplicaRequest,
     TemaRequest,
     TransferirSupervisaoRequest,
     UsuarioMonitoriaRequest,
@@ -164,3 +172,183 @@ def liberar_troca_design(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_liberar_tema(user, id_usuario, ip=client_ip(request))
+
+
+# ---------------------------------------------------------------------------
+# Matriz de qualidade versionada
+# ---------------------------------------------------------------------------
+_LER_MATRIZ = require_permissions("monitoria.criar", "monitoria.matriz")
+
+
+@router.get("/matriz", dependencies=[Depends(_LER_MATRIZ)])
+def obter_matriz(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_get_matriz(user, operacao)
+
+
+@router.get("/matriz/versoes", dependencies=[Depends(_LER_MATRIZ)])
+def listar_versoes(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_list_versoes(user, operacao)}
+
+
+@router.get("/matriz/versoes/{id_versao}", dependencies=[Depends(_LER_MATRIZ)])
+def obter_versao(id_versao: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_get_versao(user, id_versao)
+
+
+@router.put("/matriz", dependencies=[Depends(require_permissions("monitoria.matriz"))])
+def salvar_matriz(
+    operacao: str,
+    payload: MatrizConfigRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_save_versao(user, operacao, payload.config, payload.observacao, ip=client_ip(request))
+
+
+# ---------------------------------------------------------------------------
+# Realização e consulta de monitorias
+# ---------------------------------------------------------------------------
+@router.get("/operadores", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def listar_operadores(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_operadores_elegiveis(user, operacao)}
+
+
+@router.get("/rascunhos", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def listar_rascunhos(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_rascunho_listar(user)}
+
+
+@router.post("/rascunhos", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def criar_rascunho(payload: RascunhoRequest, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_rascunho_salvar(user, payload.operacao, payload.payload)
+
+
+@router.put("/rascunhos/{id_rascunho}", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def atualizar_rascunho(
+    id_rascunho: int,
+    payload: RascunhoRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_rascunho_salvar(user, payload.operacao, payload.payload, id_rascunho)
+
+
+@router.delete("/rascunhos/{id_rascunho}", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def descartar_rascunho(id_rascunho: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_rascunho_descartar(user, id_rascunho)
+
+
+@router.post("/monitorias", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def realizar_monitoria(
+    payload: MonitoriaCriarRequest,
+    request: Request,
+    id_rascunho: int = 0,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    dados = payload.model_dump()
+    if id_rascunho:
+        dados["id_rascunho"] = id_rascunho
+    return repository.mon_criar_monitoria(user, dados, ip=client_ip(request))
+
+
+@router.get("/monitorias", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def listar_monitorias(
+    codigo: str = "",
+    operacao: str = "",
+    status: str = "",
+    canal: str = "",
+    id_operador: int = 0,
+    id_avaliador: int = 0,
+    id_equipe: int = 0,
+    operador: str = "",
+    avaliador: str = "",
+    data_inicio: str = "",
+    data_fim: str = "",
+    somente_ncg: bool = False,
+    pagina: int = 1,
+    por_pagina: int = 25,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    filtros = {
+        "codigo": codigo, "operacao": operacao, "status": status, "canal": canal, "id_operador": id_operador,
+        "id_avaliador": id_avaliador, "id_equipe": id_equipe, "operador": operador, "avaliador": avaliador,
+        "data_inicio": data_inicio, "data_fim": data_fim, "somente_ncg": somente_ncg,
+    }
+    return repository.mon_listar(user, filtros, pagina=pagina, por_pagina=por_pagina)
+
+
+@router.get("/monitorias/{ref}", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def detalhe_monitoria(
+    ref: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_detalhe(user, ref, ip=client_ip(request))
+
+
+# ---------------------------------------------------------------------------
+# Fluxo: feedback, confirmação, contestação, réplica, reanálise, evidências
+# ---------------------------------------------------------------------------
+@router.post("/monitorias/{ref}/feedback", dependencies=[Depends(require_permissions("monitoria.feedback_aplicar"))])
+def aplicar_feedback(
+    ref: str, payload: FeedbackRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_aplicar_feedback(user, ref, payload.model_dump(), ip=client_ip(request))
+
+
+@router.post("/monitorias/{ref}/confirmar", dependencies=[Depends(require_permissions("monitoria.contestar"))])
+def confirmar_monitoria(
+    ref: str, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_confirmar(user, ref, ip=client_ip(request))
+
+
+@router.post("/monitorias/{ref}/contestar", dependencies=[Depends(require_permissions("monitoria.contestar"))])
+def contestar_monitoria(
+    ref: str, payload: ContestacaoRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_contestar(user, ref, payload.model_dump(), ip=client_ip(request))
+
+
+@router.post("/monitorias/{ref}/replica", dependencies=[Depends(require_permissions("monitoria.contestar"))])
+def replicar_contestacao(
+    ref: str, payload: ReplicaRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_replicar(user, ref, payload.texto, ip=client_ip(request))
+
+
+@router.post("/monitorias/{ref}/anexos", dependencies=[Depends(require_permissions("monitoria.contestar"))])
+async def anexar_evidencia(
+    ref: str, request: Request, arquivo: UploadFile = File(...),
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    conteudo = await arquivo.read(11 * 1024 * 1024)
+    return repository.mon_anexar_evidencia(user, ref, nome=arquivo.filename or "evidencia", conteudo=conteudo, ip=client_ip(request))
+
+
+@router.get("/anexos/{id_anexo}", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def baixar_evidencia(id_anexo: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    caminho, nome, mime = repository.mon_obter_anexo(user, id_anexo)
+    return FileResponse(caminho, media_type=mime, filename=nome)
+
+
+@router.post("/monitorias/{ref}/reanalise", dependencies=[Depends(require_permissions("monitoria.reanalisar"))])
+def reanalisar_contestacao(
+    ref: str, payload: ReanaliseRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_reanalisar(user, ref, payload.model_dump(), ip=client_ip(request))
+
+
+@router.post("/sla/processar", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def processar_slas(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    """Disparo manual/externo do job de SLA (o APScheduler já o executa a cada 5 min)."""
+    return repository.mon_processar_slas()

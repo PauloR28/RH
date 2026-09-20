@@ -42,6 +42,19 @@ def _run_training_call_escalation_job(settings: Settings) -> None:
         logger.exception("Falha ao executar o job agendado de escalonamento de chamada de treinamento.")
 
 
+def _run_monitoria_sla_job(settings: Settings) -> None:
+    """SLAs da Monitoria (promt.txt §5.9): confirma automaticamente após 48h sem
+    manifestação do operador, anula após 72h sem reanálise e conta feedbacks
+    vencidos. Idempotente (ver mon_processar_slas). Mesma blindagem dos demais jobs."""
+    try:
+        from .repositories import DatabaseRepository
+
+        resultado = DatabaseRepository(settings).mon_processar_slas()
+        logger.info("Job de SLA da Monitoria executado: %s", resultado)
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao executar o job de SLA da Monitoria.")
+
+
 def start_scheduler(settings: Settings):
     """Inicia um `BackgroundScheduler` (APScheduler) com o job periódico de
     lembretes/alertas automáticos, se a biblioteca estiver disponível e a
@@ -88,6 +101,16 @@ def start_scheduler(settings: Settings):
             hours=1,
             args=(settings,),
             id="escalonamento_chamada_treinamento",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_monitoria_sla_job,
+            trigger="interval",
+            minutes=5,
+            args=(settings,),
+            id="sla_monitoria",
             replace_existing=True,
             coalesce=True,
             max_instances=1,
