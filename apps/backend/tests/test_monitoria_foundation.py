@@ -171,3 +171,34 @@ def test_toda_tabela_imutavel_recebe_trigger_de_bloqueio():
     # estado atual e planos de ação são mutáveis por desenho
     assert "TR_monitoria_estado_imutavel" not in ddl
     assert "TR_monitoria_planos_acao_imutavel" not in ddl
+
+
+def test_token_antigo_sem_versao_de_permissoes_e_recusado():
+    """Tokens emitidos antes da reorganização de perfis/permissões precisam de novo login,
+    senão o menu da Monitoria não aparece para quem já estava logado."""
+    import base64
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    import pytest
+    from fastapi import HTTPException
+
+    from rh_api.auth import _build_token, validate_access_token
+    from rh_api.config import get_settings
+    from rh_api.auth import AuthenticatedUser
+
+    atual = _build_token(AuthenticatedUser(username="x", id_usuario=1, nome="X"))
+    assert validate_access_token(atual).username == "x"
+
+    payload_atual = json.loads(base64.urlsafe_b64decode(atual.split(".")[0] + "=="))
+    payload_atual.pop("pv")
+    payload_atual["exp"] = int(time.time()) + 600
+    corpo = base64.urlsafe_b64encode(json.dumps(payload_atual, separators=(",", ":")).encode()).decode().rstrip("=")
+    assinatura = base64.urlsafe_b64encode(
+        hmac.new(get_settings().auth_token_secret.encode(), corpo.encode(), hashlib.sha256).digest()
+    ).decode().rstrip("=")
+    with pytest.raises(HTTPException) as erro:
+        validate_access_token(f"{corpo}.{assinatura}")
+    assert erro.value.status_code == 401 and "login novamente" in erro.value.detail

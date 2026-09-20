@@ -18,6 +18,11 @@ ROLE_QUALIDADE = "qualidade"
 ROLE_CONTROL_DESK = "control_desk"
 
 
+# Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
+# são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
+# são recusados (401) e a pessoa entra de novo já com as permissões atuais.
+PERMISSIONS_VERSION = "2026-09-20-monitoria"
+
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
 

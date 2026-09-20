@@ -13,7 +13,7 @@ from fastapi import HTTPException, status
 from conecta.infrastructure.security.token_denylist import InMemoryTokenDenylist
 
 from .config import get_settings
-from .rbac import ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
+from .rbac import PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
 from .services.helpers import normalize_text
 
 
@@ -116,6 +116,7 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
         "provedor_autenticacao": user.provedor_autenticacao,
         "operacoes": sorted(user.operacoes),
         "pwd": bool(user.deve_trocar_senha),
+        "pv": PERMISSIONS_VERSION,
     }
 
 
@@ -269,6 +270,11 @@ def validate_access_token(token: str) -> AuthenticatedUser:
 
     if not username or expires_at < int(datetime.now(timezone.utc).timestamp()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão expirada.")
+    if data.get("pv") != PERMISSIONS_VERSION:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Suas permissões foram atualizadas. Faça login novamente.",
+        )
 
     role = get_role_definition(data.get("role") or data.get("perfil") or ROLE_ADMIN)
     permissions = sanitize_permissions(data.get("permissions") or data.get("permissoes"))
