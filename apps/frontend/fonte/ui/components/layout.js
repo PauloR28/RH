@@ -6,6 +6,7 @@ import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js';
 import { IconeSvg } from '../icone.js';
+import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -145,6 +146,22 @@ export function BarraLateral({
       permissao: 'onboarding.visualizar',
     },
   ];
+  const sublinksMonitoria = [
+    { tela: 'screen-monitoria-nova', icone: 'add', label: 'Nova monitoria', permissao: 'monitoria.criar' },
+    { tela: 'screen-monitoria-feedback', icone: 'rate_review', label: 'Feedback', permissao: 'monitoria.feedback_aplicar' },
+    { tela: 'screen-monitoria-contestacoes', icone: 'verified', label: 'Contestações', permissao: 'monitoria.reanalisar' },
+    { tela: 'screen-monitoria-minhas', icone: 'assignment_ind', label: 'Minhas monitorias', permissao: 'monitoria.contestar' },
+    { tela: 'screen-monitoria', icone: 'history', label: 'Histórico', permissao: 'monitoria.visualizar' },
+    { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Dashboard', permissao: 'monitoria.dashboard' },
+    { tela: 'screen-monitoria-planos', icone: 'task_alt', label: 'Planos de ação', permissao: 'monitoria.plano_acao_visualizar' },
+    { tela: 'screen-monitoria-relatorios', icone: 'table_chart', label: 'Relatórios', permissao: 'monitoria.relatorios' },
+    { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
+    { tela: 'screen-monitoria-equipes', icone: 'groups', label: 'Equipes', permissao: 'monitoria.equipes' },
+    { tela: 'screen-monitoria-usuarios', icone: 'manage_accounts', label: 'Usuários', permissao: 'monitoria.usuarios' },
+    { tela: 'screen-monitoria-logs', icone: 'lock', label: 'Logs', permissao: 'monitoria.logs' },
+    { tela: 'screen-monitoria-guia', icone: 'menu_book', label: 'Guia de processos', permissao: 'monitoria.visualizar' },
+  ];
+  const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
   const sublinksGestao = [
     {
       tela: 'screen-analysis-candidates',
@@ -187,6 +204,12 @@ export function BarraLateral({
     },
   ];
   const sublinksConfiguracoes = [
+    {
+      tela: 'screen-settings-monitoria',
+      icone: 'fact_check',
+      label: 'Central de Monitoria',
+      permissao: 'monitoria.configurar',
+    },
     {
       tela: 'screen-settings-users',
       icone: 'person',
@@ -296,9 +319,13 @@ export function BarraLateral({
     'screen-settings-logs',
     'screen-settings-document-templates',
     'screen-settings-administracao',
+    'screen-settings-monitoria',
   ];
   const possuiPermissao = (permissao) =>
     !permissao || controlador?.possuiPermissao?.(permissao);
+  // Chave-mestra da sessão (Perfis e Permissões): só restringe quando o token a traz.
+  const sessaoOk = (tela) => controlador?.sessaoDaTelaLiberada?.(tela) !== false;
+  const possuiSub = (subitem) => possuiPermissao(subitem.permissao) && sessaoOk(subitem.tela);
   const itemAtivo = (item) =>
     navAtiva === item.tela || (item.telasRelacionadas || []).includes(navAtiva);
   const grupoProcessosAtivo = telasRelacionadasProcessos.includes(navAtiva);
@@ -306,18 +333,18 @@ export function BarraLateral({
     (item) => item.tela === navAtiva,
   );
   const sublinksProcessosVisiveis = sublinksProcessos.filter((subitem) =>
-    possuiPermissao(subitem.permissao),
+    possuiSub(subitem),
   );
   const grupoProvasAtivo = telasRelacionadasProvas.includes(navAtiva);
   const subitemProvaAtivo = (subitem) => navAtiva === subitem.tela;
   const sublinksProvasVisiveis = sublinksProvas.filter((subitem) =>
-    possuiPermissao(subitem.permissao),
+    possuiSub(subitem),
   );
   const sublinksConfiguracoesVisiveis = sublinksConfiguracoes.filter((subitem) =>
-    possuiPermissao(subitem.permissao),
+    possuiSub(subitem),
   );
   const sublinksGestaoVisiveis = sublinksGestao.filter((subitem) =>
-    possuiPermissao(subitem.permissao),
+    possuiSub(subitem),
   );
   const grupoGestaoAtivo = telasRelacionadasGestao.includes(navAtiva);
   const subitemGestaoAtivo = (subitem) =>
@@ -327,9 +354,12 @@ export function BarraLateral({
     navAtiva === subitem.tela ||
     (navAtiva === 'screen-settings' && subitem.tela === 'screen-settings-users');
   const sublinksTreinamentosVisiveis = sublinksTreinamentos.filter((subitem) =>
-    possuiPermissao(subitem.permissao),
+    possuiSub(subitem),
   );
   const grupoTreinamentosAtivo = telasRelacionadasTreinamentos.includes(navAtiva);
+  const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
+  const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
+  const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>
     navAtiva === subitem.tela ||
     (navAtiva === 'screen-training' && subitem.tela === 'screen-training-trilhas');
@@ -338,6 +368,8 @@ export function BarraLateral({
   // vertical na barra lateral, mas não numa barra de menus horizontal.
   const [grupoAberto, setGrupoAberto] = useState(null);
   const [logoComErro, setLogoComErro] = useState(false);
+  const [logoOperacao, setLogoOperacao] = useState(() => obterLogoOperacao());
+  useEffect(() => assinarTemaOperacao((tema) => { setLogoOperacao(tema.logoUrl || ''); setLogoComErro(false); }), []);
   const referenciaNav = useRef(null);
 
   useEffect(() => {
@@ -358,7 +390,7 @@ export function BarraLateral({
     setGrupoAberto((atual) => (atual === grupo ? null : grupo));
 
   const renderizarItem = (item) => {
-    if (item.visivel === false || !possuiPermissao(item.permissao)) return null;
+    if (item.visivel === false || !possuiPermissao(item.permissao) || !sessaoOk(item.tela)) return null;
     const ativo = itemAtivo(item) && !item.acao;
     return html`
       <button
@@ -399,7 +431,7 @@ export function BarraLateral({
                 <img
                   alt="Conecta Central 24h"
                   class="rh-modern-logo"
-                  src="/estilos/logo_conecta_horizontal.png"
+                  src=${logoOperacao || '/estilos/logo_conecta_horizontal.png'}
                   onError=${() => setLogoComErro(true)}
                 />
               `}
@@ -635,6 +667,67 @@ export function BarraLateral({
                               title=${subitem.label}
                               role="menuitem"
                               aria-current=${subitemTreinamentoAtivo(subitem) ? 'page' : null
+              }
+                              onClick=${() => {
+                setGrupoAberto(null);
+                controlador.irParaTelaProtegida(subitem.tela);
+              }}
+                            >
+                              <span
+                                class="material-symbols-outlined"
+                                aria-hidden="true"
+                              >${IconeSvg(subitem.icone)}</span>
+                              <span>${subitem.label}</span>
+                            </button>
+                          `,
+          )}
+                      </div>
+                    `
+          : null}
+              </div>
+            `
+      : null}
+        ${sublinksMonitoriaVisiveis.length
+      ? html`
+              <div
+                class=${`rh-modern-nav-group ${grupoAberto === 'monitoria' ? 'is-open' : ''
+          } ${grupoMonitoriaAtivo ? 'has-active' : ''}`.trim()}
+              >
+                <button
+                  type="button"
+                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${grupoMonitoriaAtivo && !sublinksMonitoriaVisiveis.some(subitemMonitoriaAtivo) ? 'is-active' : ''
+          }`.trim()}
+                  title="Monitoria"
+                  aria-expanded=${grupoAberto === 'monitoria'}
+                  aria-haspopup="true"
+                  aria-controls="rh-modern-subnav-monitoria"
+                  onClick=${() => alternarGrupo('monitoria')}
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('fact_check')}</span>
+                  <span class="rh-modern-nav-label">Monitoria</span>
+                  <span
+                    class="material-symbols-outlined rh-modern-nav-chevron"
+                    aria-hidden="true"
+                  >${IconeSvg('expand_more')}</span>
+                </button>
+                ${grupoAberto === 'monitoria'
+          ? html`
+                      <div
+                        class="rh-modern-subnav"
+                        id="rh-modern-subnav-monitoria"
+                        role="menu"
+                        aria-label="Submenu de Monitoria"
+                      >
+                        ${sublinksMonitoriaVisiveis.map(
+            (subitem) => html`
+                            <button
+                              key=${subitem.tela}
+                              type="button"
+                              class=${`rh-modern-subnav-btn ${subitemMonitoriaAtivo(subitem) ? 'is-active' : ''
+                }`.trim()}
+                              title=${subitem.label}
+                              role="menuitem"
+                              aria-current=${subitemMonitoriaAtivo(subitem) ? 'page' : null
               }
                               onClick=${() => {
                 setGrupoAberto(null);

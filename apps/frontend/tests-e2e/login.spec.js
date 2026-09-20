@@ -19,7 +19,7 @@ test.describe('Tela de login', () => {
     const telaLogin = page.locator('#screen-login');
     await expect(telaLogin).toBeVisible({ timeout: 20_000 });
 
-    await expect(page.getByRole('heading', { name: 'Acesso ao ambiente RH' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible();
 
     const botaoMicrosoft = page.locator('a.rh-login-microsoft-btn');
     await expect(botaoMicrosoft).toBeVisible();

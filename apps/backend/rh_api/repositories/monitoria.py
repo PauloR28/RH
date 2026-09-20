@@ -238,6 +238,27 @@ class MonitoriaRepositoryMixin:
         finally:
             conn.close()
 
+    def mon_calcular(self, user, operacao: str, respostas: dict) -> dict:
+        """Prévia da nota para o formulário — usa o MESMO motor da gravação
+        (nunca uma segunda fórmula no navegador)."""
+        operacao = normalize_text(operacao)
+        self._mon_exigir_permissao_operacao(user, operacao)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            versao = self._mon_versao_ativa(cursor, operacao)
+            conn.commit()
+        finally:
+            conn.close()
+        config = versao["config"]
+        normalizadas = {str(k): normalizar_resposta(v) for k, v in (respostas or {}).items()}
+        r = calcular_nota(config, normalizadas)
+        return {
+            "nota": float(r["nota"]), "possui_ncg": r["possui_ncg"], "anulada": r["anulada"], "blocos": r["blocos"],
+            "blocos_avaliados": r["blocos_avaliados"], "blocos_nulos": r["blocos_nulos"], "min_blocos": r["min_blocos"],
+            "faixa": faixa_da_nota(r["nota"], config.get("faixas")), "pendentes": len(criterios_sem_resposta(config, normalizadas)),
+        }
+
     # ------------------------------------------------------------------
     # Operadores elegíveis / catálogos para o formulário
     # ------------------------------------------------------------------

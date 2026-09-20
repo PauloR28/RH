@@ -1,11 +1,12 @@
-﻿import { html, lazy, Suspense, useEffect, useState } from '../infraestrutura-react.js';
+﻿import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
 import {
   navegarParaTela,
   usarTelaAtual,
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260916-correcoes-round4';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260920-monitoria';
+import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
@@ -82,7 +83,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260916-correcoes-txt');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260920-monitoria');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260916-correcoes-round3');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -110,9 +111,13 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260920-monitoria-c1'),
+  () => import('../features/configuracoes/index.js?v=20260920-monitoria2'),
   'TelaConfiguracoesSistema',
 );
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20260920-monitoria2');
+const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
+const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
+const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round4'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260916-correcoes-round4'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
@@ -189,32 +194,9 @@ function resolverTelaProtegida(telaAtual, controlador) {
     return 'screen-processes';
   }
 
-  // Correções.txt item 8: para Operador e Supervisor, a Central de
-  // Treinamentos é sempre a primeira/única tela — independe de qual link
-  // trouxe a pessoa até aqui. Precisa vir ANTES do gate de permissão
-  // genérico abaixo: esses perfis normalmente não têm "inicio.visualizar"
-  // (a permissão da tela de menu padrão), então sem este redirecionamento
-  // primeiro, screen-menu cairia em screen-forbidden antes de chegar aqui.
-  //
-  // Correções.txt (rodada 16/set/2026): para o Supervisor especificamente,
-  // essa tela inicial passa a ser "Meus treinamentos" (o que ele dá/vai
-  // dar), não a lista geral de trilhas — Operador continua indo para
-  // screen-training normalmente.
-  if (
-    (telaAtual === 'screen-menu' || telaAtual === 'screen-login') &&
-    estado.perfilUsuario === 'supervisor' &&
-    controlador.podeAcessarTela('screen-training-mine')
-  ) {
-    return 'screen-training-mine';
-  }
-
-  if (
-    (telaAtual === 'screen-menu' || telaAtual === 'screen-login') &&
-    (estado.perfilUsuario === 'operador' || estado.perfilUsuario === 'supervisor') &&
-    controlador.podeAcessarTela('screen-training')
-  ) {
-    return 'screen-training';
-  }
+  // Vertente Monitoria (20/set/2026): Supervisor e Operador deixam de cair direto na
+  // Central de Treinamentos. Todos os perfis (exceto Administrador e Gestor) começam
+  // no Início por sessões: saudação + uma div por sessão a que têm acesso.
 
   if (!controlador.podeAcessarTela(telaAtual)) {
     return 'screen-forbidden';
@@ -370,7 +352,19 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
   }
 
   if (telaResolvida === 'screen-menu') {
+    const perfilInicio = controlador.estado.perfilUsuario;
+    if (perfilInicio && perfilInicio !== 'administrador' && perfilInicio !== 'gestor') {
+      return html`<${TelaInicioPorSessoes} controlador=${controlador} />`;
+    }
     return html`<${TelaInicio} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-monitoria') {
+    return html`<${TelaCentralMonitoriaConfig} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida.startsWith('screen-monitoria')) {
+    return html`<${TelaMonitoria} controlador=${controlador} telaAtual=${telaResolvida} />`;
   }
 
   if (telaResolvida === 'screen-email-inbox') {
@@ -586,12 +580,16 @@ export function Aplicacao() {
     : html`<${TelaCarregando} />`;
 
   return html`
-    <${Suspense} fallback=${fallback}>
-      <${ConteudoAplicacao}
-        controlador=${controlador}
-        telaAtual=${telaAtual}
-        telaResolvida=${telaResolvida}
-      />
-    </${Suspense}>
+    <${React.Fragment}>
+      <${Suspense} fallback=${fallback}>
+        <${ConteudoAplicacao}
+          controlador=${controlador}
+          telaAtual=${telaAtual}
+          telaResolvida=${telaResolvida}
+        />
+      </${Suspense}>
+      <${TemaOperacao} controlador=${controlador} />
+      <${TrocaSenhaObrigatoria} controlador=${controlador} />
+    </${React.Fragment}>
   `;
 }

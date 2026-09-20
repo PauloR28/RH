@@ -221,3 +221,44 @@ export function ScoreDistributionChart({ buckets = [], height = 140 }) {
     </div>
   `;
 }
+
+// Vertente Monitoria: evolução da nota no tempo (o HTML de referência tinha um
+// gráfico de linha que o Conecta ainda não possuía). Só SVG, sem dependências.
+export function LineTrendChart({ points = [], height = 200, min = 0, max = 100, valueFormatter = (v) => v, emptyText = 'Sem dados no período.' }) {
+  const validos = points.filter((p) => p.value !== null && p.value !== undefined);
+  if (!validos.length) {
+    return html`<p class="rh-chart-empty">${emptyText}</p>`;
+  }
+  const largura = 640;
+  const margem = { esquerda: 40, direita: 16, topo: 16, base: 32 };
+  const areaW = largura - margem.esquerda - margem.direita;
+  const areaH = height - margem.topo - margem.base;
+  const x = (indice) => margem.esquerda + (points.length === 1 ? areaW / 2 : (areaW * indice) / (points.length - 1));
+  const y = (valor) => margem.topo + areaH - ((Math.max(min, Math.min(max, valor)) - min) / (max - min)) * areaH;
+  const linha = points
+    .map((p, i) => (p.value === null || p.value === undefined ? null : `${x(i)},${y(p.value)}`))
+    .filter(Boolean)
+    .join(' ');
+  const grades = [0, 0.25, 0.5, 0.75, 1].map((f) => min + (max - min) * f);
+  const passo = Math.max(1, Math.ceil(points.length / 8));
+
+  return html`
+    <div class="rh-chart rh-chart--line">
+      <svg viewBox=${`0 0 ${largura} ${height}`} width="100%" role="img" aria-label="Evolução da nota média">
+        ${grades.map((g) => html`
+          <g key=${g}>
+            <line x1=${margem.esquerda} x2=${largura - margem.direita} y1=${y(g)} y2=${y(g)} stroke="var(--line)" />
+            <text x=${margem.esquerda - 8} y=${y(g) + 4} text-anchor="end" class="rh-chart-radar-axis-label">${Math.round(g)}</text>
+          </g>
+        `)}
+        <polyline points=${linha} fill="none" stroke="var(--brand)" stroke-width="2" />
+        ${points.map((p, i) => (p.value === null || p.value === undefined ? null : html`
+          <g key=${p.label ?? i}>
+            <circle cx=${x(i)} cy=${y(p.value)} r="4" fill="var(--brand)"><title>${`${p.label}: ${valueFormatter(p.value)}${p.extra ? ` (${p.extra})` : ''}`}</title></circle>
+          </g>
+        `))}
+        ${points.map((p, i) => (i % passo === 0 ? html`<text key=${`t-${i}`} x=${x(i)} y=${height - 8} text-anchor="middle" class="rh-chart-radar-axis-label">${p.label}</text>` : null))}
+      </svg>
+    </div>
+  `;
+}

@@ -111,6 +111,23 @@ docker compose -f compose.dev.yml up --build
 
 Acesse `http://localhost:8080`.
 
+## Vertente Monitoria
+
+Central de Monitoria de qualidade de atendimento, integrada ao Conecta (mesma autenticação, RBAC e banco).
+
+- **Backend:** `apps/backend/rh_api/routers/monitoria.py` (rotas `/monitoria/*`), regras puras em
+  `services/monitoria_{engine,workflow,scope,indicadores,export,tema}.py`, dados em
+  `repositories/monitoria*.py`. DDL em uma só fonte: `repositories/monitoria_schema.py` (gera
+  `infra/sql/migrations/V037__monitoria.sql`; um teste garante que coincidem). Tabelas de fluxo/histórico têm
+  trigger `INSTEAD OF UPDATE, DELETE` (imutabilidade em camada de banco).
+- **Frontend:** `apps/frontend/fonte/features/monitoria/` (rotas SPA em `monitorias/*` para não colidir com a API
+  `/monitoria/*`); nova tela inicial por sessões e chaves-mestras `sessao.<id>.acessar` em Perfis e Permissões.
+- **SLAs** (horas corridas): feedback 72h, confirmação/contestação do operador 48h, reanálise 72h. O job roda a cada
+  5 minutos no APScheduler e também por `POST /monitoria/sla/processar` (Administrador).
+- **Testes:** `pytest apps/backend/tests/test_monitoria_*.py`. Os `*_integration.py` usam o banco de DESENVOLVIMENTO
+  (criam/desativam a operação `TESTE_AUTO`) e são pulados sem banco.
+- Roadmap/decisões desta vertente: `MONITORIA_PROGRESSO.md`.
+
 ## Testes
 
 Da raiz:

@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20260916-correcoes-txt';
+} from './components/layout.js?v=20260920-monitoria';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
@@ -37,6 +37,7 @@ export { WizardStepper, WizardSummaryStrip } from './components/wizard.js';
 export {
   AcceptanceDonutChart,
   BarComparisonChart,
+  LineTrendChart,
   ScoreDistributionChart,
   ScoreRadarChart,
   StageFunnelChart,

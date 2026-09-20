@@ -20,7 +20,7 @@
     /candidate-* /process-* /processes* /processos* /cv-* \
     /email-inbox* /history* /answer-files* /interviews* /interview-slots* \
     /talent-bank* /reports* /public/* /settings/* \
-    /generated-exams* /conecta-provas-api/* /curriculos-ia* \
+    /generated-exams* /conecta-provas-api/* /curriculos-ia* /monitoria/* \
     /docs /docs/* /openapi.json
 
   reverse_proxy @backend backend:8000 {

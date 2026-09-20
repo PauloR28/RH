@@ -1696,7 +1696,7 @@ export function TelaLogin({ controlador }) {
     <section class="active screen" id="screen-login">
       <div class="rh-login-page">
         <div class="rh-login-hero" data-tour-id="login-hero">
-          <div class="rh-login-hero-badge">Sistema Interno RH</div>
+          <div class="rh-login-hero-badge">Conecta</div>
           <h1 class="rh-login-hero-title">Plataforma de provas, processos e análise.</h1>
           <p class="rh-login-hero-text">
             Um fluxo único para aplicação de provas, acompanhamento de candidatos,
@@ -1722,7 +1722,7 @@ export function TelaLogin({ controlador }) {
           </div>
 
           <div class="rh-login-copy-block">
-            <h2 class="rh-login-welcome-title">Acesso ao ambiente RH</h2>
+            <h2 class="rh-login-welcome-title">Acesse sua conta</h2>
             <p class="rh-login-welcome-text">
               ${mensagemErro
       ? 'A autenticação Microsoft não foi concluída. Use seu acesso local para continuar.'
@@ -1793,8 +1793,14 @@ export function TelaLogin({ controlador }) {
                   <div class="mb-2">
                     <div class="rh-login-label-row">
                       <label class="form-label rh-login-label mb-0">Senha</label>
-                      <button class="rh-login-link-btn" tabindex="-1" type="button">
-                        Ambiente restrito
+                      <button
+                        class="rh-login-link-btn"
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        title="Recurso em breve"
+                      >
+                        Esqueci a senha
                       </button>
                     </div>
                     <div class="rh-login-input-wrap">

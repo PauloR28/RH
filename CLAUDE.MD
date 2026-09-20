@@ -57,3 +57,8 @@ A mesma exceção segue valendo para o pedido descrito em `Prompt.txt` desta rod
 - Aba "Ambiente" em Configurações (modo escuro, ativar tour guiado, escolher avatar, configurar notificações).
 
 Mesmas condições de sempre: aditivo, sem quebrar rotas/dados/fluxos existentes, seguindo os padrões arquiteturais já em uso e a identidade visual (grade de 8px, sem gradiente genérico, cores sóbrias).
+
+
+### Exceção estendida: vertente Monitoria (promt.txt, rodada de 20/set/2026)
+
+O RH autorizou explicitamente a nova vertente **Monitoria** (Central de Monitoria) no mesmo nível de App, Centro de Treinamentos e Conecta Provas, incluindo alterações full-stack (novas tabelas/migrations V037–V038, rotas `/monitoria/*`, RBAC, perfis Qualidade e Control Desk, escopo por operação, tela inicial por sessões, tema/logo por operação). Condições mantidas: aditivo, sem quebrar rotas/dados/fluxos existentes, padrões de `routers/services/repositories/schemas`, SQL puro via `pyodbc`, identidade visual do Conecta (grade de 8px, sem gradiente, cores sóbrias). Regras de domínio inegociáveis: monitoria realizada é IMUTÁVEL (trigger de banco + sem rotas de update/delete + testes), "Baixada" foi renomeada para "Anulada", todo indicador usa o motor único `services/monitoria_indicadores.py`, e a Zona de Risco da Monitoria só altera configuração. Estado e decisões da rodada: `MONITORIA_PROGRESSO.md`. Os apps móveis continuam fora do escopo desta rodada.

@@ -211,6 +211,7 @@ export function lerSessaoAutenticacao() {
     nivel: payload.nivel || '',
     permissoes: Array.isArray(payload.permissoes) ? payload.permissoes : [],
     avatar_ilustrado: payload.avatar_ilustrado || '',
+    deve_trocar_senha: Boolean(payload.deve_trocar_senha),
   };
 }
 
@@ -232,8 +233,13 @@ export function salvarSessaoAutenticacao(token, sessaoOuUsuario) {
       nivel: sessao.nivel || '',
       permissoes: Array.isArray(sessao.permissoes) ? sessao.permissoes : [],
       avatar_ilustrado: sessao.avatar_ilustrado || '',
+      deve_trocar_senha: Boolean(sessao.deve_trocar_senha),
     }),
   );
+  // Primeiro acesso com senha inicial: a tela de troca obrigatória abre (features/monitoria/global.js).
+  if (sessao.deve_trocar_senha) {
+    window.dispatchEvent(new CustomEvent('conecta-troca-senha-obrigatoria'));
+  }
 }
 
 export function limparSessaoAutenticacao() {
@@ -303,6 +309,9 @@ async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
     if (resposta.status === 401) {
       limparSessaoAutenticacao();
       notificarSessaoExpirada();
+    }
+    if (resposta.status === 403 && String(textoErro).includes('TROCA_SENHA_OBRIGATORIA')) {
+      window.dispatchEvent(new CustomEvent('conecta-troca-senha-obrigatoria'));
     }
 
     logger.warn('Resposta de erro recebida da API.', {

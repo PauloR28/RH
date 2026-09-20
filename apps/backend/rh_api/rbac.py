@@ -570,6 +570,7 @@ _MONITORIA_ROLE_PERMISSIONS: dict[str, set[str]] = {
     ROLE_MANAGER: _MONITORIA_READ | {"monitoria.exportar"},
     ROLE_SUPERVISOR: _MONITORIA_READ
     | {
+        "inicio.visualizar",  # Início por sessões (Treinamentos + Monitorias)
         "monitoria.criar",
         "monitoria.feedback_aplicar",
         "monitoria.reanalisar",
@@ -622,10 +623,15 @@ SESSION_MODULES: dict[str, set[str]] = {
     "treinamentos": {"Onboarding"},
     "configuracoes": {"Configurações", "Usuários", "LGPD", "E-mails", "Templates de Documentos", "Central de Documentos", "Logs", "Políticas"},
 }
+# O Supervisor trabalha em Treinamentos e Monitoria (promt.txt §3.3): as sessões de RH
+# (Caixa de Currículos e Processos) não são liberadas por padrão; o Administrador pode ligar.
+_SESSOES_NAO_PADRAO = {ROLE_SUPERVISOR: {"curriculos", "processos"}}
 for _role_id, _perms in list(ROLE_PERMISSIONS.items()):
     if _role_id in (ROLE_ADMIN, ROLE_CANDIDATE):
         continue
     for _session_id, _modules in SESSION_MODULES.items():
+        if _session_id in _SESSOES_NAO_PADRAO.get(_role_id, ()):
+            continue
         if any(
             PERMISSION_DEFINITIONS[key].module in _modules
             for key in _perms
@@ -639,11 +645,15 @@ SCREEN_PERMISSIONS.update(
         "screen-monitoria-nova": "monitoria.criar",
         "screen-monitoria-feedback": "monitoria.feedback_aplicar",
         "screen-monitoria-contestacoes": "monitoria.reanalisar",
-        "screen-monitoria-minhas": "monitoria.visualizar",
+        "screen-monitoria-minhas": "monitoria.contestar",
         "screen-monitoria-dashboard": "monitoria.dashboard",
         "screen-monitoria-relatorios": "monitoria.relatorios",
         "screen-monitoria-planos": "monitoria.plano_acao_visualizar",
         "screen-monitoria-logs": "monitoria.logs",
+        "screen-monitoria-formularios": "monitoria.matriz",
+        "screen-monitoria-equipes": "monitoria.equipes",
+        "screen-monitoria-usuarios": "monitoria.usuarios",
+        "screen-monitoria-guia": "monitoria.visualizar",
         "screen-settings-monitoria": "monitoria.configurar",
     }
 )

@@ -4,7 +4,7 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 
 ## Fase atual
 - Fase A CONCLUÍDA (3 rodadas; "pode implementar" recebido em 20/set/2026).
-- Fase B aprovada (20/set/2026). C1 concluída (b544aac). C2+C3 backend concluídos (d4a97e3). **C4 backend concluído** (dashboard, relatórios XLSX/CSV, exportar/e-mail, logs, guia, planos, zona de risco, identidade/tema). **Falta: FRONTEND de tudo ([~]) = C5** e Fase D.
+- Fase B aprovada (20/set/2026). C1 (b544aac), C2+C3 (d4a97e3), C4 (b3de26b) e **C5 concluídas**. Próxima: Fase D (auditoria única).
 - Depois: Fase C (C1..C5, commit por fase) → Fase D (auditoria).
 
 ## Decisões da rodada 3
@@ -58,29 +58,29 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - [x] M11 Motor de cálculo único
 - [x] M12 Snapshot imutável (+ trigger/constraint)
 - [x] M13 ID de 8 dígitos único
-- [~] M14 Formulário de monitoria no Conecta
-- [~] M15 Gestão de formulário versionado
+- [x] M14 Formulário de monitoria no Conecta
+- [x] M15 Gestão de formulário versionado
 ### C3 — Fluxo, SLA e automações
 - [x] M16 Máquina de status + linha do tempo
-- [~] M17 Feedback
-- [~] M18 Confirmação/contestação do operador
-- [~] M19 Reanálise do supervisor
+- [x] M17 Feedback
+- [x] M18 Confirmação/contestação do operador
+- [x] M19 Reanálise do supervisor
 - [x] M20 Job de SLA idempotente + log
 - [x] M21 Plano de Ação + revisões + relatório
 ### C4 — Análise e saída
-- [~] M22 Dashboard
-- [~] M23 Histórico + busca + gráficos
-- [~] M24 Relatórios + XLSX/CSV
-- [~] M25 Exportar + compartilhar por e-mail
-- [~] M26 Logs imutáveis
-- [~] M27 Guia de Processos
+- [x] M22 Dashboard
+- [x] M23 Histórico + busca + gráficos
+- [x] M24 Relatórios + XLSX/CSV
+- [x] M25 Exportar + compartilhar por e-mail
+- [x] M26 Logs imutáveis
+- [x] M27 Guia de Processos
 ### C5 — Interface, tema e configurações
-- [ ] M28 Telas iniciais por perfil
-- [ ] M29 Menu suspenso reduzido + submenu Monitorias
-- [ ] M30 Login sem referências a RH
-- [~] M31 Central de Monitoria nas Configurações + Zona de Risco
-- [~] M32 Cor primária e logo por operação
-- [~] M33 Gestor e Adm com acesso à Central de Monitoria
+- [x] M28 Telas iniciais por perfil
+- [x] M29 Menu suspenso reduzido + submenu Monitorias
+- [x] M30 Login sem referências a RH
+- [x] M31 Central de Monitoria nas Configurações + Zona de Risco
+- [x] M32 Cor primária e logo por operação
+- [x] M33 Gestor e Adm com acesso à Central de Monitoria
 ### D — Auditoria final
 - [ ] M34 Não-regressão
 - [ ] M35 Vazamento entre operações
@@ -103,3 +103,11 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - Motor único: `services/monitoria_indicadores.py` (dashboard=relatórios=export=ranking). `monitoria_export.py` (XLSX/CSV com proteção de fórmula), `monitoria_tema.py` (contraste WCAG AA da cor da operação).
 - Coluna 'BAIXA' do prompt virou 'ANULADA' (decisão do RH). Guia de Processos seedado (8 tópicos) e editável.
 - Rotas em `routers/monitoria.py`; logo pública `/monitoria/logos/{arquivo}` (nome aleatório).
+
+## Notas C5
+- Frontend em `apps/frontend/fonte/features/monitoria/` (index, formulario, detalhe, listas, painel, admin, central, global, comum). Rotas SPA em `monitorias/*` (NÃO `monitoria/*`: colidiria com as rotas GET da API — pego na verificação em navegador).
+- Verificado no navegador (banco DEV, tokens sintéticos): Início por sessões (Supervisor/Operador/Qualidade), menu reduzido, lista/detalhe, dashboard, formulário com nota calculada no servidor, Central de Monitoria, Perfis e Permissões (toggle "Sessão liberada").
+- Migration V038 restaura `inicio.visualizar` do Supervisor e retira as sessões de RH dele (aplicada no DEV).
+- Tema/logo por operação aplicados só a quem pertence à operação (perfis globais nunca); usuário com 2+ operações escolhe o design 1x (modal), Adm libera nova escolha.
+- Caddyfile ganhou `/monitoria/*`.
+- Não executado: Playwright e2e (sem node_modules no ambiente). Pendências conscientes: identidade visual (cor/logo) fica em Configurações > Central de Monitoria (não em "Ambiente"); campos turno/equipe/supervisores estão na tela Monitoria > Usuários (o formulário antigo de Configurações > Usuários só ganhou filtro por operação e ocultação de perfis).

@@ -62,6 +62,7 @@ const SESSOES_PERMISSAO = [
   { id: 'gestao', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
   { id: 'drive', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
   { id: 'treinamentos', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
+  { id: 'monitoria', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
   {
     id: 'configuracoes',
     label: 'Configurações',
@@ -83,6 +84,8 @@ const ICONE_POR_PERFIL = {
   funcionario: 'badge',
   supervisor: 'shield_person',
   operador: 'support_agent',
+  qualidade: 'fact_check',
+  control_desk: 'monitoring',
 };
 
 function ToggleSwitch({ checked, disabled, onChange }) {
@@ -2230,6 +2233,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                 <h3>${perfilSelecionado.nome}</h3>
                                               </div>
                                               <div class="settings-card-actions">
+                                                <label class="settings-session-master" title="Liga ou desliga o acesso deste nível a toda a sessão (menu, tela inicial e telas)">
+                                                  <${ToggleSwitch}
+                                                    checked=${permissoesPerfilDraft.includes(`sessao.${sessaoAtiva.id}.acessar`)}
+                                                    disabled=${!perfisDesbloqueados}
+                                                    onChange=${() => alternarPermissao(`sessao.${sessaoAtiva.id}.acessar`)}
+                                                  />
+                                                  <span>Sessão liberada</span>
+                                                </label>
                                                 <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
                                                 ${usuariosPerfilSelecionado.length
                         ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`

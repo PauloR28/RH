@@ -358,6 +358,40 @@ class MonitoriaAnaliseRepositoryMixin:
             conn.close()
         return {"success": True, "enviados": len(emails)}
 
+    def mon_destinatarios_elegiveis(self, user, ids: list[int]) -> list[dict]:
+        """Usuários ativos que PODEM ver todas as monitorias informadas (base do
+        seletor de destinatários do compartilhamento por e-mail)."""
+        detalhes = [self.mon_detalhe(user, str(i)) for i in ids[:100]]
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_usuario, nome, sobrenome, email, perfil_id FROM dbo.usuarios WHERE status = 'Ativo' ORDER BY nome")
+            usuarios = rows_to_dicts(cursor, cursor.fetchall())
+            cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
+            ops: dict[int, list[str]] = {}
+            for id_u, operacao in cursor.fetchall():
+                ops.setdefault(int(id_u), []).append(normalize_text(operacao))
+            cursor.execute("SELECT id_supervisor, id_operador FROM dbo.usuarios_supervisores")
+            sup: dict[int, set[int]] = {}
+            for id_s, id_o in cursor.fetchall():
+                sup.setdefault(int(id_s), set()).add(int(id_o))
+        finally:
+            conn.close()
+        elegiveis = []
+        for u in usuarios:
+            perfil = get_role_definition(u["perfil_id"]).id
+            if "monitoria.visualizar" not in get_role_permissions(perfil) or int(u["id_usuario"]) == user.id_usuario:
+                continue
+            id_u = int(u["id_usuario"])
+            if all(
+                pode_ver_detalhe_monitoria(perfil=perfil, id_usuario=id_u, operacoes_usuario=ops.get(id_u, []), operacao=d["operacao"],
+                                           id_operador=int(d["id_operador"]), operadores_supervisionados=sup.get(id_u, set()))
+                for d in detalhes
+            ):
+                elegiveis.append({"id_usuario": id_u, "nome": " ".join(x for x in (normalize_text(u["nome"]), normalize_text(u.get("sobrenome"))) if x),
+                                  "email": normalize_text(u["email"]), "perfil": get_role_definition(perfil).name})
+        return elegiveis
+
     # ------------------------------------------------------------------
     # Logs (imutáveis) — Adm: tudo; Supervisor: só o escopo das suas operações
     # ------------------------------------------------------------------

@@ -19,6 +19,24 @@ Todas as mudanças relevantes seguem [Versionamento Semântico](https://semver.o
 - Dockerfiles, Compose DEV/HML/PROD, Caddy/TLS e migrations SQL.
 - CI, verificações de segurança, ADRs e runbooks.
 
+- **Monitoria (vertente nova, 20/set/2026):** Central de Monitoria com formulário versionado por operação
+  (matriz 1.0 com 8 blocos), motor de nota único (SIM/NÃO/NCG/N/A, bloco nulo com redistribuição, mínimo de
+  3 blocos, NCG zera), monitoria realizada imutável (snapshot + trigger), ID de 8 dígitos, feedback (72h),
+  confirmação/contestação do operador (48h, evidências) e reanálise (72h, manter ou anular), job de SLA idempotente,
+  planos de ação, dashboard (Geral/Equipe/Período/Operador, Top 3/5/10/15), relatórios e exportação XLSX/CSV,
+  compartilhamento por e-mail, logs imutáveis com IP, guia de processos, equipes/turnos/canais administráveis,
+  perfis Qualidade e Control Desk, escopo por operação (deny por padrão), tema/logo por operação, tela inicial por
+  sessões e chaves-mestras de sessão em Perfis e Permissões. Migrations `V037__monitoria.sql` e
+  `V038__monitoria_inicio_supervisor.sql`.
+- Operador com vínculo de operação passa a acessar a web; troca obrigatória de senha no primeiro acesso para contas
+  com login por senha; "Esqueci a senha" na tela de login (ainda desativado).
+- Isolamento por operação (aditivo) nas trilhas, atribuições e relatórios de Treinamentos.
+
+### Alterado (Monitoria)
+
+- Tela de login sem referências diretas a RH ("Conecta" / "Acesse sua conta"); perfil `rh` passa a exibir "Analista".
+- Supervisor e Operador deixam de abrir direto na Central de Treinamentos: o Início lista uma div por sessão liberada.
+
 ### Alterado
 
 - O bootstrap administrativo não usa mais senha padrão conhecida.

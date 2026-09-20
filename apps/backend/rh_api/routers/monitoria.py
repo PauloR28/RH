@@ -15,6 +15,7 @@ from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.monitoria import (
+    CalcularRequest,
     CatalogoRequest,
     ContestacaoRequest,
     EquipeRequest,
@@ -222,6 +223,12 @@ def salvar_matriz(
 # ---------------------------------------------------------------------------
 # Realização e consulta de monitorias
 # ---------------------------------------------------------------------------
+@router.post("/calcular", dependencies=[Depends(require_permissions("monitoria.criar"))])
+def calcular_previa(payload: CalcularRequest, user: AuthenticatedUser = Depends(get_current_user),
+                    repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_calcular(user, payload.operacao, payload.respostas)
+
+
 @router.get("/operadores", dependencies=[Depends(require_permissions("monitoria.criar"))])
 def listar_operadores(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return {"itens": repository.mon_operadores_elegiveis(user, operacao)}
@@ -446,6 +453,13 @@ def exportar_monitorias(
 ):
     conteudo, nome, mime = repository.mon_exportar_monitorias(user, payload.ids, ip=client_ip(request))
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.get("/destinatarios", dependencies=[Depends(require_permissions("monitoria.exportar"))])
+def destinatarios_elegiveis(ids: str, user: AuthenticatedUser = Depends(get_current_user),
+                            repository: DatabaseRepository = Depends(get_repository)):
+    lista = [int(x) for x in ids.split(",") if x.strip().isdigit()]
+    return {"itens": repository.mon_destinatarios_elegiveis(user, lista)}
 
 
 @router.post("/compartilhar", dependencies=[Depends(require_permissions("monitoria.exportar"))])

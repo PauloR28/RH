@@ -206,6 +206,67 @@ export const PERMISSOES_TELAS = {
   'screen-exam': 'provas.enviar',
   'screen-result': 'provas.visualizar',
   'screen-thanks': 'provas.enviar',
+  // Vertente Monitoria
+  'screen-monitoria': 'monitoria.visualizar',
+  'screen-monitoria-nova': 'monitoria.criar',
+  'screen-monitoria-feedback': 'monitoria.feedback_aplicar',
+  'screen-monitoria-contestacoes': 'monitoria.reanalisar',
+  'screen-monitoria-minhas': 'monitoria.contestar',
+  'screen-monitoria-dashboard': 'monitoria.dashboard',
+  'screen-monitoria-planos': 'monitoria.plano_acao_visualizar',
+  'screen-monitoria-relatorios': 'monitoria.relatorios',
+  'screen-monitoria-formularios': 'monitoria.matriz',
+  'screen-monitoria-equipes': 'monitoria.equipes',
+  'screen-monitoria-usuarios': 'monitoria.usuarios',
+  'screen-monitoria-logs': 'monitoria.logs',
+  'screen-monitoria-guia': 'monitoria.visualizar',
+  'screen-settings-monitoria': 'monitoria.configurar',
+};
+
+// Sessão (chave-mestra liga/desliga em Perfis e Permissões) a que cada tela pertence.
+// A chave só restringe quando o token traz permissões "sessao.*" (tokens antigos
+// continuam funcionando até o próximo login).
+export const SESSAO_DA_TELA = {
+  'screen-email-inbox': 'curriculos',
+  'screen-candidates': 'curriculos',
+  'screen-candidate-details': 'curriculos',
+  'screen-candidate-pipeline': 'curriculos',
+  'screen-talent-bank': 'curriculos',
+  'screen-history': 'curriculos',
+  'screen-process-create': 'processos',
+  'screen-processes': 'processos',
+  'screen-processes-open': 'processos',
+  'screen-processes-closed': 'processos',
+  'screen-process-decisions': 'processos',
+  'screen-process-details': 'processos',
+  'screen-interviews': 'processos',
+  'screen-generated-exams': 'provas',
+  'screen-process-analytical-results': 'provas',
+  'screen-dashboard-funil': 'gestao',
+  'screen-analysis-candidates': 'gestao',
+  'screen-calendario': 'gestao',
+  'screen-mural': 'gestao',
+  'screen-onedrive-files': 'drive',
+  'screen-training': 'treinamentos',
+  'screen-training-trilhas': 'treinamentos',
+  'screen-training-mine': 'treinamentos',
+  'screen-training-assignments': 'treinamentos',
+  'screen-training-create': 'treinamentos',
+  'screen-training-manage': 'treinamentos',
+  'screen-monitoria': 'monitoria',
+  'screen-monitoria-nova': 'monitoria',
+  'screen-monitoria-feedback': 'monitoria',
+  'screen-monitoria-contestacoes': 'monitoria',
+  'screen-monitoria-minhas': 'monitoria',
+  'screen-monitoria-dashboard': 'monitoria',
+  'screen-monitoria-planos': 'monitoria',
+  'screen-monitoria-relatorios': 'monitoria',
+  'screen-monitoria-formularios': 'monitoria',
+  'screen-monitoria-equipes': 'monitoria',
+  'screen-monitoria-usuarios': 'monitoria',
+  'screen-monitoria-logs': 'monitoria',
+  'screen-monitoria-guia': 'monitoria',
+  'screen-settings-monitoria': 'configuracoes',
 };
 const logger = criarLogger('controlador-aplicacao');
 
@@ -1074,9 +1135,17 @@ export function useControladorAplicacao() {
   const possuiAlgumaPermissao = (...permissoes) =>
     permissoes.some((permissao) => possuiPermissao(permissao));
 
+  const sessaoLiberada = (sessao) => {
+    if (!sessao) return true;
+    const permissoes = estado.permissoesUsuario || [];
+    // Sem nenhuma chave "sessao.*" no token (sessão antiga), nada é restringido.
+    if (!permissoes.some((permissao) => permissao.startsWith('sessao.'))) return true;
+    return permissoes.includes(`sessao.${sessao}.acessar`);
+  };
+
   const podeAcessarTela = (tela) => {
     const permissao = PERMISSOES_TELAS[tela];
-    return !permissao || possuiPermissao(permissao);
+    return (!permissao || possuiPermissao(permissao)) && sessaoLiberada(SESSAO_DA_TELA[tela]);
   };
 
   const registrarAcessoNegado = (mensagem = MENSAGEM_ACESSO_NEGADO) => {
@@ -1833,6 +1902,8 @@ export function useControladorAplicacao() {
     ativarLoginLocal,
     atualizarProvedorAutenticacao,
     possuiPermissao,
+    sessaoLiberada,
+    sessaoDaTelaLiberada: (tela) => sessaoLiberada(SESSAO_DA_TELA[tela]),
     possuiAlgumaPermissao,
     podeAcessarTela,
     registrarAcessoNegado,

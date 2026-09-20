@@ -56,6 +56,20 @@ export const ROTAS_POR_TELA = {
   'screen-disc-teste': 'disc-teste',
   'screen-fit-cultural-teste': 'fit-cultural-teste',
   'screen-raciocinio-teste': 'raciocinio-teste',
+  'screen-monitoria': 'monitorias',
+  'screen-monitoria-nova': 'monitorias/nova',
+  'screen-monitoria-feedback': 'monitorias/feedback',
+  'screen-monitoria-contestacoes': 'monitorias/contestacoes',
+  'screen-monitoria-minhas': 'monitorias/minhas',
+  'screen-monitoria-dashboard': 'monitorias/dashboard',
+  'screen-monitoria-planos': 'monitorias/planos',
+  'screen-monitoria-relatorios': 'monitorias/relatorios',
+  'screen-monitoria-formularios': 'monitorias/formularios',
+  'screen-monitoria-equipes': 'monitorias/equipes',
+  'screen-monitoria-usuarios': 'monitorias/usuarios',
+  'screen-monitoria-logs': 'monitorias/logs',
+  'screen-monitoria-guia': 'monitorias/guia',
+  'screen-settings-monitoria': 'configuracoes/central-monitoria',
 };
 
 export const TELAS_POR_ROTA = Object.entries(ROTAS_POR_TELA).reduce(
