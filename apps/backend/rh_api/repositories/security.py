@@ -286,6 +286,7 @@ class SecurityRepositoryMixin:
             "atualizado_em": row.get("atualizado_em"),
             "permissoes": permissions or [],
             "operacoes": operacoes or [],
+            "deve_trocar_senha": bool(row.get("deve_trocar_senha")),
         }
 
     def authenticate_system_user(
@@ -321,6 +322,7 @@ class SecurityRepositoryMixin:
                     usuarios.mfa_secret_encrypted,
                     usuarios.avatar_ilustrado,
                     usuarios.provedor_autenticacao,
+                    ISNULL(usuarios.deve_trocar_senha, 0) AS deve_trocar_senha,
                     usuarios.criado_em,
                     usuarios.ultimo_acesso_em,
                     usuarios.criado_por,
@@ -899,6 +901,11 @@ class SecurityRepositoryMixin:
                 "UPDATE usuarios SET senha_hash = ?, atualizado_em = GETDATE() WHERE id_usuario = ?",
                 (hash_password(safe_new), int(id_usuario)),
             )
+            cursor.execute(
+                "IF COL_LENGTH('dbo.usuarios', 'deve_trocar_senha') IS NOT NULL "
+                "UPDATE dbo.usuarios SET deve_trocar_senha = 0 WHERE id_usuario = ?",
+                (int(id_usuario),),
+            )
             conn.commit()
             return {"success": True}
         finally:
@@ -1241,6 +1248,7 @@ class SecurityRepositoryMixin:
                     "nome": role.name,
                     "nivel": role.level,
                     "descricao": role.description,
+                    "oculto": role.hidden,
                     "permissoes": self._get_role_permissions_from_db(cursor, role.id),
                 }
                 for role in ROLE_DEFINITIONS.values()
@@ -1859,6 +1867,50 @@ class SecurityRepositoryMixin:
         finally:
             conn.close()
 
+    # Vertente Monitoria (promt.txt §2, respostas R-12/R-13/R3-4): operação
+    # inativa não aceita nenhuma edição (só reativação pelo Administrador) e
+    # uma operação com monitorias/matrizes nunca muda de chave nem é excluída.
+    def _operacao_em_uso_monitoria(self, cursor, chave: str) -> bool:
+        cursor.execute(
+            "SELECT TOP 1 1 FROM dbo.monitoria_matrizes WHERE operacao = ?", (chave,)
+        )
+        if cursor.fetchone():
+            return True
+        cursor.execute("SELECT TOP 1 1 FROM dbo.monitorias WHERE operacao = ?", (chave,))
+        return bool(cursor.fetchone())
+
+    def _guard_operacao_update(self, cursor, previous: dict, values: dict) -> dict:
+        ativo_anterior = bool(previous.get("ativo"))
+        if not ativo_anterior:
+            if not values.get("ativo"):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Operação inativa não pode ser editada. Reative-a primeiro.",
+                )
+            # Reativação: só o status muda, nenhum outro campo é aplicado.
+            return {
+                "chave": normalize_text(previous.get("chave")),
+                "nome": normalize_text(previous.get("nome")),
+                "descricao": normalize_text(previous.get("descricao")),
+                "categoria": normalize_text(previous.get("categoria")),
+                "payload_json": previous.get("payload_json") or "{}",
+                "ativo": 1,
+            }
+        chave_anterior = normalize_text(previous.get("chave"))
+        if values.get("chave") != chave_anterior and self._operacao_em_uso_monitoria(cursor, chave_anterior):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Esta operação já possui matriz/monitorias: a chave não pode ser alterada.",
+            )
+        return values
+
+    def _guard_operacao_delete(self, cursor, previous: dict) -> None:
+        if self._operacao_em_uso_monitoria(cursor, normalize_text(previous.get("chave"))):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Esta operação possui monitorias e não pode ser excluída. Desative-a.",
+            )
+
     def list_configuration_catalog(self) -> dict:
         conn = self._connect()
         try:
@@ -1938,6 +1990,8 @@ class SecurityRepositoryMixin:
                 if not row:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item de configuração não encontrado.")
                 previous = rows_to_dicts(cursor, [row])[0]
+                if normalize_text(tipo) == "operacoes":
+                    values = self._guard_operacao_update(cursor, previous, values)
                 cursor.execute(
                     f"""
                     UPDATE {table}
@@ -2084,6 +2138,8 @@ class SecurityRepositoryMixin:
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item de configuração não encontrado.")
             previous = rows_to_dicts(cursor, [row])[0]
+            if normalize_text(tipo) == "operacoes":
+                self._guard_operacao_delete(cursor, previous)
             cursor.execute(f"DELETE FROM {table} WHERE id_item = ?", (int(id_item),))
             self._insert_audit_log(
                 cursor,

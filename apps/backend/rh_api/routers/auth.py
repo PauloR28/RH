@@ -170,6 +170,7 @@ def _build_login_response(token: str, user: AuthenticatedUser) -> LoginResponse:
         permissoes=sorted(user.permissions),
         avatar_ilustrado=user.avatar_ilustrado,
         provedor_autenticacao=user.provedor_autenticacao,
+        deve_trocar_senha=user.deve_trocar_senha,
     )
 
 
@@ -181,7 +182,9 @@ _PERFIS_SEM_ACESSO_WEB = {"operador"}
 
 
 def _bloquear_perfil_sem_acesso_web(user: AuthenticatedUser) -> None:
-    if user.perfil in _PERFIS_SEM_ACESSO_WEB:
+    # Vertente Monitoria (20/set/2026): o Operador passa a acessar a web
+    # SOMENTE quando tem vínculo de operação; sem vínculo continua só no app.
+    if user.perfil in _PERFIS_SEM_ACESSO_WEB and not user.operacoes:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Este perfil acessa só pelo aplicativo Conecta, não pela plataforma web.",
@@ -601,6 +604,7 @@ def _build_session_response(user: AuthenticatedUser) -> SessionResponse:
         avatar_ilustrado=user.avatar_ilustrado,
         provedor_autenticacao=user.provedor_autenticacao,
         access_token=reissue_token(user),
+        deve_trocar_senha=user.deve_trocar_senha,
     )
 
 
@@ -774,6 +778,30 @@ def update_my_password(
         entidade_id=str(user.id_usuario),
     )
     return SuccessResponse(message="Senha atualizada.")
+
+
+@router.post("/me/senha-inicial", response_model=SessionResponse)
+def change_initial_password(
+    payload: UpdateOwnPasswordRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+) -> SessionResponse:
+    """Troca obrigatória da senha definida na criação do usuário (primeiro
+    acesso). Reemite a sessão já sem a trava de troca de senha."""
+    if user.id_usuario is None:
+        raise HTTPException(status_code=400, detail="Este usuário não possui cadastro para alterar a senha.")
+    if payload.nova_senha == payload.senha_atual:
+        raise HTTPException(status_code=422, detail="A nova senha deve ser diferente da senha atual.")
+    repository.update_own_password(user.id_usuario, payload.senha_atual, payload.nova_senha)
+    audit_action(
+        repository,
+        user,
+        modulo="Configurações",
+        acao="trocar_senha_primeiro_acesso",
+        entidade="usuario",
+        entidade_id=str(user.id_usuario),
+    )
+    return _build_session_response(replace(user, deve_trocar_senha=False))
 
 
 @router.post("/mfa/setup", response_model=MfaSetupResponse)

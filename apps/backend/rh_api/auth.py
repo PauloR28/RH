@@ -62,6 +62,9 @@ class AuthenticatedUser:
     # passa a restringir quando alguém atribuir operações a este usuário em
     # dbo.usuarios_operacoes.
     operacoes: frozenset[str] = field(default_factory=frozenset)
+    # Vertente Monitoria: senha definida pelo criador do usuário; até trocá-la
+    # no primeiro acesso, nenhuma rota (fora /auth/*) é liberada.
+    deve_trocar_senha: bool = False
 
     def has_permission(self, permission: str) -> bool:
         return permission in self.permissions
@@ -112,6 +115,7 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
         "avatar": user.avatar_ilustrado,
         "provedor_autenticacao": user.provedor_autenticacao,
         "operacoes": sorted(user.operacoes),
+        "pwd": bool(user.deve_trocar_senha),
     }
 
 
@@ -176,6 +180,7 @@ def _user_from_record(record: dict | None) -> AuthenticatedUser:
         operacoes=frozenset(
             normalize_text(item) for item in (safe_record.get("operacoes") or []) if normalize_text(item)
         ),
+        deve_trocar_senha=bool(safe_record.get("deve_trocar_senha")),
     )
 
 
@@ -287,4 +292,5 @@ def validate_access_token(token: str) -> AuthenticatedUser:
         operacoes=frozenset(
             normalize_text(item) for item in (data.get("operacoes") or []) if normalize_text(item)
         ),
+        deve_trocar_senha=bool(data.get("pwd")),
     )

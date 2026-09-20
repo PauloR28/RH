@@ -56,6 +56,7 @@ class LoginResponse(BaseSchema):
     permissoes: list[str] = []
     avatar_ilustrado: str = ""
     provedor_autenticacao: str = ""
+    deve_trocar_senha: bool = False
 
 
 class SessionResponse(BaseSchema):
@@ -72,6 +73,7 @@ class SessionResponse(BaseSchema):
     avatar_ilustrado: str = ""
     provedor_autenticacao: str = ""
     access_token: str = ""
+    deve_trocar_senha: bool = False
 
 
 class UpdateAvatarRequest(BaseSchema):

@@ -25,6 +25,7 @@ def get_repository() -> DatabaseRepository:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    request: Request = None,
 ) -> AuthenticatedUser:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
@@ -34,6 +35,13 @@ def get_current_user(
 
     user = validate_access_token(credentials.credentials)
     user_id_var.set(str(user.id_usuario or user.username))
+    # Primeiro acesso: só as rotas de autenticação (trocar a senha, sessão,
+    # logout) ficam liberadas até a senha inicial ser trocada.
+    if user.deve_trocar_senha and request is not None and not request.url.path.startswith("/auth/"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="TROCA_SENHA_OBRIGATORIA: altere a senha inicial para continuar.",
+        )
     return user
 
 

@@ -13,6 +13,9 @@ ROLE_ADMIN = "administrador"
 ROLE_EMPLOYEE = "funcionario"
 ROLE_SUPERVISOR = "supervisor"
 ROLE_OPERATOR = "operador"
+# Vertente Monitoria (promt.txt, rodada 20/set/2026): dois perfis novos.
+ROLE_QUALIDADE = "qualidade"
+ROLE_CONTROL_DESK = "control_desk"
 
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
@@ -32,6 +35,10 @@ class RoleDefinition:
     name: str
     level: str
     description: str
+    # Perfis mantidos no código/banco por compatibilidade (ex.: o app usa
+    # "funcionario") mas que não aparecem nas listas de criação de usuário nem
+    # em Perfis e Permissões — o RH definiu o conjunto visível de níveis.
+    hidden: bool = False
 
 
 ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
@@ -43,7 +50,7 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
     ),
     ROLE_DP: RoleDefinition(
         id=ROLE_DP,
-        name="DP",
+        name="Departamento Pessoal (DP)",
         level="Alto",
         description="Documentação, admissão e substituição operacional do processo seletivo.",
     ),
@@ -55,7 +62,9 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
     ),
     ROLE_RH: RoleDefinition(
         id=ROLE_RH,
-        name="RH",
+        # Nome exibido "Analista" (o funcionário regular do RH). O identificador
+        # interno continua "rh" para não quebrar usuários, tokens e permissões.
+        name="Analista",
         level="Avançado",
         description="Operação completa do recrutamento e seleção.",
     ),
@@ -64,6 +73,7 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
         name="Candidato",
         level="Portal",
         description="Acesso somente aos próprios fluxos públicos e de prova.",
+        hidden=True,
     ),
     ROLE_ADMIN: RoleDefinition(
         id=ROLE_ADMIN,
@@ -76,6 +86,7 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
         name="Funcionário",
         level="Básico",
         description="Colaborador com acesso de autoatendimento e à Central de Treinamentos.",
+        hidden=True,
     ),
     ROLE_SUPERVISOR: RoleDefinition(
         id=ROLE_SUPERVISOR,
@@ -87,7 +98,19 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
         id=ROLE_OPERATOR,
         name="Operador",
         level="Básico",
-        description="Colaborador operacional com acesso de autoatendimento e à Central de Treinamentos.",
+        description="Colaborador operacional com acesso de autoatendimento, à Central de Treinamentos e às próprias monitorias.",
+    ),
+    ROLE_QUALIDADE: RoleDefinition(
+        id=ROLE_QUALIDADE,
+        name="Qualidade",
+        level="Intermediário",
+        description="Analista de Qualidade: realiza monitorias, aplica feedback e acompanha a qualidade das operações vinculadas.",
+    ),
+    ROLE_CONTROL_DESK: RoleDefinition(
+        id=ROLE_CONTROL_DESK,
+        name="Control Desk",
+        level="Intermediário",
+        description="Visualiza dashboards e relatórios de qualidade de todas as operações, cada uma identificada por tag.",
     ),
 }
 
@@ -299,6 +322,29 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
             "Excluir publicações do Mural.",
             critical=True,
         ),
+        _permission("sessao.curriculos.acessar", "Sessões", "Acessar a sessão Caixa de Currículos."),
+        _permission("sessao.processos.acessar", "Sessões", "Acessar a sessão Processos."),
+        _permission("sessao.provas.acessar", "Sessões", "Acessar a sessão Provas."),
+        _permission("sessao.gestao.acessar", "Sessões", "Acessar a sessão Gestão."),
+        _permission("sessao.drive.acessar", "Sessões", "Acessar a sessão Drive."),
+        _permission("sessao.treinamentos.acessar", "Sessões", "Acessar a sessão Treinamentos."),
+        _permission("sessao.configuracoes.acessar", "Sessões", "Acessar a sessão Configurações."),
+        _permission("sessao.monitoria.acessar", "Sessões", "Acessar a sessão Monitoria."),
+        _permission("monitoria.visualizar", "Monitoria", "Consultar monitorias dentro do escopo de operação/equipe do perfil."),
+        _permission("monitoria.criar", "Monitoria", "Realizar (registrar) novas monitorias.", critical=True),
+        _permission("monitoria.feedback_aplicar", "Monitoria", "Aplicar feedback em monitorias pendentes.", critical=True),
+        _permission("monitoria.contestar", "Monitoria", "Confirmar, contestar e replicar as próprias monitorias (Operador).", critical=True),
+        _permission("monitoria.reanalisar", "Monitoria", "Reanalisar contestações (manter ou anular a monitoria).", critical=True),
+        _permission("monitoria.dashboard", "Monitoria", "Ver o dashboard de qualidade no escopo permitido."),
+        _permission("monitoria.relatorios", "Monitoria", "Consultar relatórios de monitorias, qualidade e planos de ação."),
+        _permission("monitoria.exportar", "Monitoria", "Exportar monitorias e relatórios (XLSX/CSV) e compartilhar por e-mail.", critical=True),
+        _permission("monitoria.plano_acao", "Monitoria", "Criar e revisar planos de ação de operadores.", critical=True),
+        _permission("monitoria.plano_acao_visualizar", "Monitoria", "Visualizar planos de ação dentro do escopo."),
+        _permission("monitoria.logs", "Monitoria", "Consultar os logs de auditoria da Monitoria (escopo da operação).", critical=True),
+        _permission("monitoria.matriz", "Monitoria", "Criar e editar formulários (matriz) versionados por operação.", critical=True),
+        _permission("monitoria.equipes", "Monitoria", "Gerenciar equipes, turnos, canais e tipos de atendimento.", critical=True),
+        _permission("monitoria.configurar", "Monitoria", "Acessar a Central de Monitoria nas Configurações (SLAs, guia, zona de risco).", critical=True),
+        _permission("monitoria.usuarios", "Monitoria", "Criar/editar usuários subordinados na hierarquia da Monitoria.", critical=True),
     )
 }
 
@@ -512,6 +558,97 @@ SCREEN_PERMISSIONS: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Vertente Monitoria (promt.txt, rodada 20/set/2026)
+# ---------------------------------------------------------------------------
+# Permissões-base (escopo padrão) dos perfis na Central de Monitoria. Tudo é
+# editável pelo Administrador em Perfis e Permissões; o que o docx chama de
+# "conforme permissão" fica DESLIGADO por padrão.
+_MONITORIA_READ = {"sessao.monitoria.acessar", "monitoria.visualizar", "monitoria.dashboard", "monitoria.relatorios", "monitoria.plano_acao_visualizar"}
+_MONITORIA_ROLE_PERMISSIONS: dict[str, set[str]] = {
+    # Gestor: leitura total + exportar (todas as operações; escopo aplicado no serviço).
+    ROLE_MANAGER: _MONITORIA_READ | {"monitoria.exportar"},
+    ROLE_SUPERVISOR: _MONITORIA_READ
+    | {
+        "monitoria.criar",
+        "monitoria.feedback_aplicar",
+        "monitoria.reanalisar",
+        "monitoria.exportar",
+        "monitoria.plano_acao",
+        "monitoria.logs",
+        "monitoria.equipes",
+        "monitoria.usuarios",
+        "operacoes.visualizar",
+    },
+    ROLE_QUALIDADE: _MONITORIA_READ
+    | {
+        "inicio.visualizar",
+        "notificacoes.visualizar",
+        "monitoria.criar",
+        "monitoria.feedback_aplicar",
+        "monitoria.exportar",
+        "monitoria.plano_acao",
+        "monitoria.usuarios",
+        "operacoes.visualizar",
+    },
+    ROLE_CONTROL_DESK: _MONITORIA_READ
+    | {
+        "inicio.visualizar",
+        "notificacoes.visualizar",
+        "monitoria.exportar",
+        "operacoes.visualizar",
+    },
+    ROLE_OPERATOR: {
+        "sessao.monitoria.acessar",
+        "monitoria.visualizar",
+        "monitoria.dashboard",
+        "monitoria.contestar",
+        "monitoria.plano_acao_visualizar",
+    },
+}
+for _role_id, _perms in _MONITORIA_ROLE_PERMISSIONS.items():
+    ROLE_PERMISSIONS.setdefault(_role_id, set()).update(_perms)
+
+# Sessões do Conecta (Perfis e Permissões: uma chave-mestra liga/desliga a
+# sessão inteira para o nível). Perfis existentes recebem a chave das sessões
+# em que já possuem alguma permissão (sem regressão de acesso); o Administrador
+# ajusta depois.
+SESSION_MODULES: dict[str, set[str]] = {
+    "curriculos": {"Candidatos", "Vagas"},
+    "processos": {"Processos", "Entrevistas", "Etapas e Trilhas"},
+    "provas": {"Provas", "Fit Cultural"},
+    "gestao": {"Relatórios", "Calendário"},
+    "drive": {"OneDrive", "Documentos"},
+    "treinamentos": {"Onboarding"},
+    "configuracoes": {"Configurações", "Usuários", "LGPD", "E-mails", "Templates de Documentos", "Central de Documentos", "Logs", "Políticas"},
+}
+for _role_id, _perms in list(ROLE_PERMISSIONS.items()):
+    if _role_id in (ROLE_ADMIN, ROLE_CANDIDATE):
+        continue
+    for _session_id, _modules in SESSION_MODULES.items():
+        if any(
+            PERMISSION_DEFINITIONS[key].module in _modules
+            for key in _perms
+            if key in PERMISSION_DEFINITIONS
+        ):
+            _perms.add(f"sessao.{_session_id}.acessar")
+
+SCREEN_PERMISSIONS.update(
+    {
+        "screen-monitoria": "monitoria.visualizar",
+        "screen-monitoria-nova": "monitoria.criar",
+        "screen-monitoria-feedback": "monitoria.feedback_aplicar",
+        "screen-monitoria-contestacoes": "monitoria.reanalisar",
+        "screen-monitoria-minhas": "monitoria.visualizar",
+        "screen-monitoria-dashboard": "monitoria.dashboard",
+        "screen-monitoria-relatorios": "monitoria.relatorios",
+        "screen-monitoria-planos": "monitoria.plano_acao_visualizar",
+        "screen-monitoria-logs": "monitoria.logs",
+        "screen-settings-monitoria": "monitoria.configurar",
+    }
+)
+
+
 SETTINGS_CATALOGS: dict[str, dict[str, str]] = {
     "geral": {"table": "configuracoes_sistema", "label": "Geral"},
     "lgpd": {"table": "configuracoes_lgpd", "label": "LGPD e Retenção"},
@@ -558,6 +695,11 @@ def normalize_role_id(value: str | None) -> str:
         "colaborador": ROLE_EMPLOYEE,
         "supervisor": ROLE_SUPERVISOR,
         "operador": ROLE_OPERATOR,
+        "analista": ROLE_RH,
+        "qualidade": ROLE_QUALIDADE,
+        "analista_de_qualidade": ROLE_QUALIDADE,
+        "control_desk": ROLE_CONTROL_DESK,
+        "controldesk": ROLE_CONTROL_DESK,
     }
     return aliases.get(normalized, normalized)
 

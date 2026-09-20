@@ -493,6 +493,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [usuarios, setUsuarios] = useState([]);
   const [operacoesDisponiveis, setOperacoesDisponiveis] = useState([]);
   const [perfis, setPerfis] = useState([]);
+  // Perfis mantidos por compatibilidade (ex.: Funcionário, do app) não aparecem nas listas.
+  const perfisVisiveis = useMemo(() => perfis.filter((perfil) => !perfil.oculto), [perfis]);
   const [permissoes, setPermissoes] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
   const [formEndereco, setFormEndereco] = useState({ ...ENDERECO_PRINCIPAL_INICIAL });
@@ -1364,12 +1366,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       if (status && normalizarBusca(textoSeguro(usuario?.status, '')) !== status) return false;
       if (perfil && normalizarBusca(textoSeguro(usuario?.perfil, '')) !== perfil) return false;
       if (area) {
+        const operacoesUsuario = (Array.isArray(usuario?.operacoes) ? usuario.operacoes : []).map((item) => normalizarBusca(item));
         const textoArea = textoCampos(
           textoSeguro(usuario?.area, ''),
           textoSeguro(usuario?.operacao, ''),
           textoSeguro(usuario?.departamento, ''),
         );
-        if (!textoArea.includes(area)) return false;
+        if (!operacoesUsuario.includes(area) && !textoArea.includes(area)) return false;
       }
       if (acesso === 'sem_acesso' && usuario?.ultimo_acesso) return false;
       if (acesso === 'recentes') {
@@ -1703,19 +1706,23 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           onChange=${(event) => atualizarFiltroUsuario('perfil', event.target.value)}
                         >
                           <option value="">Todos</option>
-                          ${perfis.map(
+                          ${perfisVisiveis.map(
           (perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`,
         )}
                         </select>
                       </label>
                       <label>
-                        <span>Área/op.</span>
-                        <input
-                          class="form-control"
-                          placeholder="Área ou operação"
+                        <span>Operação</span>
+                        <select
+                          class="form-select"
                           value=${filtrosUsuarios.area}
-                          onInput=${(event) => atualizarFiltroUsuario('area', event.target.value)}
-                        />
+                          onChange=${(event) => atualizarFiltroUsuario('area', event.target.value)}
+                        >
+                          <option value="">Todas</option>
+                          ${operacoesDisponiveis.map(
+          (operacao) => html`<option key=${operacao.id_item} value=${operacao.chave || operacao.nome}>${operacao.nome}</option>`,
+        )}
+                        </select>
                       </label>
                       <label>
                         <span>Acesso</span>
@@ -1841,7 +1848,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           value=${formUsuario.perfil}
                           onChange=${(event) => setFormUsuario({ ...formUsuario, perfil: event.target.value })}
                         >
-                          ${perfis.map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
+                          ${perfis
+          .filter((perfil) => !perfil.oculto || perfil.id === formUsuario.perfil)
+          .map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
                         </select>
                       </label>
                       <label>
@@ -2176,7 +2185,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         ${perfis.length
         ? html`
               <nav class="settings-permission-tree">
-                ${perfis.map((perfil) => {
+                ${perfisVisiveis.map((perfil) => {
           const expandido = perfilSelecionado?.id === perfil.id;
           return html`
                     <div class=${`settings-permission-tree-node ${expandido ? 'is-expanded' : ''}`.trim()} key=${perfil.id}>

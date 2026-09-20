@@ -27,6 +27,7 @@ from ..schemas.onboarding import (
     VincularTrilhaProcessoRequest,
 )
 from ..services.office_conversion import convert_office_document_to_pdf
+from ..services.operacao_escopo import exigir_trilha_visivel, trilhas_visiveis, usuario_restrito
 from ..services.training_uploads import (
     CATEGORIA_DOCUMENTO,
     CATEGORIA_IMAGEM,
@@ -50,14 +51,27 @@ _MIME_POR_EXTENSAO = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image
 def list_onboarding_trilhas(
     categoria: str = "",
     id_operacao: int = 0,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.list_onboarding_trilhas(categoria=categoria or None, id_operacao=id_operacao or None)
+    trilhas = repository.list_onboarding_trilhas(categoria=categoria or None, id_operacao=id_operacao or None)
+    return trilhas_visiveis(repository, user, trilhas)
 
 
 @router.get("/assignments", dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))])
-def list_onboarding_assignments(status: str = "", repository: DatabaseRepository = Depends(get_repository)):
-    return repository.list_onboarding_assignments(status_filtro=status or None)
+def list_onboarding_assignments(
+    status: str = "",
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    atribuicoes = repository.list_onboarding_assignments(status_filtro=status or None)
+    if not usuario_restrito(user):
+        return atribuicoes
+    visiveis = {
+        int(item["id_trilha"])
+        for item in trilhas_visiveis(repository, user, repository.list_onboarding_trilhas())
+    }
+    return [item for item in atribuicoes if int(item.get("trilha_id") or 0) in visiveis]
 
 
 @router.put("/assignments/{id_onboarding}", dependencies=[Depends(require_permissions("onboarding.editar"))])
@@ -190,8 +204,14 @@ def vincular_trilha_a_processo(
 
 
 @router.get("/trilhas/{id_trilha}", dependencies=[Depends(require_permissions("onboarding.visualizar", "onboarding.editar"))])
-def get_onboarding_trilha(id_trilha: int, repository: DatabaseRepository = Depends(get_repository)):
-    return repository.get_onboarding_trilha(id_trilha)
+def get_onboarding_trilha(
+    id_trilha: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    trilha = repository.get_onboarding_trilha(id_trilha)
+    exigir_trilha_visivel(repository, user, trilha)
+    return trilha
 
 
 @router.post("/trilhas", dependencies=[Depends(require_permissions("onboarding.editar"))])
@@ -220,6 +240,7 @@ def update_onboarding_trilha(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    exigir_trilha_visivel(repository, user, repository.get_onboarding_trilha(id_trilha))
     result = repository.update_onboarding_trilha(id_trilha, payload.model_dump(), actor=user.username)
     audit_action(
         repository,
@@ -239,6 +260,7 @@ def delete_onboarding_trilha(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    exigir_trilha_visivel(repository, user, repository.get_onboarding_trilha(id_trilha))
     result = repository.delete_onboarding_trilha(id_trilha)
     audit_action(
         repository,
@@ -715,13 +737,21 @@ def relatorio_treinamentos_status(
     id_operacao: int = 0,
     data_inicio: str = "",
     data_fim: str = "",
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.report_treinamentos_status(
+    linhas = repository.report_treinamentos_status(
         id_operacao=id_operacao or None,
         data_inicio=data_inicio or None,
         data_fim=data_fim or None,
     )
+    if not usuario_restrito(user):
+        return linhas
+    visiveis = {
+        int(item["id_trilha"])
+        for item in trilhas_visiveis(repository, user, repository.list_onboarding_trilhas())
+    }
+    return [item for item in linhas if int(item.get("id_trilha") or 0) in visiveis]
 
 
 @router.get("/relatorios/presenca", dependencies=[Depends(require_permissions("onboarding.gerenciar"))])
@@ -730,5 +760,14 @@ def relatorio_presenca_colaborador(repository: DatabaseRepository = Depends(get_
 
 
 @router.get("/relatorios/conclusao-operacao", dependencies=[Depends(require_permissions("onboarding.gerenciar"))])
-def relatorio_conclusao_operacao(repository: DatabaseRepository = Depends(get_repository)):
-    return repository.report_conclusao_operacao()
+def relatorio_conclusao_operacao(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    linhas = repository.report_conclusao_operacao()
+    if not usuario_restrito(user):
+        return linhas
+    from ..services.operacao_escopo import ids_operacoes_do_usuario
+
+    permitidos = ids_operacoes_do_usuario(repository, user)
+    return [item for item in linhas if int(item.get("id_operacao") or 0) in permitidos]
