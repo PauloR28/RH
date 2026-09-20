@@ -6,8 +6,10 @@ acrescentados nas fases seguintes (C2–C4) neste mesmo router."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile
-from fastapi.responses import FileResponse
+import re
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, Response
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
@@ -19,8 +21,15 @@ from ..schemas.monitoria import (
     FeedbackRequest,
     MatrizConfigRequest,
     MonitoriaCriarRequest,
+    PlanoAcaoRequest,
+    PlanoAcaoRevisaoRequest,
+    CompartilharRequest,
+    ConfigMonitoriaRequest,
+    GuiaRequest,
+    IdentidadeOperacaoRequest,
     RascunhoRequest,
     ReanaliseRequest,
+    RiscoRequest,
     ReplicaRequest,
     TemaRequest,
     TransferirSupervisaoRequest,
@@ -28,6 +37,10 @@ from ..schemas.monitoria import (
 )
 
 router = APIRouter(prefix="/monitoria", tags=["monitoria"], dependencies=[Depends(get_current_user)])
+
+# Logo por operação: uma tag <img> não envia o Bearer (o token fica em sessionStorage),
+# então a rota é pública. O nome do arquivo é um token aleatório, sem enumeração possível.
+public_router = APIRouter(prefix="/monitoria", tags=["monitoria-logos-publicas"])
 
 
 def client_ip(request: Request) -> str:
@@ -352,3 +365,166 @@ def reanalisar_contestacao(
 def processar_slas(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     """Disparo manual/externo do job de SLA (o APScheduler já o executa a cada 5 min)."""
     return repository.mon_processar_slas()
+
+
+# ---------------------------------------------------------------------------
+# Planos de ação
+# ---------------------------------------------------------------------------
+@router.get("/planos", dependencies=[Depends(require_permissions("monitoria.plano_acao_visualizar", "monitoria.plano_acao"))])
+def listar_planos(
+    operacao: str = "", status: str = "", id_operador: int = 0, id_responsavel: int = 0, criterio: str = "",
+    data_inicio: str = "", data_fim: str = "", vencidos: bool = False, pagina: int = 1, por_pagina: int = 25,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    filtros = {"operacao": operacao, "status": status, "id_operador": id_operador, "id_responsavel": id_responsavel,
+               "criterio": criterio, "data_inicio": data_inicio, "data_fim": data_fim, "vencidos": vencidos}
+    return repository.mon_plano_listar(user, filtros, pagina=pagina, por_pagina=por_pagina)
+
+
+@router.get("/planos/{id_plano}", dependencies=[Depends(require_permissions("monitoria.plano_acao_visualizar", "monitoria.plano_acao"))])
+def detalhe_plano(id_plano: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_plano_detalhe(user, id_plano)
+
+
+@router.post("/planos", dependencies=[Depends(require_permissions("monitoria.plano_acao"))])
+def criar_plano(payload: PlanoAcaoRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_plano_criar(user, payload.model_dump(), ip=client_ip(request))
+
+
+@router.put("/planos/{id_plano}", dependencies=[Depends(require_permissions("monitoria.plano_acao"))])
+def revisar_plano(id_plano: int, payload: PlanoAcaoRevisaoRequest, request: Request,
+                  user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_plano_revisar(user, id_plano, payload.model_dump(), ip=client_ip(request))
+
+
+# ---------------------------------------------------------------------------
+# Dashboard, relatórios, exportação e compartilhamento
+# ---------------------------------------------------------------------------
+def _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim):
+    return {"operacao": operacao, "id_equipe": id_equipe, "id_operador": id_operador, "id_avaliador": id_avaliador,
+            "data_inicio": data_inicio, "data_fim": data_fim}
+
+
+@router.get("/dashboard", dependencies=[Depends(require_permissions("monitoria.dashboard"))])
+def dashboard(
+    modo: str = "geral", top: int = 5, granularidade: str = "mes", operacao: str = "", id_equipe: int = 0, id_operador: int = 0,
+    id_avaliador: int = 0, data_inicio: str = "", data_fim: str = "",
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_dashboard(user, _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim),
+                                    modo=modo, top=top, granularidade=granularidade)
+
+
+@router.get("/relatorios/{tipo}", dependencies=[Depends(require_permissions("monitoria.relatorios"))])
+def relatorio(
+    tipo: str, operacao: str = "", id_equipe: int = 0, id_operador: int = 0, id_avaliador: int = 0, data_inicio: str = "",
+    data_fim: str = "", status: str = "", user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    filtros = _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim)
+    filtros["status"] = status
+    return repository.mon_relatorio(user, tipo, filtros)
+
+
+@router.get("/relatorios/{tipo}/exportar", dependencies=[Depends(require_permissions("monitoria.exportar"))])
+def exportar_relatorio(
+    tipo: str, request: Request, formato: str = "xlsx", operacao: str = "", id_equipe: int = 0, id_operador: int = 0,
+    id_avaliador: int = 0, data_inicio: str = "", data_fim: str = "", status: str = "",
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    filtros = _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim)
+    filtros["status"] = status
+    conteudo, nome, mime = repository.mon_exportar(user, tipo, formato, filtros, ip=client_ip(request))
+    return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.post("/exportar/monitorias", dependencies=[Depends(require_permissions("monitoria.exportar"))])
+def exportar_monitorias(
+    payload: CompartilharRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    conteudo, nome, mime = repository.mon_exportar_monitorias(user, payload.ids, ip=client_ip(request))
+    return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.post("/compartilhar", dependencies=[Depends(require_permissions("monitoria.exportar"))])
+def compartilhar(
+    payload: CompartilharRequest, request: Request,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_compartilhar(user, payload.ids, payload.destinatarios, payload.mensagem, ip=client_ip(request))
+
+
+# ---------------------------------------------------------------------------
+# Logs, guia, configurações, zona de risco e identidade por operação
+# ---------------------------------------------------------------------------
+@router.get("/logs", dependencies=[Depends(require_permissions("monitoria.logs"))])
+def listar_logs(
+    usuario: str = "", acao: str = "", entidade: str = "", operacao: str = "", resultado: str = "", perfil: str = "",
+    data_inicio: str = "", data_fim: str = "", pagina: int = 1, por_pagina: int = 50,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    filtros = {"usuario": usuario, "acao": acao, "entidade": entidade, "operacao": operacao, "resultado": resultado,
+               "perfil": perfil, "data_inicio": data_inicio, "data_fim": data_fim}
+    return repository.mon_logs(user, filtros, pagina=pagina, por_pagina=por_pagina)
+
+
+@router.get("/guia", dependencies=[Depends(require_permissions("sessao.monitoria.acessar", "monitoria.visualizar"))])
+def listar_guia(todos: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_guia_listar(incluir_inativos=bool(todos and user.has_permission("monitoria.configurar")))}
+
+
+@router.post("/guia", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def criar_guia(payload: GuiaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+               repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_guia_salvar(user, payload.model_dump(), ip=client_ip(request))
+
+
+@router.put("/guia/{id_guia}", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def atualizar_guia(id_guia: int, payload: GuiaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                   repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_guia_salvar(user, payload.model_dump(), id_guia, ip=client_ip(request))
+
+
+@router.get("/config", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def obter_config(repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_config_obter()
+
+
+@router.put("/config", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def salvar_config(payload: ConfigMonitoriaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                  repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_config_salvar(user, payload.model_dump(), ip=client_ip(request))
+
+
+@router.post("/risco/{acao}", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def zona_de_risco(acao: str, payload: RiscoRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                  repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_risco_executar(user, acao, payload.operacao, payload.confirmacao, payload.justificativa, ip=client_ip(request))
+
+
+@router.get("/identidade", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def listar_identidade(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_identidade_listar(user)}
+
+
+@router.put("/identidade/{operacao}", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+def salvar_identidade(operacao: str, payload: IdentidadeOperacaoRequest, request: Request,
+                      user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_identidade_salvar(user, operacao, payload.cor_primaria, ip=client_ip(request))
+
+
+@router.post("/identidade/{operacao}/logo", dependencies=[Depends(require_permissions("monitoria.configurar"))])
+async def salvar_logo(operacao: str, request: Request, arquivo: UploadFile = File(...),
+                      user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    conteudo = await arquivo.read(2 * 1024 * 1024)
+    return repository.mon_logo_salvar(user, operacao, nome=arquivo.filename or "logo.png", conteudo=conteudo, ip=client_ip(request))
+
+
+@public_router.get("/logos/{arquivo}")
+def baixar_logo(arquivo: str, repository: DatabaseRepository = Depends(get_repository)):
+    if not re.match(r"^[a-z0-9]{4,20}\.(png|jpg|jpeg)$", arquivo):
+        raise HTTPException(status_code=404, detail="Logo não encontrada.")
+    caminho, mime = repository.mon_logo_arquivo(arquivo)
+    return FileResponse(caminho, media_type=mime)

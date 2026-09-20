@@ -190,7 +190,12 @@ class MonitoriaOrgRepositoryMixin:
             vinculos = self._mon_vinculos(cursor, user.id_usuario) if user.id_usuario else {}
         finally:
             conn.close()
+        from ..services.monitoria_tema import derivar_tokens
+
         operacoes = self.mon_operacoes_do_usuario(user)
+        for item in operacoes:
+            item["tokens"] = derivar_tokens(item["cor_primaria"]) if item.get("cor_primaria") else None
+            item["logo_url"] = f"/monitoria/logos/{item['logo_arquivo']}" if item.get("logo_arquivo") else ""
         return {
             "perfil": user.perfil,
             "global": escopo_global(user.perfil),

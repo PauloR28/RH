@@ -573,27 +573,29 @@ class MonitoriaRepositoryMixin:
     # ------------------------------------------------------------------
     # Consulta (lista e detalhe) — escopo aplicado em SQL E em Python
     # ------------------------------------------------------------------
-    def _mon_condicoes_escopo(self, user) -> tuple[list[str], list] | None:
-        """Condições SQL de escopo. `None` = nada pode ser visto."""
+    def _mon_condicoes_escopo(self, user, alias: str = "m", *, exigir_feedback: bool = True) -> tuple[list[str], list] | None:
+        """Condições SQL de escopo sobre uma tabela com `operacao` e `id_operador`
+        (alias `m` = monitorias, `p` = planos de ação). `None` = nada pode ser visto."""
         condicoes: list[str] = []
         params: list = []
         permitidas = operacoes_permitidas(user.perfil, user.operacoes)
         if permitidas is not None:
             if not permitidas:
                 return None
-            condicoes.append(f"m.operacao IN ({','.join('?' for _ in permitidas)})")
+            condicoes.append(f"{alias}.operacao IN ({','.join('?' for _ in permitidas)})")
             params.extend(sorted(permitidas))
         if user.perfil == ROLE_OPERATOR:
             if user.id_usuario is None:
                 return None
-            condicoes.append("m.id_operador = ?")
+            condicoes.append(f"{alias}.id_operador = ?")
             params.append(user.id_usuario)
-            # Operador só vê depois do feedback aplicado (disponibilizada para manifestação).
-            condicoes.append("EXISTS (SELECT 1 FROM dbo.monitoria_feedbacks f WHERE f.id_monitoria = m.id_monitoria)")
+            if exigir_feedback:
+                # Operador só vê depois do feedback aplicado (disponibilizada para manifestação).
+                condicoes.append(f"EXISTS (SELECT 1 FROM dbo.monitoria_feedbacks f WHERE f.id_monitoria = {alias}.id_monitoria)")
         elif user.perfil == ROLE_SUPERVISOR:
             if user.id_usuario is None:
                 return None
-            condicoes.append("m.id_operador IN (SELECT id_operador FROM dbo.usuarios_supervisores WHERE id_supervisor = ?)")
+            condicoes.append(f"{alias}.id_operador IN (SELECT id_operador FROM dbo.usuarios_supervisores WHERE id_supervisor = ?)")
             params.append(user.id_usuario)
         return condicoes, params
 

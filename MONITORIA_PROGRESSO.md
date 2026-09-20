@@ -4,7 +4,7 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 
 ## Fase atual
 - Fase A CONCLUÍDA (3 rodadas; "pode implementar" recebido em 20/set/2026).
-- Fase B aprovada (20/set/2026). C1 concluída (b544aac). **C2+C3 backend concluídos** (API+testes); as telas de M14/M15/M17/M18/M19 ([~]) entram na C5. Falta M21 (plano de ação) e C4.
+- Fase B aprovada (20/set/2026). C1 concluída (b544aac). C2+C3 backend concluídos (d4a97e3). **C4 backend concluído** (dashboard, relatórios XLSX/CSV, exportar/e-mail, logs, guia, planos, zona de risco, identidade/tema). **Falta: FRONTEND de tudo ([~]) = C5** e Fase D.
 - Depois: Fase C (C1..C5, commit por fase) → Fase D (auditoria).
 
 ## Decisões da rodada 3
@@ -66,21 +66,21 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - [~] M18 Confirmação/contestação do operador
 - [~] M19 Reanálise do supervisor
 - [x] M20 Job de SLA idempotente + log
-- [ ] M21 Plano de Ação + revisões + relatório
+- [x] M21 Plano de Ação + revisões + relatório
 ### C4 — Análise e saída
-- [ ] M22 Dashboard
-- [ ] M23 Histórico + busca + gráficos
-- [ ] M24 Relatórios + XLSX/CSV
-- [ ] M25 Exportar + compartilhar por e-mail
-- [ ] M26 Logs imutáveis
-- [ ] M27 Guia de Processos
+- [~] M22 Dashboard
+- [~] M23 Histórico + busca + gráficos
+- [~] M24 Relatórios + XLSX/CSV
+- [~] M25 Exportar + compartilhar por e-mail
+- [~] M26 Logs imutáveis
+- [~] M27 Guia de Processos
 ### C5 — Interface, tema e configurações
 - [ ] M28 Telas iniciais por perfil
 - [ ] M29 Menu suspenso reduzido + submenu Monitorias
 - [ ] M30 Login sem referências a RH
-- [ ] M31 Central de Monitoria nas Configurações + Zona de Risco
-- [ ] M32 Cor primária e logo por operação
-- [ ] M33 Gestor e Adm com acesso à Central de Monitoria
+- [~] M31 Central de Monitoria nas Configurações + Zona de Risco
+- [~] M32 Cor primária e logo por operação
+- [~] M33 Gestor e Adm com acesso à Central de Monitoria
 ### D — Auditoria final
 - [ ] M34 Não-regressão
 - [ ] M35 Vazamento entre operações
@@ -98,3 +98,8 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - Backend: `services/monitoria_engine.py` (motor único), `services/monitoria_workflow.py` (status/SLA), `repositories/monitoria.py` (matriz, criação com snapshot, consulta), `repositories/monitoria_fluxo.py` (feedback/confirmar/contestar/réplica/reanálise/anexos/job SLA), job APScheduler a cada 5 min.
 - Decisão: Operador só enxerga a monitoria depois do feedback aplicado (disponibilizada para manifestação). 'Baixada' = 'Anulada'. Docx 10.14 tinha exemplo errado (88); correto = 90 (teste cobre).
 - Testes de integração criam a operação TESTE_AUTO no banco DEV e a desativam ao final; linhas das tabelas imutáveis permanecem (só dev).
+
+## Notas C4
+- Motor único: `services/monitoria_indicadores.py` (dashboard=relatórios=export=ranking). `monitoria_export.py` (XLSX/CSV com proteção de fórmula), `monitoria_tema.py` (contraste WCAG AA da cor da operação).
+- Coluna 'BAIXA' do prompt virou 'ANULADA' (decisão do RH). Guia de Processos seedado (8 tópicos) e editável.
+- Rotas em `routers/monitoria.py`; logo pública `/monitoria/logos/{arquivo}` (nome aleatório).

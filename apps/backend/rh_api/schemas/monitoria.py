@@ -134,3 +134,9 @@ class ConfigMonitoriaRequest(BaseSchema):
 
 class IdentidadeOperacaoRequest(BaseSchema):
     cor_primaria: str = Field(default="", max_length=9)
+
+
+class RiscoRequest(BaseSchema):
+    operacao: str = Field(default="", max_length=60)
+    confirmacao: str = Field(default="", max_length=60)
+    justificativa: str = Field(default="", max_length=400)

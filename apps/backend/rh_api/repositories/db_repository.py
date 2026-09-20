@@ -22,7 +22,9 @@ from .generated_exams import GeneratedExamRepositoryMixin
 from .history import HistoryRepositoryMixin
 from .interviews import InterviewRepositoryMixin
 from .monitoria import MonitoriaRepositoryMixin
+from .monitoria_analise import MonitoriaAnaliseRepositoryMixin
 from .monitoria_fluxo import MonitoriaFluxoRepositoryMixin
+from .monitoria_planos import MonitoriaPlanosRepositoryMixin
 from .monitoria_org import MonitoriaOrgRepositoryMixin
 from .mural import MuralRepositoryMixin
 from .onboarding import OnboardingRepositoryMixin
@@ -68,6 +70,8 @@ class DatabaseRepository(
     MuralRepositoryMixin,
     MonitoriaRepositoryMixin,
     MonitoriaFluxoRepositoryMixin,
+    MonitoriaPlanosRepositoryMixin,
+    MonitoriaAnaliseRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
     BaseRepository,
 ):

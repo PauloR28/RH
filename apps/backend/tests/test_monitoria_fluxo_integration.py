@@ -435,3 +435,232 @@ def test_log_registra_a_realizacao_com_ip_e_notificacao_de_feedback_pendente(rep
         assert cursor.fetchone()[0] >= 2  # supervisor responsável + qualidade da operação
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# C4 — Dashboard, relatórios, exportação, e-mail, logs, planos, guia, identidade
+# ---------------------------------------------------------------------------
+def _garantir_dados(repo, cenario):
+    """Garante monitorias válidas de op1 e uma com NCG."""
+    for _ in range(3):
+        _criar(repo, cenario)
+    _criar(repo, cenario, respostas=_respostas(b4c1="NCG"), motivo_ncg="Ofensa")
+
+
+def test_dashboard_operador_ve_so_o_proprio_e_apenas_a_media_da_operacao(repo, cenario):
+    _garantir_dados(repo, cenario)
+    r = _criar(repo, cenario)
+    repo.mon_aplicar_feedback(cenario["sup1"], r["codigo"], {"observacao": "ok"})
+    outra = repo.mon_criar_monitoria(cenario["qual"], _dados(cenario, id_operador=cenario["op2"].id_usuario))
+    repo.mon_aplicar_feedback(cenario["sup2"], outra["codigo"], {"observacao": "ok"})
+
+    d = repo.mon_dashboard(cenario["op1"], {})
+    assert d["papel"] == "operador" and d["top"] == [] and d["por_operador"] == [] and d["por_equipe"] == []
+    assert d["media_operacao"] is not None and d["escala"]["nota_operador"] == d["resumo"]["nota_media"]
+    assert d["resumo"]["quantidade_realizadas"] >= 1
+    assert all(o["chave"] == OP for o in d["por_operacao"])
+    ids_visiveis = {i["id_operador"] for i in repo.mon_listar(cenario["op1"], {}, por_pagina=200)["itens"]}
+    assert ids_visiveis <= {cenario["op1"].id_usuario}  # nunca dados individuais de outro operador
+
+
+def test_dashboard_supervisor_detalha_so_a_propria_equipe_e_consolida_a_operacao(repo, cenario):
+    _garantir_dados(repo, cenario)
+    repo.mon_criar_monitoria(cenario["qual"], _dados(cenario, id_operador=cenario["op2"].id_usuario))
+    d1 = repo.mon_dashboard(cenario["sup1"], {"operacao": OP})
+    d2 = repo.mon_dashboard(cenario["sup2"], {"operacao": OP})
+    assert {o["chave"] for o in d1["por_operador"]} == {cenario["op1"].id_usuario}
+    assert {o["chave"] for o in d2["por_operador"]} == {cenario["op2"].id_usuario}
+    assert d1["visao_operacao"]["quantidade_realizadas"] > d1["resumo"]["quantidade_realizadas"]
+    assert d1["top"] and {"nota_media", "quantidade_validas", "posicao"} <= set(d1["top"][0])
+    assert repo.mon_dashboard(cenario["sup_crf"], {"operacao": OP})["resumo"]["quantidade_realizadas"] == 0
+
+
+def test_control_desk_ve_todas_as_operacoes_com_tag(repo, cenario):
+    _garantir_dados(repo, cenario)
+    cd = _ator("control_desk", 987654, [], "CD")
+    d = repo.mon_dashboard(cd, {})
+    assert any(o["chave"] == OP for o in d["por_operacao"])
+    assert repo.mon_listar(cd, {"operacao": OP})["total"] > 0
+
+
+def test_top_n_aceita_3_5_10_15_e_ignora_outros(repo, cenario):
+    _garantir_dados(repo, cenario)
+    assert repo.mon_dashboard(cenario["qual"], {}, top=3)["top_n"] == 3
+    assert repo.mon_dashboard(cenario["qual"], {}, top=7)["top_n"] == 5
+    assert repo.mon_dashboard(cenario["qual"], {}, top=15)["top_n"] == 15
+
+
+def test_relatorio_exportacao_usa_o_mesmo_motor_do_dashboard(repo, cenario):
+    _garantir_dados(repo, cenario)
+    q = cenario["qual"]
+    filtros = {"operacao": OP}
+    dash = repo.mon_dashboard(q, filtros)
+    rel = repo.mon_relatorio(q, "monitorias", filtros)
+    assert len(rel["linhas"]) == dash["resumo"]["quantidade_realizadas"]
+    assert rel["colunas"][:3] == ["ID_MONITORIA", "DATA_MONITORIA", "DATA_CONTATO"] and "ANULADA" in rel["colunas"] and "PL_AÇÃO" in rel["colunas"]
+    qual = repo.mon_relatorio(q, "qualidade", filtros)
+    assert qual["colunas"][:2] == ["PERIODO_INICIAL", "PERIODO_FINAL"] and "QNT_MONITORIAS" in qual["colunas"]
+    assert sum(l[6] for l in qual["linhas"]) == dash["resumo"]["quantidade_realizadas"]
+    conteudo, nome, mime = repo.mon_exportar(q, "monitorias", "xlsx", filtros, ip="10.0.0.9")
+    assert conteudo[:2] == b"PK" and nome.endswith(".xlsx") and "spreadsheetml" in mime
+    csv_bytes, _, _ = repo.mon_exportar(q, "monitorias", "csv", filtros)
+    assert csv_bytes.decode("utf-8-sig").count("\r\n") == len(rel["linhas"]) + 1
+    with pytest.raises(HTTPException):
+        repo.mon_exportar(q, "monitorias", "pdf", filtros)
+    logs = repo.mon_logs(_ator(ROLE_ADMIN, 1), {"acao": "exportar_relatorio"}, por_pagina=5)
+    assert logs["itens"]
+
+
+def test_exportar_monitoria_individual_respeita_escopo(repo, cenario):
+    r = _criar(repo, cenario)
+    conteudo, nome, _ = repo.mon_exportar_monitorias(cenario["qual"], [r["id_monitoria"]])
+    assert nome == f"monitoria_{r['codigo']}.xlsx" and conteudo[:2] == b"PK"
+    with pytest.raises(HTTPException) as e:
+        repo.mon_exportar_monitorias(cenario["sup_crf"], [r["id_monitoria"]])
+    assert e.value.status_code == 404
+
+
+def test_compartilhar_por_email_so_com_quem_pode_ver_e_com_log(repo, cenario, admin, monkeypatch):
+    from rh_api.services import email_send_service as svc
+
+    enviados = []
+    monkeypatch.setattr(svc.EmailSendService, "configured", property(lambda self: True))
+    monkeypatch.setattr(svc.EmailSendService, "send_mail", lambda self, **kw: enviados.append(kw) or {})
+    r = _criar(repo, cenario)
+    with pytest.raises(HTTPException) as e:  # operador 2 não pode ver a monitoria do operador 1
+        repo.mon_compartilhar(cenario["qual"], [r["id_monitoria"]], [cenario["op2"].id_usuario])
+    assert e.value.status_code == 403
+    with pytest.raises(HTTPException) as e:  # supervisor de outra equipe também não
+        repo.mon_compartilhar(cenario["qual"], [r["id_monitoria"]], [cenario["sup2"].id_usuario])
+    assert e.value.status_code == 403
+    with pytest.raises(HTTPException) as e:  # quem envia só compartilha o que pode ver
+        repo.mon_compartilhar(cenario["sup_crf"], [r["id_monitoria"]], [cenario["sup1"].id_usuario])
+    assert e.value.status_code == 404
+    res = repo.mon_compartilhar(cenario["qual"], [r["id_monitoria"]], [cenario["sup1"].id_usuario], "Veja", ip="10.9.9.9")
+    assert res["enviados"] == 1 and enviados[0]["anexos"][0]["nome"] == "monitorias.xlsx"
+    logs = repo.mon_logs(admin, {"acao": "compartilhar_email"}, por_pagina=3)["itens"]
+    assert logs and "destinatarios" in logs[0]["detalhes"]
+
+
+def test_compartilhar_sem_email_configurado_devolve_503(repo, cenario, monkeypatch):
+    from rh_api.services import email_send_service as svc
+
+    monkeypatch.setattr(svc.EmailSendService, "configured", property(lambda self: False))
+    r = _criar(repo, cenario)
+    with pytest.raises(HTTPException) as e:
+        repo.mon_compartilhar(cenario["qual"], [r["id_monitoria"]], [cenario["sup1"].id_usuario])
+    assert e.value.status_code == 503
+
+
+def test_logs_supervisor_so_ve_o_escopo_da_propria_operacao(repo, cenario, admin):
+    _criar(repo, cenario)
+    do_sup = repo.mon_logs(cenario["sup1"], {}, por_pagina=100)
+    assert do_sup["itens"] and all(i["operacao"] == OP for i in do_sup["itens"])
+    assert all(i["operacao"] != OP for i in repo.mon_logs(cenario["sup_crf"], {}, por_pagina=100)["itens"])
+    assert repo.mon_logs(_ator(ROLE_QUALIDADE, 5, [], "SemVinculo"), {})["total"] == 0
+    assert repo.mon_logs(admin, {"operacao": OP}, por_pagina=1)["total"] > 0
+
+
+def test_plano_de_acao_ciclo_completo_e_escopo(repo, cenario):
+    from datetime import date, timedelta
+
+    r = _criar(repo, cenario, respostas=_respostas(b4c1="NAO"))
+    prazo = (date.today() + timedelta(days=10)).isoformat()
+    with pytest.raises(HTTPException):
+        repo.mon_plano_criar(cenario["sup1"], {"id_monitoria": r["id_monitoria"], "problema": "P", "objetivo": "O", "acao": "A", "prazo": "2000-01-01"})
+    criado = repo.mon_plano_criar(cenario["sup1"], {"id_monitoria": r["id_monitoria"], "problema": "Solução incorreta", "criterio": "Solução Correta?",
+                                                   "objetivo": "Subir a nota", "acao": "Treinar procedimento", "prazo": prazo})
+    idp = criado["id_plano"]
+    with pytest.raises(HTTPException) as e:  # supervisor de outro operador nem enxerga
+        repo.mon_plano_revisar(cenario["sup2"], idp, {"status": "EM_ANDAMENTO"})
+    assert e.value.status_code == 404
+    with pytest.raises(HTTPException) as e:  # não pula etapas
+        repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "CONCLUIDO", "resultado": "x"})
+    assert e.value.status_code == 409
+    repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "EM_ANDAMENTO"})
+    repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "EM_REVISAO", "observacoes": "Revisão semanal"})
+    with pytest.raises(HTTPException):  # concluir exige o resultado obtido
+        repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "CONCLUIDO"})
+    fim = repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "CONCLUIDO", "resultado": "Nota subiu"})
+    assert fim["status"] == "CONCLUIDO" and fim["nota_depois"] is not None
+    detalhe = repo.mon_plano_detalhe(cenario["sup1"], idp)
+    assert detalhe["historico"][0]["evento"] == "criacao" and len(detalhe["historico"]) == 4
+    assert detalhe["nota_antes"] is not None
+    with pytest.raises(HTTPException) as e:  # concluído não muda mais
+        repo.mon_plano_revisar(cenario["sup1"], idp, {"status": "EM_ANDAMENTO"})
+    assert e.value.status_code == 409
+    # operador vê o próprio plano (só leitura) e não revisa
+    assert any(p["id_plano"] == idp for p in repo.mon_plano_listar(cenario["op1"])["itens"])
+    assert not any(p["id_plano"] == idp for p in repo.mon_plano_listar(cenario["op2"])["itens"])
+    with pytest.raises(HTTPException):
+        repo.mon_plano_revisar(cenario["op1"], idp, {"status": "EM_ANDAMENTO"})
+    rel = repo.mon_relatorio(cenario["sup1"], "planos", {})
+    assert "PROBLEMA" in rel["colunas"] and rel["linhas"]
+
+
+def test_guia_config_e_zona_de_risco_nao_apagam_historico(repo, cenario, admin):
+    assert len(repo.mon_guia_listar()) >= 8
+    novo = repo.mon_guia_salvar(admin, {"titulo": "Guia teste", "conteudo": "Texto", "ordem": 99})
+    repo.mon_guia_salvar(admin, {"titulo": "Guia teste", "conteudo": "Texto", "ordem": 99, "ativo": False}, novo["id_guia"])
+    with pytest.raises(HTTPException):
+        repo.mon_config_salvar(admin, {"limiar_alerta_pct": 5})
+    assert repo.mon_config_salvar(admin, {"limiar_alerta_pct": 80})["limiar_alerta_pct"] == 80
+    repo.mon_config_salvar(admin, {"limiar_alerta_pct": 75})
+    assert repo.mon_config_obter()["prazos_oficiais_horas"] == {"FEEDBACK": 72, "CONFIRMACAO": 48, "REANALISE": 72}
+
+    antes = repo.mon_listar(admin, {"operacao": OP})["total"]
+    with pytest.raises(HTTPException) as e:  # dupla confirmação: digitar a chave + justificativa
+        repo.mon_risco_executar(admin, "restaurar_matriz", OP, "errado", "restaurando")
+    assert e.value.status_code == 422
+    versao_antes = repo.mon_get_matriz(admin, OP)["versao_ativa"]["numero"]
+    try:
+        res = repo.mon_risco_executar(admin, "restaurar_matriz", OP, OP, "Voltar ao padrão do RH")
+        assert res["nova_versao"] == versao_antes + 1
+    except HTTPException as exc:  # já está no padrão: nada a restaurar
+        assert exc.status_code == 409
+    assert repo.mon_listar(admin, {"operacao": OP})["total"] == antes  # nunca apaga monitorias
+    with pytest.raises(HTTPException):
+        repo.mon_risco_executar(admin, "apagar_monitorias", OP, OP, "tentativa indevida")
+
+
+def test_identidade_cor_logo_e_isolamento_do_contexto(repo, cenario, admin):
+    with pytest.raises(HTTPException) as e:
+        repo.mon_identidade_salvar(admin, OP, "#ffe600")  # sem contraste para botão com texto branco
+    assert e.value.status_code == 422
+    ok = repo.mon_identidade_salvar(admin, OP, "#7a1f5c")
+    assert ok["cor_primaria"] == "#7a1f5c" and ok["tokens"]["brand"] == "#7a1f5c"
+    logo = repo.mon_logo_salvar(admin, OP, nome="logo.png", conteudo=PNG)
+    assert repo.mon_logo_arquivo(logo["logo_arquivo"])[1] == "image/png"
+    with pytest.raises(HTTPException):
+        repo.mon_logo_arquivo("naoexiste1.png")
+    with pytest.raises(HTTPException):  # arquivo que não é imagem
+        repo.mon_logo_salvar(admin, OP, nome="logo.png", conteudo=b"MZ\x90\x00 nao e imagem")
+    # a cor/logo da operação só aparecem no contexto de quem pertence a ela
+    ctx_op = repo.mon_contexto(cenario["op1"])
+    assert [o["chave"] for o in ctx_op["operacoes"]] == [OP] and ctx_op["operacoes"][0]["tokens"]["brand"] == "#7a1f5c"
+    ctx_crf = repo.mon_contexto(cenario["sup_crf"])
+    assert all(o["chave"] != OP for o in ctx_crf["operacoes"])
+    repo.mon_identidade_salvar(admin, OP, "")  # remove a cor de teste
+
+
+def test_rotas_negam_perfis_sem_permissao_e_operador_nao_exporta(repo, cenario):
+    from fastapi.testclient import TestClient
+
+    from rh_api.auth import _build_token
+    from rh_api.main import app
+
+    cliente = TestClient(app)
+
+    def cab(user):
+        return {"Authorization": f"Bearer {_build_token(user)}"}
+
+    assert cliente.get("/monitoria/relatorios/monitorias", headers=cab(cenario["op1"])).status_code == 403
+    assert cliente.get("/monitoria/relatorios/monitorias/exportar", headers=cab(cenario["op1"])).status_code == 403
+    assert cliente.get("/monitoria/logs", headers=cab(cenario["qual"])).status_code == 403  # Qualidade não vê logs por padrão
+    assert cliente.get("/monitoria/logs", headers=cab(cenario["sup1"])).status_code == 200
+    assert cliente.post("/monitoria/monitorias", json=_dados(cenario), headers=cab(cenario["op1"])).status_code == 403
+    assert cliente.get("/monitoria/dashboard", headers=cab(cenario["op1"])).status_code == 200
+    assert cliente.get("/monitoria/monitorias").status_code == 401
+    ok = cliente.get("/monitoria/relatorios/monitorias/exportar?formato=csv&operacao=" + OP, headers=cab(cenario["qual"]))
+    assert ok.status_code == 200 and ok.headers["content-type"].startswith("text/csv")
+    assert cliente.get("/monitoria/logos/..%2F..%2Fetc.png").status_code in (404, 422)
