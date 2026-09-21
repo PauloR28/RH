@@ -24,7 +24,19 @@ export const RESPOSTAS = [
   { valor: 'NA', rotulo: 'N/A', classe: 'is-na' },
 ];
 
-export function BadgeStatus({ status, rotulo }) {
+// Etiqueta do andamento da contestação, conforme quem olha: o operador vê "Em contestação",
+// os demais perfis "Contestada"; ao dar baixa (monitoria finalizada/anulada) vira "Contestação encerrada".
+export function etiquetaContestacao({ status, contestada = false, perfil = '' }) {
+  if (['CONTESTADA', 'REANALISE'].includes(status)) {
+    return { rotulo: perfil === 'operador' ? 'Em contestação' : 'Contestada', classe: 'pendente' };
+  }
+  if (contestada && ['CONFIRMADA', 'ANULADA', 'FINALIZADA'].includes(status)) return { rotulo: 'Contestação encerrada', classe: 'ok' };
+  return null;
+}
+
+export function BadgeStatus({ status, rotulo, perfil = '', contestada = false }) {
+  const etiqueta = etiquetaContestacao({ status, contestada, perfil });
+  if (etiqueta) return html`<span class=${`mon-badge mon-badge--${etiqueta.classe}`}>${etiqueta.rotulo}</span>`;
   const info = STATUS_INFO[status] || { rotulo: rotulo || status, classe: '' };
   return html`<span class=${`mon-badge ${info.classe ? `mon-badge--${info.classe}` : ''}`}>${rotulo || info.rotulo}</span>`;
 }
@@ -149,6 +161,38 @@ export function BotaoExportar({ rotulo = 'Exportar', opcoes = [], desabilitado =
       ${aberto ? html`
         <div class="mon-dropdown-menu" role="menu">
           ${opcoes.map((o) => html`<button key=${o.rotulo} type="button" role="menuitem" onClick=${() => { setAberto(false); o.onSelecionar(); }}>${o.rotulo}</button>`)}
+        </div>` : null}
+    </div>`;
+}
+
+// Dropdown com caixas de seleção (vários valores). Fecha ao clicar fora ou com Esc.
+// `opcoes`: [{ valor, rotulo, desabilitado? }]; `valores`: lista dos valores marcados.
+export function SelectMultiplo({ opcoes = [], valores = [], onChange, placeholder = 'Selecione…', vazio = 'Nenhuma opção disponível.', desabilitado = false, limite = 0, rotulo = '' }) {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (e) => { if (raiz.current && !raiz.current.contains(e.target)) setAberto(false); };
+    const esc = (e) => { if (e.key === 'Escape') setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
+  }, [aberto]);
+  const marcadas = opcoes.filter((o) => valores.includes(o.valor));
+  const resumo = !marcadas.length ? placeholder : marcadas.length <= 2 ? marcadas.map((o) => o.rotulo).join(', ') : `${marcadas.length} selecionados`;
+  const alternar = (valor, marcado) => onChange(marcado ? [...valores, valor] : valores.filter((v) => v !== valor));
+  return html`
+    <div class="mon-multi" ref=${raiz}>
+      <button type="button" class=${`form-select mon-multi-btn ${marcadas.length ? '' : 'is-vazio'}`} aria-haspopup="listbox" aria-expanded=${aberto}
+        aria-label=${rotulo || undefined} disabled=${desabilitado} onClick=${() => setAberto(!aberto)}>${resumo}</button>
+      ${aberto ? html`
+        <div class="mon-multi-menu" role="listbox" aria-multiselectable="true">
+          ${opcoes.length ? opcoes.map((o) => {
+            const marcado = valores.includes(o.valor);
+            const bloqueadaPeloLimite = limite > 0 && !marcado && valores.length >= limite;
+            return html`<label key=${o.valor} class=${`mon-multi-item ${o.desabilitado || bloqueadaPeloLimite ? 'is-desabilitado' : ''}`}>
+              <input type="checkbox" checked=${marcado} disabled=${o.desabilitado || bloqueadaPeloLimite} onChange=${(e) => alternar(o.valor, e.target.checked)} /><span>${o.rotulo}</span></label>`;
+          }) : html`<span class="mon-multi-vazio">${vazio}</span>`}
         </div>` : null}
     </div>`;
 }

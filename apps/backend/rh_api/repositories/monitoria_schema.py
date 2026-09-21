@@ -422,8 +422,47 @@ def schema_statements() -> list[str]:
 
 
 def ensure_monitoria_schema(cursor) -> None:
-    for instrucao in schema_statements():
+    for instrucao in schema_statements() + schema_ambiente_statements():
         cursor.execute(instrucao)
+
+
+# ---------------------------------------------------------------------------
+# Ambiente da operação e canais do usuário (Correções.txt, 21/set/2026).
+# Aditivo e separado da V037 (que continua idêntica ao DDL acima); gera a V039.
+# ---------------------------------------------------------------------------
+_TABELAS_AMBIENTE: list[tuple[str, str]] = [
+    (
+        "usuarios_canais",
+        """
+        id_usuario INT NOT NULL,
+        id_item_canal INT NOT NULL,
+        criado_em DATETIME NOT NULL CONSTRAINT DF_usuarios_canais_criado_em DEFAULT GETDATE(),
+        CONSTRAINT PK_usuarios_canais PRIMARY KEY (id_usuario, id_item_canal)
+        """,
+    ),
+    (
+        "operacoes_ambiente",
+        """
+        operacao NVARCHAR(60) NOT NULL PRIMARY KEY,
+        possui_qualidade BIT NOT NULL CONSTRAINT DF_operacoes_ambiente_qualidade DEFAULT 0,
+        atualizado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_operacoes_ambiente_atualizado_em DEFAULT GETDATE()
+        """,
+    ),
+]
+
+
+def schema_ambiente_statements() -> list[str]:
+    return [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_AMBIENTE]
+
+
+def render_migration_ambiente_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: canais de atendimento por usuario e configuracao de ambiente\n"
+        "-- por operacao (Correcoes.txt, 21/set/2026). Aditiva e idempotente. Gerada a partir de\n"
+        "-- rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_ambiente_statements()) + "\n"
 
 
 def render_migration_sql() -> str:

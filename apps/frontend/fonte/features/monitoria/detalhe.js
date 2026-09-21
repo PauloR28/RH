@@ -1,5 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { LoadingState, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../ui/icone.js';
 import {
   aplicarFeedback,
   anexarEvidencia,
@@ -42,6 +43,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
   const [aba, setAba] = useState('resumo');
   const [feedback, setFeedback] = useState({ observacao: '', complemento: '' });
   const [contestacao, setContestacao] = useState({ criterios: [], motivo: '', justificativa: '' });
+  const [contestando, setContestando] = useState(false);
   const [replica, setReplica] = useState('');
   const [reanalise, setReanalise] = useState({ resultado: '', observacao: '' });
   const [plano, setPlano] = useState({ problema: '', criterio: '', objetivo: '', acao: '', prazo: '' });
@@ -111,7 +113,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
           <h2 style=${{ margin: 0 }}>Monitoria #${d.codigo}</h2>
           <div class="mon-acoes" style=${{ marginTop: '8px' }}>
             <${TagOperacao} chave=${d.operacao} nome=${d.operacao_nome} contexto=${contexto} />
-            <${BadgeStatus} status=${d.status} rotulo=${d.status_rotulo} />
+            <${BadgeStatus} status=${d.status} rotulo=${d.status_rotulo} perfil=${perfil} contestada=${d.contestacoes.length > 0} />
             <${TagsMonitoria} item=${{ possui_ncg: d.possui_ncg, anulada: d.anulada || d.resultado === 'ANULADA' }} />
             <${BadgeSla} sla=${d.sla} />
           </div>
@@ -222,40 +224,63 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
         </${Painel}>` : null}
 
       ${podeManifestar ? html`
-        <${Painel} titulo="Sua manifestação (prazo de 48 horas; sem resposta = confirmada automaticamente)">
-          <div class="mon-acoes"><button type="button" class="btn btn-primary" disabled=${ocupado}
-            onClick=${() => executar(() => confirmarMonitoria(d.codigo), 'Monitoria confirmada.')}>Confirmar monitoria</button></div>
-          <hr />
-          <strong>Ou contestar</strong>
-          <label>Critério(s) contestado(s)
-            <select class="form-select" multiple size="6" value=${contestacao.criterios} onChange=${(e) => setContestacao({ ...contestacao, criterios: Array.from(e.target.selectedOptions).map((o) => o.value) })}>
-              ${d.config.blocos.flatMap((b) => b.criterios.map((c) => html`<option key=${c.id} value=${c.id}>${b.nome} — ${c.texto}</option>`))}
-            </select></label>
-          <label>Motivo<input class="form-control" value=${contestacao.motivo} maxlength="400" onInput=${(e) => setContestacao({ ...contestacao, motivo: e.target.value })} /></label>
-          <label>Justificativa<textarea class="form-control" rows="4" value=${contestacao.justificativa} onInput=${(e) => setContestacao({ ...contestacao, justificativa: e.target.value })}></textarea></label>
-          <button type="button" class="btn btn-outline-danger" disabled=${ocupado || !contestacao.criterios.length || !contestacao.motivo.trim() || !contestacao.justificativa.trim()}
-            onClick=${() => executar(() => contestarMonitoria(d.codigo, contestacao), 'Contestação enviada ao supervisor responsável.')}>Enviar contestação</button>
+        <${Painel} titulo="Sua manifestação sobre o feedback">
+          <div class="mon-form-feedback">
+            <p class="mon-muted">Prazo de 48 horas. Sem resposta, a monitoria é confirmada automaticamente.</p>
+            ${!contestando ? html`
+              <div class="mon-decisao">
+                <button type="button" class="btn btn-primary mon-btn-icone" disabled=${ocupado}
+                  onClick=${() => executar(() => confirmarMonitoria(d.codigo), 'Você concordou com a monitoria.')}>
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check_circle')}</span>Concordar</button>
+                <button type="button" class="btn btn-outline-danger mon-btn-icone" disabled=${ocupado} onClick=${() => setContestando(true)}>
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('flag')}</span>Contestar feedback</button>
+              </div>` : html`
+              <label class="mon-campo"><span>Critério(s) contestado(s)</span>
+                <select class="form-select" multiple size="6" value=${contestacao.criterios} onChange=${(e) => setContestacao({ ...contestacao, criterios: Array.from(e.target.selectedOptions).map((o) => o.value) })}>
+                  ${d.config.blocos.flatMap((b) => b.criterios.map((c) => html`<option key=${c.id} value=${c.id}>${b.nome} — ${c.texto}</option>`))}
+                </select></label>
+              <label class="mon-campo"><span>Motivo</span><input class="form-control" value=${contestacao.motivo} maxlength="400" onInput=${(e) => setContestacao({ ...contestacao, motivo: e.target.value })} /></label>
+              <label class="mon-campo"><span>Justificativa</span><textarea class="form-control" rows="4" value=${contestacao.justificativa} onInput=${(e) => setContestacao({ ...contestacao, justificativa: e.target.value })}></textarea></label>
+              <div class="mon-acoes-direita">
+                <button type="button" class="btn btn-outline-secondary" disabled=${ocupado} onClick=${() => setContestando(false)}>Voltar</button>
+                <button type="button" class="btn btn-danger mon-btn-icone" disabled=${ocupado || !contestacao.criterios.length || !contestacao.motivo.trim() || !contestacao.justificativa.trim()}
+                  onClick=${() => executar(async () => { await contestarMonitoria(d.codigo, contestacao); setContestando(false); }, 'Contestação enviada ao supervisor responsável.')}>
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('flag')}</span>Enviar contestação</button>
+              </div>`}
+          </div>
         </${Painel}>` : null}
 
       ${podeReplicar ? html`
         <${Painel} titulo="Réplica e evidências">
-          <label>Réplica<textarea class="form-control" rows="3" value=${replica} onInput=${(e) => setReplica(e.target.value)}></textarea></label>
-          <button type="button" class="btn btn-outline-secondary" disabled=${ocupado || !replica.trim()}
-            onClick=${() => executar(async () => { await replicarContestacao(d.codigo, replica); setReplica(''); }, 'Réplica registrada.')}>Enviar réplica</button>
-          <label>Anexar evidência (PDF, DOC, DOCX, PNG ou JPG · até 10 MB · máx. 5)
-            <input type="file" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-              onChange=${(e) => { const f = e.target.files?.[0]; if (f) executar(() => anexarEvidencia(d.codigo, f), 'Evidência anexada.'); e.target.value = ''; }} /></label>
+          <div class="mon-form-feedback">
+            <label class="mon-campo"><span>Réplica</span><textarea class="form-control" rows="3" value=${replica} onInput=${(e) => setReplica(e.target.value)}></textarea></label>
+            <div class="mon-acoes-direita">
+              <button type="button" class="btn btn-outline-secondary" disabled=${ocupado || !replica.trim()}
+                onClick=${() => executar(async () => { await replicarContestacao(d.codigo, replica); setReplica(''); }, 'Réplica registrada.')}>Enviar réplica</button>
+            </div>
+            <label class="mon-campo"><span>Anexar evidência (PDF, DOC, DOCX, PNG ou JPG · até 10 MB · máx. 5)</span>
+              <input type="file" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange=${(e) => { const f = e.target.files?.[0]; if (f) executar(() => anexarEvidencia(d.codigo, f), 'Evidência anexada.'); e.target.value = ''; }} /></label>
+          </div>
         </${Painel}>` : null}
 
       ${podeReanalisar ? html`
-        <${Painel} titulo="Reanálise da contestação (prazo de 72 horas; a monitoria original nunca é editada)">
-          <div class="mon-acoes">
-            ${[['CONFIRMADA', 'Manter avaliação'], ['ANULADA', 'Anular monitoria']].map(([v, r]) => html`<button key=${v} type="button"
-              class=${`mon-subnav-btn ${reanalise.resultado === v ? 'is-active' : ''}`} onClick=${() => setReanalise({ ...reanalise, resultado: v })}>${r}</button>`)}
+        <${Painel} titulo="Reanálise da contestação">
+          <div class="mon-form-feedback">
+            <p class="mon-muted">Prazo de 72 horas. A monitoria original nunca é editada: ao dar baixa, ela segue para o histórico apenas para consulta.</p>
+            <div class="mon-campo"><span>Decisão</span>
+              <div class="mon-decisao mon-decisao--opcoes" role="radiogroup" aria-label="Decisão da reanálise">
+                ${[['CONFIRMADA', 'Manter avaliação'], ['ANULADA', 'Anular monitoria']].map(([v, r]) => html`<button key=${v} type="button" role="radio" aria-checked=${reanalise.resultado === v}
+                  class=${`mon-subnav-btn ${reanalise.resultado === v ? 'is-active' : ''}`} onClick=${() => setReanalise({ ...reanalise, resultado: v })}>${r}</button>`)}
+              </div>
+            </div>
+            <label class="mon-campo"><span>Observação da reanálise (obrigatória)</span><textarea class="form-control" rows="3" value=${reanalise.observacao} onInput=${(e) => setReanalise({ ...reanalise, observacao: e.target.value })}></textarea></label>
+            <div class="mon-acoes-direita">
+              <button type="button" class="btn btn-primary mon-btn-icone" disabled=${ocupado || !reanalise.resultado || !reanalise.observacao.trim()}
+                onClick=${() => executar(() => reanalisarContestacao(d.codigo, reanalise), 'Baixa registrada: a monitoria foi para o histórico.')}>
+                <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Dar baixa</button>
+            </div>
           </div>
-          <label>Observação da reanálise (obrigatória)<textarea class="form-control" rows="3" value=${reanalise.observacao} onInput=${(e) => setReanalise({ ...reanalise, observacao: e.target.value })}></textarea></label>
-          <button type="button" class="btn btn-primary" disabled=${ocupado || !reanalise.resultado || !reanalise.observacao.trim()}
-            onClick=${() => executar(() => reanalisarContestacao(d.codigo, reanalise), 'Reanálise registrada.')}>Concluir reanálise</button>
         </${Painel}>` : null}
 
       ${pode('monitoria.plano_acao') && d.nivel && ['Desenvolvimento', 'Crítico'].includes(d.faixa?.label) ? html`
@@ -267,8 +292,8 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
             <label>Ação proposta<input class="form-control" value=${plano.acao} onInput=${(e) => setPlano({ ...plano, acao: e.target.value })} /></label>
             <label>Prazo<input class="form-control" type="date" value=${plano.prazo} onInput=${(e) => setPlano({ ...plano, prazo: e.target.value })} /></label>
           </div>
-          <button type="button" class="btn btn-outline-primary" disabled=${ocupado || !plano.problema || !plano.objetivo || !plano.acao || !plano.prazo}
-            onClick=${() => executar(() => criarPlano({ ...plano, id_monitoria: d.id_monitoria }), 'Plano de ação criado.')}>Criar plano de ação</button>
+          <div class="mon-acoes-direita"><button type="button" class="btn btn-outline-primary" disabled=${ocupado || !plano.problema || !plano.objetivo || !plano.acao || !plano.prazo}
+            onClick=${() => executar(() => criarPlano({ ...plano, id_monitoria: d.id_monitoria }), 'Plano de ação criado.')}>Criar plano de ação</button></div>
         </${Painel}>` : null}
     </div>
   `;

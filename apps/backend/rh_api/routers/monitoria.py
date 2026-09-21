@@ -15,6 +15,7 @@ from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.monitoria import (
+    AmbienteOperacaoRequest,
     CalcularRequest,
     CatalogoRequest,
     ContestacaoRequest,
@@ -177,6 +178,27 @@ def salvar_vinculos_usuario(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_set_vinculos(user, id_usuario, payload.model_dump(exclude_unset=True), ip=client_ip(request))
+
+
+@router.get("/operacoes/{chave}/ambiente", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def ler_ambiente_operacao(
+    chave: str,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Supervisores, Qualidade, flag "possui qualidade" e intranets (SharePoint) da operação."""
+    return repository.mon_get_ambiente(user, chave)
+
+
+@router.put("/operacoes/{chave}/ambiente", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def salvar_ambiente_operacao(
+    chave: str,
+    payload: AmbienteOperacaoRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_set_ambiente(user, chave, payload.model_dump(exclude_unset=True), ip=client_ip(request))
 
 
 @router.post("/supervisao/transferir", dependencies=[Depends(require_permissions("monitoria.usuarios"))])

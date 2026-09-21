@@ -34,6 +34,7 @@ class UsuarioMonitoriaRequest(BaseSchema):
     supervisores: list[int] | None = None
     id_equipe: int | None = None
     turno: str | None = None
+    canais: list[int] | None = None
 
 
 class VinculosMonitoriaRequest(BaseSchema):
@@ -41,6 +42,14 @@ class VinculosMonitoriaRequest(BaseSchema):
     supervisores: list[int] | None = None
     id_equipe: int | None = None
     turno: str | None = None
+    canais: list[int] | None = None
+
+
+class AmbienteOperacaoRequest(BaseSchema):
+    possui_qualidade: bool | None = None
+    supervisores: list[int] | None = None
+    qualidade: list[int] | None = None
+    intranets: list[int] | None = None
 
 
 class TransferirSupervisaoRequest(BaseSchema):

@@ -31,6 +31,8 @@ export const atualizarUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usu
 export const lerVinculosUsuarioMonitoria = (id) => requisitar(`/monitoria/usuarios/${id}/vinculos`, { method: 'GET' });
 export const salvarVinculosUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usuarios/${id}/vinculos`, 'PUT', payload);
 export const transferirSupervisao = (payload) => enviar('/monitoria/supervisao/transferir', 'POST', payload);
+export const lerAmbienteOperacao = (chave) => requisitar(`/monitoria/operacoes/${encodeURIComponent(chave)}/ambiente`, { method: 'GET' });
+export const salvarAmbienteOperacao = (chave, payload) => enviar(`/monitoria/operacoes/${encodeURIComponent(chave)}/ambiente`, 'PUT', payload);
 export const liberarTrocaDesign = (id) => enviar(`/monitoria/usuarios/${id}/liberar-design`, 'POST', {});
 export const trocarSenhaInicial = (payload) => enviar('/auth/me/senha-inicial', 'POST', payload);
 

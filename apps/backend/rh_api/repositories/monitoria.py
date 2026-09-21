@@ -666,7 +666,8 @@ class MonitoriaRepositoryMixin:
                 f"""
                 SELECT m.id_monitoria, m.codigo, m.operacao, m.operacao_nome, m.equipe_nome, m.turno, m.id_operador, m.operador_nome,
                        m.id_avaliador, m.avaliador_nome, m.canal, m.tipo_atendimento, m.data_contato, m.data_monitoria, m.nota, m.nivel,
-                       m.possui_ncg, m.anulada, m.blocos_avaliados, e.status, e.resultado, e.sla_tipo, e.sla_inicio, e.sla_limite
+                       m.possui_ncg, m.anulada, m.blocos_avaliados, e.status, e.resultado, e.sla_tipo, e.sla_inicio, e.sla_limite,
+                       CASE WHEN EXISTS (SELECT 1 FROM dbo.monitoria_contestacoes c WHERE c.id_monitoria = m.id_monitoria) THEN 1 ELSE 0 END AS tem_contestacao
                 {base} {where}
                 ORDER BY m.data_monitoria DESC, m.id_monitoria DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -700,7 +701,7 @@ class MonitoriaRepositoryMixin:
             "anulada": bool(r["anulada"]) or normalize_text(r.get("resultado")) == wf.RESULTADO_ANULADA,
             "valida": valida, "blocos_avaliados": r["blocos_avaliados"], "status": normalize_text(r["status"]),
             "status_rotulo": wf.ROTULOS_STATUS.get(normalize_text(r["status"]), normalize_text(r["status"])),
-            "resultado": normalize_text(r.get("resultado")), "sla": sla,
+            "resultado": normalize_text(r.get("resultado")), "sla": sla, "tem_contestacao": bool(r.get("tem_contestacao")),
         }
 
     def mon_detalhe(self, user, ref: str, *, ip: str = "") -> dict:

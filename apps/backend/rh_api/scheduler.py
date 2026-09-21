@@ -55,6 +55,21 @@ def _run_monitoria_sla_job(settings: Settings) -> None:
         logger.exception("Falha ao executar o job de SLA da Monitoria.")
 
 
+def _run_log_archive_job(settings: Settings) -> None:
+    """Compacta em ZIP e remove do banco os logs do sistema mais antigos que a retenção
+    (Correções.txt 21/set/2026). Só remove depois de gravar e conferir o ZIP; os logs
+    imutáveis da Monitoria ficam de fora. Mesma blindagem dos demais jobs."""
+    try:
+        from .repositories import DatabaseRepository
+        from .services.log_archiver import arquivar_logs
+
+        repository = DatabaseRepository(settings)
+        resultado = arquivar_logs(repository._connect, settings)
+        logger.info("Job de arquivamento de logs executado: %s", resultado)
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao executar o job de arquivamento de logs.")
+
+
 def start_scheduler(settings: Settings):
     """Inicia um `BackgroundScheduler` (APScheduler) com o job periódico de
     lembretes/alertas automáticos, se a biblioteca estiver disponível e a
@@ -111,6 +126,17 @@ def start_scheduler(settings: Settings):
             minutes=5,
             args=(settings,),
             id="sla_monitoria",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_log_archive_job,
+            trigger="cron",
+            hour=6,  # 03:00 no horário de Brasília (o scheduler roda em UTC): fora do expediente
+            minute=0,
+            args=(settings,),
+            id="arquivamento_logs",
             replace_existing=True,
             coalesce=True,
             max_instances=1,

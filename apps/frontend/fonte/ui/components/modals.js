@@ -13,8 +13,22 @@ export function ModalPadrao({
   children,
   className = '',
   ocultarFechar = false,
+  acaoCabecalho = null,
 }) {
   if (!aberto) return null;
+
+  const botaoFechar = !ocultarFechar
+    ? html`
+        <button
+          type="button"
+          class="btn rh-modal-close-btn"
+          aria-label="Fechar"
+          onClick=${onClose}
+        >
+          <span class="material-symbols-outlined">${IconeSvg('close')}</span>
+        </button>
+      `
+    : null;
 
   return html`
     <div
@@ -34,18 +48,9 @@ export function ModalPadrao({
       ? html`<p class="rh-modal-subtitle">${subtitulo}</p>`
       : null}
           </div>
-          ${!ocultarFechar
-      ? html`
-                <button
-                  type="button"
-                  class="btn rh-modal-close-btn"
-                  aria-label="Fechar"
-                  onClick=${onClose}
-                >
-                  <span class="material-symbols-outlined">${IconeSvg('close')}</span>
-                </button>
-              `
-      : null}
+          ${acaoCabecalho
+      ? html`<div class="rh-modal-header-acoes">${acaoCabecalho}${botaoFechar}</div>`
+      : botaoFechar}
         </header>
         <div class="rh-modal-content">${children}</div>
       </div>

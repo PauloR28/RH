@@ -12,7 +12,7 @@ import {
   salvarEquipeMonitoria,
   transferirSupervisao,
 } from '../../services/api/monitoria.js';
-import { SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
+import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e
@@ -24,7 +24,7 @@ import { SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../
 export const PERFIS_MONITORIA = ['operador', 'supervisor', 'qualidade', 'control_desk'];
 const LIMITE_OPERACOES = { operador: 1, supervisor: 3, qualidade: 2, control_desk: 0 };
 const NOME_PERFIL = { operador: 'O Operador', supervisor: 'O Supervisor', qualidade: 'A Qualidade' };
-export const VINCULOS_INICIAIS = { supervisores: [], id_equipe: '', turno: '' };
+export const VINCULOS_INICIAIS = { supervisores: [], id_equipe: '', turno: '', canais: [] };
 
 // Espelha `validar_vinculos` do backend para avisar antes de gravar o usuário.
 export function validarVinculosMonitoria(perfil, operacoes, vinculos) {
@@ -41,16 +41,31 @@ export function validarVinculosMonitoria(perfil, operacoes, vinculos) {
   return erros;
 }
 
-export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, vinculos, setVinculos, bloqueado = false }) {
+// Campos de operação e vínculos do formulário de usuário (Configurações): operação em select
+// (Operador) ou dropdown com caixas (demais perfis), supervisores, turno, equipe e canais.
+export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOperacoes, operacoesDisponiveis = [], vinculos, setVinculos, bloqueado = false }) {
   const [supervisores, setSupervisores] = useState([]);
   const [equipes, setEquipes] = useState([]);
   const [turnos, setTurnos] = useState([]);
+  const [canais, setCanais] = useState([]);
+  const chavesOperacoes = operacoes.join('|');
 
   useEffect(() => {
     listarUsuariosMonitoria().then((r) => setSupervisores((r.itens || []).filter((u) => u.perfil === 'supervisor' && u.status === 'Ativo'))).catch(() => setSupervisores([]));
     listarEquipesMonitoria().then((r) => setEquipes(r.itens || [])).catch(() => setEquipes([]));
     listarCatalogoMonitoria('turno').then((r) => setTurnos(r.itens || [])).catch(() => setTurnos([]));
   }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    if (!operacoes.length) {
+      setCanais([]);
+      return undefined;
+    }
+    Promise.all(operacoes.map((op) => listarCatalogoMonitoria('canal', op).then((r) => (r.itens || []).filter((i) => i.operacao)).catch(() => [])))
+      .then((listas) => ativo && setCanais(listas.flat()));
+    return () => { ativo = false; };
+  }, [chavesOperacoes]);
 
   useEffect(() => {
     if (!idUsuario) {
@@ -63,57 +78,78 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, vinculos
         supervisores: (v.supervisores || []).map((s) => s.id_usuario),
         id_equipe: v.id_equipe ? String(v.id_equipe) : '',
         turno: v.turno || '',
+        canais: (v.canais || []).map((c) => c.id_item),
       }))
       .catch(() => ativo && setVinculos(VINCULOS_INICIAIS));
     return () => { ativo = false; };
   }, [idUsuario]);
 
-  if (!PERFIS_MONITORIA.includes(perfil)) return null;
+  const ehMonitoria = PERFIS_MONITORIA.includes(perfil);
   const ehOperador = perfil === 'operador';
+  const ehControlDesk = perfil === 'control_desk';
   const precisaTurno = ehOperador || perfil === 'supervisor';
+  const precisaCanais = ehOperador || perfil === 'supervisor';
+  const opcoesOperacao = operacoesDisponiveis.map((op) => ({ valor: op.chave || op.nome, rotulo: op.nome }));
   const equipesDaOperacao = equipes.filter((e) => e.ativo && operacoes.includes(e.operacao));
   const supervisoresDaOperacao = supervisores.filter((s) => (s.operacoes || []).some((o) => operacoes.includes(o)));
   const dica = {
-    operador: 'Marque exatamente 1 operação acima; a equipe e os supervisores dependem dela.',
-    supervisor: 'Marque de 1 a 3 operações acima.',
-    qualidade: 'Marque 1 ou 2 operações acima.',
+    operador: 'Escolha a operação do operador; a equipe, os supervisores e os canais dependem dela.',
+    supervisor: 'Marque de 1 a 3 operações.',
+    qualidade: 'Marque 1 ou 2 operações.',
     control_desk: 'O Control Desk enxerga todas as operações e não recebe vínculo de operação.',
-  }[perfil];
+  }[perfil] || 'Sem seleção, o usuário mantém acesso a todas as operações.';
   const definir = (campo, valor) => setVinculos({ ...vinculos, [campo]: valor });
-  const alternarSupervisor = (id, marcado) => {
-    const lista = marcado ? [...vinculos.supervisores, id] : vinculos.supervisores.filter((x) => x !== id);
-    definir('supervisores', lista);
+
+  // Ao trocar a operação, descarta o que só fazia sentido na operação anterior.
+  const trocarOperacoes = (novas) => {
+    setOperacoes(novas);
+    if (!ehMonitoria) return;
+    const equipeValida = equipes.some((e) => String(e.id_equipe) === String(vinculos.id_equipe) && novas.includes(e.operacao));
+    const supervisoresValidos = vinculos.supervisores.filter((id) => supervisores.some((s) => s.id_usuario === id && (s.operacoes || []).some((o) => novas.includes(o))));
+    setVinculos({ ...vinculos, id_equipe: equipeValida ? vinculos.id_equipe : '', supervisores: supervisoresValidos, canais: [] });
   };
 
   return html`
     <div class="users-drawer-field-wide mon-vinculos">
-      <span class="mon-vinculos-titulo">Vínculos da Monitoria</span>
-      <p class="mon-muted">${dica}</p>
-      ${precisaTurno ? html`
-        <div class="mon-form-grid">
-          <label class="mon-campo">Turno
+      <div class="mon-vinculos-grid">
+        <div class="mon-campo">
+          <span>${ehOperador ? 'Operação vinculada' : 'Operações vinculadas'}</span>
+          ${ehOperador ? html`
+            <select class="form-select" disabled=${bloqueado} value=${operacoes[0] || ''} onChange=${(e) => trocarOperacoes(e.target.value ? [e.target.value] : [])}>
+              <option value="">Selecione a operação</option>${opcoesOperacao.map((o) => html`<option key=${o.valor} value=${o.valor}>${o.rotulo}</option>`)}
+            </select>` : html`
+            <${SelectMultiplo} rotulo="Operações vinculadas" opcoes=${opcoesOperacao} valores=${operacoes} onChange=${trocarOperacoes}
+              desabilitado=${bloqueado || ehControlDesk} limite=${LIMITE_OPERACOES[perfil] || 0}
+              placeholder=${ehControlDesk ? 'Todas as operações' : ehMonitoria ? 'Selecione as operações' : 'Todas as operações'} vazio="Nenhuma operação cadastrada." />`}
+        </div>
+        ${ehOperador ? html`
+          <div class="mon-campo">
+            <span>Supervisores responsáveis <small class="mon-muted">(1 ou 2)</small></span>
+            <${SelectMultiplo} rotulo="Supervisores responsáveis" opcoes=${supervisoresDaOperacao.map((s) => ({ valor: s.id_usuario, rotulo: s.nome }))}
+              valores=${vinculos.supervisores} onChange=${(lista) => definir('supervisores', lista)} desabilitado=${bloqueado} limite=${2}
+              placeholder="Selecione os supervisores" vazio=${operacoes.length ? 'Nenhum supervisor nesta operação.' : 'Escolha a operação para listar os supervisores.'} />
+          </div>` : null}
+        ${precisaTurno ? html`
+          <label class="mon-campo"><span>Turno</span>
             <select class="form-select" disabled=${bloqueado} value=${vinculos.turno} onChange=${(e) => definir('turno', e.target.value)}>
               <option value="">Sem turno</option>${turnos.map((t) => html`<option key=${t.id_item} value=${t.valor}>${t.valor}</option>`)}
             </select>
-          </label>
-          ${ehOperador ? html`
-            <label class="mon-campo">Equipe
-              <select class="form-select" disabled=${bloqueado || !operacoes.length} value=${vinculos.id_equipe} onChange=${(e) => definir('id_equipe', e.target.value)}>
-                <option value="">Sem equipe</option>${equipesDaOperacao.map((t) => html`<option key=${t.id_equipe} value=${String(t.id_equipe)}>${t.nome}</option>`)}
-              </select>
-            </label>` : null}
-        </div>` : null}
-      ${ehOperador ? html`
-        <div class="mon-campo">
-          <span>Supervisor(es) responsável(is) <small class="mon-muted">(1 ou 2 — troca por horário/escala)</small></span>
-          <div class="mon-acoes">
-            ${supervisoresDaOperacao.map((s) => html`
-              <label key=${s.id_usuario} class="mon-tag mon-tag--escolha">
-                <input type="checkbox" disabled=${bloqueado} checked=${vinculos.supervisores.includes(s.id_usuario)} onChange=${(e) => alternarSupervisor(s.id_usuario, e.target.checked)} />${s.nome}
-              </label>`)}
-            ${!supervisoresDaOperacao.length ? html`<span class="mon-muted">Selecione a operação para listar os supervisores.</span>` : null}
-          </div>
-        </div>` : null}
+          </label>` : null}
+        ${ehOperador ? html`
+          <label class="mon-campo"><span>Equipe</span>
+            <select class="form-select" disabled=${bloqueado || !operacoes.length} value=${vinculos.id_equipe} onChange=${(e) => definir('id_equipe', e.target.value)}>
+              <option value="">Sem equipe</option>${equipesDaOperacao.map((t) => html`<option key=${t.id_equipe} value=${String(t.id_equipe)}>${t.nome}</option>`)}
+            </select>
+          </label>` : null}
+        ${precisaCanais ? html`
+          <div class="mon-campo">
+            <span>Canais de atendimento</span>
+            <${SelectMultiplo} rotulo="Canais de atendimento" opcoes=${canais.map((c) => ({ valor: c.id_item, rotulo: operacoes.length > 1 ? `${c.valor} (${c.operacao})` : c.valor }))}
+              valores=${vinculos.canais || []} onChange=${(lista) => definir('canais', lista)} desabilitado=${bloqueado || !operacoes.length}
+              placeholder="Selecione os canais" vazio="Nenhum canal cadastrado nesta operação." />
+          </div>` : null}
+      </div>
+      <p class="mon-muted mon-vinculos-dica">${dica}</p>
     </div>`;
 }
 
@@ -147,7 +183,7 @@ export function ModalTransferirSupervisao({ aberto, onClose, onFeito, showToast 
 // ---------------------------------------------------------------------------
 // Aba "Equipes e catálogos"
 // ---------------------------------------------------------------------------
-function CartaoLista({ titulo, itens, podeEditar, aoAlternar, aoAdicionar, placeholder, vazio }) {
+export function CartaoLista({ titulo, itens, podeEditar, aoAlternar, aoAdicionar, placeholder, vazio }) {
   const [valor, setValor] = useState('');
   const adicionar = () => {
     if (!valor.trim()) return;

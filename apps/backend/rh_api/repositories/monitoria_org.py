@@ -227,6 +227,12 @@ class MonitoriaOrgRepositoryMixin:
             (int(id_usuario),),
         )
         supervisores = [{"id_usuario": r[0], "nome": normalize_text(r[1])} for r in cursor.fetchall()]
+        cursor.execute(
+            "SELECT c.id_item, c.valor FROM dbo.usuarios_canais uc JOIN dbo.monitoria_catalogo c ON c.id_item = uc.id_item_canal "
+            "WHERE uc.id_usuario = ? ORDER BY c.valor",
+            (int(id_usuario),),
+        )
+        canais = [{"id_item": int(r[0]), "valor": normalize_text(r[1])} for r in cursor.fetchall()]
         equipe_nome = ""
         if base.get("id_equipe"):
             cursor.execute("SELECT nome FROM dbo.equipes_operacao WHERE id_equipe = ?", (int(base["id_equipe"]),))
@@ -238,6 +244,7 @@ class MonitoriaOrgRepositoryMixin:
             "id_equipe": base.get("id_equipe"),
             "equipe_nome": equipe_nome,
             "supervisores": supervisores,
+            "canais": canais,
             "deve_trocar_senha": bool(base.get("deve_trocar_senha")),
             "tema_operacao": normalize_text(base.get("tema_operacao")),
             "tema_alterado": bool(base.get("tema_alterado")),
@@ -487,6 +494,14 @@ class MonitoriaOrgRepositoryMixin:
                 if not (ops_sup & set(operacoes)):
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O supervisor precisa estar vinculado à operação do operador.")
 
+            canais_atuais = [c["id_item"] for c in anterior.get("canais", [])]
+            canais = sorted({int(item) for item in (data["canais"] if data.get("canais") is not None else canais_atuais)})
+            for id_canal in canais:
+                cursor.execute("SELECT operacao FROM dbo.monitoria_catalogo WHERE id_item = ? AND tipo = 'canal'", (id_canal,))
+                achado = cursor.fetchone()
+                if not achado or normalize_text(achado[0]) not in operacoes:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O canal de atendimento precisa pertencer a uma operação do usuário.")
+
             # Aplicação
             cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (int(id_usuario),))
             for chave in operacoes:
@@ -504,6 +519,9 @@ class MonitoriaOrgRepositoryMixin:
                 "UPDATE dbo.usuarios SET id_equipe = ?, turno = ?, atualizado_em = GETDATE() WHERE id_usuario = ?",
                 (id_equipe, turno or None, int(id_usuario)),
             )
+            cursor.execute("DELETE FROM dbo.usuarios_canais WHERE id_usuario = ?", (int(id_usuario),))
+            for id_canal in canais:
+                cursor.execute("INSERT INTO dbo.usuarios_canais (id_usuario, id_item_canal) VALUES (?, ?)", (int(id_usuario), id_canal))
             novo = self._mon_vinculos(cursor, id_usuario)
             self.mon_log(cursor, actor, acao="alterar_vinculos_usuario", operacao=",".join(operacoes), entidade="usuario",
                          entidade_id=id_usuario, anterior=anterior, posterior=novo, ip=ip)
@@ -713,7 +731,7 @@ class MonitoriaOrgRepositoryMixin:
             self.mon_set_vinculos(
                 actor,
                 id_usuario,
-                {"operacoes": operacoes, "supervisores": supervisores, "id_equipe": data.get("id_equipe"), "turno": data.get("turno")},
+                {"operacoes": operacoes, "supervisores": supervisores, "id_equipe": data.get("id_equipe"), "turno": data.get("turno"), "canais": data.get("canais")},
                 ip=ip,
             )
         except HTTPException:
@@ -749,11 +767,166 @@ class MonitoriaOrgRepositoryMixin:
             {k: data[k] for k in ("nome", "sobrenome", "email", "cargo", "status", "perfil") if k in data},
             actor=actor,
         )
-        if any(k in data for k in ("operacoes", "supervisores", "id_equipe", "turno")):
+        if any(k in data for k in ("operacoes", "supervisores", "id_equipe", "turno", "canais")):
             self.mon_set_vinculos(
                 actor,
                 int(id_usuario),
-                {k: data[k] for k in ("operacoes", "supervisores", "id_equipe", "turno") if k in data},
+                {k: data[k] for k in ("operacoes", "supervisores", "id_equipe", "turno", "canais") if k in data},
                 ip=ip,
             )
         return {"success": True}
+
+    # ------------------------------------------------------------------
+    # Ambiente da operação (Configurações > Operações > Configurar ambiente)
+    # ------------------------------------------------------------------
+    def _mon_usuarios_por_perfil(self, cursor, perfis: tuple[str, ...]) -> list[dict]:
+        cursor.execute("SELECT id_usuario, nome, sobrenome, perfil_id, status FROM dbo.usuarios ORDER BY nome")
+        itens = []
+        for row in rows_to_dicts(cursor, cursor.fetchall()):
+            perfil = get_role_definition(row["perfil_id"]).id
+            if perfil in perfis:
+                nome = normalize_text(row["nome"])
+                sobrenome = normalize_text(row.get("sobrenome"))
+                itens.append({"id_usuario": int(row["id_usuario"]), "nome": f"{nome} {sobrenome}".strip(), "perfil": perfil,
+                              "ativo": normalize_text(row["status"]) == "Ativo"})
+        return itens
+
+    def mon_get_ambiente(self, user, chave: str) -> dict:
+        chave = normalize_text(chave)
+        self._mon_exigir_operacao_no_escopo(user, chave)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_item, nome, ativo FROM dbo.operacoes WHERE chave = ?", (chave,))
+            op = cursor.fetchone()
+            if not op:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operação não encontrada.")
+            id_item = int(op[0])
+            cursor.execute("SELECT possui_qualidade FROM dbo.operacoes_ambiente WHERE operacao = ?", (chave,))
+            achado = cursor.fetchone()
+            cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
+            ops_por_usuario: dict[int, set[str]] = {}
+            for id_usuario, operacao in cursor.fetchall():
+                ops_por_usuario.setdefault(int(id_usuario), set()).add(normalize_text(operacao))
+            usuarios = self._mon_usuarios_por_perfil(cursor, (ROLE_SUPERVISOR, ROLE_QUALIDADE, ROLE_OPERATOR))
+            vinculado = lambda u: chave in ops_por_usuario.get(u["id_usuario"], set())  # noqa: E731
+            supervisores = [u for u in usuarios if u["perfil"] == ROLE_SUPERVISOR]
+            qualidade = [u for u in usuarios if u["perfil"] == ROLE_QUALIDADE]
+            operadores = [u for u in usuarios if u["perfil"] == ROLE_OPERATOR and vinculado(u) and u["ativo"]]
+            cursor.execute(
+                "SELECT a.id_ambiente, a.nome, a.operacao_id, o.nome AS operacao_nome, a.ativo "
+                "FROM dbo.ambientes_sharepoint a LEFT JOIN dbo.operacoes o ON o.id_item = a.operacao_id ORDER BY a.nome"
+            )
+            intranets = [
+                {"id_ambiente": int(r["id_ambiente"]), "nome": normalize_text(r["nome"]), "ativo": bool(r["ativo"]),
+                 "vinculada": r["operacao_id"] is not None and int(r["operacao_id"]) == id_item,
+                 "outra_operacao": normalize_text(r["operacao_nome"]) if r["operacao_id"] is not None and int(r["operacao_id"]) != id_item else ""}
+                for r in rows_to_dicts(cursor, cursor.fetchall())
+            ]
+        finally:
+            conn.close()
+        return {
+            "operacao": chave,
+            "operacao_nome": normalize_text(op[1]),
+            "ativa": bool(op[2]),
+            "possui_qualidade": bool(achado[0]) if achado else False,
+            "supervisores": [{**u, "vinculado": vinculado(u)} for u in supervisores if u["ativo"] or vinculado(u)],
+            "qualidade": [{**u, "vinculado": vinculado(u)} for u in qualidade if u["ativo"] or vinculado(u)],
+            "total_supervisores": sum(1 for u in supervisores if vinculado(u) and u["ativo"]),
+            "total_qualidade": sum(1 for u in qualidade if vinculado(u) and u["ativo"]),
+            "total_operadores": len(operadores),
+            "intranets": intranets,
+        }
+
+    def mon_set_ambiente(self, actor, chave: str, data: dict, *, ip: str = "") -> dict:
+        """Aplica supervisores, pessoas da Qualidade, flag "possui qualidade" e intranets
+        (ambientes SharePoint) à operação, reaproveitando as regras de `mon_set_vinculos`
+        (limites por perfil, escopo e operação inativa)."""
+        chave = normalize_text(chave)
+        self._mon_exigir_operacao_no_escopo(actor, chave)
+        pedidos = {
+            ROLE_SUPERVISOR: data.get("supervisores"),
+            ROLE_QUALIDADE: data.get("qualidade"),
+        }
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            op = self._mon_exigir_operacao_ativa(cursor, chave)
+            cursor.execute("SELECT possui_qualidade FROM dbo.operacoes_ambiente WHERE operacao = ?", (chave,))
+            achado = cursor.fetchone()
+            possui_atual = bool(achado[0]) if achado else False
+            possui = possui_atual if data.get("possui_qualidade") is None else bool(data.get("possui_qualidade"))
+            cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
+            ops_por_usuario: dict[int, list[str]] = {}
+            for id_usuario, operacao in cursor.fetchall():
+                ops_por_usuario.setdefault(int(id_usuario), []).append(normalize_text(operacao))
+            usuarios = {u["id_usuario"]: u for u in self._mon_usuarios_por_perfil(cursor, (ROLE_SUPERVISOR, ROLE_QUALIDADE))}
+            mudancas: list[tuple[int, list[str]]] = []
+            erros: list[str] = []
+            for perfil, ids in pedidos.items():
+                if ids is None:
+                    continue
+                desejados = {int(i) for i in ids}
+                if perfil == ROLE_QUALIDADE and desejados and not possui:
+                    erros.append("Marque 'Possui Qualidade' antes de vincular pessoas da Qualidade.")
+                    continue
+                atuais = {i for i, u in usuarios.items() if u["perfil"] == perfil and chave in ops_por_usuario.get(i, [])}
+                for id_usuario in desejados - atuais:
+                    u = usuarios.get(id_usuario)
+                    if not u or u["perfil"] != perfil or not u["ativo"]:
+                        erros.append("Usuário inválido ou inativo na seleção.")
+                        continue
+                    novas = sorted(set(ops_por_usuario.get(id_usuario, [])) | {chave})
+                    erros += [f"{u['nome']}: {e}" for e in validar_vinculos(perfil, novas, [])]
+                    mudancas.append((id_usuario, novas))
+                for id_usuario in atuais - desejados:
+                    u = usuarios[id_usuario]
+                    novas = sorted(set(ops_por_usuario.get(id_usuario, [])) - {chave})
+                    if perfil == ROLE_SUPERVISOR:
+                        cursor.execute(
+                            "SELECT COUNT(*) FROM dbo.usuarios_supervisores s JOIN dbo.usuarios_operacoes o ON o.id_usuario = s.id_operador "
+                            "WHERE s.id_supervisor = ? AND o.operacao = ?",
+                            (id_usuario, chave),
+                        )
+                        if int(cursor.fetchone()[0]):
+                            erros.append(f"{u['nome']} ainda supervisiona operadores desta operação: use 'Transferir supervisão' antes de removê-lo.")
+                            continue
+                    erros += [f"{u['nome']}: {e}" for e in validar_vinculos(perfil, novas, [])]
+                    mudancas.append((id_usuario, novas))
+            if erros:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(dict.fromkeys(erros)))
+
+            intranets = data.get("intranets")
+            anterior_intranets: list[int] = []
+            if intranets is not None:
+                cursor.execute("SELECT id_ambiente FROM dbo.ambientes_sharepoint WHERE operacao_id = ?", (op["id_item"],))
+                anterior_intranets = [int(r[0]) for r in cursor.fetchall()]
+                desejadas = sorted({int(i) for i in intranets})
+                for id_ambiente in desejadas:
+                    cursor.execute("SELECT 1 FROM dbo.ambientes_sharepoint WHERE id_ambiente = ?", (id_ambiente,))
+                    if not cursor.fetchone():
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Intranet não encontrada.")
+                    cursor.execute(
+                        "UPDATE dbo.ambientes_sharepoint SET operacao_id = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_ambiente = ?",
+                        (op["id_item"], normalize_text(actor.nome), id_ambiente),
+                    )
+                for id_ambiente in set(anterior_intranets) - set(desejadas):
+                    cursor.execute(
+                        "UPDATE dbo.ambientes_sharepoint SET operacao_id = NULL, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_ambiente = ?",
+                        (normalize_text(actor.nome), id_ambiente),
+                    )
+            cursor.execute(
+                "MERGE dbo.operacoes_ambiente AS t USING (SELECT ? AS operacao) AS s ON t.operacao = s.operacao "
+                "WHEN MATCHED THEN UPDATE SET possui_qualidade = ?, atualizado_por = ?, atualizado_em = GETDATE() "
+                "WHEN NOT MATCHED THEN INSERT (operacao, possui_qualidade, atualizado_por) VALUES (?, ?, ?);",
+                (chave, int(possui), normalize_text(actor.nome), chave, int(possui), normalize_text(actor.nome)),
+            )
+            self.mon_log(cursor, actor, acao="configurar_ambiente_operacao", operacao=chave, entidade="operacao", entidade_id=op["id_item"],
+                         anterior={"possui_qualidade": possui_atual, "intranets": anterior_intranets},
+                         posterior={"possui_qualidade": possui, "usuarios_alterados": [i for i, _ in mudancas], "intranets": intranets}, ip=ip)
+            conn.commit()
+        finally:
+            conn.close()
+        for id_usuario, novas in mudancas:
+            self.mon_set_vinculos(actor, id_usuario, {"operacoes": novas}, ip=ip)
+        return self.mon_get_ambiente(actor, chave)

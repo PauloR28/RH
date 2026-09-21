@@ -36,6 +36,7 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
   const [observacao, setObservacao] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [recarga, setRecarga] = useState(0);
+  const [fechados, setFechados] = useState({});
 
   const cancelarEdicao = () => {
     setEditando(false);
@@ -128,15 +129,21 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
       ${!config ? html`<${LoadingState} titulo="Carregando formulário" />` : html`
         <div class="mon-matriz">
           <div class="mon-matriz-colunas" aria-hidden="true"><span>Pergunta</span><span>Valor / peso</span><span>${editando ? 'Ações' : ''}</span></div>
-          ${config.blocos.map((b, i) => html`
-            <section class="mon-matriz-bloco" key=${b.id || i}>
+          ${config.blocos.map((b, i) => {
+            const chaveBloco = b.id || i;
+            const fechado = Boolean(fechados[chaveBloco]);
+            const botaoDobrar = html`<button type="button" class=${`mon-bloco-toggle ${fechado ? 'is-fechado' : ''}`} aria-expanded=${!fechado} aria-label=${`${fechado ? 'Expandir' : 'Recolher'} bloco ${b.nome || ''}`.trim()}
+              onClick=${() => setFechados((f) => ({ ...f, [chaveBloco]: !fechado }))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('expand_more')}</span></button>`;
+            return html`
+            <section class=${`mon-matriz-bloco ${fechado ? 'is-fechado' : ''}`} key=${chaveBloco}>
               <div class="mon-matriz-linha is-bloco">
                 ${editando ? html`
-                  <input class="form-control" aria-label="Nome do bloco" placeholder="Nome do bloco" value=${b.nome} onInput=${(e) => setBloco(i, 'nome', e.target.value)} />
+                  <div class="mon-bloco-nome">${botaoDobrar}<input class="form-control" aria-label="Nome do bloco" placeholder="Nome do bloco" value=${b.nome} onInput=${(e) => setBloco(i, 'nome', e.target.value)} /></div>
                   <input class="form-control" type="number" step="0.5" aria-label="Valor do bloco" value=${b.valor} onInput=${(e) => setBloco(i, 'valor', e.target.value)} />
                   <${BotaoIcone} icone="delete" titulo="Remover bloco" perigo=${true} onClick=${() => setConfig({ ...config, blocos: config.blocos.filter((_, j) => j !== i) })} />
-                ` : html`<strong>${b.nome}</strong><span class="mon-valor">${formatarNota(b.valor)}</span><span></span>`}
+                ` : html`<div class="mon-bloco-nome">${botaoDobrar}<strong>${b.nome}</strong>${fechado ? html`<small class="mon-muted">${b.criterios.length} pergunta(s)</small>` : null}</div><span class="mon-valor">${formatarNota(b.valor)}</span><span></span>`}
               </div>
+              ${fechado ? null : html`<div class="mon-bloco-corpo">
               ${b.criterios.map((c, k) => html`
                 <div class="mon-matriz-linha" key=${c.id || k}>
                   ${editando ? html`
@@ -148,8 +155,9 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
               <div class="mon-matriz-rodape">
                 <span class=${`mon-muted ${Math.abs(somaPesos(b) - Number(b.valor || 0)) > 0.0001 ? 'mon-sla--vencido' : ''}`}>Soma dos pesos: ${formatarNota(somaPesos(b))} / ${formatarNota(b.valor)}</span>
                 ${editando ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setBloco(i, 'criterios', [...b.criterios, { texto: '', peso: 0 }])}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar pergunta</button>` : null}
-              </div>
-            </section>`)}
+              </div></div>`}
+            </section>`;
+          })}
           ${editando ? html`<button type="button" class="btn btn-outline-secondary mon-matriz-novo-bloco" onClick=${() => setConfig({ ...config, blocos: [...config.blocos, BLOCO_VAZIO()] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar bloco</button>` : null}
         </div>
 

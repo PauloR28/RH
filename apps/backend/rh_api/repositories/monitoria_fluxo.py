@@ -216,7 +216,7 @@ class MonitoriaFluxoRepositoryMixin:
                          detalhes={"criterios": criterios, "id_contestacao": id_contestacao}, ip=ip)
             destinos = self._mon_notificar(
                 cursor, self._mon_emails_supervisores(cursor, int(m["id_operador"])), titulo="Contestação recebida",
-                mensagem=f"{normalize_text(m['operador_nome'])} contestou a monitoria #{m['codigo']}. Prazo de reanálise: 72 horas.",
+                mensagem=f"A monitoria #{m['codigo']} foi contestada por {normalize_text(m['operador_nome'])}. Prazo de reanálise: 72 horas.",
                 categoria="monitoria_contestacao", id_monitoria=m["id_monitoria"],
             )
             conn.commit()
@@ -339,14 +339,14 @@ class MonitoriaFluxoRepositoryMixin:
                          detalhes={"resultado": resultado, "dentro_sla": dentro}, ip=ip)
             texto = "avaliação mantida" if resultado == wf.RESULTADO_CONFIRMADA else "monitoria anulada"
             destinos = self._mon_notificar(
-                cursor, [normalize_text(m["operador_email"])], titulo="Reanálise concluída",
-                mensagem=f"A reanálise da monitoria #{m['codigo']} foi concluída: {texto}.",
+                cursor, [normalize_text(m["operador_email"])], titulo="Contestação encerrada",
+                mensagem=f"A contestação da monitoria #{m['codigo']} foi encerrada: {texto}. A monitoria foi para o histórico.",
                 categoria="monitoria_reanalise", id_monitoria=m["id_monitoria"],
             )
             conn.commit()
         finally:
             conn.close()
-        self._mon_enviar_emails(destinos, "Monitoria: reanálise concluída", f"A reanálise da monitoria #{m['codigo']} foi concluída: {texto}.")
+        self._mon_enviar_emails(destinos, "Monitoria: contestação encerrada", f"A contestação da monitoria #{m['codigo']} foi encerrada: {texto}.")
         return {"success": True, "resultado": resultado, "status": wf.FINALIZADA}
 
     # ------------------------------------------------------------------

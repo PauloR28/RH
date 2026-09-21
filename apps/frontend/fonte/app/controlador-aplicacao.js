@@ -1141,7 +1141,9 @@ export function useControladorAplicacao() {
 
   const podeAcessarTela = (tela) => {
     const permissao = PERMISSOES_TELAS[tela];
-    return (!permissao || possuiPermissao(permissao)) && sessaoLiberada(SESSAO_DA_TELA[tela]);
+    // "Minhas monitorias": o Supervisor acompanha as monitorias da sua equipe (com a etiqueta "Contestada").
+    const supervisorMinhas = tela === 'screen-monitoria-minhas' && estado.perfilUsuario === 'supervisor' && possuiPermissao('monitoria.visualizar');
+    return (!permissao || possuiPermissao(permissao) || supervisorMinhas) && sessaoLiberada(SESSAO_DA_TELA[tela]);
   };
 
   const registrarAcessoNegado = (mensagem = MENSAGEM_ACESSO_NEGADO) => {

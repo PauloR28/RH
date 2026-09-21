@@ -264,13 +264,6 @@ export function BarraLateral({
       somenteAdmin: true,
     },
     {
-      tela: 'screen-settings-monitoria-logs',
-      icone: 'lock',
-      label: 'Logs da Monitoria',
-      permissao: 'monitoria.logs',
-      somenteAdmin: true,
-    },
-    {
       tela: 'screen-settings-document-templates',
       icone: 'help',
       label: 'Central de Ajuda',
@@ -337,7 +330,10 @@ export function BarraLateral({
     !permissao || controlador?.possuiPermissao?.(permissao);
   // Chave-mestra da sessão (Perfis e Permissões): só restringe quando o token a traz.
   const sessaoOk = (tela) => controlador?.sessaoDaTelaLiberada?.(tela) !== false;
-  const possuiSub = (subitem) => possuiPermissao(subitem.permissao) && sessaoOk(subitem.tela);
+  // "Minhas monitorias" também é do Supervisor (monitorias da equipe, com a etiqueta "Contestada").
+  const supervisorMinhas = (subitem) =>
+    subitem.tela === 'screen-monitoria-minhas' && controlador?.estado?.perfilUsuario === 'supervisor' && possuiPermissao('monitoria.visualizar');
+  const possuiSub = (subitem) => (possuiPermissao(subitem.permissao) || supervisorMinhas(subitem)) && sessaoOk(subitem.tela);
   const itemAtivo = (item) =>
     navAtiva === item.tela || (item.telasRelacionadas || []).includes(navAtiva);
   const grupoProcessosAtivo = telasRelacionadasProcessos.includes(navAtiva);

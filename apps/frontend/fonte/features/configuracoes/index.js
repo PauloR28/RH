@@ -28,7 +28,8 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { ModalPadrao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
+import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { definirOrientacoesAtivas, orientacoesAtivas } from '../../ui/tour-guiado.js';
 import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
@@ -51,6 +52,7 @@ import {
   validarVinculosMonitoria,
 } from './monitoria-config.js';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -58,9 +60,9 @@ const ABAS = [
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operações', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
-  // Administração da Monitoria (função do Administrador): equipes/catálogos e logs de auditoria.
+  // Administração da Monitoria (função do Administrador): equipes/catálogos. Os logs da Monitoria
+  // ficam numa sub-aba da aba Logs.
   { id: 'equipes-catalogos', tela: 'screen-settings-monitoria-equipes', label: 'Equipes e catálogos', permissao: 'monitoria.equipes', icon: 'groups', somenteAdmin: true },
-  { id: 'logs-monitoria', tela: 'screen-settings-monitoria-logs', label: 'Logs da Monitoria', permissao: 'monitoria.logs', icon: 'lock', somenteAdmin: true },
   { id: 'ambiente', tela: 'screen-settings-environment', label: 'Ambiente', permissao: '', icon: 'tune' },
 ];
 // Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
@@ -112,6 +114,7 @@ function ToggleSwitch({ checked, disabled, onChange }) {
 
 const ABA_POR_TELA = ABAS.reduce((mapa, aba) => ({ ...mapa, [aba.tela]: aba.id }), {
   'screen-settings': 'usuarios',
+  'screen-settings-monitoria-logs': 'logs',
 });
 
 const FORM_USUARIO_INICIAL = {
@@ -552,6 +555,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [erroSenhaAmbiente, setErroSenhaAmbiente] = useState('');
   const [formUsuario, setFormUsuario] = useState(FORM_USUARIO_INICIAL);
   const [vinculosMon, setVinculosMon] = useState(VINCULOS_INICIAIS);
+  const [abaOperacao, setAbaOperacao] = useState('cadastro');
+  const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
@@ -651,6 +656,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setMenuUsuarioPosicao(null);
     setConfirmandoExclusaoUsuario(false);
   };
+
+  useEffect(() => {
+    if (telaAtual === 'screen-settings-monitoria-logs') setSubAbaLogs('monitoria');
+  }, [telaAtual]);
 
   useEffect(() => {
     const abaDaRota = ABA_POR_TELA[telaAtual];
@@ -896,6 +905,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         supervisores: formUsuario.perfil === 'operador' ? vinculosMon.supervisores : [],
         id_equipe: formUsuario.perfil === 'operador' && vinculosMon.id_equipe ? Number(vinculosMon.id_equipe) : null,
         turno: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.turno || null : null,
+        canais: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.canais || [] : [],
       });
       if (formUsuario.id_usuario) {
         await atualizarUsuario(formUsuario.id_usuario, payload);
@@ -1847,23 +1857,21 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           titulo=${criandoUsuario ? 'Criar usuário' : 'Editar usuário'}
           subtitulo=${nomeDrawer}
           onClose=${fecharDrawerUsuario}
+          acaoCabecalho=${!criandoUsuario && podeEditar
+        ? html`
+                <button
+                  type="button"
+                  class=${`btn btn-sm ${modoEdicaoUsuario ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
+                  onClick=${() => setModoEdicaoUsuario((atual) => !atual)}
+                >
+                  <${Icone} name=${modoEdicaoUsuario ? 'lock_open' : 'edit'} />
+                  ${modoEdicaoUsuario ? 'Edição liberada' : 'Editar'}
+                </button>
+              `
+        : null}
         >
           <form class="users-drawer-form" onSubmit=${salvarUsuario}>
             <div class="users-drawer-body">
-              ${!criandoUsuario && podeEditar
-        ? html`
-                    <div class="users-edit-toggle-row">
-                      <button
-                        type="button"
-                        class=${`btn btn-sm ${modoEdicaoUsuario ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
-                        onClick=${() => setModoEdicaoUsuario((atual) => !atual)}
-                      >
-                        <${Icone} name=${modoEdicaoUsuario ? 'lock_open' : 'edit'} />
-                        ${modoEdicaoUsuario ? 'Edição liberada' : 'Editar'}
-                      </button>
-                    </div>
-                  `
-        : null}
               <div class="users-drawer-form-grid">
               <label>
                         <span>Nome</span>
@@ -1959,40 +1967,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <option value="local">Local</option>
                         </select>
                       </label>
-                      <label class="users-drawer-field-wide">
-                        <span>Operações vinculadas</span>
-                        <div class="users-operacoes-checklist">
-                          ${operacoesDisponiveis.length
-        ? operacoesDisponiveis.map((operacao) => {
-          const valorOperacao = operacao.chave || operacao.nome;
-          const marcado = formUsuario.operacoes.includes(valorOperacao);
-          const idCheckbox = `users-operacao-${operacao.id_item}`;
-          return html`
-                                <span key=${operacao.id_item} class="users-operacoes-item">
-                                  <input
-                                    type="checkbox"
-                                    id=${idCheckbox}
-                                    checked=${marcado}
-                                    disabled=${bloqueadoLeitura}
-                                    onChange=${(event) => {
-              const novaLista = event.target.checked
-                ? [...formUsuario.operacoes, valorOperacao]
-                : formUsuario.operacoes.filter((item) => item !== valorOperacao);
-              setFormUsuario({ ...formUsuario, operacoes: novaLista });
-            }}
-                                  />
-                                  <label for=${idCheckbox}>${operacao.nome}</label>
-                                </span>
-                              `;
-        })
-        : html`<span class="form-text">Nenhuma operação cadastrada.</span>`}
-                        </div>
-                        <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações${PERFIS_MONITORIA.includes(formUsuario.perfil) ? ' (perfis da Monitoria seguem as regras abaixo)' : ''}.</span>
-                      </label>
                       <${CamposVinculosMonitoria}
                         perfil=${formUsuario.perfil}
                         idUsuario=${criandoUsuario ? '' : formUsuario.id_usuario}
                         operacoes=${Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : []}
+                        setOperacoes=${(lista) => setFormUsuario((atual) => ({ ...atual, operacoes: lista }))}
+                        operacoesDisponiveis=${operacoesDisponiveis}
                         vinculos=${vinculosMon}
                         setVinculos=${setVinculosMon}
                         bloqueado=${bloqueadoLeitura}
@@ -2510,11 +2490,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
 
       <div class="settings-catalog-workspace settings-catalog-workspace--single">
-        <section class="c24-card settings-rule-form-card">
+        <section class=${`c24-card settings-rule-form-card ${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'settings-rule-form-card--operacoes' : ''}`.trim()}>
           <header class="c24-card-header">
             <div>
               <span class="c24-eyebrow">${secaoCatalogoAtiva?.label || 'Catálogo'}</span>
-              <h3>${formItem.id_item ? 'Editar regra' : 'Nova regra'}</h3>
+              <h3>${secaoCatalogoAtiva?.tipo === 'operacoes' ? (formItem.id_item ? 'Editar operação' : 'Nova operação') : (formItem.id_item ? 'Editar regra' : 'Nova regra')}</h3>
               <p>
                 ${secaoCatalogoAtiva?.tipo === 'operacoes'
       ? 'Preencha os dados desta operação — eles passam a valer em Processos, Provas e Treinamentos.'
@@ -2534,9 +2514,30 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
             </div>
           </header>
+          ${secaoCatalogoAtiva?.tipo === 'operacoes'
+      ? html`
+                <div class="cfg-subabas" role="tablist" aria-label="Seções da operação">
+                  ${[['cadastro', 'Cadastro', 'edit_note'], ['ambiente', 'Configurar ambiente', 'tune']].map(([id, rotulo, icone]) => html`
+                    <button key=${id} type="button" role="tab" aria-selected=${abaOperacao === id} class=${`cfg-subaba ${abaOperacao === id ? 'is-active' : ''}`} onClick=${() => setAbaOperacao(id)}>
+                      <${Icone} name=${icone} /> ${rotulo}
+                    </button>`)}
+                </div>`
+      : null}
+          ${secaoCatalogoAtiva?.tipo === 'operacoes' && abaOperacao === 'ambiente'
+      ? html`<${AbaAmbienteOperacao}
+                chave=${formItem.id_item ? (formItem.chave || String(formItem.nome || '').toUpperCase()) : ''}
+                nome=${formItem.nome}
+                podeEditar=${controlador.possuiPermissao('configuracoes.editar')}
+                podeEditarOrganizacao=${controlador.possuiPermissao('monitoria.equipes')}
+                onFeedback=${setFeedback}
+                onErro=${setErro}
+              />`
+      : html`
           <form class="c24-form-grid settings-rule-form" onSubmit=${salvarItem}>
-            <div class="settings-form-section">
-            <h4 class="settings-form-section-title">Identificação</h4>
+            <${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'details' : 'div'} class=${`settings-form-section ${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'settings-form-accordion' : ''}`.trim()} open=${secaoCatalogoAtiva?.tipo === 'operacoes' ? true : undefined}>
+            ${secaoCatalogoAtiva?.tipo === 'operacoes'
+      ? html`<summary class="settings-form-section-title">Identificação</summary>`
+      : html`<h4 class="settings-form-section-title">Identificação</h4>`}
             <label>
               <span>Nome</span>
               <input
@@ -2657,7 +2658,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               />
               <span>Item ativo nos fluxos operacionais</span>
             </label>
-            </div>
+            <//>
             ${secaoCatalogoAtiva?.tipo === 'etapas'
       ? html`
                   <label>
@@ -3006,6 +3007,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               </button>
             </footer>
           </form>
+          `}
         </section>
 
         <section class="c24-card settings-catalog-list-card">
@@ -3810,6 +3812,23 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     </div>
   `;
 
+  // Logs do sistema e Logs da Monitoria (só Administrador) numa única tela, separados por abas.
+  const renderLogsComAbas = () => {
+    const temLogsMonitoria = ehAdministrador && controlador.possuiPermissao('monitoria.logs');
+    if (!temLogsMonitoria) return renderLogs();
+    return html`
+      <div class="settings-admin-shell">
+        <div class="cfg-subabas" role="tablist" aria-label="Tipo de log">
+          ${[['sistema', 'Logs do sistema', 'history_edu'], ['monitoria', 'Logs da Monitoria', 'lock']].map(([id, rotulo, icone]) => html`
+            <button key=${id} type="button" role="tab" aria-selected=${subAbaLogs === id} class=${`cfg-subaba ${subAbaLogs === id ? 'is-active' : ''}`} onClick=${() => setSubAbaLogs(id)}>
+              <${Icone} name=${icone} /> ${rotulo}
+            </button>`)}
+        </div>
+        ${subAbaLogs === 'monitoria' ? html`<${AbaLogsMonitoria} />` : renderLogs()}
+      </div>
+    `;
+  };
+
   const renderLogs = () => html`
     <div class="settings-admin-shell">
       <${StatGrid}
@@ -4119,9 +4138,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     ? renderAmbiente()
                     : abaRenderizada === 'equipes-catalogos'
                       ? html`<${AbaEquipesCatalogos} />`
-                      : abaRenderizada === 'logs-monitoria'
-                        ? html`<${AbaLogsMonitoria} />`
-                        : renderLogs()}
+                      : renderLogsComAbas()}
     </${PainelRh}>
   `;
 }

@@ -42,7 +42,11 @@ const PRESETS = {
 const FILTROS_VAZIOS = { codigo: '', operador: '', avaliador: '', data_inicio: '', data_fim: '', operacao: '', status: '' };
 
 export function ListaMonitorias({ modo = 'historico', controlador, contexto, abrirDetalhe, atualizacao, showToast }) {
-  const preset = PRESETS[modo] || PRESETS.historico;
+  const perfil = controlador?.estado?.perfilUsuario;
+  const ehOperador = perfil === 'operador';
+  const preset = modo === 'minhas' && !ehOperador
+    ? { ...PRESETS.minhas, texto: 'Monitorias dos operadores da sua equipe. As contestações aparecem com a etiqueta "Contestada" até você dar baixa.' }
+    : PRESETS[modo] || PRESETS.historico;
   const podeExportar = controlador.possuiPermissao('monitoria.exportar');
   const padrao = { ...FILTROS_VAZIOS, status: preset.status };
   // `rascunho` é o que está nos campos; `filtros` é o que já foi aplicado à consulta.
@@ -108,8 +112,8 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       <p class="mon-muted">${preset.texto}</p>
       <div class="mon-filtros" onKeyDown=${(e) => { if (e.key === 'Enter') aplicar(); }}>
         <label class="mon-filtro mon-filtro--id">ID<input class="form-control" maxlength="8" inputmode="numeric" placeholder="8 dígitos" value=${rascunho.codigo} onInput=${(e) => campo('codigo', e.target.value.replace(/\D/g, ''))} /></label>
-        ${modo !== 'minhas' ? html`<label class="mon-filtro">Operador<input class="form-control" placeholder="Nome" value=${rascunho.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
-        ${modo !== 'minhas' ? html`<label class="mon-filtro">Avaliador<input class="form-control" placeholder="Nome" value=${rascunho.avaliador} onInput=${(e) => campo('avaliador', e.target.value)} /></label>` : null}
+        ${modo !== 'minhas' || !ehOperador ? html`<label class="mon-filtro">Operador<input class="form-control" placeholder="Nome" value=${rascunho.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
+        ${modo !== 'minhas' || !ehOperador ? html`<label class="mon-filtro">Avaliador<input class="form-control" placeholder="Nome" value=${rascunho.avaliador} onInput=${(e) => campo('avaliador', e.target.value)} /></label>` : null}
         <label class="mon-filtro mon-filtro--data">De<input class="form-control" type="date" value=${rascunho.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
         <label class="mon-filtro mon-filtro--data">Até<input class="form-control" type="date" value=${rascunho.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
         ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${rascunho.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
@@ -152,7 +156,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
                   <td><${TagOperacao} chave=${m.operacao} nome=${m.operacao_nome} contexto=${contexto} /></td>
                   <td>${m.operador_nome}</td><td>${m.equipe_nome || '—'}</td><td>${m.avaliador_nome}</td>
                   <td class="num"><strong>${formatarNota(m.nota)}</strong> <${TagsMonitoria} item=${m} /></td>
-                  <td><${BadgeStatus} status=${m.status} rotulo=${m.status_rotulo} /></td>
+                  <td><${BadgeStatus} status=${m.status} rotulo=${m.status_rotulo} perfil=${perfil} contestada=${m.tem_contestacao} /></td>
                   <td><${BadgeSla} sla=${m.sla} /></td>
                 </tr>`)}
             </tbody>

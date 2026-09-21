@@ -1,6 +1,6 @@
 import { html, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20260921-ajuda';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20260921-monitoria6';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useContextoMonitoria } from './comum.js';
@@ -54,7 +54,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   const [compartilhar, setCompartilhar] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
 
-  const abas = ABAS_MONITORIA.filter((a) => controlador.possuiPermissao(a.permissao));
+  const abas = ABAS_MONITORIA.filter((a) => controlador.possuiPermissao(a.permissao) || controlador.podeAcessarTela(a.tela) && a.tela === 'screen-monitoria-minhas');
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-monitoria'];
 
   const abrirDetalhe = (ref, opcoes = {}) => {
