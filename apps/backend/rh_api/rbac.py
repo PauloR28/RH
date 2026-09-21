@@ -286,14 +286,14 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         ),
         _permission(
             "documentos_biblioteca.visualizar",
-            "Central de Documentos",
-            "Visualizar e baixar documentos da biblioteca (Central de Documentos). Somente Administrador.",
+            "Central de Ajuda",
+            "Visualizar e baixar documentos da biblioteca (Central de Ajuda). Somente Administrador.",
             critical=True,
         ),
         _permission(
             "documentos_biblioteca.editar",
-            "Central de Documentos",
-            "Cadastrar, editar ou remover documentos da biblioteca (Central de Documentos). Somente Administrador.",
+            "Central de Ajuda",
+            "Cadastrar, editar ou remover documentos da biblioteca (Central de Ajuda). Somente Administrador.",
             critical=True,
         ),
         _permission("fit_cultural.visualizar", "Fit Cultural", "Visualizar valores da empresa e resultados de fit cultural dos candidatos."),
@@ -626,7 +626,7 @@ SESSION_MODULES: dict[str, set[str]] = {
     "gestao": {"Relatórios", "Calendário"},
     "drive": {"OneDrive", "Documentos"},
     "treinamentos": {"Onboarding"},
-    "configuracoes": {"Configurações", "Usuários", "LGPD", "E-mails", "Templates de Documentos", "Central de Documentos", "Logs", "Políticas"},
+    "configuracoes": {"Configurações", "Usuários", "LGPD", "E-mails", "Templates de Documentos", "Central de Ajuda", "Logs", "Políticas"},
 }
 # O Supervisor trabalha em Treinamentos e Monitoria (promt.txt §3.3): as sessões de RH
 # (Caixa de Currículos e Processos) não são liberadas por padrão; o Administrador pode ligar.
@@ -654,12 +654,10 @@ SCREEN_PERMISSIONS.update(
         "screen-monitoria-dashboard": "monitoria.dashboard",
         "screen-monitoria-relatorios": "monitoria.relatorios",
         "screen-monitoria-planos": "monitoria.plano_acao_visualizar",
-        "screen-monitoria-logs": "monitoria.logs",
         "screen-monitoria-formularios": "monitoria.matriz",
-        "screen-monitoria-equipes": "monitoria.equipes",
-        "screen-monitoria-usuarios": "monitoria.usuarios",
-        "screen-monitoria-guia": "monitoria.visualizar",
         "screen-settings-monitoria": "monitoria.configurar",
+        "screen-settings-monitoria-equipes": "monitoria.equipes",
+        "screen-settings-monitoria-logs": "monitoria.logs",
     }
 )
 

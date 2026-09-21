@@ -29,7 +29,7 @@ def create_documento_biblioteca(
     audit_action(
         repository,
         user,
-        modulo="Central de Documentos",
+        modulo="Central de Ajuda",
         acao="criar_documento_biblioteca",
         entidade="documento_biblioteca",
         entidade_id=str(result.get("id_documento") or ""),
@@ -49,7 +49,7 @@ def update_documento_biblioteca(
     audit_action(
         repository,
         user,
-        modulo="Central de Documentos",
+        modulo="Central de Ajuda",
         acao="editar_documento_biblioteca",
         entidade="documento_biblioteca",
         entidade_id=str(id_documento),
@@ -68,7 +68,7 @@ def delete_documento_biblioteca(
     audit_action(
         repository,
         user,
-        modulo="Central de Documentos",
+        modulo="Central de Ajuda",
         acao="excluir_documento_biblioteca",
         entidade="documento_biblioteca",
         entidade_id=str(id_documento),

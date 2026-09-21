@@ -1,14 +1,14 @@
 import { html, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20260920-monitoria';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20260921-ajuda';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js';
 import { ModalDetalheMonitoria } from './detalhe.js';
-import { ListaMonitorias, ModalCompartilhar, TelaGuia, TelaLogs, TelaPlanos, TelaRelatorios } from './listas.js';
+import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js';
 import { TelaDashboard } from './painel.js';
-import { TelaEquipes, TelaFormularios, TelaUsuariosMonitoria } from './admin.js';
+import { TelaFormularios } from './admin.js';
 import { TelaCentralMonitoria } from './central.js';
 
 // Vertente Monitoria: um único módulo de telas, cada uma com sua rota (screen-monitoria*).
@@ -25,10 +25,6 @@ export const ABAS_MONITORIA = [
   { tela: 'screen-monitoria-planos', rotulo: 'Planos de ação', icone: 'task_alt', permissao: 'monitoria.plano_acao_visualizar' },
   { tela: 'screen-monitoria-relatorios', rotulo: 'Relatórios', icone: 'table_chart', permissao: 'monitoria.relatorios' },
   { tela: 'screen-monitoria-formularios', rotulo: 'Formulários', icone: 'rule', permissao: 'monitoria.matriz' },
-  { tela: 'screen-monitoria-equipes', rotulo: 'Equipes', icone: 'groups', permissao: 'monitoria.equipes' },
-  { tela: 'screen-monitoria-usuarios', rotulo: 'Usuários', icone: 'manage_accounts', permissao: 'monitoria.usuarios' },
-  { tela: 'screen-monitoria-logs', rotulo: 'Logs', icone: 'lock', permissao: 'monitoria.logs' },
-  { tela: 'screen-monitoria-guia', rotulo: 'Guia', icone: 'menu_book', permissao: 'monitoria.visualizar' },
 ];
 
 const TITULOS = {
@@ -41,10 +37,6 @@ const TITULOS = {
   'screen-monitoria-planos': ['Planos de ação', 'Acompanhe a evolução dos operadores.'],
   'screen-monitoria-relatorios': ['Relatórios', 'Visualize e exporte (XLSX ou CSV) com os mesmos indicadores do dashboard.'],
   'screen-monitoria-formularios': ['Formulários de monitoria', 'Matriz de qualidade versionada por operação.'],
-  'screen-monitoria-equipes': ['Equipes e catálogos', 'Equipes, turnos, canais e tipos de atendimento.'],
-  'screen-monitoria-usuarios': ['Usuários da Monitoria', 'Operadores, supervisores, qualidade e control desk.'],
-  'screen-monitoria-logs': ['Logs de auditoria', 'Registro imutável das ações.'],
-  'screen-monitoria-guia': ['Guia de processos', 'Como cada processo funciona.'],
 };
 
 export function abaInicialMonitoria(controlador) {
@@ -80,10 +72,6 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   else if (telaAtual === 'screen-monitoria-planos') corpo = html`<${TelaPlanos} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-relatorios') corpo = html`<${TelaRelatorios} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-equipes') corpo = html`<${TelaEquipes} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-usuarios') corpo = html`<${TelaUsuariosMonitoria} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-logs') corpo = html`<${TelaLogs} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-guia') corpo = html`<${TelaGuia} ...${props} />`;
   else {
     const modo = { 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas' }[telaAtual] || 'historico';
     corpo = html`<${ListaMonitorias} ...${props} modo=${modo} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} />`;

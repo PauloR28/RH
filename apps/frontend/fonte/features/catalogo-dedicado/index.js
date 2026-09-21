@@ -513,7 +513,7 @@ const CONFIG_LGPD = {
       tipo: 'url',
       wide: true,
       placeholder: 'https://...',
-      helper: 'Link do arquivo hospedado no SharePoint, OneDrive ou Drive-Conecta — mesmo padrão já usado na Central de Documentos (sem upload direto de arquivo).',
+      helper: 'Link do arquivo hospedado no SharePoint, OneDrive ou Drive-Conecta — mesmo padrão já usado na Central de Ajuda (sem upload direto de arquivo).',
     },
   ],
 };

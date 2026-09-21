@@ -33,14 +33,14 @@ def test_rotas_spa_da_monitoria_nao_colidem_com_o_prefixo_da_api():
     """Recarregar a página numa rota do SPA que também é rota GET da API devolveria JSON
     em vez da aplicação (achado na verificação de C5). O SPA usa `monitorias/...`."""
     rotas = dict(re.findall(r"'(screen-monitoria[a-z-]*)': '([^']+)'", _ler(FONTE / "rotas.js")))
-    assert len(rotas) >= 13
+    assert len(rotas) >= 9  # equipes, usuários, logs e guia saíram para Configurações / Central de Ajuda
     for tela, rota in rotas.items():
         assert not (rota == "monitoria" or rota.startswith("monitoria/")), f"{tela} -> {rota} colide com /monitoria (API)"
 
 
 def test_permissoes_das_telas_do_frontend_espelham_o_backend():
     codigo = _ler(FONTE / "app" / "controlador-aplicacao.js")
-    frontend = dict(re.findall(r"'(screen-monitoria[a-z-]*|screen-settings-monitoria)': '([a-z_.]+)'", codigo.split("SESSAO_DA_TELA")[0]))
+    frontend = dict(re.findall(r"'(screen-monitoria[a-z-]*|screen-settings-monitoria[a-z-]*)': '([a-z_.]+)'", codigo.split("SESSAO_DA_TELA")[0]))
     assert frontend, "mapa de permissões da Monitoria não encontrado no controlador"
     for tela, permissao in frontend.items():
         assert SCREEN_PERMISSIONS.get(tela) == permissao, (tela, permissao, SCREEN_PERMISSIONS.get(tela))
@@ -77,3 +77,23 @@ def test_login_nao_menciona_mais_rh_na_marca():
 def test_caddy_encaminha_a_api_da_monitoria_ao_backend():
     caddy = _ler(REPO_ROOT / "infra" / "caddy" / "Caddyfile")
     assert "/monitoria/*" in caddy
+
+
+def test_administracao_da_monitoria_migrou_para_configuracoes_e_central_de_ajuda():
+    indice = _ler(FONTE / "features" / "monitoria" / "index.js")
+    for tela in ("screen-monitoria-usuarios", "screen-monitoria-equipes", "screen-monitoria-logs", "screen-monitoria-guia"):
+        assert tela not in indice, f"{tela} deveria ter saído do módulo da Monitoria"
+    config = _ler(FONTE / "features" / "configuracoes" / "index.js")
+    assert "screen-settings-monitoria-equipes" in config and "screen-settings-monitoria-logs" in config
+    assert SCREEN_PERMISSIONS["screen-settings-monitoria-equipes"] == "monitoria.equipes"
+    assert SCREEN_PERMISSIONS["screen-settings-monitoria-logs"] == "monitoria.logs"
+    assert (FONTE / "features" / "ajuda" / "guia.js").exists()
+    assert "Central de Documentos" not in _ler(API_DIR / "rh_api" / "rbac.py")
+
+
+def test_rotas_de_vinculos_do_usuario_existem_para_o_formulario_de_configuracoes():
+    from rh_api.routers import monitoria
+
+    rotas = {(r.path, tuple(sorted(r.methods))) for r in monitoria.router.routes}
+    assert ("/monitoria/usuarios/{id_usuario}/vinculos", ("GET",)) in rotas
+    assert ("/monitoria/usuarios/{id_usuario}/vinculos", ("PUT",)) in rotas

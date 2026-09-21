@@ -28,6 +28,8 @@ export const salvarCatalogoMonitoria = (payload, idItem = null) =>
 export const listarUsuariosMonitoria = () => requisitar('/monitoria/usuarios', { method: 'GET' });
 export const criarUsuarioMonitoria = (payload) => enviar('/monitoria/usuarios', 'POST', payload);
 export const atualizarUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usuarios/${id}`, 'PUT', payload);
+export const lerVinculosUsuarioMonitoria = (id) => requisitar(`/monitoria/usuarios/${id}/vinculos`, { method: 'GET' });
+export const salvarVinculosUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usuarios/${id}/vinculos`, 'PUT', payload);
 export const transferirSupervisao = (payload) => enviar('/monitoria/supervisao/transferir', 'POST', payload);
 export const liberarTrocaDesign = (id) => enviar(`/monitoria/usuarios/${id}/liberar-design`, 'POST', {});
 export const trocarSenhaInicial = (payload) => enviar('/auth/me/senha-inicial', 'POST', payload);

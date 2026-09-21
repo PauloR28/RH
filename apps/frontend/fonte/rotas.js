@@ -65,11 +65,10 @@ export const ROTAS_POR_TELA = {
   'screen-monitoria-planos': 'monitorias/planos',
   'screen-monitoria-relatorios': 'monitorias/relatorios',
   'screen-monitoria-formularios': 'monitorias/formularios',
-  'screen-monitoria-equipes': 'monitorias/equipes',
-  'screen-monitoria-usuarios': 'monitorias/usuarios',
-  'screen-monitoria-logs': 'monitorias/logs',
-  'screen-monitoria-guia': 'monitorias/guia',
   'screen-settings-monitoria': 'configuracoes/central-monitoria',
+  'screen-settings-monitoria-equipes': 'configuracoes/equipes-catalogos',
+  'screen-settings-monitoria-logs': 'configuracoes/logs-monitoria',
+  'screen-help': 'ajuda',
 };
 
 export const TELAS_POR_ROTA = Object.entries(ROTAS_POR_TELA).reduce(

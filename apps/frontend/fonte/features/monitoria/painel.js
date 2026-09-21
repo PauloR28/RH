@@ -64,15 +64,14 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
 
   return html`
     <div class="mon-shell">
-      <div class="mon-acoes">${MODOS.filter(([k]) => !ehOperador || k === 'geral' || k === 'periodo').map(([k, rot]) => html`<button key=${k} type="button" class=${`mon-subnav-btn ${filtros.modo === k ? 'is-active' : ''}`} onClick=${() => campo('modo', k)}>${rot}</button>`)}</div>
-
-      <div class="mon-filtros">
-        ${(contexto?.operacoes || []).length > 1 ? html`<label>Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
-        <label>Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
-        <label>Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
-        ${filtros.modo === 'periodo' ? html`<label>Agrupar por<select class="form-select" value=${filtros.granularidade} onChange=${(e) => campo('granularidade', e.target.value)}><option value="dia">Dia</option><option value="semana">Semana</option><option value="mes">Mês</option></select></label>` : null}
-        ${!ehOperador && filtros.modo === 'operador' ? html`<label>Operador<select class="form-select" value=${filtros.id_operador} onChange=${(e) => campo('id_operador', e.target.value)}><option value="">Todos</option>${opcoesOperador.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
-        ${!ehOperador ? html`<label>Top<select class="form-select" value=${filtros.top} onChange=${(e) => campo('top', Number(e.target.value))}>${[3, 5, 10, 15].map((n) => html`<option key=${n} value=${n}>Top ${n}</option>`)}</select></label>` : null}
+      <div class="mon-filtros mon-filtros--linha">
+        <div class="mon-segmentado" role="tablist" aria-label="Visão do dashboard">${MODOS.filter(([k]) => !ehOperador || k === 'geral' || k === 'periodo').map(([k, rot]) => html`<button key=${k} type="button" role="tab" aria-selected=${filtros.modo === k} class=${`mon-seg-btn ${filtros.modo === k ? 'is-active' : ''}`} onClick=${() => campo('modo', k)}>${rot}</button>`)}</div>
+        ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
+        <label class="mon-filtro mon-filtro--data">Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
+        <label class="mon-filtro mon-filtro--data">Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
+        ${filtros.modo === 'periodo' ? html`<label class="mon-filtro">Agrupar por<select class="form-select" value=${filtros.granularidade} onChange=${(e) => campo('granularidade', e.target.value)}><option value="dia">Dia</option><option value="semana">Semana</option><option value="mes">Mês</option></select></label>` : null}
+        ${!ehOperador && filtros.modo === 'operador' ? html`<label class="mon-filtro">Operador<select class="form-select" value=${filtros.id_operador} onChange=${(e) => campo('id_operador', e.target.value)}><option value="">Todos</option>${opcoesOperador.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
+        ${!ehOperador ? html`<label class="mon-filtro">Top<select class="form-select" value=${filtros.top} onChange=${(e) => campo('top', Number(e.target.value))}>${[3, 5, 10, 15].map((n) => html`<option key=${n} value=${n}>Top ${n}</option>`)}</select></label>` : null}
       </div>
 
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}

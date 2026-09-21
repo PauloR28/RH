@@ -35,6 +35,7 @@ from ..schemas.monitoria import (
     TemaRequest,
     TransferirSupervisaoRequest,
     UsuarioMonitoriaRequest,
+    VinculosMonitoriaRequest,
 )
 
 router = APIRouter(prefix="/monitoria", tags=["monitoria"], dependencies=[Depends(get_current_user)])
@@ -159,6 +160,23 @@ def atualizar_usuario(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_update_usuario(user, id_usuario, payload.model_dump(exclude_unset=True), ip=client_ip(request))
+
+
+@router.get("/usuarios/{id_usuario}/vinculos", dependencies=[Depends(require_permissions("monitoria.usuarios"))])
+def ler_vinculos_usuario(id_usuario: int, repository: DatabaseRepository = Depends(get_repository)):
+    """Operação(ões), equipe, turno e supervisores do usuário (formulário de usuário em Configurações)."""
+    return repository.mon_get_vinculos(id_usuario)
+
+
+@router.put("/usuarios/{id_usuario}/vinculos", dependencies=[Depends(require_permissions("monitoria.usuarios"))])
+def salvar_vinculos_usuario(
+    id_usuario: int,
+    payload: VinculosMonitoriaRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_set_vinculos(user, id_usuario, payload.model_dump(exclude_unset=True), ip=client_ip(request))
 
 
 @router.post("/supervisao/transferir", dependencies=[Depends(require_permissions("monitoria.usuarios"))])

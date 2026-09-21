@@ -1,4 +1,5 @@
-import { html, useCallback, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useCallback, useEffect, useRef, useState } from '../../infraestrutura-react.js';
+import { IconeSvg } from '../../ui/icone.js';
 import { lerContextoMonitoria } from '../../services/api/monitoria.js';
 
 // Vertente Monitoria — peças compartilhadas pelas telas (tags, badges, formatação,
@@ -125,4 +126,29 @@ export function SelectOperacao({ contexto, valor, onChange, todas = true, rotulo
       ${operacoes.map((op) => html`<option key=${op.chave} value=${op.chave} disabled=${!op.ativo}>${op.nome}${op.ativo ? '' : ' (inativa)'}</option>`)}
     </select>
   `;
+}
+
+// Botão dropdown "Exportar" (ou outro menu curto de ações): fecha ao clicar fora ou com Esc.
+export function BotaoExportar({ rotulo = 'Exportar', opcoes = [], desabilitado = false }) {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (e) => { if (raiz.current && !raiz.current.contains(e.target)) setAberto(false); };
+    const esc = (e) => { if (e.key === 'Escape') setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
+  }, [aberto]);
+  return html`
+    <div class="mon-dropdown" ref=${raiz}>
+      <button type="button" class="btn btn-outline-primary mon-dropdown-btn" aria-haspopup="menu" aria-expanded=${aberto} disabled=${desabilitado} onClick=${() => setAberto(!aberto)}>
+        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('download')}</span>${rotulo}
+        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(aberto ? 'expand_less' : 'expand_more')}</span>
+      </button>
+      ${aberto ? html`
+        <div class="mon-dropdown-menu" role="menu">
+          ${opcoes.map((o) => html`<button key=${o.rotulo} type="button" role="menuitem" onClick=${() => { setAberto(false); o.onSelecionar(); }}>${o.rotulo}</button>`)}
+        </div>` : null}
+    </div>`;
 }

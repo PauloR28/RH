@@ -5,7 +5,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260920-monitoria';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260921-ajuda';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -102,7 +102,7 @@ const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.j
 const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
-const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260910-correcoes-txt'), 'TelaOneDriveArquivos');
+const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260920-drive'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
 const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260904-identidade-conecta'), 'TelaProvasResultados');
@@ -111,10 +111,10 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260920-monitoria2'),
+  () => import('../features/configuracoes/index.js?v=20260921-monitoria5'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20260920-monitoria4');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20260921-monitoria5');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
@@ -126,9 +126,10 @@ const TelaDashboardFunil = carregarTela(
   'TelaDashboardFunil',
 );
 const TelaTemplatesDocumentos = carregarTela(
-  () => import('../features/documentos-template/index.js?v=20260910-correcoes-txt'),
+  () => import('../features/documentos-template/index.js?v=20260921-ajuda'),
   'TelaTemplatesDocumentos',
 );
+const TelaCentralAjuda = carregarTela(() => import('../features/ajuda/guia.js?v=20260921-ajuda'), 'TelaCentralAjuda');
 const TelaTreinamentos = carregarTela(
   () => import('../features/treinamentos/index.js?v=20260917-correcoes-txt'),
   'TelaTreinamentos',
@@ -434,6 +435,8 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     telaResolvida === 'screen-settings-operations' ||
     telaResolvida === 'screen-settings-notifications' ||
     telaResolvida === 'screen-settings-logs' ||
+    telaResolvida === 'screen-settings-monitoria-equipes' ||
+    telaResolvida === 'screen-settings-monitoria-logs' ||
     telaResolvida === 'screen-settings-environment'
   ) {
     return html`
@@ -470,6 +473,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-settings-onboarding') {
     return html`<${TelaOnboarding} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-help') {
+    return html`<${TelaCentralAjuda} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-settings-document-templates') {

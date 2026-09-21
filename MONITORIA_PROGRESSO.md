@@ -118,3 +118,10 @@ Fonte: `promt.txt` (seção 9 = checklist). Legenda: `[ ]` pendente · `[~]` em 
 - M36 imutabilidade: UPDATE/DELETE direto nas 12 tabelas imutáveis falham por trigger; matriz nova não recalcula monitoria antiga; contestação/reanálise não alteram a original.
 - M37 cobertura M01–M33 conferida item a item contra o código (ver notas C1–C5).
 - M38 relatório final na resposta ao RH.
+
+## Rodada de ajustes (21/set/2026 — Correções.txt)
+- Decisões do RH: 2º select de Formulários lista as **versões** do formulário da operação (não há vários formulários por operação); "Criar formulário" = nova versão a partir do modelo em branco (escala/faixas copiadas da versão ativa); "Editar formulário" edita a versão escolhida e salva como nova versão.
+- Saíram do módulo Monitoria: **Usuários**, **Equipes**, **Logs** e **Guia**. Usuários → Configurações > Usuários (campos Turno/Equipe/Supervisores + regras de operação no formulário; botão "Transferir supervisão"); Equipes e catálogos → Configurações > *Equipes e catálogos*; Logs → Configurações > *Logs da Monitoria*. As duas abas novas só aparecem para o Administrador (API mantém `monitoria.equipes`/`monitoria.logs`).
+- Backend aditivo: `GET/PUT /monitoria/usuarios/{id}/vinculos` (usa `mon_get_vinculos`/`mon_set_vinculos`, com as validações existentes).
+- Guia → **Central de Ajuda** (antiga Central de Documentos, renomeada inclusive no módulo de permissões): guia de processos por sessão (`features/ajuda/`), com a biblioteca de documentos/modelos na aba "Documentos e modelos" (Administrador). Todos os perfis abrem o guia por `screen-help` (menu do avatar).
+- Filtros: barra em uma linha, campos de 40px, "Aplicar filtros" + lixeira (Feedback/Histórico/Logs), Exportar em dropdown (Relatórios), ações no canto direito (Planos, Relatórios).

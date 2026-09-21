@@ -1,6 +1,6 @@
 @import url('./tokens.css?v=20260914-design-system');
 @import url('./base.css?v=20260914-design-system-2');
-@import url('./layout.css?v=20260916-correcoes-round4');
+@import url('./layout.css?v=20260921-busca-avatar4');
 @import url('./screens.css?v=20260916-correcoes-round4');
 @import url('./process-details.css?v=20260914-design-system');
 @import url('./exam-steps.css?v=20260906-central-treinamentos');
@@ -9,5 +9,5 @@
 @import url('./dashboard-funil.css?v=20260824-dashboard-funil-v1');
 @import url('./charts.css?v=20260914-design-system');
 @import url('./mural.css?v=20260915-mural');
-@import url('./monitoria.css?v=20260920-monitoria');
+@import url('./monitoria.css?v=20260921-monitoria5');
 @import url('./print.css');

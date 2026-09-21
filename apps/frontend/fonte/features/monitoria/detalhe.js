@@ -210,11 +210,15 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
 
       ${podeFeedback ? html`
         <${Painel} titulo="Aplicar feedback (prazo de 72 horas)">
-          ${d.sugestao_feedback ? html`<div class="mon-alerta mon-alerta--info"><strong>Sugestão do avaliador:</strong> ${d.sugestao_feedback}</div>` : null}
-          <label>Observação do feedback aplicado (obrigatória)<textarea class="form-control" rows="3" value=${feedback.observacao} onInput=${(e) => setFeedback({ ...feedback, observacao: e.target.value })}></textarea></label>
-          <label>Complemento (opcional)<textarea class="form-control" rows="2" value=${feedback.complemento} onInput=${(e) => setFeedback({ ...feedback, complemento: e.target.value })}></textarea></label>
-          <button type="button" class="btn btn-primary" disabled=${ocupado || !feedback.observacao.trim()}
-            onClick=${() => executar(() => aplicarFeedback(d.codigo, feedback), 'Feedback registrado. O operador tem 48 horas para se manifestar.')}>Registrar feedback aplicado</button>
+          <div class="mon-form-feedback">
+            ${d.sugestao_feedback ? html`<div class="mon-alerta mon-alerta--info"><strong>Sugestão do avaliador:</strong> ${d.sugestao_feedback}</div>` : null}
+            <label class="mon-campo">Observação do feedback aplicado (obrigatória)<textarea class="form-control" rows="3" value=${feedback.observacao} onInput=${(e) => setFeedback({ ...feedback, observacao: e.target.value })}></textarea></label>
+            <label class="mon-campo">Complemento (opcional)<textarea class="form-control" rows="2" value=${feedback.complemento} onInput=${(e) => setFeedback({ ...feedback, complemento: e.target.value })}></textarea></label>
+            <div class="mon-acoes-direita">
+              <button type="button" class="btn btn-primary" disabled=${ocupado || !feedback.observacao.trim()}
+                onClick=${() => executar(() => aplicarFeedback(d.codigo, feedback), 'Feedback registrado. O operador tem 48 horas para se manifestar.')}>Registrar feedback aplicado</button>
+            </div>
+          </div>
         </${Painel}>` : null}
 
       ${podeManifestar ? html`

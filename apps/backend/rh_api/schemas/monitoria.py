@@ -36,6 +36,13 @@ class UsuarioMonitoriaRequest(BaseSchema):
     turno: str | None = None
 
 
+class VinculosMonitoriaRequest(BaseSchema):
+    operacoes: list[str] | None = None
+    supervisores: list[int] | None = None
+    id_equipe: int | None = None
+    turno: str | None = None
+
+
 class TransferirSupervisaoRequest(BaseSchema):
     operacao: str
     id_de: int

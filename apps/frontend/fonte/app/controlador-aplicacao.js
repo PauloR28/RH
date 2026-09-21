@@ -216,11 +216,9 @@ export const PERMISSOES_TELAS = {
   'screen-monitoria-planos': 'monitoria.plano_acao_visualizar',
   'screen-monitoria-relatorios': 'monitoria.relatorios',
   'screen-monitoria-formularios': 'monitoria.matriz',
-  'screen-monitoria-equipes': 'monitoria.equipes',
-  'screen-monitoria-usuarios': 'monitoria.usuarios',
-  'screen-monitoria-logs': 'monitoria.logs',
-  'screen-monitoria-guia': 'monitoria.visualizar',
   'screen-settings-monitoria': 'monitoria.configurar',
+  'screen-settings-monitoria-equipes': 'monitoria.equipes',
+  'screen-settings-monitoria-logs': 'monitoria.logs',
 };
 
 // Sessão (chave-mestra liga/desliga em Perfis e Permissões) a que cada tela pertence.
@@ -262,11 +260,9 @@ export const SESSAO_DA_TELA = {
   'screen-monitoria-planos': 'monitoria',
   'screen-monitoria-relatorios': 'monitoria',
   'screen-monitoria-formularios': 'monitoria',
-  'screen-monitoria-equipes': 'monitoria',
-  'screen-monitoria-usuarios': 'monitoria',
-  'screen-monitoria-logs': 'monitoria',
-  'screen-monitoria-guia': 'monitoria',
   'screen-settings-monitoria': 'configuracoes',
+  'screen-settings-monitoria-equipes': 'configuracoes',
+  'screen-settings-monitoria-logs': 'configuracoes',
 };
 const logger = criarLogger('controlador-aplicacao');
 

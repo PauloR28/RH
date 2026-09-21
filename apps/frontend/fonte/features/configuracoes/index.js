@@ -41,6 +41,16 @@ import {
 } from '../../shared/notificacoes.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import {
+  AbaEquipesCatalogos,
+  AbaLogsMonitoria,
+  CamposVinculosMonitoria,
+  ModalTransferirSupervisao,
+  PERFIS_MONITORIA,
+  VINCULOS_INICIAIS,
+  validarVinculosMonitoria,
+} from './monitoria-config.js';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -48,6 +58,9 @@ const ABAS = [
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operações', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
+  // Administração da Monitoria (função do Administrador): equipes/catálogos e logs de auditoria.
+  { id: 'equipes-catalogos', tela: 'screen-settings-monitoria-equipes', label: 'Equipes e catálogos', permissao: 'monitoria.equipes', icon: 'groups', somenteAdmin: true },
+  { id: 'logs-monitoria', tela: 'screen-settings-monitoria-logs', label: 'Logs da Monitoria', permissao: 'monitoria.logs', icon: 'lock', somenteAdmin: true },
   { id: 'ambiente', tela: 'screen-settings-environment', label: 'Ambiente', permissao: '', icon: 'tune' },
 ];
 // Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
@@ -67,7 +80,7 @@ const SESSOES_PERMISSAO = [
     id: 'configuracoes',
     label: 'Configurações',
     icon: 'settings',
-    modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Documentos', 'Operações', 'Logs', 'Políticas'],
+    modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Ajuda', 'Operações', 'Logs', 'Políticas'],
   },
 ];
 
@@ -485,7 +498,8 @@ function BotaoAba({ aba, ativa, onClick }) {
 }
 
 export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-settings-users' }) {
-  const abasPermitidas = ABAS.filter((aba) => controlador.possuiPermissao(aba.permissao));
+  const ehAdministrador = controlador.estado?.perfilUsuario === 'administrador';
+  const abasPermitidas = ABAS.filter((aba) => controlador.possuiPermissao(aba.permissao) && (!aba.somenteAdmin || ehAdministrador));
   const [abaAtiva, setAbaAtiva] = useState(
     ABA_POR_TELA[telaAtual] || abasPermitidas[0]?.id || 'usuarios',
   );
@@ -537,6 +551,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [salvandoSenhaAmbiente, setSalvandoSenhaAmbiente] = useState(false);
   const [erroSenhaAmbiente, setErroSenhaAmbiente] = useState('');
   const [formUsuario, setFormUsuario] = useState(FORM_USUARIO_INICIAL);
+  const [vinculosMon, setVinculosMon] = useState(VINCULOS_INICIAIS);
+  const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
   // "Criar usuário rápido" — nome, e-mail e senha para candidatos aprovados
@@ -850,6 +866,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       setErro('Informe um e-mail válido.');
       return;
     }
+    const perfilMonitoria = PERFIS_MONITORIA.includes(formUsuario.perfil);
+    const operacoesSelecionadas = Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : [];
+    if (perfilMonitoria) {
+      const errosVinculos = validarVinculosMonitoria(formUsuario.perfil, operacoesSelecionadas, vinculosMon);
+      if (errosVinculos.length) {
+        setErro(errosVinculos.join(' '));
+        return;
+      }
+    }
     setSalvando(true);
     setErro('');
     setFeedback('');
@@ -863,11 +888,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         cargo: formUsuario.cargo,
         status: formUsuario.status,
         provedor_autenticacao: formUsuario.provedor_autenticacao,
-        operacoes: Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : [],
+        operacoes: formUsuario.perfil === 'control_desk' ? [] : operacoesSelecionadas,
         justificativa: formUsuario.justificativa,
       };
+      const gravarVinculosMonitoria = (idUsuario) => salvarVinculosUsuarioMonitoria(idUsuario, {
+        operacoes: formUsuario.perfil === 'control_desk' ? [] : operacoesSelecionadas,
+        supervisores: formUsuario.perfil === 'operador' ? vinculosMon.supervisores : [],
+        id_equipe: formUsuario.perfil === 'operador' && vinculosMon.id_equipe ? Number(vinculosMon.id_equipe) : null,
+        turno: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.turno || null : null,
+      });
       if (formUsuario.id_usuario) {
         await atualizarUsuario(formUsuario.id_usuario, payload);
+        if (perfilMonitoria) await gravarVinculosMonitoria(formUsuario.id_usuario);
         if (formUsuario.senha) {
           await redefinirSenhaUsuario(formUsuario.id_usuario, {
             senha: formUsuario.senha,
@@ -876,7 +908,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         }
         setFeedback('Usuário atualizado com sucesso.');
       } else {
-        await criarUsuario({ ...payload, senha: formUsuario.senha });
+        const criado = await criarUsuario({ ...payload, senha: formUsuario.senha });
+        if (perfilMonitoria && criado?.id_usuario) await gravarVinculosMonitoria(criado.id_usuario);
         setFeedback('Usuário criado com sucesso.');
       }
       setCriandoUsuario(false);
@@ -1954,8 +1987,16 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         })
         : html`<span class="form-text">Nenhuma operação cadastrada.</span>`}
                         </div>
-                        <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações.</span>
+                        <span class="form-text">Sem seleção, o usuário mantém acesso a todas as operações${PERFIS_MONITORIA.includes(formUsuario.perfil) ? ' (perfis da Monitoria seguem as regras abaixo)' : ''}.</span>
                       </label>
+                      <${CamposVinculosMonitoria}
+                        perfil=${formUsuario.perfil}
+                        idUsuario=${criandoUsuario ? '' : formUsuario.id_usuario}
+                        operacoes=${Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : []}
+                        vinculos=${vinculosMon}
+                        setVinculos=${setVinculosMon}
+                        bloqueado=${bloqueadoLeitura}
+                      />
                       ${!acessoMicrosoft && (criandoUsuario || (podeRedefinirSenha && !bloqueadoLeitura))
         ? html`
                             <label class="users-drawer-field-wide">
@@ -4007,6 +4048,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               >
                 <${Icone} name="refresh" />
               </button>
+              ${ehAdministrador ? html`
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  title="Passa os operadores de um supervisor para outro (ex.: férias)"
+                  onClick=${() => setTransferindoSupervisao(true)}
+                >
+                  Transferir supervisão
+                </button>` : null}
               <button
                 type="button"
                 class="btn btn-outline-primary btn-sm"
@@ -4030,6 +4080,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
       ${erro ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
       ${feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
+      ${ehAdministrador ? html`
+        <${ModalTransferirSupervisao}
+          aberto=${transferindoSupervisao}
+          onClose=${() => setTransferindoSupervisao(false)}
+          onFeito=${() => { setTransferindoSupervisao(false); setFeedback('Supervisão transferida.'); }}
+          showToast=${(mensagem, tipo) => (tipo === 'danger' ? setErro(mensagem) : setFeedback(mensagem))}
+        />` : null}
       ${carregando
       ? html`
             <div class="c24-loading-panel">
@@ -4060,7 +4117,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   ? renderNotificacoes()
                   : abaRenderizada === 'ambiente'
                     ? renderAmbiente()
-                    : renderLogs()}
+                    : abaRenderizada === 'equipes-catalogos'
+                      ? html`<${AbaEquipesCatalogos} />`
+                      : abaRenderizada === 'logs-monitoria'
+                        ? html`<${AbaLogsMonitoria} />`
+                        : renderLogs()}
     </${PainelRh}>
   `;
 }

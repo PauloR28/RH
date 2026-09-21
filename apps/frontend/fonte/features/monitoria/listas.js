@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js';
+import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import {
   compartilharMonitorias,
   criarPlano,
@@ -8,16 +8,16 @@ import {
   lerPlano,
   lerRelatorio,
   listarDestinatarios,
-  listarGuia,
-  listarLogsMonitoria,
   listarMonitorias,
   listarOperadoresMonitoria,
   listarPlanos,
   revisarPlano,
 } from '../../services/api/monitoria.js';
+import { IconeSvg } from '../../ui/icone.js';
 import {
   BadgeSla,
   BadgeStatus,
+  BotaoExportar,
   SelectOperacao,
   STATUS_INFO,
   TagOperacao,
@@ -39,10 +39,15 @@ const PRESETS = {
   minhas: { titulo: 'Minhas monitorias', texto: 'Suas avaliações. Confirme ou conteste em até 48 horas depois do feedback.', status: '' },
 };
 
+const FILTROS_VAZIOS = { codigo: '', operador: '', avaliador: '', data_inicio: '', data_fim: '', operacao: '', status: '' };
+
 export function ListaMonitorias({ modo = 'historico', controlador, contexto, abrirDetalhe, atualizacao, showToast }) {
   const preset = PRESETS[modo] || PRESETS.historico;
   const podeExportar = controlador.possuiPermissao('monitoria.exportar');
-  const [filtros, setFiltros] = useState({ codigo: '', operador: '', avaliador: '', data_inicio: '', data_fim: '', operacao: '', status: preset.status });
+  const padrao = { ...FILTROS_VAZIOS, status: preset.status };
+  // `rascunho` é o que está nos campos; `filtros` é o que já foi aplicado à consulta.
+  const [rascunho, setRascunho] = useState(padrao);
+  const [filtros, setFiltros] = useState(padrao);
   const [pagina, setPagina] = useState(1);
   const [dados, setDados] = useState({ itens: [], total: 0 });
   const [carregando, setCarregando] = useState(true);
@@ -51,7 +56,9 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
   const porPagina = 20;
 
   useEffect(() => {
-    setFiltros((f) => ({ ...f, status: preset.status }));
+    const inicial = { ...FILTROS_VAZIOS, status: preset.status };
+    setRascunho(inicial);
+    setFiltros(inicial);
     setPagina(1);
     setSelecionadas([]);
   }, [modo]);
@@ -68,12 +75,25 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
     };
   }, [filtros, pagina, atualizacao]);
 
-  const campo = (nome, valor) => {
-    setFiltros((f) => ({ ...f, [nome]: valor }));
+  const campo = (nome, valor) => setRascunho((f) => ({ ...f, [nome]: valor }));
+  const aplicar = () => {
+    setFiltros(rascunho);
     setPagina(1);
+    setSelecionadas([]);
+  };
+  const limpar = () => {
+    setRascunho(padrao);
+    setFiltros(padrao);
+    setPagina(1);
+    setSelecionadas([]);
   };
   const totalPaginas = Math.max(1, Math.ceil((dados.total || 0) / porPagina));
   const alternar = (id) => setSelecionadas((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const idsDaPagina = dados.itens.map((m) => m.id_monitoria);
+  const todasMarcadas = idsDaPagina.length > 0 && idsDaPagina.every((id) => selecionadas.includes(id));
+  const algumaMarcada = idsDaPagina.some((id) => selecionadas.includes(id));
+  const alternarTodas = () =>
+    setSelecionadas((s) => (todasMarcadas ? s.filter((id) => !idsDaPagina.includes(id)) : [...new Set([...s, ...idsDaPagina])]));
 
   const exportarSelecionadas = async () => {
     try {
@@ -86,21 +106,27 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
   return html`
     <div class="mon-shell">
       <p class="mon-muted">${preset.texto}</p>
-      <div class="mon-filtros">
-        <label>ID da monitoria<input class="form-control" maxlength="8" placeholder="8 dígitos" value=${filtros.codigo} onInput=${(e) => campo('codigo', e.target.value.replace(/\D/g, ''))} /></label>
-        ${modo !== 'minhas' ? html`<label>Operador<input class="form-control" value=${filtros.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
-        ${modo !== 'minhas' ? html`<label>Avaliador<input class="form-control" value=${filtros.avaliador} onInput=${(e) => campo('avaliador', e.target.value)} /></label>` : null}
-        <label>De<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
-        <label>Até<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
-        ${(contexto?.operacoes || []).length > 1 ? html`<label>Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
+      <div class="mon-filtros" onKeyDown=${(e) => { if (e.key === 'Enter') aplicar(); }}>
+        <label class="mon-filtro mon-filtro--id">ID<input class="form-control" maxlength="8" inputmode="numeric" placeholder="8 dígitos" value=${rascunho.codigo} onInput=${(e) => campo('codigo', e.target.value.replace(/\D/g, ''))} /></label>
+        ${modo !== 'minhas' ? html`<label class="mon-filtro">Operador<input class="form-control" placeholder="Nome" value=${rascunho.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
+        ${modo !== 'minhas' ? html`<label class="mon-filtro">Avaliador<input class="form-control" placeholder="Nome" value=${rascunho.avaliador} onInput=${(e) => campo('avaliador', e.target.value)} /></label>` : null}
+        <label class="mon-filtro mon-filtro--data">De<input class="form-control" type="date" value=${rascunho.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
+        <label class="mon-filtro mon-filtro--data">Até<input class="form-control" type="date" value=${rascunho.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
+        ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${rascunho.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
         ${modo === 'historico' || modo === 'minhas' ? html`
-          <label>Status<select class="form-select" value=${filtros.status} onChange=${(e) => campo('status', e.target.value)}>
+          <label class="mon-filtro">Status<select class="form-select" value=${rascunho.status} onChange=${(e) => campo('status', e.target.value)}>
             <option value="">Todos</option>${Object.entries(STATUS_INFO).map(([k, v]) => html`<option key=${k} value=${k}>${v.rotulo}</option>`)}
           </select></label>` : null}
+        <div class="mon-filtros-acoes">
+          <button type="button" class="mon-icone-btn" title="Limpar filtros" aria-label="Limpar filtros" onClick=${limpar}>
+            <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>
+          </button>
+          <button type="button" class="btn btn-primary" onClick=${aplicar}>Aplicar filtros</button>
+        </div>
       </div>
 
       ${podeExportar && selecionadas.length ? html`
-        <div class="mon-acoes"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>
+        <div class="mon-acoes mon-acoes--selecao"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>
           <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportarSelecionadas}>Exportar seleção (XLSX)</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirDetalhe(selecionadas.length === 1 ? String(selecionadas[0]) : null, { compartilhar: selecionadas })}>Compartilhar por e-mail</button></div>` : null}
 
@@ -110,13 +136,18 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
         <div class="mon-tabela-wrap">
           <table class="mon-tabela">
             <thead><tr>
-              ${podeExportar ? html`<th></th>` : null}<th>ID</th><th>Data</th><th>Operação</th><th>Operador</th><th>Equipe</th><th>Avaliador</th><th class="num">Nota</th><th>Status</th><th>Prazo</th>
+              <th><span class="mon-th-id">
+                ${podeExportar ? html`<input type="checkbox" aria-label="Selecionar todas as monitorias da página" checked=${todasMarcadas}
+                  ref=${(el) => { if (el) el.indeterminate = algumaMarcada && !todasMarcadas; }} onChange=${alternarTodas} />` : null}
+                ID</span></th><th>Data</th><th>Operação</th><th>Operador</th><th>Equipe</th><th>Avaliador</th><th class="num">Nota</th><th>Status</th><th>Prazo</th>
             </tr></thead>
             <tbody>
               ${dados.itens.map((m) => html`
                 <tr key=${m.id_monitoria} class="is-clicavel" onClick=${() => abrirDetalhe(String(m.id_monitoria))}>
-                  ${podeExportar ? html`<td onClick=${(e) => e.stopPropagation()}><input type="checkbox" aria-label=${`Selecionar ${m.codigo}`} checked=${selecionadas.includes(m.id_monitoria)} onChange=${() => alternar(m.id_monitoria)} /></td>` : null}
-                  <td><strong>#${m.codigo}</strong></td>
+                  <td><span class="mon-th-id">
+                    ${podeExportar ? html`<input type="checkbox" aria-label=${`Selecionar ${m.codigo}`} checked=${selecionadas.includes(m.id_monitoria)}
+                      onClick=${(e) => e.stopPropagation()} onChange=${() => alternar(m.id_monitoria)} />` : null}
+                    <strong>#${m.codigo}</strong></span></td>
                   <td>${formatarData(m.data_monitoria)}</td>
                   <td><${TagOperacao} chave=${m.operacao} nome=${m.operacao_nome} contexto=${contexto} /></td>
                   <td>${m.operador_nome}</td><td>${m.equipe_nome || '—'}</td><td>${m.avaliador_nome}</td>
@@ -190,10 +221,11 @@ export function TelaPlanos({ controlador, contexto, showToast }) {
         <div class=${`mon-kpi ${dados.itens.some((p) => p.vencido) ? 'is-alerta' : ''}`}><span>Vencidos</span><strong>${dados.itens.filter((p) => p.vencido).length}</strong></div>
       </div>
       <div class="mon-filtros">
-        <label>Status<select class="form-select" value=${filtros.status} onChange=${(e) => setFiltros({ ...filtros, status: e.target.value })}><option value="">Todos</option>${Object.entries(STATUS_PLANO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
-        ${(contexto?.operacoes || []).length > 1 ? html`<label>Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => setFiltros({ ...filtros, operacao: v })} /></label>` : null}
-        <label>Somente vencidos<input type="checkbox" checked=${filtros.vencidos} onChange=${(e) => setFiltros({ ...filtros, vencidos: e.target.checked })} /></label>
-        ${podeEditar ? html`<button type="button" class="btn btn-primary" onClick=${() => setNovo(true)}>Novo plano de ação</button>` : null}
+        <label class="mon-filtro">Status<select class="form-select" value=${filtros.status} onChange=${(e) => setFiltros({ ...filtros, status: e.target.value })}><option value="">Todos</option>${Object.entries(STATUS_PLANO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
+        ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => setFiltros({ ...filtros, operacao: v })} /></label>` : null}
+        <label class="mon-check"><input type="checkbox" checked=${filtros.vencidos} onChange=${(e) => setFiltros({ ...filtros, vencidos: e.target.checked })} />Somente vencidos</label>
+        ${podeEditar ? html`<div class="mon-filtros-acoes"><button type="button" class="btn btn-primary" onClick=${() => setNovo(true)}>
+          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo plano de ação</button></div>` : null}
       </div>
       ${carregando ? html`<${LoadingState} titulo="Carregando planos" />` : !dados.itens.length ? html`<${EmptyState} icon="task_alt" title="Nenhum plano de ação" text="Planos criados a partir das monitorias aparecem aqui." />` : html`
         <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Operação</th><th>Operador</th><th>Problema</th><th>Prazo</th><th>Status</th><th class="num">Antes → Depois</th></tr></thead><tbody>
@@ -289,10 +321,10 @@ export function TelaRelatorios({ controlador, contexto, showToast }) {
     <div class="mon-shell">
       <div class="mon-acoes">${TIPOS_RELATORIO.map(([k, r]) => html`<button key=${k} type="button" class=${`mon-subnav-btn ${tipo === k ? 'is-active' : ''}`} onClick=${() => setTipo(k)}>${r}</button>`)}</div>
       <div class="mon-filtros">
-        ${(contexto?.operacoes || []).length > 1 ? html`<label>Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => setFiltros({ ...filtros, operacao: v })} /></label>` : null}
-        <label>Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => setFiltros({ ...filtros, data_inicio: e.target.value })} /></label>
-        <label>Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => setFiltros({ ...filtros, data_fim: e.target.value })} /></label>
-        ${podeExportar ? html`<div class="mon-acoes"><button type="button" class="btn btn-outline-primary" onClick=${() => exportar('xlsx')}>Exportar XLSX</button><button type="button" class="btn btn-outline-secondary" onClick=${() => exportar('csv')}>Exportar CSV</button></div>` : null}
+        ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => setFiltros({ ...filtros, operacao: v })} /></label>` : null}
+        <label class="mon-filtro mon-filtro--data">Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => setFiltros({ ...filtros, data_inicio: e.target.value })} /></label>
+        <label class="mon-filtro mon-filtro--data">Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => setFiltros({ ...filtros, data_fim: e.target.value })} /></label>
+        ${podeExportar ? html`<div class="mon-filtros-acoes"><${BotaoExportar} opcoes=${[{ rotulo: 'Exportar XLSX', onSelecionar: () => exportar('xlsx') }, { rotulo: 'Exportar CSV', onSelecionar: () => exportar('csv') }]} /></div>` : null}
       </div>
       ${carregando ? html`<${LoadingState} titulo="Gerando relatório" />` : !linhas.length ? html`<${EmptyState} icon="table_chart" title="Sem dados" text="Nenhum registro para os filtros selecionados." />` : html`
         <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr>${dados.colunas.map((c) => html`<th key=${c}>${c}</th>`)}</tr></thead><tbody>
@@ -302,56 +334,5 @@ export function TelaRelatorios({ controlador, contexto, showToast }) {
           <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${pagina <= 1} onClick=${() => setPagina(pagina - 1)}>Anterior</button>
           <span>Página ${pagina} de ${Math.max(1, Math.ceil(linhas.length / por))}</span>
           <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${pagina * por >= linhas.length} onClick=${() => setPagina(pagina + 1)}>Próxima</button></div></div>`}
-    </div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Logs (somente leitura)
-// ---------------------------------------------------------------------------
-export function TelaLogs({ contexto, showToast }) {
-  const [filtros, setFiltros] = useState({ usuario: '', acao: '', operacao: '', resultado: '', data_inicio: '', data_fim: '' });
-  const [dados, setDados] = useState({ itens: [], total: 0 });
-  const [pagina, setPagina] = useState(1);
-  const [carregando, setCarregando] = useState(true);
-  const [detalhe, setDetalhe] = useState(null);
-  useEffect(() => {
-    setCarregando(true);
-    listarLogsMonitoria({ ...filtros, pagina, por_pagina: 50 }).then(setDados).catch((e) => showToast(e?.message || 'Erro ao carregar os logs.', 'danger')).finally(() => setCarregando(false));
-  }, [filtros, pagina]);
-  const campo = (k, v) => { setFiltros({ ...filtros, [k]: v }); setPagina(1); };
-  return html`
-    <div class="mon-shell">
-      <p class="mon-muted">Registro imutável de tudo o que acontece na Monitoria. Não há edição nem exclusão.</p>
-      <div class="mon-filtros">
-        <label>Usuário<input class="form-control" value=${filtros.usuario} onInput=${(e) => campo('usuario', e.target.value)} /></label>
-        <label>Ação<input class="form-control" value=${filtros.acao} placeholder="ex.: realizar_monitoria" onInput=${(e) => campo('acao', e.target.value)} /></label>
-        ${(contexto?.operacoes || []).length > 1 ? html`<label>Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
-        <label>Resultado<select class="form-select" value=${filtros.resultado} onChange=${(e) => campo('resultado', e.target.value)}><option value="">Todos</option><option value="SUCESSO">Sucesso</option><option value="FALHA">Falha</option></select></label>
-        <label>De<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
-        <label>Até<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
-      </div>
-      ${carregando ? html`<${LoadingState} titulo="Carregando logs" />` : html`
-        <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Quando</th><th>Usuário</th><th>Perfil</th><th>Operação</th><th>Ação</th><th>Entidade</th><th>IP</th><th>Resultado</th></tr></thead><tbody>
-          ${dados.itens.map((l) => html`<tr key=${l.id_log} class="is-clicavel" onClick=${() => setDetalhe(l)}><td>${formatarDataHoraCurta(l.em)}</td><td>${l.usuario}</td><td>${l.perfil}</td><td>${l.operacao || '—'}</td><td>${l.acao}</td><td>${l.entidade} ${l.entidade_id}</td><td>${l.ip || '—'}</td><td>${l.resultado}</td></tr>`)}
-        </tbody></table></div>
-        <div class="mon-paginacao"><span>${dados.total} registro(s)</span><div class="mon-acoes">
-          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${pagina <= 1} onClick=${() => setPagina(pagina - 1)}>Anterior</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${pagina * 50 >= dados.total} onClick=${() => setPagina(pagina + 1)}>Próxima</button></div></div>`}
-      <${ModalPadrao} aberto=${Boolean(detalhe)} titulo=${`Log #${detalhe?.id_log || ''}`} onClose=${() => setDetalhe(null)}>
-        ${detalhe ? html`<dl class="mon-dl"><div><dt>Ação</dt><dd>${detalhe.acao}</dd></div><div><dt>Detalhes</dt><dd>${detalhe.detalhes || '—'}</dd></div><div><dt>Estado anterior</dt><dd>${detalhe.estado_anterior || '—'}</dd></div><div><dt>Estado posterior</dt><dd>${detalhe.estado_posterior || '—'}</dd></div></dl>` : null}
-      </${ModalPadrao}>
-    </div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Guia de processos
-// ---------------------------------------------------------------------------
-export function TelaGuia({ showToast }) {
-  const [itens, setItens] = useState(null);
-  useEffect(() => { listarGuia().then((r) => setItens(r.itens || [])).catch((e) => { showToast(e?.message || 'Erro ao carregar o guia.', 'danger'); setItens([]); }); }, []);
-  if (itens === null) return html`<${LoadingState} titulo="Carregando o guia" />`;
-  return html`
-    <div class="mon-shell">
-      ${itens.map((g, i) => html`<${SectionCard} key=${g.id_guia} title=${`${String(i + 1).padStart(2, '0')} — ${g.titulo}`}><p style=${{ whiteSpace: 'pre-wrap', margin: 0 }}>${g.conteudo}</p></${SectionCard}>`)}
     </div>`;
 }

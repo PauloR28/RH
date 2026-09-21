@@ -23,11 +23,13 @@ import {
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { GuiaProcessos } from '../ajuda/guia.js?v=20260921-ajuda';
 
 const FORM_INICIAL = { id_template: '', titulo: '', corpo_texto: '', ativo: true };
 const FORM_DOC_INICIAL = { id_documento: '', titulo: '', topico: '', area: '', descricao: '', url_arquivo: '', ativo: true };
 
 export function TelaTemplatesDocumentos({ controlador }) {
+  const [aba, setAba] = useState('guia');
   const [templates, setTemplates] = useState([]);
   const [variaveis, setVariaveis] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -265,16 +267,26 @@ export function TelaTemplatesDocumentos({ controlador }) {
     <${PainelRh}
       screenId="screen-settings-document-templates"
       navAtiva="screen-settings-document-templates"
-      subtituloMarca="Central de Documentos"
-      placeholderBusca="Central de Documentos"
+      subtituloMarca="Central de Ajuda"
+      placeholderBusca="Central de Ajuda"
       controlador=${controlador}
     >
       <${PageIntro}
         kicker="Configurações"
-        title="Central de Documentos"
-        description="Biblioteca de documentos e documentação por função do Conecta, além dos modelos de texto com variáveis {{variavel}} usados para gerar documentos a partir dos dados do candidato/processo."
+        title="Central de Ajuda"
+        description="Guia de processos por sessão do Conecta, biblioteca de documentos e modelos de texto com variáveis {{variavel}} usados para gerar documentos a partir dos dados do candidato/processo."
       />
 
+      <div class="mon-subnav ajuda-abas" role="tablist" aria-label="Seções da Central de Ajuda">
+        <button type="button" role="tab" aria-selected=${aba === 'guia'} class=${`mon-subnav-btn ${aba === 'guia' ? 'is-active' : ''}`} onClick=${() => setAba('guia')}>
+          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('menu_book')}</span>Guia de processos
+        </button>
+        <button type="button" role="tab" aria-selected=${aba === 'documentos'} class=${`mon-subnav-btn ${aba === 'documentos' ? 'is-active' : ''}`} onClick=${() => setAba('documentos')}>
+          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('description')}</span>Documentos e modelos
+        </button>
+      </div>
+
+      ${aba === 'guia' ? html`<${GuiaProcessos} controlador=${controlador} />` : html`
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
 
       ${podeVerBiblioteca
@@ -414,6 +426,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
           </table>
         </div>
       </${SectionCard}>
+      `}
 
       <${ModalPadrao}
         aberto=${modalAberto}

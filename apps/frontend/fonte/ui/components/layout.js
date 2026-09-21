@@ -156,10 +156,6 @@ export function BarraLateral({
     { tela: 'screen-monitoria-planos', icone: 'task_alt', label: 'Planos de ação', permissao: 'monitoria.plano_acao_visualizar' },
     { tela: 'screen-monitoria-relatorios', icone: 'table_chart', label: 'Relatórios', permissao: 'monitoria.relatorios' },
     { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
-    { tela: 'screen-monitoria-equipes', icone: 'groups', label: 'Equipes', permissao: 'monitoria.equipes' },
-    { tela: 'screen-monitoria-usuarios', icone: 'manage_accounts', label: 'Usuários', permissao: 'monitoria.usuarios' },
-    { tela: 'screen-monitoria-logs', icone: 'lock', label: 'Logs', permissao: 'monitoria.logs' },
-    { tela: 'screen-monitoria-guia', icone: 'menu_book', label: 'Guia de processos', permissao: 'monitoria.visualizar' },
   ];
   const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
   const sublinksGestao = [
@@ -261,9 +257,23 @@ export function BarraLateral({
       permissao: 'logs.visualizar',
     },
     {
+      tela: 'screen-settings-monitoria-equipes',
+      icone: 'groups',
+      label: 'Equipes e catálogos',
+      permissao: 'monitoria.equipes',
+      somenteAdmin: true,
+    },
+    {
+      tela: 'screen-settings-monitoria-logs',
+      icone: 'lock',
+      label: 'Logs da Monitoria',
+      permissao: 'monitoria.logs',
+      somenteAdmin: true,
+    },
+    {
       tela: 'screen-settings-document-templates',
-      icone: 'description',
-      label: 'Central de Documentos',
+      icone: 'help',
+      label: 'Central de Ajuda',
       permissao: 'documentos_templates.editar',
     },
     {
@@ -317,6 +327,8 @@ export function BarraLateral({
     'screen-settings-modelos-email',
     'screen-settings-lgpd',
     'screen-settings-logs',
+    'screen-settings-monitoria-equipes',
+    'screen-settings-monitoria-logs',
     'screen-settings-document-templates',
     'screen-settings-administracao',
     'screen-settings-monitoria',
@@ -340,8 +352,9 @@ export function BarraLateral({
   const sublinksProvasVisiveis = sublinksProvas.filter((subitem) =>
     possuiSub(subitem),
   );
-  const sublinksConfiguracoesVisiveis = sublinksConfiguracoes.filter((subitem) =>
-    possuiSub(subitem),
+  const ehAdministrador = controlador?.estado?.perfilUsuario === 'administrador';
+  const sublinksConfiguracoesVisiveis = sublinksConfiguracoes.filter(
+    (subitem) => possuiSub(subitem) && (!subitem.somenteAdmin || ehAdministrador),
   );
   const sublinksGestaoVisiveis = sublinksGestao.filter((subitem) =>
     possuiSub(subitem),
@@ -1086,6 +1099,20 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
                 <span class="material-symbols-outlined">${IconeSvg('notifications')}</span>
                 Notificações
                 ${notificacoesNaoLidas.length ? html`<span class="c24-user-dropdown-badge">${notificacoesNaoLidas.length}</span>` : null}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                class="c24-user-dropdown-item"
+                onClick=${() => {
+          setAberto(false);
+          controlador.irParaTelaProtegida(
+            controlador.podeAcessarTela('screen-settings-document-templates') ? 'screen-settings-document-templates' : 'screen-help',
+          );
+        }}
+              >
+                <span class="material-symbols-outlined">${IconeSvg('menu_book')}</span>
+                Central de Ajuda
               </button>
               ${mostrarAjuda && onOpenHelp
           ? html`
