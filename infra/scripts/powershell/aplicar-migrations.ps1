@@ -24,10 +24,10 @@ foreach ($file in $Files) {
     Write-Host "-> $($file.Name)" -NoNewline
 
     if ($TrustedConnection) {
-        $result = sqlcmd -S $Server -d $Database -E -i $file.FullName -b 2>&1
+        $result = sqlcmd -S $Server -d $Database -E -I -i $file.FullName -b 2>&1
     }
     else {
-        $result = sqlcmd -S $Server -d $Database -U $Username -P $Password -i $file.FullName -b 2>&1
+        $result = sqlcmd -S $Server -d $Database -U $Username -P $Password -I -i $file.FullName -b 2>&1
     }
 
     if ($LASTEXITCODE -ne 0) {
