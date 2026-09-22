@@ -24,6 +24,7 @@ import {
   testarAmbienteSharePoint,
 } from '../../services/api/sistema.js';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20260921-alertas';
 
 // Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
 // ponto (rh-status-pill) usado em administracao/novo-ambiente.js.
@@ -187,6 +188,7 @@ export function TelaAdministracao({ controlador }) {
   const podeVerConfiguracoes = Boolean(controlador?.possuiPermissao?.('configuracoes.visualizar'));
   const podeEditarConfiguracoes = Boolean(controlador?.possuiPermissao?.('configuracoes.editar'));
   const ehAdministrador = controlador?.estado?.perfilUsuario === 'administrador';
+  const podeVerTiposAtendimento = podeVerConfiguracoes && Boolean(controlador?.possuiPermissao?.('monitoria.equipes'));
 
   const [parametros, setParametros] = useState([]);
   const [carregandoParametros, setCarregandoParametros] = useState(true);
@@ -732,6 +734,7 @@ export function TelaAdministracao({ controlador }) {
         tabs=${[
         { key: 'modulos', label: 'Módulos' },
         ...(podeVerConfiguracoes ? [{ key: 'parametros', label: 'Conectores Externos' }] : []),
+        ...(podeVerTiposAtendimento ? [{ key: 'tipos-atendimento', label: 'Tipos de atendimentos' }] : []),
         ...(ehAdministrador ? [{ key: 'risco', label: 'Zona de risco' }] : []),
       ]}
         activeKey=${abaAdminAtiva}
@@ -801,6 +804,14 @@ export function TelaAdministracao({ controlador }) {
                   ${GRUPOS_PARAMETRO.map(renderizarGrupoParametro)}
                 </div>
               </${SectionCard}>
+            </${TabPanel}>
+          `
+      : null}
+
+      ${podeVerTiposAtendimento
+      ? html`
+            <${TabPanel} tabKey="tipos-atendimento" activeKey=${abaAdminAtiva}>
+              ${abaAdminAtiva === 'tipos-atendimento' ? html`<${AbaTiposAtendimento} />` : null}
             </${TabPanel}>
           `
       : null}

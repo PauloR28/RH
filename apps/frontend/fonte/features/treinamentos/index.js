@@ -22,6 +22,7 @@ import { vincularTrilhaProcesso } from '../../services/api/onboarding.js';
 import { CHAVE_TRILHA_EDICAO } from './wizard.js';
 import { lerProcessos } from '../../services/api/processes.js';
 import {
+  MinistrantePicker,
   ModalPadrao,
   PageIntro,
   PainelRh,
@@ -90,6 +91,8 @@ const FORM_PARTICIPANTE_INICIAL = {
   data_prevista: '',
   local: '',
   ministrante: '',
+  ministrante_email: '',
+  enviar_lembrete_calendario: false,
 };
 
 // Correções.txt (10/set/2026): este modal edita só nome/categoria/módulos
@@ -500,7 +503,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       // agendada precisa adicionar o colaborador NA MESMA ocorrência (data/
       // ministrante), não deixar em branco para o RH preencher de novo.
       data_prevista: prefill?.data_prevista ?? '',
-      ministrante: prefill?.ministrante ?? '',
+      ministrante: prefill?.ministrante ?? trilha.ministrante_padrao ?? '',
+      ministrante_email: prefill?.ministrante_email ?? trilha.ministrante_padrao_email ?? '',
     });
     setErroParticipante('');
     setMensagemParticipante('');
@@ -558,6 +562,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         data_prevista: formParticipante.data_prevista ? new Date(formParticipante.data_prevista).toISOString() : null,
         local: formParticipante.local.trim(),
         ministrante: formParticipante.ministrante.trim(),
+        ministrante_email: formParticipante.ministrante_email.trim(),
+        enviar_lembrete_calendario: !!formParticipante.enviar_lembrete_calendario,
       });
       setMensagemParticipante(`${participanteSelecionado.nome_candidato} foi adicionado a "${trilhaParticipante.nome}" e já pode acessar o treinamento.`);
       await Promise.all([carregarAtribuicoes(), carregarTrilhas()]);
@@ -578,7 +584,12 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     setBuscaAgendarParticipante('');
     setResultadosAgendarParticipante([]);
     setParticipanteAgendarSelecionado(null);
-    setFormAgendarTreinamento({ ...FORM_PARTICIPANTE_INICIAL, local: trilha.local_padrao || '' });
+    setFormAgendarTreinamento({
+      ...FORM_PARTICIPANTE_INICIAL,
+      local: trilha.local_padrao || '',
+      ministrante: trilha.ministrante_padrao || '',
+      ministrante_email: trilha.ministrante_padrao_email || '',
+    });
     setVincularProcessoAoAgendar(false);
     setProcessosAgendarAbertos([]);
     setProcessoAgendarSelecionado('');
@@ -651,6 +662,8 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         data_prevista: formAgendarTreinamento.data_prevista ? new Date(formAgendarTreinamento.data_prevista).toISOString() : null,
         local: formAgendarTreinamento.local.trim(),
         ministrante: formAgendarTreinamento.ministrante.trim(),
+        ministrante_email: formAgendarTreinamento.ministrante_email.trim(),
+        enviar_lembrete_calendario: !!formAgendarTreinamento.enviar_lembrete_calendario,
       });
       if (vincularProcessoAoAgendar && processoAgendarSelecionado) {
         await vincularTrilhaProcesso(trilhaAgendarTreinamento.id_trilha, processoAgendarSelecionado);
@@ -1718,7 +1731,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         subtitulo=${trilhaAgendarTreinamento ? `Dia, local e ministrante para "${trilhaAgendarTreinamento.nome}".` : ''}
         onClose=${fecharModalAgendarTreinamento}
       >
-        <div class="rh-details-body">
+        <div class="rh-details-body training-modal-form">
           ${erroAgendarTreinamento ? html`<div class="alert alert-warning">${erroAgendarTreinamento}</div>` : null}
           ${mensagemAgendarTreinamento ? html`<div class="alert alert-success">${mensagemAgendarTreinamento}</div>` : null}
 
@@ -1788,13 +1801,31 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
           <div class="rh-filter-field">
             <label>Quem vai aplicar o treinamento</label>
-            <input
-              class="form-control"
-              value=${formAgendarTreinamento.ministrante}
-              onInput=${(event) => setFormAgendarTreinamento({ ...formAgendarTreinamento, ministrante: event.target.value })}
+            <${MinistrantePicker}
+              nome=${formAgendarTreinamento.ministrante}
               placeholder="Nome do ministrante"
+              onChange=${(nomeSelecionado, emailSelecionado) =>
+                setFormAgendarTreinamento({
+                  ...formAgendarTreinamento,
+                  ministrante: nomeSelecionado,
+                  ministrante_email: emailSelecionado,
+                  enviar_lembrete_calendario: emailSelecionado ? formAgendarTreinamento.enviar_lembrete_calendario : false,
+                })}
             />
           </div>
+
+          <label class="d-flex align-items-center gap-2">
+            <input
+              type="checkbox"
+              disabled=${!formAgendarTreinamento.ministrante_email}
+              checked=${formAgendarTreinamento.enviar_lembrete_calendario}
+              onChange=${(event) => setFormAgendarTreinamento({ ...formAgendarTreinamento, enviar_lembrete_calendario: !!event.target.checked })}
+            />
+            <span>
+              Adicionar lembrete no calendário do ministrante
+              ${!formAgendarTreinamento.ministrante_email ? html`<span class="text-muted"> (escolha um usuário do sistema acima)</span>` : null}
+            </span>
+          </label>
 
           <label class="d-flex align-items-center gap-2">
             <input
@@ -1843,7 +1874,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
         subtitulo=${trilhaParticipante ? `Liberar "${trilhaParticipante.nome}" para um candidato — não precisa de processo seletivo.` : ''}
         onClose=${fecharModalParticipante}
       >
-        <div class="rh-details-body">
+        <div class="rh-details-body training-modal-form">
           ${erroParticipante ? html`<div class="alert alert-warning">${erroParticipante}</div>` : null}
           ${mensagemParticipante ? html`<div class="alert alert-success">${mensagemParticipante}</div>` : null}
 
@@ -1913,13 +1944,31 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
           <div class="rh-filter-field">
             <label>Quem vai aplicar o treinamento</label>
-            <input
-              class="form-control"
-              value=${formParticipante.ministrante}
-              onInput=${(event) => setFormParticipante({ ...formParticipante, ministrante: event.target.value })}
+            <${MinistrantePicker}
+              nome=${formParticipante.ministrante}
               placeholder="Nome do ministrante"
+              onChange=${(nomeSelecionado, emailSelecionado) =>
+                setFormParticipante({
+                  ...formParticipante,
+                  ministrante: nomeSelecionado,
+                  ministrante_email: emailSelecionado,
+                  enviar_lembrete_calendario: emailSelecionado ? formParticipante.enviar_lembrete_calendario : false,
+                })}
             />
           </div>
+
+          <label class="d-flex align-items-center gap-2">
+            <input
+              type="checkbox"
+              disabled=${!formParticipante.ministrante_email}
+              checked=${formParticipante.enviar_lembrete_calendario}
+              onChange=${(event) => setFormParticipante({ ...formParticipante, enviar_lembrete_calendario: !!event.target.checked })}
+            />
+            <span>
+              Adicionar lembrete no calendário do ministrante
+              ${!formParticipante.ministrante_email ? html`<span class="text-muted"> (escolha um usuário do sistema acima)</span>` : null}
+            </span>
+          </label>
         </div>
 
         <footer class="rh-modal-footer">

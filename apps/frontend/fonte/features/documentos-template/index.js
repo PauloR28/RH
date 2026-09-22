@@ -274,7 +274,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
       <${PageIntro}
         kicker="Configurações"
         title="Central de Ajuda"
-        description="Guia de processos por sessão do Conecta, biblioteca de documentos e modelos de texto com variáveis {{variavel}} usados para gerar documentos a partir dos dados do candidato/processo."
+        description=""
       />
 
       <div class="mon-subnav ajuda-abas" role="tablist" aria-label="Seções da Central de Ajuda">
@@ -290,7 +290,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
       ${erro ? html`<div class="alert alert-warning">${erro}</div>` : null}
 
       ${podeVerBiblioteca
-      ? html`
+        ? html`
             <${SectionCard}
               title="Biblioteca de documentos"
               description="Documentos e guias por tópico/área. Apenas administradores gerenciam esta lista."
@@ -299,14 +299,14 @@ export function TelaTemplatesDocumentos({ controlador }) {
             >
               ${erroDocs ? html`<div class="alert alert-warning">${erroDocs}</div>` : null}
               ${carregandoDocs
-          ? html`<${SkeletonTableRows} colunas=${1} linhas=${2} />`
-          : documentosPorTopico.length
-            ? html`
+            ? html`<${SkeletonTableRows} colunas=${1} linhas=${2} />`
+            : documentosPorTopico.length
+              ? html`
                     <div class="c24-doc-library">
                       ${documentosPorTopico.map(
-              ([topico, itens]) => {
-                const aberto = topicosAbertos.has(topico);
-                return html`
+                ([topico, itens]) => {
+                  const aberto = topicosAbertos.has(topico);
+                  return html`
                           <div class=${`c24-doc-library-group ${aberto ? 'is-open' : ''}`.trim()} key=${topico}>
                             <button
                               type="button"
@@ -319,10 +319,10 @@ export function TelaTemplatesDocumentos({ controlador }) {
                               <span class="c24-doc-library-topic-count">${itens.length}</span>
                             </button>
                             ${aberto
-                  ? html`
+                      ? html`
                             <ul class="c24-doc-library-list">
                               ${itens.map(
-                (item) => html`
+                        (item) => html`
                                   <li class="c24-doc-library-item" key=${item.id_documento}>
                                     <div class="c24-doc-library-item-main">
                                       <strong>${item.titulo}</strong>
@@ -340,7 +340,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
                                         Baixar documento
                                       </a>
                                       ${podeEditarBiblioteca
-                    ? html`
+                            ? html`
                                             <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicaoDoc(item)}>
                                               <span class="material-symbols-outlined">${IconeSvg('edit')}</span>
                                             </button>
@@ -348,20 +348,20 @@ export function TelaTemplatesDocumentos({ controlador }) {
                                               <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
                                             </button>
                                           `
-                    : null}
+                            : null}
                                     </div>
                                   </li>
                                 `,
-              )}
+                      )}
                             </ul>
                           `
-                  : null}
+                      : null}
                           </div>
                         `;
-              })}
+                })}
                     </div>
                   `
-            : html`
+              : html`
                     <${EmptyState}
                       title="Nenhum documento cadastrado"
                       text="Cadastre o primeiro documento da biblioteca (ex.: guia de configuração do Microsoft Entra ID para o SharePoint)."
@@ -369,7 +369,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
                   `}
             </${SectionCard}>
           `
-      : null}
+        : null}
 
       <${SectionCard} title="Modelos de documento" description="Modelos de texto gerados automaticamente a partir dos dados do candidato/processo." actions=${acoesTemplate} className="rh-section-card--flat">
         <div class="table-responsive">
@@ -383,10 +383,10 @@ export function TelaTemplatesDocumentos({ controlador }) {
             </thead>
             <tbody>
               ${carregando
-      ? html`<${SkeletonTableRows} colunas=${3} linhas=${3} />`
-      : templates.length
-        ? templates.map(
-          (item) => html`
+        ? html`<${SkeletonTableRows} colunas=${3} linhas=${3} />`
+        : templates.length
+          ? templates.map(
+            (item) => html`
                       <tr key=${item.id_template}>
                         <td><strong>${item.titulo}</strong></td>
                         <td>
@@ -414,8 +414,8 @@ export function TelaTemplatesDocumentos({ controlador }) {
                         </td>
                       </tr>
                     `,
-        )
-        : html`
+          )
+          : html`
                       <${TabelaVazia}
                         colunas=${3}
                         texto="Nenhum template de documento cadastrado."
@@ -466,7 +466,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
                 <label>Variáveis suportadas</label>
                 <ul class="list-unstyled small d-flex flex-column gap-2" style=${{ maxHeight: '320px', overflowY: 'auto' }}>
                   ${variaveis.map(
-      (item) => html`
+            (item) => html`
                       <li key=${item.variavel}>
                         <button
                           type="button"
@@ -479,7 +479,7 @@ export function TelaTemplatesDocumentos({ controlador }) {
                         </button>
                       </li>
                     `,
-    )}
+          )}
                 </ul>
               </div>
             </div>

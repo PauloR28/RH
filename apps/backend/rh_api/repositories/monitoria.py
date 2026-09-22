@@ -469,6 +469,13 @@ class MonitoriaRepositoryMixin:
             for tipo, valor in (("canal", canal), ("tipo_atendimento", tipo_atendimento)):
                 if valor not in {i["valor"] for i in self.mon_list_catalogo(tipo, operacao)}:
                     raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Valor inválido para {tipo.replace('_', ' ')}.")
+            # O tipo de atendimento pode pertencer a um canal específico (Parâmetros > Tipos de atendimentos).
+            id_canal = next((i["id_item"] for i in self.mon_list_catalogo("canal", operacao) if i["valor"] == canal), None)
+            if not any(
+                i["valor"] == tipo_atendimento and (not i["id_item_canal"] or i["id_item_canal"] == id_canal)
+                for i in self.mon_list_catalogo("tipo_atendimento", operacao)
+            ):
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Este tipo de atendimento não pertence ao canal escolhido.")
             try:
                 data_contato = date.fromisoformat(normalize_text(dados.get("data_contato"))[:10])
             except ValueError:
@@ -594,7 +601,7 @@ class MonitoriaRepositoryMixin:
     # ------------------------------------------------------------------
     # Consulta (lista e detalhe) — escopo aplicado em SQL E em Python
     # ------------------------------------------------------------------
-    def _mon_condicoes_escopo(self, user, alias: str = "m", *, exigir_feedback: bool = True) -> tuple[list[str], list] | None:
+    def _mon_condicoes_escopo(self, user, alias: str = "m", *, exigir_feedback: bool = False) -> tuple[list[str], list] | None:
         """Condições SQL de escopo sobre uma tabela com `operacao` e `id_operador`
         (alias `m` = monitorias, `p` = planos de ação). `None` = nada pode ser visto."""
         condicoes: list[str] = []
@@ -611,7 +618,8 @@ class MonitoriaRepositoryMixin:
             condicoes.append(f"{alias}.id_operador = ?")
             params.append(user.id_usuario)
             if exigir_feedback:
-                # Operador só vê depois do feedback aplicado (disponibilizada para manifestação).
+                # Opcional (não é o padrão): o Operador vê a monitoria assim que ela é feita
+                # (Correções.txt 21/set); contestar/confirmar continuam exigindo o feedback aplicado.
                 condicoes.append(f"EXISTS (SELECT 1 FROM dbo.monitoria_feedbacks f WHERE f.id_monitoria = {alias}.id_monitoria)")
         elif user.perfil == ROLE_SUPERVISOR:
             if user.id_usuario is None:
@@ -725,10 +733,6 @@ class MonitoriaRepositoryMixin:
                 operacao=normalize_text(m["operacao"]), id_operador=int(m["id_operador"]), operadores_supervisionados=supervisionados,
             )
             id_m = int(m["id_monitoria"])
-            cursor.execute("SELECT TOP 1 1 FROM dbo.monitoria_feedbacks WHERE id_monitoria = ?", (id_m,))
-            tem_feedback = cursor.fetchone() is not None
-            if permitido and user.perfil == ROLE_OPERATOR and not tem_feedback:
-                permitido = False
             if not permitido:
                 # 404 (não 403) para não revelar a existência do registro fora do escopo.
                 self.mon_log(cursor, user, acao="acesso_negado_monitoria", operacao=normalize_text(m["operacao"]),

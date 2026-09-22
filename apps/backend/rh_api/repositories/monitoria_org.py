@@ -378,7 +378,7 @@ class MonitoriaOrgRepositoryMixin:
             cursor = conn.cursor()
             cursor.execute(
                 f"""
-                SELECT id_item, tipo, operacao, valor, ordem, ativo FROM dbo.monitoria_catalogo
+                SELECT id_item, tipo, operacao, valor, ordem, ativo, id_item_canal FROM dbo.monitoria_catalogo
                 WHERE tipo = ? AND (operacao IS NULL OR operacao = ?)
                 {'' if incluir_inativos else 'AND ativo = 1'}
                 ORDER BY ordem, valor
@@ -387,7 +387,8 @@ class MonitoriaOrgRepositoryMixin:
             )
             return [
                 {"id_item": r["id_item"], "tipo": r["tipo"], "operacao": normalize_text(r["operacao"]),
-                 "valor": normalize_text(r["valor"]), "ordem": r["ordem"], "ativo": bool(r["ativo"])}
+                 "valor": normalize_text(r["valor"]), "ordem": r["ordem"], "ativo": bool(r["ativo"]),
+                 "id_item_canal": r["id_item_canal"]}
                 for r in rows_to_dicts(cursor, cursor.fetchall())
             ]
         finally:
@@ -427,6 +428,109 @@ class MonitoriaOrgRepositoryMixin:
                          posterior={"valor": valor, "ativo": bool(ativo)}, ip=ip)
             conn.commit()
             return {"success": True, "id_item": resolved}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Tipos de atendimento (Configurações > Parâmetros): operação + canal + tipo
+    # ------------------------------------------------------------------
+    def mon_list_tipos_atendimento(self, user) -> list[dict]:
+        permitidas = operacoes_permitidas(user.perfil, user.operacoes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT t.id_item, t.operacao, o.nome AS operacao_nome, t.valor, t.ativo, t.id_item_canal, c.valor AS canal
+                FROM dbo.monitoria_catalogo t
+                LEFT JOIN dbo.operacoes o ON o.chave = t.operacao
+                LEFT JOIN dbo.monitoria_catalogo c ON c.id_item = t.id_item_canal AND c.tipo = 'canal'
+                WHERE t.tipo = 'tipo_atendimento' AND t.operacao IS NOT NULL
+                ORDER BY o.nome, c.valor, t.valor
+                """
+            )
+            itens = []
+            for r in rows_to_dicts(cursor, cursor.fetchall()):
+                operacao = normalize_text(r["operacao"])
+                if permitidas is not None and operacao not in permitidas:
+                    continue
+                itens.append(
+                    {
+                        "id_item": r["id_item"], "operacao": operacao,
+                        "operacao_nome": normalize_text(r["operacao_nome"]) or operacao,
+                        "id_item_canal": r["id_item_canal"], "canal": normalize_text(r["canal"]),
+                        "valor": normalize_text(r["valor"]), "ativo": bool(r["ativo"]),
+                    }
+                )
+            return itens
+        finally:
+            conn.close()
+
+    def mon_save_tipo_atendimento(self, user, data: dict, id_item: int | None = None, *, ip: str = "") -> dict:
+        operacao = normalize_text(data.get("operacao"))
+        valor = normalize_text(data.get("valor"))
+        id_canal = int(data.get("id_item_canal") or 0)
+        if not operacao or not id_canal or not valor:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe a operação, o canal de atendimento e o tipo de atendimento.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_exigir_operacao_no_escopo(user, operacao)
+            self._mon_exigir_operacao_ativa(cursor, operacao)
+            cursor.execute("SELECT operacao FROM dbo.monitoria_catalogo WHERE id_item = ? AND tipo = 'canal'", (id_canal,))
+            canal = cursor.fetchone()
+            if not canal or normalize_text(canal[0]) != operacao:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O canal de atendimento precisa pertencer à operação escolhida.")
+            cursor.execute(
+                "SELECT TOP 1 1 FROM dbo.monitoria_catalogo WHERE tipo = 'tipo_atendimento' AND operacao = ? AND id_item_canal = ? "
+                "AND LOWER(valor) = LOWER(?) AND id_item <> ?",
+                (operacao, id_canal, valor, int(id_item or 0)),
+            )
+            if cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe esse tipo de atendimento para a operação e o canal escolhidos.")
+            if id_item:
+                cursor.execute("SELECT operacao FROM dbo.monitoria_catalogo WHERE id_item = ? AND tipo = 'tipo_atendimento'", (int(id_item),))
+                atual = cursor.fetchone()
+                if not atual:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de atendimento não encontrado.")
+                self._mon_exigir_operacao_no_escopo(user, normalize_text(atual[0]))
+                cursor.execute(
+                    "UPDATE dbo.monitoria_catalogo SET operacao = ?, id_item_canal = ?, valor = ? WHERE id_item = ?",
+                    (operacao, id_canal, valor, int(id_item)),
+                )
+                resolved = int(id_item)
+            else:
+                cursor.execute(
+                    "INSERT INTO dbo.monitoria_catalogo (tipo, operacao, valor, ordem, ativo, id_item_canal) "
+                    "OUTPUT INSERTED.id_item VALUES ('tipo_atendimento', ?, ?, 0, 1, ?)",
+                    (operacao, valor, id_canal),
+                )
+                resolved = int(cursor.fetchone()[0])
+            self.mon_log(cursor, user, acao="salvar_tipo_atendimento", operacao=operacao, entidade="tipo_atendimento", entidade_id=resolved,
+                         posterior={"valor": valor, "id_item_canal": id_canal}, ip=ip)
+            conn.commit()
+            return {"success": True, "id_item": resolved}
+        finally:
+            conn.close()
+
+    def mon_excluir_tipo_atendimento(self, user, id_item: int, *, ip: str = "") -> dict:
+        """Exclui o tipo do catálogo. Monitorias já realizadas guardam o texto do tipo
+        (não a referência), então continuam intactas."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT operacao, valor FROM dbo.monitoria_catalogo WHERE id_item = ? AND tipo = 'tipo_atendimento'", (int(id_item),))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de atendimento não encontrado.")
+            operacao = normalize_text(row[0])
+            self._mon_exigir_operacao_no_escopo(user, operacao)
+            self._mon_exigir_operacao_ativa(cursor, operacao)
+            cursor.execute("DELETE FROM dbo.monitoria_catalogo WHERE id_item = ? AND tipo = 'tipo_atendimento'", (int(id_item),))
+            self.mon_log(cursor, user, acao="excluir_tipo_atendimento", operacao=operacao, entidade="tipo_atendimento", entidade_id=int(id_item),
+                         anterior={"valor": normalize_text(row[1])}, ip=ip)
+            conn.commit()
+            return {"success": True}
         finally:
             conn.close()
 

@@ -45,8 +45,10 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
   const perfil = controlador?.estado?.perfilUsuario;
   const ehOperador = perfil === 'operador';
   const preset = modo === 'minhas' && !ehOperador
-    ? { ...PRESETS.minhas, texto: 'Monitorias dos operadores da sua equipe. As contestações aparecem com a etiqueta "Contestada" até você dar baixa.' }
-    : PRESETS[modo] || PRESETS.historico;
+    ? { ...PRESETS.minhas, texto: '' }
+    : modo === 'historico' && ehOperador
+      ? { ...PRESETS.historico, texto: 'Histórico das suas monitorias. Busque por ID, data ou avaliador.' }
+      : PRESETS[modo] || PRESETS.historico;
   const podeExportar = controlador.possuiPermissao('monitoria.exportar');
   const padrao = { ...FILTROS_VAZIOS, status: preset.status };
   // `rascunho` é o que está nos campos; `filtros` é o que já foi aplicado à consulta.
@@ -112,7 +114,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       <p class="mon-muted">${preset.texto}</p>
       <div class="mon-filtros" onKeyDown=${(e) => { if (e.key === 'Enter') aplicar(); }}>
         <label class="mon-filtro mon-filtro--id">ID<input class="form-control" maxlength="8" inputmode="numeric" placeholder="8 dígitos" value=${rascunho.codigo} onInput=${(e) => campo('codigo', e.target.value.replace(/\D/g, ''))} /></label>
-        ${modo !== 'minhas' || !ehOperador ? html`<label class="mon-filtro">Operador<input class="form-control" placeholder="Nome" value=${rascunho.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
+        ${!ehOperador ? html`<label class="mon-filtro">Operador<input class="form-control" placeholder="Nome" value=${rascunho.operador} onInput=${(e) => campo('operador', e.target.value)} /></label>` : null}
         ${modo !== 'minhas' || !ehOperador ? html`<label class="mon-filtro">Avaliador<input class="form-control" placeholder="Nome" value=${rascunho.avaliador} onInput=${(e) => campo('avaliador', e.target.value)} /></label>` : null}
         <label class="mon-filtro mon-filtro--data">De<input class="form-control" type="date" value=${rascunho.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
         <label class="mon-filtro mon-filtro--data">Até<input class="form-control" type="date" value=${rascunho.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>

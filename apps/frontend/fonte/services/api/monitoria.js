@@ -13,7 +13,17 @@ const enviar = (caminho, metodo, corpo) =>
   requisitar(caminho, { method: metodo, headers: JSON_HEADERS, body: JSON.stringify(corpo || {}) });
 
 // --- contexto / organização ---------------------------------------------
-export const lerContextoMonitoria = () => requisitar('/monitoria/contexto', { method: 'GET' });
+// O gancho global (global.js) e a tela pedem o contexto ao mesmo tempo ao abrir a Monitoria:
+// chamadas simultâneas compartilham a mesma requisição (uma ida ao banco em vez de duas).
+let contextoEmAndamento = null;
+export const lerContextoMonitoria = () => {
+  if (!contextoEmAndamento) {
+    contextoEmAndamento = requisitar('/monitoria/contexto', { method: 'GET' }).finally(() => {
+      contextoEmAndamento = null;
+    });
+  }
+  return contextoEmAndamento;
+};
 export const escolherDesignOperacao = (operacao) => enviar('/monitoria/tema', 'PUT', { operacao });
 export const listarEquipesMonitoria = (operacao = '') =>
   requisitar(`/monitoria/equipes${consulta({ operacao })}`, { method: 'GET' });
@@ -23,6 +33,10 @@ export const listarCatalogoMonitoria = (tipo, operacao = '', incluirInativos = f
   requisitar(`/monitoria/catalogo${consulta({ tipo, operacao, incluir_inativos: incluirInativos })}`, { method: 'GET' });
 export const salvarCatalogoMonitoria = (payload, idItem = null) =>
   enviar(idItem ? `/monitoria/catalogo/${idItem}` : '/monitoria/catalogo', idItem ? 'PUT' : 'POST', payload);
+export const listarTiposAtendimento = () => requisitar('/monitoria/tipos-atendimento', { method: 'GET' });
+export const salvarTipoAtendimento = (payload, idItem = null) =>
+  enviar(idItem ? `/monitoria/tipos-atendimento/${idItem}` : '/monitoria/tipos-atendimento', idItem ? 'PUT' : 'POST', payload);
+export const excluirTipoAtendimento = (idItem) => requisitar(`/monitoria/tipos-atendimento/${idItem}`, { method: 'DELETE' });
 
 // --- usuários da monitoria ------------------------------------------------
 export const listarUsuariosMonitoria = () => requisitar('/monitoria/usuarios', { method: 'GET' });

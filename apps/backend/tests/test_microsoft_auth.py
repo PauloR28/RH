@@ -630,9 +630,10 @@ def test_microsoft_user_can_be_created_without_fake_password():
     )
     assert result["id_usuario"] == 7
     insert_params = next(params for sql, params in cursor.executions if sql.startswith("insert into usuarios"))
-    assert insert_params[2] == "ana@empresa.com.br"
-    assert insert_params[6] is None
-    assert insert_params[7] == "microsoft"
+    # Ordem do INSERT: login, nome, sobrenome, email, perfil_id, cargo, status, senha_hash, provedor.
+    assert insert_params[3] == "ana@empresa.com.br"
+    assert insert_params[7] is None
+    assert insert_params[8] == "microsoft"
 
 
 def test_local_user_still_requires_password():

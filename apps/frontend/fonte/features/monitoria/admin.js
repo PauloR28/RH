@@ -127,6 +127,8 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
       ${nota ? html`<p class="mon-alerta mon-alerta--info mon-alerta--linha" title=${nota}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('info')}</span><span>${nota}</span></p>` : null}
 
       ${!config ? html`<${LoadingState} titulo="Carregando formulário" />` : html`
+      <div class="mon-formularios-layout">
+        <div class="mon-formularios-esq">
         <div class="mon-matriz">
           <div class="mon-matriz-colunas" aria-hidden="true"><span>Pergunta</span><span>Valor / peso</span><span>${editando ? 'Ações' : ''}</span></div>
           ${config.blocos.map((b, i) => {
@@ -160,7 +162,11 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
           })}
           ${editando ? html`<button type="button" class="btn btn-outline-secondary mon-matriz-novo-bloco" onClick=${() => setConfig({ ...config, blocos: [...config.blocos, BLOCO_VAZIO()] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar bloco</button>` : null}
         </div>
-
+        ${editando && erros.length ? html`<ul class="mon-erros">${erros.map((e) => html`<li key=${e}>${e}</li>`)}</ul>` : null}
+        ${editando ? html`<div class="mon-acoes-fixas"><input class="form-control mon-obs-versao" placeholder="O que mudou nesta versão? (opcional)" value=${observacao} onInput=${(e) => setObservacao(e.target.value)} />
+          <button type="button" class="btn btn-primary" disabled=${!alterou || erros.length > 0 || salvando} onClick=${salvar}>${salvando ? 'Salvando…' : 'Salvar como nova versão'}</button></div>` : null}
+        </div>
+        <aside class="mon-formularios-dir">
         <${SectionCard} title="Escala e faixas de nota">
           <div class="mon-form-grid">
             <label class="mon-campo">Escala mínima<input class="form-control" type="number" disabled=${!editando} value=${config.escala.min} onInput=${(e) => setConfig({ ...config, escala: { ...config.escala, min: Number(e.target.value) } })} /></label>
@@ -174,15 +180,14 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
               <td><input class="form-control" disabled=${!editando} value=${f.acao || ''} onInput=${(e) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, acao: e.target.value } : x)) })} /></td></tr>`)}
           </tbody></table></div>
         </${SectionCard}>
-        ${editando && erros.length ? html`<ul class="mon-erros">${erros.map((e) => html`<li key=${e}>${e}</li>`)}</ul>` : null}
-        ${editando ? html`<div class="mon-acoes-fixas"><input class="form-control mon-obs-versao" placeholder="O que mudou nesta versão? (opcional)" value=${observacao} onInput=${(e) => setObservacao(e.target.value)} />
-          <button type="button" class="btn btn-primary" disabled=${!alterou || erros.length > 0 || salvando} onClick=${salvar}>${salvando ? 'Salvando…' : 'Salvar como nova versão'}</button></div>` : null}
         <${SectionCard} title="Histórico de versões (somente leitura)">
           <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Versão</th><th>Criada em</th><th>Por</th><th>Observação</th><th class="num">Monitorias</th><th></th></tr></thead><tbody>
             ${(versoes || []).map((v) => html`<tr key=${v.id_versao}><td><strong>v${v.numero}</strong> ${v.ativa ? html`<span class="mon-badge mon-badge--ok">Ativa</span>` : html`<span class="mon-badge">Arquivada</span>`}</td><td>${formatarDataHoraCurta(v.criado_em)}</td><td>${v.criado_por}</td><td>${v.observacao || '—'}</td><td class="num">${v.monitorias}</td>
               <td><button type="button" class="btn btn-link btn-sm" onClick=${async () => setVisualizando(await lerVersaoMatriz(v.id_versao))}>Ver</button></td></tr>`)}
           </tbody></table></div>
-        </${SectionCard}>`}
+        </${SectionCard}>
+        </aside>
+      </div>`}
       <${ModalPadrao} aberto=${Boolean(visualizando)} titulo=${`Formulário v${visualizando?.numero || ''} (somente leitura)`} onClose=${() => setVisualizando(null)}>
         ${visualizando ? html`<div class="mon-shell">${visualizando.config.blocos.map((b) => html`<div key=${b.id}><strong>${b.nome}</strong> <span class="mon-muted">(peso ${formatarNota(b.valor)})</span><ul>${b.criterios.map((c) => html`<li key=${c.id}>${c.texto} — ${formatarNota(c.peso)}</li>`)}</ul></div>`)}</div>` : null}
       </${ModalPadrao}>

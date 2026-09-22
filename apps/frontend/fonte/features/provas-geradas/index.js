@@ -1204,6 +1204,8 @@ export function ModalGerarProva({
                 title="Duração por etapa"
                 description="Opcional. Deixe em 0 para a etapa usar apenas o tempo total da prova, sem limite próprio."
                 className="rh-section-card--flat"
+                collapsible
+                defaultCollapsed
               >
                 <div class="generated-stage-duration-list">
                   ${etapas.map((etapa) => html`
@@ -1242,6 +1244,8 @@ export function ModalGerarProva({
           title="Personalização da prova"
           description="Opcional. A prova padrão será gerada normalmente se esta opção ficar desmarcada."
           className="rh-section-card--flat"
+          collapsible
+          defaultCollapsed=${!formulario.personalizacao_inteligente}
         >
           <label class="form-check generated-personalization-toggle">
             <input

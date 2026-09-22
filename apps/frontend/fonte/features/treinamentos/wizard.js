@@ -12,7 +12,7 @@ import {
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { atualizarTrilhaOnboarding, lerTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
-import { LoadingState, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
 function limparHtmlVazioModulo(valor) {
@@ -153,7 +153,24 @@ const TERMO_LGPD_ANEXO =
   '(2) sou responsável pelo conteúdo publicado; (3) esta ação será registrada, com meu usuário e o ' +
   'horário, para fins de auditoria.';
 
-const OCORRENCIA_INICIAL = { data_prevista: '', sem_horario_definido: false, local: '', ministrante: '' };
+const OCORRENCIA_INICIAL = {
+  data_prevista: '',
+  sem_horario_definido: false,
+  local: '',
+  ministrante: '',
+  ministrante_email: '',
+  duracao_minutos: 60,
+  enviar_lembrete_calendario: false,
+};
+
+const DURACOES_OCORRENCIA = [
+  { value: 10, label: '10min' },
+  { value: 20, label: '20min' },
+  { value: 30, label: '30min' },
+  { value: 60, label: '1h' },
+  { value: 90, label: '1h30' },
+  { value: 120, label: '2h' },
+];
 const MODULO_INICIAL = {
   titulo: '',
   subtitulo: '',
@@ -208,6 +225,8 @@ function mapearTrilhaParaFormulario(trilha) {
     id_operacao: trilha.id_operacao ? String(trilha.id_operacao) : '',
     modalidade: trilha.modalidade || '',
     local_padrao: trilha.local_padrao || '',
+    ministrante_padrao: trilha.ministrante_padrao || '',
+    ministrante_padrao_email: trilha.ministrante_padrao_email || '',
     tipo_obrigatorio: !!trilha.tipo_obrigatorio,
     ocorrencias: [{ ...OCORRENCIA_INICIAL }],
     participantes: [],
@@ -224,6 +243,8 @@ const FORM_INICIAL = {
   id_operacao: '',
   modalidade: '',
   local_padrao: '',
+  ministrante_padrao: '',
+  ministrante_padrao_email: '',
   tipo_obrigatorio: false,
   ocorrencias: [{ ...OCORRENCIA_INICIAL }],
   participantes: [],
@@ -334,7 +355,13 @@ export function TelaCriarTreinamento({ controlador }) {
   };
 
   const adicionarOcorrencia = () => {
-    setFormulario((atual) => ({ ...atual, ocorrencias: [...atual.ocorrencias, { ...OCORRENCIA_INICIAL }] }));
+    setFormulario((atual) => ({
+      ...atual,
+      ocorrencias: [
+        ...atual.ocorrencias,
+        { ...OCORRENCIA_INICIAL, ministrante: atual.ministrante_padrao, ministrante_email: atual.ministrante_padrao_email },
+      ],
+    }));
   };
 
   const removerOcorrencia = (index) => {
@@ -863,6 +890,8 @@ export function TelaCriarTreinamento({ controlador }) {
           sem_horario_definido: !!item.sem_horario_definido,
           local: item.local.trim(),
           ministrante: item.ministrante.trim(),
+          ministrante_email: (item.ministrante_email || '').trim(),
+          duracao_minutos: Number(item.duracao_minutos) || 60,
         })),
         participantes: formulario.participantes.map((item) => item.id_registro),
       };
@@ -1001,6 +1030,17 @@ export function TelaCriarTreinamento({ controlador }) {
           <span>Local padrão (opcional)</span>
           <input value=${formulario.local_padrao} onInput=${(event) => atualizarCampo('local_padrao', event.target.value)} placeholder="Sala 2, ou link da sala virtual" />
         </label>
+        <label class="process-create-field">
+          <span>Ministrante padrão (opcional)</span>
+          <${MinistrantePicker}
+            nome=${formulario.ministrante_padrao}
+            placeholder="Nome do responsável por aplicar..."
+            onChange=${(nomeSelecionado, emailSelecionado) => {
+      atualizarCampo('ministrante_padrao', nomeSelecionado);
+      atualizarCampo('ministrante_padrao_email', emailSelecionado);
+    }}
+          />
+        </label>
         <label class="process-create-field is-wide">
           <span>Descrição / objetivo do treinamento</span>
           <textarea rows="2" value=${formulario.descricao} onInput=${(event) => atualizarCampo('descricao', event.target.value)}></textarea>
@@ -1046,7 +1086,15 @@ export function TelaCriarTreinamento({ controlador }) {
               <div class="col-md-3">
                 <label class="process-create-field mb-0">
                   <span>Responsável por aplicar</span>
-                  <input value=${ocorrencia.ministrante} onInput=${(event) => atualizarOcorrencia(index, 'ministrante', event.target.value)} placeholder="Nome do supervisor/gestor" />
+                  <${MinistrantePicker}
+                    nome=${ocorrencia.ministrante}
+                    placeholder="Nome do supervisor/gestor"
+                    onChange=${(nomeSelecionado, emailSelecionado) => {
+      atualizarOcorrencia(index, 'ministrante', nomeSelecionado);
+      atualizarOcorrencia(index, 'ministrante_email', emailSelecionado);
+      if (!emailSelecionado) atualizarOcorrencia(index, 'enviar_lembrete_calendario', false);
+    }}
+                  />
                 </label>
               </div>
               <div class="col-md-2">
@@ -1063,6 +1111,33 @@ export function TelaCriarTreinamento({ controlador }) {
                 <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => removerOcorrencia(index)} disabled=${formulario.ocorrencias.length <= 1}>
                   <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
                 </button>
+              </div>
+            </div>
+            <div class="row g-2 mt-1 align-items-end">
+              <div class="col-md-3">
+                <label class="process-create-field mb-0">
+                  <span>Duração</span>
+                  <select
+                    value=${ocorrencia.duracao_minutos}
+                    onChange=${(event) => atualizarOcorrencia(index, 'duracao_minutos', Number(event.target.value))}
+                  >
+                    ${DURACOES_OCORRENCIA.map((opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`)}
+                  </select>
+                </label>
+              </div>
+              <div class="col-md-5">
+                <label class="d-flex align-items-center gap-1 mb-2">
+                  <input
+                    type="checkbox"
+                    disabled=${!ocorrencia.ministrante_email}
+                    checked=${ocorrencia.enviar_lembrete_calendario}
+                    onChange=${(event) => atualizarOcorrencia(index, 'enviar_lembrete_calendario', !!event.target.checked)}
+                  />
+                  <span class="small">
+                    Adicionar lembrete no calendário do ministrante
+                    ${!ocorrencia.ministrante_email ? html`<span class="text-muted"> (escolha um usuário do sistema acima)</span>` : null}
+                  </span>
+                </label>
               </div>
             </div>
           </div>

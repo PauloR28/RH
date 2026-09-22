@@ -12,12 +12,13 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20260921-monitoria6';
+} from './components/layout.js?v=20260922-collapsible';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
   ModalPadrao,
 } from './components/modals.js';
+export { MinistrantePicker } from './components/ministrante-picker.js';
 export {
   EditorTextoRich,
   PerguntaExcel,

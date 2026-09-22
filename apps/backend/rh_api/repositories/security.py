@@ -24,6 +24,7 @@ from conecta.infrastructure.security.totp import (
 )
 from ..rbac import (
     PERMISSION_DEFINITIONS,
+    ROLE_ADMIN,
     ROLE_DEFINITIONS,
     ROLE_EMPLOYEE,
     ROLE_INTERN,
@@ -1382,6 +1383,41 @@ class SecurityRepositoryMixin:
             users = [item for item in users if item["status"].lower() == safe_status]
         return users
 
+    @staticmethod
+    def _ensure_user_identity_available(
+        cursor,
+        *,
+        email: str,
+        login: str,
+        exclude_id: int | None = None,
+    ) -> None:
+        """Recusa e-mail/login já usados por outro usuário com mensagem clara
+        (antes o índice único UX_usuarios_email/UX_usuarios_login estourava
+        como erro técnico de banco na tela)."""
+        cursor.execute(
+            """
+            SELECT TOP 1 id_usuario, nome, sobrenome, email, login, status
+            FROM usuarios
+            WHERE (LOWER(email) = LOWER(?) OR LOWER(login) = LOWER(?) OR LOWER(login) = LOWER(?) OR LOWER(email) = LOWER(?))
+              AND id_usuario <> ?
+            """,
+            (email, email, login, login, int(exclude_id or 0)),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return
+        existing_name = " ".join(part for part in (normalize_text(row[1]), normalize_text(row[2])) if part) or "sem nome"
+        existing_status = normalize_text(row[5]) or "sem status"
+        conflict_on_email = (normalize_text(row[3]).lower() == email.lower()) or (normalize_text(row[4]).lower() == email.lower())
+        subject = f"o e-mail {email}" if conflict_on_email else f"o login {login}"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Já existe um usuário cadastrado com {subject} ({existing_name} — {existing_status}). "
+                "Use outro e-mail/login ou edite o usuário existente."
+            ),
+        )
+
     def create_system_user(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
         safe_name = normalize_text(data.get("nome"))
         safe_surname = normalize_text(data.get("sobrenome"))
@@ -1415,6 +1451,7 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            self._ensure_user_identity_available(cursor, email=safe_email, login=safe_login)
             cursor.execute(
                 """
                 INSERT INTO usuarios
@@ -1601,6 +1638,12 @@ class SecurityRepositoryMixin:
                     default=previous["provedor_autenticacao"],
                 ),
             }
+            self._ensure_user_identity_available(
+                cursor,
+                email=new_values["email"],
+                login=new_values["login"],
+                exclude_id=int(id_usuario),
+            )
             actor_info = _actor_payload(actor)
             cursor.execute(
                 """
@@ -1746,6 +1789,91 @@ class SecurityRepositoryMixin:
         finally:
             conn.close()
 
+    # Tabelas de vínculo/pendência do usuário que são apagadas junto com ele.
+    _USER_LINK_TABLES = (
+        ("usuarios_operacoes", "id_usuario"),
+        ("usuarios_operacoes_historico", "id_usuario"),
+        ("usuarios_canais", "id_usuario"),
+        ("usuarios_supervisores", "id_operador"),
+        ("usuarios_supervisores", "id_supervisor"),
+        ("solicitacoes_alteracao_email", "id_usuario"),
+        ("politicas_confirmacoes", "id_usuario"),
+        ("monitoria_rascunhos", "id_avaliador"),
+    )
+    # Histórico de Monitoria é imutável (regra de domínio): quem aparece nele só pode ser desativado.
+    _USER_MONITORIA_HISTORY = (
+        ("monitorias", "id_operador", "como operador"),
+        ("monitorias", "id_avaliador", "como avaliador"),
+        ("monitoria_contestacoes", "id_operador", "em contestações"),
+        ("monitoria_planos_acao", "id_operador", "em planos de ação"),
+        ("monitoria_planos_acao", "id_responsavel", "como responsável de plano de ação"),
+        ("monitoria_reanalises", "id_supervisor", "em reanálises"),
+    )
+
+    def delete_system_user(self, id_usuario: int, *, actor: AuthenticatedUser | dict | None = None, justificativa: str = "") -> dict:
+        """Exclusão DEFINITIVA do usuário (linha em `usuarios` + vínculos).
+
+        Logs de auditoria são mantidos (guardam nome/e-mail). Recusa excluir a si
+        mesmo, o último administrador ativo e quem tem histórico de Monitoria.
+        """
+        target_id = int(id_usuario)
+        actor_id = getattr(actor, "id_usuario", None) if not isinstance(actor, dict) else actor.get("id_usuario")
+        if actor_id is not None and int(actor_id) == target_id:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Você não pode excluir o próprio usuário.")
+
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            previous = self._serialize_system_user(self._get_system_user_by_id(cursor, target_id))
+
+            if previous.get("perfil") == ROLE_ADMIN:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM usuarios WHERE perfil_id = ? AND status = 'Ativo' AND id_usuario <> ?",
+                    (ROLE_ADMIN, target_id),
+                )
+                if int(cursor.fetchone()[0]) == 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Este é o último administrador ativo; não pode ser excluído.",
+                    )
+
+            for table, column, label in self._USER_MONITORIA_HISTORY:
+                cursor.execute("SELECT OBJECT_ID(?)", (f"dbo.{table}",))
+                if cursor.fetchone()[0] is None:
+                    continue
+                cursor.execute(f"SELECT COUNT(*) FROM dbo.{table} WHERE {column} = ?", (target_id,))
+                total = int(cursor.fetchone()[0])
+                if total:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=(
+                            f"Este usuário aparece {label} no histórico da Monitoria ({total} registro(s)), "
+                            "que é imutável e não pode ficar sem o usuário. Desative o usuário em vez de excluir."
+                        ),
+                    )
+
+            for table, column in self._USER_LINK_TABLES:
+                cursor.execute("SELECT OBJECT_ID(?)", (f"dbo.{table}",))
+                if cursor.fetchone()[0] is not None:
+                    cursor.execute(f"DELETE FROM dbo.{table} WHERE {column} = ?", (target_id,))
+
+            cursor.execute("DELETE FROM usuarios WHERE id_usuario = ?", (target_id,))
+            self._insert_audit_log(
+                cursor,
+                user=actor,
+                modulo="Usuários",
+                acao="excluir_usuario",
+                entidade="usuario",
+                entidade_id=str(target_id),
+                valor_anterior=previous,
+                justificativa=normalize_text(justificativa) or "Exclusão definitiva solicitada.",
+                sucesso=True,
+            )
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
     def deactivate_system_user(self, id_usuario: int, *, actor: AuthenticatedUser | dict | None = None, justificativa: str = "") -> dict:
         return self.set_system_user_status(
             id_usuario,
@@ -1765,27 +1893,36 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            # Duas etapas: ordenar direto com as colunas nvarchar(max)
+            # (valor_anterior/valor_novo) fazia o SQL Server levar ~25 s para 160
+            # linhas; escolher os ids pelo índice e só então buscar as colunas
+            # largas mantém a mesma ordenação em ~50 ms.
             cursor.execute(
                 f"""
-                SELECT TOP {safe_limit}
-                    id_log,
-                    id_usuario,
-                    nome_usuario,
-                    email_usuario,
-                    perfil_id,
-                    perfil_nome,
-                    data_hora,
-                    modulo,
-                    acao,
-                    entidade,
-                    entidade_id,
-                    valor_anterior,
-                    valor_novo,
-                    justificativa,
-                    origem,
-                    sucesso
-                FROM logs_auditoria
-                ORDER BY data_hora DESC, id_log DESC
+                SELECT
+                    l.id_log,
+                    l.id_usuario,
+                    l.nome_usuario,
+                    l.email_usuario,
+                    l.perfil_id,
+                    l.perfil_nome,
+                    l.data_hora,
+                    l.modulo,
+                    l.acao,
+                    l.entidade,
+                    l.entidade_id,
+                    l.valor_anterior,
+                    l.valor_novo,
+                    l.justificativa,
+                    l.origem,
+                    l.sucesso
+                FROM (
+                    SELECT TOP {safe_limit} id_log
+                    FROM logs_auditoria
+                    ORDER BY data_hora DESC, id_log DESC
+                ) AS recentes
+                JOIN logs_auditoria AS l ON l.id_log = recentes.id_log
+                ORDER BY l.data_hora DESC, l.id_log DESC
                 """
             )
             rows = rows_to_dicts(cursor, cursor.fetchall())

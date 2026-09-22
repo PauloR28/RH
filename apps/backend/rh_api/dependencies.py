@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -10,6 +11,7 @@ from .auth import AuthenticatedUser, validate_access_token
 from .config import get_settings
 from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
+from .services.monitoria_scope import escopo_global
 from conecta.domain.permissoes import AuthorizationPolicy
 from conecta.infrastructure.observability.context import user_id_var
 
@@ -23,6 +25,31 @@ def get_repository() -> DatabaseRepository:
     return DatabaseRepository(get_settings())
 
 
+def _refresh_monitoria_scope(user: AuthenticatedUser, request: Request | None) -> AuthenticatedUser:
+    """Nas rotas /monitoria, Supervisor/Qualidade (e demais perfis restritos) usam as
+    operações vinculadas ATUAIS do banco, não as gravadas no token no login — assim
+    trocar o vínculo de um usuário vale na próxima requisição, sem novo login.
+    Falha na leitura = nenhuma operação (DENY por padrão)."""
+    if request is None or not request.url.path.startswith("/monitoria") or not user.id_usuario:
+        return user
+    if escopo_global(user.perfil):
+        return user
+    try:
+        conn = get_repository()._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (int(user.id_usuario),)
+            )
+            operacoes = frozenset(str(row[0]).strip() for row in cursor.fetchall() if row[0])
+        finally:
+            conn.close()
+    except Exception:
+        logger.exception("Falha ao reler o escopo de operações do usuário %s; acesso negado.", user.id_usuario)
+        operacoes = frozenset()
+    return replace(user, operacoes=operacoes)
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     request: Request = None,
@@ -34,6 +61,7 @@ def get_current_user(
         )
 
     user = validate_access_token(credentials.credentials)
+    user = _refresh_monitoria_scope(user, request)
     user_id_var.set(str(user.id_usuario or user.username))
     # Primeiro acesso: só as rotas de autenticação (trocar a senha, sessão,
     # logout) ficam liberadas até a senha inicial ser trocada.

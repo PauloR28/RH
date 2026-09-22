@@ -9,7 +9,7 @@ import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
-} from '../services/api/notifications.js';
+} from '../services/api/notifications.js?v=20260921-alertas';
 import { listarOperacoes } from '../services/api/operations.js';
 import { listarUsuarios } from '../services/api/settings.js';
 
@@ -49,6 +49,12 @@ export const CATEGORIAS_NOTIFICACAO = [
     label: 'Central de Treinamentos',
     cor: '#0f8a5f',
     descricao: 'Treinamento aplicado, concluído, com chamada pendente ou encerrado sem chamada.',
+  },
+  {
+    id: 'monitoria',
+    label: 'Monitoria',
+    cor: '#c23b4d',
+    descricao: 'Contestações, réplicas, feedbacks e atualizações das monitorias do seu escopo.',
   },
   {
     id: 'critico',
@@ -206,14 +212,61 @@ function montarItensConfiguracaoCritica({ operacoes, usuarios }) {
   return itens;
 }
 
-function montarItensTreinamentos(notificacoesTreinamento) {
-  return (Array.isArray(notificacoesTreinamento) ? notificacoesTreinamento : [])
-    .slice(0, LIMITE_ITENS_POR_CATEGORIA)
-    .map((item) => ({
-      id: `treinamento-${item.id_notificacao}`,
-      categoria: 'treinamentos',
-      texto: item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Notificação da Central de Treinamentos',
-    }));
+const LIMITE_NOTIFICACOES_PERSISTIDAS = 20;
+const PREFIXO_ID_PERSISTIDA = 'notificacao-';
+
+export const ehCategoriaMonitoria = (categoria) => String(categoria || '').startsWith('monitoria');
+
+// Notificações gravadas no servidor (dbo.notificacoes): Central de Treinamentos e Monitoria.
+// A de Monitoria mostra só o resumo ("Fulano abriu uma contestação na monitoria #X").
+function montarItensPersistidos(notificacoes) {
+  return (Array.isArray(notificacoes) ? notificacoes : [])
+    .slice(0, LIMITE_NOTIFICACOES_PERSISTIDAS)
+    .map((item) => {
+      const monitoria = ehCategoriaMonitoria(item.categoria);
+      return {
+        id: `${PREFIXO_ID_PERSISTIDA}${item.id_notificacao}`,
+        categoria: monitoria ? 'monitoria' : 'treinamentos',
+        persistida: true,
+        texto: monitoria
+          ? item.mensagem || item.titulo || 'Atualização de monitoria'
+          : item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Notificação da Central de Treinamentos',
+      };
+    });
+}
+
+// Alertas (bolinha vermelha) da Monitoria: notificações não lidas do usuário, por tipo.
+export function resumirAlertasMonitoria(notificacoes) {
+  const resumo = { total: 0, contestacoes: 0, feedback: 0, minhas: 0 };
+  (Array.isArray(notificacoes) ? notificacoes : []).forEach((item) => {
+    if (!ehCategoriaMonitoria(item.categoria) || item.lida) return;
+    resumo.total += 1;
+    if (item.categoria === 'monitoria_contestacao' || item.categoria === 'monitoria_replica') resumo.contestacoes += 1;
+    else if (item.categoria === 'monitoria_feedback_pendente') resumo.feedback += 1;
+    else resumo.minhas += 1;
+  });
+  return resumo;
+}
+
+const INTERVALO_ALERTAS_MS = 60 * 1000;
+
+export function useAlertasMonitoria(controlador, gatilho = 0) {
+  const [resumo, setResumo] = useState({ total: 0, contestacoes: 0, feedback: 0, minhas: 0 });
+  const autenticado = Boolean(controlador?.estado?.autenticado);
+  const permitido = Boolean(controlador?.possuiPermissao?.('notificacoes.visualizar'));
+
+  useEffect(() => {
+    if (!autenticado || !permitido) return undefined;
+    let ativo = true;
+    const buscar = () => listarNotificacoes(true)
+      .then((lista) => { if (ativo) setResumo(resumirAlertasMonitoria(lista)); })
+      .catch(() => {});
+    buscar();
+    const timer = setInterval(buscar, INTERVALO_ALERTAS_MS);
+    return () => { ativo = false; clearInterval(timer); };
+  }, [autenticado, permitido, gatilho]);
+
+  return resumo;
 }
 
 export function useResumoNotificacoes(controlador) {
@@ -243,7 +296,7 @@ export function useResumoNotificacoes(controlador) {
         entrevistas,
         candidatosProcessos,
         solicitacoesEmail,
-        notificacoesTreinamento,
+        notificacoesPersistidas,
         operacoes,
         usuarios,
       ] = await Promise.all([
@@ -265,7 +318,7 @@ export function useResumoNotificacoes(controlador) {
         ...montarItensProcessos(processos),
         ...montarItensProblemas(candidatosProcessos),
         ...montarItensAdministracao(solicitacoesEmail),
-        ...montarItensTreinamentos(notificacoesTreinamento),
+        ...montarItensPersistidos(notificacoesPersistidas),
         ...(ehAdministrador ? montarItensConfiguracaoCritica({ operacoes, usuarios }) : []),
       ].filter((item) => preferencias[item.categoria] !== false);
 
@@ -277,8 +330,22 @@ export function useResumoNotificacoes(controlador) {
       if (ativo) setCarregando(false);
     });
 
+    // Notificações do servidor (ex.: contestação aberta) chegam com o usuário já logado:
+    // reconsulta só elas, sem refazer as demais categorias.
+    const timer = podeVerNotificacoesTreinamento
+      ? setInterval(() => {
+        listarNotificacoes(true).then((lista) => {
+          if (!ativo) return;
+          const preferencias = lerPreferenciasNotificacao();
+          const persistidas = montarItensPersistidos(lista).filter((item) => preferencias[item.categoria] !== false);
+          setItensBrutos((atual) => [...atual.filter((item) => !item.persistida), ...persistidas]);
+        }).catch(() => {});
+      }, INTERVALO_ALERTAS_MS)
+      : null;
+
     return () => {
       ativo = false;
+      if (timer) clearInterval(timer);
     };
   }, [autenticado]);
 
@@ -288,15 +355,15 @@ export function useResumoNotificacoes(controlador) {
     .filter((item) => !ocultas.has(item.id))
     .map((item) => ({
       ...item,
-      // A categoria "treinamentos" só busca não-lidas (listarNotificacoes(true)),
+      // As notificações do servidor só são buscadas não-lidas (listarNotificacoes(true)),
       // então qualquer item presente aqui já é, por definição, não lido.
-      lida: item.categoria === 'treinamentos' ? false : lidasLocais.has(item.id),
+      lida: item.persistida ? false : lidasLocais.has(item.id),
     }));
 
   const marcarComoLida = async (item) => {
     if (!item || item.lida) return;
-    if (item.categoria === 'treinamentos') {
-      const idReal = String(item.id).replace('treinamento-', '');
+    if (item.persistida) {
+      const idReal = String(item.id).replace(PREFIXO_ID_PERSISTIDA, '');
       try {
         await marcarNotificacaoLida(idReal);
       } catch (error) {
@@ -320,7 +387,7 @@ export function useResumoNotificacoes(controlador) {
     const conjunto = lerConjuntoStorage(CHAVE_NOTIF_OCULTAS);
     itens.forEach((item) => conjunto.add(item.id));
     gravarConjuntoStorage(CHAVE_NOTIF_OCULTAS, conjunto);
-    setItensBrutos((atual) => atual.filter((item) => item.categoria !== 'treinamentos'));
+    setItensBrutos((atual) => atual.filter((item) => !item.persistida));
     forcarAtualizacaoLocal((valor) => valor + 1);
   };
 

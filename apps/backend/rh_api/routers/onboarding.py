@@ -286,6 +286,9 @@ def start_onboarding(
         data_prevista=payload.data_prevista,
         local=payload.local,
         ministrante=payload.ministrante,
+        ministrante_email=payload.ministrante_email,
+        duracao_minutos=payload.duracao_minutos,
+        enviar_lembrete_calendario=payload.enviar_lembrete_calendario,
     )
     audit_action(
         repository,
@@ -401,6 +404,14 @@ def create_treinamento_wizard(
 )
 def search_candidatos_para_treinamento(busca: str = "", repository: DatabaseRepository = Depends(get_repository)):
     return repository.search_candidatos_para_treinamento(busca)
+
+
+@router.get(
+    "/usuarios/busca",
+    dependencies=[Depends(require_permissions("onboarding.criar", "onboarding.editar"))],
+)
+def search_usuarios_ministrante(busca: str = "", repository: DatabaseRepository = Depends(get_repository)):
+    return repository.search_usuarios_ministrante(busca)
 
 
 # ----------------------------------------------------------------------

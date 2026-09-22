@@ -54,9 +54,15 @@ def test_todas_as_abas_da_monitoria_tem_permissao_existente():
 
 
 def test_menu_por_sessoes_supervisor_e_operador_mostram_apenas_treinamentos_e_monitoria():
-    for perfil in (ROLE_SUPERVISOR, ROLE_OPERATOR):
-        sessoes = {p.split(".")[1] for p in ROLE_PERMISSIONS[perfil] if p.startswith("sessao.")}
-        assert sessoes == {"treinamentos", "monitoria"}, (perfil, sessoes)
+    sessoes = {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_SUPERVISOR] if p.startswith("sessao.")}
+    assert sessoes == {"treinamentos", "monitoria"}, sessoes
+    # Correções.txt 22/set: o Operador volta a acessar Treinamentos (autoatendimento dos
+    # próprios treinamentos atribuídos — sem onboarding.criar/editar/gerenciar), mas
+    # continua sem Dashboard nem Planos de ação da Monitoria.
+    perms_operador = ROLE_PERMISSIONS[ROLE_OPERATOR]
+    assert {p.split(".")[1] for p in perms_operador if p.startswith("sessao.")} == {"treinamentos", "monitoria"}
+    assert {"onboarding.visualizar", "onboarding.concluir_proprio"} <= perms_operador
+    assert not {"monitoria.dashboard", "monitoria.plano_acao_visualizar", "onboarding.criar", "onboarding.editar", "onboarding.gerenciar"} & perms_operador
     assert {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_QUALIDADE] if p.startswith("sessao.")} == {"monitoria"}
     assert {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_CONTROL_DESK] if p.startswith("sessao.")} == {"monitoria"}
     assert "inicio.visualizar" in ROLE_PERMISSIONS[ROLE_SUPERVISOR]

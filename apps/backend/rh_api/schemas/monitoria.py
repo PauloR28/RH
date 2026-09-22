@@ -21,6 +21,12 @@ class CatalogoRequest(BaseSchema):
     ativo: bool = True
 
 
+class TipoAtendimentoRequest(BaseSchema):
+    operacao: str = Field(default="", max_length=60)
+    id_item_canal: int = 0
+    valor: str = Field(default="", max_length=120)
+
+
 class UsuarioMonitoriaRequest(BaseSchema):
     nome: str = Field(default="", max_length=180)
     sobrenome: str = Field(default="", max_length=180)

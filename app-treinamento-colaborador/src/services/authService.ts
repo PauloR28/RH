@@ -26,7 +26,11 @@ export async function login(email: string): Promise<LoginResponse> {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (!error.response) {
-        throw new LoginError("Sem conexão com o servidor. Verifique sua internet e tente novamente.", true);
+        // DEBUG TEMPORÁRIO: detalhe real do erro de rede para diagnóstico.
+        throw new LoginError(
+          `[DEBUG] url=${error.config?.baseURL ?? "?"}${error.config?.url ?? "?"} code=${error.code ?? "?"} msg=${error.message}`,
+          true,
+        );
       }
       const message = (error.response.data as { message?: string } | undefined)?.message;
       throw new LoginError(message || "Não foi possível entrar com este e-mail.", false);

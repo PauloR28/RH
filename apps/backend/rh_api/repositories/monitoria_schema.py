@@ -422,7 +422,7 @@ def schema_statements() -> list[str]:
 
 
 def ensure_monitoria_schema(cursor) -> None:
-    for instrucao in schema_statements() + schema_ambiente_statements():
+    for instrucao in schema_statements() + schema_ambiente_statements() + schema_tipos_atendimento_statements():
         cursor.execute(instrucao)
 
 
@@ -474,3 +474,26 @@ def render_migration_sql() -> str:
         "-- recebem trigger INSTEAD OF UPDATE/DELETE (imutabilidade em camada de banco).\n\n"
     )
     return cabecalho + "\n\n".join(schema_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Tipos de atendimento por canal (Correções.txt, 21/set/2026). Aditivo e separado
+# da V037/V039; gera a V040. `id_item_canal` NULL = o tipo vale para todos os canais
+# da operação (comportamento anterior, preservado para os itens existentes).
+# ---------------------------------------------------------------------------
+_COLUNAS_TIPOS_ATENDIMENTO: list[tuple[str, str, str]] = [
+    ("monitoria_catalogo", "id_item_canal", "INT"),
+]
+
+
+def schema_tipos_atendimento_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_TIPOS_ATENDIMENTO]
+
+
+def render_migration_tipos_atendimento_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: tipo de atendimento vinculado a um canal de atendimento\n"
+        "-- (Correcoes.txt, 21/set/2026). Aditiva e idempotente. Gerada a partir de\n"
+        "-- rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_tipos_atendimento_statements()) + "\n"

@@ -140,7 +140,7 @@ def delete_user(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.deactivate_system_user(id_usuario, actor=user, justificativa=justificativa)
+    return repository.delete_system_user(id_usuario, actor=user, justificativa=justificativa)
 
 
 @router.get(

@@ -1,14 +1,16 @@
-import { html, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20260921-monitoria6';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20260922-collapsible';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
+import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20260921-alertas';
+import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
 import { useContextoMonitoria } from './comum.js';
-import { TelaNovaMonitoria } from './formulario.js';
-import { ModalDetalheMonitoria } from './detalhe.js';
-import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js';
+import { TelaNovaMonitoria } from './formulario.js?v=20260921-alertas';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20260921-alertas';
+import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260921-operador';
 import { TelaDashboard } from './painel.js';
-import { TelaFormularios } from './admin.js';
+import { TelaFormularios } from './admin.js?v=20260921-alertas';
 import { TelaCentralMonitoria } from './central.js';
 
 // Vertente Monitoria: um único módulo de telas, cada uma com sua rota (screen-monitoria*).
@@ -53,6 +55,10 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   const [detalhe, setDetalhe] = useState(null);
   const [compartilhar, setCompartilhar] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
+  const [alertasTick, setAlertasTick] = useState(0);
+  const alertas = useAlertasMonitoria(controlador, alertasTick);
+  // Bolinha vermelha por aba: contestação/réplica -> Contestações; feedback pendente -> Feedback; novidades do operador -> Minhas monitorias.
+  const alertaDaAba = { 'screen-monitoria-contestacoes': alertas.contestacoes, 'screen-monitoria-feedback': alertas.feedback, 'screen-monitoria-minhas': alertas.minhas };
 
   const abas = ABAS_MONITORIA.filter((a) => controlador.possuiPermissao(a.permissao) || controlador.podeAcessarTela(a.tela) && a.tela === 'screen-monitoria-minhas');
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-monitoria'];
@@ -86,12 +92,13 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
           ${abas.map((a) => html`
             <button key=${a.tela} type="button" class=${`mon-subnav-btn ${a.tela === telaAtual ? 'is-active' : ''}`} onClick=${() => controlador.irParaTelaProtegida(a.tela)}>
               <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>${a.rotulo}
+              ${alertaDaAba[a.tela] > 0 ? html`<i class="mon-alerta-bolinha" role="img" aria-label=${`${alertaDaAba[a.tela]} novidade(s)`}></i>` : null}
             </button>`)}
         </nav>
         ${corpo}
       </div>
       <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
-        onClose=${() => setDetalhe(null)} onAlterou=${() => setAtualizacao((n) => n + 1)} />
+        onClose=${() => setDetalhe(null)} onAlterou=${() => setAtualizacao((n) => n + 1)} onLida=${() => setAlertasTick((n) => n + 1)} />
       <${ModalCompartilhar} ids=${compartilhar} onClose=${() => setCompartilhar(null)} showToast=${showToast} />
     </${PainelRh}>`;
 }
@@ -122,11 +129,12 @@ const SESSOES = [
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];
 
-export function sessoesDoUsuario(controlador) {
+export function sessoesDoUsuario(controlador, { ocultarTreinamentosSemAgenda = false } = {}) {
   const permissoes = controlador.estado.permissoesUsuario || [];
   const usaMestras = permissoes.some((p) => p.startsWith('sessao.'));
   return SESSOES.map((sessao) => {
     if (usaMestras && !controlador.possuiPermissao(`sessao.${sessao.id}.acessar`)) return null;
+    if (sessao.id === 'treinamentos' && ocultarTreinamentosSemAgenda) return null;
     const destino = sessao.id === 'monitoria'
       ? (controlador.possuiPermissao('monitoria.visualizar') || controlador.possuiPermissao('monitoria.dashboard') ? abaInicialMonitoria(controlador) : null)
       : sessao.telas.find((tela) => controlador.podeAcessarTela(tela));
@@ -137,8 +145,28 @@ export function sessoesDoUsuario(controlador) {
 export function TelaInicioPorSessoes({ controlador }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
-  const sessoes = sessoesDoUsuario(controlador);
   const avatar = estado.avatarUsuario || '';
+  const alertas = useAlertasMonitoria(controlador);
+
+  // O Operador só usa a Central de Treinamento como autoatendimento dos
+  // próprios treinamentos atribuídos (sem onboarding.criar/editar/gerenciar) —
+  // a div só aparece na Início por sessões quando há algo agendado para ele.
+  // Outros perfis (RH, Gestor, Supervisor...) administram a área e continuam
+  // vendo a div independente de haver treinamento agendado.
+  const ehOperador = estado.perfilUsuario === 'operador';
+  const [temTreinamentoAgendado, setTemTreinamentoAgendado] = useState(!ehOperador);
+  useEffect(() => {
+    if (!ehOperador) return undefined;
+    let ativo = true;
+    listarMeusTreinamentos()
+      .then((lista) => { if (ativo) setTemTreinamentoAgendado(Array.isArray(lista) && lista.length > 0); })
+      .catch(() => { if (ativo) setTemTreinamentoAgendado(false); });
+    return () => { ativo = false; };
+  }, [ehOperador]);
+
+  const sessoes = sessoesDoUsuario(controlador, {
+    ocultarTreinamentosSemAgenda: ehOperador && !temTreinamentoAgendado,
+  });
   return html`
     <${PainelRh} screenId="screen-menu" navAtiva="screen-menu" subtituloMarca="Início" placeholderBusca="Conecta" controlador=${controlador}>
       <div class="mon-inicio">
@@ -152,6 +180,7 @@ export function TelaInicioPorSessoes({ controlador }) {
               <button key=${s.id} type="button" class="mon-sessao" onClick=${() => controlador.irParaTelaProtegida(s.destino)}>
                 <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(s.icone)}</span>
                 <strong>${s.titulo}</strong><span class="desc">${s.desc}</span>
+                ${s.id === 'monitoria' && alertas.total > 0 ? html`<i class="mon-alerta-bolinha mon-alerta-bolinha--canto" role="img" aria-label=${`${alertas.total} novidade(s) em monitorias`}></i>` : null}
               </button>`)}
           </div>` : html`<${EmptyState} icon="lock" title="Nenhuma sessão liberada" text="Seu perfil ainda não tem acesso a nenhuma sessão. Fale com o Administrador." />`}
       </div>

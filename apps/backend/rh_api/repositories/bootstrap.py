@@ -1969,6 +1969,11 @@ def ensure_onboarding_tables(cursor) -> None:
         # prompt.txt §3.1: "Tipo: Obrigatório/Não obrigatório" do treinamento
         # (distinto do "obrigatorio" por módulo, já existente).
         ("tipo_obrigatorio", "BIT"),
+        # Correções.txt (rodada 22/set/2026): ministrante padrão do
+        # treinamento (opcional) — pré-preenche o "Responsável por aplicar" ao
+        # cadastrar uma nova ocorrência; cada ocorrência pode sobrescrevê-lo.
+        ("ministrante_padrao", "NVARCHAR(180)"),
+        ("ministrante_padrao_email", "NVARCHAR(255)"),
     ):
         cursor.execute(
             f"""
@@ -2062,6 +2067,13 @@ def ensure_onboarding_tables(cursor) -> None:
         ("data_prevista", "DATETIME"),
         ("local", "NVARCHAR(180)"),
         ("ministrante", "NVARCHAR(180)"),
+        # Correções.txt (convite de Outlook): e-mail opcional do ministrante,
+        # usado só para anexar o convite .ics — se vazio, nenhum convite é
+        # enviado (feature aditiva e degradável).
+        ("ministrante_email", "NVARCHAR(255)"),
+        # Duração da ocorrência em minutos (select fechado no wizard) — define
+        # o horário de término do convite .ics.
+        ("duracao_minutos", "INT"),
         ("status", "NVARCHAR(20)"),
         # Correcoes.txt (rodada 03/set/2026): acesso ao aplicativo/plataforma
         # auxiliar do treinamento e forma de login, alem da lista de presenca.

@@ -1,6 +1,7 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { LoadingState, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20260921-alertas';
 import {
   aplicarFeedback,
   anexarEvidencia,
@@ -36,7 +37,7 @@ function Painel({ titulo, children }) {
   return html`<${SectionCard} title=${titulo}>${children}</${SectionCard}>`;
 }
 
-export function DetalheMonitoria({ referencia, controlador, contexto, onClose, onAlterou, showToast }) {
+export function DetalheMonitoria({ referencia, controlador, contexto, onClose, onAlterou, onLida, showToast }) {
   const [d, setD] = useState(null);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -64,6 +65,15 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
   useEffect(() => {
     carregar();
   }, [referencia]);
+
+  // Abrir a monitoria = ciente das novidades dela: some o alerta (bolinha) ligado a ela.
+  const idMonitoria = d?.id_monitoria;
+  useEffect(() => {
+    if (!idMonitoria) return;
+    marcarNotificacoesEntidadeLidas('monitoria', idMonitoria)
+      .then((r) => { if (r?.atualizadas) onLida?.(); })
+      .catch(() => {});
+  }, [idMonitoria]);
 
   const executar = async (acao, mensagem) => {
     setOcupado(true);

@@ -18,6 +18,7 @@ from ..schemas.monitoria import (
     AmbienteOperacaoRequest,
     CalcularRequest,
     CatalogoRequest,
+    TipoAtendimentoRequest,
     ContestacaoRequest,
     EquipeRequest,
     FeedbackRequest,
@@ -132,6 +133,42 @@ def atualizar_item_catalogo(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_save_catalogo(user, payload.model_dump(), id_item, ip=client_ip(request))
+
+
+@router.get("/tipos-atendimento", dependencies=[Depends(require_permissions("monitoria.equipes"))])
+def listar_tipos_atendimento(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_list_tipos_atendimento(user)}
+
+
+@router.post("/tipos-atendimento", dependencies=[Depends(require_permissions("monitoria.equipes"))])
+def criar_tipo_atendimento(
+    payload: TipoAtendimentoRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_save_tipo_atendimento(user, payload.model_dump(), ip=client_ip(request))
+
+
+@router.put("/tipos-atendimento/{id_item}", dependencies=[Depends(require_permissions("monitoria.equipes"))])
+def atualizar_tipo_atendimento(
+    id_item: int,
+    payload: TipoAtendimentoRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_save_tipo_atendimento(user, payload.model_dump(), id_item, ip=client_ip(request))
+
+
+@router.delete("/tipos-atendimento/{id_item}", dependencies=[Depends(require_permissions("monitoria.equipes"))])
+def excluir_tipo_atendimento(
+    id_item: int,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_excluir_tipo_atendimento(user, id_item, ip=client_ip(request))
 
 
 # ---------------------------------------------------------------------------

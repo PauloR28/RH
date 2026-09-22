@@ -283,17 +283,22 @@ def test_editar_a_matriz_nao_altera_monitorias_antigas(repo, cenario, admin):
 # ---------------------------------------------------------------------------
 # Fluxo completo
 # ---------------------------------------------------------------------------
-def test_operador_so_ve_depois_do_feedback_e_so_a_propria(repo, cenario):
+def test_operador_ve_a_propria_monitoria_assim_que_feita_mas_so_contesta_apos_o_feedback(repo, cenario):
     r = _criar(repo, cenario)
-    assert repo.mon_listar(cenario["op1"])["total"] == 0 or all(i["codigo"] != r["codigo"] for i in repo.mon_listar(cenario["op1"])["itens"])
+    # Correções.txt 21/set: aparece em "Minhas monitorias" logo após ser feita (Feedback pendente).
+    itens = repo.mon_listar(cenario["op1"])["itens"]
+    assert any(i["codigo"] == r["codigo"] and i["status"] == "FEEDBACK_PENDENTE" for i in itens)
+    assert repo.mon_detalhe(cenario["op1"], r["codigo"])["status"] == "FEEDBACK_PENDENTE"
+    # ...mas contestar/confirmar continuam bloqueados até o feedback ser aplicado.
     with pytest.raises(HTTPException) as e:
-        repo.mon_detalhe(cenario["op1"], r["codigo"])
-    assert e.value.status_code == 404
+        repo.mon_confirmar(cenario["op1"], r["codigo"])
+    assert e.value.status_code == 409
     repo.mon_aplicar_feedback(cenario["sup1"], r["codigo"], {"observacao": "Feedback dado"})
     assert repo.mon_detalhe(cenario["op1"], r["codigo"])["status"] == "AGUARDANDO_CONFIRMACAO"
     with pytest.raises(HTTPException) as e:  # outro operador nunca vê
         repo.mon_detalhe(cenario["op2"], r["codigo"])
     assert e.value.status_code == 404
+    assert all(i["codigo"] != r["codigo"] for i in repo.mon_listar(cenario["op2"])["itens"])
 
 
 def test_feedback_apenas_supervisor_responsavel_ou_qualidade(repo, cenario):
@@ -659,7 +664,8 @@ def test_rotas_negam_perfis_sem_permissao_e_operador_nao_exporta(repo, cenario):
     assert cliente.get("/monitoria/logs", headers=cab(cenario["qual"])).status_code == 403  # Qualidade não vê logs por padrão
     assert cliente.get("/monitoria/logs", headers=cab(cenario["sup1"])).status_code == 200
     assert cliente.post("/monitoria/monitorias", json=_dados(cenario), headers=cab(cenario["op1"])).status_code == 403
-    assert cliente.get("/monitoria/dashboard", headers=cab(cenario["op1"])).status_code == 200
+    assert cliente.get("/monitoria/dashboard", headers=cab(cenario["op1"])).status_code == 403  # Operador não tem Dashboard
+    assert cliente.get("/monitoria/planos", headers=cab(cenario["op1"])).status_code == 403
     assert cliente.get("/monitoria/monitorias").status_code == 401
     ok = cliente.get("/monitoria/relatorios/monitorias/exportar?formato=csv&operacao=" + OP, headers=cab(cenario["qual"]))
     assert ok.status_code == 200 and ok.headers["content-type"].startswith("text/csv")
@@ -689,3 +695,78 @@ def test_vazamento_por_url_e_api_devolve_404_fora_do_escopo(repo, cenario):
     assert cliente.post("/monitoria/exportar/monitorias", json={"ids": [r["id_monitoria"]]}, headers=cab(cenario["sup_crf"])).status_code == 404
     assert cliente.get(f"/monitoria/monitorias?codigo={r['codigo']}", headers=cab(cenario["sup_crf"])).json()["total"] == 0
     assert cliente.get("/monitoria/dashboard?operacao=" + OP, headers=cab(cenario["sup_crf"])).json()["resumo"]["quantidade_realizadas"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Notificações da contestação (Correções.txt, 21/set/2026) e tipos de atendimento por canal
+# ---------------------------------------------------------------------------
+def _notificacoes_do(repo, ator, categoria, id_monitoria):
+    """Consulta como a rota: pelo username E pelo e-mail (as notificações são gravadas pelo e-mail)."""
+    conn = repo._connect()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM dbo.usuarios WHERE id_usuario = ?", (ator.id_usuario,))
+        email = cursor.fetchone()[0]
+    finally:
+        conn.close()
+    itens = repo.list_notificacoes(papel=ator.perfil, usuario=ator.username, email=email, apenas_nao_lidas=True)
+    return [i for i in itens if i["categoria"] == categoria and i["entidade_id"] == str(id_monitoria)]
+
+
+def test_contestacao_notifica_supervisor_e_qualidade_e_atualizacoes_notificam_o_operador(repo, cenario):
+    r = _criar(repo, cenario)
+    repo.mon_aplicar_feedback(cenario["sup1"], r["codigo"], {"observacao": "ok"})
+    assert len(_notificacoes_do(repo, cenario["op1"], "monitoria_feedback_aplicado", r["id_monitoria"])) == 1
+    repo.mon_contestar(cenario["op1"], r["codigo"], {"criterios": ["b1c1"], "motivo": "m", "justificativa": "j"})
+    for destino in ("sup1", "qual"):
+        itens = _notificacoes_do(repo, cenario[destino], "monitoria_contestacao", r["id_monitoria"])
+        assert len(itens) == 1, destino
+        assert "abriu uma contestação na monitoria" in itens[0]["mensagem"] and r["codigo"] in itens[0]["mensagem"]
+    assert _notificacoes_do(repo, cenario["sup2"], "monitoria_contestacao", r["id_monitoria"]) == []  # outro supervisor
+    repo.mon_replicar(cenario["op1"], r["codigo"], "Segue minha réplica")
+    assert len(_notificacoes_do(repo, cenario["sup1"], "monitoria_replica", r["id_monitoria"])) == 1
+    repo.mon_reanalisar(cenario["sup1"], r["codigo"], {"resultado": "MANTER", "observacao": "Mantida"})
+    assert len(_notificacoes_do(repo, cenario["op1"], "monitoria_reanalise", r["id_monitoria"])) == 1
+    # abrir a monitoria marca como lidas as notificações dela (some a bolinha)
+    marcadas = repo.marcar_notificacoes_entidade_lidas(entidade="monitoria", entidade_id=str(r["id_monitoria"]), papel="operador",
+                                                        usuario=cenario["op1"].username, email=_email_de(repo, cenario["op1"]))
+    assert marcadas["atualizadas"] >= 2
+    assert _notificacoes_do(repo, cenario["op1"], "monitoria_reanalise", r["id_monitoria"]) == []
+
+
+def _email_de(repo, ator):
+    conn = repo._connect()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM dbo.usuarios WHERE id_usuario = ?", (ator.id_usuario,))
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def test_tipos_de_atendimento_pertencem_a_operacao_e_canal(repo, cenario, admin):
+    canal = next(i for i in repo.mon_list_catalogo("canal", OP) if i["valor"] == "Telefone")
+    outro = repo.mon_save_catalogo(admin, {"tipo": "canal", "operacao": OP, "valor": "Chat teste"})["id_item"]
+    with pytest.raises(HTTPException) as e:  # campos obrigatórios
+        repo.mon_save_tipo_atendimento(admin, {"operacao": OP, "id_item_canal": 0, "valor": "X"})
+    assert e.value.status_code == 422
+    novo = repo.mon_save_tipo_atendimento(admin, {"operacao": OP, "id_item_canal": canal["id_item"], "valor": "Cancelamento teste"})["id_item"]
+    with pytest.raises(HTTPException) as e:  # duplicidade no mesmo canal
+        repo.mon_save_tipo_atendimento(admin, {"operacao": OP, "id_item_canal": canal["id_item"], "valor": "cancelamento TESTE"})
+    assert e.value.status_code == 409
+    linha = next(i for i in repo.mon_list_tipos_atendimento(admin) if i["id_item"] == novo)
+    assert linha["canal"] == "Telefone" and linha["operacao"] == OP and linha["valor"] == "Cancelamento teste"
+    # tipo de um canal só vale para monitorias daquele canal
+    with pytest.raises(HTTPException) as e:
+        repo.mon_criar_monitoria(cenario["qual"], _dados(cenario, canal="Chat teste", tipo_atendimento="Cancelamento teste"))
+    assert e.value.status_code == 422
+    assert repo.mon_criar_monitoria(cenario["qual"], _dados(cenario, canal="Telefone", tipo_atendimento="Cancelamento teste"))["codigo"]
+    # edição e escopo: supervisor de outra operação não enxerga nem altera
+    repo.mon_save_tipo_atendimento(admin, {"operacao": OP, "id_item_canal": outro, "valor": "Cancelamento teste"}, novo)
+    assert next(i for i in repo.mon_list_tipos_atendimento(admin) if i["id_item"] == novo)["canal"] == "Chat teste"
+    assert all(i["id_item"] != novo for i in repo.mon_list_tipos_atendimento(cenario["sup_crf"]))
+    with pytest.raises(HTTPException) as e:
+        repo.mon_excluir_tipo_atendimento(cenario["sup_crf"], novo)
+    assert e.value.status_code == 403
+    repo.mon_excluir_tipo_atendimento(admin, novo)
+    assert all(i["id_item"] != novo for i in repo.mon_list_tipos_atendimento(admin))

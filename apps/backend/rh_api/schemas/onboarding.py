@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import field_validator, model_validator
 
+from ..services.cv import is_valid_email
 from .common import BaseSchema
 
 
@@ -14,6 +15,11 @@ DEFAULT_TEXTO_ENCERRAMENTO = (
 )
 
 TIPOS_SAIBA_MAIS = ("dica", "link")
+
+# Convite de calendário (Correções.txt): duração da ocorrência, em minutos —
+# usada para calcular o horário de término do convite .ics do ministrante.
+DURACOES_OCORRENCIA_MINUTOS = (10, 20, 30, 60, 90, 120)
+DURACAO_OCORRENCIA_PADRAO_MINUTOS = 60
 
 
 class SaibaMaisItemInput(BaseSchema):
@@ -119,12 +125,41 @@ class OcorrenciaTreinamentoInput(BaseSchema):
     sem_horario_definido: bool = False
     local: str = ""
     ministrante: str = ""
+    # Convite de calendário (Correções.txt): opcional — se informado, o
+    # ministrante recebe um convite .ics por e-mail para esta ocorrência.
+    # Sem e-mail, o treinamento é criado normalmente e nenhum convite é
+    # enviado (aditivo e degradável).
+    ministrante_email: str = ""
+    # Duração da ocorrência (select fechado: 10/20/30min, 1h, 1h30, 2h) —
+    # define o horário de término do convite .ics enviado ao ministrante.
+    duracao_minutos: int = DURACAO_OCORRENCIA_PADRAO_MINUTOS
+    # Correções.txt (rodada 22/set/2026): checkbox explícito "Adicionar
+    # lembrete no calendário do ministrante" — o convite .ics só é enviado se
+    # marcado, mesmo com e-mail preenchido (a notificação in-app, essa sim,
+    # é sempre enviada quando há e-mail).
+    enviar_lembrete_calendario: bool = False
 
     @model_validator(mode="after")
     def validate_data_ou_sem_horario(self) -> "OcorrenciaTreinamentoInput":
         if not self.data_prevista and not self.sem_horario_definido:
             raise ValueError("Informe a data/horário da ocorrência ou marque \"sem horário definido\".")
         return self
+
+    @field_validator("ministrante_email")
+    @classmethod
+    def validate_ministrante_email(cls, value: str) -> str:
+        safe_value = str(value or "").strip()
+        if safe_value and not is_valid_email(safe_value):
+            raise ValueError("E-mail do responsável por aplicar inválido.")
+        return safe_value
+
+    @field_validator("duracao_minutos")
+    @classmethod
+    def validate_duracao_minutos(cls, value: int) -> int:
+        safe_value = int(value or DURACAO_OCORRENCIA_PADRAO_MINUTOS)
+        if safe_value not in DURACOES_OCORRENCIA_MINUTOS:
+            raise ValueError("Duração da ocorrência inválida.")
+        return safe_value
 
 
 class OnboardingTrilhaCreateRequest(BaseSchema):
@@ -135,11 +170,23 @@ class OnboardingTrilhaCreateRequest(BaseSchema):
     id_operacao: int | None = None
     modalidade: str = ""
     local_padrao: str = ""
+    # Correções.txt (rodada 22/set/2026): ministrante padrão (opcional) — ver
+    # "Dados do Treinamento" no assistente de criação/edição.
+    ministrante_padrao: str = ""
+    ministrante_padrao_email: str = ""
     conteudo_json: str | None = None
     itens: list[OnboardingTrilhaItemInput] = []
     texto_encerramento: str = ""
     saiba_mais_treinamento: SaibaMaisTreinamentoInput | None = None
     tipo_obrigatorio: bool = False
+
+    @field_validator("ministrante_padrao_email")
+    @classmethod
+    def validate_ministrante_padrao_email(cls, value: str) -> str:
+        safe_value = str(value or "").strip()
+        if safe_value and not is_valid_email(safe_value):
+            raise ValueError("E-mail do ministrante padrão inválido.")
+        return safe_value
 
     @field_validator("nome")
     @classmethod
@@ -210,6 +257,11 @@ class OnboardingStartRequest(BaseSchema):
     data_prevista: datetime | None = None
     local: str = ""
     ministrante: str = ""
+    # Correções.txt (rodada 22/set/2026): notificação do ministrante e convite
+    # de calendário opcional, iguais aos das ocorrências do wizard.
+    ministrante_email: str = ""
+    duracao_minutos: int = DURACAO_OCORRENCIA_PADRAO_MINUTOS
+    enviar_lembrete_calendario: bool = False
 
     @field_validator("id_registro", "trilha_id")
     @classmethod
@@ -217,6 +269,22 @@ class OnboardingStartRequest(BaseSchema):
         if not value or int(value) <= 0:
             raise ValueError("Identificador inválido.")
         return int(value)
+
+    @field_validator("ministrante_email")
+    @classmethod
+    def validate_ministrante_email(cls, value: str) -> str:
+        safe_value = str(value or "").strip()
+        if safe_value and not is_valid_email(safe_value):
+            raise ValueError("E-mail do responsável por aplicar inválido.")
+        return safe_value
+
+    @field_validator("duracao_minutos")
+    @classmethod
+    def validate_duracao_minutos(cls, value: int) -> int:
+        safe_value = int(value or DURACAO_OCORRENCIA_PADRAO_MINUTOS)
+        if safe_value not in DURACOES_OCORRENCIA_MINUTOS:
+            raise ValueError("Duração da ocorrência inválida.")
+        return safe_value
 
 
 class OnboardingItemToggleRequest(BaseSchema):

@@ -1,10 +1,10 @@
-import { createContext, html, useContext, useEffect, useRef, useState } from '../../infraestrutura-react.js';
+import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
 import { BuscaGlobalTopbar } from '../busca-global.js';
 import { obterTourDaTela } from '../../shared/tour-config.js';
 import { TourGuiado, orientacoesAtivas } from '../tour-guiado.js';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20260921-alertas';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 
@@ -18,6 +18,9 @@ const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
 // evita ter que tocar as ~16 telas que usam PainelRh: PainelRh publica a ação
 // principal, PageIntro lê e desenha no seu próprio slot de ações.
 const AcoesPaginaContext = createContext(null);
+// A busca global saiu da faixa de navegação (para o menu caber em uma linha)
+// e fica centralizada na linha do PageIntro; PainelRh publica os dados dela.
+const BuscaPaginaContext = createContext(null);
 
 function BotaoVoltarGlobal() {
   return html`
@@ -195,7 +198,7 @@ export function BarraLateral({
     {
       tela: 'screen-onedrive-files',
       icone: 'cloud',
-      label: 'Drive-Conecta',
+      label: 'Drive',
       permissao: 'onedrive.visualizar',
     },
   ];
@@ -822,13 +825,6 @@ export function BarraLateral({
       : null}
       </nav>
 
-      <div class="rh-modern-topnav-search" data-tour-id="topbar-search">
-        <${BuscaGlobalTopbar}
-          placeholderBusca=${placeholderBusca}
-          controlador=${controlador}
-        />
-      </div>
-
       <div class="rh-modern-topnav-user">
         <${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />
       </div>
@@ -848,6 +844,7 @@ export function PageIntro({
   // ações do PageIntro, junto de qualquer `actions` que a tela já passe —
   // título/descrição à esquerda, todos os botões à direita.
   const acaoPagina = useContext(AcoesPaginaContext);
+  const buscaPagina = useContext(BuscaPaginaContext);
   const acoesCombinadas = [
     acaoPagina?.acaoPrimaria
       ? html`
@@ -870,14 +867,24 @@ export function PageIntro({
   ].filter(Boolean);
 
   return html`
-    <section class="rh-page-intro" data-tour-id=${tourId || null}>
-      <div>
+    <section class=${`rh-page-intro ${buscaPagina ? 'has-search' : ''}`.trim()} data-tour-id=${tourId || null}>
+      <div class="rh-page-intro-heading">
         ${kicker ? html`<p class="rh-modern-kicker">${kicker}</p>` : null}
         <h2 class="rh-modern-title">${title}</h2>
         ${description
       ? html`<p class="rh-modern-description">${description}</p>`
       : null}
       </div>
+      ${buscaPagina
+      ? html`
+          <div class="rh-page-search" data-tour-id="topbar-search">
+            <${BuscaGlobalTopbar}
+              placeholderBusca=${buscaPagina.placeholderBusca}
+              controlador=${buscaPagina.controlador}
+            />
+          </div>
+        `
+      : null}
       ${acoesCombinadas.length
       ? html`<div class="rh-page-intro-actions">${acoesCombinadas}</div>`
       : null}
@@ -891,16 +898,23 @@ export function SectionCard({
   actions = null,
   className = '',
   tourId = '',
+  collapsible = false,
+  defaultCollapsed = false,
   children,
 }) {
+  const [recolhido, setRecolhido] = useState(collapsible && defaultCollapsed);
   return html`
     <section
-      class=${`rh-section-card ${className}`.trim()}
+      class=${`rh-section-card ${className} ${collapsible ? 'rh-section-card--collapsible' : ''}`.trim()}
       data-tour-id=${tourId || null}
     >
-      ${title || description || actions
+      ${title || description || actions || collapsible
       ? html`
-            <header class="rh-section-card-header">
+            <header
+              class="rh-section-card-header"
+              onClick=${collapsible ? () => setRecolhido((anterior) => !anterior) : null}
+              style=${collapsible ? { cursor: 'pointer' } : null}
+            >
               ${title || description
         ? html`
                     <div>
@@ -912,10 +926,25 @@ export function SectionCard({
                   `
         : null}
               ${actions}
+              ${collapsible
+        ? html`
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm rh-section-card-toggle"
+                      title=${recolhido ? 'Expandir' : 'Recolher'}
+                      onClick=${(event) => {
+            event.stopPropagation();
+            setRecolhido((anterior) => !anterior);
+          }}
+                    >
+                      <span class="material-symbols-outlined">${IconeSvg(recolhido ? 'expand_more' : 'expand_less')}</span>
+                    </button>
+                  `
+        : null}
             </header>
           `
       : null}
-      ${children}
+      ${collapsible && recolhido ? null : children}
     </section>
   `;
 }
@@ -1071,17 +1100,16 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
       ? html`<img src=${avatar} alt="" />`
       : html`<span>${obterIniciaisUsuario(nome)}</span>`}
         </span>
-        <span class="c24-user-copy">
-          <strong>${nome}</strong>
-          <small>${perfil}</small>
-        </span>
-        <span class="material-symbols-outlined c24-user-chevron">${IconeSvg(aberto ? 'expand_less' : 'expand_more')}</span>
         ${notificacoesNaoLidas.length ? html`<i class="c24-user-menu-badge" aria-hidden="true"></i>` : null}
       </button>
 
       ${aberto
       ? html`
             <div class="c24-user-dropdown" role="menu">
+              <div class="c24-user-dropdown-identity">
+                <strong>${nome}</strong>
+                <small>${perfil}</small>
+              </div>
               <button
                 type="button"
                 role="menuitem"
@@ -1275,6 +1303,20 @@ export function PainelRh({
       acoesTopo: acoesTopo || null,
     }
     : null;
+  // Correções.txt (21/set/2026): o Operador não tem barra de pesquisa global.
+  const semBusca = controlador?.estado?.perfilUsuario === 'operador';
+  const buscaPaginaContexto = useMemo(
+    () => (semBusca ? null : { placeholderBusca, controlador }),
+    [placeholderBusca, controlador, semBusca],
+  );
+  // Telas sem PageIntro não têm a linha onde a busca é centralizada: nelas a
+  // busca continua acessível numa linha própria acima do conteúdo.
+  const paginaRef = useRef(null);
+  const [semIntro, setSemIntro] = useState(false);
+  useEffect(() => {
+    const tem = Boolean(paginaRef.current?.querySelector('.rh-page-intro'));
+    setSemIntro((atual) => (atual === !tem ? atual : !tem));
+  });
 
   return html`
     <section class="active screen" id=${screenId}>
@@ -1291,10 +1333,19 @@ export function PainelRh({
         />
 
         <div class="rh-modern-main">
-          <main class="rh-modern-page">
-            <${AcoesPaginaContext.Provider} value=${acaoPaginaContexto}>
-              ${children}
-            </${AcoesPaginaContext.Provider}>
+          <main class="rh-modern-page" ref=${paginaRef}>
+            ${semIntro && !semBusca
+      ? html`
+                  <div class="rh-page-search rh-page-search--solo" data-tour-id="topbar-search">
+                    <${BuscaGlobalTopbar} placeholderBusca=${placeholderBusca} controlador=${controlador} />
+                  </div>
+                `
+      : null}
+            <${BuscaPaginaContext.Provider} value=${buscaPaginaContexto}>
+              <${AcoesPaginaContext.Provider} value=${acaoPaginaContexto}>
+                ${children}
+              </${AcoesPaginaContext.Provider}>
+            </${BuscaPaginaContext.Provider}>
             ${tour?.steps?.length && orientacoesAtivas()
       ? html`
                   <${TourGuiado}

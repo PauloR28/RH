@@ -94,6 +94,19 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
   const blocosStatus = useMemo(() => Object.fromEntries((previa?.blocos || []).map((b) => [b.id, b])), [previa]);
 
   const atualizar = (campo, valor) => setDados((atual) => ({ ...atual, [campo]: valor }));
+  // Tipos de atendimento pertencem a um canal (id_item_canal); os sem canal valem para todos.
+  const canalSelecionado = canais.find((c) => c.valor === dados.canal);
+  const tiposDisponiveis = tipos
+    .filter((t) => !t.id_item_canal || !canalSelecionado || t.id_item_canal === canalSelecionado.id_item)
+    .filter((t, i, lista) => lista.findIndex((o) => o.valor === t.valor) === i);
+  const trocarCanal = (valor) => {
+    const canal = canais.find((c) => c.valor === valor);
+    setDados((atual) => {
+      const tipoAtual = tipos.find((t) => t.valor === atual.tipo_atendimento);
+      const mantem = !tipoAtual || !canal || !tipoAtual.id_item_canal || tipos.some((t) => t.valor === atual.tipo_atendimento && (!t.id_item_canal || t.id_item_canal === canal.id_item));
+      return { ...atual, canal: valor, tipo_atendimento: mantem ? atual.tipo_atendimento : '' };
+    });
+  };
   const responder = (idCriterio, valor) =>
     setDados((atual) => ({ ...atual, respostas: { ...atual.respostas, [idCriterio]: valor } }));
   const notaPilar = (tipo, indicador, valor) =>
@@ -188,7 +201,7 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
               <input class="form-control" readOnly value=${operadorSelecionado?.equipe_nome || (dados.id_operador ? 'Sem equipe' : '')} />
             </label>
             <label>Canal de atendimento
-              <select class="form-select" value=${dados.canal} onChange=${(e) => atualizar('canal', e.target.value)}>
+              <select class="form-select" value=${dados.canal} onChange=${(e) => trocarCanal(e.target.value)}>
                 <option value="">Selecione…</option>
                 ${canais.map((c) => html`<option key=${c.id_item} value=${c.valor}>${c.valor}</option>`)}
               </select>
@@ -196,7 +209,7 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
             <label>Tipo de atendimento
               <select class="form-select" value=${dados.tipo_atendimento} onChange=${(e) => atualizar('tipo_atendimento', e.target.value)}>
                 <option value="">Selecione…</option>
-                ${tipos.map((c) => html`<option key=${c.id_item} value=${c.valor}>${c.valor}</option>`)}
+                ${tiposDisponiveis.map((c) => html`<option key=${c.id_item} value=${c.valor}>${c.valor}</option>`)}
               </select>
             </label>
             <label>Data do contato

@@ -1933,9 +1933,9 @@ class GeneratedExamRepositoryMixin:
         stage_key = normalize_compare_text(data.get("etapa_chave"))
         question_index = data.get("questao_indice")
         if not isinstance(answers, list):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Respostas invÃ¡lidas.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Respostas inválidas.")
         if not stage_key or question_index is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa invÃ¡lida para conclusÃ£o.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa inválida para conclusão.")
 
         conn = self._connect()
         try:
@@ -1943,20 +1943,20 @@ class GeneratedExamRepositoryMixin:
             ensure_conecta_exams_tables(cursor)
             row = self._get_exam_row_by_token(cursor, data.get("token"))
             if normalize_text(row.get("status")) in {EXAM_STATUS_FINISHED, EXAM_STATUS_CORRECTED, EXAM_STATUS_PENDING_MANUAL}:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Prova jÃ¡ finalizada.")
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Prova já finalizada.")
             questions = self._apply_question_shuffle(
                 safe_json_loads(row.get("questoes_json"), []), row
             )
             indices = self._public_stage_indices(questions, stage_key)
             if not indices:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa nÃ£o encontrada.")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa não encontrada.")
             if int(question_index) != int(indices[-1]):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A etapa sÃ³ pode ser concluÃ­da na Ãºltima questÃ£o.")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A etapa só pode ser concluída na última questão.")
 
             config = safe_json_loads(row.get("configuracao_json"), {})
             current_state = self._internal_stage_states(config).get(stage_key) or {}
             if normalize_compare_text(current_state.get("status")) == "interrompida":
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Etapa indisponÃ­vel.")
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Etapa indisponível.")
 
             self._save_answer_rows(cursor, row, answers, questions)
             next_config = self._set_stage_state(
@@ -1994,7 +1994,7 @@ class GeneratedExamRepositoryMixin:
         if not isinstance(answers, list):
             answers = []
         if not stage_key:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa invÃ¡lida para interrupÃ§Ã£o.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa inválida para interrupção.")
 
         conn = self._connect()
         try:
@@ -2007,7 +2007,7 @@ class GeneratedExamRepositoryMixin:
                 safe_json_loads(row.get("questoes_json"), []), row
             )
             if not self._public_stage_indices(questions, stage_key):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa nÃ£o encontrada.")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etapa não encontrada.")
             config = safe_json_loads(row.get("configuracao_json"), {})
             current_state = self._internal_stage_states(config).get(stage_key) or {}
             current_status = normalize_compare_text(current_state.get("status"))

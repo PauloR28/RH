@@ -1,7 +1,7 @@
 import { IconeSvg } from '../../ui/icone.js';
 import { listarMural } from '../../services/api/mural.js';
 
-﻿import {
+import {
   html,
   useEffect,
   useMemo,
@@ -1327,7 +1327,7 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
                               <td class="email-subject-cell" data-label="Assunto">
                                 <div>
                                   ${!item.lido
-                    ? html`
+                ? html`
                                         <button
                                           type="button"
                                           class="email-unread-dot"
@@ -1336,11 +1336,11 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
                                           onClick=${(event) => marcarComoLidoSemAbrir(item, event)}
                                         ></button>
                                       `
-                    : null}
+                : null}
                                   ${item.assunto || 'Sem assunto'}
                                   ${item.origem === 'Upload manual'
-                    ? html`<span class="rh-chip email-origin-chip">Manual</span>`
-                    : null}
+                ? html`<span class="rh-chip email-origin-chip">Manual</span>`
+                : null}
                                 </div>
                               </td>
                               ${compacto
@@ -1368,13 +1368,13 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
                           <tr class="email-empty-row">
                             <td class="text-center text-muted py-4" colSpan=${compacto ? 4 : 8}>
                               ${carregando
-                                ? html`
+              ? html`
                                     <${LoadingState}
                                       titulo="Carregando currículos recebidos"
                                       descricao="Buscando e-mails e anexos da caixa monitorada."
                                     />
                                   `
-                                : html`
+              : html`
                                     <span class="material-symbols-outlined">${IconeSvg('inbox')}</span>
                                     <span>Nenhum currículo recebido por e-mail para listar.</span>
                                   `}
@@ -1570,14 +1570,14 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
                     <label class="form-label">Experiência profissional</label>
                     <div class="rh-details-card-stack">
                       ${detalheEmail.campos_formulario.experiencias.map(
-                        (experiencia, indice) => html`
+        (experiencia, indice) => html`
                           <div class="c24-card" key=${indice}>
                             <strong>${[experiencia.cargo, experiencia.empresa].filter(Boolean).join(' — ') || 'Experiência'}</strong>
                             ${experiencia.periodo ? html`<div><small>${experiencia.periodo}</small></div>` : null}
                             ${experiencia.descricao ? html`<div>${experiencia.descricao}</div>` : null}
                           </div>
                         `,
-                      )}
+      )}
                     </div>
                   </div>
                 `
@@ -1588,13 +1588,13 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
                     <label class="form-label">Formação acadêmica</label>
                     <div class="rh-details-card-stack">
                       ${detalheEmail.campos_formulario.formacao.map(
-                        (formacao, indice) => html`
+        (formacao, indice) => html`
                           <div class="c24-card" key=${indice}>
                             <strong>${[formacao.curso, formacao.instituicao].filter(Boolean).join(' — ') || 'Formação'}</strong>
                             <div><small>${[formacao.nivel, formacao.periodo, formacao.status].filter(Boolean).join(' · ')}</small></div>
                           </div>
                         `,
-                      )}
+      )}
                     </div>
                   </div>
                 `
@@ -1697,15 +1697,15 @@ export function TelaLogin({ controlador }) {
       <div class="rh-login-page">
         <div class="rh-login-hero" data-tour-id="login-hero">
           <div class="rh-login-hero-badge">Conecta</div>
-          <h1 class="rh-login-hero-title">Plataforma de provas, processos e análise.</h1>
+          <h1 class="rh-login-hero-title">Uma plataforma para RH e operação.</h1>
           <p class="rh-login-hero-text">
-            Um fluxo único para aplicação de provas, acompanhamento de candidatos,
-            banco de talentos e análise operacional.
+            Provas, processos seletivos, treinamentos e monitoria de qualidade em um fluxo
+            único — do recrutamento ao dia a dia operacional.
           </p>
           <div class="rh-login-hero-points">
-            <span>Histórico consolidado</span>
             <span>Processos seletivos</span>
-            <span>Análise de candidatos</span>
+            <span>Treinamentos</span>
+            <span>Monitoria de qualidade</span>
           </div>
         </div>
 
@@ -2137,7 +2137,7 @@ export function TelaInicio({ controlador }) {
             <span>Olá, ${nomeUsuarioLogado}!</span>
           </div>
         `}
-        description="Panorama geral do recrutamento hoje."
+        description=""
         actions=${html`
           <span title="Em breve">
             <button
@@ -2276,18 +2276,18 @@ export function TelaInicio({ controlador }) {
             className="home-activity-card compact-dashboard-card"
           >
             ${notificacoesDia.length
-      ? html`
+          ? html`
                   <ul class="home-activity-list">
                     ${notificacoesDia.map(
-        (item, indice) => html`
+            (item, indice) => html`
                         <li class=${`home-activity-item ${item.variant || ''}`} key=${`${item.icon}-${indice}`}>
                           ${item.text}
                         </li>
                       `,
-      )}
+          )}
                   </ul>
                 `
-      : html`
+          : html`
                   <div class="home-empty-state">
                     <span class="material-symbols-outlined">${IconeSvg('history')}</span>
                     <h3>Nenhuma movimentação por aqui</h3>
@@ -2300,7 +2300,7 @@ export function TelaInicio({ controlador }) {
             title="Mural"
             className="home-mural-card compact-dashboard-card"
             actions=${muralRecente.length
-              ? html`
+          ? html`
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm"
@@ -2309,13 +2309,13 @@ export function TelaInicio({ controlador }) {
                     Ver todos
                   </button>
                 `
-              : null}
+          : null}
           >
             ${muralRecente.length
-              ? html`
+          ? html`
                   <div class="mural-home-preview">
                     ${muralRecente.map(
-                      (publicacao) => html`
+            (publicacao) => html`
                         <button
                           key=${publicacao.id_publicacao}
                           type="button"
@@ -2326,10 +2326,10 @@ export function TelaInicio({ controlador }) {
                           <span>${publicacao.categoria || 'Aviso'} · ${formatarDataHora(publicacao.publicado_em || publicacao.criado_em)}</span>
                         </button>
                       `,
-                    )}
+          )}
                   </div>
                 `
-              : html`
+          : html`
                   <div class="home-empty-state">
                     <span class="material-symbols-outlined">${IconeSvg('article')}</span>
                     <h3>Nenhuma publicação ainda</h3>
@@ -2345,10 +2345,10 @@ export function TelaInicio({ controlador }) {
             className="processes-today-card compact-dashboard-card"
           >
             ${entrevistasHoje.length
-      ? html`
+          ? html`
                   <div class="processes-today-list">
                     ${entrevistasHoje.slice(0, 5).map(
-        (item) => html`
+            (item) => html`
                         <article class="processes-today-item" key=${`${item.id_entrevista || item.id_slot || item.nome_candidato}-${item.data_entrevista}`}>
                           <span class="material-symbols-outlined">${IconeSvg('event_available')}</span>
                           <div>
@@ -2360,10 +2360,10 @@ export function TelaInicio({ controlador }) {
                           </span>
                         </article>
                       `,
-      )}
+          )}
                   </div>
                 `
-      : html`
+          : html`
                   <div class="home-empty-state">
                     <span class="material-symbols-outlined">${IconeSvg('calendar_month')}</span>
                     <h3>Nenhuma entrevista hoje</h3>
@@ -2377,10 +2377,10 @@ export function TelaInicio({ controlador }) {
             className="process-progress-card compact-dashboard-card"
           >
             ${processosAndamento.length
-      ? html`
+          ? html`
                   <div class="process-progress-list active-process-list">
                     ${processosAndamento.map(
-        (item) => html`
+            (item) => html`
                         <article class="process-progress-item active-process-card" key=${item.id}>
                           <div class="active-process-info">
                             <strong>${item.nome}</strong>
@@ -2403,10 +2403,10 @@ export function TelaInicio({ controlador }) {
                           </div>
                         </article>
                       `,
-      )}
+          )}
                   </div>
                 `
-      : html`
+          : html`
                   <${EmptyState}
                     title="Nenhum processo em andamento"
                     text="Os processos abertos aparecerão aqui assim que forem cadastrados."
@@ -2429,25 +2429,25 @@ export function TelaInicio({ controlador }) {
             `}
           >
             ${recentes.length
-        ? html`
+          ? html`
                     <div class="rh-recent-grid">
                       ${recentesPaginados.itens.map(
-          (item) => html`
+            (item) => html`
                           <button
                             key=${item.id_teste}
                             type="button"
                             class="rh-recent-card"
                             onClick=${async () =>
-              setDetalheAberto(
-                await carregarDetalhesProva(item.id_teste),
-              )}
+                setDetalheAberto(
+                  await carregarDetalhesProva(item.id_teste),
+                )}
                           >
                             <div class="rh-recent-avatar-wrap">
                               <span class="rh-recent-avatar">
                                 ${String(item.nome_candidato || 'T')
-              .trim()
-              .slice(0, 1)
-              .toUpperCase()}
+                .trim()
+                .slice(0, 1)
+                .toUpperCase()}
                               </span>
                             </div>
                             <div class="rh-recent-card-body">
@@ -2458,18 +2458,18 @@ export function TelaInicio({ controlador }) {
                             <span class="material-symbols-outlined">${IconeSvg('arrow_forward')}</span>
                           </button>
                         `,
-        )}
+          )}
                     </div>
                     <${PaginacaoCompacta}
                       paginacao=${{ ...recentesPaginados, tamanhoPagina: 3 }}
                       onChange=${setPaginaRecentes}
                       label=${`Mostrando ${obterIntervaloPaginacao({
-          ...recentesPaginados,
-          tamanhoPagina: 3,
-        })} de ${recentesPaginados.totalItens}`}
+            ...recentesPaginados,
+            tamanhoPagina: 3,
+          })} de ${recentesPaginados.totalItens}`}
                     />
                   `
-        : html`
+          : html`
                     <${EmptyState}
                       title="Nenhum registro salvo"
                       text="Assim que uma prova for concluída e salva, ela aparecerá aqui."
@@ -2641,7 +2641,7 @@ export function TelaCaixaEmail({ controlador }) {
         actions=${html`
           <div class="d-flex gap-2">
             ${podeAdicionarCvManual
-              ? html`
+        ? html`
                   <button type="button" class="btn btn-outline-primary" onClick=${() => setModalCvManualAberto(true)}>
                     <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('upload_file')}</span> Adicionar currículo manualmente
                   </button>
@@ -2649,14 +2649,14 @@ export function TelaCaixaEmail({ controlador }) {
                     <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('person_add')}</span> Criar currículo
                   </button>
                 `
-              : null}
+        : null}
             ${podeComporEmail
-              ? html`
+        ? html`
                   <button type="button" class="btn btn-primary" onClick=${() => setModalComporAberto(true)}>
                     <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit_note')}</span> Compor e-mail
                   </button>
                 `
-              : null}
+        : null}
           </div>
         `}
       />
@@ -2668,17 +2668,17 @@ export function TelaCaixaEmail({ controlador }) {
       />
 
       ${podeComporEmail
-        ? html`
+      ? html`
             <${ModalComporEmail}
               aberto=${modalComporAberto}
               controlador=${controlador}
               onClose=${() => setModalComporAberto(false)}
             />
           `
-        : null}
+      : null}
 
       ${podeAdicionarCvManual
-        ? html`
+      ? html`
             <${ModalPadrao}
               aberto=${modalCvManualAberto}
               titulo="Adicionar currículo manualmente"
@@ -2722,10 +2722,10 @@ export function TelaCaixaEmail({ controlador }) {
               </footer>
             </${ModalPadrao}>
           `
-        : null}
+      : null}
 
       ${podeAdicionarCvManual
-        ? html`
+      ? html`
             <${ModalPadrao}
               aberto=${modalCriarCurriculoAberto}
               titulo="Criar currículo"
@@ -2833,10 +2833,10 @@ export function TelaCaixaEmail({ controlador }) {
                   </div>
 
                   ${formCurriculoManual.experiencia_ativa
-                    ? html`
+          ? html`
                         <div class="rh-details-body">
                           ${formCurriculoManual.experiencias.map(
-                            (experiencia, indice) => html`
+            (experiencia, indice) => html`
                               <div class="c24-card settings-ambiente-section" key=${indice}>
                                 <div class="settings-password-grid">
                                   <label class="settings-name-field">
@@ -2846,7 +2846,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${experiencia.empresa}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarExperienciaCurriculoManual(indice, 'empresa', event.target.value)}
+                atualizarExperienciaCurriculoManual(indice, 'empresa', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2856,7 +2856,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${experiencia.cargo}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarExperienciaCurriculoManual(indice, 'cargo', event.target.value)}
+                atualizarExperienciaCurriculoManual(indice, 'cargo', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2867,7 +2867,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${experiencia.periodo}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarExperienciaCurriculoManual(indice, 'periodo', event.target.value)}
+                atualizarExperienciaCurriculoManual(indice, 'periodo', event.target.value)}
                                     />
                                   </label>
                                 </div>
@@ -2879,7 +2879,7 @@ export function TelaCaixaEmail({ controlador }) {
                                     value=${experiencia.descricao}
                                     disabled=${criandoCurriculoManual}
                                     onInput=${(event) =>
-                                      atualizarExperienciaCurriculoManual(indice, 'descricao', event.target.value)}
+                atualizarExperienciaCurriculoManual(indice, 'descricao', event.target.value)}
                                   ></textarea>
                                 </label>
                                 <button
@@ -2892,7 +2892,7 @@ export function TelaCaixaEmail({ controlador }) {
                                 </button>
                               </div>
                             `,
-                          )}
+          )}
                           <button
                             type="button"
                             class="btn btn-outline-primary btn-sm"
@@ -2903,7 +2903,7 @@ export function TelaCaixaEmail({ controlador }) {
                           </button>
                         </div>
                       `
-                    : null}
+          : null}
                 </div>
 
                 <div class="settings-ambiente-section">
@@ -2924,10 +2924,10 @@ export function TelaCaixaEmail({ controlador }) {
                   </div>
 
                   ${formCurriculoManual.formacao_ativa
-                    ? html`
+          ? html`
                         <div class="rh-details-body">
                           ${formCurriculoManual.formacao.map(
-                            (formacao, indice) => html`
+            (formacao, indice) => html`
                               <div class="c24-card settings-ambiente-section" key=${indice}>
                                 <div class="settings-password-grid">
                                   <label class="settings-name-field">
@@ -2937,7 +2937,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${formacao.instituicao}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarFormacaoCurriculoManual(indice, 'instituicao', event.target.value)}
+                atualizarFormacaoCurriculoManual(indice, 'instituicao', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2947,7 +2947,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${formacao.curso}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarFormacaoCurriculoManual(indice, 'curso', event.target.value)}
+                atualizarFormacaoCurriculoManual(indice, 'curso', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2958,7 +2958,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${formacao.nivel}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarFormacaoCurriculoManual(indice, 'nivel', event.target.value)}
+                atualizarFormacaoCurriculoManual(indice, 'nivel', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2969,7 +2969,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${formacao.periodo}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarFormacaoCurriculoManual(indice, 'periodo', event.target.value)}
+                atualizarFormacaoCurriculoManual(indice, 'periodo', event.target.value)}
                                     />
                                   </label>
                                   <label class="settings-name-field">
@@ -2980,7 +2980,7 @@ export function TelaCaixaEmail({ controlador }) {
                                       value=${formacao.status}
                                       disabled=${criandoCurriculoManual}
                                       onInput=${(event) =>
-                                        atualizarFormacaoCurriculoManual(indice, 'status', event.target.value)}
+                atualizarFormacaoCurriculoManual(indice, 'status', event.target.value)}
                                     />
                                   </label>
                                 </div>
@@ -2994,7 +2994,7 @@ export function TelaCaixaEmail({ controlador }) {
                                 </button>
                               </div>
                             `,
-                          )}
+          )}
                           <button
                             type="button"
                             class="btn btn-outline-primary btn-sm"
@@ -3005,7 +3005,7 @@ export function TelaCaixaEmail({ controlador }) {
                           </button>
                         </div>
                       `
-                    : null}
+          : null}
                 </div>
               </div>
               <footer class="rh-modal-footer">
@@ -3030,7 +3030,7 @@ export function TelaCaixaEmail({ controlador }) {
               </footer>
             </${ModalPadrao}>
           `
-        : null}
+      : null}
     </${PainelRh}>
   `;
 }
@@ -4242,18 +4242,18 @@ export function TelaCriarProcesso({ controlador }) {
                                   <span>Tipo de atendimento</span>
                                   <select multiple value=${formulario.tiposAtendimento} onChange=${(event) => atualizarCampo('tiposAtendimento', lerValoresMultiselectProcesso(event))}>
                                     ${[...TIPOS_ATENDIMENTO_PERSONALIZACAO, OPCAO_OUTRO_PROCESSO].map(
-                    (opcao) => html`<option key=${opcao} value=${opcao} selected=${formulario.tiposAtendimento.includes(opcao)}>${opcao}</option>`,
-                  )}
+                (opcao) => html`<option key=${opcao} value=${opcao} selected=${formulario.tiposAtendimento.includes(opcao)}>${opcao}</option>`,
+              )}
                                   </select>
                                 </label>
                                 ${formulario.tiposAtendimento.includes(OPCAO_OUTRO_PROCESSO)
-                    ? html`
+                  ? html`
                                       <label class="process-create-field">
                                         <span>Outro tipo de atendimento</span>
                                         <input value=${formulario.tipoAtendimentoOutro} onInput=${(event) => atualizarCampo('tipoAtendimentoOutro', event.target.value)} />
                                       </label>
                                     `
-                    : null}
+                  : null}
                               `
               : null}
                             <label class="process-create-field">
@@ -4301,29 +4301,29 @@ export function TelaCriarProcesso({ controlador }) {
                               </span>
                             </label>
                             ${!formulario.manterNivelPadraoEtapas
-                ? html`
+              ? html`
                                 <div class="process-create-field is-wide process-stage-levels">
                                   <span>Nível por etapa</span>
                                   <div class="process-stage-level-grid">
                                     ${ETAPAS_PERSONALIZADAS_PROCESSO
-                    .filter((etapaOpcao) => etapasSelecionadasPersonalizacao.includes(etapaOpcao.key))
-                    .map(
-                      (etapaOpcao) => html`
+                  .filter((etapaOpcao) => etapasSelecionadasPersonalizacao.includes(etapaOpcao.key))
+                  .map(
+                    (etapaOpcao) => html`
                                         <label class="process-create-field" key=${`nivel-${etapaOpcao.key}`}>
                                           <span>${etapaOpcao.label}</span>
                                           <select value=${formulario.niveisEtapas?.[etapaOpcao.key] || ''} onChange=${(event) => atualizarNivelEtapaPersonalizada(etapaOpcao.key, event.target.value)}>
                                             <option value="">Selecione...</option>
                                             ${opcoesNiveisProva.map(
-                        (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
-                      )}
+                      (opcao) => html`<option key=${opcao.value} value=${opcao.value}>${opcao.label}</option>`,
+                    )}
                                           </select>
                                         </label>
                                       `,
-                    )}
+                  )}
                                   </div>
                                 </div>
                               `
-                : null}
+              : null}
                           </div>
                         `
           : null}
@@ -4340,11 +4340,11 @@ export function TelaCriarProcesso({ controlador }) {
                     </p>
                     <div class="row g-3">
                       ${[
-                        { chave: 'disc', label: 'Teste DISC', descricao: 'Perfil comportamental D-I-S-C.' },
-                        { chave: 'fitCultural', label: 'Fit Cultural', descricao: 'Aderência aos valores da empresa.' },
-                        { chave: 'raciocinioLogico', label: 'Raciocínio Lógico e Numérico', descricao: 'Teste de raciocínio lógico e numérico.' },
-                      ].map(
-                        (teste) => html`
+          { chave: 'disc', label: 'Teste DISC', descricao: 'Perfil comportamental D-I-S-C.' },
+          { chave: 'fitCultural', label: 'Fit Cultural', descricao: 'Aderência aos valores da empresa.' },
+          { chave: 'raciocinioLogico', label: 'Raciocínio Lógico e Numérico', descricao: 'Teste de raciocínio lógico e numérico.' },
+        ].map(
+          (teste) => html`
                           <div class="col-md-4" key=${teste.chave}>
                             <div class="form-check form-switch pt-2">
                               <input
@@ -4353,12 +4353,12 @@ export function TelaCriarProcesso({ controlador }) {
                                 type="checkbox"
                                 checked=${Boolean(formulario.testesComplementares?.[teste.chave])}
                                 onChange=${(event) => setFormulario({
-                                  ...formulario,
-                                  testesComplementares: {
-                                    ...formulario.testesComplementares,
-                                    [teste.chave]: event.target.checked,
-                                  },
-                                })}
+            ...formulario,
+            testesComplementares: {
+              ...formulario.testesComplementares,
+              [teste.chave]: event.target.checked,
+            },
+          })}
                               />
                               <label class="form-check-label" for=${`teste-complementar-${teste.chave}`}>
                                 <strong>${teste.label}</strong>
@@ -4367,7 +4367,7 @@ export function TelaCriarProcesso({ controlador }) {
                             </div>
                           </div>
                         `,
-                      )}
+        )}
                     </div>
                   </section>
                 `
@@ -4489,13 +4489,13 @@ export function TelaCriarProcesso({ controlador }) {
                         </select>
                       </label>
                       ${formulario.tipoContratacao === 'Outro'
-        ? html`
+          ? html`
                             <label>
                               <span>Qual tipo de contratação?</span>
                               <input class="form-control" value=${formulario.tipoContratacaoOutro} onInput=${(event) => setFormulario({ ...formulario, tipoContratacaoOutro: event.target.value })} />
                             </label>
                           `
-        : null}
+          : null}
                       <label>
                         <span>Perfil e modelo de trabalho</span>
                         <select class="form-select" value=${formulario.modeloTrabalho} onChange=${(event) => setFormulario({ ...formulario, modeloTrabalho: event.target.value })}>
@@ -4504,36 +4504,36 @@ export function TelaCriarProcesso({ controlador }) {
                         </select>
                       </label>
                       ${formulario.modeloTrabalho === 'hibrido'
-        ? html`
+          ? html`
                             <label>
                               <span>Escala do híbrido</span>
                               <input class="form-control" placeholder="Ex.: 3 dias presenciais na Unidade Barra Olímpica / 3 dias Home Office" value=${formulario.hibridoEscala} onInput=${(event) => setFormulario({ ...formulario, hibridoEscala: event.target.value })} />
                             </label>
                           `
-        : null}
+          : null}
                       <label>
                         <span>Jornada de trabalho</span>
                         <select class="form-select" value=${formulario.jornadaTrabalho} onChange=${(event) => {
-        const valor = event.target.value;
-        setFormulario({ ...formulario, jornadaTrabalho: valor });
-        if (valor === 'outro') setModalJornadaOutroAberto(true);
-      }}>
+          const valor = event.target.value;
+          setFormulario({ ...formulario, jornadaTrabalho: valor });
+          if (valor === 'outro') setModalJornadaOutroAberto(true);
+        }}>
                           <option value="">Selecione</option>
                           ${JORNADAS_TRABALHO_PROCESSO.map((item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`)}
                         </select>
                       </label>
                       ${formulario.jornadaTrabalho === 'outro'
-        ? html`
+          ? html`
                             <label>
                               <span>Jornada personalizada</span>
                               <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setModalJornadaOutroAberto(true)}>
                                 ${formulario.jornadaOutroDetalhe.dias.length
-            ? `${formulario.jornadaOutroDetalhe.dias.join(', ')} · ${formulario.jornadaOutroDetalhe.horaInicio || '--:--'} às ${formulario.jornadaOutroDetalhe.horaFim || '--:--'}`
-            : 'Configurar jornada'}
+              ? `${formulario.jornadaOutroDetalhe.dias.join(', ')} · ${formulario.jornadaOutroDetalhe.horaInicio || '--:--'} às ${formulario.jornadaOutroDetalhe.horaFim || '--:--'}`
+              : 'Configurar jornada'}
                               </button>
                             </label>
                           `
-        : null}
+          : null}
                       <label>
                         <span>Trabalho com escala</span>
                         <select class="form-select" value=${formulario.trabalhoEscala} onChange=${(event) => setFormulario({ ...formulario, trabalhoEscala: event.target.value })}>
@@ -4557,13 +4557,13 @@ export function TelaCriarProcesso({ controlador }) {
                         </select>
                       </label>
                       ${formulario.escolaridadeMinima === 'superior'
-        ? html`
+          ? html`
                             <label>
                               <span>Quais cursos?</span>
                               <input class="form-control" placeholder="Separados por vírgula" value=${formulario.cursosSuperior} onInput=${(event) => setFormulario({ ...formulario, cursosSuperior: event.target.value })} />
                             </label>
                           `
-        : null}
+          : null}
                       <label class="process-create-field is-wide">
                         <span>Experiência prévia exigida</span>
                         <select class="form-select" value=${formulario.experienciaPrevia} onChange=${(event) => setFormulario({ ...formulario, experienciaPrevia: event.target.value })}>
@@ -4572,7 +4572,7 @@ export function TelaCriarProcesso({ controlador }) {
                         </select>
                       </label>
                       ${formulario.experienciaPrevia === 'especificas'
-        ? html`
+          ? html`
                             <div class="process-create-field is-wide">
                               <span>Quais experiências específicas?</span>
                               <div class="d-flex gap-2 mt-2">
@@ -4581,30 +4581,30 @@ export function TelaCriarProcesso({ controlador }) {
                                   value=${novaExperienciaEspecifica}
                                   onInput=${(event) => setNovaExperienciaEspecifica(event.target.value)}
                                   onKeyDown=${(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              adicionarExperienciaEspecifica();
-            }
-          }}
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                adicionarExperienciaEspecifica();
+              }
+            }}
                                 />
                                 <button type="button" class="btn btn-outline-secondary" onClick=${adicionarExperienciaEspecifica}>Adicionar</button>
                               </div>
                               <div class="rh-chip-wrap mt-2">
                                 ${formulario.experienciasEspecificas.map(
-          (item) => html`
+              (item) => html`
                                       <span key=${item} class="rh-chip">
                                         ${item}
                                         <button type="button" class="btn-close btn-close-white ms-1" style=${{ width: '0.5em', height: '0.5em' }} onClick=${() => removerExperienciaEspecifica(item)} aria-label="Remover"></button>
                                       </span>
                                     `,
-        )}
+            )}
                                 ${!formulario.experienciasEspecificas.length
-          ? html`<span class="text-muted small">Nenhuma experiência adicionada ainda.</span>`
-          : null}
+              ? html`<span class="text-muted small">Nenhuma experiência adicionada ainda.</span>`
+              : null}
                               </div>
                             </div>
                           `
-        : null}
+          : null}
                       <label class="process-create-field is-wide">
                         <span>Idioma</span>
                         <select class="form-select" value=${formulario.idioma} onChange=${(event) => setFormulario({ ...formulario, idioma: event.target.value })}>
@@ -4646,13 +4646,13 @@ export function TelaCriarProcesso({ controlador }) {
                         <span style=${{ fontWeight: 600 }}>Dias da semana</span>
                         <div class="d-flex flex-wrap gap-2 mt-2">
                           ${DIAS_SEMANA_JORNADA_PROCESSO.map(
-        (dia) => html`
+            (dia) => html`
                                 <label key=${dia} class="settings-toggle-line">
                                   <input type="checkbox" checked=${formulario.jornadaOutroDetalhe.dias.includes(dia)} onChange=${() => alternarDiaJornadaOutro(dia)} />
                                   <span>${dia}</span>
                                 </label>
                               `,
-      )}
+          )}
                         </div>
                       </div>
                       <div class="process-create-form-grid">
@@ -4686,25 +4686,25 @@ export function TelaCriarProcesso({ controlador }) {
                         <span>Informar o salário na descrição da vaga</span>
                       </label>
                       ${formulario.mostrarSalario
-        ? html`
+          ? html`
                             <label class="process-create-field">
                               <span>Salário</span>
                               <input type="number" min="0" step="0.01" value=${formulario.salario} onInput=${(event) => setFormulario({ ...formulario, salario: event.target.value })} />
                             </label>
                           `
-        : null}
+          : null}
                       <div class="process-create-field is-wide">
                         <span>Benefícios</span>
                         <div class="d-flex flex-wrap gap-3 mt-2">
                           ${formulario.beneficios.map(
-        (beneficio) => html`
+            (beneficio) => html`
                                 <div key=${beneficio.nome} class="d-flex align-items-center gap-2">
                                   <label class="settings-toggle-line" style=${{ minWidth: '0' }}>
                                     <input type="checkbox" checked=${beneficio.selecionado} onChange=${() => alternarBeneficioProcesso(beneficio.nome)} />
                                     <span>${beneficio.nome}</span>
                                   </label>
                                   ${beneficio.selecionado
-            ? html`
+                ? html`
                                         <input
                                           class="form-control form-control-sm"
                                           style=${{ maxWidth: '140px' }}
@@ -4713,10 +4713,10 @@ export function TelaCriarProcesso({ controlador }) {
                                           onInput=${(event) => atualizarValorBeneficioProcesso(beneficio.nome, event.target.value)}
                                         />
                                       `
-            : null}
+                : null}
                                 </div>
                               `,
-      )}
+          )}
                         </div>
                       </div>
                     </div>
@@ -4740,11 +4740,11 @@ export function TelaCriarProcesso({ controlador }) {
                     </button>
                     <div class="rh-chip-wrap">
                       ${trilhasDisponiveis
-        .filter((trilha) => formulario.treinamentosSelecionados.includes(trilha.id_trilha))
-        .map((trilha) => html`<span key=${trilha.id_trilha} class="rh-chip">${trilha.nome}</span>`)}
+          .filter((trilha) => formulario.treinamentosSelecionados.includes(trilha.id_trilha))
+          .map((trilha) => html`<span key=${trilha.id_trilha} class="rh-chip">${trilha.nome}</span>`)}
                       ${!formulario.treinamentosSelecionados.length
-        ? html`<span class="text-muted small">Nenhum treinamento atrelado ainda.</span>`
-        : null}
+          ? html`<span class="text-muted small">Nenhum treinamento atrelado ainda.</span>`
+          : null}
                     </div>
                   </section>
 
@@ -4754,17 +4754,17 @@ export function TelaCriarProcesso({ controlador }) {
                     onClose=${() => setModalTreinamentosAberto(false)}
                   >
                     ${trilhasDisponiveis.length
-        ? html`
+          ? html`
                           <select multiple class="form-select" style=${{ minHeight: '220px' }}
                             value=${formulario.treinamentosSelecionados}
                             onChange=${(event) => {
-        const selecionados = Array.from(event.target.selectedOptions || []).map((opcao) => Number(opcao.value));
-        setFormulario({ ...formulario, treinamentosSelecionados: selecionados });
-      }}>
+              const selecionados = Array.from(event.target.selectedOptions || []).map((opcao) => Number(opcao.value));
+              setFormulario({ ...formulario, treinamentosSelecionados: selecionados });
+            }}>
                             ${trilhasDisponiveis.map((trilha) => html`<option key=${trilha.id_trilha} value=${trilha.id_trilha}>${trilha.nome}</option>`)}
                           </select>
                         `
-        : html`<p class="text-muted small mb-0">Nenhuma trilha de treinamento cadastrada ainda.</p>`}
+          : html`<p class="text-muted small mb-0">Nenhuma trilha de treinamento cadastrada ainda.</p>`}
                     <footer class="rh-modal-footer">
                       <button type="button" class="btn btn-primary" onClick=${() => setModalTreinamentosAberto(false)}>Concluído</button>
                     </footer>
@@ -5205,8 +5205,8 @@ export function TelaBancoTalentos({ controlador }) {
                   </thead>
                   <tbody>
                     ${carregando
-          ? html`<${SkeletonTableRows} colunas=${9} linhas=${6} />`
-          : linhas.length
+        ? html`<${SkeletonTableRows} colunas=${9} linhas=${6} />`
+        : linhas.length
           ? linhas.map(
             (linha) => html`
                             <tr key=${linha.id_banco} class="c24-fade-in">
@@ -5215,7 +5215,7 @@ export function TelaBancoTalentos({ controlador }) {
                                 <div class="small text-muted mt-1">
                                   ${formatarDataHora(linha.data_movimentacao)}
                                   ${linha.expirado
-              ? html`
+                ? html`
                                         <span
                                           class="rh-status-pill is-not-qualified ms-2"
                                           title="Mais de 180 dias no banco de talentos — revise antes de reutilizar."
@@ -5223,7 +5223,7 @@ export function TelaBancoTalentos({ controlador }) {
                                           Expirado
                                         </span>
                                       `
-              : null}
+                : null}
                                 </div>
                               </td>
                               <td>${[linha.cidade, linha.bairro].filter(Boolean).join(' · ') || '-'}</td>
@@ -5233,22 +5233,22 @@ export function TelaBancoTalentos({ controlador }) {
                               </td>
                               <td class="text-end">
                                 ${linha.pontuacao_final
-              ? html`<span class=${`candidate-score-badge num ${obterClasseFaixaNota(linha.pontuacao_final)}`}>${linha.pontuacao_final}</span>`
-              : '-'}
+                ? html`<span class=${`candidate-score-badge num ${obterClasseFaixaNota(linha.pontuacao_final)}`}>${linha.pontuacao_final}</span>`
+                : '-'}
                               </td>
                               <td>
                                 <div class="rh-cell-stack">
                                   <div class="rh-chip-wrap">
                                     ${(linha.habilidades || []).map(
-              (item) => html`
+                  (item) => html`
                                         <span key=${item} class="rh-chip is-skill">${item}</span>
                                       `,
-            )}
+                )}
                                     ${(linha.tags || []).map(
-              (item) => html`
+                  (item) => html`
                                         <span key=${item} class="rh-chip">${item}</span>
                                       `,
-            )}
+                )}
                                   </div>
                                   <small>${linha.origem || '-'}</small>
                                 </div>
@@ -5291,7 +5291,7 @@ export function TelaBancoTalentos({ controlador }) {
                                     Perfil RH
                                   </button>
                                   ${linha.expirado
-      ? html`
+                ? html`
                                         <button
                                           type="button"
                                           class="btn btn-sm btn-outline-primary"
@@ -5301,7 +5301,7 @@ export function TelaBancoTalentos({ controlador }) {
                                           Revalidar
                                         </button>
                                       `
-      : null}
+                : null}
                                   <button
                                     type="button"
                                     class="btn btn-sm btn-outline-danger"
@@ -5575,24 +5575,24 @@ export function TelaAnaliseCandidatos({ controlador }) {
     const configuracao =
       relatorioAtivo === 'processos'
         ? {
-            colunas: COLUNAS_RELATORIO_PROCESSOS,
-            linhas: relatorioProcessosFiltrado.map(montarLinhaProcessoRelatorio),
-            nomeBase: 'relatorio_processos',
-            planilha: 'Processos',
-          }
+          colunas: COLUNAS_RELATORIO_PROCESSOS,
+          linhas: relatorioProcessosFiltrado.map(montarLinhaProcessoRelatorio),
+          nomeBase: 'relatorio_processos',
+          planilha: 'Processos',
+        }
         : relatorioAtivo === 'ranking'
           ? {
-              colunas: COLUNAS_RANKING_ANALITICO,
-              linhas: rankingAnaliticoFiltrado.map(montarLinhaRankingRelatorio),
-              nomeBase: 'ranking_analitico',
-              planilha: 'Ranking',
-            }
+            colunas: COLUNAS_RANKING_ANALITICO,
+            linhas: rankingAnaliticoFiltrado.map(montarLinhaRankingRelatorio),
+            nomeBase: 'ranking_analitico',
+            planilha: 'Ranking',
+          }
           : {
-              colunas: COLUNAS_RELATORIO_CANDIDATOS,
-              linhas: relatorioCandidatosFiltrado,
-              nomeBase: 'relatorio_candidatos',
-              planilha: 'Candidatos',
-            };
+            colunas: COLUNAS_RELATORIO_CANDIDATOS,
+            linhas: relatorioCandidatosFiltrado,
+            nomeBase: 'relatorio_candidatos',
+            planilha: 'Candidatos',
+          };
 
     setExportandoRelatorio(true);
     setErroRelatorio('');
@@ -5872,7 +5872,7 @@ export function TelaAnaliseCandidatos({ controlador }) {
               <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(exportandoRelatorio ? 'hourglass_top' : 'settings')}</span>
             </button>
             ${menuExportacaoAberto
-              ? html`
+        ? html`
                   <div class="reports-export-panel" role="menu" aria-label="Opções de download do relatório">
                     <div class="reports-menu-title">Baixar relatório completo</div>
                     <button
@@ -5897,7 +5897,7 @@ export function TelaAnaliseCandidatos({ controlador }) {
                     </button>
                   </div>
                 `
-              : null}
+        : null}
           </div>
         `}
       />
@@ -5924,10 +5924,10 @@ export function TelaAnaliseCandidatos({ controlador }) {
             <input
               class="form-control"
               placeholder=${relatorioAtivo === 'processos'
-                ? 'Pesquisar processo por nome ou ID'
-                : relatorioAtivo === 'ranking'
-                  ? 'Pesquisar por processo, candidato ou vaga'
-                  : 'Pesquisar por processo, vaga ou candidato'}
+      ? 'Pesquisar processo por nome ou ID'
+      : relatorioAtivo === 'ranking'
+        ? 'Pesquisar por processo, candidato ou vaga'
+        : 'Pesquisar por processo, vaga ou candidato'}
               value=${filtrosRelatorio.processo}
               onInput=${(event) => atualizarFiltroRelatorio('processo', event.target.value)}
             />
@@ -5943,12 +5943,12 @@ export function TelaAnaliseCandidatos({ controlador }) {
               <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('filter_alt')}</span>
               Filtros
               ${filtrosRelatorioAtivos
-                ? html`<span class="reports-filter-count">${filtrosRelatorioAtivos}</span>`
-                : null}
+      ? html`<span class="reports-filter-count">${filtrosRelatorioAtivos}</span>`
+      : null}
             </button>
 
             ${painelFiltrosRelatorioAberto
-              ? html`
+      ? html`
                   <div class="reports-filter-panel" role="dialog" aria-label="Filtros do relatório">
                     <label>
                       <span>Data inicial</span>
@@ -5977,12 +5977,12 @@ export function TelaAnaliseCandidatos({ controlador }) {
                       >
                         <option value="">Todos</option>
                         ${relatorioAtivo === 'processos'
-                          ? html`
+          ? html`
                               <option value="Aberto">Aberto</option>
                               <option value="Encerrado">Encerrado</option>
                               <option value="Cancelado">Cancelado</option>
                             `
-                          : html`
+          : html`
                               <option value="Aprovado">Aprovado</option>
                               <option value="Eliminado">Eliminado/Reprovado</option>
                               <option value="Banco de talentos">Banco de Talentos</option>
@@ -5996,16 +5996,16 @@ export function TelaAnaliseCandidatos({ controlador }) {
                         class="btn btn-primary btn-sm"
                         disabled=${carregandoRelatorio}
                         onClick=${() => {
-                          setPainelFiltrosRelatorioAberto(false);
-                          carregarRelatorios();
-                        }}
+          setPainelFiltrosRelatorioAberto(false);
+          carregarRelatorios();
+        }}
                       >
                         Aplicar
                       </button>
                     </div>
                   </div>
                 `
-              : null}
+      : null}
           </div>
 
           <button
@@ -6021,7 +6021,7 @@ export function TelaAnaliseCandidatos({ controlador }) {
         ${erroRelatorio ? html`<div class="rh-inline-alert reports-alert">${erroRelatorio}</div>` : null}
 
         ${relatorioAtivo === 'processos'
-          ? html`
+      ? html`
               <div class="reports-table-shell">
                 <table class="table align-middle rh-modern-history-table reports-process-table">
                   <thead>
@@ -6040,17 +6040,17 @@ export function TelaAnaliseCandidatos({ controlador }) {
                   </thead>
                   <tbody>
                     ${carregandoRelatorio
-                      ? html`<${TabelaVazia} colunas=${10} texto="Carregando relatórios..." />`
-                      : paginacaoRelatorio.itens.length
-                        ? paginacaoRelatorio.itens.map(
-                            (linha) => {
-                              const idProcesso = obterIdRelatorioProcesso(linha);
-                              const status = obterStatusRelatorioProcesso(linha);
-                              return html`
+          ? html`<${TabelaVazia} colunas=${10} texto="Carregando relatórios..." />`
+          : paginacaoRelatorio.itens.length
+            ? paginacaoRelatorio.itens.map(
+              (linha) => {
+                const idProcesso = obterIdRelatorioProcesso(linha);
+                const status = obterStatusRelatorioProcesso(linha);
+                return html`
                                 <tr key=${`${idProcesso}-${linha.data_abertura}`}>
                                   <td>
                                     ${idProcesso && controlador.possuiPermissao('processos.visualizar')
-                                      ? html`
+                    ? html`
                                           <button
                                             type="button"
                                             class="reports-process-link"
@@ -6059,7 +6059,7 @@ export function TelaAnaliseCandidatos({ controlador }) {
                                             ${idProcesso}
                                           </button>
                                         `
-                                      : html`<span class="reports-process-id">${idProcesso || '-'}</span>`}
+                    : html`<span class="reports-process-id">${idProcesso || '-'}</span>`}
                                   </td>
                                   <td>${obterNomeRelatorioProcesso(linha)}</td>
                                   <td>${formatarDataRelatorio(linha.data_abertura)}</td>
@@ -6076,17 +6076,17 @@ export function TelaAnaliseCandidatos({ controlador }) {
                                   <td class="is-number">${formatarNumeroRelatorio(linha.quantidade_eliminados_reprovados)}</td>
                                 </tr>
                               `;
-                            },
-                          )
-                        : html`<${TabelaVazia} colunas=${10} texto="Nenhum processo no período." />`}
+              },
+            )
+            : html`<${TabelaVazia} colunas=${10} texto="Nenhum processo no período." />`}
                   </tbody>
                 </table>
               </div>
             `
-          : relatorioAtivo === 'ranking'
-            ? html`
+      : relatorioAtivo === 'ranking'
+        ? html`
               ${rankingResumoVisual.comNota.length
-                ? html`
+            ? html`
                     <div class="reports-charts-row">
                       <${SectionCard} title="Comparativo de notas" className="reports-chart-card">
                         <${BarComparisonChart}
@@ -6102,7 +6102,7 @@ export function TelaAnaliseCandidatos({ controlador }) {
                       </${SectionCard}>
                     </div>
                   `
-                : null}
+            : null}
               <div class="reports-table-shell">
                 <table class="table align-middle rh-modern-history-table reports-ranking-table">
                   <thead>
@@ -6119,8 +6119,8 @@ export function TelaAnaliseCandidatos({ controlador }) {
                   </thead>
                   <tbody>
                     ${paginacaoRelatorio.itens.length
-                      ? paginacaoRelatorio.itens.map(
-                          (linha) => html`
+            ? paginacaoRelatorio.itens.map(
+              (linha) => html`
                             <tr key=${linha.id_teste || `${linha.id_processo}-${linha.nome_candidato}`}>
                               <td>${linha.id_processo || '-'}</td>
                               <td>${linha.nome_candidato || '-'}</td>
@@ -6145,13 +6145,13 @@ export function TelaAnaliseCandidatos({ controlador }) {
                               </td>
                             </tr>
                           `,
-                        )
-                      : html`<${TabelaVazia} colunas=${8} texto="Nenhuma análise disponível." />`}
+            )
+            : html`<${TabelaVazia} colunas=${8} texto="Nenhuma análise disponível." />`}
                   </tbody>
                 </table>
               </div>
             `
-            : html`
+        : html`
               <div class="reports-table-shell">
                 <table class="table align-middle rh-modern-history-table reports-candidates-table">
                   <thead>
@@ -6161,10 +6161,10 @@ export function TelaAnaliseCandidatos({ controlador }) {
                   </thead>
                   <tbody>
                     ${carregandoRelatorio
-                      ? html`<${TabelaVazia} colunas=${COLUNAS_RELATORIO_CANDIDATOS.length} texto="Carregando relatórios..." />`
-                      : paginacaoRelatorio.itens.length
-                        ? paginacaoRelatorio.itens.map(
-                            (linha) => html`
+            ? html`<${TabelaVazia} colunas=${COLUNAS_RELATORIO_CANDIDATOS.length} texto="Carregando relatórios..." />`
+            : paginacaoRelatorio.itens.length
+              ? paginacaoRelatorio.itens.map(
+                (linha) => html`
                               <tr key=${`${linha.id_candidato || linha.id_teste}-${linha.processo_relatorio || linha.processo}`}>
                                 <td>${linha.id_candidato || '-'}</td>
                                 <td>${linha.nome || linha.nome_candidato || '-'}</td>
@@ -6203,8 +6203,8 @@ export function TelaAnaliseCandidatos({ controlador }) {
                                 <td>${linha.data_saida || '-'}</td>
                               </tr>
                             `,
-                          )
-                        : html`<${TabelaVazia} colunas=${COLUNAS_RELATORIO_CANDIDATOS.length} texto="Nenhum candidato no período." />`}
+              )
+              : html`<${TabelaVazia} colunas=${COLUNAS_RELATORIO_CANDIDATOS.length} texto="Nenhum candidato no período." />`}
                   </tbody>
                 </table>
               </div>

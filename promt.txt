@@ -1,75 +1,411 @@
-Prompt para Claude Code — Integração Conecta ↔ Intranet (SharePoint/Microsoft Graph)
-Contexto do projeto
+Vertente MONITORIA no Conecta
 
-O Conecta é uma plataforma de recrutamento construída em React (frontend) com backend próprio. O sistema já possui:
+Você é um engenheiro sênior full-stack, nível master, responsável por implementar uma nova vertente no Conecta já em produção. Precisão, completude e zero regressão valem mais que velocidade.
 
-Autenticação de usuários via Microsoft (Client ID e Client Secret já configurados e funcionando para login).
-Uma integração existente com uma intranet do RH, incluindo uso do OneDrive dela.
-Uma aba de configuração de ambiente relacionada a essa intranet, que já existe no sistema mas precisa ser expandida.
+Arquivos de referência (pasta Monitoria/, já anexada):
 
-Antes de qualquer implementação, explore o repositório para entender:
+index.html — formulário atual. Ignore SheetJS e Chart.js embutidos e as fontes em base64 (ruído). O código próprio é o último <script> (~1300 linhas). Leia só ele.
+Tabela_de_Monitorias.xlsx — abas BASE MONITORIAS, FORMULÁRIO (fórmulas), Planilha3 (guia dos blocos e faixas de nota). Será descontinuado como banco.
+Aplicativo de Monitoria.docx — especificação completa (Blocos 01–13).
+Resumo de Regras.docx — resumo das regras. Em conflito com qualquer outro texto, este vence.
+0. PROTOCOLO DE EXECUÇÃO (obrigatório, tem prioridade sobre tudo)
 
-Onde está a aba/tela de configuração de ambiente da intranet hoje (arquivo de frontend e, se existir, model/schema de backend associado).
-Como a autenticação Microsoft atual está implementada (fluxo, biblioteca usada, onde ficam armazenados client_id/secret hoje — variável de ambiente, banco, key vault etc.).
-Como a integração atual com o OneDrive/intranet do RH funciona (para reaproveitar padrões de chamada ao Microsoft Graph, se já existirem).
-A estrutura de rotas de backend e o padrão de autorização por papel de usuário (admin/RH vs colaborador comum) já usado no projeto.
+Este trabalho é grande. O risco real é você resolver metade e abandonar o resto. Estas regras existem para impedir isso e gastar poucos tokens.
 
-Não presuma nomes de arquivos ou pastas — descubra a estrutura real antes de escrever código. Siga os padrões de nomenclatura, estilo de código e organização de pastas já existentes no projeto.
+0.1 Arquivo de estado. Crie MONITORIA_PROGRESSO.md na raiz do projeto. Ele é sua memória. Contém a lista de itens (IDs da seção 9), cada um com [ ], [~] (em andamento) ou [x]. Antes de qualquer trabalho, leia-o. Depois de concluir cada item, marque-o. Se o contexto for reiniciado, retome dele. Não confie na sua memória de conversa.
 
-Objetivo desta tarefa
+0.2 Ordem fixa. Fase A (perguntas) → Fase B (plano) → Fase C (implementação por fases) → Fase D (auditoria final única). Não pule nem inverta.
 
-Implementar a base de um "Mural de publicações" dentro do Conecta, onde admins/RH podem criar publicações (texto, foto) que são gravadas diretamente numa lista do SharePoint da intranet, via Microsoft Graph API — sem necessidade de endpoint público próprio, sem polling, sem sistema de fila.
+0.3 Um item por vez, terminado antes de começar o próximo. Item concluído = código escrito + testado uma vez + marcado [x]. Não deixe itens pela metade para "voltar depois".
 
-Escopo desta etapa: uma intranet configurada por vez, mas a modelagem de dados e o código devem já estar preparados para múltiplos ambientes/intranets no futuro (não é para implementar seleção múltipla ou publicação simultânea em vários destinos agora — só não pode ser algo que exija reescrever tudo quando isso for adicionado).
+0.4 Proibido re-verificar o que está [x]. Não releia, não reteste, não refatore itens concluídos, exceto se um teste posterior falhar por causa deles. É isso que evita gastar o orçamento em checagem e abandonar itens.
 
-Parte 1 — Expandir a aba de configuração de ambiente da intranet
+0.5 Não alterne entre implementar e revisar. Implemente a fase inteira; só então rode os testes da fase, uma vez. Corrija falhas e siga. A revisão ampla acontece uma única vez, na Fase D.
 
-Localize a tela/aba de configuração de ambiente da intranet já existente no Conecta e expanda-a para incluir todos os campos necessários para a conexão com o SharePoint via Microsoft Graph:
+0.6 Economia de tokens.
 
-nome_ambiente (texto, nome amigável, ex: "Intranet RH Central")
-tenant_id (texto)
-client_id (texto) — se o Conecta já tiver um client_id/secret únicos usados para login, permita que este campo seja reaproveitado desse valor OU sobrescrito com um valor específico para este ambiente. Pergunte ao usuário via comentário no código ou levante a dúvida se não estiver claro qual comportamento faz mais sentido dado o que já existe.
-client_secret (texto, sensível — deve ser armazenado de forma criptografada, nunca em texto puro; siga o padrão de segredos já usado no projeto para outras credenciais, se existir; caso não exista, use uma biblioteca de criptografia simétrica padrão e documente a variável de ambiente com a chave de criptografia)
-sharepoint_site_url (texto, ex: "https://empresa.sharepoint.com/sites/RH")
-site_id (texto — pode ser preenchido manualmente ou, idealmente, incluir um botão "Buscar site_id" que chama o Graph (GET /sites/{hostname}:/sites/{caminho}) usando as credenciais já preenchidas no formulário, e auto-preenche o campo)
-list_id ou list_name (texto — mesma lógica: idealmente um botão "Buscar listas disponíveis" que lista as listas do site via Graph e permite selecionar de um dropdown)
-ativo (boolean — permite desativar um ambiente sem excluí-lo)
-status_conexao (calculado/exibido, não editável — resultado do último teste de conexão: sucesso, falha, nunca testado)
+Leia só o necessário. Nunca despeje arquivo grande no contexto; use busca (grep) e leia trechos.
+Não reescreva arquivos inteiros para mudar poucas linhas; edite cirurgicamente.
+Não repita código, planos ou tabelas em suas respostas. Reporte em linhas curtas: ID — feito — arquivo(s).
+Não explique o que é óbvio. Sem preâmbulo, sem resumo do que acabou de fazer além do necessário.
+Reaproveite componentes, hooks, helpers e estilos existentes do Conecta em vez de criar novos.
 
-Adicione um botão "Testar conexão" nesta tela que:
+0.7 Regra de não-regressão (crítica). Nada que já existe e funciona no Conecta pode mudar, exceto o que este documento pede expressamente. Antes de tocar num arquivo existente, confirme que a alteração é exigida por um item da seção 9. Mudanças em código compartilhado devem ser aditivas e retrocompatíveis. Migrações de banco: só criar tabelas/colunas novas, nunca alterar ou remover dados existentes. Se um item exigir mexer em algo existente de forma que possa quebrar outro comportamento, pare e pergunte (Fase A).
 
-Executa o Client Credentials Flow com as credenciais preenchidas.
-Faz uma chamada simples ao Graph (ex: GET /sites/{site_id}) para confirmar que o token funciona e o site é acessível.
-Exibe sucesso ou o erro retornado pela Microsoft de forma legível (ex: traduzir erros comuns como permissão ausente, admin consent pendente, client_secret expirado).
-Atualiza o campo status_conexao.
+0.8 Se travar. Não tente contornar em silêncio. Registre em MONITORIA_PROGRESSO.md (seção BLOQUEIOS), pule para o próximo item independente e me pergunte ao final da fase.
 
-Modele isso como uma nova entidade/tabela caso a aba atual seja apenas de configuração simples (chave-valor) e não suporte múltiplos ambientes ainda. Se a estrutura atual já for uma lista de ambientes, apenas adicione os campos novos ao modelo existente.
+FASE A — PERGUNTAS (antes de escrever qualquer código)
+Explore o repositório do Conecta: stack, autenticação, modelo de perfis/permissões, menu suspenso, tela de login, configurações, zona de risco, tema/cores, envio de e-mail, exportação, estrutura de banco e migrações, e como estão implementadas as vertentes existentes (app, Centro de Treinamentos, Conecta Provas). Use a mesma arquitetura e padrões. Não invente stack.
+Leia os quatro arquivos de referência.
+Faça todas as perguntas necessárias, sem limite de quantidade, sobre lacunas, incoerências, ambiguidades e pedidos abertos demais. Agrupe por tema, numere, e ofereça sua sugestão de resposta padrão em cada uma para eu só confirmar. Repita a rodada quantas vezes precisar. Só avance quando tiver 100% de clareza e eu disser "pode implementar".
 
-Parte 2 — Backend: publicação via Microsoft Graph
+Ponto de partida: as divergências já detectadas na seção 8 e as lacunas na seção 7. Pergunte sobre cada uma. Vá além delas se achar mais.
 
-Implemente no backend:
+1. CONTEXTO E OBJETIVO
 
-Modelo de dados de publicações (publicacoes ou nome equivalente ao padrão do projeto):
-id, titulo, texto, autor_id, status (rascunho / publicado / arquivado), data_publicacao, data_criacao, ambiente_intranet_id (referência ao ambiente configurado na Parte 1), sharepoint_item_id (guarda o ID do item criado no SharePoint, para permitir edição/exclusão futura), foto_url (ou tabela relacionada publicacao_fotos se houver mais de uma foto por publicação).
-Função de autenticação Graph reutilizável: recebe tenant_id, client_id, client_secret como parâmetros (não fixos no código) e retorna um access token via Client Credentials Flow (POST https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token, grant_type=client_credentials, scope=https://graph.microsoft.com/.default). Trate cache de token com expiração para evitar autenticar a cada chamada.
-Função de upload de foto: sobe a imagem para uma biblioteca de documentos do SharePoint (POST /sites/{site-id}/drive/root:/Publicacoes/{nome-arquivo}:/content) e retorna a URL do arquivo.
-Função de criação de item na lista: POST /sites/{site-id}/lists/{list-id}/items com os campos da publicação. Deve buscar as credenciais e IDs do ambiente configurado (Parte 1) em vez de valores fixos.
-Endpoint de publicação (ex: POST /api/publicacoes): recebe os dados da publicação vindos do frontend, salva no banco local com status apropriado, chama a função de upload de foto (se houver) e a função de criação de item na lista, salva o sharepoint_item_id retornado, e trata erros de forma que uma falha na chamada ao Graph não deixe o registro local em estado inconsistente (ex: salvar como "falha_publicacao" e permitir reprocessar).
-Restrinja esse endpoint e os de gestão de publicações (criar/editar/despublicar) ao papel de admin/RH, seguindo o padrão de autorização já usado no projeto.
-Parte 3 — Frontend: tela de mural
+A Monitoria vira uma nova vertente do Conecta, no mesmo nível de App, Centro de Treinamentos e Conecta Provas. O Conecta deixa de ser um sistema só de RH e passa a abrigar outras vertentes da empresa (portal de monitoria agora, WFM no futuro). Implemente tudo o que existe no HTML e nos documentos, integrado ao banco, à autenticação e ao visual do Conecta. O xlsx deixa de existir como banco.
 
-Crie ou adapte a tela de "Mural" dentro do Conecta, visível para admins/RH, com:
+2. PERFIS, ACESSO E ISOLAMENTO POR OPERAÇÃO
 
-Lista das publicações existentes (com status: rascunho, publicado, falha de publicação, arquivado).
-Botão "Nova publicação" abrindo um formulário com: título, texto (editor simples, pode ser rich text se o projeto já tiver algum componente desse tipo), upload de foto, seleção do ambiente de intranet configurado (dropdown vindo da Parte 1 — nesta etapa, normalmente um único ambiente ativo, mas o campo já deve existir para o futuro).
-Botão "Publicar" que chama o endpoint da Parte 2.
-Indicação visual clara de sucesso/falha da publicação no SharePoint (não apenas "salvo no Conecta", mas "publicado na intranet" vs "erro ao publicar na intranet: [motivo]").
-Opção de tentar publicar novamente uma publicação que falhou.
-Requisitos não funcionais
-Nunca logar ou expor client_secret em logs, respostas de API ou no frontend após salvo (mostrar mascarado, ex: ••••••1234, e permitir apenas substituição, não visualização do valor salvo).
-Todas as chamadas ao Microsoft Graph devem ter tratamento de erro específico para: credencial inválida, admin consent pendente (erro 403 típico), site/lista não encontrados, token expirado.
-Documente no README (ou onde o projeto já documenta configuração) os passos que precisam ser feitos manualmente no Azure Portal antes desta funcionalidade funcionar: registrar/ajustar o App Registration com a permissão Sites.ReadWrite.All (Application permission) e obter admin consent do tenant.
-Escreva testes (seguindo o framework de testes já usado no projeto, se houver) pelo menos para: a função de obtenção de token, a função de criação de item na lista (mockando a chamada HTTP), e o endpoint de publicação (casos de sucesso e de falha na chamada ao Graph).
-Antes de começar
+2.1 Perfis. Criar Control Desk e Qualidade (Analista de Qualidade) no Conecta. Reutilizar os existentes: Adm, Gestor, Supervisor, Operador. Gestor e Adm acessam a Central de Monitoria. Permissões conforme a matriz do documento (seção 9.13 do docx) e o Resumo de Regras, com permissões granulares editáveis pelo Adm. Toda restrição é aplicada no backend, nas consultas, filtros, dashboards, relatórios, exportações e APIs, nunca só ocultando na tela. Testar acesso direto por URL/API.
 
-Rode uma exploração do código existente e me apresente um resumo do que encontrou (estrutura da aba de ambiente atual, como a autenticação Microsoft está implementada hoje, e onde ficam guardadas credenciais sensíveis atualmente) antes de implementar, para validar se as suposições acima batem com a realidade do projeto. Se algo neste prompt conflitar com um padrão já estabelecido no código, siga o padrão existente e avise sobre a divergência.
+2.2 Operação (nova entidade). Hierarquia: Operação → Equipe → Supervisor → Operador. Equipes são administráveis (criar, editar, ativar/inativar, associar), sem nomes fixos no código.
+
+2.3 Vínculo por perfil (campo novo na criação/edição de usuário):
+
+Operador: exatamente 1 operação. Ao trocar, exibir aviso + confirmação obrigatória.
+Supervisor e Qualidade: 1 ou mais operações.
+Control Desk: definir na Fase A se é 0, 1 ou N operações.
+Sem operação (Adm, Gestor, etc.): veem o Conecta padrão e todas as operações, cada dado identificado com tag da operação.
+
+2.4 Isolamento total. Quem pertence a uma operação nunca vê dados de outra: monitorias, relatórios, treinamentos, feedbacks, usuários, gráficos. Vale para Monitoria e para os módulos existentes de treinamento (aplicar o filtro de operação de forma aditiva, sem quebrar o comportamento atual de quem não tem operação).
+
+2.5 Multi-operação. Quem tem 2+ operações vê resultados separados por operação, cada item com tag da operação. Ex.: Supervisor do CRF com 2 operações tem 2 formulários de monitoria distintos, um por operação (cada operação pode ter sua própria matriz e versões).
+
+2.6 Criação de usuário na Monitoria. Login por e-mail; senha inicial padrão; troca obrigatória no primeiro acesso, bloqueando todo o resto até trocar. Para Operador: equipe (Manhã/Intermediário/Tarde como dados, não constantes) e supervisor responsável. Hierarquia de quem altera quem: Adm→(Adm, Supervisor); Adm/Supervisor→(Qualidade, Control Desk); Adm/Supervisor/Qualidade→Operador. Reutilize o fluxo de usuários do Conecta e apenas estenda; resolver conflitos na Fase A.
+
+3. TELAS INICIAIS, MENU E NAVEGAÇÃO
+
+3.1 Perfis Adm e Gestão: NÃO mudam. Permanecem exatamente como estão.
+
+3.2 Padrão para os demais perfis. Menu suspenso reduzido + saudação com nome e avatar + divs de opção. Uma div por sessão a que o perfil tem acesso, com os mesmos itens no menu suspenso, mais Início. Cada div leva à sessão; dentro dela valem as funções permitidas. Exemplo: estagiário com Processos Seletivos, Banco de Talentos e Cx de Currículos → menu com Início + as 3; tela inicial com 3 divs.
+
+3.3 Casos definidos:
+
+Supervisor: menu = Início, Treinamentos, Monitoria. Abaixo da saudação/avatar, 2 divs: Central de Treinamento e Monitorias. Esquecer a tela inicial atual do Centro de Treinamentos.
+Qualidade: menu = Início, Monitoria. 1 div: Monitorias.
+Operador: mesmo padrão do Supervisor, respeitando as regras de acesso e perfil já estabelecidas.
+Control Desk: definir na Fase A (proposta: Início + Monitoria/Relatórios).
+
+3.4 Submenu de Monitorias (liberdade para propor): Formulários, Feedback, Histórico, Relatórios, mais o que o documento exigir (Dashboard, Planos de Ação, Contestações, Logs, Guia de Processos). Cada item só aparece se o perfil tiver permissão.
+
+3.5 Tela de Login. Trocar "Sistema Interno RH", "Acesso ao ambiente RH" e qualquer referência direta a RH por texto neutro (o Conecta é multi-vertente). Fazer busca global por "RH" na UI de login/marca e tratar cada ocorrência; não alterar ocorrências que forem realmente do módulo de RH.
+
+4. CONFIGURAÇÕES DO ADM (expandir)
+Nova Central de Monitoria em Configurações, incluindo sua Zona de Risco (ações destrutivas/irreversíveis, com dupla confirmação; jamais apagar monitorias finalizadas, por causa da imutabilidade; definir na Fase A o que a zona de risco pode fazer, por exemplo apagar configuração, nunca histórico).
+Gestão de Operações (CRUD).
+Cor primária por operação: só o Adm altera; aplica-se somente ao ambiente daquela operação (via tema/variáveis CSS). Padrão do Conecta continua azul.
+Logo por operação: substitui a logo do menu suspenso somente no ambiente daquela operação.
+Quem não tem operação continua vendo azul e a logo padrão. Quem tem 2+ operações: definir na Fase A qual tema vale (proposta: ao trocar o contexto/operação ativa, o tema acompanha; nas visões consolidadas, padrão).
+Matriz/formulário: criar e editar formulários, blocos, critérios, pesos, pilares e escala, por operação, com versionamento (seção 5.6).
+Demais configurações do documento (SLAs, alertas, equipes, perfis e permissões, logs).
+5. REGRAS DE NEGÓCIO (extrema importância)
+
+5.1 Nota e matriz. 8 blocos = 100 pontos: Acolhimento 10 (4×2,5), Escuta ativa 15 (3×5), Sondagem 15 (3×5), Solução 20 (2×10), Comunicação 15 (3×5), Condução 10 (4×2,5), Encerramento 5 (2×2,5), Conformidades 10 (2×5). Os critérios exatos estão no defaultBlocks() do HTML; carregá-los como matriz inicial (versão 1.0). Critério: SIM = peso integral; NÃO = 0; N/A e NCG conforme abaixo. Nota do bloco = soma dos SIM (equivale a SUMIFS); nota geral = soma dos 8 blocos (equivale a SUM). Os pesos dos critérios de um bloco devem somar o valor do bloco (validar, e o HTML apenas avisa; decidir na Fase A se passa a bloquear).
+
+5.2 Prioridade: NCG > N/A > cálculo normal.
+
+5.3 NCG. Qualquer critério com NCG ⇒ nota = 0. A monitoria não é excluída, segue o fluxo normal, é registrada como NCG, entra em indicadores próprios e o Dashboard tem indicador de NCG. Motivo da NCG é obrigatório quando houver NCG. Conta na quantidade de monitorias e entra na média com nota 0.
+
+5.4 N/A (regra definitiva). N/A em qualquer critério ⇒ o bloco inteiro é NULO, sai da composição, e seu peso é redistribuído proporcionalmente entre os blocos efetivamente avaliados, mantendo a escala de 0 a 100. Fator de redistribuição = 100 ÷ soma dos valores dos blocos ativos (é o que o HTML já faz em computeRedistFactor); nota = soma dos SIM × fator. Mínimo de 3 blocos efetivamente avaliados. Menos que isso ⇒ monitoria NULA, com comportamento de Baixada.
+
+5.5 Baixada e Nula. Permanecem no histórico, consultáveis, com todas as informações originais e o histórico de contestação/reanálise; aparecem nos relatórios, mas não entram em médias, evolução, Top 5 nem indicadores de desempenho. Confirmada = válida. Baixada = histórico preservado, sem impacto.
+
+5.6 Imutabilidade absoluta. Uma monitoria salva jamais muda, em nenhum aspecto: critérios, respostas, pesos, nota, matriz, versão, avaliador, operador, data, observações, textos das perguntas. Ela guarda um snapshot completo da matriz usada (o HTML já grava blocks_json; generalizar). Editar o formulário depois não altera nenhuma monitoria antiga. Contestação, NCG, N/A ou mudança de matriz não recalculam nada. Nova avaliação = nova monitoria. Aplicar em três camadas: (a) modelo sem endpoints de update/delete para os campos da monitoria; (b) trigger/constraint de banco impedindo UPDATE/DELETE nesses campos; (c) testes automatizados que tentam alterar e devem falhar. Dados de fluxo posteriores (feedback, contestação, reanálise, status) vivem em tabelas próprias, sem tocar a monitoria original.
+
+5.7 Versionamento do formulário. Editar e salvar cria nova versão; a anterior fica arquivada e consultável (somente leitura) pelo Supervisor/permitidos. Versões são por operação. Cada monitoria referencia matriz + versão.
+
+5.8 Ciclo de status. Rascunho → Monitoria Realizada → Feedback Pendente → Feedback Aplicado → Aguardando Confirmação/Contestação → (Confirmada → Finalizada) | (Contestada → Reanálise → Confirmada|Baixada → Finalizada). Condição especial: Realizada → Nula → Baixada → Finalizada. Toda transição registra quem, quando e status anterior/posterior (linha do tempo completa). Finalizada = somente leitura.
+
+5.9 SLAs (horas corridas 24x7). Feedback: 72h (vencido ⇒ sinalização no Dashboard do responsável). Operador confirmar/contestar: 48h (sem ação ⇒ Confirmada automaticamente). Reanálise: 72h (sem ação ⇒ Baixada automaticamente). Guardar início, limite, conclusão, tempo decorrido, atraso e responsável. Estados: dentro do prazo, próximo do vencimento, vencido, concluído no/fora do prazo. Automação por job agendado, idempotente, com log de auditoria; limiares de alerta configuráveis sem alterar os prazos oficiais.
+
+5.10 Feedback. Aplicado por Supervisor responsável ou Qualidade. Registrar responsável, data/hora, observação, sugestão de feedback original e complementos. Notificar Supervisor e Qualidade quando a monitoria entra em Feedback Pendente.
+
+5.11 Contestação. Operador informa critério(s), motivo, justificativa, evidência/anexo (quando aplicável) e data/hora. Supervisor responsável decide apenas: Manter avaliação (Confirmada) ou Baixar (Baixada), com Observação da reanálise obrigatória. Nunca edita a monitoria. Operador também pode replicar.
+
+5.12 Campos do formulário. Dados: operador, operação, equipe, supervisor, avaliador, data do contato, data da monitoria, canal, tipo de atendimento, ID da monitoria (8 dígitos aleatórios, único, gerado pelo sistema, não reutilizado), matriz/versão. Avaliação: critérios SIM/NÃO/NCG/N/A, pesos, nota dos blocos, nota final. Complementares: motivo da NCG, Campo de Observação, Sugestão de Feedback, Pilar de Conhecimento, Pilar de Encantamento. Validação: nenhuma monitoria é finalizada com obrigatório vazio. Manter também os campos do HTML (telefone, ID de interação) se a Fase A confirmar.
+
+5.13 Pilares. Encantamento (Empatia, Conformidade, Experiência) e Conhecimento (Agilidade, Segurança, Complexidade), escala 1 a 10 no HTML atual (parametrizável). Não somam nem alteram a nota geral. Armazenados separados dos critérios. Têm indicadores próprios (média por pilar).
+
+5.14 Faixas de nota (Planilha3 e scoreLevel): 95–100 Excelência; 90–94 Muito bom; 80–89 Bom; 70–79 Desenvolvimento (necessita plano de ação); 0–69 Crítico (necessita intervenção). Manter cores e rótulos.
+
+5.15 Indicadores (mesmo motor para Dashboard, relatórios, rankings, gráficos, XLSX e CSV; nunca duas fórmulas).
+
+Nota média = soma das notas válidas ÷ quantidade de monitorias válidas.
+Quantidade: realizadas (inclui NCG, Baixadas, Nulas) vs. válidas (exclui Baixadas e Nulas).
+Evolução: só válidas; por dia, semana, mês e período; filtros de operação, equipe, operador, avaliador, período.
+Critérios com maior erro: contagem e % de NÃO só entre critérios efetivamente avaliados; N/A não é erro e sai do denominador; distinguir NÃO de NCG.
+Top 5 Nota Média: posição, nome, nota média, qtd de válidas; desempate por mais monitorias válidas e depois nome; respeita filtros e permissões.
+Pendências: Feedbacks Pendentes/Aplicados, Confirmações e Contestações Pendentes, Baixas/Confirmações de Baixa Pendentes.
+Indicador de NCG. Pilares Conhecimento e Encantamento.
+Dashboard com 4 modos: Geral, Equipe, Período, Operador, respeitando perfil e escopo. Operador vê seus dados detalhados e apenas a média da operação (sem dados individuais de outros).
+
+5.16 Plano de Ação. Campos: operador, origem, data de criação, responsável, problema identificado, critério relacionado, objetivo, ação proposta, prazo, status (Aberto → Em andamento → Em revisão → Concluído), data de revisão, resultado obtido, observações, com histórico de revisões e comparação antes/depois. Relatório de Planos de Ação filtrável e exportável.
+
+5.17 Logs e auditoria. Todo evento relevante gera log imutável (não editável nem excluível pela aplicação): ID, usuário, perfil, ação, entidade, ID da entidade, data/hora, IP, resultado, detalhes, estado anterior/posterior. Visível apenas a Adm e Supervisor (Supervisor no seu escopo de operação). Logar também exportações e compartilhamentos por e-mail.
+
+5.18 Busca. Por ID da monitoria, operador, data e avaliador.
+
+5.19 Relatórios. Monitorias (ID_MONITORIA, DATA_MONITORIA, DATA_CONTATO, OPERADOR, EQUIPE, AVALIADOR, NOTA, FEEDBACK_APLICADO, CONTESTACAO, BAIXA, CONFIRMACAO, PL_ACAO) e Qualidade (PERIODO_INICIAL, PERIODO_FINAL, OPERADOR, NOTA_PERIODO, QNT_MONITORIAS, PILAR_CONHECIMENTO, PILAR_ENCANTAMENTO). Filtros: período, operador, avaliador, equipe, operação. Exportar em XLSX e CSV (PDF opcional).
+
+5.20 Exportar e compartilhar. No Histórico, botão Exportar (monitoria individual e/ou conjunto filtrado) e Compartilhar por e-mail. O e-mail respeita permissões (quem envia só pode compartilhar o que pode ver), usa o mecanismo de e-mail já existente no Conecta, e gera log. Definir na Fase A formato do anexo, destinatários livres vs. restritos e conteúdo.
+
+5.21 Histórico e gráficos. Manter todos os gráficos do HTML, agora alimentados pelo banco e filtrados por escopo: desempenho por bloco, radar de pilares, evolução da nota, nota média por operador, KPIs (registradas, média geral, melhor nota, operadores avaliados). O ⚙/editar por pergunta do HTML vira a gestão de formulário versionado.
+
+6. INTERFACE
+
+Aplicar o estilo, componentes e tokens do Conecta (não o CSS do HTML). Reaproveitar a lógica e a estrutura do HTML ou refazer dentro do Conecta, o que ficar melhor; decidir e justificar em 3 linhas na Fase B. Responsivo (desktop → tablet). Cor primária e logo vêm do tema da operação (seção 4).
+
+7. LACUNAS CONHECIDAS (pergunte sobre cada uma)
+Control Desk: quantas operações, tela inicial, quais permissões funcionais e como se atribui "conforme permissão".
+Quem tem 2+ operações: como escolhe/alterna o contexto e qual tema vale nas visões mistas.
+Como o Operador ver treinamentos/relatórios filtrados por operação afeta os módulos existentes de treinamento.
+O que a Zona de Risco da Monitoria pode fazer sem violar a imutabilidade.
+Migração: os dados do xlsx (a planilha está vazia) precisam ser importados? Existe alguma base real fora do arquivo enviado?
+Formato do anexo e regras de destinatário no e-mail do Histórico.
+Permissão "Reanalisar contestação" da Qualidade: "conforme permissão", definir padrão.
+Perfil Gestor: nível exato de acesso à Central de Monitoria (leitura ou gestão) e se vê todas as operações.
+Notificações: canais (in-app, e-mail) e quem recebe cada uma.
+Política de senha, expiração de sessão e bloqueio por tentativas (reaproveitar as do Conecta?).
+Regras de anexo/evidência: tipos, tamanho, armazenamento.
+Como ficam usuários e equipes de um operador que troca de operação em relação a monitorias antigas (devem permanecer na operação original, por imutabilidade).
+8. DIVERGÊNCIAS DETECTADAS (não assuma; confirme na Fase A)
+
+Encontrei conflitos entre o HTML e os documentos. Minha proposta padrão vem entre parênteses; confirme ou corrija.
+
+N/A: o HTML marca N/A por bloco (checkbox no bloco); o documento define N/A por critério que anula o bloco. (Proposta: N/A por critério, bloco fica nulo, conforme o Resumo de Regras.)
+NCG: o HTML tem um único checkbox global ("rudeza, discussão ou ofensa ao cliente"); o documento define NCG por critério, com motivo obrigatório. (Proposta: NCG por critério com motivo; manter o texto de exemplo do HTML como ajuda.)
+Opções de resposta: HTML tem só SIM/NÃO; documento exige SIM/NÃO/NCG/N/A.
+Pilares: no HTML são preenchidos depois, em outra aba, e sobrescrevem (state.qualidade[idx] = entry); o documento manda que sejam parte do formulário e imutáveis. (Proposta: preencher no formulário; se a Qualidade avalia depois, definir se isso é um segundo registro append-only ligado à monitoria e nunca uma edição.)
+Quem preenche os pilares: HTML sugere Qualidade; documento coloca os pilares no formulário do avaliador.
+Identificação da monitoria: HTML usa Nº sequencial (max+1); documento exige ID aleatório de 8 dígitos, único e nunca reutilizado. (Proposta: manter ambos? ou só o ID de 8 dígitos.)
+Feedback: no HTML é um campo de texto livre; no documento é uma etapa do fluxo com SLA de 72h.
+Status: o HTML não tem ciclo de status, SLA nem contestação; tudo isso é novo.
+Validação de pesos: o HTML só avisa quando a soma dos pesos difere do valor do bloco; definir se passa a bloquear.
+Excel de exportação da monitoria no HTML mostra "Não se aplica (pontos redistribuídos)"; adaptar ao novo N/A por critério.
+Nomenclatura: "Conformidades" (HTML/doc) vs. "Conformidade" (Planilha3). Usar "Conformidades".
+Nome do sistema: o documento chama de "Monitor 24 Horas"; no Conecta será a vertente "Monitoria" (confirmar nome de exibição).
+Segurança do documento (CSRF, XSS, SQL injection, sessão, rate limit) vs. o que o Conecta já tem: reaproveitar o existente e só complementar.
+9. CHECKLIST MESTRE (copie para MONITORIA_PROGRESSO.md)
+
+Fases de implementação (Fase C). Faça na ordem. Cada fase termina com testes da fase e commit.
+
+C1 — Fundação de dados e acesso
+
+ M01 Entidade Operação + CRUD (banco, API)
+ M02 Perfis Control Desk e Qualidade + permissões granulares
+ M03 Vínculo usuário↔operação (Operador=1 com aviso/confirmação de troca; Supervisor/Qualidade=N)
+ M04 Campo de operação na criação/edição de usuário
+ M05 Equipes administráveis (Operação→Equipe→Supervisor→Operador)
+ M06 Middleware/escopo de operação aplicado em backend/API/consultas (deny por padrão)
+ M07 Tag de operação nos resultados (multi-operação e perfis sem operação)
+ M08 Isolamento de treinamentos por operação (aditivo, sem regressão)
+
+C2 — Motor de matriz e monitoria
+
+ M09 Modelo de matriz/versão/blocos/critérios/pilares/escala
+ M10 Seed da matriz 1.0 a partir do defaultBlocks() e pilares do HTML
+ M11 Motor de cálculo único (SIM/NÃO/NCG/N/A, bloco nulo, redistribuição, mínimo 3 blocos, NCG>N/A)
+ M12 Snapshot imutável por monitoria (+ trigger/constraint de banco)
+ M13 ID de monitoria de 8 dígitos único
+ M14 Formulário de monitoria no Conecta (1 por operação, estilo Conecta, validações, motivo NCG obrigatório, observação, sugestão de feedback, pilares)
+ M15 Gestão de formulário versionado + visualização de versões antigas (somente leitura)
+
+C3 — Fluxo, SLA e automações
+
+ M16 Máquina de status + linha do tempo
+ M17 Feedback (aplicação, notificações, SLA 72h, sinalização no Dashboard)
+ M18 Confirmação/contestação do operador (48h, auto-confirmação, anexos, réplica)
+ M19 Reanálise do supervisor (72h, auto-baixa, observação obrigatória, sem alterar monitoria)
+ M20 Job de SLA idempotente + log de auditoria
+ M21 Plano de Ação + revisões + relatório
+
+C4 — Análise e saída
+
+ M22 Dashboard (4 modos, todos os indicadores, Top 5, critérios com maior erro, pendências, NCG, pilares)
+ M23 Histórico + busca + gráficos do HTML preservados
+ M24 Relatórios (Monitorias, Qualidade, Planos de Ação) + XLSX/CSV com o mesmo motor
+ M25 Exportar + compartilhar por e-mail no Histórico (com permissão e log)
+ M26 Logs (imutáveis, visão Adm/Supervisor)
+ M27 Guia de Processos (usar conteúdo da Planilha3)
+
+C5 — Interface, tema e configurações
+
+ M28 Telas iniciais por perfil (Supervisor, Qualidade, Operador, Control Desk, genérico por sessões; Adm/Gestão intactos)
+ M29 Menu suspenso reduzido por perfil + submenu Monitorias
+ M30 Tela de Login sem referências a RH
+ M31 Central de Monitoria nas Configurações + Zona de Risco
+ M32 Cor primária e logo por operação (só Adm, escopo da operação)
+ M33 Gestor e Adm com acesso à Central de Monitoria
+
+D — Auditoria final (única)
+
+ M34 Teste de não-regressão do Conecta existente
+ M35 Teste de vazamento entre operações (URL/API/export/e-mail)
+ M36 Teste de imutabilidade (tentativas de UPDATE/DELETE devem falhar)
+ M37 Verificação de cobertura: cada item M01–M33 confere com o requisito
+ M38 Relatório final curto: o que foi feito, o que ficou pendente, riscos
+10. CRITÉRIOS DE ACEITE (verifique só na Fase D)
+Monitoria salva não muda por nenhum caminho, mesmo após editar formulário, contestar ou mudar usuário/equipe.
+NCG zera; N/A anula bloco e redistribui; menos de 3 blocos ⇒ nula; NCG prevalece sobre N/A.
+Exemplo de conferência: Acolhimento 7,5 + Escuta 10 + Sondagem 15 + Solução 20 + Comunicação 10 + Condução 7,5 + Encerramento 5 + Conformidades 10 = 85.
+Supervisor de duas operações vê dois formulários e resultados separados com tag; nenhum dado vaza entre operações.
+Operador vê só o seu e a média da operação.
+Adm e Gestão inalterados; nenhuma funcionalidade existente regrediu.
+Cor e logo de operação nunca aparecem fora do ambiente daquela operação.
+Dashboard, relatórios, exportações e ranking usam o mesmo motor e dão o mesmo resultado.
+11. COMO ME RESPONDER
+Fase A: só perguntas numeradas, com sugestão padrão. Sem código.
+Fase B: plano curto (arquitetura, decisão sobre reaproveitar ou refazer o HTML, ordem das fases, lista de arquivos existentes que serão tocados e por quê). Aguarde meu "aprovado".
+Fase C: ao fim de cada fase, no máximo 10 linhas: itens concluídos, testes, bloqueios. Depois siga direto para a próxima fase, sem esperar resposta, salvo bloqueio.
+Fase D: relatório final curto.
+
+Comece pela Fase A agora.
+
+
+1 - Seguir o Resumo de Regras
+2 - Sim, o app é o aplicativo móvel 
+3 - Sim
+4 - Não. Não tocaremos no app por agora, no momento ele só será para treinamentos, futuramrente traremos a monitoria para o app, mas por equanto deixe como está. 
+5 - Commit por fases 
+6 - Desenvolvimento ! Sempre trabalhremos em cima do ambiente de desenvolvimento, não tocaremos no de produção. Mas atenta-se que, minha inteção é migrar o Conecta para claudeflare, como já tínhamos traçado como seria e como fucionaria, então tenha isso em mente
+7 - Sim, estender o calatologo.
+8 - Sim
+9 - Vale para qualquer ambiente do Conecta que tenha conteúdo ou dado personalidado por operação, como: Monitoria, Treinamento (quando não é padrão), Relatorios e etc
+10 -Olhe no Conecta, o catalogo. 
+11 - Ficam sinalizados como pendente de ajuste
+12 - SIM ! Mas monitorias feitas/salvas JAMAIS devem ser alteradas, elas permanecem ligadas a aoperação que ela foi feita, e são IMUTÁVEIS, ou seja, mesmo se o formulário, o operador ou a operação mudarem, ou qualquer aspecto da monitoria, a monitoria feita, deve permanecer a mesma !
+13 - Não, uma vez a operação inativa, nenhuma edição pode ser feita. 
+14 - Sim 
+15 - Sim, ele só verá os treinamentos da operação dele, ou atrelados a ele (pode acontecer, e um treinamento ser dado por um Supervisor de outra equipe, mas isos fica restrito aos treinamentos)
+16 - Adm é Administrador e "rh" não é um perfil é so um nome que eu dei, o perfil é o nível dele. "Funcionário" deve alterar o nome para "Analista", sendo assim, teremos os seguintes perfis: Administrador/Gestor/Analista/Supervisor/Operador/Qualidade/Control Desk. - Saiba diferenciar: NOME DO PERFIL pra NIVEL DO PERFIL. "Paulo" é um nome de perfil, "Administrador" é o nível, por exemplo. 
+17 - Supervisor acessa central de monitoria.
+* Pra ficar melhor e mais fácil de controle, em perfils e permissões, adicione um botão do tipo "tunr on/off" em cada sessão do conecta, uma vez ligado, aquele nivel de perfil terá acesso a aquela aba, assim diramos esses ajustes do código e deixamos a critério do ADM. No entanto, lembre-se que a tela de inicio e os link no menu superior devem ser preenchidos dinâmicamente, baseados nas áreas que aquele perfil tem acesso
+18 - Sim, isso mesmo
+19 - Control Desk verá todas as operações, é claro que, de forma separadas e identificadas telas tags
+20 - Sim
+21 - Sim
+22 - A equipe é definida é definida na criação do usuário, o operador é atrelado a uma operação e a um Supervisor, pode ser atrelado a mais de um se necessário. 
+23 - Sim
+24 - Sim
+25 - Liberar o Operador na web só quando ele tiver vínculo de operação
+26 - Manter a autenticação que já esta no Conecta
+27 - A senha é definida no ato da criação do usuário CASO seja ativado o login por senha, o login será o email e a senha definida, sendo necessário alterar no primeiro acesso do usuário. 
+28 - Mantenha o link "Esqueci a senha" na tela de login, porem, mantenha desativado, vamos deixar essa parte para o futuro. 
+29 - Reaproveitar o que já existe
+30 - Sim
+31 - Sim, na tabela de usuários, adicioe filtros (filtrar por operação, status de ativação e perfil) e um campo de busca de usuário também. 
+32 - Sim.
+33 - Sim
+34 - Na criação de usuário, adicione também um campo de definir o turno do Operador: "Manha", "Tarde", "Noite". Adicione também o mesmo para Supervisor. 
+35 - do HTML
+36 - Guardar as 2 casas decimais
+37 - Sim
+38 - Primeiro que, as monitorias não precisam ser baixadas ! Não precisa mais, só serão baixadas caso clique na opção de exportar. Não tem mais necessidade de baixar. Segundo, o status final de uma monitória nula é "Anulado" e lembre-se que é necessário a justificativa da anulação! 
+39 - Bloquear
+40 - Sim, mantando documentado no histórico sempre as verões passadas do formulário, como um versionamento
+41 - NO formulário. Para a qualidade, na tela inical da Qualidade, haverá uma lista de formulários e monitorias para analisar 
+42 - Sim, manter
+43 - Manter
+44 - Sim (Eu acho, n sei como responder isso)
+45 - Parametrizáveis na operação
+46 - Sim
+47 - Sim, cópia editável por operação
+48 - Sim, vamos sempre procurar cada vez menos do .env (quero tudo, futaremente, configurável dentro do Conecta ou em um portal auxliar e não no arquivo .env)
+49 - Sim
+50 - Sim
+51 - Sim
+52 - Sim
+53 - Sim
+54 - Sim
+55 - Sim 
+56 - Sim
+57 - Sim, mas adicione um ranking também. Uma escala
+58 - Operação inteiroa, mas com filtro pra operação dele, e o valor do TOP pode ser ajutado pra: e TOP 3, TOP 5, TOP 10, TOP 15
+59 - Sim.
+60 - Usar a biblioteca do Conecta, mas caso o HTML tenha algum gráfico que não esteja no Conecta, traga esse gráfico pro Conecta tb. 
+61 - Sim, mas lembre-se dos planos de mudar para o Claudeflare futuramente 
+62 - Sim
+63 - Sim
+64 - Sim, mas precisa avisar ao usuário de que não tem nada a importar
+65 - Sim
+66 - Sim
+67 - Sim
+68 - Sim, vale para todos os perfirs, com exeção do Gestor e Adm
+69 - Sim
+70 - Sim
+71 - Sim
+72 - Sim, mas precise tomar cuidado com as tonalidades, principalmente de botões e cores de fonte, e sempre respeito o desing do Conecta. Não altere nada visualmente que seja importante, por exemplo TAGs ou o fundo branco. 
+73 - Sim, eu devo usar a mesma foto que já uso da logo no meususpenso, mas deve haver um lugar para configurar isos no conecta, uma nova parte em configurações de ambiente (mas só pro ADM), onde eu faço todas essas configurações inclusive o uplado da nova foto. 
+74 - Quem tem Duas ou mais operações não altera, ambos as informações aparecerão juntas porem identificadas e distintas. Para esse usuário, na configuração de ambiente, ele poderá escolher qual desing quer usar (sendo possível alterar somente 1x), As informações viram ditintas por TAGs, sendo possível filtrar por operção. Detlahe: O máximo de operações que um supervisor pode ter é 3! Não sendo possível ter mais. Também é possível eu desvincular um supervisor de uma operação, caso ele entre de férias e outro supervisor precise assumir sua operação. 
+75 - Sim
+76 - Sim, isso mesmo 
+77 - Sim
+78 - Sim, isos memso
+79 - Sim
+
+
+
+
+1 - link da conversa do claude: https://claude.ai/share/55c9764d-74f8-4bd8-bce7-1bd16669f5bd
+2 - Sim
+3 - Acredito que sim, o banco de desenolvimento é no meu pc
+4 - Adicione "Departamento Pessoal" (DP),e "Estagiário" o respondo pode descartar. 
+5 - Sim, "Analista" é o funcionário regular do RH, aquele que não é Nem estagiário e nem gestor, "Analista de Qualidade" ou só "Qualidade" é o cara da Operação que a qualidade
+6 - Sim, sem mudanças 
+7 - Sim, isso mesmo 
+8- Sim
+9 - Sim
+10 - Essa eu não tenho certeza, preciso analisar com alguém da supervisão, mas para prosseguirmos, vamos manter como separados, caso depois seja necessário juntamos 
+11 - Ao supervisor, nunca um operador pode ter mais de 2 operações, mas pode ter ate 2 supervisores.
+12 - Sim
+13 - Sim, a qualidade pode ter até 2 operações. Control Desk todas as operações, atuais e futuras, mas separadamente e devidamente identificadas
+14 - Sim / SIM/ Sim
+15 - Nada editável enquanto inativa
+16 - Sim
+17 - A forma padrão é sempre pela Microsoft (justamente pra aproveitar o fato de que eles já fizeram autenticação no navegador, já que eles usam o Sharepoint intranet), em casos bem específicos será ativada o loigin por usuário e senha. 
+18 - Sim pra todos 
+19 - Sim, o avaliador 
+20 - Sim
+21 - Eu tinha entendio que era para o Supervisor, então nesse caso, uma escala com a nota dele...
+22 - Sim
+23 - Sim
+24 - Sim
+25 - Sim
+26 - Sim
+27 - Sim
+28 - Sim
+29 - Isso mesmo 
+30 - Sim
+31 - Sim
+32 - Sim
+33 - Sim
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

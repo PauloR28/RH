@@ -21,7 +21,7 @@ ROLE_CONTROL_DESK = "control_desk"
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-09-20-monitoria"
+PERMISSIONS_VERSION = "2026-09-22-operador-treinamentos"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -493,12 +493,20 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "onboarding.concluir_proprio",
         "mural.visualizar",
     },
+    # Correções.txt (22/set/2026): o Operador volta a acessar a Central de
+    # Treinamentos, mas só como autoatendimento dos PRÓPRIOS treinamentos
+    # atribuídos (mesmo nível do ROLE_EMPLOYEE acima) — sem onboarding.criar/
+    # editar/gerenciar, que ficam exclusivos de quem administra a área. A
+    # sessão-mestra "treinamentos" volta a ser concedida automaticamente pelo
+    # loop de SESSION_MODULES logo abaixo. O front-end (Início por sessões e
+    # app-treinamento-colaborador) só mostra a div/tela quando GET
+    # /onboarding/meus-treinamentos devolve algum treinamento atribuído.
     ROLE_OPERATOR: {
         "inicio.visualizar",
         "notificacoes.visualizar",
+        "mural.visualizar",
         "onboarding.visualizar",
         "onboarding.concluir_proprio",
-        "mural.visualizar",
     },
     ROLE_SUPERVISOR: {
         # Correções.txt (rodada 16/set/2026): visão do Supervisor é
@@ -604,12 +612,12 @@ _MONITORIA_ROLE_PERMISSIONS: dict[str, set[str]] = {
         "monitoria.exportar",
         "operacoes.visualizar",
     },
+    # Correções.txt (21/set/2026): o Operador vê apenas "Minhas monitorias" e o histórico das
+    # PRÓPRIAS monitorias — sem Dashboard nem Planos de ação.
     ROLE_OPERATOR: {
         "sessao.monitoria.acessar",
         "monitoria.visualizar",
-        "monitoria.dashboard",
         "monitoria.contestar",
-        "monitoria.plano_acao_visualizar",
     },
 }
 for _role_id, _perms in _MONITORIA_ROLE_PERMISSIONS.items():

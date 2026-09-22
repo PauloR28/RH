@@ -1,31 +1,30 @@
 Correções: 
-*A tela de "Meus treinamentos" - Está indo para a tela inicial!
-*A criação de datas comemorativas em: "Calendário de datas comemorativas" ainda estão dando "Falha ao publicar"
-*Postagem do mural continua a importar a imagem e o texto separadamente. As publicações no Conecta chegam juntas. Para ficar mais fácil, faça com que a categoria entre automaticamente como prefixo do Titulo. Para o usuário, não vai mudar nada, ele ainda vai colcar o Titulo da publicação normal, vai selecionar a categoria (coloque como campo obrigatório), e vai escrever a publicação dele ou enviar a imagem, o Conecta, vai pegar essa categoria e vai colocar a frente do titulo com um "-" depois. Assim:
-Titulo da publicação: Nova auditoria em breve
-Categoria: Aviso
+Tela configurações: Usuário: 
+Modal de editar usuário, primeiro, ajuste o botão de "editar", ele deve ficar na mesma linha que o titulo do modal: "Editar usuário", um pouco abaixo no "X" de fechar. 
+Em operações vinculadas, transforme em um select, ao invés de um checkbox, e ao lado, perfeitamente alinhado, um outro dropdown com vários checkbox listando os supervisores a serem atribuídos. Adicione também um campo select para adicionar o turno, a equipe e os canais de atendimento. 
 
-O que Conecta irá enviar para o Sharepoint assim:
-Titulo: AVISO - Nova auditoria em breve. 
+Configurações > Tela de Central de Monitoria: 
+*Ajuste os alinhamentos das linhas, os textos, a padronização dos tamanhos, ajustes de posições, tem linhas muito coladas e outras muito espaçadas, tem linha colada na caixa da div e botões completamente cumpridos. 
+A aba de Guia de Processos deve ser uma aba separada, dentro dela, cada box estará  perfeitamente alinhada, com o espaçamento padronizado. Um estilo simples e limpo, um desing simplista e elegante. Ajuste em sessões dobráveis, tamanhos ajustveis. 
+ 
+Configurações > Logs: 
+A pagina de Log deve se fundir com Logs de Monitoria (separada por abas), e o link: "Logs de Monitoria" sumir do submenu suspenso.
 
-Sempre a categoria a frente e em maiúsculo (fica mais fácil de filtrar no SharePoint)
-*A postagem do mural não está codificando caracteres especiais como "Ç" ou "~". 
+Montiroria > Formulários:
+* Diminua o espaçamento do formulário (.mon_matriz) ajuste o espaçamento para:  width: 47rem; ou aproximado, nunca menos que isso. 
+* Ainda sobre o formulário, deixe o .mon-matriz-linha.is-bloco dobrável para melhorar a organização
 
-*Nova publicação - Tela do mural: O filtro de negrito continua se ativando sozinho quando clico fora da caixa de texto, o que me impede de clicar para começar a escrever na tela. 
+Monitoria > Modal de Detalhe da monitoria: parte de: Reanálise da contestação (prazo de 72 horas; a monitoria original nunca é editada) precisa ser organizada, campos muito colados, melhore o posicionamento, alinhamento dos espaços, ajustes, centralize o botão no canto direto. Tudo precisa está alinhado e justificável. 
 
-*Adicione o botão: "ver currículo dentro de ações"
+Configurações > Tela de Operações.
+* Transforme o form de cadastro/edição em aba de dobráveis. 
+* Alinhe campos, textos, linhas, padronize espaçamentos e alinhamentos, tamanhos de botões precisam ser curtos e otimizados. Tem muita linha colada em caixa de texto. Forms muito colados um ao lado do outro. 
+* Adicione uma aba de configurar ambiente, como supervisor, qnt de supervisores, se vai ter qualidade, adicionar pessoa de qualidade, inserir turnos e equipes,atribuír intranets já cadastrada. 
 
-*Em treinamentos, em "Ações" adicione uma opção de "Próximos treinos" onde abrirá um modal, e mostrará o dia e o horário que aquele treinamento está agendado, também mostrará quem irá administrar e quantos alunos terão. 
-
-*Tela de editar treinamentos: 
-*Adicione botões de ferramentas na caixa de texto principal do módulo, como Texto Negrito, Italico, Tachado, Lista numerada, Listas, Cor da letra e tamanho.
-*Ainda na tela de Criar e Editar módulo, adicione um botão de "Adicionar texto", ao ser clicado, ele abrirá uma segunda caixa de texto principal com direito a um subtítulo. 
-*Os subtítulos sempre estarão em destaque, em negrito e destacados no texto. (Isso no APP Conecta)
-*Se o Json importado não trazer subtítulos, não tem problemas. Mas o conecta deve aprender a identificar subtítulos, inclusive trazer os subtítulos já no json modelo. 
-*Só pra ficar melhor entendido. Na criação/edição do Modulo no treinamento, será organizado da seguinte forma:
-CADA MÓDULO SERÁ UM BLOCO, CADA BLOCO TERÁ TITULO E SESSÃO, CADA SESSÃO TERÁ: Subtitulo, texto principal, upload de imagem (apenas no máximo 4 imagens por sessão), campo de dicas e campo de link, ambos com caixa de texto e espaço para URL. Além disso, cada módulo terá direito a upload de 1 vídeo. 
-*A sessão de Dicas e Saiba+ no aplicativo deve seguir exatamente o desing que eu projeitei no wareframe. 
-*Também não será possível adicionar o mesmo treinamento mais de uma vez um ususário, se ele já tem o trenamento, então ele deve concluir, não poderá adicionar o mesmo treinamento para a mesma pessoa mais de uma vez. 
-*No botões de ação, em Treinamentos, adicione uma opção de "Agendar treinamento" ao ser clicado, ele irá abrir um modal para agendar aquele treinamento, solicitando o dia, o local, a pessoa que irá aplicar o treino e quem vai receber o treinamento. Traga a opção de "Adicionar o processo seletivo" dentro desse modal também. 
+Configurações > Contestações: 
+* Vale lembrar o fluxo de Contestação. A qualidade faz a monitoria (o supervisor também pode, mas geralmente quem faz é a qualidade), na hora do feedback presencialmente do supervisor, o Supervisor vai confirmar que o feedback foi dado ! Nisso, para o operador, em Minhas monitorias, a monitoria dele vai estar lá para ele consultar e logo em baixo (com botões alinhados, justificados, com posicionamento e espaçamento ajustado), o operador vai poder Concordar (botão de aprovação, adicione um ícone simples e pratico) ou Contestar (botão de constestar feedback - é usado pra quando o operador não concorda com o feedback dado), com isso, aquela monitoria recebe uma TAG (Em contestação), o SUPERVISOR referente a aquele operador, ou seja, o supervisor da equipe dele, receberá uma notificação de que a monitoria X foi contestada pelo supervisor, em Minhas monitorias, para o supervisor, vai aparecer a monitoria lá com a TAG (Contestada). Com isso, depois do supervisor avaliar, ele dará Baixa na monitoria. (ELA ENTÃO VAI PARA O HISTÓRICO E PERMANECERÁ LÁ, o fluxo esta encerrado). Em Minhas monitorias para o Operador, a tag atualiza para "Contestação Encerrada".
 
 
+
+PS: CARREGAMENTO e ARMAZENAMENTO ! 
+Uma coisa que vem me preocupando. é o fato que cada vez que o Conecta cresce, o processamento e o carregamento das paginas e informações esta cada vez mais demorando muito. O que levantou a ideia de termos uma configuração (Não no conecta, mas no backend ou algum processamento do tipo) onde ele pegue os logs (que são muitos, e comprime-os e aramaze-os em ZIP, ou trabalhamos com processos de limpeza, pra melhorar a taxa de processamento)

@@ -118,37 +118,57 @@
   align-items: center;
   gap: 0.22rem;
   min-height: 0;
+      justify-content: center;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-.rh-modern-topnav-search {
+/* Busca global centralizada na linha do PageIntro (título | busca | ações). */
+.rh-page-search {
   display: flex;
   align-items: center;
-  flex: 1 1 180px;
+  align-self: center;
+  flex: 0 1 40rem;
   min-width: 0;
-  max-width: 300px;
 }
 
-.rh-modern-topnav-search .rh-global-search {
+.rh-page-search .rh-global-search {
+  position: relative;
   width: 100%;
   min-width: 0;
 }
 
-.rh-modern-topnav-search .rh-modern-search-shell {
+.rh-page-search .rh-modern-search-shell {
   min-width: 0;
   min-height: 40px;
   padding-left: 0.75rem;
 }
 
-.rh-modern-topnav-search .rh-global-search-shortcut {
+.rh-page-search .rh-global-search-shortcut {
   display: none;
 }
 
-.rh-modern-topnav-search .rh-global-search-panel {
-  left: auto;
-  right: 0;
+.rh-page-search .rh-global-search-panel {
+  left: 50%;
+  right: auto;
   width: min(420px, 92vw);
+  transform: translateX(-50%);
+}
+
+.rh-page-search--solo {
+  flex: 0 0 auto;
+  width: min(360px, 100%);
+  margin: 0 auto 0.5rem;
+}
+
+.rh-page-intro.has-search > .rh-page-intro-heading,
+.rh-page-intro.has-search > .rh-page-intro-actions {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.rh-page-intro.has-search > .rh-page-intro-actions {
+  justify-content: flex-end;
 }
 
 .rh-modern-topnav-user {
@@ -386,18 +406,17 @@
 
 .c24-user-menu {
   position: relative;
-  min-height: 44px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  max-width: 260px;
-  padding: 0.32rem 0.52rem;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  text-align: left;
 }
 
 .c24-user-menu-badge {
@@ -498,6 +517,33 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
+}
+
+.c24-user-dropdown-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  margin-bottom: 0.35rem;
+  padding: 0.42rem 0.52rem 0.56rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.c24-user-dropdown-identity strong,
+.c24-user-dropdown-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c24-user-dropdown-identity strong {
+  font-size: 0.84rem;
+  line-height: 1.15;
+}
+
+.c24-user-dropdown-identity small {
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
 }
 
 .c24-user-dropdown-item {
@@ -868,6 +914,21 @@
   font-weight: 200;
   font-family: var(--font-sans);
   overflow-wrap: anywhere;
+}
+
+.rh-section-card--collapsible > .rh-section-card-header {
+  user-select: none;
+}
+
+.rh-section-card-toggle {
+  flex-shrink: 0;
+  padding: 0.2rem 0.4rem;
+  line-height: 1;
+}
+
+.rh-section-card-toggle .material-symbols-outlined {
+  font-size: 18px;
+  display: block;
 }
 
 .rh-section-card-description {
@@ -1751,6 +1812,14 @@
   gap: var(--space-3);
 }
 
+/* Correções.txt (rodada 22/set/2026): mesmo problema dos modais de
+   treinamento ("Agendar treinamento" e "Adicionar participante") — linhas de
+   .rh-filter-field coladas umas nas outras dentro de .rh-details-body. */
+.training-modal-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
 .rh-modal-title {
   margin: 0;
   font-size: 1rem;
@@ -1962,6 +2031,28 @@
   font-size: 0.8rem;
 }
 
+/* Notebooks: compacta a faixa para todas as opções caberem em uma linha só. */
+@media (max-width: 1439.98px) {
+  .rh-modern-topnav {
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  .rh-modern-topnav .rh-modern-nav {
+    gap: 0.1rem;
+  }
+
+  .rh-modern-topnav .rh-modern-nav-btn,
+  .rh-modern-topnav .rh-modern-cta-btn {
+    gap: 0.3rem;
+    padding-inline: 0.4rem;
+  }
+
+  .rh-modern-topnav-user {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 1199.98px) {
   .rh-modern-topnav {
     flex-wrap: wrap;
@@ -1978,19 +2069,13 @@
     font-size: 0.78rem;
   }
 
-  .rh-modern-topnav-search {
-    order: 1;
-    flex: 1 1 100%;
-    max-width: none;
-  }
-
   .rh-modern-topnav-user {
     margin-left: auto;
   }
 }
 
 @media (max-width: 480px) {
-  .rh-modern-topnav-search {
+  .rh-page-search {
     display: none;
   }
 }
@@ -2026,6 +2111,20 @@
     width: 100%;
   }
 
+  .rh-page-intro.has-search > .rh-page-intro-heading,
+  .rh-page-intro.has-search > .rh-page-intro-actions,
+  .rh-page-search {
+    flex: 0 0 auto;
+  }
+
+  .rh-page-search {
+    align-self: stretch;
+  }
+
+  .rh-page-intro.has-search > .rh-page-intro-actions {
+    justify-content: flex-start;
+  }
+
   .rh-modern-topbar-left,
   .rh-modern-topbar-actions {
     flex: 0 1 auto;
@@ -2039,18 +2138,12 @@
   }
 
   .rh-modern-topbar-actions .btn,
-  .rh-modern-topbar-actions .c24-user-menu,
   .rh-modern-topbar-actions .c24-user-menu-wrap {
     width: 100%;
   }
 
   .rh-modern-topbar-actions .btn {
     justify-content: center;
-  }
-
-  .c24-user-menu {
-    width: 100%;
-    max-width: none;
   }
 
   .c24-user-dropdown {

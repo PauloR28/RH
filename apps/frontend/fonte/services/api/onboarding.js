@@ -18,6 +18,12 @@ export async function listarAtribuicoesTreinamento(filtros = {}) {
   return requisitar(`/onboarding/assignments${montarQuery(filtros)}`, { method: 'GET' });
 }
 
+// Auto-escopo pelo token no backend (mesma rota do app-treinamento-colaborador) —
+// usada para saber se o usuário logado tem algum treinamento atribuído.
+export async function listarMeusTreinamentos() {
+  return requisitar('/onboarding/meus-treinamentos', { method: 'GET' });
+}
+
 export async function atualizarAgendaTreinamento(idOnboarding, payload) {
   const resultado = await requisitar(`/onboarding/assignments/${encodeURIComponent(idOnboarding)}`, {
     method: 'PUT',
@@ -153,6 +159,10 @@ export async function criarTreinamentoWizard(payload) {
 
 export async function buscarCandidatosTreinamento(busca = '') {
   return requisitar(`/onboarding/candidatos-elegiveis${montarQuery({ busca })}`, { method: 'GET' });
+}
+
+export async function buscarUsuariosMinistrante(busca = '') {
+  return requisitar(`/onboarding/usuarios/busca${montarQuery({ busca })}`, { method: 'GET' });
 }
 
 export async function uploadSlideTreinamento(idTrilha, arquivo) {

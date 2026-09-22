@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20260920-monitoria';
+} from './gestao/index.js?v=20260922-login-copy';

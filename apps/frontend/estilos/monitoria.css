@@ -16,6 +16,14 @@
 .mon-subnav-btn:hover { border-color: var(--line-strong); color: var(--ink); }
 .mon-subnav-btn.is-active { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-ink); }
 .mon-subnav-btn .material-symbols-outlined { font-size: 18px; }
+.mon-subnav-btn { position: relative; }
+
+/* Bolinha vermelha de novidade (contestação, feedback, atualização de monitoria) */
+.mon-alerta-bolinha {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--status-danger, var(--color-danger));
+}
+.mon-alerta-bolinha--canto { position: absolute; top: 16px; right: 16px; width: 12px; height: 12px; border: 2px solid var(--paper); box-sizing: content-box; }
 
 /* Tags (operação, NCG, anulada) */
 .mon-tag {
@@ -148,7 +156,7 @@
 .mon-saudacao h1 { margin: 0; font-size: var(--text-xl); }
 .mon-sessoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(256px, 1fr)); gap: 24px; }
 .mon-sessao {
-  display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; padding: 24px;
+  position: relative; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; padding: 24px;
   border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer;
   transition: border-color var(--transition-sm), background var(--transition-sm);
 }
@@ -415,28 +423,75 @@
 #screen-settings .settings-rule-form-card--operacoes { padding: 0; }
 #screen-settings .settings-rule-form-card--operacoes > .c24-card-header { padding: 24px 24px 16px; margin: 0; }
 #screen-settings .settings-rule-form-card--operacoes .settings-rule-form { display: flex; flex-direction: column; gap: 16px; padding: 0 24px 24px; }
+/* Coluna única (Correções.txt 21/set): 2 colunas num cartão estreito desalinhava rótulos e alturas. */
+/* O conteúdo de <details> fica num slot interno: grid/gap no <details> não afeta os campos (rótulos ficavam colados).
+   O espaçamento de 24px é feito por margem em cada filho, o que funciona em qualquer navegador. */
 #screen-settings .settings-rule-form-card--operacoes .settings-form-section {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 16px;
+  display: block; margin: 0; padding: 24px;
   border: 1px solid var(--line); border-radius: 8px; background: var(--paper);
 }
-#screen-settings .settings-rule-form-card--operacoes .settings-form-section:first-child { padding: 16px; border: 1px solid var(--line); }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section:first-child { padding: 24px; border: 1px solid var(--line); }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > :not(summary) { margin-top: 24px; margin-bottom: 0; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > .is-wide { grid-column: auto; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > label { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > label > span,
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > .is-wide > span {
+  display: block; font-size: var(--text-sm); font-weight: 600; line-height: 16px; color: var(--ink); text-transform: none; letter-spacing: 0;
+}
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > label > .text-muted { margin-top: 0; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section .row { margin: 0; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section .row + .row { margin-top: 8px; }
+#screen-settings .settings-rule-form-card--operacoes .settings-form-section > label.settings-toggle-line { flex-direction: row; align-items: center; }
 #screen-settings .settings-rule-form-card--operacoes .settings-form-accordion > .settings-form-section-title {
   min-height: 24px; font-size: var(--text-sm); font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0;
 }
 #screen-settings .settings-rule-form-card--operacoes .settings-form-accordion:not([open]) { padding-bottom: 16px; }
 #screen-settings .settings-rule-form-card--operacoes .settings-form-accordion[open] > .settings-form-section-title { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 0; }
 #screen-settings .settings-rule-form-card--operacoes label { gap: 8px; }
-#screen-settings .settings-rule-form-card--operacoes .form-control, #screen-settings .settings-rule-form-card--operacoes .form-select { min-height: 40px; }
-#screen-settings .settings-rule-form-card--operacoes textarea.form-control { min-height: 96px; }
+#screen-settings .settings-rule-form-card--operacoes .form-control, #screen-settings .settings-rule-form-card--operacoes .form-select { height: 40px; min-height: 40px; padding: 8px 12px; font-size: var(--text-sm); line-height: 24px; }
+#screen-settings .settings-rule-form-card--operacoes textarea.form-control { height: auto; min-height: 120px; line-height: 24px; resize: vertical; }
 #screen-settings .settings-rule-form-card--operacoes .form-control-color { width: 64px; padding: 4px; }
+
+/* Configurações > Operações > Endereço principal: grade de 12 colunas, todas as linhas com o mesmo respiro */
+#screen-settings .settings-endereco-form { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px 16px; align-items: start; margin: 0; }
+#screen-settings .settings-endereco-form > label { display: flex; flex-direction: column; gap: 8px; min-width: 0; grid-column: span 6; }
+#screen-settings .settings-endereco-form > label.is-wide { grid-column: span 9; }
+#screen-settings .settings-endereco-form > label.endereco-numero { grid-column: span 3; }
+#screen-settings .settings-endereco-form > label.endereco-uf { grid-column: span 2; }
+#screen-settings .settings-endereco-form > label.endereco-cep { grid-column: span 4; }
+#screen-settings .settings-endereco-form > label > span { display: block; font-size: var(--text-sm); font-weight: 600; line-height: 16px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+#screen-settings .settings-endereco-form .form-control { height: 40px; min-height: 40px; padding: 8px 12px; font-size: var(--text-sm); line-height: 24px; }
+#screen-settings .settings-endereco-form > .settings-form-footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+#screen-settings .settings-endereco-form > .settings-form-footer .btn { min-height: 40px; height: 40px; padding: 0 24px; }
+@media (max-width: 767.98px) {
+  #screen-settings .settings-endereco-form > label,
+  #screen-settings .settings-endereco-form > label.is-wide,
+  #screen-settings .settings-endereco-form > label.endereco-numero,
+  #screen-settings .settings-endereco-form > label.endereco-uf,
+  #screen-settings .settings-endereco-form > label.endereco-cep { grid-column: 1 / -1; }
+}
 #screen-settings .settings-rule-form-card--operacoes .settings-form-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 #screen-settings .settings-rule-form-card--operacoes .settings-form-footer .btn { min-height: 40px; height: 40px; padding: 0 24px; }
 #screen-settings .settings-rule-form-card--operacoes .settings-card-actions .btn { min-height: 32px; height: 32px; padding: 0 16px; }
 #screen-settings .settings-rule-form-card--operacoes .settings-toggle-line { flex-direction: row; align-items: center; gap: 8px; min-height: 40px; }
-@media (max-width: 767.98px) {
-  #screen-settings .settings-rule-form-card--operacoes .settings-form-section { grid-template-columns: 1fr; }
-}
+
+/* Alerta de erro do modal de usuário: fixo entre o corpo rolável e o rodapé (Correções.txt 21/set) */
+#screen-settings .users-drawer-alert { flex: 0 0 auto; margin: 0 24px 16px; }
 
 /* Itens do dropdown com caixas dentro do formulário de usuário (rótulos do drawer são em coluna e caixa-alta) */
 #screen-settings .users-drawer-body .mon-multi-item, #screen-settings-users .users-drawer-body .mon-multi-item { flex-direction: row; align-items: center; gap: 8px; }
 #screen-settings .users-drawer-body .mon-multi-item > span, #screen-settings-users .users-drawer-body .mon-multi-item > span { font-size: var(--text-sm); color: var(--ink); text-transform: none; }
+
+/* Configurações > Parâmetros > Tipos de atendimentos */
+.mon-tipos-toolbar { display: flex; justify-content: flex-end; align-items: center; margin: 0 0 16px; }
+.mon-tipos-toolbar .btn { display: inline-flex; align-items: center; gap: 8px; }
+.mon-tipos-tabela { width: 100%; }
+.mon-tipos-tabela th, .mon-tipos-tabela td { padding: 12px 16px; vertical-align: middle; }
+.mon-tipos-acoes-col { width: 112px; text-align: right; }
+.mon-tipos-acoes { display: inline-flex; justify-content: flex-end; gap: 8px; }
+
+/* Formulários de monitoria: formulário à esquerda; "Escala e faixas de nota" e "Histórico de versões" empilhados à direita */
+.mon-formularios-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+.mon-formularios-esq, .mon-formularios-dir { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.mon-formularios-esq .mon-matriz { width: 100%; }
+@media (max-width: 1100px) { .mon-formularios-layout { grid-template-columns: minmax(0, 1fr); } }

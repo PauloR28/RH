@@ -39,7 +39,7 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js';
+} from '../../shared/notificacoes.js?v=20260921-alertas';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import {
@@ -832,6 +832,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   }, [menuUsuarioAbertoId]);
 
   const selecionarUsuario = (usuario) => {
+    setErro('');
     setCriandoUsuario(false);
     setUsuarioSelecionadoId(usuario.id_usuario);
     setFormUsuario({
@@ -858,6 +859,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   };
 
   const iniciarNovoUsuario = () => {
+    setErro('');
     setCriandoUsuario(true);
     setUsuarioSelecionadoId('');
     setFormUsuario(FORM_USUARIO_INICIAL);
@@ -919,7 +921,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         setFeedback('Usuário atualizado com sucesso.');
       } else {
         const criado = await criarUsuario({ ...payload, senha: formUsuario.senha });
-        if (perfilMonitoria && criado?.id_usuario) await gravarVinculosMonitoria(criado.id_usuario);
+        if (perfilMonitoria && criado?.id_usuario) {
+          try {
+            await gravarVinculosMonitoria(criado.id_usuario);
+          } catch (falhaVinculos) {
+            // O usuário já existe: avisa e recarrega a lista para não sugerir que nada foi criado.
+            setCriandoUsuario(false);
+            setDrawerUsuarioAberto(false);
+            await carregarAba(abaRenderizada);
+            setErro(`Usuário criado, mas os vínculos da Monitoria (turno, canais, equipe) não foram salvos: ${falhaVinculos?.message || 'erro desconhecido'}. Abra o usuário para completar.`);
+            return;
+          }
+        }
         setFeedback('Usuário criado com sucesso.');
       }
       setCriandoUsuario(false);
@@ -1032,7 +1045,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setErro('');
     setFeedback('');
     try {
-      await excluirUsuario(usuario.id_usuario, 'Desativação lógica por Configurações.');
+      await alterarStatusUsuario(usuario.id_usuario, {
+        acao: 'desativar',
+        justificativa: 'Desativação por Configurações.',
+      });
       setFeedback('Usuário desativado.');
       await carregarAba(abaRenderizada);
     } catch (error) {
@@ -2070,6 +2086,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         : null}
             </div>
 
+            ${erro ? html`<div class="alert alert-danger c24-feedback users-drawer-alert" role="alert">${erro}</div>` : null}
             <footer class="rh-modal-footer">
               <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${fecharDrawerUsuario}>
                 Cancelar
@@ -2441,12 +2458,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             </header>
             ${editandoEndereco
           ? html`
-                  <form class="c24-form-grid" onSubmit=${salvarEnderecoPrincipal}>
+                  <form class="settings-endereco-form" onSubmit=${salvarEnderecoPrincipal}>
                     <label class="is-wide">
                       <span>Rua/Avenida</span>
                       <input class="form-control" value=${formEndereco.rua} onInput=${(event) => setFormEndereco({ ...formEndereco, rua: event.target.value })} />
                     </label>
-                    <label>
+                    <label class="endereco-numero">
                       <span>Número</span>
                       <input class="form-control" value=${formEndereco.numero} onInput=${(event) => setFormEndereco({ ...formEndereco, numero: event.target.value })} />
                     </label>
@@ -2462,19 +2479,19 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       <span>Cidade</span>
                       <input class="form-control" value=${formEndereco.cidade} onInput=${(event) => setFormEndereco({ ...formEndereco, cidade: event.target.value })} />
                     </label>
-                    <label>
+                    <label class="endereco-uf">
                       <span>UF</span>
                       <input class="form-control" maxlength="2" value=${formEndereco.uf} onInput=${(event) => setFormEndereco({ ...formEndereco, uf: event.target.value.toUpperCase() })} />
                     </label>
-                    <label>
+                    <label class="endereco-cep">
                       <span>CEP</span>
                       <input class="form-control" value=${formEndereco.cep} onInput=${(event) => setFormEndereco({ ...formEndereco, cep: event.target.value })} />
                     </label>
-                    <footer class="settings-form-footer is-wide">
+                    <footer class="settings-form-footer">
+                      <button type="button" class="btn btn-outline-secondary" onClick=${() => setEditandoEndereco(false)}>Cancelar</button>
                       <button type="submit" class="btn btn-primary" disabled=${salvandoEndereco}>
                         ${salvandoEndereco ? 'Salvando...' : 'Salvar endereço'}
                       </button>
-                      <button type="button" class="btn btn-outline-secondary" onClick=${() => setEditandoEndereco(false)}>Cancelar</button>
                     </footer>
                   </form>
                 `
@@ -4097,7 +4114,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
       />
 
-      ${erro ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
+      ${erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
       ${feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
       ${ehAdministrador ? html`
         <${ModalTransferirSupervisao}

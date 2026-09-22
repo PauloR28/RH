@@ -13,6 +13,15 @@ export async function marcarNotificacaoLida(idNotificacao) {
   return resultado;
 }
 
+export async function marcarNotificacoesEntidadeLidas(entidade, entidadeId) {
+  const resultado = await requisitar(
+    `/notificacoes/entidade/${encodeURIComponent(entidade)}/${encodeURIComponent(entidadeId)}/marcar-lidas`,
+    { method: 'POST' },
+  );
+  invalidarCacheApi('notificacoes');
+  return resultado;
+}
+
 export async function marcarTodasNotificacoesLidas() {
   const resultado = await requisitar('/notificacoes/marcar-todas-lidas', { method: 'POST' });
   invalidarCacheApi('notificacoes');

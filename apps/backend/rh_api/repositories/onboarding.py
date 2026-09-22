@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
 
@@ -29,6 +30,8 @@ _TRILHA_COLUMNS = """
     pptx_nome_original,
     pptx_pdf_path,
     saiba_mais_treinamento_json,
+    ministrante_padrao,
+    ministrante_padrao_email,
     criado_por,
     criado_em,
     atualizado_em
@@ -310,7 +313,7 @@ class OnboardingRepositoryMixin:
             conn.close()
 
     @staticmethod
-    def _validate_trilha_input(data: dict) -> tuple[str, str, bool, bool, str, "int | None", str, str, str, str, "str | None", list[dict]]:
+    def _validate_trilha_input(data: dict) -> tuple[str, str, bool, bool, str, "int | None", str, str, str, str, str, "str | None", list[dict]]:
         nome = normalize_text(data.get("nome"))
         if not nome:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe o nome da trilha.")
@@ -322,6 +325,8 @@ class OnboardingRepositoryMixin:
         id_operacao = int(id_operacao_raw) if id_operacao_raw else None
         modalidade = normalize_text(data.get("modalidade"))
         local_padrao = normalize_text(data.get("local_padrao"))
+        ministrante_padrao = normalize_text(data.get("ministrante_padrao"))
+        ministrante_padrao_email = normalize_text(data.get("ministrante_padrao_email"))
         conteudo_json = normalize_text(data.get("conteudo_json"))
         texto_encerramento = normalize_text(data.get("texto_encerramento"))
         saiba_mais_treinamento_json = _dump_json(data.get("saiba_mais_treinamento"))
@@ -358,6 +363,8 @@ class OnboardingRepositoryMixin:
             id_operacao,
             modalidade,
             local_padrao,
+            ministrante_padrao,
+            ministrante_padrao_email,
             conteudo_json,
             texto_encerramento,
             saiba_mais_treinamento_json,
@@ -374,6 +381,8 @@ class OnboardingRepositoryMixin:
             id_operacao,
             modalidade,
             local_padrao,
+            ministrante_padrao,
+            ministrante_padrao_email,
             conteudo_json,
             texto_encerramento,
             saiba_mais_treinamento_json,
@@ -389,9 +398,10 @@ class OnboardingRepositoryMixin:
                 """
                 INSERT INTO trilhas_onboarding
                 (nome, descricao, ativo, tipo_obrigatorio, categoria, id_operacao, modalidade, local_padrao,
+                 ministrante_padrao, ministrante_padrao_email,
                  conteudo_json, texto_encerramento, saiba_mais_treinamento_json, criado_por, criado_em, atualizado_em)
                 OUTPUT INSERTED.id_trilha
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())
                 """,
                 (
                     nome,
@@ -402,6 +412,8 @@ class OnboardingRepositoryMixin:
                     id_operacao,
                     modalidade,
                     local_padrao,
+                    ministrante_padrao,
+                    ministrante_padrao_email,
                     conteudo_json,
                     texto_encerramento,
                     saiba_mais_treinamento_json,
@@ -451,6 +463,8 @@ class OnboardingRepositoryMixin:
             id_operacao,
             modalidade,
             local_padrao,
+            ministrante_padrao,
+            ministrante_padrao_email,
             conteudo_json,
             texto_encerramento,
             saiba_mais_treinamento_json,
@@ -470,7 +484,8 @@ class OnboardingRepositoryMixin:
                 """
                 UPDATE trilhas_onboarding
                 SET nome = ?, descricao = ?, ativo = ?, tipo_obrigatorio = ?, categoria = ?, id_operacao = ?,
-                    modalidade = ?, local_padrao = ?, conteudo_json = ?, texto_encerramento = ?,
+                    modalidade = ?, local_padrao = ?, ministrante_padrao = ?, ministrante_padrao_email = ?,
+                    conteudo_json = ?, texto_encerramento = ?,
                     saiba_mais_treinamento_json = ?, atualizado_em = GETDATE()
                 WHERE id_trilha = ?
                 """,
@@ -483,6 +498,8 @@ class OnboardingRepositoryMixin:
                     id_operacao,
                     modalidade,
                     local_padrao,
+                    ministrante_padrao,
+                    ministrante_padrao_email,
                     conteudo_json,
                     texto_encerramento,
                     saiba_mais_treinamento_json,
@@ -626,11 +643,15 @@ class OnboardingRepositoryMixin:
         data_prevista=None,
         local: str = "",
         ministrante: str = "",
+        ministrante_email: str = "",
+        duracao_minutos: int = 60,
+        enviar_lembrete_calendario: bool = False,
     ) -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_onboarding_tables(cursor)
+            ensure_notifications_table(cursor)
 
             candidato = self._get_candidate_process_row(cursor, id_registro)
 
@@ -678,9 +699,9 @@ class OnboardingRepositoryMixin:
             cursor.execute(
                 """
                 INSERT INTO onboarding_candidatos
-                (id_registro, trilha_id, iniciado_por, iniciado_em, data_prevista, local, ministrante, status)
+                (id_registro, trilha_id, iniciado_por, iniciado_em, data_prevista, local, ministrante, ministrante_email, duracao_minutos, status)
                 OUTPUT INSERTED.id_onboarding
-                VALUES (?, ?, ?, GETDATE(), ?, ?, ?, 'em_andamento')
+                VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, 'em_andamento')
                 """,
                 (
                     int(candidato["id_registro"]),
@@ -689,6 +710,8 @@ class OnboardingRepositoryMixin:
                     data_prevista,
                     normalize_text(local),
                     normalize_text(ministrante),
+                    normalize_text(ministrante_email),
+                    int(duracao_minutos or 60),
                 ),
             )
             inserted = cursor.fetchone()
@@ -712,9 +735,44 @@ class OnboardingRepositoryMixin:
                         1 if item.get("obrigatorio") else 0,
                     ),
                 )
+
+            # Correções.txt (rodada 22/set/2026): notifica o ministrante
+            # designado ao salvar (criação avulsa ou agendamento de um
+            # treinamento já existente) — espelha o que create_treinamento_wizard
+            # já fazia para as ocorrências do assistente de criação.
+            nome_trilha = normalize_text(trilha_rows[0].get("nome")) if trilha_rows else ""
+            ministrante_email_normalizado = normalize_text(ministrante_email)
+            if ministrante_email_normalizado and nome_trilha:
+                self._criar_notificacao(
+                    cursor,
+                    destinatario_usuario=ministrante_email_normalizado,
+                    titulo="Você foi definido(a) como ministrante",
+                    mensagem=(
+                        f"Você foi designado(a) como responsável por aplicar o treinamento \"{nome_trilha}\""
+                        + (f" para {normalize_text(candidato.get('nome_candidato'))}" if candidato.get("nome_candidato") else "")
+                        + "."
+                    ),
+                    categoria="treinamento_ministrante",
+                    entidade="onboarding_candidato",
+                    entidade_id=str(id_onboarding),
+                )
             conn.commit()
         finally:
             conn.close()
+
+        if (
+            enviar_lembrete_calendario
+            and ministrante_email_normalizado
+            and data_prevista
+        ):
+            self._enviar_convite_ministrante(
+                nome_treinamento=nome_trilha,
+                ministrante_email=ministrante_email_normalizado,
+                ministrante_nome=normalize_text(ministrante),
+                data_prevista=data_prevista,
+                local=normalize_text(local),
+                duracao_minutos=duracao_minutos,
+            )
 
         return self.get_onboarding_progress(id_registro)
 
@@ -1423,6 +1481,30 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
+    def search_usuarios_ministrante(self, busca: str = "") -> list[dict]:
+        """Busca rápida de usuários do sistema para o campo "ministrante"
+        (Correções.txt, rodada 22/set/2026) — leve o bastante para
+        autocomplete, ao contrário de list_system_users (que traz o usuário
+        inteiro e não tem TOP)."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            termo = normalize_text(busca)
+            if not termo:
+                return []
+            cursor.execute(
+                """
+                SELECT TOP 10 id_usuario, nome, email
+                FROM usuarios
+                WHERE LOWER(status) = 'ativo' AND (nome LIKE ? OR email LIKE ?)
+                ORDER BY nome ASC
+                """,
+                (f"%{termo}%", f"%{termo}%"),
+            )
+            return rows_to_dicts(cursor, cursor.fetchall())
+        finally:
+            conn.close()
+
     def create_treinamento_wizard(self, data: dict, *, actor: str = "") -> dict:
         """Publica o treinamento completo (todas as etapas do wizard): cria a
         trilha + módulos (via create_onboarding_trilha) e, para cada ocorrência
@@ -1443,6 +1525,8 @@ class OnboardingRepositoryMixin:
             data_prevista = ocorrencia.get("data_prevista")
             local = normalize_text(ocorrencia.get("local"))
             ministrante = normalize_text(ocorrencia.get("ministrante"))
+            ministrante_email = normalize_text(ocorrencia.get("ministrante_email"))
+            duracao_minutos = int(ocorrencia.get("duracao_minutos") or 60)
             for id_registro in participantes:
                 try:
                     resultado = self.start_onboarding(
@@ -1452,6 +1536,8 @@ class OnboardingRepositoryMixin:
                         data_prevista=data_prevista,
                         local=local,
                         ministrante=ministrante,
+                        ministrante_email=ministrante_email,
+                        duracao_minutos=duracao_minutos,
                     )
                     onboarding = resultado.get("onboarding") or {}
                     if onboarding.get("id_onboarding"):
@@ -1459,11 +1545,85 @@ class OnboardingRepositoryMixin:
                 except HTTPException as erro:
                     falhas.append({"id_registro": id_registro, "erro": erro.detail})
 
+            if (
+                ministrante_email
+                and data_prevista
+                and not ocorrencia.get("sem_horario_definido")
+                and ocorrencia.get("enviar_lembrete_calendario")
+            ):
+                self._enviar_convite_ministrante(
+                    nome_treinamento=normalize_text(trilha.get("nome")),
+                    ministrante_email=ministrante_email,
+                    ministrante_nome=ministrante,
+                    data_prevista=data_prevista,
+                    local=local,
+                    duracao_minutos=duracao_minutos,
+                )
+
         return {
             "trilha": trilha,
             "atribuicoes_criadas": len(criadas),
             "falhas": falhas,
         }
+
+    def _enviar_convite_ministrante(
+        self,
+        *,
+        nome_treinamento: str,
+        ministrante_email: str,
+        ministrante_nome: str,
+        data_prevista,
+        local: str,
+        duracao_minutos: int = 60,
+    ) -> None:
+        """Best-effort: falha no envio do convite nunca desfaz nem bloqueia a
+        criação do treinamento (Correções.txt — lembrete de agenda do Outlook
+        para quem vai ministrar)."""
+        try:
+            import html as _html
+
+            from ..services.calendar_invite import build_ics_attachment, novo_uid
+            from ..services.email_send_service import EmailSendService
+
+            servico = EmailSendService(self.settings)
+            if not servico.configured:
+                return
+
+            inicio = data_prevista
+            if isinstance(inicio, str):
+                inicio = datetime.fromisoformat(inicio)
+
+            anexo = build_ics_attachment(
+                uid=novo_uid(),
+                titulo=f"Treinamento: {nome_treinamento}",
+                inicio=inicio,
+                local=local,
+                descricao=f"Você foi designado(a) como responsável por aplicar o treinamento \"{nome_treinamento}\" no Conecta.",
+                organizador_email=normalize_text(getattr(self.settings, "email_graph_mailbox", "")),
+                participante_email=ministrante_email,
+                participante_nome=ministrante_nome,
+                duracao_minutos=duracao_minutos,
+            )
+            fim = inicio + timedelta(minutes=max(1, int(duracao_minutos or 60)))
+            nome_treinamento_html = _html.escape(nome_treinamento)
+            ministrante_nome_html = _html.escape(ministrante_nome)
+            local_html = _html.escape(local)
+            corpo = (
+                f"<p>Olá{f', {ministrante_nome_html}' if ministrante_nome_html else ''}!</p>"
+                f"<p>Você foi designado(a) como responsável por aplicar o treinamento "
+                f"<strong>{nome_treinamento_html}</strong> em {inicio.strftime('%d/%m/%Y')}, "
+                f"das {inicio.strftime('%H:%M')} às {fim.strftime('%H:%M')}"
+                f"{f' ({local_html})' if local_html else ''}.</p>"
+                "<p>Anexamos um convite de calendário — clique para adicionar à sua agenda do Outlook.</p>"
+            )
+            servico.send_mail(
+                destinatarios=[ministrante_email],
+                assunto=f"Convite: {nome_treinamento} — {inicio.strftime('%d/%m/%Y %H:%M')}",
+                corpo_html=corpo,
+                anexos=[anexo],
+            )
+        except Exception:  # noqa: BLE001
+            self.logger.warning("Falha ao enviar convite de calendário ao ministrante.", exc_info=True)
 
     # ------------------------------------------------------------------
     # Anexos da aba "Saiba +" (nível treinamento ou módulo) — LGPD (plano
@@ -1850,13 +2010,13 @@ class OnboardingRepositoryMixin:
             ),
         )
 
-    def list_notificacoes(self, *, papel: str, usuario: str, apenas_nao_lidas: bool = False) -> list[dict]:
+    def list_notificacoes(self, *, papel: str, usuario: str, email: str = "", apenas_nao_lidas: bool = False) -> list[dict]:
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_notifications_table(cursor)
-            condicoes = ["(destinatario_papel = ? OR destinatario_usuario = ?)"]
-            parametros: list = [normalize_text(papel), normalize_text(usuario)]
+            condicoes = ["(destinatario_papel = ? OR destinatario_usuario IN (?, ?))"]
+            parametros: list = [normalize_text(papel), normalize_text(usuario), normalize_text(email) or normalize_text(usuario)]
             if apenas_nao_lidas:
                 condicoes.append("lida = 0")
             cursor.execute(
@@ -1887,7 +2047,7 @@ class OnboardingRepositoryMixin:
             conn.close()
         return {"success": True}
 
-    def marcar_todas_notificacoes_lidas(self, *, papel: str, usuario: str) -> dict:
+    def marcar_todas_notificacoes_lidas(self, *, papel: str, usuario: str, email: str = "") -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -1895,9 +2055,9 @@ class OnboardingRepositoryMixin:
             cursor.execute(
                 """
                 UPDATE notificacoes SET lida = 1, lida_em = GETDATE()
-                WHERE (destinatario_papel = ? OR destinatario_usuario = ?) AND lida = 0
+                WHERE (destinatario_papel = ? OR destinatario_usuario IN (?, ?)) AND lida = 0
                 """,
-                (normalize_text(papel), normalize_text(usuario)),
+                (normalize_text(papel), normalize_text(usuario), normalize_text(email) or normalize_text(usuario)),
             )
             atualizadas = cursor.rowcount
             conn.commit()
@@ -1905,7 +2065,7 @@ class OnboardingRepositoryMixin:
             conn.close()
         return {"success": True, "atualizadas": atualizadas}
 
-    def excluir_notificacao(self, id_notificacao: int, *, papel: str, usuario: str) -> dict:
+    def excluir_notificacao(self, id_notificacao: int, *, papel: str, usuario: str, email: str = "") -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -1913,26 +2073,48 @@ class OnboardingRepositoryMixin:
             cursor.execute(
                 """
                 DELETE FROM notificacoes
-                WHERE id_notificacao = ? AND (destinatario_papel = ? OR destinatario_usuario = ?)
+                WHERE id_notificacao = ? AND (destinatario_papel = ? OR destinatario_usuario IN (?, ?))
                 """,
-                (int(id_notificacao or 0), normalize_text(papel), normalize_text(usuario)),
+                (int(id_notificacao or 0), normalize_text(papel), normalize_text(usuario), normalize_text(email) or normalize_text(usuario)),
             )
             conn.commit()
         finally:
             conn.close()
         return {"success": True}
 
-    def excluir_todas_notificacoes(self, *, papel: str, usuario: str) -> dict:
+    def excluir_todas_notificacoes(self, *, papel: str, usuario: str, email: str = "") -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_notifications_table(cursor)
             cursor.execute(
-                "DELETE FROM notificacoes WHERE (destinatario_papel = ? OR destinatario_usuario = ?)",
-                (normalize_text(papel), normalize_text(usuario)),
+                "DELETE FROM notificacoes WHERE (destinatario_papel = ? OR destinatario_usuario IN (?, ?))",
+                (normalize_text(papel), normalize_text(usuario), normalize_text(email) or normalize_text(usuario)),
             )
             excluidas = cursor.rowcount
             conn.commit()
         finally:
             conn.close()
         return {"success": True, "excluidas": excluidas}
+
+    def marcar_notificacoes_entidade_lidas(self, *, entidade: str, entidade_id: str, papel: str, usuario: str, email: str = "") -> dict:
+        """Marca como lidas as notificações do usuário ligadas a uma entidade (ex.: ao
+        abrir a monitoria, some o alerta dela)."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notifications_table(cursor)
+            cursor.execute(
+                """
+                UPDATE notificacoes SET lida = 1, lida_em = GETDATE()
+                WHERE entidade = ? AND entidade_id = ? AND lida = 0
+                  AND (destinatario_papel = ? OR destinatario_usuario IN (?, ?))
+                """,
+                (normalize_text(entidade), normalize_text(entidade_id), normalize_text(papel), normalize_text(usuario),
+                 normalize_text(email) or normalize_text(usuario)),
+            )
+            atualizadas = cursor.rowcount
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True, "atualizadas": atualizadas}

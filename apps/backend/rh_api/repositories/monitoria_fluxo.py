@@ -133,6 +133,18 @@ class MonitoriaFluxoRepositoryMixin:
         )
         return [normalize_text(r[0]) for r in cursor.fetchall()]
 
+    def _mon_emails_qualidade(self, cursor, operacao: str) -> list[str]:
+        cursor.execute(
+            "SELECT u.email FROM dbo.usuarios u JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario "
+            "WHERE u.perfil_id = ? AND uo.operacao = ? AND u.status = 'Ativo'",
+            (ROLE_QUALIDADE, operacao),
+        )
+        return [normalize_text(r[0]) for r in cursor.fetchall()]
+
+    def _mon_emails_gestores(self, cursor, m: dict) -> list[str]:
+        """Supervisores responsáveis pelo operador + Qualidade da operação."""
+        return self._mon_emails_supervisores(cursor, int(m["id_operador"])) + self._mon_emails_qualidade(cursor, m["operacao"])
+
     # ------------------------------------------------------------------
     # Feedback
     # ------------------------------------------------------------------
@@ -215,8 +227,8 @@ class MonitoriaFluxoRepositoryMixin:
             self.mon_log(cursor, user, acao="contestar_monitoria", operacao=m["operacao"], entidade="monitoria", entidade_id=m["id_monitoria"],
                          detalhes={"criterios": criterios, "id_contestacao": id_contestacao}, ip=ip)
             destinos = self._mon_notificar(
-                cursor, self._mon_emails_supervisores(cursor, int(m["id_operador"])), titulo="Contestação recebida",
-                mensagem=f"A monitoria #{m['codigo']} foi contestada por {normalize_text(m['operador_nome'])}. Prazo de reanálise: 72 horas.",
+                cursor, self._mon_emails_gestores(cursor, m), titulo="Contestação recebida",
+                mensagem=f"{normalize_text(m['operador_nome'])} abriu uma contestação na monitoria #{m['codigo']}. Prazo de reanálise: 72 horas.",
                 categoria="monitoria_contestacao", id_monitoria=m["id_monitoria"],
             )
             conn.commit()
@@ -243,6 +255,11 @@ class MonitoriaFluxoRepositoryMixin:
                 (row[0], m["id_monitoria"], user.id_usuario, normalize_text(user.nome), texto),
             )
             self.mon_log(cursor, user, acao="replicar_contestacao", operacao=m["operacao"], entidade="monitoria", entidade_id=m["id_monitoria"], ip=ip)
+            self._mon_notificar(
+                cursor, self._mon_emails_gestores(cursor, m), titulo="Nova réplica em contestação",
+                mensagem=f"{normalize_text(m['operador_nome'])} enviou uma réplica na contestação da monitoria #{m['codigo']}.",
+                categoria="monitoria_replica", id_monitoria=m["id_monitoria"],
+            )
             conn.commit()
             return {"success": True}
         finally:
@@ -388,6 +405,11 @@ class MonitoriaFluxoRepositoryMixin:
                     self._mon_registrar_passos(cursor, id_monitoria, wf.passos_confirmacao(), None, automatico=True, observacao=obs)
                     self.mon_log(cursor, None, acao="confirmar_automatico", operacao=m["operacao"], entidade="monitoria",
                                  entidade_id=id_monitoria, detalhes={"sla": "CONFIRMACAO"})
+                    self._mon_notificar(
+                        cursor, [normalize_text(m["operador_email"])], titulo="Monitoria confirmada",
+                        mensagem=f"A monitoria #{m['codigo']} foi confirmada automaticamente (48 horas sem manifestação).",
+                        categoria="monitoria_confirmada_auto", id_monitoria=id_monitoria,
+                    )
                     confirmadas += 1
                 else:
                     obs = "Anulada automaticamente: 72 horas sem reanálise do supervisor."
@@ -404,6 +426,11 @@ class MonitoriaFluxoRepositoryMixin:
                     self._mon_registrar_passos(cursor, id_monitoria, wf.passos_reanalise(wf.RESULTADO_ANULADA), None, automatico=True, observacao=obs)
                     self.mon_log(cursor, None, acao="anular_automatico", operacao=m["operacao"], entidade="monitoria",
                                  entidade_id=id_monitoria, detalhes={"sla": "REANALISE"})
+                    self._mon_notificar(
+                        cursor, [normalize_text(m["operador_email"])], titulo="Contestação encerrada",
+                        mensagem=f"A contestação da monitoria #{m['codigo']} foi encerrada: monitoria anulada por falta de reanálise em 72 horas.",
+                        categoria="monitoria_reanalise", id_monitoria=id_monitoria,
+                    )
                     anuladas += 1
                 conn.commit()
             except Exception:  # noqa: BLE001 - um item com problema não derruba o lote

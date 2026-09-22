@@ -581,7 +581,7 @@ export function TelaOneDriveArquivos({ controlador }) {
     >
       <${PageIntro}
         kicker="Microsoft 365"
-        title="Drive-Conecta"
+        title="Drive"
         actions=${html`
           <div class="d-flex gap-2">
             ${podeEnviar

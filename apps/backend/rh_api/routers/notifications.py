@@ -23,7 +23,7 @@ def list_notificacoes(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.list_notificacoes(papel=user.perfil, usuario=user.username, apenas_nao_lidas=apenas_nao_lidas)
+    return repository.list_notificacoes(papel=user.perfil, usuario=user.username, email=user.email, apenas_nao_lidas=apenas_nao_lidas)
 
 
 @router.post("/{id_notificacao}/marcar-lida", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
@@ -31,12 +31,24 @@ def marcar_notificacao_lida(id_notificacao: int, repository: DatabaseRepository 
     return repository.marcar_notificacao_lida(id_notificacao)
 
 
+@router.post("/entidade/{entidade}/{entidade_id}/marcar-lidas", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
+def marcar_notificacoes_entidade_lidas(
+    entidade: str,
+    entidade_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.marcar_notificacoes_entidade_lidas(
+        entidade=entidade, entidade_id=entidade_id, papel=user.perfil, usuario=user.username, email=user.email
+    )
+
+
 @router.post("/marcar-todas-lidas", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
 def marcar_todas_notificacoes_lidas(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.marcar_todas_notificacoes_lidas(papel=user.perfil, usuario=user.username)
+    return repository.marcar_todas_notificacoes_lidas(papel=user.perfil, usuario=user.username, email=user.email)
 
 
 @router.delete("/{id_notificacao}", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
@@ -45,7 +57,7 @@ def excluir_notificacao(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.excluir_notificacao(id_notificacao, papel=user.perfil, usuario=user.username)
+    return repository.excluir_notificacao(id_notificacao, papel=user.perfil, usuario=user.username, email=user.email)
 
 
 @router.delete("", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
@@ -53,4 +65,4 @@ def excluir_todas_notificacoes(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.excluir_todas_notificacoes(papel=user.perfil, usuario=user.username)
+    return repository.excluir_todas_notificacoes(papel=user.perfil, usuario=user.username, email=user.email)
