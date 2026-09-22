@@ -17,7 +17,7 @@ if ($Files.Count -eq 0) {
 
 Write-Host ""
 Write-Host "Aplicando $($Files.Count) migrations idempotentes em '$Database' @ '$Server'"
-Write-Host "Todas usam IF NOT EXISTS / COL_LENGTH — reaplicar uma ja aplicada nao tem efeito."
+Write-Host "Todas usam IF NOT EXISTS / COL_LENGTH - reaplicar uma ja aplicada nao tem efeito."
 Write-Host ""
 
 foreach ($file in $Files) {
