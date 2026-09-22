@@ -35,7 +35,10 @@ BEGIN TRY
     IF COL_LENGTH('dbo.trilhas_onboarding', 'local_padrao') IS NULL
         ALTER TABLE dbo.trilhas_onboarding ADD local_padrao NVARCHAR(180) NULL;
 
-    UPDATE dbo.trilhas_onboarding SET categoria = 'Onboarding' WHERE categoria IS NULL;
+    -- EXEC/dinamico: evita "Invalid column name" quando a coluna 'categoria'
+    -- foi adicionada pelo ALTER acima no mesmo lote (sqlcmd valida nomes de
+    -- coluna na compilacao do lote inteiro, antes de qualquer execucao).
+    EXEC(N'UPDATE dbo.trilhas_onboarding SET categoria = ''Onboarding'' WHERE categoria IS NULL;');
 
     IF COL_LENGTH('dbo.trilhas_onboarding_itens', 'tipo_conteudo') IS NULL
         ALTER TABLE dbo.trilhas_onboarding_itens ADD tipo_conteudo NVARCHAR(20) NULL;
@@ -51,7 +54,7 @@ BEGIN TRY
     IF COL_LENGTH('dbo.onboarding_candidatos', 'status') IS NULL
         ALTER TABLE dbo.onboarding_candidatos ADD status NVARCHAR(20) NULL;
 
-    UPDATE dbo.onboarding_candidatos SET status = 'em_andamento' WHERE status IS NULL;
+    EXEC(N'UPDATE dbo.onboarding_candidatos SET status = ''em_andamento'' WHERE status IS NULL;');
 
     COMMIT TRANSACTION;
 END TRY

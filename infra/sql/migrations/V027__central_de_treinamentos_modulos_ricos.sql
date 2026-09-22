@@ -62,7 +62,9 @@ BEGIN TRY
     -- por módulo em trilhas_onboarding_itens.
     IF COL_LENGTH('dbo.trilhas_onboarding', 'tipo_obrigatorio') IS NULL
         ALTER TABLE dbo.trilhas_onboarding ADD tipo_obrigatorio BIT NULL;
-    UPDATE dbo.trilhas_onboarding SET tipo_obrigatorio = 0 WHERE tipo_obrigatorio IS NULL;
+    -- EXEC/dinamico: evita "Invalid column name" quando a coluna foi
+    -- adicionada pelo ALTER acima no mesmo lote (sqlcmd).
+    EXEC(N'UPDATE dbo.trilhas_onboarding SET tipo_obrigatorio = 0 WHERE tipo_obrigatorio IS NULL;');
 
     IF COL_LENGTH('dbo.trilhas_onboarding_itens', 'subtitulo') IS NULL
         ALTER TABLE dbo.trilhas_onboarding_itens ADD subtitulo NVARCHAR(255) NULL;

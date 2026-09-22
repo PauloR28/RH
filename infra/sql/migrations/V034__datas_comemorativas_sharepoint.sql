@@ -71,4 +71,6 @@ BEGIN
     ALTER TABLE dbo.datas_comemorativas ADD sharepoint_item_id NVARCHAR(80) NULL;
 END;
 
-UPDATE dbo.datas_comemorativas SET dia_inteiro = 1 WHERE dia_inteiro IS NULL;
+-- EXEC/dinamico: evita "Invalid column name" quando a coluna foi adicionada
+-- pelo ALTER acima no mesmo lote (sqlcmd).
+EXEC(N'UPDATE dbo.datas_comemorativas SET dia_inteiro = 1 WHERE dia_inteiro IS NULL;');
