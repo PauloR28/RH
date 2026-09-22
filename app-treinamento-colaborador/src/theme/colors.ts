@@ -31,6 +31,9 @@ export interface ThemeColors {
   accent: string;
   accentStrong: string;
   accentSoft: string;
+  /** Roxo do bloco "Saiba +" / links de intranet (wireframe "Aplicativo - Wareframe"). */
+  violet: string;
+  violetSoft: string;
 }
 
 const light: ThemeColors = {
@@ -58,6 +61,8 @@ const light: ThemeColors = {
   accent: "#e2921a",
   accentStrong: "#a8650a",
   accentSoft: "#fdf1de",
+  violet: "#8b3fc9",
+  violetSoft: "#f3e6fb",
 };
 
 const dark: ThemeColors = {
@@ -85,6 +90,8 @@ const dark: ThemeColors = {
   accent: "#f0ac4f",
   accentStrong: "#f5c785",
   accentSoft: "#3a2b12",
+  violet: "#b585e6",
+  violetSoft: "#2c1f3d",
 };
 
 export const palettes: Record<ColorScheme, ThemeColors> = { light, dark };

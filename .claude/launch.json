@@ -24,6 +24,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["run.py", "--no-reload", "--port", "8020"],
       "port": 8020
+    },
+    {
+      "name": "app-treinamento-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app-treinamento-colaborador", "run", "web"],
+      "port": 8081
     }
   ]
 }

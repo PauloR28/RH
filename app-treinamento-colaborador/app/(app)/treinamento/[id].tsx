@@ -75,7 +75,7 @@ export default function TrainingDetailScreen() {
               onPress={() =>
                 router.push({ pathname: "/(app)/modulo/[id]", params: { id: String(proximoModulo.id_onboarding_item), trainingId: String(training.id_onboarding) } })
               }
-              style={{ backgroundColor: colors.primary, borderRadius: radius.standard, minHeight: 48, alignItems: "center", justifyContent: "center" }}
+              style={{ backgroundColor: colors.primaryStrong, borderRadius: radius.standard, minHeight: 48, alignItems: "center", justifyContent: "center" }}
             >
               <Text style={[typography.bodyMedium, { color: colors.onPrimary }]}>Prosseguir treinamento</Text>
             </Pressable>
@@ -99,10 +99,10 @@ function CollapsibleSection({
 }) {
   const { colors, spacing, typography } = useTheme();
   return (
-    <Card>
+    <Card emphasis="prominent">
       <Pressable accessibilityRole="button" onPress={onToggle} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 32 }}>
         <Text style={[typography.subheading, { color: colors.text }]}>{title}</Text>
-        <Text style={{ color: colors.primary, fontSize: 18 }}>{expanded ? "▲" : "▼"}</Text>
+        <Text style={{ color: colors.primaryStrong, fontSize: 16, fontWeight: "700" }}>{expanded ? "▲" : "▼"}</Text>
       </Pressable>
       {expanded ? <View style={{ marginTop: spacing.md, gap: spacing.sm }}>{children}</View> : null}
     </Card>
@@ -132,10 +132,12 @@ function ModuleRow({ modulo, trainingId }: { modulo: Module; trainingId: number 
           borderRadius: 14,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: modulo.concluido ? colors.successSoft : colors.surfaceStrong,
+          backgroundColor: modulo.concluido ? colors.success : colors.surfaceStrong,
         }}
       >
-        <Text style={{ color: modulo.concluido ? colors.success : colors.textMuted }}>{modulo.concluido ? "✓" : "○"}</Text>
+        <Text style={{ color: modulo.concluido ? "#ffffff" : colors.textMuted, fontWeight: "700" }}>
+          {modulo.concluido ? "✓" : "○"}
+        </Text>
       </View>
       <Text style={[typography.body, { color: colors.text, flex: 1 }]} numberOfLines={1}>
         {modulo.titulo}

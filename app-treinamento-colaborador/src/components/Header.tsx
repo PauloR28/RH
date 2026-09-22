@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
+import { fontFamily } from "@/theme/typography";
 
 interface HeaderProps {
   title: string;
@@ -12,21 +13,21 @@ interface HeaderProps {
 
 /** Header fixo no topo, sem bottom tabs — navegação em navbar como no Conecta web (promt.txt §5). */
 export function Header({ title, showBack, onMenuPress }: HeaderProps) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary, paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.container, { backgroundColor: colors.primaryStrong, paddingTop: insets.top + spacing.sm }]}>
       <View style={[styles.row, { paddingHorizontal: spacing.lg, paddingBottom: spacing.md }]}>
         {showBack ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             onPress={() => router.back()}
-            hitSlop={12}
-            style={styles.iconButton}
+            hitSlop={8}
+            style={[styles.backButton, { backgroundColor: colors.primary }]}
           >
-            <Text style={styles.iconGlyph}>‹</Text>
+            <Text style={styles.iconGlyph}>←</Text>
           </Pressable>
         ) : onMenuPress ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Abrir menu" onPress={onMenuPress} hitSlop={12} style={styles.iconButton}>
@@ -37,10 +38,9 @@ export function Header({ title, showBack, onMenuPress }: HeaderProps) {
         ) : (
           <View style={styles.iconButton} />
         )}
-        <Text style={[typography.subheading, styles.title, { color: colors.onPrimary }]} numberOfLines={1}>
+        <Text style={[styles.title, { color: colors.onPrimary }]} numberOfLines={1}>
           {title}
         </Text>
-        <View style={styles.iconButton} />
       </View>
     </View>
   );
@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   iconButton: {
     width: 44,
@@ -61,10 +60,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   iconGlyph: {
     color: "#ffffff",
-    fontSize: 30,
-    lineHeight: 30,
+    fontSize: 22,
+    fontWeight: "700",
   },
   menuBar: {
     width: 20,
@@ -75,6 +81,12 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    textAlign: "center",
+    textAlign: "right",
+    textTransform: "uppercase",
+    fontSize: 19,
+    lineHeight: 24,
+    fontFamily: fontFamily.bold,
+    letterSpacing: 0.3,
+    marginLeft: 12,
   },
 });

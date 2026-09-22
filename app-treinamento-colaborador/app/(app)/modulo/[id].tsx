@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -38,6 +38,8 @@ export default function ModuleScreen() {
   const { data: trainings, isLoading } = useMyTrainings();
   const completeMutation = useCompleteTrainingItem();
   const [reachedEnd, setReachedEnd] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const training = trainings?.find((item) => String(item.id_onboarding) === trainingId);
   const modulos = useMemo(() => (training ? [...training.modulos].sort((a, b) => a.ordem - b.ordem) : []), [training]);
@@ -56,9 +58,22 @@ export default function ModuleScreen() {
     instance.loop = false;
   });
 
+  // Dica (do módulo + de cada seção) e Saiba+ só aparecem quando têm
+  // conteúdo cadastrado — mesmo critério do vídeo acima.
+  const dicas = useMemo(() => {
+    if (!modulo) return [];
+    return [modulo.dica_texto, ...modulo.secoes.map((secao) => secao.dica)].filter(
+      (texto): texto is string => Boolean(texto)
+    );
+  }, [modulo]);
+  const saibaMaisItens = modulo?.saiba_mais ?? [];
+  const temSaibaMais = saibaMaisItens.some((item) => (item.tipo === "dica" && item.texto) || (item.tipo === "link" && item.url));
+  const temMaterial = (modulo?.secoes.length ?? 0) > 0 || dicas.length > 0 || temSaibaMais;
+
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    if (reachedEnd) return;
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    setShowScrollTop(contentOffset.y > layoutMeasurement.height * 0.5);
+    if (reachedEnd) return;
     const distanceToBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
     if (distanceToBottom <= SCROLL_END_THRESHOLD_PX) {
       setReachedEnd(true);
@@ -68,6 +83,7 @@ export default function ModuleScreen() {
   function goToModule(targetId: number) {
     router.setParams({ id: String(targetId) });
     setReachedEnd(false);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
   async function handleComplete() {
@@ -95,73 +111,69 @@ export default function ModuleScreen() {
         </View>
       ) : (
         <>
+          <View style={{ flex: 1 }}>
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.huge }}
             onScroll={handleScroll}
             scrollEventThrottle={200}
           >
-            <Text style={[typography.heading, { color: colors.text }]}>{modulo.titulo}</Text>
+            <Breadcrumb trainingId={training?.id_onboarding} />
+
+            <Text style={[typography.subheading, { color: colors.primaryStrong, marginTop: spacing.lg }]}>Aula: {modulo.titulo}</Text>
             {modulo.descricao ? (
               <Text style={[typography.body, { color: colors.textSoft, marginTop: spacing.sm }]}>{modulo.descricao}</Text>
             ) : null}
 
-            {temVideo && videoSource ? (
-              <View style={{ marginTop: spacing.xl }}>
-                <Text style={[typography.subheading, { color: colors.text, marginBottom: spacing.sm }]}>Vídeo Explicativo</Text>
-                <VideoView player={player} style={styles.video} contentFit="contain" />
-              </View>
-            ) : null}
+            <View style={[styles.divider, { backgroundColor: colors.border, marginTop: spacing.lg }]} />
 
             {modulo.texto_principal ? (
-              <Card style={{ marginTop: spacing.xl }}>
+              <Card emphasis="prominent" style={{ marginTop: spacing.lg }}>
                 <Text style={[typography.body, { color: colors.text }]}>{stripHtml(modulo.texto_principal)}</Text>
               </Card>
             ) : null}
 
-            {modulo.secoes.length > 0 ? (
-              <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
-                <Text style={[typography.subheading, { color: colors.text }]}>Material de Leitura</Text>
-                {modulo.secoes.map((secao, secaoIndex) => (
-                  <View key={secaoIndex}>
-                    {secao.subtitulo ? (
-                      <Text style={[typography.subheading, { color: colors.primaryStrong, marginBottom: spacing.xs }]}>
-                        {secao.subtitulo}
-                      </Text>
-                    ) : null}
-                    {secao.texto ? <Text style={[typography.body, { color: colors.textSoft }]}>{stripHtml(secao.texto)}</Text> : null}
-                    {secao.link ? <LinkChip url={secao.link} /> : null}
-                    {secao.imagens.map((imagem, imagemIndex) => (
-                      <Image
-                        key={imagemIndex}
-                        source={{ uri: resolveMediaUrl(imagem), headers: token ? { Authorization: `Bearer ${token}` } : undefined }}
-                        style={styles.sectionImage}
-                        resizeMode="cover"
-                      />
+            {temMaterial ? (
+              <>
+                <SectionHeading label="Material de Leitura" style={{ marginTop: spacing.xl }} />
+                <Card emphasis="prominent" style={{ marginTop: spacing.sm }}>
+                  <View style={{ gap: spacing.lg }}>
+                    {modulo.secoes.map((secao, secaoIndex) => (
+                      <View key={secaoIndex}>
+                        {secao.subtitulo ? (
+                          <Text style={[typography.subheading, { color: colors.primaryStrong, marginBottom: spacing.xs }]}>
+                            {secao.subtitulo}
+                          </Text>
+                        ) : null}
+                        {secao.texto ? <Text style={[typography.body, { color: colors.textSoft }]}>{stripHtml(secao.texto)}</Text> : null}
+                        {secao.link ? <LinkChip url={secao.link} /> : null}
+                        {secao.imagens.map((imagem, imagemIndex) => (
+                          <Image
+                            key={imagemIndex}
+                            source={{ uri: resolveMediaUrl(imagem), headers: token ? { Authorization: `Bearer ${token}` } : undefined }}
+                            style={styles.sectionImage}
+                            resizeMode="cover"
+                          />
+                        ))}
+                      </View>
                     ))}
+
+                    {dicas.map((texto, index) => (
+                      <DicaCard key={`dica-${index}`} texto={texto} />
+                    ))}
+
+                    {temSaibaMais ? <SaibaMaisSection itens={saibaMaisItens} /> : null}
                   </View>
-                ))}
-              </View>
+                </Card>
+              </>
             ) : null}
 
-            {(() => {
-              // Correções.txt (17/set/2026): a caixa de Dica deve vir no final
-              // do texto do módulo (junto com o Saiba+), não intercalada entre
-              // as seções — junta a Dica do módulo inteiro com a de cada seção.
-              const dicas = [
-                modulo.dica_texto,
-                ...modulo.secoes.map((secao) => secao.dica),
-              ].filter((texto): texto is string => Boolean(texto));
-              if (!dicas.length) return null;
-              return (
-                <View style={{ marginTop: spacing.xl }}>
-                  {dicas.map((texto, index) => (
-                    <DicaCard key={index} texto={texto} />
-                  ))}
-                </View>
-              );
-            })()}
-
-            {modulo.saiba_mais?.length ? <SaibaMaisSection itens={modulo.saiba_mais} /> : null}
+            {temVideo && videoSource ? (
+              <>
+                <SectionHeading label="Vídeo Explicativo" style={{ marginTop: spacing.xl }} />
+                <VideoView player={player} style={[styles.video, { marginTop: spacing.sm }]} contentFit="contain" />
+              </>
+            ) : null}
 
             <View style={{ height: spacing.xl }} />
 
@@ -178,6 +190,19 @@ export default function ModuleScreen() {
             ) : null}
           </ScrollView>
 
+          {showScrollTop ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Voltar ao topo"
+              onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+              style={[styles.scrollTopButton, { backgroundColor: colors.primaryStrong }]}
+              hitSlop={8}
+            >
+              <Text style={styles.scrollTopGlyph}>▲</Text>
+            </Pressable>
+          ) : null}
+          </View>
+
           <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, padding: spacing.lg, gap: spacing.md }]}>
             <View style={styles.footerRow}>
               <FooterButton label="‹ Anterior" onPress={() => anterior && goToModule(anterior.id_onboarding_item)} disabled={!anterior} />
@@ -191,6 +216,46 @@ export default function ModuleScreen() {
           </View>
         </>
       )}
+    </View>
+  );
+}
+
+// Wireframe "Visão Curso 4": trilha Home > Seu progresso > Aula no topo do
+// conteúdo da aula, com selo laranja (mesma família de ícone das seções
+// abaixo) para o ícone de início.
+function Breadcrumb({ trainingId }: { trainingId?: number }) {
+  const { colors, typography } = useTheme();
+  return (
+    <Card emphasis="prominent" style={styles.breadcrumbCard}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Início" onPress={() => router.push("/(app)")} hitSlop={8}>
+        <View style={[styles.breadcrumbHome, { backgroundColor: colors.accent }]}>
+          <Text style={styles.breadcrumbHomeGlyph}>⌂</Text>
+        </View>
+      </Pressable>
+      <Text style={[typography.body, { color: colors.textMuted }]}>›</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => trainingId && router.push({ pathname: "/(app)/treinamento/[id]", params: { id: String(trainingId) } })}
+        hitSlop={8}
+      >
+        <Text style={[typography.body, { color: colors.textMuted }]} numberOfLines={1}>
+          Seu progresso
+        </Text>
+      </Pressable>
+      <Text style={[typography.body, { color: colors.textMuted }]}>›</Text>
+      <Text style={[typography.bodyMedium, { color: colors.text }]}>Aula</Text>
+    </Card>
+  );
+}
+
+function SectionHeading({ label, style }: { label: string; style?: object }) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <View style={[styles.sectionHeadingRow, style]}>
+      <View style={[styles.sectionHeadingIcon, { backgroundColor: colors.accent }]}>
+        <Text style={styles.sectionHeadingGlyph}>🎥</Text>
+      </View>
+      <Text style={[typography.subheading, { color: colors.primaryStrong, marginLeft: spacing.sm }]}>{label}</Text>
     </View>
   );
 }
@@ -213,7 +278,7 @@ function FooterButton({ label, onPress, disabled }: { label: string; onPress: ()
 function DicaCard({ texto }: { texto: string }) {
   const { colors, spacing, radius, typography } = useTheme();
   return (
-    <View style={{ marginTop: spacing.lg }}>
+    <View>
       <View
         style={[
           styles.dicaCard,
@@ -222,7 +287,7 @@ function DicaCard({ texto }: { texto: string }) {
       >
         <Text style={[typography.body, { color: colors.text }]}>{texto}</Text>
       </View>
-      <View style={[styles.dicaBadge, { backgroundColor: colors.successSoft, borderColor: colors.bg }]}>
+      <View style={[styles.dicaBadge, { backgroundColor: colors.success, borderColor: colors.surface }]}>
         <Text style={{ fontSize: 20 }}>💡</Text>
       </View>
     </View>
@@ -235,10 +300,10 @@ function LinkChip({ url }: { url: string }) {
     <Pressable
       accessibilityRole="link"
       onPress={() => Linking.openURL(url)}
-      style={[styles.linkChip, { backgroundColor: colors.infoSoft, borderRadius: radius.pill, marginTop: spacing.sm }]}
+      style={[styles.linkChip, { backgroundColor: colors.violetSoft, borderRadius: radius.pill, marginTop: spacing.sm }]}
       hitSlop={8}
     >
-      <Text style={[typography.caption, { color: colors.info }]} numberOfLines={1}>
+      <Text style={[typography.caption, { color: colors.violet }]} numberOfLines={1}>
         🔗 {url}
       </Text>
     </Pressable>
@@ -252,7 +317,7 @@ function SaibaMaisSection({ itens }: { itens: SaibaMaisItem[] }) {
   if (!dicas.length && !links.length) return null;
 
   return (
-    <View style={{ marginTop: spacing.xl }}>
+    <View>
       <Text style={[typography.subheading, { color: colors.primaryStrong }]}>Saiba +</Text>
       {dicas.map((item, index) => (
         <Text key={`dica-${index}`} style={[typography.body, { color: colors.textSoft, marginTop: spacing.sm }]}>
@@ -269,11 +334,11 @@ function SaibaMaisSection({ itens }: { itens: SaibaMaisItem[] }) {
             { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.prominent, marginTop: spacing.md, padding: spacing.md, gap: spacing.md },
           ]}
         >
-          <View style={[styles.saibaMaisIcon, { backgroundColor: colors.infoSoft }]}>
-            <Text style={{ fontSize: 16 }}>🔗</Text>
+          <View style={[styles.saibaMaisIcon, { backgroundColor: colors.violetSoft, borderColor: colors.violet }]}>
+            <Text style={{ fontSize: 16 }}>👆</Text>
           </View>
-          <View style={[styles.saibaMaisPill, { backgroundColor: colors.infoSoft, borderRadius: radius.pill, paddingHorizontal: spacing.lg }]}>
-            <Text style={[typography.bodyMedium, { color: colors.info }]} numberOfLines={1}>
+          <View style={[styles.saibaMaisPill, { backgroundColor: colors.violetSoft, borderColor: colors.violet, borderRadius: radius.pill, paddingHorizontal: spacing.lg }]}>
+            <Text style={[typography.bodyMedium, { color: colors.violet }]} numberOfLines={1}>
               {(item.texto || item.url).toUpperCase()}
             </Text>
           </View>
@@ -307,6 +372,59 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: 8,
     backgroundColor: "#000",
+  },
+  divider: {
+    height: 1,
+  },
+  breadcrumbCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+  },
+  breadcrumbHome: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  breadcrumbHomeGlyph: {
+    color: "#ffffff",
+    fontSize: 16,
+  },
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionHeadingIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionHeadingGlyph: {
+    fontSize: 13,
+  },
+  scrollTopButton: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  scrollTopGlyph: {
+    color: "#ffffff",
+    fontSize: 14,
   },
   sectionImage: {
     width: "100%",
@@ -360,12 +478,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
   saibaMaisPill: {
     flex: 1,
     minHeight: 40,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },
