@@ -1,0 +1,46 @@
+name: Deploy Producao
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, producao]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Atualizar arquivos em C:\Conecta (preserva .env e .venv)
+        shell: powershell
+        run: |
+          robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" /XF ".env" /NFL /NDL /NJH /NJS
+          if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
+
+      - name: Parar aplicacao
+        shell: powershell
+        run: Stop-ScheduledTask -TaskName "Conecta-RH" -ErrorAction SilentlyContinue
+
+      - name: Recriar ambiente virtual e instalar dependencias
+        shell: powershell
+        run: |
+          if (Test-Path "C:\Conecta\.venv") { Remove-Item "C:\Conecta\.venv" -Recurse -Force }
+          python -m venv "C:\Conecta\.venv"
+          & "C:\Conecta\.venv\Scripts\pip.exe" install --quiet --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao atualizar o pip (codigo $LASTEXITCODE)." }
+          & "C:\Conecta\.venv\Scripts\pip.exe" install --quiet -r "C:\Conecta\requirements.txt"
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar requirements.txt (codigo $LASTEXITCODE)." }
+
+      - name: Aplicar migrations pendentes
+        shell: powershell
+        env:
+          PROD_SQL_PASSWORD: ${{ secrets.PROD_SQL_PASSWORD }}
+        run: |
+          powershell -ExecutionPolicy Bypass -File "C:\Conecta\infra\scripts\powershell\aplicar-migrations.ps1" -Server "localhost\SQLEXPRESS" -Database "RH_Provas_C24H" -Username "rh_app" -Password $env:PROD_SQL_PASSWORD
+
+      - name: Reiniciar aplicacao e verificar saude
+        shell: powershell
+        run: |
+          Start-ScheduledTask -TaskName "Conecta-RH"
+          Start-Sleep -Seconds 5
+          $resp = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 15
+          Write-Host "Aplicacao respondendo: $($resp.Content)"
