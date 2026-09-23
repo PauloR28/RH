@@ -40,13 +40,16 @@ robocopy $sourceDir $AppDir /MIR /XD ".venv" ".git" /XF ".env" /NFL /NDL /NJH /N
 Write-Host "OK - arquivos atualizados em $AppDir"
 
 Write-Host ""
-Write-Host "== 4/6: instalando dependencias Python =="
-if (-not (Test-Path (Join-Path $AppDir ".venv"))) {
-    Write-Host "Ambiente virtual nao existe, criando..."
-    python -m venv (Join-Path $AppDir ".venv")
+Write-Host "== 4/6: recriando ambiente virtual e instalando dependencias =="
+$venvDir = Join-Path $AppDir ".venv"
+if (Test-Path $venvDir) {
+    Remove-Item $venvDir -Recurse -Force
 }
-& (Join-Path $AppDir ".venv\Scripts\pip.exe") install --quiet --upgrade pip
-& (Join-Path $AppDir ".venv\Scripts\pip.exe") install --quiet -r (Join-Path $AppDir "requirements.txt")
+python -m venv $venvDir
+& (Join-Path $venvDir "Scripts\pip.exe") install --quiet --upgrade pip
+if ($LASTEXITCODE -ne 0) { throw "Falha ao atualizar o pip (codigo $LASTEXITCODE)." }
+& (Join-Path $venvDir "Scripts\pip.exe") install --quiet -r (Join-Path $AppDir "requirements.txt")
+if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar requirements.txt (codigo $LASTEXITCODE)." }
 Write-Host "OK - dependencias instaladas"
 
 Write-Host ""
