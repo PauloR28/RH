@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
+from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
+from ..services.http_cache import aplicar_cache_http
 from ..schemas.auth import DecideEmailChangeRequest
 from ..schemas.common import SuccessResponse
 from ..schemas.security import (
@@ -19,6 +21,19 @@ from ..schemas.security import (
     UserStatusRequest,
     UserUpdateRequest,
 )
+
+
+def _require_catalog_write_access(tipo: str, user: AuthenticatedUser) -> None:
+    """Correções.txt (24/set/2026, item 11): `operacoes.editar` só libera escrita
+    no catálogo "operacoes" — as demais gavetas (etapas, motivos_eliminacao etc.)
+    continuam exigindo a permissão ampla `configuracoes.editar`, senão um perfil
+    com acesso só a Operações poderia editar qualquer catálogo pela mesma rota
+    genérica /catalog/{tipo}."""
+    if user.has_permission("configuracoes.editar"):
+        return
+    if tipo == "operacoes" and user.has_permission("operacoes.editar"):
+        return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -219,21 +234,29 @@ def export_audit_logs(repository: DatabaseRepository = Depends(get_repository)):
 
 
 @router.get("/catalog", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
-def get_settings_catalog(repository: DatabaseRepository = Depends(get_repository)):
-    return repository.list_configuration_catalog()
+def get_settings_catalog(
+    request: Request,
+    response: Response,
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    dados = repository.list_configuration_catalog()
+    if aplicar_cache_http(request, response, dados):
+        return Response(status_code=304, headers=dict(response.headers))
+    return dados
 
 
-@router.post("/catalog/{tipo}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+@router.post("/catalog/{tipo}", dependencies=[Depends(require_permissions("configuracoes.editar", "operacoes.editar"))])
 def create_settings_item(
     tipo: str,
     payload: ConfigurationItemRequest,
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    _require_catalog_write_access(tipo, user)
     return repository.upsert_configuration_item(tipo, payload.model_dump(), actor=user)
 
 
-@router.put("/catalog/{tipo}/{id_item}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+@router.put("/catalog/{tipo}/{id_item}", dependencies=[Depends(require_permissions("configuracoes.editar", "operacoes.editar"))])
 def update_settings_item(
     tipo: str,
     id_item: int,
@@ -241,10 +264,11 @@ def update_settings_item(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    _require_catalog_write_access(tipo, user)
     return repository.upsert_configuration_item(tipo, payload.model_dump(), id_item=id_item, actor=user)
 
 
-@router.delete("/catalog/{tipo}/{id_item}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+@router.delete("/catalog/{tipo}/{id_item}", dependencies=[Depends(require_permissions("configuracoes.editar", "operacoes.editar"))])
 def deactivate_settings_item(
     tipo: str,
     id_item: int,
@@ -252,10 +276,11 @@ def deactivate_settings_item(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    _require_catalog_write_access(tipo, user)
     return repository.deactivate_configuration_item(tipo, id_item, actor=user, justificativa=justificativa)
 
 
-@router.delete("/catalog/{tipo}/{id_item}/permanente", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+@router.delete("/catalog/{tipo}/{id_item}/permanente", dependencies=[Depends(require_permissions("configuracoes.editar", "operacoes.editar"))])
 def delete_settings_item_permanently(
     tipo: str,
     id_item: int,
@@ -263,6 +288,7 @@ def delete_settings_item_permanently(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    _require_catalog_write_access(tipo, user)
     return repository.delete_configuration_item(tipo, id_item, actor=user, justificativa=justificativa)
 
 

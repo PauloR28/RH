@@ -27,6 +27,21 @@ import {
 
 const CATEGORIAS_MURAL = ['Aviso', 'Comunicado', 'Evento', 'Campanha', 'Institucional'];
 
+// Prompt.txt (23/set/2026): um emoji fixo por categoria, sempre antes do texto,
+// para identificar o tipo de postagem de longe no feed do Mural.
+const EMOJI_CATEGORIA_MURAL = {
+  Aviso: '⚠️',
+  Comunicado: '📢',
+  Evento: '🗓️',
+  Campanha: '👍',
+  Institucional: '📜',
+};
+
+function rotuloCategoriaMural(categoria) {
+  const emoji = EMOJI_CATEGORIA_MURAL[categoria];
+  return emoji ? `${emoji} ${categoria}` : categoria;
+}
+
 const TIPOS_PUBLICACAO = [
   {
     id: 'texto',
@@ -203,7 +218,7 @@ function PublicacaoCard({ publicacao, podeEditar, podeExcluir, modoLista = false
         <div class="mural-post-head">
           <div class="mural-post-tags">
             ${publicacao.fixado ? html`<span class="rh-status-pill mural-pin-pill"><span class="material-symbols-outlined">${IconeSvg('flag')}</span>Fixado</span>` : null}
-            ${publicacao.categoria ? html`<span class="rh-status-pill">${publicacao.categoria}</span>` : null}
+            ${publicacao.categoria ? html`<span class="rh-status-pill">${rotuloCategoriaMural(publicacao.categoria)}</span>` : null}
             ${publicacao.status === 'rascunho' ? html`<span class="rh-status-pill mural-ambiente-pill--muted">Rascunho</span>` : null}
             ${publicacao.status === 'arquivado' ? html`<span class="rh-status-pill mural-ambiente-pill--muted">Arquivado</span>` : null}
           </div>
@@ -480,7 +495,7 @@ export function TelaMural({ controlador }) {
             onChange=${(event) => setFiltroCategoria(event.target.value)}
           >
             <option value="">Todos os tipos</option>
-            ${CATEGORIAS_MURAL.map((categoria) => html`<option key=${categoria} value=${categoria}>${categoria}</option>`)}
+            ${CATEGORIAS_MURAL.map((categoria) => html`<option key=${categoria} value=${categoria}>${rotuloCategoriaMural(categoria)}</option>`)}
           </select>
           <input
             type="date"
@@ -612,7 +627,7 @@ export function TelaMural({ controlador }) {
                 onChange=${(event) => setForm({ ...form, categoria: event.target.value })}
               >
                 <option value="" disabled>Selecione</option>
-                ${CATEGORIAS_MURAL.map((categoria) => html`<option key=${categoria} value=${categoria}>${categoria}</option>`)}
+                ${CATEGORIAS_MURAL.map((categoria) => html`<option key=${categoria} value=${categoria}>${rotuloCategoriaMural(categoria)}</option>`)}
               </select>
             </label>
             <label class="form-field mural-form-pin">
@@ -707,7 +722,7 @@ export function TelaMural({ controlador }) {
           ? html`
               <div class="mural-view">
                 <div class="mural-view-meta">
-                  ${publicacaoVisualizando.categoria ? html`<span class="rh-status-pill">${publicacaoVisualizando.categoria}</span>` : null}
+                  ${publicacaoVisualizando.categoria ? html`<span class="rh-status-pill">${rotuloCategoriaMural(publicacaoVisualizando.categoria)}</span>` : null}
                   ${publicacaoVisualizando.fixado ? html`<span class="rh-status-pill mural-pin-pill"><span class="material-symbols-outlined">${IconeSvg('flag')}</span>Fixado</span>` : null}
                   <span class="mural-post-date">${formatarDataHora(publicacaoVisualizando.publicado_em || publicacaoVisualizando.criado_em)}</span>
                 </div>

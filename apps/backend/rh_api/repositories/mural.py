@@ -38,6 +38,18 @@ def _slugify(titulo: str) -> str:
     return base[:80] or "publicacao"
 
 
+# Prompt.txt (23/set/2026): um emoji fixo por categoria, sempre antes do
+# texto do tipo de postagem — mesma lista usada no feed do Mural dentro do
+# Conecta (ver EMOJI_CATEGORIA_MURAL em features/mural/index.js).
+_EMOJI_CATEGORIA_MURAL = {
+    "aviso": "⚠️",
+    "comunicado": "📢",
+    "evento": "🗓️",
+    "campanha": "👍",
+    "institucional": "📜",
+}
+
+
 def _titulo_mural_com_categoria(publicacao: dict) -> str:
     """Correções.txt (rodada 16/set/2026): título+imagem chegavam separados
     no SharePoint. O RH continua preenchendo só o título normal — aqui a
@@ -47,7 +59,9 @@ def _titulo_mural_com_categoria(publicacao: dict) -> str:
     categoria = normalize_text(publicacao.get("categoria"))
     if not categoria:
         return titulo
-    return f"{categoria.upper()} - {titulo}"
+    emoji = _EMOJI_CATEGORIA_MURAL.get(categoria.lower())
+    prefixo = f"{emoji} {categoria.upper()}" if emoji else categoria.upper()
+    return f"{prefixo} - {titulo}"
 
 
 class MuralRepositoryMixin:

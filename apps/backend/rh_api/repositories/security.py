@@ -1343,6 +1343,7 @@ class SecurityRepositoryMixin:
                     usuarios.id_usuario,
                     usuarios.login,
                     usuarios.nome,
+                    usuarios.sobrenome,
                     usuarios.email,
                     usuarios.perfil_id,
                     perfis.nome AS perfil_nome,
@@ -1362,7 +1363,17 @@ class SecurityRepositoryMixin:
                 """
             )
             rows = rows_to_dicts(cursor, cursor.fetchall())
-            users = [self._serialize_system_user(row) for row in rows]
+            cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
+            operacoes_por_usuario: dict = {}
+            for id_usuario, operacao in cursor.fetchall():
+                valor = normalize_text(operacao)
+                if not valor:
+                    continue
+                operacoes_por_usuario.setdefault(id_usuario, []).append(valor)
+            users = [
+                self._serialize_system_user(row, operacoes=operacoes_por_usuario.get(row.get("id_usuario"), []))
+                for row in rows
+            ]
         finally:
             conn.close()
 

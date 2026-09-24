@@ -219,9 +219,6 @@ export function AbaEquipesCatalogos() {
   const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
-    if (!operacao && ativas.length) setOperacao(ativas[0].chave);
-  }, [ativas]);
-  useEffect(() => {
     if (!operacao) return;
     listarEquipesMonitoria(operacao).then((r) => setEquipes(r.itens || [])).catch(() => setEquipes([]));
     Promise.all([listarCatalogoMonitoria('turno', '', true), listarCatalogoMonitoria('canal', operacao, true), listarCatalogoMonitoria('tipo_atendimento', operacao, true)])
@@ -245,10 +242,12 @@ export function AbaEquipesCatalogos() {
     <div class="mon-shell">
       <${ToastHost} />
       <div class="mon-filtros mon-filtros--linha">
-        <label class="mon-filtro mon-filtro--select">Operação<${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${operacao} todas=${false} onChange=${setOperacao} /></label>
+        <label class="mon-filtro mon-filtro--select">Operação<${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${operacao} todas=${true} rotuloTodas="Selecione uma operação" onChange=${setOperacao} /></label>
         <p class="mon-muted mon-filtros-nota">Equipes, canais e tipos pertencem à operação escolhida; turnos valem para todas. Equipes e turnos aparecem no cadastro de usuário.</p>
       </div>
-      <div class="mon-config-grid">
+      ${!operacao
+        ? html`<${EmptyState} icon="apartment" title="Selecione uma operação" text="Escolha a operação acima para ver e cadastrar equipes, canais e tipos de atendimento dela." />`
+        : html`<div class="mon-config-grid">
         <${CartaoLista} titulo="Equipes" placeholder="Nova equipe" vazio="Nenhuma equipe nesta operação." podeEditar=${true}
           itens=${equipes.map((e) => ({ id: e.id_equipe, nome: e.nome, ativo: e.ativo, detalhe: `${e.membros} membro(s)` }))}
           aoAlternar=${(e) => executar(() => salvarEquipeMonitoria({ nome: e.nome, ativo: !e.ativo }, e.id), e.ativo ? 'Equipe inativada.' : 'Equipe ativada.')}
@@ -256,7 +255,7 @@ export function AbaEquipesCatalogos() {
         <${CartaoLista} titulo="Turnos (todas as operações)" placeholder="Novo turno" vazio="Nenhum turno cadastrado." podeEditar=${true} itens=${itensCatalogo(catalogos.turno)} ...${acoesCatalogo('turno', '')} />
         <${CartaoLista} titulo="Canais de atendimento" placeholder="Novo canal" vazio="Nenhum canal nesta operação." podeEditar=${true} itens=${itensCatalogo(catalogos.canal)} ...${acoesCatalogo('canal', operacao)} />
         <${CartaoLista} titulo="Tipos de atendimento" placeholder="Novo tipo" vazio="Nenhum tipo nesta operação." podeEditar=${true} itens=${itensCatalogo(catalogos.tipo_atendimento)} ...${acoesCatalogo('tipo_atendimento', operacao)} />
-      </div>
+      </div>`}
     </div>`;
 }
 

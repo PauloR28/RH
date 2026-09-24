@@ -83,8 +83,8 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260922-login-copy');
-const importarProcessos = () => import('../features/telas-processos.js?v=20260916-correcoes-round3');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260924-correcoes-txt4');
+const importarProcessos = () => import('../features/telas-processos.js?v=20260924-correcoes-txt4');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
 const TelaAnaliseCandidatos = carregarTela(importarGestao, 'TelaAnaliseCandidatos');
@@ -111,15 +111,15 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260921-correcoes10'),
+  () => import('../features/configuracoes/index.js?v=20260924-correcoes-txt4'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20260922-treinamento-operador');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20260924-correcoes-txt4');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round4'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260916-correcoes-round4'), 'TelaMural');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260923-emoji-categorias'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
   () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),

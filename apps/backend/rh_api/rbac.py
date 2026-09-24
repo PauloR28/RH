@@ -308,6 +308,12 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
             "Operações",
             "Visualizar operações cadastradas (usadas em processos, provas e treinamentos).",
         ),
+        _permission(
+            "operacoes.editar",
+            "Operações",
+            "Cadastrar, editar e inativar operações — sem precisar da permissão ampla de editar configurações.",
+            critical=True,
+        ),
         _permission("mural.visualizar", "Mural", "Visualizar o feed de avisos e comunicados do Mural."),
         _permission(
             "mural.criar",

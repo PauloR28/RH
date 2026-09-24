@@ -2069,6 +2069,22 @@
     font-size: 0.78rem;
   }
 
+  /* Correções.txt (23/set/2026): com os rótulos de texto, os 6 itens da
+     navegação + Configurações nunca cabiam numa notebook comum (~1093-
+     1200px de largura efetiva, comum com o escalonamento de DPI do
+     Windows em telas de 15"), forçando a faixa para 2 linhas e empurrando
+     a tela para baixo — o usuário precisava reduzir o zoom do navegador
+     para compensar. Ícone-only (com tooltip via o `title` já existente em
+     cada botão) resolve sem perder nenhuma opção. */
+  .rh-modern-topnav .rh-modern-nav-label {
+    display: none;
+  }
+
+  .rh-modern-topnav .rh-modern-nav-btn,
+  .rh-modern-topnav .rh-modern-cta-btn {
+    padding: 0.5rem;
+  }
+
   .rh-modern-topnav-user {
     margin-left: auto;
   }

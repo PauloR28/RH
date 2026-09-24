@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import HTTPException, status
 
 from ..services.helpers import normalize_compare_text, normalize_string_list, normalize_text, rows_to_dicts
@@ -75,16 +77,24 @@ class CandidateProfileRepositoryMixin:
                 (safe_id_teste,),
             )
             history_row = cursor.fetchone()
-            if not history_row:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidato não encontrado para atualizar o status.")
+            if history_row:
+                current_status = canonicalize_candidate_status(history_row[1])
+                if normalize_compare_text(current_status) == normalize_compare_text(CANDIDATE_STATUS_APPROVED):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=build_approved_candidate_locked_message(),
+                    )
 
-            current_status = canonicalize_candidate_status(history_row[1])
-            if normalize_compare_text(current_status) == normalize_compare_text(CANDIDATE_STATUS_APPROVED):
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=build_approved_candidate_locked_message(),
-                )
-
+            # Correções.txt (23/set/2026): um candidato de "prova avulsa" só ganha
+            # linha em historico_provas quando a prova é finalizada — enquanto ela
+            # está "Em andamento" (ver _get_standalone_generated_exam_candidates em
+            # base.py), o candidato já aparece em "Decisões Finais Pendentes" mas
+            # esse SELECT acima não encontra nada, e o 404 antigo aqui impedia
+            # Eliminar/Enviar para Banco de Talentos de funcionar (Aprovar também
+            # seria afetado, mas passa primeiro por um modal, então o clique
+            # "parecia" funcionar). provas_geradas é a fonte real desses
+            # candidatos — usa ela para confirmar que o candidato existe antes de
+            # decidir se atualiza ou insere o histórico.
             cursor.execute(
                 """
                 SELECT TOP 1 nome_candidato
@@ -94,12 +104,24 @@ class CandidateProfileRepositoryMixin:
                     SELECT nome_candidato FROM banco_talentos WHERE id_teste = ?
                     UNION ALL
                     SELECT nome_candidato FROM historico_provas WHERE id_teste = ?
+                    UNION ALL
+                    SELECT nome_candidato FROM provas_geradas WHERE id_teste = ?
                 ) origem
                 """,
-                (safe_id_teste, safe_id_teste, safe_id_teste),
+                (safe_id_teste, safe_id_teste, safe_id_teste, safe_id_teste),
             )
             candidate_name_row = cursor.fetchone()
+            if not history_row and not candidate_name_row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidato não encontrado para atualizar o status.")
+
             candidate_name = normalize_text(candidate_name_row[0]) if candidate_name_row else ""
+
+            vaga_row = None
+            cursor.execute(
+                "SELECT TOP 1 vaga, trilha, nivel FROM provas_geradas WHERE id_teste = ? ORDER BY atualizado_em DESC",
+                (safe_id_teste,),
+            )
+            vaga_row = cursor.fetchone()
 
             cursor.execute(
                 """
@@ -109,6 +131,7 @@ class CandidateProfileRepositoryMixin:
                 """,
                 (requested_status, safe_id_teste),
             )
+            precisa_inserir_historico = cursor.rowcount < 1
             cursor.execute(
                 """
                 UPDATE entrevistas_agendadas
@@ -119,6 +142,20 @@ class CandidateProfileRepositoryMixin:
             )
             conn.commit()
             self.logger.info("Status avulso do candidato %s atualizado para '%s'.", safe_id_teste, requested_status)
+
+            if precisa_inserir_historico:
+                # Feito com a transação acima já commitada (conexão própria em
+                # save_history) para não travar em lock cruzado entre as duas
+                # conexões sobre a mesma tabela historico_provas.
+                self.save_history({
+                    "id_teste": safe_id_teste,
+                    "nome_candidato": candidate_name,
+                    "vaga": normalize_text(vaga_row[0]) if vaga_row else "",
+                    "trilha": normalize_text(vaga_row[1]) if vaga_row else "",
+                    "nivel": normalize_text(vaga_row[2]) if vaga_row else "",
+                    "data_iso": datetime.now().isoformat(),
+                    "status": requested_status,
+                })
 
             if requested_status == CANDIDATE_STATUS_TALENT_BANK and candidate_name:
                 self.add_candidate_to_talent_bank({

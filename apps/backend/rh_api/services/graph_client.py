@@ -135,6 +135,16 @@ class GraphClient:
         headers = {"Authorization": f"Bearer {token}"}
         if content_type:
             headers["Content-Type"] = content_type
+        elif json_body is not None:
+            # Correções.txt (23/set/2026): sem "charset=utf-8" explícito aqui, o
+            # httpx manda só "Content-Type: application/json" nas chamadas com
+            # json_body (ex.: criar/atualizar item da lista "Mural Publicacoes")
+            # — o backend da SharePoint REST por trás do Graph, sem o charset
+            # explícito, decodifica o corpo como Latin-1/cp1252 em vez de UTF-8,
+            # trocando qualquer caractere acentuado por mojibake (ex.: "ção" virava
+            # "Ã§Ã£o"). Título/Resumo já iam em UTF-8 de verdade — só faltava dizer
+            # isso explicitamente no header.
+            headers["Content-Type"] = "application/json; charset=utf-8"
         if extra_headers:
             headers.update(extra_headers)
 

@@ -145,7 +145,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
               <th><span class="mon-th-id">
                 ${podeExportar ? html`<input type="checkbox" aria-label="Selecionar todas as monitorias da página" checked=${todasMarcadas}
                   ref=${(el) => { if (el) el.indeterminate = algumaMarcada && !todasMarcadas; }} onChange=${alternarTodas} />` : null}
-                ID</span></th><th>Data</th><th>Operação</th><th>Operador</th><th>Equipe</th><th>Avaliador</th><th class="num">Nota</th><th>Status</th><th>Prazo</th>
+                ID</span></th><th>Data</th><th>Operação</th><th>Operador</th><th>Equipe</th><th>Avaliador</th><th class="num">Nota</th><th>Status nota</th><th>Status</th><th>Prazo</th>
             </tr></thead>
             <tbody>
               ${dados.itens.map((m) => html`
@@ -157,7 +157,8 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
                   <td>${formatarData(m.data_monitoria)}</td>
                   <td><${TagOperacao} chave=${m.operacao} nome=${m.operacao_nome} contexto=${contexto} /></td>
                   <td>${m.operador_nome}</td><td>${m.equipe_nome || '—'}</td><td>${m.avaliador_nome}</td>
-                  <td class="num"><strong>${formatarNota(m.nota)}</strong> <${TagsMonitoria} item=${m} /></td>
+                  <td class="num"><strong>${formatarNota(m.nota)}</strong></td>
+                  <td><${TagsMonitoria} item=${m} /></td>
                   <td><${BadgeStatus} status=${m.status} rotulo=${m.status_rotulo} perfil=${perfil} contestada=${m.tem_contestacao} /></td>
                   <td><${BadgeSla} sla=${m.sla} /></td>
                 </tr>`)}

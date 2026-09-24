@@ -50,7 +50,7 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js';
+} from './monitoria-config.js?v=20260924-correcoes-txt4';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js';
 
@@ -579,6 +579,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   });
   const [painelFiltrosUsuariosAberto, setPainelFiltrosUsuariosAberto] = useState(false);
   const [paginaUsuarios, setPaginaUsuarios] = useState(1);
+  const [tamanhoPaginaUsuarios, setTamanhoPaginaUsuarios] = useState(7);
   const [perfilSelecionadoId, setPerfilSelecionadoId] = useState('');
   const [permissoesPerfilDraft, setPermissoesPerfilDraft] = useState([]);
   const [buscaPermissao, setBuscaPermissao] = useState('');
@@ -936,6 +937,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         setFeedback('Usuário criado com sucesso.');
       }
       setCriandoUsuario(false);
+      setDrawerUsuarioAberto(false);
       await carregarAba(abaRenderizada);
     } catch (error) {
       setErro(error?.message || 'Não foi possível salvar o usuário.');
@@ -1448,8 +1450,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   }, [usuarios, filtrosUsuarios]);
 
   const paginacaoUsuarios = useMemo(
-    () => obterItensPaginados(usuariosFiltrados, paginaUsuarios, 7),
-    [usuariosFiltrados, paginaUsuarios],
+    () => obterItensPaginados(usuariosFiltrados, paginaUsuarios, tamanhoPaginaUsuarios),
+    [usuariosFiltrados, paginaUsuarios, tamanhoPaginaUsuarios],
   );
   const filtrosUsuariosAtivos = [
     filtrosUsuarios.busca,
@@ -1842,7 +1844,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               }
             }}
                           >
-                            <td><span class="users-name-text">${textoSeguro(usuario.nome)}</span></td>
+                            <td><span class="users-name-text">${textoSeguro([usuario.nome, usuario.sobrenome].filter(Boolean).join(' '))}</span></td>
                             <td>${textoSeguro(usuario.perfil_nome, textoSeguro(usuario.perfil))}</td>
                             <td><${Badge} label=${textoSeguro(usuario.status, 'Sem status')} tone=${obterStatusTone(textoSeguro(usuario.status, ''))} /></td>
                             <td>${textoSeguro(usuario.email, textoSeguro(usuario.login))}</td>
@@ -1852,11 +1854,26 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     </tbody>
                   </table>
                 </div>
-                <${PaginacaoCompacta}
-                  paginacao=${paginacaoUsuarios}
-                  label=${`Mostrando ${obterIntervaloPaginacao(paginacaoUsuarios)} de ${paginacaoUsuarios.totalItens} resultados`}
-                  onChange=${setPaginaUsuarios}
-                />
+                <div class="users-pagination-bar">
+                  <${PaginacaoCompacta}
+                    paginacao=${paginacaoUsuarios}
+                    label=${`Mostrando ${obterIntervaloPaginacao(paginacaoUsuarios)} de ${paginacaoUsuarios.totalItens} resultados`}
+                    onChange=${setPaginaUsuarios}
+                  />
+                  <label class="users-page-size">
+                    Por página
+                    <select
+                      class="form-select"
+                      value=${tamanhoPaginaUsuarios}
+                      onChange=${(event) => {
+        setTamanhoPaginaUsuarios(Number(event.target.value));
+        setPaginaUsuarios(1);
+      }}
+                    >
+                      ${[7, 15, 30, 50].map((tamanho) => html`<option key=${tamanho} value=${tamanho}>${tamanho}</option>`)}
+                    </select>
+                  </label>
+                </div>
               `
         : html`
                 <${EmptyPanel}
@@ -2448,7 +2465,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 <span class="c24-eyebrow">Endereço principal</span>
                 <h3>Endereço principal da empresa</h3>
               </div>
-              ${controlador.possuiPermissao('configuracoes.editar') && !editandoEndereco
+              ${(controlador.possuiPermissao('configuracoes.editar') || controlador.possuiPermissao('operacoes.editar')) && !editandoEndereco
           ? html`
                     <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoEndereco(true)}>
                       <${Icone} name="edit" /> ${enderecoPrincipalItem ? 'Editar' : 'Cadastrar'}
@@ -3016,7 +3033,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 `
       : null}
             <footer class="settings-form-footer is-wide">
-              <button type="submit" class="btn btn-primary" disabled=${salvando || !secaoCatalogoAtiva || !controlador.possuiPermissao('configuracoes.editar')}>
+              <button type="submit" class="btn btn-primary" disabled=${salvando || !secaoCatalogoAtiva || !(controlador.possuiPermissao('configuracoes.editar') || (secaoCatalogoAtiva?.tipo === 'operacoes' && controlador.possuiPermissao('operacoes.editar')))}>
                 <${Icone} name="check" /> ${salvando ? 'Salvando...' : 'Salvar'}
               </button>
               <button type="button" class="btn btn-outline-secondary" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>

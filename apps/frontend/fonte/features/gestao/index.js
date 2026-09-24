@@ -1854,6 +1854,19 @@ export function TelaLogin({ controlador }) {
   `;
 }
 
+// Correções.txt (24/set/2026, item 12.3): "Movimentações" e "Provas recentes" no
+// painel inicial só devem refletir o que aconteceu nos últimos N dias — antes não
+// havia corte nenhum e ambas listavam qualquer registro histórico.
+const JANELA_RECENTES_DIAS = 3;
+
+function formatarQuandoMovimentacao(valor) {
+  if (!valor) return '';
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return '';
+  const dois = (numero) => String(numero).padStart(2, '0');
+  return `${dois(data.getDate())}/${dois(data.getMonth() + 1)} - ${dois(data.getHours())}:${dois(data.getMinutes())}`;
+}
+
 export function TelaInicio({ controlador }) {
   const { showToast, ToastHost } = useToast();
   const [carregando, setCarregando] = useState(true);
@@ -1896,7 +1909,12 @@ export function TelaInicio({ controlador }) {
         resultadoHistorico.status === 'fulfilled'
           ? resultadoHistorico.value
           : [];
+      const corteRecentesMs = Date.now() - JANELA_RECENTES_DIAS * 24 * 60 * 60 * 1000;
       const ordenado = (Array.isArray(historico) ? historico : [])
+        .filter((item) => {
+          const tempo = new Date(item.data_iso || '').getTime();
+          return Number.isFinite(tempo) && tempo >= corteRecentesMs;
+        })
         .sort((a, b) =>
           String(b.data_iso || '').localeCompare(String(a.data_iso || '')),
         )
@@ -2075,47 +2093,82 @@ export function TelaInicio({ controlador }) {
     ],
   );
   const notificacoesDia = useMemo(() => {
-    const processoRecente = processosAtivos[0];
-    const candidatoAprovado = (Array.isArray(candidatosProcessos)
-      ? candidatosProcessos
-      : []
-    ).find((candidato) => getCandidateVisibleStatus(candidato) === 'Aprovado');
-    const notificacoes = [];
+    // Correções.txt (24/set/2026, item 12): antes disto, a caixa "Movimentações"
+    // sempre mostrava "Candidato aprovado para X" contanto que existisse QUALQUER
+    // candidato aprovado na lista carregada — mesmo que a ação mais recente do
+    // usuário tivesse sido eliminar outro candidato. Agora cada evento é real
+    // (aprovado_em/eliminado_em do próprio candidato), tem data/hora (item 12.2) e
+    // só entra na lista se aconteceu dentro da janela de ${JANELA_RECENTES_DIAS}
+    // dias (item 12.3).
+    const corteMs = Date.now() - JANELA_RECENTES_DIAS * 24 * 60 * 60 * 1000;
+    const dentroDaJanela = (quando) => {
+      const tempo = new Date(quando || '').getTime();
+      return Number.isFinite(tempo) && tempo >= corteMs;
+    };
 
-    if (candidatoAprovado) {
-      notificacoes.push({
-        icon: 'check_circle',
-        variant: 'is-success',
-        text: `Candidato aprovado para ${candidatoAprovado.vaga || 'vaga aberta'}`,
-      });
-    }
+    const eventos = [];
 
-    if (processoRecente) {
-      notificacoes.push({
+    (Array.isArray(candidatosProcessos) ? candidatosProcessos : []).forEach((candidato) => {
+      const statusVisivel = getCandidateVisibleStatus(candidato);
+      const statusNormalizado = normalizarTextoPainel(statusVisivel).toLowerCase();
+      const nome = candidato.nome_candidato || 'Candidato';
+      if (statusVisivel === 'Aprovado' && dentroDaJanela(candidato.aprovado_em)) {
+        eventos.push({
+          quando: candidato.aprovado_em,
+          icon: 'check_circle',
+          variant: 'is-success',
+          text: `${nome} aprovado para ${candidato.vaga || 'vaga aberta'}`,
+        });
+      } else if (
+        (statusNormalizado.includes('elimin') || statusNormalizado.includes('reprov')) &&
+        dentroDaJanela(candidato.eliminado_em)
+      ) {
+        eventos.push({
+          quando: candidato.eliminado_em,
+          icon: 'cancel',
+          variant: 'is-danger',
+          text: `${nome} eliminado${candidato.vaga ? ` de ${candidato.vaga}` : ''}`,
+        });
+      }
+    });
+
+    (Array.isArray(processosAtivos) ? processosAtivos : []).forEach((processo) => {
+      if (!dentroDaJanela(processo.data_criacao)) return;
+      eventos.push({
+        quando: processo.data_criacao,
         icon: 'folder_open',
         variant: 'is-info',
-        text: `Processo seletivo aberto para ${processoRecente.vaga || processoRecente.id_processo || 'vaga'}`,
+        text: `Processo seletivo aberto para ${processo.vaga || processo.nome_processo || processo.id_processo || 'vaga'}`,
       });
-    }
+    });
 
-    if (alertasOperacionais.length) {
-      notificacoes.push({
+    alertasOperacionais.forEach((item) => {
+      if (!dentroDaJanela(item.data_entrevista)) return;
+      const status = normalizarTextoPainel(item.status_entrevista).toLowerCase();
+      eventos.push({
+        quando: item.data_entrevista,
         icon: 'cancel',
         variant: 'is-danger',
-        text: `${alertasOperacionais.length} alerta(s) de entrevista`,
+        text: `Entrevista de ${item.nome_candidato || 'candidato'} ${status.includes('falt') ? 'com falta' : 'cancelada'}`,
       });
-    }
+    });
+
+    eventos.sort((a, b) => new Date(b.quando || 0).getTime() - new Date(a.quando || 0).getTime());
+    const notificacoes = eventos
+      .slice(0, 8)
+      .map((evento) => ({ ...evento, quandoTexto: formatarQuandoMovimentacao(evento.quando) }));
 
     if (entrevistasHoje.length) {
       notificacoes.push({
         icon: 'groups',
         variant: 'is-purple',
         text: `${entrevistasHoje.length} candidatos agendados para hoje`,
+        quandoTexto: '',
       });
     }
 
     return notificacoes;
-  }, [alertasOperacionais.length, candidatosProcessos, entrevistasHoje.length, processosAtivos]);
+  }, [alertasOperacionais, candidatosProcessos, entrevistasHoje.length, processosAtivos]);
 
   return html`
     <${PainelRh}
@@ -2281,7 +2334,8 @@ export function TelaInicio({ controlador }) {
                     ${notificacoesDia.map(
             (item, indice) => html`
                         <li class=${`home-activity-item ${item.variant || ''}`} key=${`${item.icon}-${indice}`}>
-                          ${item.text}
+                          <span>${item.text}</span>
+                          ${item.quandoTexto ? html`<span class="home-activity-item-quando">${item.quandoTexto}</span>` : null}
                         </li>
                       `,
           )}

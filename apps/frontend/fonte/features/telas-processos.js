@@ -4,4 +4,4 @@ export {
   TelaProcessosDecisoesPendentes,
   TelaProcessosEncerrados,
   TelaProcessos,
-} from './processos/index.js?v=20260916-correcoes-round3';
+} from './processos/index.js?v=20260924-fix-crash-liberar-prova';

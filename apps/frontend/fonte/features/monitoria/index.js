@@ -8,7 +8,7 @@ import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20260921-alertas';
 import { ModalDetalheMonitoria } from './detalhe.js?v=20260921-alertas';
-import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260921-operador';
+import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260924-correcoes-txt4';
 import { TelaDashboard } from './painel.js';
 import { TelaFormularios } from './admin.js?v=20260921-alertas';
 import { TelaCentralMonitoria } from './central.js';

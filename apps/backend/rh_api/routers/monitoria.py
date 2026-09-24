@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, Response
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
+from ..services.http_cache import aplicar_cache_http
 from ..schemas.monitoria import (
     AmbienteOperacaoRequest,
     CalcularRequest,
@@ -71,11 +72,16 @@ def escolher_tema(
 
 @router.get("/equipes", dependencies=[Depends(require_permissions("monitoria.equipes", "monitoria.visualizar"))])
 def listar_equipes(
+    request: Request,
+    response: Response,
     operacao: str = "",
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return {"itens": repository.mon_list_equipes(user, operacao)}
+    payload = {"itens": repository.mon_list_equipes(user, operacao)}
+    if aplicar_cache_http(request, response, payload, max_age=60):
+        return Response(status_code=304, headers=dict(response.headers))
+    return payload
 
 
 @router.post("/equipes", dependencies=[Depends(require_permissions("monitoria.equipes"))])
@@ -101,6 +107,8 @@ def atualizar_equipe(
 
 @router.get("/catalogo", dependencies=[Depends(require_permissions("sessao.monitoria.acessar", "monitoria.visualizar"))])
 def listar_catalogo(
+    request: Request,
+    response: Response,
     tipo: str,
     operacao: str = "",
     incluir_inativos: bool = False,
@@ -111,7 +119,10 @@ def listar_catalogo(
 
     if operacao and not pode_ver_operacao(user.perfil, user.operacoes, operacao):
         return {"itens": []}
-    return {"itens": repository.mon_list_catalogo(tipo, operacao, incluir_inativos=incluir_inativos)}
+    payload = {"itens": repository.mon_list_catalogo(tipo, operacao, incluir_inativos=incluir_inativos)}
+    if aplicar_cache_http(request, response, payload, max_age=60):
+        return Response(status_code=304, headers=dict(response.headers))
+    return payload
 
 
 @router.post("/catalogo", dependencies=[Depends(require_permissions("monitoria.equipes"))])

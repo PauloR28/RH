@@ -879,8 +879,8 @@ function parseJsonProcessoSeguro(valor, fallback = null) {
   }
 }
 
-function obterConfiguracoesProvaDoProcesso(processo = {}) {
-  const dados = parseJsonProcessoSeguro(processo.configuracao_prova_json, null);
+function obterConfiguracoesProvaDoProcesso(processo) {
+  const dados = parseJsonProcessoSeguro(processo?.configuracao_prova_json, null);
   const lista = Array.isArray(dados) ? dados : dados ? [dados] : [];
   return lista
     .filter((item) => item && typeof item === 'object')
@@ -3880,12 +3880,24 @@ export function TelaProcessos({ controlador }) {
       ...(statusCandidato === CANDIDATE_STATUS_APPROVED ? dadosAprovacao : {}),
     };
 
-    if (registro) {
-      await atualizarStatusCandidato(registro, dadosStatus);
-    } else if (idTeste) {
-      await atualizarStatusCandidatoAvulso(idTeste, dadosStatus);
-    } else {
+    if (!registro && !idTeste) {
       window.alert('Não foi possível identificar o candidato para atualizar o status.');
+      return;
+    }
+
+    try {
+      if (registro) {
+        await atualizarStatusCandidato(registro, dadosStatus);
+      } else {
+        await atualizarStatusCandidatoAvulso(idTeste, dadosStatus);
+      }
+    } catch (error) {
+      // Correções.txt (23/set/2026): antes disto, um erro aqui (ex.: 404 do
+      // candidato avulso cujo histórico ainda não existe) ficava só no
+      // console como promise rejeitada — "Eliminar"/"Enviar para Banco de
+      // Talentos" pareciam não fazer nada. "Aprovar" não sofria porque abre
+      // um modal antes de chegar aqui, o que já dá algum feedback visual.
+      showToast(obterMensagemOperacionalErro(error, 'Não foi possível atualizar o status do candidato.'), 'danger');
       return;
     }
 

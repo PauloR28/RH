@@ -25,12 +25,14 @@ export const lerContextoMonitoria = () => {
   return contextoEmAndamento;
 };
 export const escolherDesignOperacao = (operacao) => enviar('/monitoria/tema', 'PUT', { operacao });
+// Correções.txt (24/set/2026, item 5/13): equipes/catálogo mudam pouco — cache
+// HTTP (ETag/Cache-Control, ver services/http_cache.py) em vez de 'no-store'.
 export const listarEquipesMonitoria = (operacao = '') =>
-  requisitar(`/monitoria/equipes${consulta({ operacao })}`, { method: 'GET' });
+  requisitar(`/monitoria/equipes${consulta({ operacao })}`, { method: 'GET', cache: 'default' });
 export const salvarEquipeMonitoria = (payload, idEquipe = null) =>
   enviar(idEquipe ? `/monitoria/equipes/${idEquipe}` : '/monitoria/equipes', idEquipe ? 'PUT' : 'POST', payload);
 export const listarCatalogoMonitoria = (tipo, operacao = '', incluirInativos = false) =>
-  requisitar(`/monitoria/catalogo${consulta({ tipo, operacao, incluir_inativos: incluirInativos })}`, { method: 'GET' });
+  requisitar(`/monitoria/catalogo${consulta({ tipo, operacao, incluir_inativos: incluirInativos })}`, { method: 'GET', cache: 'default' });
 export const salvarCatalogoMonitoria = (payload, idItem = null) =>
   enviar(idItem ? `/monitoria/catalogo/${idItem}` : '/monitoria/catalogo', idItem ? 'PUT' : 'POST', payload);
 export const listarTiposAtendimento = () => requisitar('/monitoria/tipos-atendimento', { method: 'GET' });
