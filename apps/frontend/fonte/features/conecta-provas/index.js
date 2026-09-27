@@ -1486,7 +1486,11 @@ function AvisoPendenciasFinalizacao({
           <span class="material-symbols-outlined">${IconeSvg('warning')}</span>
           <h2 id="conecta-provas-pendencias-title">Existem pendências na sua prova</h2>
         </div>
-        <p>Você deseja finalizar mesmo assim ou voltar para revisar?</p>
+        <p>
+          Você deixou <strong>${lista.length === 1 ? '1 questão' : `${lista.length} questões`}</strong> sem resposta.
+          Questões em branco valem zero.
+        </p>
+        <p>Você pode voltar e revisar agora ou finalizar a prova assim mesmo.</p>
         ${lista.length
       ? html`
               <ul class="conecta-provas-pending-list">
@@ -1508,17 +1512,17 @@ function AvisoPendenciasFinalizacao({
             type="button"
             class="btn btn-outline-secondary"
             disabled=${carregando}
-            onClick=${onContinuar}
+            onClick=${onFinalizarMesmoAssim}
           >
-            Continuar respondendo
+            ${carregando ? 'Finalizando...' : 'Finalizar assim mesmo'}
           </button>
           <button
             type="button"
             class="btn btn-primary"
             disabled=${carregando}
-            onClick=${onFinalizarMesmoAssim}
+            onClick=${onContinuar}
           >
-            ${carregando ? 'Finalizando...' : 'Finalizar mesmo assim'}
+            Voltar e revisar
           </button>
         </div>
       </section>
