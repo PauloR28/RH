@@ -161,6 +161,25 @@ export async function buscarCandidatosTreinamento(busca = '') {
   return requisitar(`/onboarding/candidatos-elegiveis${montarQuery({ busca })}`, { method: 'GET' });
 }
 
+// QA T2-TRE-01: candidatos E usuários do sistema (operador, funcionário...).
+export async function buscarParticipantesTreinamento(busca = '') {
+  return requisitar(`/onboarding/participantes/busca${montarQuery({ busca })}`, { method: 'GET' });
+}
+
+export async function listarOperacoesParaTreinamento() {
+  return requisitar('/onboarding/participantes/operacoes', { method: 'GET' });
+}
+
+export async function atribuirTreinamentoUsuarios(payload) {
+  const resultado = await requisitar('/onboarding/usuarios/iniciar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  });
+  invalidarCacheApi('onboarding-trilhas', 'onboarding-progresso');
+  return resultado;
+}
+
 export async function buscarUsuariosMinistrante(busca = '') {
   return requisitar(`/onboarding/usuarios/busca${montarQuery({ busca })}`, { method: 'GET' });
 }

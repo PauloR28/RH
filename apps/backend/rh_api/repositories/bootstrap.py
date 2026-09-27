@@ -2084,6 +2084,10 @@ def ensure_onboarding_tables(cursor) -> None:
         # escalonamento de chamada pendente (3/5 dias) - evita notificar o RH
         # mais de uma vez pela mesma pendencia.
         ("notificado_pendente_em", "DATETIME"),
+        # QA T2-TRE-01: treinamento atribuído a um usuário do sistema (operador,
+        # funcionário...) que não é candidato. Exatamente um entre id_registro e
+        # id_usuario é preenchido.
+        ("id_usuario", "INT"),
     ):
         cursor.execute(
             f"""
@@ -2094,6 +2098,33 @@ def ensure_onboarding_tables(cursor) -> None:
             END
             """
         )
+    # Atribuição por usuário não tem id_registro: a coluna passa a aceitar NULL
+    # (o índice é recriado logo abaixo). Não altera nenhuma linha existente.
+    cursor.execute(
+        """
+        IF EXISTS (
+            SELECT 1 FROM sys.columns
+            WHERE object_id = OBJECT_ID('dbo.onboarding_candidatos') AND name = 'id_registro' AND is_nullable = 0
+        )
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM sys.indexes
+                WHERE name = 'IX_onboarding_candidatos_id_registro' AND object_id = OBJECT_ID('dbo.onboarding_candidatos')
+            )
+                DROP INDEX IX_onboarding_candidatos_id_registro ON dbo.onboarding_candidatos;
+            ALTER TABLE dbo.onboarding_candidatos ALTER COLUMN id_registro INT NULL;
+        END
+        """
+    )
+    cursor.execute(
+        """
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'IX_onboarding_candidatos_id_usuario' AND object_id = OBJECT_ID('dbo.onboarding_candidatos')
+        )
+            CREATE INDEX IX_onboarding_candidatos_id_usuario ON dbo.onboarding_candidatos(id_usuario)
+        """
+    )
     cursor.execute("UPDATE dbo.onboarding_candidatos SET iniciado_em = GETDATE() WHERE iniciado_em IS NULL")
     cursor.execute("UPDATE dbo.onboarding_candidatos SET status = 'em_andamento' WHERE status IS NULL")
     cursor.execute(

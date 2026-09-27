@@ -15,6 +15,7 @@ from ..schemas.onboarding import (
     TERMO_LGPD_ANEXO_TREINAMENTO_TEXTO,
     TERMO_LGPD_ANEXO_TREINAMENTO_VERSAO,
     AnexoDownloadToggleRequest,
+    AtribuirTreinamentoUsuariosRequest,
     ModuloImportSchema,
     OnboardingAssignmentUpdateRequest,
     OnboardingAttendanceRequest,
@@ -393,7 +394,12 @@ def create_treinamento_wizard(
         acao="criar_treinamento_wizard",
         entidade="trilha_onboarding",
         entidade_id=str(result.get("trilha", {}).get("id_trilha") or ""),
-        valor_novo={"ocorrencias": len(payload.ocorrencias), "participantes": len(payload.participantes)},
+        valor_novo={
+            "ocorrencias": len(payload.ocorrencias),
+            "participantes": len(payload.participantes),
+            "participantes_usuarios": len(payload.participantes_usuarios),
+            "operacoes": payload.operacoes,
+        },
     )
     return result
 
@@ -404,6 +410,58 @@ def create_treinamento_wizard(
 )
 def search_candidatos_para_treinamento(busca: str = "", repository: DatabaseRepository = Depends(get_repository)):
     return repository.search_candidatos_para_treinamento(busca)
+
+
+@router.get(
+    "/participantes/busca",
+    dependencies=[Depends(require_permissions("onboarding.criar", "onboarding.editar"))],
+)
+def search_participantes_treinamento(busca: str = "", repository: DatabaseRepository = Depends(get_repository)):
+    """QA T2-TRE-01: candidatos E usuários do sistema (operadores, funcionários...)."""
+    return repository.search_participantes_treinamento(busca)
+
+
+@router.get(
+    "/participantes/operacoes",
+    dependencies=[Depends(require_permissions("onboarding.criar", "onboarding.editar"))],
+)
+def list_operacoes_para_treinamento(repository: DatabaseRepository = Depends(get_repository)):
+    return repository.list_operacoes_para_treinamento()
+
+
+@router.post("/usuarios/iniciar", dependencies=[Depends(require_permissions("onboarding.editar"))])
+def atribuir_treinamento_usuarios(
+    payload: AtribuirTreinamentoUsuariosRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Atribui um treinamento existente a usuários e/ou operações inteiras."""
+    exigir_trilha_visivel(repository, user, repository.get_onboarding_trilha(payload.trilha_id))
+    result = repository.atribuir_treinamento_usuarios(
+        payload.trilha_id,
+        ids_usuarios=payload.ids_usuarios,
+        operacoes=payload.operacoes,
+        actor=user.username,
+        data_prevista=payload.data_prevista,
+        local=payload.local,
+        ministrante=payload.ministrante,
+        ministrante_email=payload.ministrante_email,
+        duracao_minutos=payload.duracao_minutos,
+    )
+    audit_action(
+        repository,
+        user,
+        modulo="Onboarding",
+        acao="atribuir_treinamento_usuarios",
+        entidade="trilha_onboarding",
+        entidade_id=str(payload.trilha_id),
+        valor_novo={
+            "ids_usuarios": payload.ids_usuarios,
+            "operacoes": payload.operacoes,
+            "atribuicoes_criadas": result.get("atribuicoes_criadas"),
+        },
+    )
+    return result
 
 
 @router.get(
