@@ -13,7 +13,6 @@ from pathlib import Path
 
 from fastapi import HTTPException, status
 
-from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -25,6 +24,7 @@ from ..services.training_uploads import (
     validate_training_upload,
 )
 from .monitoria import _http, _json, _load
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 
 logger = logging.getLogger(__name__)
 
