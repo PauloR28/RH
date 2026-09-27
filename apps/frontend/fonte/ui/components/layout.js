@@ -250,8 +250,7 @@ export function BarraLateral({
       tela: 'screen-settings-lgpd',
       icone: 'shield_lock',
       label: 'LGPD e Retenção',
-      permissao: 'configuracoes.visualizar',
-      desativado: true,
+      permissao: 'lgpd.visualizar',
     },
     {
       tela: 'screen-settings-logs',

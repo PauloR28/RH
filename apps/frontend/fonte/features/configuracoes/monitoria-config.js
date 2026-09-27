@@ -10,6 +10,7 @@ import {
   listarUsuariosMonitoria,
   salvarCatalogoMonitoria,
   salvarEquipeMonitoria,
+  transferirOperacaoUsuario,
   transferirSupervisao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
@@ -177,6 +178,147 @@ export function ModalTransferirSupervisao({ aberto, onClose, onFeito, showToast 
       </div>
       <div class="mon-acoes-fixas"><button type="button" class="btn btn-primary" disabled=${!f.operacao || !f.id_de || !f.id_para}
         onClick=${async () => { try { const r = await transferirSupervisao({ ...f, id_de: Number(f.id_de), id_para: Number(f.id_para) }); showToast(`${r.operadores_transferidos} operador(es) transferido(s).`, 'success'); onFeito(); } catch (e) { showToast(e?.message || 'Erro na transferência.', 'danger'); } }}>Transferir</button></div>
+    </${ModalPadrao}>`;
+}
+
+// ---------------------------------------------------------------------------
+// Transferência de operação (QA T2-TRC-02/03): Operador ou Supervisor muda de
+// operação. O backend valida escopo, limites e supervisores do destino.
+// ---------------------------------------------------------------------------
+const TRANSFERENCIA_INICIAL = { id_usuario: '', origem: '', destino: '', supervisores: [], id_substituto: '', justificativa: '' };
+
+export function ModalTransferirOperacao({ aberto, onClose, onFeito, showToast }) {
+  const { contexto } = useContextoMonitoria();
+  const [usuarios, setUsuarios] = useState([]);
+  const [f, setF] = useState(TRANSFERENCIA_INICIAL);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    if (!aberto) return;
+    setF(TRANSFERENCIA_INICIAL);
+    setErro('');
+    listarUsuariosMonitoria()
+      .then((r) => setUsuarios((r.itens || []).filter((u) => u.status === 'Ativo')))
+      .catch(() => setUsuarios([]));
+  }, [aberto]);
+
+  const elegiveis = usuarios.filter((u) => u.perfil === 'operador' || u.perfil === 'supervisor');
+  const usuario = elegiveis.find((u) => String(u.id_usuario) === String(f.id_usuario)) || null;
+  const ativas = (contexto?.operacoes || []).filter((o) => o.ativo);
+  const nomeOperacao = (chave) => ativas.find((o) => o.chave === chave)?.nome || chave;
+  const destinos = ativas.filter((o) => !(usuario?.operacoes || []).includes(o.chave));
+  const supervisoresDestino = usuarios.filter((u) => u.perfil === 'supervisor' && f.destino && (u.operacoes || []).includes(f.destino));
+  const operadoresNaOrigem = usuario?.perfil === 'supervisor'
+    ? usuarios.filter((u) => u.perfil === 'operador' && (u.operacoes || []).includes(f.origem) && (u.supervisores || []).includes(usuario.id_usuario))
+    : [];
+  const substitutos = usuarios.filter((u) => u.perfil === 'supervisor' && usuario && u.id_usuario !== usuario.id_usuario);
+
+  const escolherUsuario = (id) => {
+    const escolhido = elegiveis.find((u) => String(u.id_usuario) === String(id));
+    const origem = escolhido && (escolhido.operacoes || []).length === 1 ? escolhido.operacoes[0] : '';
+    setF({ ...TRANSFERENCIA_INICIAL, id_usuario: id, origem });
+    setErro('');
+  };
+  const alternarSupervisor = (id) => {
+    const atual = new Set(f.supervisores);
+    if (atual.has(id)) atual.delete(id);
+    else if (atual.size < 2) atual.add(id);
+    setF({ ...f, supervisores: Array.from(atual) });
+  };
+
+  const faltando = !usuario || !f.origem || !f.destino
+    || (usuario.perfil === 'operador' && !f.supervisores.length)
+    || (usuario.perfil === 'supervisor' && operadoresNaOrigem.length > 0 && !f.id_substituto);
+
+  const transferir = async () => {
+    setSalvando(true);
+    setErro('');
+    try {
+      const resultado = await transferirOperacaoUsuario(usuario.id_usuario, {
+        origem: f.origem,
+        destino: f.destino,
+        supervisores: f.supervisores.map(Number),
+        id_substituto: f.id_substituto ? Number(f.id_substituto) : null,
+        justificativa: f.justificativa.trim(),
+      });
+      const extra = resultado?.operadores_reatribuidos ? ` ${resultado.operadores_reatribuidos} operador(es) passaram para o substituto.` : '';
+      showToast(`${usuario.nome} foi transferido(a) de ${nomeOperacao(f.origem)} para ${nomeOperacao(f.destino)}.${extra}`, 'success');
+      onFeito();
+    } catch (e) {
+      setErro(e?.message || 'Não foi possível transferir.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return html`
+    <${ModalPadrao}
+      aberto=${aberto}
+      titulo="Transferir de operação"
+      subtitulo="Move um Operador ou Supervisor para outra operação. As monitorias já realizadas continuam na operação e com o supervisor da época."
+      onClose=${onClose}
+    >
+      ${erro ? html`<div class="alert alert-danger">${erro}</div>` : null}
+      <div class="mon-form-grid">
+        <label class="mon-campo">Quem muda de operação
+          <select class="form-select" value=${f.id_usuario} onChange=${(e) => escolherUsuario(e.target.value)}>
+            <option value="">Selecione…</option>
+            ${elegiveis.map((u) => html`<option key=${u.id_usuario} value=${u.id_usuario}>${u.nome} — ${u.perfil_nome} (${(u.operacoes || []).join(', ') || 'sem operação'})</option>`)}
+          </select>
+        </label>
+        <label class="mon-campo">Operação de origem
+          <select class="form-select" value=${f.origem} disabled=${!usuario} onChange=${(e) => setF({ ...f, origem: e.target.value, id_substituto: '' })}>
+            <option value="">Selecione…</option>
+            ${(usuario?.operacoes || []).map((chave) => html`<option key=${chave} value=${chave}>${nomeOperacao(chave)}</option>`)}
+          </select>
+        </label>
+        <label class="mon-campo">Operação de destino
+          <select class="form-select" value=${f.destino} disabled=${!usuario} onChange=${(e) => setF({ ...f, destino: e.target.value, supervisores: [] })}>
+            <option value="">Selecione…</option>
+            ${destinos.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}
+          </select>
+        </label>
+        <label class="mon-campo">Justificativa
+          <input class="form-control" value=${f.justificativa} maxlength="400" onInput=${(e) => setF({ ...f, justificativa: e.target.value })} />
+        </label>
+      </div>
+      ${usuario?.perfil === 'operador' && f.destino
+        ? html`
+            <div class="mt-3">
+              <p class="mon-campo mb-2">Supervisor(es) responsável(is) no destino (até 2)</p>
+              ${supervisoresDestino.length
+                ? supervisoresDestino.map((s) => html`
+                    <label key=${s.id_usuario} class="d-flex align-items-center gap-2">
+                      <input type="checkbox" checked=${f.supervisores.includes(s.id_usuario)} onChange=${() => alternarSupervisor(s.id_usuario)} />
+                      ${s.nome}
+                    </label>`)
+                : html`<p class="mon-muted">Nenhum supervisor ativo nesta operação. Vincule um supervisor a ela antes de transferir.</p>`}
+            </div>`
+        : null}
+      ${usuario?.perfil === 'supervisor' && f.origem
+        ? html`
+            <div class="mt-3">
+              <p class="mon-muted mb-2">
+                ${operadoresNaOrigem.length
+                  ? `${usuario.nome} supervisiona ${operadoresNaOrigem.length} operador(es) em ${nomeOperacao(f.origem)}. Escolha quem assume a supervisão deles.`
+                  : `${usuario.nome} não tem operadores em ${nomeOperacao(f.origem)}: ninguém precisa assumir.`}
+              </p>
+              ${operadoresNaOrigem.length
+                ? html`
+                    <label class="mon-campo">Supervisor que assume
+                      <select class="form-select" value=${f.id_substituto} onChange=${(e) => setF({ ...f, id_substituto: e.target.value })}>
+                        <option value="">Selecione…</option>
+                        ${substitutos.map((s) => html`<option key=${s.id_usuario} value=${s.id_usuario}>${s.nome} (${(s.operacoes || []).join(', ') || 'sem operação'})</option>`)}
+                      </select>
+                    </label>`
+                : null}
+            </div>`
+        : null}
+      <div class="mon-acoes-fixas">
+        <button type="button" class="btn btn-primary" disabled=${faltando || salvando} onClick=${transferir}>
+          ${salvando ? 'Transferindo…' : 'Transferir'}
+        </button>
+      </div>
     </${ModalPadrao}>`;
 }
 

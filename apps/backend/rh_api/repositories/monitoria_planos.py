@@ -11,6 +11,7 @@ from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import pode_ver_operacao
 from .monitoria import _http, _iso
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 
 STATUS_PLANO = ("ABERTO", "EM_ANDAMENTO", "EM_REVISAO", "CONCLUIDO")
 ROTULOS_PLANO = {"ABERTO": "Aberto", "EM_ANDAMENTO": "Em andamento", "EM_REVISAO": "Em revisão", "CONCLUIDO": "Concluído"}
@@ -33,7 +34,7 @@ class MonitoriaPlanosRepositoryMixin:
             f"""
             SELECT AVG(CAST(m.nota AS FLOAT)) FROM dbo.monitorias m
             JOIN dbo.monitoria_estado e ON e.id_monitoria = m.id_monitoria
-            WHERE m.id_operador = ? AND m.anulada = 0 AND ISNULL(e.resultado, '') <> 'ANULADA' {filtro}
+            WHERE m.id_operador = ? AND m.anulada = 0 AND ISNULL(e.resultado, '') <> 'ANULADA' AND {SQL_MONITORIA_NAO_EXCLUIDA} {filtro}
             """,
             tuple(params),
         )

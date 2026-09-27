@@ -2084,6 +2084,10 @@ def ensure_onboarding_tables(cursor) -> None:
         # escalonamento de chamada pendente (3/5 dias) - evita notificar o RH
         # mais de uma vez pela mesma pendencia.
         ("notificado_pendente_em", "DATETIME"),
+        # QA T2-TRE-01: treinamento atribuído a um usuário do sistema (operador,
+        # funcionário...) que não é candidato. Exatamente um entre id_registro e
+        # id_usuario é preenchido.
+        ("id_usuario", "INT"),
     ):
         cursor.execute(
             f"""
@@ -2094,6 +2098,33 @@ def ensure_onboarding_tables(cursor) -> None:
             END
             """
         )
+    # Atribuição por usuário não tem id_registro: a coluna passa a aceitar NULL
+    # (o índice é recriado logo abaixo). Não altera nenhuma linha existente.
+    cursor.execute(
+        """
+        IF EXISTS (
+            SELECT 1 FROM sys.columns
+            WHERE object_id = OBJECT_ID('dbo.onboarding_candidatos') AND name = 'id_registro' AND is_nullable = 0
+        )
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM sys.indexes
+                WHERE name = 'IX_onboarding_candidatos_id_registro' AND object_id = OBJECT_ID('dbo.onboarding_candidatos')
+            )
+                DROP INDEX IX_onboarding_candidatos_id_registro ON dbo.onboarding_candidatos;
+            ALTER TABLE dbo.onboarding_candidatos ALTER COLUMN id_registro INT NULL;
+        END
+        """
+    )
+    cursor.execute(
+        """
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'IX_onboarding_candidatos_id_usuario' AND object_id = OBJECT_ID('dbo.onboarding_candidatos')
+        )
+            CREATE INDEX IX_onboarding_candidatos_id_usuario ON dbo.onboarding_candidatos(id_usuario)
+        """
+    )
     cursor.execute("UPDATE dbo.onboarding_candidatos SET iniciado_em = GETDATE() WHERE iniciado_em IS NULL")
     cursor.execute("UPDATE dbo.onboarding_candidatos SET status = 'em_andamento' WHERE status IS NULL")
     cursor.execute(
@@ -2309,6 +2340,68 @@ def ensure_notifications_table(cursor) -> None:
         BEGIN
             CREATE INDEX IX_notificacoes_papel_lida
             ON dbo.notificacoes(destinatario_papel, lida)
+        END
+        """
+    )
+
+
+def ensure_notification_user_state_table(cursor) -> None:
+    """Estado "lida"/"oculta" por usuário das notificações montadas no front-end
+    (entrevistas, processos, problemas...). Antes ficava só no localStorage do
+    navegador, e o que foi lido em um navegador reaparecia em outro (QA T2-NOT-03).
+    Aditivo e idempotente (espelha infra/sql/migrations/V041)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.notificacoes_estado_usuario', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.notificacoes_estado_usuario (
+                usuario NVARCHAR(180) NOT NULL,
+                chave NVARCHAR(200) NOT NULL,
+                lida_em DATETIME NULL,
+                oculta_em DATETIME NULL,
+                CONSTRAINT PK_notificacoes_estado_usuario PRIMARY KEY (usuario, chave)
+            )
+        END
+        """
+    )
+
+
+def ensure_home_screen_config_table(cursor) -> None:
+    """Blocos da tela inicial por perfil (espelha infra/sql/migrations/V043)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.perfis_tela_inicial', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.perfis_tela_inicial (
+                id_perfil NVARCHAR(40) NOT NULL CONSTRAINT PK_perfis_tela_inicial PRIMARY KEY,
+                config_json NVARCHAR(MAX) NOT NULL,
+                atualizado_por NVARCHAR(180) NULL,
+                atualizado_em DATETIME NOT NULL CONSTRAINT DF_perfis_tela_inicial_atualizado_em DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+
+
+def ensure_lgpd_retention_table(cursor) -> None:
+    """Configuração da retenção LGPD automática (espelha infra/sql/migrations/V045).
+    Nasce desligada (ativo = 0)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.lgpd_retencao_config', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.lgpd_retencao_config (
+                id INT NOT NULL CONSTRAINT PK_lgpd_retencao_config PRIMARY KEY,
+                ativo BIT NOT NULL CONSTRAINT DF_lgpd_retencao_config_ativo DEFAULT 0,
+                meses_candidatura INT NOT NULL CONSTRAINT DF_lgpd_retencao_config_meses_cand DEFAULT 6,
+                meses_banco_talentos INT NOT NULL CONSTRAINT DF_lgpd_retencao_config_meses_banco DEFAULT 6,
+                dias_aviso INT NOT NULL CONSTRAINT DF_lgpd_retencao_config_dias_aviso DEFAULT 7,
+                excluir_cvs_nao_vinculados BIT NOT NULL CONSTRAINT DF_lgpd_retencao_config_cvs DEFAULT 1,
+                ultima_execucao DATETIME NULL,
+                ultimo_resultado_json NVARCHAR(MAX) NULL,
+                atualizado_por NVARCHAR(180) NULL,
+                atualizado_em DATETIME NULL
+            )
         END
         """
     )

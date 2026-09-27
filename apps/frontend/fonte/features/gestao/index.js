@@ -2,12 +2,20 @@ import { IconeSvg } from '../../ui/icone.js';
 import { listarMural } from '../../services/api/mural.js';
 
 import {
+  React,
   html,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from '../../infraestrutura-react.js';
+import {
+  blocosVisiveisTelaInicial,
+  configTelaInicialPadrao,
+  lerMinhaTelaInicial,
+} from '../../shared/tela-inicial.js';
+
+const Fragment = React.Fragment;
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
@@ -1883,6 +1891,78 @@ export function TelaInicio({ controlador }) {
     'usuário',
   );
 
+  const pode = (permissao) => Boolean(controlador?.possuiPermissao?.(permissao));
+  const [configTela, setConfigTela] = useState(configTelaInicialPadrao);
+  const [sessoesUsuario, setSessoesUsuario] = useState([]);
+  const blocosVisiveis = useMemo(() => blocosVisiveisTelaInicial(configTela, pode), [configTela, controlador?.estado?.permissoesUsuario]);
+  const atalhosVisiveis = [
+        {
+          label: 'Gerar prova',
+          icon: 'assignment_add',
+          permissao: 'provas.enviar',
+          onClick: () => {
+            try {
+              sessionStorage.setItem('rh_open_generated_exam_modal_v1', '1');
+            } catch (error) {
+              // Navegacao ainda funciona se o navegador bloquear sessionStorage.
+            }
+            controlador.irParaTelaProtegida('screen-generated-exams');
+          },
+        },
+        {
+          label: 'Nova vaga',
+          icon: 'work',
+          permissao: 'vagas.criar',
+          onClick: () => controlador.irParaTelaProtegida('screen-process-create'),
+        },
+        /*
+        {
+          label: 'Adicionar candidato',
+          icon: 'person_add',
+          permissao: 'candidatos.criar',
+          onClick: () => controlador.irParaTelaProtegida('screen-candidates'),
+        },
+        */
+  
+        {
+          label: 'Agendar entrevista',
+          icon: 'calendar_month',
+          permissao: 'entrevistas.visualizar',
+          onClick: () => controlador.irParaTelaProtegida('screen-interviews'),
+        },
+        {
+          label: 'Cx de Currículos',
+          icon: 'send',
+          permissao: 'candidatos.criar',
+          onClick: () => controlador.irParaTelaProtegida('screen-email-inbox'),
+        },
+        {
+          label: 'Relatórios',
+          icon: 'bar_chart',
+          permissao: 'relatorios.visualizar',
+          onClick: () => controlador.irParaTelaProtegida('screen-analysis-candidates'),
+        },
+        {
+          label: 'Configurações',
+          icon: 'more_horiz',
+          permissao: 'configuracoes.visualizar',
+          onClick: () => controlador.irParaTelaProtegida('screen-settings'),
+        },
+      ].filter((item) => !item.permissao || pode(item.permissao));
+
+  useEffect(() => {
+    let ativo = true;
+    lerMinhaTelaInicial()
+      .then((config) => { if (ativo && config?.blocos) setConfigTela(config); })
+      .catch(() => {});
+    // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
+    // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
+    import('../monitoria/index.js?v=20260924-correcoes-txt4')
+      .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
+      .catch(() => {});
+    return () => { ativo = false; };
+  }, []);
+
   const carregar = async ({ forcar = false } = {}) => {
     setCarregando(true);
     try {
@@ -1894,10 +1974,11 @@ export function TelaInicio({ controlador }) {
         resultadoMural,
       ] =
         await Promise.allSettled([
-          lerHistorico(),
-          lerProcessos({ forcar }),
-          lerCandidatosProcessos({ forcar }),
-          lerEntrevistas(),
+          // Só busca o que o perfil pode ver (tela inicial por permissões).
+          pode('candidatos.consultar_historico') ? lerHistorico() : Promise.resolve([]),
+          pode('vagas.visualizar') ? lerProcessos({ forcar }) : Promise.resolve([]),
+          pode('candidatos.visualizar') ? lerCandidatosProcessos({ forcar }) : Promise.resolve([]),
+          pode('entrevistas.visualizar') ? lerEntrevistas() : Promise.resolve([]),
           controlador.possuiPermissao('mural.visualizar') ? listarMural('') : Promise.resolve({ itens: [] }),
         ]);
       setMuralRecente(
@@ -2050,6 +2131,7 @@ export function TelaInicio({ controlador }) {
     () => [
       {
         icon: 'groups',
+        permissao: 'candidatos.visualizar',
         label: 'Candidatos ativos',
         value: candidatosAtivosResumo.length,
         helper: 'Em acompanhamento',
@@ -2057,6 +2139,7 @@ export function TelaInicio({ controlador }) {
       },
       {
         icon: 'folder_open',
+        permissao: 'vagas.visualizar',
         label: 'Processos abertos',
         value: processosAtivos.length,
         helper: 'Abertos agora',
@@ -2064,6 +2147,7 @@ export function TelaInicio({ controlador }) {
       },
       {
         icon: 'calendar_month',
+        permissao: 'entrevistas.visualizar',
         label: 'Entrevistas hoje',
         value: entrevistasHoje.length,
         helper: 'Agenda do dia',
@@ -2071,6 +2155,7 @@ export function TelaInicio({ controlador }) {
       },
       {
         icon: 'warning',
+        permissao: 'candidatos.visualizar',
         label: 'Pendências',
         value: pendenciasResumo,
         helper: pendenciasResumo ? 'Requer atenção' : 'Sem alertas',
@@ -2078,6 +2163,7 @@ export function TelaInicio({ controlador }) {
       },
       {
         icon: 'star',
+        permissao: 'candidatos.visualizar',
         label: 'Contratações',
         value: contratacoesResumo.length,
         helper: 'Aprovados',
@@ -2170,110 +2256,27 @@ export function TelaInicio({ controlador }) {
     return notificacoes;
   }, [alertasOperacionais, candidatosProcessos, entrevistasHoje.length, processosAtivos]);
 
-  return html`
-    <${PainelRh}
-      screenId="screen-menu"
-      navAtiva="screen-menu"
-      subtituloMarca="Plataforma de Recrutamento e Seleção"
-      placeholderBusca="Buscar candidatos, processos, vagas ou provas..."
-      controlador=${controlador}
-    >
-      <${ToastHost} />
-      <${PageIntro}
-        title=${html`
-          <div class="d-flex align-items-center gap-3">
-            <${AvatarUsuario}
-              avatar=${resolverAvatarUrl(controlador?.estado?.avatarUsuario)}
-              nome=${nomeUsuarioLogado}
-              tamanho=${48}
-            />
-            <span>Olá, ${nomeUsuarioLogado}!</span>
-          </div>
-        `}
-        description=""
-        actions=${html`
-          <span title="Em breve">
-            <button
-              type="button"
-              class="btn btn-outline-secondary rh-action-btn"
-              disabled
-            >
-              <span class="material-symbols-outlined">${IconeSvg('support_agent')}</span>
-              Suporte
-            </button>
-          </span>
-          <button
-            type="button"
-            class="btn btn-outline-secondary rh-action-btn c24-top-refresh-btn"
-            onClick=${() => carregar({ forcar: true })}
-          >
-            <span class="material-symbols-outlined">${IconeSvg('refresh')}</span>
-            Atualizar
-          </button>
-        `}
-      />
+  const indicadoresVisiveis = [
+    ...indicadoresPainel,
+    {
+      icon: 'notifications',
+      label: 'Notificações do dia',
+      permissao: 'candidatos.visualizar',
+      value: notificacoesDia.length,
+      variant: notificacoesDia.length ? 'is-attention' : '',
+    },
+  ].filter((item) => !item.permissao || pode(item.permissao));
 
+  // Blocos da tela inicial (Correções 27/set/2026): cada um só aparece se
+  // estiver visível na configuração do perfil E o usuário tiver a permissão.
+  const renderAtalhos = () => html`
       <${SectionCard}
         title="Acessos rápidos"
         className="home-quick-card"
         tourId="home-shortcuts"
       >
         <div class="home-quick-grid">
-          ${[
-      {
-        label: 'Gerar prova',
-        icon: 'assignment_add',
-        permissao: 'provas.enviar',
-        onClick: () => {
-          try {
-            sessionStorage.setItem('rh_open_generated_exam_modal_v1', '1');
-          } catch (error) {
-            // Navegacao ainda funciona se o navegador bloquear sessionStorage.
-          }
-          controlador.irParaTelaProtegida('screen-generated-exams');
-        },
-      },
-      {
-        label: 'Nova vaga',
-        icon: 'work',
-        permissao: 'vagas.criar',
-        onClick: () => controlador.irParaTelaProtegida('screen-process-create'),
-      },
-      /*
-      {
-        label: 'Adicionar candidato',
-        icon: 'person_add',
-        permissao: 'candidatos.criar',
-        onClick: () => controlador.irParaTelaProtegida('screen-candidates'),
-      },
-      */
-
-      {
-        label: 'Agendar entrevista',
-        icon: 'calendar_month',
-        permissao: 'entrevistas.visualizar',
-        onClick: () => controlador.irParaTelaProtegida('screen-interviews'),
-      },
-      {
-        label: 'Cx de Currículos',
-        icon: 'send',
-        permissao: 'candidatos.criar',
-        onClick: () => controlador.irParaTelaProtegida('screen-email-inbox'),
-      },
-      {
-        label: 'Relatórios',
-        icon: 'bar_chart',
-        permissao: 'relatorios.visualizar',
-        onClick: () => controlador.irParaTelaProtegida('screen-analysis-candidates'),
-      },
-      {
-        label: 'Configurações',
-        icon: 'more_horiz',
-        permissao: 'configuracoes.visualizar',
-        onClick: () => controlador.irParaTelaProtegida('screen-settings'),
-      },
-    ]
-      .filter((item) => !item.permissao || controlador.possuiPermissao(item.permissao))
+          ${atalhosVisiveis
       .map(
         (item) => html`
                 <button
@@ -2289,17 +2292,10 @@ export function TelaInicio({ controlador }) {
       )}
         </div>
       </${SectionCard}>
-
+  `;
+  const renderIndicadores = () => html`
       <div class="home-pillar-row">
-        ${[
-      ...indicadoresPainel,
-      {
-        icon: 'notifications',
-        label: 'Notificações do dia',
-        value: notificacoesDia.length,
-        variant: notificacoesDia.length ? 'is-attention' : '',
-      },
-    ].map(
+        ${indicadoresVisiveis.map(
       (item) => html`
               <article class=${`home-pillar-card ${item.variant || ''}`} key=${item.label}>
                 <span class="home-pillar-icon material-symbols-outlined">${IconeSvg(item.icon)}</span>
@@ -2311,19 +2307,11 @@ export function TelaInicio({ controlador }) {
             `,
     )}
       </div>
-
-      ${carregando
-      ? html`
-            <${LoadingState}
-              titulo="Carregando painel"
-              descricao="Preparando as informações do seu painel."
-            />
-          `
-      : html`
-      <div class="home-dashboard-grid home-dashboard-main-grid">
-        <div class="home-dashboard-stack home-dashboard-stack--left">
+  `;
+  const renderCaixaCv = () => html`
           <${SecaoCurriculosRecebidosEmail} modo="resumo" controlador=${controlador} />
-
+  `;
+  const renderMovimentacoes = () => html`
           <${SectionCard}
             title="Movimentações"
             className="home-activity-card compact-dashboard-card"
@@ -2349,7 +2337,8 @@ export function TelaInicio({ controlador }) {
                   </div>
                 `}
           </${SectionCard}>
-
+  `;
+  const renderMural = () => html`
           <${SectionCard}
             title="Mural"
             className="home-mural-card compact-dashboard-card"
@@ -2391,9 +2380,8 @@ export function TelaInicio({ controlador }) {
                   </div>
                 `}
           </${SectionCard}>
-        </div>
-
-        <div class="home-dashboard-stack home-dashboard-stack--right">
+  `;
+  const renderEntrevistas = () => html`
           <${SectionCard}
             title="Próximas Entrevistas"
             className="processes-today-card compact-dashboard-card"
@@ -2425,7 +2413,8 @@ export function TelaInicio({ controlador }) {
                   </div>
                 `}
           </${SectionCard}>
-
+  `;
+  const renderProcessos = () => html`
           <${SectionCard}
             title="Processos Abertos"
             className="process-progress-card compact-dashboard-card"
@@ -2467,7 +2456,8 @@ export function TelaInicio({ controlador }) {
                   />
                 `}
           </${SectionCard}>
-
+  `;
+  const renderProvasRecentes = () => html`
           <${SectionCard}
             title="Provas recentes"
             className="recent-records-card compact-dashboard-card"
@@ -2530,10 +2520,119 @@ export function TelaInicio({ controlador }) {
                     />
                   `}
           </${SectionCard}>
-        </div>
+  `;
+  const renderSessoes = () => html`
+    <${SectionCard} title="Suas áreas" className="home-quick-card">
+      <div class="home-quick-grid">
+        ${sessoesUsuario.map(
+          (sessao) => html`
+            <button key=${sessao.id} type="button" class="home-quick-action" onClick=${() => controlador.irParaTelaProtegida(sessao.destino)}>
+              <span class="material-symbols-outlined">${IconeSvg(sessao.icone)}</span>
+              <strong>${sessao.titulo}</strong>
+            </button>
+          `,
+        )}
+      </div>
+    </${SectionCard}>
+  `;
+  const RENDER_BLOCO = {
+    atalhos: renderAtalhos,
+    indicadores: renderIndicadores,
+    sessoes: renderSessoes,
+    caixa_cv: renderCaixaCv,
+    movimentacoes: renderMovimentacoes,
+    mural: renderMural,
+    entrevistas: renderEntrevistas,
+    processos: renderProcessos,
+    provas_recentes: renderProvasRecentes,
+  };
+  const blocosTopo = blocosVisiveis.filter(
+    (bloco) => bloco.coluna === 'topo'
+      && (bloco.id !== 'atalhos' || atalhosVisiveis.length)
+      && (bloco.id !== 'indicadores' || indicadoresVisiveis.length)
+      && (bloco.id !== 'sessoes' || sessoesUsuario.length),
+  );
+  const blocosEsquerda = blocosVisiveis.filter((bloco) => bloco.coluna === 'esquerda');
+  const blocosDireita = blocosVisiveis.filter((bloco) => bloco.coluna === 'direita');
+  const semBlocosPrincipais = !blocosEsquerda.length && !blocosDireita.length;
+  // "Suas áreas" aparece sozinho quando o perfil não tem nenhum atalho de
+  // recrutamento (ex.: Funcionário, Control Desk): a Início mostra as áreas dele.
+  const mostrarSessoesAuto = sessoesUsuario.length > 0
+    && !blocosTopo.some((bloco) => bloco.id === 'sessoes')
+    && !atalhosVisiveis.length;
+  const colunasGrid = blocosEsquerda.length && blocosDireita.length;
+
+  return html`
+    <${PainelRh}
+      screenId="screen-menu"
+      navAtiva="screen-menu"
+      subtituloMarca="Plataforma de Recrutamento e Seleção"
+      placeholderBusca="Buscar candidatos, processos, vagas ou provas..."
+      controlador=${controlador}
+    >
+      <${ToastHost} />
+      <${PageIntro}
+        title=${html`
+          <div class="d-flex align-items-center gap-3">
+            <${AvatarUsuario}
+              avatar=${resolverAvatarUrl(controlador?.estado?.avatarUsuario)}
+              nome=${nomeUsuarioLogado}
+              tamanho=${48}
+            />
+            <span>Olá, ${nomeUsuarioLogado}!</span>
+          </div>
+        `}
+        description=""
+        actions=${html`
+          <span title="Em breve">
+            <button
+              type="button"
+              class="btn btn-outline-secondary rh-action-btn"
+              disabled
+            >
+              <span class="material-symbols-outlined">${IconeSvg('support_agent')}</span>
+              Suporte
+            </button>
+          </span>
+          <button
+            type="button"
+            class="btn btn-outline-secondary rh-action-btn c24-top-refresh-btn"
+            onClick=${() => carregar({ forcar: true })}
+          >
+            <span class="material-symbols-outlined">${IconeSvg('refresh')}</span>
+            Atualizar
+          </button>
+        `}
+      />
+
+      ${blocosTopo.map((bloco) => html`<div key=${`topo-${bloco.id}`}>${RENDER_BLOCO[bloco.id]()}</div>`)}
+      ${mostrarSessoesAuto ? renderSessoes() : null}
+
+      ${carregando
+      ? html`
+            <${LoadingState}
+              titulo="Carregando painel"
+              descricao="Preparando as informações do seu painel."
+            />
+          `
+      : semBlocosPrincipais
+        ? (!blocosTopo.length && !mostrarSessoesAuto
+          ? html`<${EmptyState} title="Nada para mostrar aqui ainda" text="Seu perfil não tem áreas liberadas na tela inicial. Fale com o Administrador." />`
+          : null)
+        : html`
+      <div class=${`home-dashboard-grid home-dashboard-main-grid${colunasGrid ? '' : ' home-dashboard-grid--single'}`}>
+        ${blocosEsquerda.length
+          ? html`<div class="home-dashboard-stack home-dashboard-stack--left home-dashboard-stack--ordenado">
+              ${blocosEsquerda.map((bloco) => html`<${Fragment} key=${bloco.id}>${RENDER_BLOCO[bloco.id]()}</${Fragment}>`)}
+            </div>`
+          : null}
+        ${blocosDireita.length
+          ? html`<div class="home-dashboard-stack home-dashboard-stack--right home-dashboard-stack--ordenado">
+              ${blocosDireita.map((bloco) => html`<${Fragment} key=${bloco.id}>${RENDER_BLOCO[bloco.id]()}</${Fragment}>`)}
+            </div>`
+          : null}
       </div>
           `}
-
       <${ModalDetalhesProva}
         detalhe=${detalheAberto}
         onClose=${() => setDetalheAberto(null)}

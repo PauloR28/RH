@@ -80,3 +80,30 @@ class NotificationAutomationSettingsRequest(BaseSchema):
 
     email_automatico_ativo: bool = False
     lembretes_automaticos_ativos: bool = False
+
+
+
+class TelaInicialBlocoInput(BaseSchema):
+    id: str = Field(min_length=1, max_length=40)
+    visivel: bool = True
+
+
+class TelaInicialConfigRequest(BaseSchema):
+    """Ordem e visibilidade dos blocos da tela inicial de um perfil."""
+
+    blocos: list[TelaInicialBlocoInput] = Field(default_factory=list, max_length=40)
+
+
+
+class LgpdRetencaoConfigRequest(BaseSchema):
+    """Retenção LGPD automática de candidatos (nasce desligada)."""
+
+    ativo: bool = False
+    meses_candidatura: int = Field(default=6, ge=1, le=120)
+    meses_banco_talentos: int = Field(default=6, ge=1, le=120)
+    dias_aviso: int = Field(default=7, ge=0, le=60)
+    excluir_cvs_nao_vinculados: bool = True
+
+
+class LgpdRetencaoExecutarRequest(BaseSchema):
+    confirmacao: str = Field(default="", max_length=20)

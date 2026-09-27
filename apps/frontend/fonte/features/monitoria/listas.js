@@ -9,6 +9,7 @@ import {
   lerRelatorio,
   listarDestinatarios,
   listarMonitorias,
+  listarMonitoriasExcluidas,
   listarOperadoresMonitoria,
   listarPlanos,
   revisarPlano,
@@ -50,6 +51,14 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       ? { ...PRESETS.historico, texto: 'Histórico das suas monitorias. Busque por ID, data ou avaliador.' }
       : PRESETS[modo] || PRESETS.historico;
   const podeExportar = controlador.possuiPermissao('monitoria.exportar');
+  const [excluidas, setExcluidas] = useState(null);
+  const abrirExcluidas = async () => {
+    try {
+      setExcluidas((await listarMonitoriasExcluidas())?.itens || []);
+    } catch (e) {
+      showToast?.(e?.message || 'Não foi possível listar as monitorias excluídas.', 'danger');
+    }
+  };
   const padrao = { ...FILTROS_VAZIOS, status: preset.status };
   // `rascunho` é o que está nos campos; `filtros` é o que já foi aplicado à consulta.
   const [rascunho, setRascunho] = useState(padrao);
@@ -128,8 +137,18 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
             <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>
           </button>
           <button type="button" class="btn btn-primary" onClick=${aplicar}>Aplicar filtros</button>
+          ${perfil === 'administrador' && modo === 'historico' ? html`
+            <button type="button" class="btn btn-outline-secondary" onClick=${abrirExcluidas} title="Monitorias excluídas (somente Administrador)">Excluídas</button>` : null}
         </div>
       </div>
+      <${ModalPadrao} aberto=${excluidas !== null} titulo="Monitorias excluídas" subtitulo="Não aparecem em listas, painéis nem indicadores. Abra uma para ver o motivo ou restaurar." onClose=${() => setExcluidas(null)}>
+        ${excluidas && excluidas.length ? html`
+          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>ID</th><th>Operação</th><th>Operador</th><th class="num">Nota</th><th>Excluída em</th><th>Por</th><th>Motivo</th><th></th></tr></thead><tbody>
+            ${excluidas.map((m) => html`<tr key=${m.id_monitoria}><td>#${m.codigo}</td><td>${m.operacao_nome}</td><td>${m.operador_nome}</td><td class="num">${formatarNota(m.nota)}</td>
+              <td>${formatarDataHoraCurta(m.excluida_em)}</td><td>${m.excluida_por}</td><td>${m.motivo}</td>
+              <td><button type="button" class="btn btn-link btn-sm" onClick=${() => { setExcluidas(null); abrirDetalhe(m.codigo); }}>Abrir</button></td></tr>`)}
+          </tbody></table></div>` : html`<p class="mon-muted">Nenhuma monitoria excluída.</p>`}
+      </${ModalPadrao}>
 
       ${podeExportar && selecionadas.length ? html`
         <div class="mon-acoes mon-acoes--selecao"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>

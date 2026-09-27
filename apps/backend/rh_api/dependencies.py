@@ -63,6 +63,10 @@ def get_current_user(
     user = validate_access_token(credentials.credentials)
     user = _refresh_monitoria_scope(user, request)
     user_id_var.set(str(user.id_usuario or user.username))
+    if request is not None:
+        # Dependências síncronas rodam em outra thread: o contextvar não volta ao
+        # middleware, então o log de acesso lê o usuário de request.state.
+        request.state.log_user_id = str(user.id_usuario or user.username)
     # Primeiro acesso: só as rotas de autenticação (trocar a senha, sessão,
     # logout) ficam liberadas até a senha inicial ser trocada.
     if user.deve_trocar_senha and request is not None and not request.url.path.startswith("/auth/"):

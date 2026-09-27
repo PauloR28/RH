@@ -1,7 +1,6 @@
 import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
 import { formatarDocumentoRichText } from '../../regras-prova.js';
 import {
-  buscarCandidatosTreinamento,
   baixarModeloModulo,
   criarTreinamentoWizard,
   uploadAnexoTreinamento,
@@ -11,7 +10,13 @@ import {
   alternarDownloadAnexo,
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { atualizarTrilhaOnboarding, lerTrilhaOnboarding, uploadImagemSecaoModulo } from '../../services/api/onboarding.js';
+import {
+  atualizarTrilhaOnboarding,
+  buscarParticipantesTreinamento,
+  lerTrilhaOnboarding,
+  listarOperacoesParaTreinamento,
+  uploadImagemSecaoModulo,
+} from '../../services/api/onboarding.js';
 import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 
@@ -230,10 +235,27 @@ function mapearTrilhaParaFormulario(trilha) {
     tipo_obrigatorio: !!trilha.tipo_obrigatorio,
     ocorrencias: [{ ...OCORRENCIA_INICIAL }],
     participantes: [],
+    participantes_usuarios: [],
+    operacoes_participantes: [],
     itens: itens.length ? itens : [{ ...MODULO_INICIAL }],
     pptxFile: null,
     texto_encerramento: trilha.texto_encerramento || TEXTO_ENCERRAMENTO_PADRAO,
   };
+}
+
+// Textos do molde ("Ex: ...") não são conteúdo real: importar o molde sem editar
+// não pode sobrescrever o que já foi digitado na Etapa 1 (QA T2-TRE-01).
+function dataOcorrenciaIso(valor) {
+  const data = new Date(valor);
+  if (!valor || Number.isNaN(data.getTime())) {
+    throw new Error('Informe a data/horário de todas as ocorrências na Etapa 1, ou marque "sem horário definido".');
+  }
+  return data.toISOString();
+}
+
+function textoRealDoJson(valor) {
+  const texto = String(valor ?? '').trim();
+  return /^ex\s*[:.]/i.test(texto) ? '' : texto;
 }
 
 const FORM_INICIAL = {
@@ -248,6 +270,8 @@ const FORM_INICIAL = {
   tipo_obrigatorio: false,
   ocorrencias: [{ ...OCORRENCIA_INICIAL }],
   participantes: [],
+  participantes_usuarios: [],
+  operacoes_participantes: [],
   itens: [{ ...MODULO_INICIAL }],
   pptxFile: null,
   texto_encerramento: TEXTO_ENCERRAMENTO_PADRAO,
@@ -307,11 +331,14 @@ export function TelaCriarTreinamento({ controlador }) {
   }, [modoEdicao, idTrilhaEdicao]);
 
   const [buscaParticipante, setBuscaParticipante] = useState('');
-  const [resultadosBusca, setResultadosBusca] = useState([]);
+  const [resultadosBusca, setResultadosBusca] = useState({ candidatos: [], usuarios: [] });
+  const [operacoesTreinamento, setOperacoesTreinamento] = useState([]);
+  const [operacaoParaAdicionar, setOperacaoParaAdicionar] = useState('');
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
 
   const [modalTermoAberto, setModalTermoAberto] = useState(null); // { moduloIndex, anexoId }
   const [importandoTreinamento, setImportandoTreinamento] = useState(false);
+  const [avisoImportacao, setAvisoImportacao] = useState('');
   const [modulosColapsados, setModulosColapsados] = useState(() => new Set());
   const alternarColapsoModulo = (index) => {
     setModulosColapsados((atual) => {
@@ -326,18 +353,26 @@ export function TelaCriarTreinamento({ controlador }) {
     listarOperacoes()
       .then((dados) => setOperacoes(Array.isArray(dados) ? dados : []))
       .catch(() => {});
+    listarOperacoesParaTreinamento()
+      .then((dados) => setOperacoesTreinamento(Array.isArray(dados) ? dados : []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!buscaParticipante.trim()) {
-      setResultadosBusca([]);
+      setResultadosBusca({ candidatos: [], usuarios: [] });
       return undefined;
     }
     setBuscandoParticipantes(true);
     const timer = setTimeout(() => {
-      buscarCandidatosTreinamento(buscaParticipante.trim())
-        .then((dados) => setResultadosBusca(Array.isArray(dados) ? dados : []))
-        .catch(() => setResultadosBusca([]))
+      buscarParticipantesTreinamento(buscaParticipante.trim())
+        .then((dados) =>
+          setResultadosBusca({
+            candidatos: Array.isArray(dados?.candidatos) ? dados.candidatos : [],
+            usuarios: Array.isArray(dados?.usuarios) ? dados.usuarios : [],
+          }),
+        )
+        .catch(() => setResultadosBusca({ candidatos: [], usuarios: [] }))
         .finally(() => setBuscandoParticipantes(false));
     }, 350);
     return () => clearTimeout(timer);
@@ -378,7 +413,7 @@ export function TelaCriarTreinamento({ controlador }) {
         : { ...atual, participantes: [...atual.participantes, candidato] },
     );
     setBuscaParticipante('');
-    setResultadosBusca([]);
+    setResultadosBusca({ candidatos: [], usuarios: [] });
   };
 
   const removerParticipante = (idRegistro) => {
@@ -386,6 +421,56 @@ export function TelaCriarTreinamento({ controlador }) {
       ...atual,
       participantes: atual.participantes.filter((item) => item.id_registro !== idRegistro),
     }));
+  };
+
+  const adicionarUsuarioParticipante = (usuario) => {
+    setFormulario((atual) =>
+      atual.participantes_usuarios.some((item) => item.id_usuario === usuario.id_usuario)
+        ? atual
+        : { ...atual, participantes_usuarios: [...atual.participantes_usuarios, usuario] },
+    );
+    setBuscaParticipante('');
+    setResultadosBusca({ candidatos: [], usuarios: [] });
+  };
+
+  const removerUsuarioParticipante = (idUsuario) => {
+    setFormulario((atual) => ({
+      ...atual,
+      participantes_usuarios: atual.participantes_usuarios.filter((item) => item.id_usuario !== idUsuario),
+    }));
+  };
+
+  const adicionarOperacaoParticipante = () => {
+    const operacao = operacoesTreinamento.find((item) => item.chave === operacaoParaAdicionar);
+    if (!operacao) return;
+    setFormulario((atual) =>
+      atual.operacoes_participantes.some((item) => item.chave === operacao.chave)
+        ? atual
+        : { ...atual, operacoes_participantes: [...atual.operacoes_participantes, operacao] },
+    );
+    setOperacaoParaAdicionar('');
+  };
+
+  const removerOperacaoParticipante = (chave) => {
+    setFormulario((atual) => ({
+      ...atual,
+      operacoes_participantes: atual.operacoes_participantes.filter((item) => item.chave !== chave),
+    }));
+  };
+
+  const totalParticipantesSelecionados =
+    formulario.participantes.length +
+    formulario.participantes_usuarios.length +
+    formulario.operacoes_participantes.length;
+  const resumoParticipantes = () => {
+    const partes = [];
+    if (formulario.participantes.length) partes.push(`${formulario.participantes.length} candidato(s)`);
+    if (formulario.participantes_usuarios.length) partes.push(`${formulario.participantes_usuarios.length} usuário(s)`);
+    if (formulario.operacoes_participantes.length) {
+      const total = formulario.operacoes_participantes.reduce((soma, item) => soma + Number(item.total_usuarios || 0), 0);
+      partes.push(`${formulario.operacoes_participantes.length} operação(ões) · ${total} usuário(s)`);
+    }
+    return partes.join(' + ') || '0';
   };
 
   // -- Etapa 3: módulos -----------------------------------------------------
@@ -517,20 +602,42 @@ export function TelaCriarTreinamento({ controlador }) {
           anexos: [],
         });
       }
+      const nomeJson = textoRealDoJson(dados.nome);
+      const descricaoJson = textoRealDoJson(dados.descricao);
+      const nomeFinal = nomeJson || formulario.nome.trim();
+      // Importação direto da Etapa 1 ("criação rápida"): ocorrência ainda sem
+      // data vira "sem horário definido" em vez de travar a publicação.
+      const ocorrenciasSemData = formulario.ocorrencias.some((item) => !item.data_prevista && !item.sem_horario_definido);
       setFormulario((atual) => ({
         ...atual,
-        nome: String(dados.nome || '').trim() || atual.nome,
-        descricao: dados.descricao !== undefined ? String(dados.descricao || '') : atual.descricao,
+        nome: nomeJson || atual.nome,
+        descricao: descricaoJson || atual.descricao,
         categoria: dados.categoria || atual.categoria,
         modalidade: dados.modalidade !== undefined ? String(dados.modalidade || '') : atual.modalidade,
-        local_padrao: dados.local_padrao !== undefined ? String(dados.local_padrao || '') : atual.local_padrao,
+        local_padrao: dados.local_padrao !== undefined ? textoRealDoJson(dados.local_padrao) || atual.local_padrao : atual.local_padrao,
         tipo_obrigatorio: dados.tipo_obrigatorio !== undefined ? !!dados.tipo_obrigatorio : atual.tipo_obrigatorio,
         texto_encerramento:
-          dados.texto_encerramento !== undefined && String(dados.texto_encerramento).trim()
+          dados.texto_encerramento !== undefined && textoRealDoJson(dados.texto_encerramento)
             ? String(dados.texto_encerramento)
             : atual.texto_encerramento,
+        ocorrencias: ocorrenciasSemData
+          ? atual.ocorrencias.map((item) =>
+              item.data_prevista || item.sem_horario_definido ? item : { ...item, sem_horario_definido: true },
+            )
+          : atual.ocorrencias,
         itens: itensValidados,
       }));
+      const avisos = [`${itensValidados.length} módulo(s) importado(s).`];
+      if (ocorrenciasSemData) {
+        avisos.push('A data ficou como "sem horário definido" — ajuste na Etapa 1 se quiser agendar.');
+      }
+      if (!nomeFinal) {
+        setAvisoImportacao(avisos.join(' '));
+        setErro('Módulos importados. Informe agora o nome do treinamento para continuar.');
+        setEtapaAtual(1);
+        return;
+      }
+      setAvisoImportacao(avisos.join(' '));
       setEtapaAtual(3);
     } catch (error) {
       setErro(error?.message || 'O arquivo JSON do treinamento completo não é válido (ver "Baixar molde").');
@@ -783,6 +890,7 @@ export function TelaCriarTreinamento({ controlador }) {
       return;
     }
     setErro('');
+    setAvisoImportacao('');
     setEtapaAtual((atual) => Math.min(6, atual + 1));
   };
 
@@ -886,7 +994,7 @@ export function TelaCriarTreinamento({ controlador }) {
         texto_encerramento: formulario.texto_encerramento.trim(),
         itens: formulario.itens.map((item, index) => montarPayloadItem(item, index, null)),
         ocorrencias: formulario.ocorrencias.map((item) => ({
-          data_prevista: item.sem_horario_definido ? null : new Date(item.data_prevista).toISOString(),
+          data_prevista: item.sem_horario_definido ? null : dataOcorrenciaIso(item.data_prevista),
           sem_horario_definido: !!item.sem_horario_definido,
           local: item.local.trim(),
           ministrante: item.ministrante.trim(),
@@ -894,6 +1002,8 @@ export function TelaCriarTreinamento({ controlador }) {
           duracao_minutos: Number(item.duracao_minutos) || 60,
         })),
         participantes: formulario.participantes.map((item) => item.id_registro),
+        participantes_usuarios: formulario.participantes_usuarios.map((item) => item.id_usuario),
+        operacoes: formulario.operacoes_participantes.map((item) => item.chave),
       };
 
       const resultado = await criarTreinamentoWizard(payload);
@@ -997,6 +1107,38 @@ export function TelaCriarTreinamento({ controlador }) {
   // -- Renderização das etapas -------------------------------------------------
 
   const renderEtapa1 = () => html`
+    ${!modoEdicao
+      ? html`
+          <section class="process-create-card mb-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <strong>Já tem o treinamento pronto em JSON?</strong>
+                <p class="text-muted small mb-0">
+                  Importe o arquivo agora: nome, descrição e módulos são preenchidos de uma vez. Você ainda pode revisar tudo
+                  antes de publicar.
+                </p>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <label class="btn btn-outline-primary btn-sm mb-0">
+                  <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
+                  ${importandoTreinamento ? 'Importando...' : 'Importar JSON'}
+                  <input
+                    type="file"
+                    accept="application/json"
+                    style=${{ display: 'none' }}
+                    disabled=${importandoTreinamento}
+                    onChange=${handleUploadJsonTreinamentoCompleto}
+                  />
+                </label>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${handleBaixarModeloTreinamentoCompleto}>
+                  <span class="material-symbols-outlined">${IconeSvg('download')}</span>
+                  Baixar molde
+                </button>
+              </div>
+            </div>
+          </section>
+        `
+      : null}
     <section class="process-create-card">
       <div class="process-create-section-title">
         <span class="material-symbols-outlined">${IconeSvg('school')}</span>
@@ -1155,51 +1297,118 @@ export function TelaCriarTreinamento({ controlador }) {
         <h2>Participantes esperados (opcional)</h2>
       </div>
       <p class="text-muted small">
-        Busque pelo nome do colaborador (candidato já registrado no Conecta). Ajuste manualmente a lista conforme necessário —
-        o treinamento pode ser cadastrado sem participantes e reaproveitado em processos seletivos futuros.
+        Busque pelo nome ou e-mail: aparecem candidatos de processos seletivos e usuários do sistema (operadores,
+        funcionários, supervisores...). Você também pode incluir todos os usuários ativos de uma operação de uma vez.
       </p>
       <div class="rh-filter-field position-relative">
         <input
           class="form-control"
-          placeholder="Buscar participante por nome..."
+          placeholder="Buscar candidato ou usuário por nome ou e-mail..."
           value=${buscaParticipante}
           onInput=${(event) => setBuscaParticipante(event.target.value)}
         />
         ${buscaParticipante.trim()
           ? html`
-              <div class="rh-section-card rh-section-card--flat mt-1" style=${{ maxHeight: '200px', overflowY: 'auto' }}>
+              <div class="rh-section-card rh-section-card--flat mt-1" style=${{ maxHeight: '280px', overflowY: 'auto' }}>
                 ${buscandoParticipantes
                   ? html`<div class="p-2 text-muted small">Buscando...</div>`
-                  : resultadosBusca.length
-                    ? resultadosBusca.map(
-                        (candidato) => html`
-                          <button
-                            key=${candidato.id_registro}
-                            type="button"
-                            class="btn btn-light btn-sm w-100 text-start"
-                            onClick=${() => adicionarParticipante(candidato)}
-                          >
-                            ${candidato.nome_candidato} <span class="text-muted small">— ${candidato.vaga || ''}</span>
-                          </button>
-                        `,
-                      )
+                  : resultadosBusca.usuarios.length || resultadosBusca.candidatos.length
+                    ? html`
+                        ${resultadosBusca.usuarios.length
+                          ? html`<div class="px-2 pt-2 pb-1 text-muted small fw-semibold">Usuários do sistema</div>`
+                          : null}
+                        ${resultadosBusca.usuarios.map(
+                          (usuario) => html`
+                            <button
+                              key=${`u-${usuario.id_usuario}`}
+                              type="button"
+                              class="btn btn-light btn-sm w-100 text-start"
+                              onClick=${() => adicionarUsuarioParticipante(usuario)}
+                            >
+                              ${usuario.nome}
+                              <span class="text-muted small">
+                                — ${usuario.perfil_nome || usuario.perfil || 'Usuário'}${usuario.operacoes ? ` · ${usuario.operacoes}` : ''}
+                              </span>
+                            </button>
+                          `,
+                        )}
+                        ${resultadosBusca.candidatos.length
+                          ? html`<div class="px-2 pt-2 pb-1 text-muted small fw-semibold">Candidatos</div>`
+                          : null}
+                        ${resultadosBusca.candidatos.map(
+                          (candidato) => html`
+                            <button
+                              key=${`c-${candidato.id_registro}`}
+                              type="button"
+                              class="btn btn-light btn-sm w-100 text-start"
+                              onClick=${() => adicionarParticipante(candidato)}
+                            >
+                              ${candidato.nome_candidato} <span class="text-muted small">— ${candidato.vaga || 'Candidato'}</span>
+                            </button>
+                          `,
+                        )}
+                      `
                     : html`<div class="p-2 text-muted small">Nenhum resultado.</div>`}
               </div>
             `
           : null}
       </div>
+      <div class="d-flex flex-wrap align-items-end gap-2 mt-2">
+        <div class="rh-filter-field" style=${{ minWidth: '240px' }}>
+          <label class="form-label small mb-1">Incluir uma operação inteira</label>
+          <select
+            class="form-select form-select-sm"
+            value=${operacaoParaAdicionar}
+            onChange=${(event) => setOperacaoParaAdicionar(event.target.value)}
+          >
+            <option value="">Selecione a operação...</option>
+            ${operacoesTreinamento.map(
+              (operacao) => html`
+                <option key=${operacao.chave} value=${operacao.chave}>
+                  ${operacao.nome} (${Number(operacao.total_usuarios || 0)} usuário(s) ativo(s))
+                </option>
+              `,
+            )}
+          </select>
+        </div>
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          disabled=${!operacaoParaAdicionar}
+          onClick=${adicionarOperacaoParticipante}
+        >
+          Adicionar operação
+        </button>
+      </div>
       <div class="d-flex flex-wrap gap-2 mt-2">
+        ${formulario.operacoes_participantes.map(
+          (operacao) => html`
+            <span key=${`o-${operacao.chave}`} class="rh-chip d-flex align-items-center gap-1">
+              <span class="material-symbols-outlined" style=${{ fontSize: '16px' }}>${IconeSvg('groups')}</span>
+              Operação ${operacao.nome} (${Number(operacao.total_usuarios || 0)})
+              <button type="button" class="btn-close btn-close-sm" aria-label="Remover" onClick=${() => removerOperacaoParticipante(operacao.chave)}></button>
+            </span>
+          `,
+        )}
+        ${formulario.participantes_usuarios.map(
+          (usuario) => html`
+            <span key=${`u-${usuario.id_usuario}`} class="rh-chip d-flex align-items-center gap-1">
+              ${usuario.nome} <span class="text-muted small">(${usuario.perfil_nome || 'Usuário'})</span>
+              <button type="button" class="btn-close btn-close-sm" aria-label="Remover" onClick=${() => removerUsuarioParticipante(usuario.id_usuario)}></button>
+            </span>
+          `,
+        )}
         ${formulario.participantes.map(
           (candidato) => html`
-            <span key=${candidato.id_registro} class="rh-chip d-flex align-items-center gap-1">
-              ${candidato.nome_candidato}
+            <span key=${`c-${candidato.id_registro}`} class="rh-chip d-flex align-items-center gap-1">
+              ${candidato.nome_candidato} <span class="text-muted small">(Candidato)</span>
               <button type="button" class="btn-close btn-close-sm" aria-label="Remover" onClick=${() => removerParticipante(candidato.id_registro)}></button>
             </span>
           `,
         )}
-        ${!formulario.participantes.length ? html`<span class="text-muted small">Nenhum participante selecionado ainda.</span>` : null}
+        ${!totalParticipantesSelecionados ? html`<span class="text-muted small">Nenhum participante selecionado ainda.</span>` : null}
       </div>
-      ${!formulario.participantes.length
+      ${!totalParticipantesSelecionados
         ? html`
             <p class="text-muted small mt-2 mb-0">
               <span class="material-symbols-outlined align-middle" style=${{ fontSize: '16px' }}>${IconeSvg('info')}</span>
@@ -1624,7 +1833,7 @@ export function TelaCriarTreinamento({ controlador }) {
             ? []
             : [
                 ['Ocorrências', String(formulario.ocorrencias.length)],
-                ['Participantes', String(formulario.participantes.length)],
+                ['Participantes', resumoParticipantes()],
               ]),
           ['Módulos', String(formulario.itens.length)],
           [
@@ -1713,7 +1922,7 @@ export function TelaCriarTreinamento({ controlador }) {
               ? []
               : [
                   ['Ocorrências', formulario.ocorrencias.length],
-                  ['Participantes', formulario.participantes.length],
+                  ['Participantes', totalParticipantesSelecionados],
                 ]),
             ['Módulos', formulario.itens.length],
           ]}
@@ -1724,6 +1933,7 @@ export function TelaCriarTreinamento({ controlador }) {
           ${conteudoPorEtapa[etapaAtual]()}
         </div>
 
+        ${avisoImportacao ? html`<div class="alert alert-info mt-3">${avisoImportacao}</div>` : null}
         ${erro ? html`<div class="alert alert-danger mt-3">${erro}</div>` : null}
 
         <footer class="process-create-actions">

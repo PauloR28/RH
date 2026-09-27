@@ -18,7 +18,12 @@ import {
   salvarPresencaTreinamento,
 } from '../../servico-api.js?v=20260906-central-treinamentos';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { vincularTrilhaProcesso } from '../../services/api/onboarding.js';
+import {
+  atribuirTreinamentoUsuarios,
+  buscarParticipantesTreinamento,
+  listarOperacoesParaTreinamento,
+  vincularTrilhaProcesso,
+} from '../../services/api/onboarding.js';
 import { CHAVE_TRILHA_EDICAO } from './wizard.js';
 import { lerProcessos } from '../../services/api/processes.js';
 import {
@@ -32,6 +37,75 @@ import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import { TabelaVazia } from '../../shared/components/empty-table-row.js';
 import { SkeletonTableRows } from '../../shared/components/skeleton.js';
 import { IconeSvg } from '../../ui/icone.js';
+
+// QA T2-TRE-01: quem recebe o treinamento pode ser um candidato, um usuário do
+// sistema (operador, funcionário...) ou uma operação inteira. Tudo vira uma
+// lista só, no formato que os modais já exibem (nome_candidato / vaga).
+async function buscarPessoasTreinamento(termo) {
+  const texto = String(termo || '').trim();
+  const normalizado = texto.toLowerCase();
+  const [pessoas, candidatosPadrao, operacoes] = await Promise.all([
+    texto ? buscarParticipantesTreinamento(texto).catch(() => ({})) : Promise.resolve({}),
+    texto ? Promise.resolve([]) : buscarCandidatosTreinamento('').catch(() => []),
+    listarOperacoesParaTreinamento().catch(() => []),
+  ]);
+  const candidatos = texto ? pessoas?.candidatos || [] : candidatosPadrao || [];
+  const itensOperacoes = (Array.isArray(operacoes) ? operacoes : [])
+    .filter((operacao) => !normalizado || String(operacao.nome || '').toLowerCase().includes(normalizado))
+    .map((operacao) => ({
+      tipo: 'operacao',
+      chave: `o-${operacao.chave}`,
+      operacao: operacao.chave,
+      nome_candidato: `Operação ${operacao.nome} — todos os usuários ativos`,
+      vaga: `${Number(operacao.total_usuarios || 0)} usuário(s)`,
+    }));
+  const itensUsuarios = (pessoas?.usuarios || []).map((usuario) => ({
+    tipo: 'usuario',
+    chave: `u-${usuario.id_usuario}`,
+    id_usuario: usuario.id_usuario,
+    nome_candidato: usuario.nome,
+    vaga: [usuario.perfil_nome || 'Usuário', usuario.operacoes].filter(Boolean).join(' · '),
+  }));
+  const itensCandidatos = (Array.isArray(candidatos) ? candidatos : []).map((candidato) => ({
+    ...candidato,
+    tipo: 'candidato',
+    chave: `c-${candidato.id_registro}`,
+    vaga: candidato.vaga ? `Candidato · ${candidato.vaga}` : 'Candidato',
+  }));
+  return [...itensOperacoes, ...itensUsuarios, ...itensCandidatos];
+}
+
+// Grava a atribuição conforme o tipo escolhido; devolve a mensagem de sucesso.
+async function atribuirParaPessoa(pessoa, trilha, form) {
+  const base = {
+    trilha_id: trilha.id_trilha,
+    data_prevista: form.data_prevista ? new Date(form.data_prevista).toISOString() : null,
+    local: form.local.trim(),
+    ministrante: form.ministrante.trim(),
+    ministrante_email: form.ministrante_email.trim(),
+  };
+  if (pessoa.tipo === 'usuario' || pessoa.tipo === 'operacao') {
+    const resultado = await atribuirTreinamentoUsuarios({
+      ...base,
+      ids_usuarios: pessoa.tipo === 'usuario' ? [pessoa.id_usuario] : [],
+      operacoes: pessoa.tipo === 'operacao' ? [pessoa.operacao] : [],
+    });
+    const falhas = Array.isArray(resultado?.falhas) ? resultado.falhas : [];
+    if (!resultado?.atribuicoes_criadas && falhas.length) {
+      throw new Error(falhas[0]?.erro || 'Não foi possível atribuir o treinamento.');
+    }
+    const complemento = falhas.length ? ` ${falhas.length} já tinham o treinamento em andamento.` : '';
+    return pessoa.tipo === 'operacao'
+      ? `Treinamento "${trilha.nome}" atribuído a ${resultado.atribuicoes_criadas} usuário(s) da operação.${complemento}`
+      : `${pessoa.nome_candidato} recebeu o treinamento "${trilha.nome}" e já pode acessá-lo em "Meus treinamentos".`;
+  }
+  await iniciarOnboardingCandidato({
+    ...base,
+    id_registro: pessoa.id_registro,
+    enviar_lembrete_calendario: !!form.enviar_lembrete_calendario,
+  });
+  return '';
+}
 
 const CATEGORIAS_TREINAMENTO = ['LGPD', 'Segurança da Informação', 'Tecnologia', 'Operações', 'Onboarding', 'Produto', 'Outro'];
 const MODALIDADES_TREINAMENTO = [
@@ -527,7 +601,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     setBuscandoParticipante(true);
     const timer = setTimeout(async () => {
       try {
-        const resultados = await buscarCandidatosTreinamento(termo);
+        const resultados = await buscarPessoasTreinamento(termo);
         setResultadosParticipante(Array.isArray(resultados) ? resultados : []);
       } catch (error) {
         setResultadosParticipante([]);
@@ -550,28 +624,22 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const confirmarAdicaoParticipante = async () => {
     if (!participanteSelecionado || !trilhaParticipante) {
-      setErroParticipante('Busque e selecione um candidato antes de salvar.');
+      setErroParticipante('Busque e selecione quem vai receber o treinamento antes de salvar.');
       return;
     }
     setSalvandoParticipante(true);
     setErroParticipante('');
     try {
-      await iniciarOnboardingCandidato({
-        id_registro: participanteSelecionado.id_registro,
-        trilha_id: trilhaParticipante.id_trilha,
-        data_prevista: formParticipante.data_prevista ? new Date(formParticipante.data_prevista).toISOString() : null,
-        local: formParticipante.local.trim(),
-        ministrante: formParticipante.ministrante.trim(),
-        ministrante_email: formParticipante.ministrante_email.trim(),
-        enviar_lembrete_calendario: !!formParticipante.enviar_lembrete_calendario,
-      });
-      setMensagemParticipante(`${participanteSelecionado.nome_candidato} foi adicionado a "${trilhaParticipante.nome}" e já pode acessar o treinamento.`);
+      const mensagem = await atribuirParaPessoa(participanteSelecionado, trilhaParticipante, formParticipante);
+      setMensagemParticipante(
+        mensagem || `${participanteSelecionado.nome_candidato} foi adicionado a "${trilhaParticipante.nome}" e já pode acessar o treinamento.`,
+      );
       await Promise.all([carregarAtribuicoes(), carregarTrilhas()]);
       setParticipanteSelecionado(null);
       setBuscaParticipante('');
       setFormParticipante({ ...FORM_PARTICIPANTE_INICIAL, local: trilhaParticipante.local_padrao || '' });
     } catch (error) {
-      setErroParticipante(error?.message || 'Não foi possível adicionar este candidato ao treinamento.');
+      setErroParticipante(error?.message || 'Não foi possível adicionar ao treinamento.');
     } finally {
       setSalvandoParticipante(false);
     }
@@ -614,7 +682,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     setBuscandoAgendarParticipante(true);
     const timer = setTimeout(async () => {
       try {
-        const resultados = await buscarCandidatosTreinamento(termo);
+        const resultados = await buscarPessoasTreinamento(termo);
         setResultadosAgendarParticipante(Array.isArray(resultados) ? resultados : []);
       } catch (error) {
         setResultadosAgendarParticipante([]);
@@ -646,7 +714,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
 
   const confirmarAgendarTreinamento = async () => {
     if (!participanteAgendarSelecionado || !trilhaAgendarTreinamento) {
-      setErroAgendarTreinamento('Busque e selecione um candidato antes de salvar.');
+      setErroAgendarTreinamento('Busque e selecione quem vai receber o treinamento antes de salvar.');
       return;
     }
     if (vincularProcessoAoAgendar && !processoAgendarSelecionado) {
@@ -656,19 +724,13 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
     setSalvandoAgendarTreinamento(true);
     setErroAgendarTreinamento('');
     try {
-      await iniciarOnboardingCandidato({
-        id_registro: participanteAgendarSelecionado.id_registro,
-        trilha_id: trilhaAgendarTreinamento.id_trilha,
-        data_prevista: formAgendarTreinamento.data_prevista ? new Date(formAgendarTreinamento.data_prevista).toISOString() : null,
-        local: formAgendarTreinamento.local.trim(),
-        ministrante: formAgendarTreinamento.ministrante.trim(),
-        ministrante_email: formAgendarTreinamento.ministrante_email.trim(),
-        enviar_lembrete_calendario: !!formAgendarTreinamento.enviar_lembrete_calendario,
-      });
+      const mensagemAgendada = await atribuirParaPessoa(participanteAgendarSelecionado, trilhaAgendarTreinamento, formAgendarTreinamento);
       if (vincularProcessoAoAgendar && processoAgendarSelecionado) {
         await vincularTrilhaProcesso(trilhaAgendarTreinamento.id_trilha, processoAgendarSelecionado);
       }
-      setMensagemAgendarTreinamento(`${participanteAgendarSelecionado.nome_candidato} foi agendado(a) em "${trilhaAgendarTreinamento.nome}".`);
+      setMensagemAgendarTreinamento(
+        mensagemAgendada || `${participanteAgendarSelecionado.nome_candidato} foi agendado(a) em "${trilhaAgendarTreinamento.nome}".`,
+      );
       await Promise.all([carregarAtribuicoes(), carregarTrilhas(), carregarTreinamentosProcesso()]);
       setParticipanteAgendarSelecionado(null);
       setBuscaAgendarParticipante('');
@@ -1753,7 +1815,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       : html`
                   <input
                     class="form-control"
-                    placeholder="Buscar candidato por nome..."
+                    placeholder="Buscar candidato, usuário ou operação..."
                     value=${buscaAgendarParticipante}
                     onInput=${(event) => setBuscaAgendarParticipante(event.target.value)}
                   />
@@ -1765,7 +1827,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               (candidato) => html`
                               <button
                                 type="button"
-                                key=${candidato.id_registro}
+                                key=${candidato.chave || candidato.id_registro}
                                 class="training-participant-result"
                                 onClick=${() => { setParticipanteAgendarSelecionado(candidato); setResultadosAgendarParticipante([]); }}
                               >
@@ -1774,7 +1836,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                               </button>
                             `,
             )
-            : html`<p class="text-muted small mb-0">Nenhum candidato encontrado.</p>`}
+            : html`<p class="text-muted small mb-0">Ninguém encontrado com esse nome.</p>`}
                   </div>
                 `}
           </div>
@@ -1871,7 +1933,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       <${ModalPadrao}
         aberto=${modalParticipanteAberto}
         titulo="Adicionar participante"
-        subtitulo=${trilhaParticipante ? `Liberar "${trilhaParticipante.nome}" para um candidato — não precisa de processo seletivo.` : ''}
+        subtitulo=${trilhaParticipante ? `Liberar "${trilhaParticipante.nome}" para um candidato, um usuário do sistema ou uma operação inteira — não precisa de processo seletivo.` : ''}
         onClose=${fecharModalParticipante}
       >
         <div class="rh-details-body training-modal-form">
@@ -1879,7 +1941,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
           ${mensagemParticipante ? html`<div class="alert alert-success">${mensagemParticipante}</div>` : null}
 
           <div class="rh-filter-field">
-            <label>Candidato</label>
+            <label>Quem vai receber o treinamento</label>
             ${participanteSelecionado
       ? html`
                   <div class="training-participant-picked">
@@ -1896,7 +1958,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
       : html`
                   <input
                     class="form-control"
-                    placeholder="Buscar candidato por nome..."
+                    placeholder="Buscar candidato, usuário ou operação..."
                     value=${buscaParticipante}
                     onInput=${(event) => setBuscaParticipante(event.target.value)}
                   />
@@ -1908,7 +1970,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               (candidato) => html`
                               <button
                                 type="button"
-                                key=${candidato.id_registro}
+                                key=${candidato.chave || candidato.id_registro}
                                 class="training-participant-result"
                                 onClick=${() => selecionarParticipante(candidato)}
                               >
@@ -1917,7 +1979,7 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
                               </button>
                             `,
             )
-            : html`<p class="text-muted small mb-0">Nenhum candidato encontrado.</p>`}
+            : html`<p class="text-muted small mb-0">Ninguém encontrado com esse nome.</p>`}
                   </div>
                 `}
           </div>

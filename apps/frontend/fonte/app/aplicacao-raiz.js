@@ -1,4 +1,5 @@
 ﻿import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
+import { usaInicioPorSessoes } from '../shared/tela-inicial.js';
 import {
   navegarParaTela,
   usarTelaAtual,
@@ -196,8 +197,8 @@ function resolverTelaProtegida(telaAtual, controlador) {
   }
 
   // Vertente Monitoria (20/set/2026): Supervisor e Operador deixam de cair direto na
-  // Central de Treinamentos. Todos os perfis (exceto Administrador e Gestor) começam
-  // no Início por sessões: saudação + uma div por sessão a que têm acesso.
+  // Central de Treinamentos. Supervisor, Qualidade e Operador começam no Início por
+  // sessões; os demais perfis usam a Início completa filtrada por permissões.
 
   if (!controlador.podeAcessarTela(telaAtual)) {
     return 'screen-forbidden';
@@ -354,7 +355,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-menu') {
     const perfilInicio = controlador.estado.perfilUsuario;
-    if (perfilInicio && perfilInicio !== 'administrador' && perfilInicio !== 'gestor') {
+    // Correções (27/set/2026): a Início completa vale para todos os perfis,
+    // filtrada pelas permissões e pela configuração do perfil; só Supervisor,
+    // Qualidade, Operador (e Candidato) seguem na Início por sessões.
+    if (usaInicioPorSessoes(perfilInicio)) {
       return html`<${TelaInicioPorSessoes} controlador=${controlador} />`;
     }
     return html`<${TelaInicio} controlador=${controlador} />`;

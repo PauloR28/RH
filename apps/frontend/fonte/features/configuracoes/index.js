@@ -28,6 +28,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
@@ -46,6 +47,7 @@ import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
   CamposVinculosMonitoria,
+  ModalTransferirOperacao,
   ModalTransferirSupervisao,
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
@@ -558,6 +560,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [abaOperacao, setAbaOperacao] = useState('cadastro');
   const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
+  const [transferindoOperacao, setTransferindoOperacao] = useState(false);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
   // "Criar usuário rápido" — nome, e-mail e senha para candidatos aprovados
@@ -1999,6 +2002,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <option value="microsoft">Microsoft</option>
                           <option value="local">Local</option>
                         </select>
+                        <small class="text-muted">
+                          ${acessoMicrosoft
+          ? 'Entra só pelo botão "Entrar com a Microsoft", com o e-mail corporativo cadastrado acima (não tem senha no Conecta).'
+          : 'Entra com login e senha. No primeiro acesso a pessoa troca a senha inicial.'}
+                        </small>
                       </label>
                       <${CamposVinculosMonitoria}
                         perfil=${formUsuario.perfil}
@@ -2440,6 +2448,29 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                   </div>
                                 `;
               })}
+                              <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-expanded' : ''}`.trim()}>
+                                <button
+                                  type="button"
+                                  class=${`settings-permission-tree-session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-active' : ''}`.trim()}
+                                  aria-expanded=${sessaoPermissaoAtiva === '__tela_inicial__'}
+                                  onClick=${() => setSessaoPermissaoAtiva(sessaoPermissaoAtiva === '__tela_inicial__' ? '' : '__tela_inicial__')}
+                                >
+                                  <span>Tela inicial</span>
+                                  <small>blocos</small>
+                                  <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
+                                </button>
+                                ${sessaoPermissaoAtiva === '__tela_inicial__'
+                  ? html`
+                                      <div class="settings-permission-tree-content">
+                                        <${PainelTelaInicialPerfil}
+                                          perfil=${perfilSelecionado}
+                                          permissoes=${permissoesPerfilDraft}
+                                          podeEditar=${podeEditarPerfis && perfisDesbloqueados}
+                                        />
+                                      </div>
+                                    `
+                  : null}
+                              </div>
                             </div>
                           `
               : null}
@@ -4109,6 +4140,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   onClick=${() => setTransferindoSupervisao(true)}
                 >
                   Transferir supervisão
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  title="Move um Operador ou Supervisor para outra operação"
+                  onClick=${() => setTransferindoOperacao(true)}
+                >
+                  Transferir de operação
                 </button>` : null}
               <button
                 type="button"
@@ -4138,6 +4177,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           aberto=${transferindoSupervisao}
           onClose=${() => setTransferindoSupervisao(false)}
           onFeito=${() => { setTransferindoSupervisao(false); setFeedback('Supervisão transferida.'); }}
+          showToast=${(mensagem, tipo) => (tipo === 'danger' ? setErro(mensagem) : setFeedback(mensagem))}
+        />
+        <${ModalTransferirOperacao}
+          aberto=${transferindoOperacao}
+          onClose=${() => setTransferindoOperacao(false)}
+          onFeito=${() => { setTransferindoOperacao(false); carregarAba('usuarios'); }}
           showToast=${(mensagem, tipo) => (tipo === 'danger' ? setErro(mensagem) : setFeedback(mensagem))}
         />` : null}
       ${carregando

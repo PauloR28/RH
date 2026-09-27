@@ -47,6 +47,8 @@ export const atualizarUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usu
 export const lerVinculosUsuarioMonitoria = (id) => requisitar(`/monitoria/usuarios/${id}/vinculos`, { method: 'GET' });
 export const salvarVinculosUsuarioMonitoria = (id, payload) => enviar(`/monitoria/usuarios/${id}/vinculos`, 'PUT', payload);
 export const transferirSupervisao = (payload) => enviar('/monitoria/supervisao/transferir', 'POST', payload);
+// QA T2-TRC-02/03: Operador ou Supervisor muda de operação.
+export const transferirOperacaoUsuario = (id, payload) => enviar(`/monitoria/usuarios/${id}/transferir-operacao`, 'POST', payload);
 export const lerAmbienteOperacao = (chave) => requisitar(`/monitoria/operacoes/${encodeURIComponent(chave)}/ambiente`, { method: 'GET' });
 export const salvarAmbienteOperacao = (chave, payload) => enviar(`/monitoria/operacoes/${encodeURIComponent(chave)}/ambiente`, 'PUT', payload);
 export const liberarTrocaDesign = (id) => enviar(`/monitoria/usuarios/${id}/liberar-design`, 'POST', {});
@@ -54,11 +56,25 @@ export const trocarSenhaInicial = (payload) => enviar('/auth/me/senha-inicial', 
 
 // --- matriz ----------------------------------------------------------------
 export const lerMatriz = (operacao) => requisitar(`/monitoria/matriz${consulta({ operacao })}`, { method: 'GET' });
-export const listarVersoesMatriz = (operacao) =>
-  requisitar(`/monitoria/matriz/versoes${consulta({ operacao })}`, { method: 'GET' });
+export const listarVersoesMatriz = (operacao, idMatriz = '') =>
+  requisitar(`/monitoria/matriz/versoes${consulta({ operacao, id_matriz: idMatriz })}`, { method: 'GET' });
 export const lerVersaoMatriz = (idVersao) => requisitar(`/monitoria/matriz/versoes/${idVersao}`, { method: 'GET' });
-export const salvarMatriz = (operacao, config, observacao = '') =>
-  enviar(`/monitoria/matriz${consulta({ operacao })}`, 'PUT', { config, observacao });
+export const salvarMatriz = (operacao, config, observacao = '', idMatriz = null) =>
+  enviar(`/monitoria/matriz${consulta({ operacao })}`, 'PUT', { config, observacao, id_matriz: idMatriz || null });
+// Formulários (vários por operação, um ativo) — Correções 27/set/2026.
+export const listarFormulariosMatriz = (operacao) =>
+  requisitar(`/monitoria/matriz/formularios${consulta({ operacao })}`, { method: 'GET' });
+export const duplicarFormularioMatriz = (payload) => enviar('/monitoria/matriz/formularios/duplicar', 'POST', payload);
+export const ativarFormularioMatriz = (operacao, idMatriz) =>
+  enviar(`/monitoria/matriz/formularios/${idMatriz}/ativar${consulta({ operacao })}`, 'POST', {});
+export const restaurarVersaoMatriz = (idVersao, observacao = '') =>
+  enviar(`/monitoria/matriz/versoes/${idVersao}/restaurar`, 'POST', { observacao });
+// Exclusão lógica de monitoria (somente Administrador).
+export const excluirMonitoria = (ref, motivo, confirmacao) =>
+  enviar(`/monitoria/monitorias/${encodeURIComponent(ref)}/excluir`, 'POST', { motivo, confirmacao });
+export const restaurarMonitoria = (idMonitoria, motivo = '') =>
+  enviar(`/monitoria/monitorias/${idMonitoria}/restaurar`, 'POST', { motivo });
+export const listarMonitoriasExcluidas = () => requisitar('/monitoria/monitorias-excluidas', { method: 'GET' });
 
 // --- realização / consulta -------------------------------------------------
 export const listarOperadoresMonitoria = (operacao) =>

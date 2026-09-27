@@ -495,3 +495,10 @@
 .mon-formularios-esq, .mon-formularios-dir { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .mon-formularios-esq .mon-matriz { width: 100%; }
 @media (max-width: 1100px) { .mon-formularios-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Formulários: ações por linha do histórico de versões (Ver / Tornar atual). */
+.mon-tabela .mon-acoes-linha {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}

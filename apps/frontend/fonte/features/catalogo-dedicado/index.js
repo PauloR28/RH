@@ -9,6 +9,7 @@ import {
 } from '../../ui/componentes-compartilhados.js';
 import { Badge, ToggleSwitch } from '../../ui/components/primitives.js';
 import { IconeSvg } from '../../ui/icone.js';
+import { TelaLgpdRetencao } from './lgpd-retencao.js';
 import {
   atualizarItemConfiguracao,
   criarItemConfiguracao,
@@ -603,16 +604,10 @@ function TelaEmConstrucao({ controlador, screenId, navAtiva, titulo }) {
   `;
 }
 
-// Correções.txt item 6: LGPD e Retenção desativada (página + link no menu).
+// Correções (27/set/2026): LGPD e Retenção volta, agora com a retenção
+// automática de candidatos (ver lgpd-retencao.js).
 export function TelaLgpd({ controlador }) {
-  return html`
-    <${TelaEmConstrucao}
-      controlador=${controlador}
-      screenId=${CONFIG_LGPD.screenId}
-      navAtiva=${CONFIG_LGPD.navAtiva}
-      titulo=${CONFIG_LGPD.titulo}
-    />
-  `;
+  return html`<${TelaLgpdRetencao} controlador=${controlador} />`;
 }
 
 export function TelaMotivosEliminacao({ controlador }) {

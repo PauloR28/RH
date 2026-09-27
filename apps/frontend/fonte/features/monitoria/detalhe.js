@@ -3,6 +3,8 @@ import { LoadingState, ModalPadrao, SectionCard } from '../../ui/componentes-com
 import { IconeSvg } from '../../ui/icone.js';
 import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20260921-alertas';
 import {
+  excluirMonitoria,
+  restaurarMonitoria,
   aplicarFeedback,
   anexarEvidencia,
   baixarEvidencia,
@@ -50,6 +52,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
   const [plano, setPlano] = useState({ problema: '', criterio: '', objetivo: '', acao: '', prazo: '' });
   const [destinatarios, setDestinatarios] = useState(null);
   const [selecionados, setSelecionados] = useState([]);
+  const [excluindo, setExcluindo] = useState(null); // { motivo, confirmacao }
 
   const perfil = controlador?.estado?.perfilUsuario;
   const pode = (p) => controlador.possuiPermissao(p);
@@ -99,6 +102,22 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
   const podeReanalisar = d.status === 'REANALISE' && pode('monitoria.reanalisar');
   const contestacao0 = d.contestacoes?.[0];
   const podeExportar = pode('monitoria.exportar');
+  // Exclusão lógica: somente Administrador (o backend valida de novo).
+  const ehAdministrador = perfil === 'administrador';
+  const confirmarExclusao = async () => {
+    setOcupado(true);
+    try {
+      await excluirMonitoria(d.codigo, excluindo.motivo.trim(), excluindo.confirmacao.trim());
+      showToast(`Monitoria #${d.codigo} excluída. Ela não aparece mais em listas, painéis e indicadores.`, 'success');
+      setExcluindo(null);
+      onAlterou?.();
+      onClose?.();
+    } catch (e) {
+      showToast(e?.message || 'Não foi possível excluir.', 'danger');
+    } finally {
+      setOcupado(false);
+    }
+  };
 
   const exportar = async () => {
     try {
@@ -138,7 +157,36 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
         ${['resumo', 'linha', 'fluxo'].map((k) => html`<button key=${k} type="button" class=${`mon-subnav-btn ${aba === k ? 'is-active' : ''}`} onClick=${() => setAba(k)}>${{ resumo: 'Avaliação', linha: 'Linha do tempo', fluxo: 'Feedback e contestação' }[k]}</button>`)}
         ${podeExportar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportar}>Exportar (XLSX)</button>` : null}
         ${podeExportar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirCompartilhar}>Compartilhar por e-mail</button>` : null}
+        ${ehAdministrador && !d.excluida ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo({ motivo: '', confirmacao: '' })}>Excluir</button>` : null}
       </div>
+
+      ${d.excluida ? html`
+        <div class="mon-alerta mon-alerta--danger" role="alert">
+          <strong>Monitoria excluída</strong> por ${d.excluida.por} em ${formatarDataHoraCurta(d.excluida.em)}. Motivo: ${d.excluida.motivo}.
+          Ela não aparece em listas, painéis nem indicadores.
+          ${ehAdministrador ? html`<button type="button" class="btn btn-outline-secondary btn-sm ms-2" disabled=${ocupado}
+            onClick=${() => executar(() => restaurarMonitoria(d.id_monitoria), 'Monitoria restaurada.')}>Restaurar</button>` : null}
+        </div>` : null}
+
+      ${excluindo ? html`
+        <div class="mon-alerta mon-alerta--danger" role="alertdialog" aria-label="Confirmar exclusão">
+          <p><strong>Esta ação não pode ser desfeita pela equipe:</strong> a monitoria some de listas, painéis, indicadores e do fluxo de
+          feedback/contestação. Fica registrada no log com o motivo, e só o Administrador pode restaurá-la.</p>
+          <div class="mon-form-grid">
+            <label class="mon-campo">Motivo (obrigatório)
+              <input class="form-control" maxlength="400" value=${excluindo.motivo} onInput=${(e) => setExcluindo({ ...excluindo, motivo: e.target.value })} />
+            </label>
+            <label class="mon-campo">Digite o ID da monitoria (${d.codigo}) para confirmar
+              <input class="form-control" inputmode="numeric" maxlength="8" value=${excluindo.confirmacao} onInput=${(e) => setExcluindo({ ...excluindo, confirmacao: e.target.value })} />
+            </label>
+          </div>
+          <div class="mon-acoes">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setExcluindo(null)}>Cancelar</button>
+            <button type="button" class="btn btn-danger btn-sm"
+              disabled=${ocupado || excluindo.motivo.trim().length < 5 || excluindo.confirmacao.trim() !== d.codigo}
+              onClick=${confirmarExclusao}>Excluir definitivamente das telas</button>
+          </div>
+        </div>` : null}
 
       ${aba === 'resumo' ? html`
         <${Painel} titulo="Dados da monitoria">

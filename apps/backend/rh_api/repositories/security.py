@@ -119,6 +119,16 @@ def _display_audit_module(value: str) -> str:
     return safe_value
 
 
+# QA T2-TRE-02/03: operador criado com acesso Microsoft (padrão da tela de
+# usuários) não tem senha; o login por senha falhava só com "inválidos" e a
+# pessoa não sabia que devia usar o botão da Microsoft. A dica vale para qualquer
+# falha, para não revelar se a conta existe.
+MENSAGEM_LOGIN_INVALIDO = (
+    "Usuário ou senha inválidos. Se a sua conta usa acesso Microsoft, "
+    "entre pelo botão \"Entrar com a Microsoft\" com o seu e-mail corporativo."
+)
+
+
 class SecurityRepositoryMixin:
     def _insert_audit_log(
         self,
@@ -300,7 +310,7 @@ class SecurityRepositoryMixin:
     ) -> dict:
         safe_login = normalize_text(usuario)
         if not safe_login:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário ou senha inválidos.")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=MENSAGEM_LOGIN_INVALIDO)
 
         conn = self._connect()
         try:
@@ -350,7 +360,7 @@ class SecurityRepositoryMixin:
                     sucesso=False,
                 )
                 conn.commit()
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário ou senha inválidos.")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=MENSAGEM_LOGIN_INVALIDO)
 
             user_row = rows_to_dicts(cursor, [row])[0]
             user_context = self._serialize_system_user(user_row)
@@ -382,7 +392,7 @@ class SecurityRepositoryMixin:
                     sucesso=False,
                 )
                 conn.commit()
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário ou senha inválidos.")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=MENSAGEM_LOGIN_INVALIDO)
 
             if bool(user_row.get("mfa_enabled")):
                 try:

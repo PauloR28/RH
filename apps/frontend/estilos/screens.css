@@ -13571,6 +13571,17 @@ display: grid;
   }
 }
 
+/* Tela inicial por permissões: a ordem configurada no perfil (ordem do DOM) vale
+   sobre a ordem fixa acima; o padrão do catálogo já segue a mesma ordem visual. */
+#screen-menu .home-dashboard-main-grid .home-dashboard-stack--ordenado > * {
+  order: 0;
+}
+
+/* Tela inicial por permissões: só uma coluna de blocos liberada ocupa a largura toda. */
+#screen-menu .home-dashboard-main-grid.home-dashboard-grid--single {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 1100px) {
   .rh-modern-topbar-left {
     max-width: none;
@@ -16568,4 +16579,67 @@ display: grid;
 
 .rh-simple-list li + li {
   border-top: 1px solid var(--color-border);
+}
+
+/* Perfis e Permissões > Tela inicial (blocos por perfil). */
+.settings-home-config-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-home-config-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #d8e0ec);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+}
+
+.settings-home-config-item.is-off {
+  opacity: 0.6;
+}
+
+.settings-home-config-label {
+  display: grid;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-home-config-moves {
+  display: flex;
+  gap: 8px;
+}
+
+/* QA TR-02: leitura da redação pelo avaliador (texto completo, sem truncar). */
+.generated-essay-reading .generated-essay-prompt {
+  margin: 0 0 16px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border, #d8e0ec);
+  border-radius: 8px;
+  background: var(--color-surface-soft, #f6f8fb);
+}
+
+.generated-essay-text {
+  max-width: 72ch;
+  padding: 16px 24px;
+  border: 1px solid var(--color-border, #d8e0ec);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.generated-essay-text p {
+  margin: 0 0 16px;
+  text-align: justify;
+}
+
+.generated-essay-text p:last-child {
+  margin-bottom: 0;
 }

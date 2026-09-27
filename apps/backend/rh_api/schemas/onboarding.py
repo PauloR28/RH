@@ -227,6 +227,9 @@ class TreinamentoWizardCreateRequest(OnboardingTrilhaCreateRequest):
 
     ocorrencias: list[OcorrenciaTreinamentoInput] = []
     participantes: list[int] = []
+    # QA T2-TRE-01: usuários do sistema e operações inteiras (chave da operação).
+    participantes_usuarios: list[int] = []
+    operacoes: list[str] = []
 
     @field_validator("ocorrencias")
     @classmethod
@@ -249,6 +252,41 @@ class TreinamentoWizardCreateRequest(OnboardingTrilhaCreateRequest):
         if len(safe_ids) > 500:
             raise ValueError("Limite de 500 participantes por treinamento.")
         return safe_ids
+
+
+class AtribuirTreinamentoUsuariosRequest(BaseSchema):
+    """Atribui um treinamento existente a usuários do sistema e/ou a todos os
+    usuários ativos de uma ou mais operações (QA T2-TRE-01)."""
+
+    trilha_id: int
+    ids_usuarios: list[int] = []
+    operacoes: list[str] = []
+    data_prevista: datetime | None = None
+    local: str = ""
+    ministrante: str = ""
+    ministrante_email: str = ""
+    duracao_minutos: int = DURACAO_OCORRENCIA_PADRAO_MINUTOS
+
+    @field_validator("trilha_id")
+    @classmethod
+    def validate_trilha(cls, value: int) -> int:
+        if not value or int(value) <= 0:
+            raise ValueError("Identificador inválido.")
+        return int(value)
+
+    @field_validator("ids_usuarios")
+    @classmethod
+    def validate_usuarios(cls, value: list[int]) -> list[int]:
+        ids = [int(item) for item in (value or []) if item]
+        if len(ids) > 500:
+            raise ValueError("Limite de 500 usuários por atribuição.")
+        return ids
+
+    @model_validator(mode="after")
+    def validate_alvo(self):
+        if not self.ids_usuarios and not [op for op in self.operacoes if str(op or "").strip()]:
+            raise ValueError("Escolha ao menos um usuário ou uma operação.")
+        return self
 
 
 class OnboardingStartRequest(BaseSchema):

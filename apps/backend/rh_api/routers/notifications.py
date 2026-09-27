@@ -8,6 +8,7 @@ faltava a rota."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
@@ -27,8 +28,35 @@ def list_notificacoes(
 
 
 @router.post("/{id_notificacao}/marcar-lida", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
-def marcar_notificacao_lida(id_notificacao: int, repository: DatabaseRepository = Depends(get_repository)):
-    return repository.marcar_notificacao_lida(id_notificacao)
+def marcar_notificacao_lida(
+    id_notificacao: int,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.marcar_notificacao_lida(id_notificacao, papel=user.perfil, usuario=user.username, email=user.email)
+
+
+class EstadoNotificacoesPayload(BaseModel):
+    lidas: list[str] = Field(default_factory=list, max_length=500)
+    ocultas: list[str] = Field(default_factory=list, max_length=500)
+
+
+@router.get("/estado-usuario", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
+def obter_estado_notificacoes_usuario(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Lidas/ocultas das notificações montadas no front (vale em qualquer navegador)."""
+    return repository.obter_estado_notificacoes_usuario(usuario=user.username)
+
+
+@router.post("/estado-usuario", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])
+def registrar_estado_notificacoes_usuario(
+    payload: EstadoNotificacoesPayload,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.registrar_estado_notificacoes_usuario(usuario=user.username, lidas=payload.lidas, ocultas=payload.ocultas)
 
 
 @router.post("/entidade/{entidade}/{entidade_id}/marcar-lidas", dependencies=[Depends(require_permissions("notificacoes.visualizar"))])

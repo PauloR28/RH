@@ -65,6 +65,16 @@ class TransferirSupervisaoRequest(BaseSchema):
     justificativa: str = Field(default="", max_length=400)
 
 
+class TransferirOperacaoRequest(BaseSchema):
+    """QA T2-TRC-02/03: Operador ou Supervisor muda de operação."""
+
+    origem: str
+    destino: str
+    supervisores: list[int] = []
+    id_substituto: int | None = None
+    justificativa: str = Field(default="", max_length=400)
+
+
 class TemaRequest(BaseSchema):
     operacao: str = ""
 
@@ -72,6 +82,28 @@ class TemaRequest(BaseSchema):
 class MatrizConfigRequest(BaseSchema):
     config: dict[str, Any]
     observacao: str = Field(default="", max_length=400)
+    # Formulário a editar (vários por operação); vazio = o ativo.
+    id_matriz: int | None = None
+
+
+class DuplicarFormularioRequest(BaseSchema):
+    operacao: str
+    id_versao: int
+    nome: str = Field(default="", max_length=180)
+    operacao_destino: str = ""
+
+
+class RestaurarVersaoRequest(BaseSchema):
+    observacao: str = Field(default="", max_length=400)
+
+
+class ExcluirMonitoriaRequest(BaseSchema):
+    motivo: str = Field(min_length=5, max_length=400)
+    confirmacao: str = Field(min_length=1, max_length=20)
+
+
+class RestaurarMonitoriaRequest(BaseSchema):
+    motivo: str = Field(default="", max_length=400)
 
 
 class MonitoriaCriarRequest(BaseSchema):

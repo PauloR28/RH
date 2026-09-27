@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
@@ -687,6 +687,44 @@ function montarAnaliseRespostaDetalhe(resposta = {}, questao = {}) {
     notaBase,
     pontos,
   );
+}
+
+// QA TR-02: redação legível para o avaliador. O editor da prova grava HTML;
+// aqui vira texto com parágrafos, sem executar nada do conteúdo.
+function htmlParaParagrafos(valor) {
+  const bruto = typeof valor === 'object' && valor !== null ? valor.text || valor.html || '' : String(valor ?? '');
+  if (!bruto.trim()) return [];
+  let texto = bruto;
+  if (/<[a-z][\s\S]*>/i.test(bruto) && typeof DOMParser !== 'undefined') {
+    const doc = new DOMParser().parseFromString(bruto.replace(/<\/(p|div|h[1-6]|li)>|<br\s*\/?>/gi, '$&\n'), 'text/html');
+    texto = doc.body.textContent || '';
+  }
+  return texto.split(/\n+/).map((linha) => linha.trim()).filter(Boolean);
+}
+
+function ehRespostaRedacao(resposta = {}, questao = {}) {
+  const marcadores = [resposta.categoria, resposta.stage, resposta.stageKey, questao.stageKey, questao.stage, questao.category, questao.type]
+    .map((valor) => normalizarBusca(valor || ''));
+  return marcadores.some((valor) => valor.includes('redac') || valor.includes('essay') || valor === 'word');
+}
+
+function montarRedacoesDetalhe(respostas = [], questoes = []) {
+  return respostas
+    .map((resposta, indice) => {
+      const questaoIndice = Number(resposta.questao_indice ?? indice);
+      const questao = questoes[questaoIndice] || {};
+      if (!ehRespostaRedacao(resposta, questao)) return null;
+      const paragrafos = htmlParaParagrafos(resposta.resposta);
+      return {
+        id: resposta.id_resposta || resposta.id || `redacao-${indice}`,
+        numero: questaoIndice + 1,
+        enunciado: resposta.texto_questao_snapshot || resposta.enunciado || questao.question || questao.prompt || '',
+        paragrafos,
+        palavras: paragrafos.join(' ').split(/\s+/).filter(Boolean).length,
+        nota: formatarScore(resposta.nota),
+      };
+    })
+    .filter(Boolean);
 }
 
 function montarLinhasResultadoDetalhe(respostas = [], questoes = []) {
@@ -1595,12 +1633,30 @@ function ModalDetalheProvaGerada({
   onCancelar,
   onDecisao,
   onDadosCandidato,
+  abrirEm = null,
 }) {
   // Correções.txt item 13: gabarito e resultado completo ficam ocultos por
-  // padrão e só aparecem via a ação correspondente no menu "Ações".
+  // padrão; QA TR-02: "Ver prova completa" (lista) abre direto nas respostas.
   const [mostrarResultadoCompleto, setMostrarResultadoCompleto] = useState(false);
   const [mostrarGabarito, setMostrarGabarito] = useState(false);
   const [menuAcoesAberto, setMenuAcoesAberto] = useState(false);
+  // QA TR-02: o menu "Ações" ficava aberto por cima da tela ao clicar fora.
+  const menuAcoesRef = useRef(null);
+  useEffect(() => {
+    if (!menuAcoesAberto) return undefined;
+    const fecharSeFora = (event) => {
+      if (menuAcoesRef.current && !menuAcoesRef.current.contains(event.target)) setMenuAcoesAberto(false);
+    };
+    const fecharComEsc = (event) => {
+      if (event.key === 'Escape') setMenuAcoesAberto(false);
+    };
+    document.addEventListener('mousedown', fecharSeFora);
+    document.addEventListener('keydown', fecharComEsc);
+    return () => {
+      document.removeEventListener('mousedown', fecharSeFora);
+      document.removeEventListener('keydown', fecharComEsc);
+    };
+  }, [menuAcoesAberto]);
   // Redesign 10/set/2026 (ver design/wireframes/README.md, seção 2): o
   // conteúdo deste modal (resumo, alertas, testes complementares, feedback
   // qualitativo, resultado completo) era um scroll único e contínuo — a
@@ -1617,7 +1673,12 @@ function ModalDetalheProvaGerada({
     raciocinio: null,
   });
   useEffect(() => {
-    setAbaDetalhe('resumo');
+    // "Ver prova completa" abre na redação quando a prova tem uma (leitura do avaliador).
+    const temRedacao = abrirEm?.completo
+      && montarRedacoesDetalhe(detalhe?.respostas || [], detalhe?.questoes || []).length > 0;
+    setAbaDetalhe(temRedacao ? 'redacao' : abrirEm?.aba || 'resumo');
+    setMostrarResultadoCompleto(Boolean(abrirEm?.completo));
+    setMenuAcoesAberto(false);
     setAbaTesteComplementar('disc');
     setStatusTestesComplementares({ disc: null, fit_cultural: null, raciocinio: null });
   }, [detalhe?.id_prova]);
@@ -1667,6 +1728,7 @@ function ModalDetalheProvaGerada({
   const questoes = Array.isArray(detalhe.questoes) ? detalhe.questoes : [];
   const linhasResultado = montarLinhasResultadoDetalhe(respostas, questoes);
   const linhasComAnalise = linhasResultado.filter((linha) => linha.analiseResposta);
+  const redacoes = montarRedacoesDetalhe(respostas, questoes);
   const notaGeral = obterNotaFinal(detalhe) ?? resultado.nota_final_prova;
   const scoreConecta = obterScoreFinal(detalhe) ?? score.score_final;
   const statusProva = detalhe.status || resultado.status || 'Pendente';
@@ -1697,9 +1759,26 @@ function ModalDetalheProvaGerada({
       { key: 'resumo', label: 'Resumo' },
       { key: 'testes', label: 'Testes complementares' },
       ...(detalhe.feedback_qualitativo ? [{ key: 'qualitativo', label: 'Feedback qualitativo' }] : []),
+      ...(redacoes.length ? [{ key: 'redacao', label: 'Redação' }] : []),
       { key: 'respostas', label: 'Respostas' },
     ]}
         />
+
+        <${TabPanel} tabKey="redacao" activeKey=${abaDetalhe}>
+          ${redacoes.map((redacao) => html`
+            <section class="generated-detail-section generated-essay-reading" key=${redacao.id}>
+              <div class="generated-detail-section-title">
+                <h3>Redação — questão ${redacao.numero}</h3>
+                <span class="text-muted small">${redacao.palavras} palavra(s) · nota atual ${redacao.nota}</span>
+              </div>
+              ${redacao.enunciado ? html`<p class="generated-essay-prompt"><strong>Proposta:</strong> ${redacao.enunciado}</p>` : null}
+              ${redacao.paragrafos.length
+                ? html`<article class="generated-essay-text">${redacao.paragrafos.map((paragrafo, i) => html`<p key=${i}>${paragrafo}</p>`)}</article>`
+                : html`<p class="text-muted">O candidato não escreveu a redação.</p>`}
+            </section>
+          `)}
+          <p class="text-muted small">Para lançar ou ajustar a nota da redação, use Ações → Inserir Manualmente.</p>
+        </${TabPanel}>
 
         <${TabPanel} tabKey="resumo" activeKey=${abaDetalhe}>
         <div class="generated-detail-summary-grid">
@@ -1888,8 +1967,13 @@ function ModalDetalheProvaGerada({
       ? html`
               <${EmptyState}
                 title="Resultado completo oculto"
-                text="Use Ações → Ver resultado completo para exibir as respostas, notas e gabarito desta prova."
+                text="As respostas, notas e o gabarito ficam ocultos até você pedir para ver."
               />
+              <div class="d-flex justify-content-center">
+                <button type="button" class="btn btn-primary btn-sm" onClick=${() => setMostrarResultadoCompleto(true)}>
+                  Ver resultado completo
+                </button>
+              </div>
             `
       : null}
         ${mostrarResultadoCompleto
@@ -1996,7 +2080,7 @@ function ModalDetalheProvaGerada({
       </div>
       <footer class="rh-modal-footer generated-detail-footer">
         <${BotaoAcaoProva} icon="close" label="Fechar" variant="neutral" onClick=${onClose} />
-        <div class="generated-actions-menu">
+        <div class="generated-actions-menu" ref=${menuAcoesRef}>
           <${BotaoAcaoProva}
             icon="more_horiz"
             label="Ações"
@@ -2528,10 +2612,12 @@ export function TelaProvasResultados({ controlador }) {
     };
   }, [provas]);
 
-  const abrirDetalhe = async (idProva) => {
+  const [abrirDetalheEm, setAbrirDetalheEm] = useState(null);
+  const abrirDetalhe = async (idProva, abrirEm = null) => {
     try {
       setErro('');
       const dados = await lerProvaGerada(idProva);
+      setAbrirDetalheEm(abrirEm);
       setDetalhe(dados);
     } catch (error) {
       setErro(error?.message || 'Não foi possível abrir os detalhes da prova.');
@@ -2850,6 +2936,8 @@ export function TelaProvasResultados({ controlador }) {
           const naoIniciada = !prova.iniciada_em;
           const acoesLinha = [
             { key: 'ver', label: 'Ver detalhe', icon: 'visibility', onClick: () => abrirDetalhe(prova.id_prova) },
+            // QA TR-02: caminho direto para ler a prova/redação inteira.
+            { key: 'completa', label: 'Ver prova completa', icon: 'article', onClick: () => abrirDetalhe(prova.id_prova, { aba: 'respostas', completo: true }) },
             { key: 'imprimir', label: 'Imprimir prova', icon: 'print', onClick: () => imprimirProvaDaLinha(prova) },
             { separator: true },
             cancelada
@@ -3012,6 +3100,7 @@ export function TelaProvasResultados({ controlador }) {
 
       <${ModalDetalheProvaGerada}
         detalhe=${detalhe}
+        abrirEm=${abrirDetalheEm}
         onClose=${() => setDetalhe(null)}
         onCopiarCodigo=${() => copiarCodigo(detalhe)}
         onRecalcular=${() => executarRecalculo(detalhe)}

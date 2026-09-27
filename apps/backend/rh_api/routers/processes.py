@@ -663,34 +663,78 @@ def get_email_inbox_item(
 @router.post("/email-inbox/{item_id}/analyze-cv", dependencies=[Depends(require_permissions("candidatos.avaliar_curriculo"))])
 def analyze_email_inbox_cv(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.analyze_email_inbox_cv(item_id)
+    result = repository.analyze_email_inbox_cv(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="analisar_cv_ia",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/{item_id}/link-process", dependencies=[Depends(require_permissions("candidatos.criar"))])
 def link_email_inbox_to_process(
     item_id: str,
     payload: dict | None = Body(default=None),
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.link_email_inbox_to_process(item_id, payload or {})
+    result = repository.link_email_inbox_to_process(item_id, payload or {})
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="vincular_cv_email_processo",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/{item_id}/talent-bank", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def send_email_inbox_to_talent_bank(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.send_email_inbox_to_talent_bank(item_id)
+    result = repository.send_email_inbox_to_talent_bank(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="enviar_cv_email_banco_talentos",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/{item_id}/ignore", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def ignore_email_inbox_item(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.ignore_email_inbox_item(item_id)
+    result = repository.ignore_email_inbox_item(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="ignorar_cv_email",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.get("/processes/{id_processo}/email-inbox", dependencies=[Depends(require_permissions("candidatos.visualizar"))])
@@ -706,9 +750,20 @@ def list_process_email_inbox(
 def analyze_process_email_cv(
     id_processo: str,
     payload: dict | None = Body(default=None),
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.analyze_email_cv_attachment(id_processo, payload or {})
+    result = repository.analyze_email_cv_attachment(id_processo, payload or {})
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="analisar_cv_ia",
+        entidade="processo",
+        entidade_id=str(id_processo),
+    )
+    return result
 
 
 @router.post("/processos/{id_processo}/gerar-link-candidatura", dependencies=[Depends(require_permissions("vagas.editar", "vagas.editar_limitado"))])
@@ -827,12 +882,23 @@ async def upload_candidate_cv(
 def analyze_candidate_profile_cv(
     id_teste: str,
     payload: dict | None = Body(default=None),
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.analyze_candidate_profile_cv(
+    result = repository.analyze_candidate_profile_cv(
         id_teste,
         id_processo=(payload or {}).get("id_processo", ""),
     )
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="analisar_cv_ia",
+        entidade="candidato",
+        entidade_id=str(id_teste),
+    )
+    return result
 
 
 @router.get("/processes/{id_processo}/cv-pre-analyses", dependencies=[Depends(require_permissions("candidatos.avaliar_curriculo"))])
@@ -891,9 +957,20 @@ async def create_cv_pre_analysis(
 def update_cv_pre_analysis(
     id_pre_analise: int,
     payload: CvPreAnalysisUpdateRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.update_cv_pre_analysis(id_pre_analise, payload.model_dump())
+    result = repository.update_cv_pre_analysis(id_pre_analise, payload.model_dump())
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="editar_pre_analise_cv",
+        entidade="cv_pre_analise",
+        entidade_id=str(id_pre_analise),
+    )
+    return result
 
 
 @router.delete("/cv-pre-analyses/{id_pre_analise}", dependencies=[Depends(require_permissions("candidatos.excluir"))])
@@ -918,29 +995,62 @@ def delete_cv_pre_analysis(
 def add_cv_pre_analysis_to_process(
     id_pre_analise: int,
     payload: dict | None = Body(default=None),
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
     payload_data = payload or {}
-    return repository.add_cv_pre_analysis_to_process(
+    result = repository.add_cv_pre_analysis_to_process(
         id_pre_analise,
         manual_override=bool(payload_data.get("manual_override")),
         motivo_override=payload_data.get("motivo_override", ""),
         eh_indicacao=bool(payload_data.get("eh_indicacao")),
         tipo_indicacao=payload_data.get("tipo_indicacao", ""),
     )
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="adicionar_pre_analise_ao_processo",
+        entidade="cv_pre_analise",
+        entidade_id=str(id_pre_analise),
+    )
+    return result
 
 
 @router.post("/cv-pre-analyses/{id_pre_analise}/dismiss", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def dismiss_cv_pre_analysis(
     id_pre_analise: int,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.dismiss_cv_pre_analysis(id_pre_analise)
+    result = repository.dismiss_cv_pre_analysis(id_pre_analise)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="descartar_pre_analise_cv",
+        entidade="cv_pre_analise",
+        entidade_id=str(id_pre_analise),
+    )
+    return result
 
 
 @router.post("/cv-pre-analyses/{id_pre_analise}/talent-bank", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def add_cv_pre_analysis_to_talent_bank(
     id_pre_analise: int,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.add_cv_pre_analysis_to_talent_bank(id_pre_analise)
+    result = repository.add_cv_pre_analysis_to_talent_bank(id_pre_analise)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="enviar_pre_analise_banco_talentos",
+        entidade="cv_pre_analise",
+        entidade_id=str(id_pre_analise),
+    )
+    return result

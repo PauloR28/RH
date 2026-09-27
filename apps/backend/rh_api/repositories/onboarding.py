@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from ..services.helpers import normalize_text, rows_to_dicts
 from .bootstrap import (
     ensure_candidate_training_link_column,
+    ensure_notification_user_state_table,
     ensure_notifications_table,
     ensure_onboarding_tables,
     ensure_process_trainings_table,
@@ -187,7 +188,8 @@ _ONBOARDING_COLUMNS = """
     status,
     acesso_plataforma,
     metodo_login,
-    presenca
+    presenca,
+    id_usuario
 """
 
 _PROCESS_TRAINING_COLUMNS = """
@@ -647,30 +649,110 @@ class OnboardingRepositoryMixin:
         duracao_minutos: int = 60,
         enviar_lembrete_calendario: bool = False,
     ) -> dict:
+        self._iniciar_treinamento(
+            trilha_id,
+            id_registro=id_registro,
+            actor=actor,
+            data_prevista=data_prevista,
+            local=local,
+            ministrante=ministrante,
+            ministrante_email=ministrante_email,
+            duracao_minutos=duracao_minutos,
+            enviar_lembrete_calendario=enviar_lembrete_calendario,
+        )
+        return self.get_onboarding_progress(id_registro)
+
+    def start_onboarding_usuario(
+        self,
+        id_usuario: int,
+        trilha_id: int,
+        *,
+        actor: str = "",
+        data_prevista=None,
+        local: str = "",
+        ministrante: str = "",
+        ministrante_email: str = "",
+        duracao_minutos: int = 60,
+        enviar_lembrete_calendario: bool = False,
+    ) -> dict:
+        """QA T2-TRE-01: atribui o treinamento a um usuário do sistema (operador,
+        funcionário...) que não passou por processo seletivo no Conecta. O
+        treinamento aparece em "Meus treinamentos" desse usuário."""
+        id_onboarding = self._iniciar_treinamento(
+            trilha_id,
+            id_usuario=id_usuario,
+            actor=actor,
+            data_prevista=data_prevista,
+            local=local,
+            ministrante=ministrante,
+            ministrante_email=ministrante_email,
+            duracao_minutos=duracao_minutos,
+            enviar_lembrete_calendario=enviar_lembrete_calendario,
+        )
+        return {"onboarding": {"id_onboarding": id_onboarding, "id_usuario": int(id_usuario)}}
+
+    def _get_usuario_ativo_row(self, cursor, id_usuario: int) -> dict:
+        cursor.execute(
+            "SELECT id_usuario, nome, email, status FROM usuarios WHERE id_usuario = ?",
+            (int(id_usuario or 0),),
+        )
+        rows = rows_to_dicts(cursor, cursor.fetchall())
+        if not rows:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
+        if normalize_text(rows[0].get("status")).lower() != "ativo":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inativo não pode receber treinamento.")
+        return rows[0]
+
+    def _iniciar_treinamento(
+        self,
+        trilha_id: int,
+        *,
+        id_registro: int | None = None,
+        id_usuario: int | None = None,
+        actor: str = "",
+        data_prevista=None,
+        local: str = "",
+        ministrante: str = "",
+        ministrante_email: str = "",
+        duracao_minutos: int = 60,
+        enviar_lembrete_calendario: bool = False,
+    ) -> int:
+        """Cria a atribuição (candidato OU usuário) com o snapshot dos módulos."""
+        if (id_registro is None) == (id_usuario is None):
+            raise ValueError("Informe exatamente um entre id_registro e id_usuario.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_onboarding_tables(cursor)
             ensure_notifications_table(cursor)
 
-            candidato = self._get_candidate_process_row(cursor, id_registro)
+            if id_registro is not None:
+                candidato = self._get_candidate_process_row(cursor, id_registro)
+                coluna_pessoa, valor_pessoa = "id_registro", int(candidato["id_registro"])
+                nome_pessoa = normalize_text(candidato.get("nome_candidato"))
+                texto_duplicado = "Este candidato já possui esse treinamento em andamento."
+            else:
+                usuario = self._get_usuario_ativo_row(cursor, int(id_usuario))
+                coluna_pessoa, valor_pessoa = "id_usuario", int(usuario["id_usuario"])
+                nome_pessoa = normalize_text(usuario.get("nome"))
+                texto_duplicado = "Este usuário já possui esse treinamento em andamento."
 
             # Correções.txt: não permitir o mesmo treinamento em aberto duas
             # vezes para a mesma pessoa — só pode adicionar de novo depois
             # que o anterior for concluído (status 'aplicado') ou encerrado.
             cursor.execute(
-                """
+                f"""
                 SELECT TOP 1 id_onboarding
                 FROM onboarding_candidatos
-                WHERE id_registro = ? AND trilha_id = ?
+                WHERE {coluna_pessoa} = ? AND trilha_id = ?
                   AND status IN ('em_andamento', 'pendente_chamada')
                 """,
-                (int(candidato["id_registro"]), int(trilha_id or 0)),
+                (valor_pessoa, int(trilha_id or 0)),
             )
             if cursor.fetchone():
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="Este candidato já possui esse treinamento em andamento. Conclua a presença antes de adicionar novamente.",
+                    detail=f"{texto_duplicado} Conclua a presença antes de adicionar novamente.",
                 )
 
             cursor.execute(
@@ -697,14 +779,14 @@ class OnboardingRepositoryMixin:
             trilha_itens = rows_to_dicts(cursor, cursor.fetchall())
 
             cursor.execute(
-                """
+                f"""
                 INSERT INTO onboarding_candidatos
-                (id_registro, trilha_id, iniciado_por, iniciado_em, data_prevista, local, ministrante, ministrante_email, duracao_minutos, status)
+                ({coluna_pessoa}, trilha_id, iniciado_por, iniciado_em, data_prevista, local, ministrante, ministrante_email, duracao_minutos, status)
                 OUTPUT INSERTED.id_onboarding
                 VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, 'em_andamento')
                 """,
                 (
-                    int(candidato["id_registro"]),
+                    valor_pessoa,
                     int(trilha_id or 0),
                     normalize_text(actor),
                     data_prevista,
@@ -749,7 +831,7 @@ class OnboardingRepositoryMixin:
                     titulo="Você foi definido(a) como ministrante",
                     mensagem=(
                         f"Você foi designado(a) como responsável por aplicar o treinamento \"{nome_trilha}\""
-                        + (f" para {normalize_text(candidato.get('nome_candidato'))}" if candidato.get("nome_candidato") else "")
+                        + (f" para {nome_pessoa}" if nome_pessoa else "")
                         + "."
                     ),
                     categoria="treinamento_ministrante",
@@ -773,8 +855,7 @@ class OnboardingRepositoryMixin:
                 local=normalize_text(local),
                 duracao_minutos=duracao_minutos,
             )
-
-        return self.get_onboarding_progress(id_registro)
+        return id_onboarding
 
     def get_onboarding_progress(self, id_registro: int) -> dict:
         conn = self._connect()
@@ -833,6 +914,54 @@ class OnboardingRepositoryMixin:
             "percentual_concluido": percentual,
         }
 
+    def _progresso_atribuicao_usuario(self, id_onboarding: int) -> dict:
+        """Mesmo formato de get_onboarding_progress, para atribuição por usuário
+        (QA T2-TRE-01), em que não há candidato."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""
+                SELECT {', '.join('oc.' + c.strip() for c in _ONBOARDING_COLUMNS.split(',') if c.strip())},
+                       u.nome AS nome_usuario, u.email AS email_usuario
+                FROM onboarding_candidatos oc
+                LEFT JOIN usuarios u ON u.id_usuario = oc.id_usuario
+                WHERE oc.id_onboarding = ?
+                """,
+                (int(id_onboarding or 0),),
+            )
+            rows = rows_to_dicts(cursor, cursor.fetchall())
+            if not rows:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treinamento não encontrado.")
+            onboarding = rows[0]
+            cursor.execute(
+                f"""
+                SELECT {_ONBOARDING_ITEM_COLUMNS}
+                FROM onboarding_candidatos_itens
+                WHERE onboarding_candidato_id = ?
+                ORDER BY ordem ASC, id_onboarding_item ASC
+                """,
+                (int(id_onboarding),),
+            )
+            itens = rows_to_dicts(cursor, cursor.fetchall())
+        finally:
+            conn.close()
+        total_itens = len(itens)
+        itens_concluidos = sum(1 for item in itens if item.get("concluido"))
+        return {
+            "iniciado": True,
+            "candidato": {
+                "id_usuario": onboarding.get("id_usuario"),
+                "nome_candidato": onboarding.pop("nome_usuario", None),
+                "email": onboarding.pop("email_usuario", None),
+            },
+            "onboarding": onboarding,
+            "itens": itens,
+            "total_itens": total_itens,
+            "itens_concluidos": itens_concluidos,
+            "percentual_concluido": round((itens_concluidos / total_itens) * 100) if total_itens else 0,
+        }
+
     def set_onboarding_item_status(self, id_onboarding_item: int, concluido: bool, *, actor: str = "") -> dict:
         conn = self._connect()
         try:
@@ -841,7 +970,7 @@ class OnboardingRepositoryMixin:
 
             cursor.execute(
                 """
-                SELECT oi.id_onboarding_item, oc.id_registro
+                SELECT oi.id_onboarding_item, oc.id_registro, oc.id_onboarding
                 FROM onboarding_candidatos_itens oi
                 JOIN onboarding_candidatos oc ON oc.id_onboarding = oi.onboarding_candidato_id
                 WHERE oi.id_onboarding_item = ?
@@ -851,7 +980,8 @@ class OnboardingRepositoryMixin:
             row = cursor.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item de onboarding não encontrado.")
-            id_registro = int(row[1])
+            id_registro = int(row[1]) if row[1] is not None else None
+            id_onboarding_atual = int(row[2])
 
             cursor.execute(
                 """
@@ -881,6 +1011,8 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
+        if id_registro is None:
+            return self._progresso_atribuicao_usuario(id_onboarding_atual)
         return self.get_onboarding_progress(id_registro)
 
     # ------------------------------------------------------------------
@@ -905,6 +1037,14 @@ class OnboardingRepositoryMixin:
             (safe_email, safe_email),
         )
         return [int(row[0]) for row in cursor.fetchall() if row[0] is not None]
+
+    def _resolve_id_usuario_por_email(self, cursor, email: str) -> int | None:
+        safe_email = normalize_text(email)
+        if not safe_email:
+            return None
+        cursor.execute("SELECT TOP 1 id_usuario FROM usuarios WHERE LOWER(email) = LOWER(?)", (safe_email,))
+        row = cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else None
 
     _MY_TRAINING_CONTENT_EMPTY = {
         "tipo_conteudo": None,
@@ -946,21 +1086,32 @@ class OnboardingRepositoryMixin:
             cursor = conn.cursor()
             ensure_onboarding_tables(cursor)
             id_registros = self._resolve_id_registros_por_email(cursor, email)
-            if not id_registros:
+            id_usuario = self._resolve_id_usuario_por_email(cursor, email)
+            if not id_registros and id_usuario is None:
                 return []
 
-            placeholders = ", ".join("?" for _ in id_registros)
+            # Treinamentos do candidato (vínculo por e-mail) e os atribuídos
+            # diretamente ao usuário do sistema (QA T2-TRE-01).
+            filtros_pessoa: list[str] = []
+            parametros: list = []
+            if id_registros:
+                filtros_pessoa.append(f"oc.id_registro IN ({', '.join('?' for _ in id_registros)})")
+                parametros.extend(id_registros)
+            if id_usuario is not None:
+                filtros_pessoa.append("oc.id_usuario = ?")
+                parametros.append(id_usuario)
             filtro_presencial = "AND oc.data_prevista IS NOT NULL" if apenas_presenciais else ""
+            colunas = ", ".join("oc." + c.strip() for c in _ONBOARDING_COLUMNS.split(",") if c.strip())
             cursor.execute(
                 f"""
-                SELECT {_ONBOARDING_COLUMNS}, t.nome AS trilha_nome, t.categoria, t.modalidade
+                SELECT {colunas}, t.nome AS trilha_nome, t.categoria, t.modalidade
                 FROM onboarding_candidatos oc
                 JOIN trilhas_onboarding t ON t.id_trilha = oc.trilha_id
-                WHERE oc.id_registro IN ({placeholders})
+                WHERE ({' OR '.join(filtros_pessoa)})
                 {filtro_presencial}
                 ORDER BY oc.iniciado_em DESC, oc.id_onboarding DESC
                 """,
-                tuple(id_registros),
+                tuple(parametros),
             )
             assignments = rows_to_dicts(cursor, cursor.fetchall())
 
@@ -1010,10 +1161,11 @@ class OnboardingRepositoryMixin:
             cursor = conn.cursor()
             ensure_onboarding_tables(cursor)
             id_registros = set(self._resolve_id_registros_por_email(cursor, email))
+            id_usuario = self._resolve_id_usuario_por_email(cursor, email)
 
             cursor.execute(
                 """
-                SELECT oi.id_onboarding_item, oc.id_registro
+                SELECT oi.id_onboarding_item, oc.id_registro, oc.id_usuario
                 FROM onboarding_candidatos_itens oi
                 JOIN onboarding_candidatos oc ON oc.id_onboarding = oi.onboarding_candidato_id
                 WHERE oi.id_onboarding_item = ?
@@ -1023,7 +1175,9 @@ class OnboardingRepositoryMixin:
             row = cursor.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Módulo não encontrado.")
-            if int(row[1]) not in id_registros:
+            do_candidato = row[1] is not None and int(row[1]) in id_registros
+            do_usuario = row[2] is not None and id_usuario is not None and int(row[2]) == id_usuario
+            if not (do_candidato or do_usuario):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Este módulo não pertence ao seu treinamento.")
         finally:
             conn.close()
@@ -1060,13 +1214,15 @@ class OnboardingRepositoryMixin:
                     oc.local,
                     oc.ministrante,
                     oc.status,
-                    cp.nome_candidato,
-                    cp.vaga,
+                    oc.id_usuario,
+                    COALESCE(cp.nome_candidato, u.nome) AS nome_candidato,
+                    CASE WHEN oc.id_usuario IS NOT NULL THEN N'Colaborador' ELSE cp.vaga END AS vaga,
                     t.nome AS trilha_nome,
                     t.categoria AS trilha_categoria,
                     t.modalidade AS trilha_modalidade
                 FROM onboarding_candidatos oc
-                JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN usuarios u ON u.id_usuario = oc.id_usuario
                 JOIN trilhas_onboarding t ON t.id_trilha = oc.trilha_id
                 {filtro}
                 ORDER BY oc.iniciado_em DESC, oc.id_onboarding DESC
@@ -1104,10 +1260,12 @@ class OnboardingRepositoryMixin:
 
             cursor.execute(
                 """
-                SELECT oc.id_registro, oc.status, oc.trilha_id, t.nome AS trilha_nome, cp.nome_candidato
+                SELECT oc.id_registro, oc.status, oc.trilha_id, t.nome AS trilha_nome,
+                       COALESCE(cp.nome_candidato, u.nome) AS nome_candidato
                 FROM onboarding_candidatos oc
                 JOIN trilhas_onboarding t ON t.id_trilha = oc.trilha_id
-                JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN usuarios u ON u.id_usuario = oc.id_usuario
                 WHERE oc.id_onboarding = ?
                 """,
                 (int(id_onboarding or 0),),
@@ -1116,7 +1274,7 @@ class OnboardingRepositoryMixin:
             if not rows:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treinamento do colaborador não encontrado.")
             atual = rows[0]
-            id_registro = int(atual["id_registro"])
+            id_registro = int(atual["id_registro"]) if atual.get("id_registro") is not None else None
 
             status_valor = normalize_text(data.get("status")) or "em_andamento"
             if status_valor not in STATUS_ATRIBUICAO_TREINAMENTO:
@@ -1163,6 +1321,8 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
+        if id_registro is None:
+            return self._progresso_atribuicao_usuario(id_onboarding)
         return self.get_onboarding_progress(id_registro)
 
     def delete_onboarding_assignment(self, id_onboarding: int, *, actor: str = "") -> dict:
@@ -1481,6 +1641,116 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
+    def search_participantes_treinamento(self, busca: str = "") -> dict:
+        """QA T2-TRE-01: a busca de participantes traz candidatos (processo
+        seletivo) E usuários ativos do sistema (operador, funcionário,
+        supervisor...). Antes só candidatos apareciam."""
+        termo = normalize_text(busca)
+        candidatos = self.search_candidatos_para_treinamento(termo) if termo else []
+        if not termo:
+            return {"candidatos": [], "usuarios": []}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT TOP 30 u.id_usuario, u.nome, u.email, u.perfil_id AS perfil, p.nome AS perfil_nome,
+                       STUFF((SELECT ', ' + uo.operacao FROM usuarios_operacoes uo
+                              WHERE uo.id_usuario = u.id_usuario FOR XML PATH('')), 1, 2, '') AS operacoes
+                FROM usuarios u
+                LEFT JOIN perfis p ON p.id_perfil = u.perfil_id
+                WHERE LOWER(u.status) = 'ativo' AND u.perfil_id <> 'candidato' AND (u.nome LIKE ? OR u.email LIKE ?)
+                ORDER BY u.nome ASC
+                """,
+                (f"%{termo}%", f"%{termo}%"),
+            )
+            usuarios = rows_to_dicts(cursor, cursor.fetchall())
+        finally:
+            conn.close()
+        return {"candidatos": candidatos, "usuarios": usuarios}
+
+    def list_operacoes_para_treinamento(self) -> list[dict]:
+        """Operações ativas com quantos usuários ativos cada uma tem (atribuir o
+        treinamento a uma operação inteira — QA T2-TRE-01)."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT o.chave, o.nome,
+                       (SELECT COUNT(DISTINCT u.id_usuario) FROM usuarios_operacoes uo
+                        JOIN usuarios u ON u.id_usuario = uo.id_usuario
+                        WHERE uo.operacao = o.chave AND LOWER(u.status) = 'ativo') AS total_usuarios
+                FROM operacoes o
+                WHERE o.ativo = 1 AND o.chave IS NOT NULL
+                ORDER BY o.nome ASC
+                """
+            )
+            return rows_to_dicts(cursor, cursor.fetchall())
+        finally:
+            conn.close()
+
+    def _ids_usuarios_das_operacoes(self, operacoes: list[str]) -> list[int]:
+        chaves = [normalize_text(chave) for chave in (operacoes or []) if normalize_text(chave)]
+        if not chaves:
+            return []
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""
+                SELECT DISTINCT u.id_usuario
+                FROM usuarios_operacoes uo
+                JOIN usuarios u ON u.id_usuario = uo.id_usuario
+                WHERE uo.operacao IN ({', '.join('?' for _ in chaves)}) AND LOWER(u.status) = 'ativo'
+                ORDER BY u.id_usuario
+                """,
+                tuple(chaves),
+            )
+            return [int(row[0]) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def atribuir_treinamento_usuarios(
+        self,
+        trilha_id: int,
+        *,
+        ids_usuarios: list[int] | None = None,
+        operacoes: list[str] | None = None,
+        actor: str = "",
+        data_prevista=None,
+        local: str = "",
+        ministrante: str = "",
+        ministrante_email: str = "",
+        duracao_minutos: int = 60,
+    ) -> dict:
+        """Atribui o treinamento a usuários avulsos e/ou a todos os usuários
+        ativos das operações escolhidas. Quem já tem o treinamento em aberto é
+        reportado em `falhas` e não impede os demais."""
+        alvos: list[int] = []
+        for id_usuario in list(ids_usuarios or []) + self._ids_usuarios_das_operacoes(operacoes or []):
+            if id_usuario and int(id_usuario) not in alvos:
+                alvos.append(int(id_usuario))
+        criadas: list[int] = []
+        falhas: list[dict] = []
+        for id_usuario in alvos:
+            try:
+                criadas.append(
+                    self._iniciar_treinamento(
+                        trilha_id,
+                        id_usuario=id_usuario,
+                        actor=actor,
+                        data_prevista=data_prevista,
+                        local=local,
+                        ministrante=ministrante,
+                        ministrante_email=ministrante_email,
+                        duracao_minutos=duracao_minutos,
+                    )
+                )
+            except HTTPException as erro:
+                falhas.append({"id_usuario": id_usuario, "erro": erro.detail})
+        return {"atribuicoes_criadas": len(criadas), "ids_onboarding": criadas, "falhas": falhas, "total_alvos": len(alvos)}
+
     def search_usuarios_ministrante(self, busca: str = "") -> list[dict]:
         """Busca rápida de usuários do sistema para o campo "ministrante"
         (Correções.txt, rodada 22/set/2026) — leve o bastante para
@@ -1518,6 +1788,14 @@ class OnboardingRepositoryMixin:
 
         ocorrencias = data.get("ocorrencias") or []
         participantes = [int(item) for item in (data.get("participantes") or []) if item]
+        # QA T2-TRE-01: usuários do sistema e operações inteiras também podem
+        # receber o treinamento já na criação.
+        usuarios_alvo: list[int] = []
+        for id_usuario in [int(item) for item in (data.get("participantes_usuarios") or []) if item] + self._ids_usuarios_das_operacoes(
+            data.get("operacoes") or []
+        ):
+            if id_usuario not in usuarios_alvo:
+                usuarios_alvo.append(id_usuario)
 
         criadas: list[int] = []
         falhas: list[dict] = []
@@ -1544,6 +1822,22 @@ class OnboardingRepositoryMixin:
                         criadas.append(int(onboarding["id_onboarding"]))
                 except HTTPException as erro:
                     falhas.append({"id_registro": id_registro, "erro": erro.detail})
+            for id_usuario in usuarios_alvo:
+                try:
+                    criadas.append(
+                        self._iniciar_treinamento(
+                            id_trilha,
+                            id_usuario=id_usuario,
+                            actor=actor,
+                            data_prevista=data_prevista,
+                            local=local,
+                            ministrante=ministrante,
+                            ministrante_email=ministrante_email,
+                            duracao_minutos=duracao_minutos,
+                        )
+                    )
+                except HTTPException as erro:
+                    falhas.append({"id_usuario": id_usuario, "erro": erro.detail})
 
             if (
                 ministrante_email
@@ -1823,10 +2117,11 @@ class OnboardingRepositoryMixin:
             cursor.execute(
                 """
                 SELECT oc.id_onboarding, oc.status, oc.presenca, oc.data_prevista, oc.notificado_pendente_em,
-                       t.nome AS trilha_nome, cp.nome_candidato
+                       t.nome AS trilha_nome, COALESCE(cp.nome_candidato, u.nome) AS nome_candidato
                 FROM onboarding_candidatos oc
                 JOIN trilhas_onboarding t ON t.id_trilha = oc.trilha_id
-                JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN usuarios u ON u.id_usuario = oc.id_usuario
                 WHERE oc.status IN ('em_andamento', 'pendente_chamada')
                   AND oc.data_prevista IS NOT NULL AND oc.presenca IS NULL
                 """
@@ -1930,16 +2225,19 @@ class OnboardingRepositoryMixin:
             cursor.execute(
                 """
                 SELECT
-                    cp.id_registro,
-                    cp.nome_candidato,
+                    oc.id_registro,
+                    oc.id_usuario,
+                    COALESCE(cp.nome_candidato, u.nome) AS nome_candidato,
                     COUNT(*) AS total_treinamentos,
                     SUM(CASE WHEN oc.presenca = 'presente' THEN 1 ELSE 0 END) AS presencas,
                     SUM(CASE WHEN oc.presenca = 'falta' THEN 1 ELSE 0 END) AS faltas,
                     SUM(CASE WHEN oc.status IN ('pendente_chamada', 'encerrado_sem_chamada') THEN 1 ELSE 0 END) AS pendencias
                 FROM onboarding_candidatos oc
-                JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
-                GROUP BY cp.id_registro, cp.nome_candidato
-                ORDER BY cp.nome_candidato ASC
+                LEFT JOIN candidatos_processos cp ON cp.id_registro = oc.id_registro
+                LEFT JOIN usuarios u ON u.id_usuario = oc.id_usuario
+                WHERE cp.id_registro IS NOT NULL OR u.id_usuario IS NOT NULL
+                GROUP BY oc.id_registro, oc.id_usuario, COALESCE(cp.nome_candidato, u.nome)
+                ORDER BY COALESCE(cp.nome_candidato, u.nome) ASC
                 """
             )
             return rows_to_dicts(cursor, cursor.fetchall())
@@ -2033,19 +2331,95 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
-    def marcar_notificacao_lida(self, id_notificacao: int) -> dict:
+    def marcar_notificacao_lida(
+        self, id_notificacao: int, *, papel: str | None = None, usuario: str | None = None, email: str = ""
+    ) -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_notifications_table(cursor)
-            cursor.execute(
-                "UPDATE notificacoes SET lida = 1, lida_em = GETDATE() WHERE id_notificacao = ?",
-                (int(id_notificacao or 0),),
-            )
+            if usuario is None:
+                cursor.execute(
+                    "UPDATE notificacoes SET lida = 1, lida_em = GETDATE() WHERE id_notificacao = ?",
+                    (int(id_notificacao or 0),),
+                )
+            else:
+                # Só o destinatário (papel ou usuário) pode marcar a notificação como lida.
+                cursor.execute(
+                    """
+                    UPDATE notificacoes SET lida = 1, lida_em = GETDATE()
+                    WHERE id_notificacao = ? AND (destinatario_papel = ? OR destinatario_usuario IN (?, ?))
+                    """,
+                    (int(id_notificacao or 0), normalize_text(papel), normalize_text(usuario),
+                     normalize_text(email) or normalize_text(usuario)),
+                )
             conn.commit()
         finally:
             conn.close()
         return {"success": True}
+
+    _LIMITE_CHAVES_ESTADO = 500
+
+    def obter_estado_notificacoes_usuario(self, *, usuario: str) -> dict:
+        """Chaves das notificações montadas no front que o usuário já leu/ocultou."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notification_user_state_table(cursor)
+            cursor.execute(
+                """
+                SELECT chave, lida_em, oculta_em FROM dbo.notificacoes_estado_usuario
+                WHERE usuario = ? AND COALESCE(oculta_em, lida_em) >= DATEADD(DAY, -180, GETDATE())
+                """,
+                (normalize_text(usuario),),
+            )
+            lidas: list[str] = []
+            ocultas: list[str] = []
+            for chave, lida_em, oculta_em in cursor.fetchall():
+                if lida_em is not None:
+                    lidas.append(str(chave))
+                if oculta_em is not None:
+                    ocultas.append(str(chave))
+            return {"lidas": lidas, "ocultas": ocultas}
+        finally:
+            conn.close()
+
+    def registrar_estado_notificacoes_usuario(self, *, usuario: str, lidas: list[str], ocultas: list[str]) -> dict:
+        """Acrescenta (nunca remove) chaves lidas/ocultas do usuário. Idempotente."""
+        safe_usuario = normalize_text(usuario)
+        if not safe_usuario:
+            return {"success": False, "registradas": 0}
+
+        def _limpar(valores) -> list[str]:
+            vistos: list[str] = []
+            for valor in valores or []:
+                chave = normalize_text(valor)[:200]
+                if chave and chave not in vistos:
+                    vistos.append(chave)
+            return vistos[: self._LIMITE_CHAVES_ESTADO]
+
+        pares = [(chave, "lida_em") for chave in _limpar(lidas)] + [(chave, "oculta_em") for chave in _limpar(ocultas)]
+        if not pares:
+            return {"success": True, "registradas": 0}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notification_user_state_table(cursor)
+            for chave, coluna in pares:
+                cursor.execute(
+                    f"""
+                    MERGE dbo.notificacoes_estado_usuario WITH (HOLDLOCK) AS alvo
+                    USING (SELECT ? AS usuario, ? AS chave) AS origem
+                    ON alvo.usuario = origem.usuario AND alvo.chave = origem.chave
+                    WHEN MATCHED AND alvo.{coluna} IS NULL THEN UPDATE SET {coluna} = GETDATE()
+                    WHEN NOT MATCHED THEN INSERT (usuario, chave, {coluna}) VALUES (origem.usuario, origem.chave, GETDATE());
+                    """,
+                    (safe_usuario, chave),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True, "registradas": len(pares)}
 
     def marcar_todas_notificacoes_lidas(self, *, papel: str, usuario: str, email: str = "") -> dict:
         conn = self._connect()
