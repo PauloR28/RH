@@ -7,24 +7,33 @@ on:
 jobs:
   deploy:
     runs-on: [self-hosted, Windows, producao]
+    # Um deploy travado segura o runner e enfileira os proximos; melhor falhar e avisar.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # A aplicacao para ANTES da copia: com ela rodando, arquivos em uso travavam o
+      # robocopy (deploys de 23 e 24/set ficaram parados nessa etapa ate serem cancelados).
+      - name: Parar aplicacao
+        shell: powershell
+        run: |
+          Stop-ScheduledTask -TaskName "Conecta-RH" -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 5
 
       - name: Atualizar arquivos em C:\Conecta (preserva .env, .venv, data\private e logs)
         shell: powershell
         run: |
           # /MIR apaga no destino tudo que nao existe no Git. data\private (uploads: CVs,
           # evidencias da Monitoria, imagens, logs arquivados) e logs NUNCA podem ser apagados.
-          robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" "C:\Conecta\data\private" "C:\Conecta\logs" "$env:GITHUB_WORKSPACE\data\private" "$env:GITHUB_WORKSPACE\logs" /XF ".env" /NFL /NDL /NJH /NJS
+          # /R:3 /W:5: o padrao do robocopy e repetir 1.000.000 de vezes com 30 s de espera
+          # quando um arquivo esta em uso, o que travava o deploy. Lista os arquivos (sem /NFL)
+          # para o log mostrar qual arquivo falhou.
+          robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" "C:\Conecta\data\private" "C:\Conecta\logs" "$env:GITHUB_WORKSPACE\data\private" "$env:GITHUB_WORKSPACE\logs" /XF ".env" /R:3 /W:5 /NDL /NJH /NP
           if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
 
       - name: Conferir pastas de dados fora da aplicacao (apenas aviso)
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File "C:\Conecta\infra\scripts\powershell\verificar-pastas-dados.ps1" -AppDir "C:\Conecta"
-
-      - name: Parar aplicacao
-        shell: powershell
-        run: Stop-ScheduledTask -TaskName "Conecta-RH" -ErrorAction SilentlyContinue
 
       - name: Recriar ambiente virtual e instalar dependencias
         shell: powershell
@@ -50,3 +59,8 @@ jobs:
           Start-Sleep -Seconds 5
           $resp = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 15
           Write-Host "Aplicacao respondendo: $($resp.Content)"
+
+      - name: Religar aplicacao se o deploy falhar
+        if: failure()
+        shell: powershell
+        run: Start-ScheduledTask -TaskName "Conecta-RH" -ErrorAction SilentlyContinue
