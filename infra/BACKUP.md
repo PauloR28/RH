@@ -144,7 +144,7 @@ Os dois hashes precisam ser iguais. Depois rode `infra\sql\backup\verify_backup.
 |---|---|---|
 | Auditoria (quem fez o quê) | Tabela `logs_auditoria`, com tela de consulta em Configurações | 90 dias no banco (`RH_LOG_ARCHIVE_DAYS`); depois vira ZIP em `log-archive`, que entra no backup |
 | Logs da Monitoria | Tabela `monitoria_logs`, imutável | Permanente |
-| Log técnico (erros, exceções) e de acesso (cada requisição) | `RH_LOG_DIR\conecta-AAAA-MM-DD.log` (JSON, uma linha por evento) | `RH_LOG_RETENTION_DAYS` (padrão 90) |
+| Log técnico (erros, exceções) e de acesso (cada requisição) | `RH_LOG_DIR\conecta.log` (dia atual) e `conecta.log.AAAA-MM-DD` (dias anteriores), JSON, uma linha por evento | `RH_LOG_RETENTION_DAYS` (padrão 90) |
 | Backup e teste de restauração | `C:\Backups\logs` | 90 dias |
 
 ## 8. LGPD e backups

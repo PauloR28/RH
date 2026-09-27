@@ -86,3 +86,60 @@ def test_configure_logging_installs_json_formatter_on_root_logger():
     root = logging.getLogger()
     assert root.handlers, "configure_logging deve instalar ao menos um handler"
     assert isinstance(root.handlers[0].formatter, JsonFormatter)
+
+
+def test_file_handler_desativado_sem_rh_log_dir(monkeypatch):
+    from rh_api.logging_config import _build_file_handler
+
+    monkeypatch.delenv("RH_LOG_DIR", raising=False)
+    assert _build_file_handler(logging.Formatter()) is None
+
+
+def test_file_handler_grava_json_em_arquivo_diario(monkeypatch, tmp_path):
+    from rh_api.logging_config import _build_file_handler
+
+    monkeypatch.setenv("RH_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setenv("RH_LOG_RETENTION_DAYS", "30")
+    handler = _build_file_handler(JsonFormatter(service="s", environment="t", version="1"))
+    assert handler is not None
+    assert handler.backupCount == 30
+    logger = logging.getLogger("teste.arquivo")
+    logger.addHandler(handler)
+    try:
+        logger.warning("mensagem de teste", extra={"client_ip": "10.0.0.1", "log_user_id": "42"})
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
+    linha = (tmp_path / "logs" / "conecta.log").read_text(encoding="utf-8").strip()
+    payload = json.loads(linha)
+    assert payload["message"] == "mensagem de teste"
+    assert payload["client_ip"] == "10.0.0.1"
+    assert payload["user_id"] == "42"
+
+
+def test_file_handler_degrada_quando_pasta_invalida(monkeypatch, tmp_path):
+    from rh_api.logging_config import _build_file_handler
+
+    arquivo = tmp_path / "nao-e-pasta"
+    arquivo.write_text("x")
+    monkeypatch.setenv("RH_LOG_DIR", str(arquivo / "logs"))
+    assert _build_file_handler(logging.Formatter()) is None
+
+
+def test_log_de_acesso_registra_ip_e_usuario_sem_query_string(caplog):
+    app = FastAPI()
+    app.add_middleware(RequestContextMiddleware)
+
+    @app.get("/probe")
+    def probe(request: __import__("fastapi").Request):
+        request.state.log_user_id = "7"
+        return {}
+
+    client = TestClient(app)
+    with caplog.at_level(logging.INFO, logger="conecta.http"):
+        client.get("/probe?token=segredo", headers={"x-forwarded-for": "203.0.113.9, 10.0.0.1"})
+    registro = next(r for r in caplog.records if r.getMessage() == "request_completed")
+    assert registro.action == "GET /probe"
+    assert registro.client_ip == "203.0.113.9"
+    assert registro.log_user_id == "7"
+    assert "segredo" not in registro.action
