@@ -70,6 +70,19 @@ def _run_log_archive_job(settings: Settings) -> None:
         logger.exception("Falha ao executar o job de arquivamento de logs.")
 
 
+def _run_lgpd_retention_job(settings: Settings) -> None:
+    """Retenção LGPD de candidatos (Correções 27/set/2026). Só faz algo se a
+    retenção estiver ATIVA em Configurações > LGPD e Retenção; blindado como
+    os demais jobs."""
+    try:
+        from .repositories import DatabaseRepository
+
+        resultado = DatabaseRepository(settings).executar_lgpd_retencao()
+        logger.info("Job de retenção LGPD executado: %s", resultado)
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao executar o job de retenção LGPD.")
+
+
 def start_scheduler(settings: Settings):
     """Inicia um `BackgroundScheduler` (APScheduler) com o job periódico de
     lembretes/alertas automáticos, se a biblioteca estiver disponível e a
@@ -137,6 +150,17 @@ def start_scheduler(settings: Settings):
             minute=0,
             args=(settings,),
             id="arquivamento_logs",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_lgpd_retention_job,
+            trigger="cron",
+            hour=6,  # 03:30 no horário de Brasília (UTC-3), depois do arquivamento de logs
+            minute=30,
+            args=(settings,),
+            id="retencao_lgpd",
             replace_existing=True,
             coalesce=True,
             max_instances=1,

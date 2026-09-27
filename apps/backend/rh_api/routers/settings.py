@@ -13,6 +13,8 @@ from ..schemas.common import SuccessResponse
 from ..schemas.security import (
     ConfigurationItemRequest,
     LgpdRequestCreate,
+    LgpdRetencaoConfigRequest,
+    LgpdRetencaoExecutarRequest,
     NotificationAutomationSettingsRequest,
     RolePermissionsUpdateRequest,
     TelaInicialConfigRequest,
@@ -327,6 +329,55 @@ def delete_settings_item_permanently(
 ):
     _require_catalog_write_access(tipo, user)
     return repository.delete_configuration_item(tipo, id_item, actor=user, justificativa=justificativa)
+
+
+def _sem_internos(dados: dict) -> dict:
+    return {chave: valor for chave, valor in dados.items() if not chave.startswith("_")}
+
+
+@router.get("/lgpd/retencao", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def get_lgpd_retencao(repository: DatabaseRepository = Depends(get_repository)):
+    """Configuração e último resultado da retenção automática de candidatos."""
+    return repository.get_lgpd_retencao_config()
+
+
+@router.put("/lgpd/retencao", dependencies=[Depends(require_permissions("lgpd.configurar"))])
+def save_lgpd_retencao(
+    payload: LgpdRetencaoConfigRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    anterior = repository.get_lgpd_retencao_config()
+    result = repository.save_lgpd_retencao_config(payload.model_dump(), actor=user.username)
+    audit_action(
+        repository,
+        user,
+        modulo="LGPD",
+        acao="configurar_retencao_lgpd",
+        entidade="lgpd_retencao_config",
+        entidade_id="1",
+        valor_anterior={k: anterior.get(k) for k in payload.model_dump()},
+        valor_novo=payload.model_dump(),
+    )
+    return result
+
+
+@router.get("/lgpd/retencao/simulacao", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def simular_lgpd_retencao(repository: DatabaseRepository = Depends(get_repository)):
+    """Prévia (nada é apagado): quem seria avisado e quem seria excluído hoje."""
+    return _sem_internos(repository.simular_lgpd_retencao())
+
+
+@router.post("/lgpd/retencao/executar", dependencies=[Depends(require_permissions("lgpd.configurar", "lgpd.anonimizar"))])
+def executar_lgpd_retencao(
+    payload: LgpdRetencaoExecutarRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Executa agora (mesmas regras do job diário). Exige digitar EXCLUIR."""
+    if payload.confirmacao.strip().upper() != "EXCLUIR":
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='Digite EXCLUIR para confirmar.')
+    return repository.executar_lgpd_retencao(forcar=True, actor=user)
 
 
 @router.post("/lgpd/requests", dependencies=[Depends(require_permissions("lgpd.registrar_solicitacao"))])
