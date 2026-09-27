@@ -32,12 +32,16 @@ Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 3
 
 Write-Host ""
-Write-Host "== 3/6: atualizando arquivos (preserva .env e .venv existentes) =="
+Write-Host "== 3/6: atualizando arquivos (preserva .env, .venv, data\private e logs) =="
 if (-not (Test-Path $AppDir)) {
     New-Item -ItemType Directory -Path $AppDir | Out-Null
 }
-robocopy $sourceDir $AppDir /MIR /XD ".venv" ".git" /XF ".env" /NFL /NDL /NJH /NJS | Out-Null
+# /MIR apaga no destino tudo que nao existe no Git. data\private (uploads: CVs,
+# evidencias da Monitoria, imagens, logs arquivados) e logs NUNCA podem ser apagados.
+robocopy $sourceDir $AppDir /MIR /XD ".venv" ".git" (Join-Path $AppDir "data\private") (Join-Path $AppDir "logs") (Join-Path $sourceDir "data\private") (Join-Path $sourceDir "logs") /XF ".env" /NFL /NDL /NJH /NJS | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
 Write-Host "OK - arquivos atualizados em $AppDir"
+& powershell -ExecutionPolicy Bypass -File (Join-Path $AppDir "infra\scripts\powershell\verificar-pastas-dados.ps1") -AppDir $AppDir
 
 Write-Host ""
 Write-Host "== 4/6: recriando ambiente virtual e instalando dependencias =="

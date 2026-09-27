@@ -10,11 +10,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Atualizar arquivos em C:\Conecta (preserva .env e .venv)
+      - name: Atualizar arquivos em C:\Conecta (preserva .env, .venv, data\private e logs)
         shell: powershell
         run: |
-          robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" /XF ".env" /NFL /NDL /NJH /NJS
+          # /MIR apaga no destino tudo que nao existe no Git. data\private (uploads: CVs,
+          # evidencias da Monitoria, imagens, logs arquivados) e logs NUNCA podem ser apagados.
+          robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" "C:\Conecta\data\private" "C:\Conecta\logs" "$env:GITHUB_WORKSPACE\data\private" "$env:GITHUB_WORKSPACE\logs" /XF ".env" /NFL /NDL /NJH /NJS
           if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
+
+      - name: Conferir pastas de dados fora da aplicacao (apenas aviso)
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File "C:\Conecta\infra\scripts\powershell\verificar-pastas-dados.ps1" -AppDir "C:\Conecta"
 
       - name: Parar aplicacao
         shell: powershell
