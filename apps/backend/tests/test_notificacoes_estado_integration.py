@@ -6,7 +6,6 @@ from __future__ import annotations
 import uuid
 
 import pytest
-
 from _integracao_dev import repositorio_dev
 
 

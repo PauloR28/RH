@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from rh_api.services.tela_inicial import (
     BLOCOS_TELA_INICIAL,
     PERFIS_INICIO_POR_SESSOES,

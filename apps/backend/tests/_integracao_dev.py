@@ -21,7 +21,7 @@ def repositorio_dev():
         from dotenv import load_dotenv
 
         load_dotenv(API_DIR.parents[1] / ".env")
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - .env é opcional nos testes
         pass
     if (os.getenv("RH_ENVIRONMENT") or os.getenv("ENVIRONMENT") or "dev").lower() not in {"dev", "development", "local"}:
         pytest.skip("Testes de integração só rodam em ambiente de desenvolvimento.")
@@ -33,6 +33,6 @@ def repositorio_dev():
         conn = repositorio._connect()
         conn.cursor().execute("SELECT 1")
         conn.close()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - qualquer falha de conexão = sem banco de dev
         pytest.skip(f"Banco de desenvolvimento indisponível: {exc}")
     return repositorio

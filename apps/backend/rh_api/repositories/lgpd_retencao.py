@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from ..rbac import ROLE_ADMIN, ROLE_MANAGER
@@ -16,7 +16,11 @@ from ..services.lgpd_retencao import (
     mensagem_aviso,
     normalizar_config,
 )
-from ..services.process_flow import CANDIDATE_STATUS_APPROVED, canonicalize_candidate_status, is_process_closed
+from ..services.process_flow import (
+    CANDIDATE_STATUS_APPROVED,
+    canonicalize_candidate_status,
+    is_process_closed,
+)
 from .bootstrap import ensure_lgpd_retention_table, ensure_notifications_table
 
 logger = logging.getLogger(__name__)
@@ -160,7 +164,7 @@ class LgpdRetencaoRepositoryMixin:
                 avisar.append(linha)
             elif resultado["situacao"] == PROTEGIDO:
                 protegidos += 1
-        limpar = lambda linhas: [{k: v for k, v in linha.items() if not k.startswith("_")} for linha in linhas]  # noqa: E731
+        limpar = lambda linhas: [{k: v for k, v in linha.items() if not k.startswith("_")} for linha in linhas]
         return {
             "config": config,
             "excluir": limpar(excluir),
@@ -291,7 +295,7 @@ class LgpdRetencaoRepositoryMixin:
                 linhas += resultado["linhas"]
                 arquivos += resultado["arquivos"]
                 excluidos.append(linha["id_teste"])
-            except Exception:  # noqa: BLE001 - uma candidatura com erro não impede as demais
+            except Exception:
                 falhas += 1
                 logger.exception("Retenção LGPD: falha ao apagar a candidatura %s.", linha["id_teste"])
 

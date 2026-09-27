@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
-
 from test_monitoria_fluxo_integration import (  # noqa: F401  (fixtures reaproveitadas)
     OP,
     _criar,
@@ -23,7 +22,7 @@ def _config_com_peso_trocado(config: dict) -> dict:
     return nova
 
 
-def test_duplicar_editar_copia_ativar_e_restaurar(repo, admin, cenario):
+def test_duplicar_editar_copia_ativar_e_restaurar(repo, admin, cenario):  # noqa: F811 (fixtures importadas)
     ativo = repo.mon_get_matriz(admin, OP)["versao_ativa"]
     antes = {f["id_matriz"] for f in repo.mon_list_formularios(admin, OP)}
 
@@ -56,7 +55,7 @@ def test_duplicar_editar_copia_ativar_e_restaurar(repo, admin, cenario):
         repo.mon_ativar_formulario(admin, OP, ativo["id_matriz"])
 
 
-def test_exclusao_logica_somente_admin_esconde_e_restaura(repo, admin, cenario):
+def test_exclusao_logica_somente_admin_esconde_e_restaura(repo, admin, cenario):  # noqa: F811 (fixtures importadas)
     r = _criar(repo, cenario)
     qual = cenario["qual"]
     with pytest.raises(HTTPException) as erro:

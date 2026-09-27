@@ -6,8 +6,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 
-import pytest
-
 from rh_api.services.lgpd_retencao import (
     AVISAR,
     EXCLUIR,

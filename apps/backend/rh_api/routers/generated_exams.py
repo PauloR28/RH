@@ -214,11 +214,22 @@ def recalculate_score(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.recalculate_score_conecta(
+    result = repository.recalculate_score_conecta(
         id_prova,
         recalculated_by=_user_label(user),
         reason="Recalculo manual pelo RH",
     )
+    # Auditoria (C4, 27/set/2026): decisões do RH sobre a prova ficam registradas.
+    audit_action(
+        repository,
+        user,
+        modulo="Provas",
+        acao="recalcular_score_prova",
+        entidade="prova_gerada",
+        entidade_id=str(id_prova),
+        valor_novo=None,
+    )
+    return result
 
 
 @router.post(
@@ -231,11 +242,22 @@ def reopen_generated_exam(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.reopen_generated_exam(
+    result = repository.reopen_generated_exam(
         id_prova,
         payload.model_dump(),
         reopened_by=_user_label(user),
     )
+    # Auditoria (C4, 27/set/2026): decisões do RH sobre a prova ficam registradas.
+    audit_action(
+        repository,
+        user,
+        modulo="Provas",
+        acao="reabrir_prova",
+        entidade="prova_gerada",
+        entidade_id=str(id_prova),
+        valor_novo=payload.model_dump(),
+    )
+    return result
 
 
 @router.post(
@@ -248,11 +270,22 @@ def cancel_generated_exam(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.cancel_generated_exam(
+    result = repository.cancel_generated_exam(
         id_prova,
         payload.model_dump(),
         cancelled_by=_user_label(user),
     )
+    # Auditoria (C4, 27/set/2026): decisões do RH sobre a prova ficam registradas.
+    audit_action(
+        repository,
+        user,
+        modulo="Provas",
+        acao="cancelar_prova",
+        entidade="prova_gerada",
+        entidade_id=str(id_prova),
+        valor_novo=payload.model_dump(),
+    )
+    return result
 
 
 @router.post(
@@ -265,11 +298,22 @@ def register_rh_decision(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.register_rh_decision(
+    result = repository.register_rh_decision(
         id_prova,
         payload.model_dump(),
         user_name=_user_label(user),
     )
+    # Auditoria (C4, 27/set/2026): decisões do RH sobre a prova ficam registradas.
+    audit_action(
+        repository,
+        user,
+        modulo="Provas",
+        acao="decisao_rh_prova",
+        entidade="prova_gerada",
+        entidade_id=str(id_prova),
+        valor_novo=payload.model_dump(),
+    )
+    return result
 
 
 @public_router.post("/acesso/email")

@@ -122,34 +122,78 @@ def download_email_inbox_attachments(
 @router.post("/email-inbox/messages/{item_id}/analyze-cv", dependencies=[Depends(require_permissions("candidatos.avaliar_curriculo"))])
 def analyze_email_inbox_cv(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.analyze_configured_email_inbox_cv(item_id)
+    result = repository.analyze_configured_email_inbox_cv(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="analisar_cv_ia",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/messages/{item_id}/link-process", dependencies=[Depends(require_permissions("candidatos.criar"))])
 def link_email_inbox_to_process(
     item_id: str,
     payload: dict | None = Body(default=None),
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.link_configured_email_inbox_to_process(item_id, payload or {})
+    result = repository.link_configured_email_inbox_to_process(item_id, payload or {})
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="vincular_cv_email_processo",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/messages/{item_id}/talent-bank", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def send_email_inbox_to_talent_bank(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.send_configured_email_inbox_to_talent_bank(item_id)
+    result = repository.send_configured_email_inbox_to_talent_bank(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="enviar_cv_email_banco_talentos",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 
 @router.post("/email-inbox/messages/{item_id}/ignore", dependencies=[Depends(require_permissions("candidatos.mover_etapa"))])
 def ignore_email_inbox_item(
     item_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.ignore_configured_email_inbox_item(item_id)
+    result = repository.ignore_configured_email_inbox_item(item_id)
+    # Auditoria (C4, 27/set/2026): tratamento de currículo fica rastreável (LGPD).
+    audit_action(
+        repository,
+        user,
+        modulo="Currículos",
+        acao="ignorar_cv_email",
+        entidade="email_inbox_item",
+        entidade_id=str(item_id),
+    )
+    return result
 
 @router.delete("/email-inbox/messages/{item_id}", dependencies=[Depends(require_permissions("candidatos.excluir"))])
 def delete_email_inbox_item(

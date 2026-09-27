@@ -6,7 +6,12 @@ from fastapi import HTTPException, status
 
 from ..rbac import get_role_definition
 from ..services.helpers import normalize_text
-from ..services.tela_inicial import PERFIS_INICIO_POR_SESSOES, catalogo, config_padrao, normalizar_config
+from ..services.tela_inicial import (
+    PERFIS_INICIO_POR_SESSOES,
+    catalogo,
+    config_padrao,
+    normalizar_config,
+)
 from .bootstrap import ensure_home_screen_config_table
 
 
