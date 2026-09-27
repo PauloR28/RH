@@ -39,3 +39,17 @@ export async function excluirTodasNotificacoes() {
   invalidarCacheApi('notificacoes');
   return resultado;
 }
+
+// QA T2-NOT-03: lida/oculta das notificações montadas no front vale em qualquer
+// navegador (antes ficava só no localStorage).
+export async function obterEstadoNotificacoesUsuario() {
+  return requisitar('/notificacoes/estado-usuario', { method: 'GET' });
+}
+
+export async function registrarEstadoNotificacoesUsuario({ lidas = [], ocultas = [] } = {}) {
+  return requisitar('/notificacoes/estado-usuario', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lidas, ocultas }),
+  });
+}

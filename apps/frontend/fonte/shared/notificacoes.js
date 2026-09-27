@@ -9,9 +9,12 @@ import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
-} from '../services/api/notifications.js?v=20260921-alertas';
+  obterEstadoNotificacoesUsuario,
+  registrarEstadoNotificacoesUsuario,
+} from '../services/api/notifications.js?v=20260927-estado-usuario';
 import { listarOperacoes } from '../services/api/operations.js';
 import { listarUsuarios } from '../services/api/settings.js';
+import { lerSessaoAutenticacao } from '../services/api/core.js';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {
@@ -66,13 +69,37 @@ export const CATEGORIAS_NOTIFICACAO = [
 
 const CHAVE_PREFERENCIAS = 'c24_notificacoes_categorias';
 const CHAVE_CORES_PERSONALIZADAS = 'c24_notificacoes_cores';
-// "Lida"/"excluída" das categorias sem persistência própria no backend
-// (só a categoria "treinamentos" tem tabela real com `lida` — ver
-// dbo.notificacoes) — controlado localmente por navegador/usuário.
+// "Lida"/"excluída" das notificações montadas aqui no front (entrevistas,
+// processos, problemas...). A fonte da verdade é o servidor
+// (/notificacoes/estado-usuario, QA T2-NOT-03: antes o que era lido em um
+// navegador reaparecia em outro); o localStorage fica como cópia local para a
+// tela responder na hora e para migrar o que já estava marcado neste navegador.
 const CHAVE_NOTIF_LIDAS_LOCAIS = 'c24_notificacoes_lidas_locais';
 const CHAVE_NOTIF_OCULTAS = 'c24_notificacoes_ocultas';
 
-function lerConjuntoStorage(chave) {
+// Cópia local separada por usuário (vários usuários podem usar o mesmo navegador).
+function chaveDoUsuario(chaveBase) {
+  const usuario = String(lerSessaoAutenticacao()?.usuario || '').trim().toLowerCase();
+  return usuario ? `${chaveBase}:${usuario}` : chaveBase;
+}
+
+// Marcas antigas (sem usuário) são levadas para o usuário logado uma única vez.
+function migrarChavesLegadas() {
+  try {
+    [CHAVE_NOTIF_LIDAS_LOCAIS, CHAVE_NOTIF_OCULTAS].forEach((chaveBase) => {
+      const legado = localStorage.getItem(chaveBase);
+      const destino = chaveDoUsuario(chaveBase);
+      if (legado === null || destino === chaveBase) return;
+      if (localStorage.getItem(destino) === null) localStorage.setItem(destino, legado);
+      localStorage.removeItem(chaveBase);
+    });
+  } catch (error) {
+    // Best-effort.
+  }
+}
+
+function lerConjuntoStorage(chaveBase) {
+  const chave = chaveDoUsuario(chaveBase);
   try {
     const bruto = JSON.parse(localStorage.getItem(chave) || '[]');
     return new Set(Array.isArray(bruto) ? bruto : []);
@@ -81,7 +108,8 @@ function lerConjuntoStorage(chave) {
   }
 }
 
-function gravarConjuntoStorage(chave, conjunto) {
+function gravarConjuntoStorage(chaveBase, conjunto) {
+  const chave = chaveDoUsuario(chaveBase);
   try {
     localStorage.setItem(chave, JSON.stringify(Array.from(conjunto)));
   } catch (error) {
@@ -275,6 +303,39 @@ export function useResumoNotificacoes(controlador) {
   const [, forcarAtualizacaoLocal] = useState(0);
   const autenticado = Boolean(controlador?.estado?.autenticado);
 
+  // Estado lida/oculta do servidor: carrega uma vez por sessão e envia ao servidor
+  // o que só este navegador conhecia (migração do localStorage antigo).
+  useEffect(() => {
+    if (!autenticado) return undefined;
+    let ativo = true;
+    migrarChavesLegadas();
+    obterEstadoNotificacoesUsuario()
+      .then((estado) => {
+        if (!ativo || !estado) return;
+        const lidasLocais = lerConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS);
+        const ocultasLocais = lerConjuntoStorage(CHAVE_NOTIF_OCULTAS);
+        const lidasServidor = new Set(Array.isArray(estado.lidas) ? estado.lidas : []);
+        const ocultasServidor = new Set(Array.isArray(estado.ocultas) ? estado.ocultas : []);
+        const lidasSoLocais = Array.from(lidasLocais).filter((chave) => !lidasServidor.has(chave));
+        const ocultasSoLocais = Array.from(ocultasLocais).filter((chave) => !ocultasServidor.has(chave));
+        if (lidasSoLocais.length || ocultasSoLocais.length) {
+          registrarEstadoNotificacoesUsuario({
+            lidas: lidasSoLocais.slice(-500),
+            ocultas: ocultasSoLocais.slice(-500),
+          }).catch(() => {});
+        }
+        lidasServidor.forEach((chave) => lidasLocais.add(chave));
+        ocultasServidor.forEach((chave) => ocultasLocais.add(chave));
+        gravarConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS, lidasLocais);
+        gravarConjuntoStorage(CHAVE_NOTIF_OCULTAS, ocultasLocais);
+        forcarAtualizacaoLocal((valor) => valor + 1);
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, [autenticado]);
+
   useEffect(() => {
     let ativo = true;
 
@@ -376,6 +437,7 @@ export function useResumoNotificacoes(controlador) {
     conjunto.add(item.id);
     gravarConjuntoStorage(CHAVE_NOTIF_LIDAS_LOCAIS, conjunto);
     forcarAtualizacaoLocal((valor) => valor + 1);
+    registrarEstadoNotificacoesUsuario({ lidas: [item.id] }).catch(() => {});
   };
 
   const excluirTodas = async () => {
@@ -387,6 +449,10 @@ export function useResumoNotificacoes(controlador) {
     const conjunto = lerConjuntoStorage(CHAVE_NOTIF_OCULTAS);
     itens.forEach((item) => conjunto.add(item.id));
     gravarConjuntoStorage(CHAVE_NOTIF_OCULTAS, conjunto);
+    const ocultarNoServidor = itens.filter((item) => !item.persistida).map((item) => item.id);
+    if (ocultarNoServidor.length) {
+      registrarEstadoNotificacoesUsuario({ ocultas: ocultarNoServidor.slice(0, 500) }).catch(() => {});
+    }
     setItensBrutos((atual) => atual.filter((item) => !item.persistida));
     forcarAtualizacaoLocal((valor) => valor + 1);
   };

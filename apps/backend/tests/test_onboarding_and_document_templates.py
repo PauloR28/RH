@@ -158,6 +158,9 @@ class FakeOnboardingRepository:
         data_prevista=None,
         local: str = "",
         ministrante: str = "",
+        ministrante_email: str = "",
+        duracao_minutos: int = 60,
+        enviar_lembrete_calendario: bool = False,
     ) -> dict:
         progresso = {
             "iniciado": True,

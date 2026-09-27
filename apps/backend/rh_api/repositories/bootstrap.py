@@ -2314,6 +2314,27 @@ def ensure_notifications_table(cursor) -> None:
     )
 
 
+def ensure_notification_user_state_table(cursor) -> None:
+    """Estado "lida"/"oculta" por usuário das notificações montadas no front-end
+    (entrevistas, processos, problemas...). Antes ficava só no localStorage do
+    navegador, e o que foi lido em um navegador reaparecia em outro (QA T2-NOT-03).
+    Aditivo e idempotente (espelha infra/sql/migrations/V041)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.notificacoes_estado_usuario', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.notificacoes_estado_usuario (
+                usuario NVARCHAR(180) NOT NULL,
+                chave NVARCHAR(200) NOT NULL,
+                lida_em DATETIME NULL,
+                oculta_em DATETIME NULL,
+                CONSTRAINT PK_notificacoes_estado_usuario PRIMARY KEY (usuario, chave)
+            )
+        END
+        """
+    )
+
+
 def ensure_document_templates_table(cursor) -> None:
     """Templates de documentos com placeholders {{variavel}} (aditivo/idempotente)."""
     cursor.execute(

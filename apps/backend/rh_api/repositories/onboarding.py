@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from ..services.helpers import normalize_text, rows_to_dicts
 from .bootstrap import (
     ensure_candidate_training_link_column,
+    ensure_notification_user_state_table,
     ensure_notifications_table,
     ensure_onboarding_tables,
     ensure_process_trainings_table,
@@ -2033,19 +2034,95 @@ class OnboardingRepositoryMixin:
         finally:
             conn.close()
 
-    def marcar_notificacao_lida(self, id_notificacao: int) -> dict:
+    def marcar_notificacao_lida(
+        self, id_notificacao: int, *, papel: str | None = None, usuario: str | None = None, email: str = ""
+    ) -> dict:
         conn = self._connect()
         try:
             cursor = conn.cursor()
             ensure_notifications_table(cursor)
-            cursor.execute(
-                "UPDATE notificacoes SET lida = 1, lida_em = GETDATE() WHERE id_notificacao = ?",
-                (int(id_notificacao or 0),),
-            )
+            if usuario is None:
+                cursor.execute(
+                    "UPDATE notificacoes SET lida = 1, lida_em = GETDATE() WHERE id_notificacao = ?",
+                    (int(id_notificacao or 0),),
+                )
+            else:
+                # Só o destinatário (papel ou usuário) pode marcar a notificação como lida.
+                cursor.execute(
+                    """
+                    UPDATE notificacoes SET lida = 1, lida_em = GETDATE()
+                    WHERE id_notificacao = ? AND (destinatario_papel = ? OR destinatario_usuario IN (?, ?))
+                    """,
+                    (int(id_notificacao or 0), normalize_text(papel), normalize_text(usuario),
+                     normalize_text(email) or normalize_text(usuario)),
+                )
             conn.commit()
         finally:
             conn.close()
         return {"success": True}
+
+    _LIMITE_CHAVES_ESTADO = 500
+
+    def obter_estado_notificacoes_usuario(self, *, usuario: str) -> dict:
+        """Chaves das notificações montadas no front que o usuário já leu/ocultou."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notification_user_state_table(cursor)
+            cursor.execute(
+                """
+                SELECT chave, lida_em, oculta_em FROM dbo.notificacoes_estado_usuario
+                WHERE usuario = ? AND COALESCE(oculta_em, lida_em) >= DATEADD(DAY, -180, GETDATE())
+                """,
+                (normalize_text(usuario),),
+            )
+            lidas: list[str] = []
+            ocultas: list[str] = []
+            for chave, lida_em, oculta_em in cursor.fetchall():
+                if lida_em is not None:
+                    lidas.append(str(chave))
+                if oculta_em is not None:
+                    ocultas.append(str(chave))
+            return {"lidas": lidas, "ocultas": ocultas}
+        finally:
+            conn.close()
+
+    def registrar_estado_notificacoes_usuario(self, *, usuario: str, lidas: list[str], ocultas: list[str]) -> dict:
+        """Acrescenta (nunca remove) chaves lidas/ocultas do usuário. Idempotente."""
+        safe_usuario = normalize_text(usuario)
+        if not safe_usuario:
+            return {"success": False, "registradas": 0}
+
+        def _limpar(valores) -> list[str]:
+            vistos: list[str] = []
+            for valor in valores or []:
+                chave = normalize_text(valor)[:200]
+                if chave and chave not in vistos:
+                    vistos.append(chave)
+            return vistos[: self._LIMITE_CHAVES_ESTADO]
+
+        pares = [(chave, "lida_em") for chave in _limpar(lidas)] + [(chave, "oculta_em") for chave in _limpar(ocultas)]
+        if not pares:
+            return {"success": True, "registradas": 0}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_notification_user_state_table(cursor)
+            for chave, coluna in pares:
+                cursor.execute(
+                    f"""
+                    MERGE dbo.notificacoes_estado_usuario WITH (HOLDLOCK) AS alvo
+                    USING (SELECT ? AS usuario, ? AS chave) AS origem
+                    ON alvo.usuario = origem.usuario AND alvo.chave = origem.chave
+                    WHEN MATCHED AND alvo.{coluna} IS NULL THEN UPDATE SET {coluna} = GETDATE()
+                    WHEN NOT MATCHED THEN INSERT (usuario, chave, {coluna}) VALUES (origem.usuario, origem.chave, GETDATE());
+                    """,
+                    (safe_usuario, chave),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"success": True, "registradas": len(pares)}
 
     def marcar_todas_notificacoes_lidas(self, *, papel: str, usuario: str, email: str = "") -> dict:
         conn = self._connect()
