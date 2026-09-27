@@ -690,6 +690,159 @@ class MonitoriaOrgRepositoryMixin:
         finally:
             conn.close()
 
+    def mon_transferir_operacao(
+        self,
+        actor,
+        id_usuario: int,
+        *,
+        origem: str,
+        destino: str,
+        supervisores: list[int] | None = None,
+        id_substituto: int | None = None,
+        justificativa: str = "",
+        ip: str = "",
+    ) -> dict:
+        """QA T2-TRC-02/03: move um Operador ou Supervisor da operação de origem
+        para a de destino, em um passo só.
+
+        - Operador: passa a ter só a operação de destino e os supervisores
+          informados (1 a 2, vinculados ao destino).
+        - Supervisor: troca a origem pelo destino (limite de 3 operações). Os
+          operadores dele na origem passam para `id_substituto`, obrigatório
+          quando existe algum operador.
+        Equipe e canais da origem são desfeitos. Monitorias já realizadas
+        continuam registradas na operação e com o supervisor da época."""
+        origem = normalize_text(origem)
+        destino = normalize_text(destino)
+        if not origem or not destino or origem == destino:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Escolha operações de origem e destino diferentes.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT perfil_id, nome, status FROM dbo.usuarios WHERE id_usuario = ?", (int(id_usuario),))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
+            perfil = get_role_definition(row[0]).id
+            nome_usuario = normalize_text(row[1])
+            if perfil not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A transferência de operação vale para Operador e Supervisor.")
+            if actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, perfil):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode alterar este nível de usuário.")
+            for chave in (origem, destino):
+                self._mon_exigir_operacao_no_escopo(actor, chave)
+                self._mon_exigir_operacao_ativa(cursor, chave)
+
+            anterior = self._mon_vinculos(cursor, id_usuario)
+            if origem not in anterior["operacoes"]:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O usuário não está vinculado à operação de origem.")
+            if destino in anterior["operacoes"]:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O usuário já está vinculado à operação de destino.")
+
+            def _exigir_supervisor_ativo(id_sup: int, operacao: str | None) -> None:
+                cursor.execute("SELECT perfil_id, status FROM dbo.usuarios WHERE id_usuario = ?", (int(id_sup),))
+                sup = cursor.fetchone()
+                if not sup or get_role_definition(sup[0]).id != ROLE_SUPERVISOR or normalize_text(sup[1]).lower() != "ativo":
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Supervisor escolhido é inválido ou está inativo.")
+                if operacao:
+                    cursor.execute("SELECT 1 FROM dbo.usuarios_operacoes WHERE id_usuario = ? AND operacao = ?", (int(id_sup), operacao))
+                    if not cursor.fetchone():
+                        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O supervisor escolhido precisa estar vinculado à operação de destino.")
+
+            reatribuidos = 0
+            if perfil == ROLE_OPERATOR:
+                novos_supervisores = sorted({int(item) for item in (supervisores or []) if item})
+                if not novos_supervisores:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Escolha o supervisor responsável na operação de destino.")
+                if len(novos_supervisores) > 2:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O Operador pode ter no máximo 2 supervisores.")
+                for id_sup in novos_supervisores:
+                    _exigir_supervisor_ativo(id_sup, destino)
+                operacoes_novas = [destino]
+                cursor.execute("DELETE FROM dbo.usuarios_supervisores WHERE id_operador = ?", (int(id_usuario),))
+                for id_sup in novos_supervisores:
+                    cursor.execute("INSERT INTO dbo.usuarios_supervisores (id_operador, id_supervisor) VALUES (?, ?)", (int(id_usuario), id_sup))
+            else:
+                operacoes_novas = sorted((set(anterior["operacoes"]) - {origem}) | {destino})
+                if len(operacoes_novas) > 3:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O Supervisor pode ter no máximo 3 operações.")
+                cursor.execute(
+                    """
+                    SELECT s.id_operador FROM dbo.usuarios_supervisores s
+                    JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = s.id_operador AND uo.operacao = ?
+                    WHERE s.id_supervisor = ?
+                    """,
+                    (origem, int(id_usuario)),
+                )
+                operadores = [int(r[0]) for r in cursor.fetchall()]
+                if operadores:
+                    if not id_substituto:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=f"Este supervisor tem {len(operadores)} operador(es) em {origem}. Escolha quem assume a supervisão deles.",
+                        )
+                    if int(id_substituto) == int(id_usuario):
+                        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O substituto precisa ser outro supervisor.")
+                    _exigir_supervisor_ativo(int(id_substituto), None)
+                    cursor.execute("SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (int(id_substituto),))
+                    ops_substituto = {normalize_text(r[0]) for r in cursor.fetchall()}
+                    if origem not in ops_substituto:
+                        if len(ops_substituto) >= 3:
+                            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O substituto já possui 3 operações.")
+                        cursor.execute("INSERT INTO dbo.usuarios_operacoes (id_usuario, operacao) VALUES (?, ?)", (int(id_substituto), origem))
+                        cursor.execute(
+                            "INSERT INTO dbo.usuarios_operacoes_historico (id_usuario, operacao, acao, detalhe, por) VALUES (?, ?, 'vincular', ?, ?)",
+                            (int(id_substituto), origem, f"assumiu a supervisão de {nome_usuario}", normalize_text(actor.nome)),
+                        )
+                    for id_operador in operadores:
+                        cursor.execute("DELETE FROM dbo.usuarios_supervisores WHERE id_operador = ? AND id_supervisor = ?", (id_operador, int(id_usuario)))
+                        cursor.execute("SELECT TOP 1 1 FROM dbo.usuarios_supervisores WHERE id_operador = ? AND id_supervisor = ?", (id_operador, int(id_substituto)))
+                        if not cursor.fetchone():
+                            cursor.execute("SELECT COUNT(*) FROM dbo.usuarios_supervisores WHERE id_operador = ?", (id_operador,))
+                            if int(cursor.fetchone()[0]) >= 2:
+                                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Um operador já tem 2 supervisores; ajuste antes de transferir.")
+                            cursor.execute("INSERT INTO dbo.usuarios_supervisores (id_operador, id_supervisor) VALUES (?, ?)", (id_operador, int(id_substituto)))
+                        reatribuidos += 1
+
+            # Operações, equipe e canais da origem.
+            cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ? AND operacao = ?", (int(id_usuario), origem))
+            if perfil == ROLE_OPERATOR:
+                cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (int(id_usuario),))
+            cursor.execute("INSERT INTO dbo.usuarios_operacoes (id_usuario, operacao) VALUES (?, ?)", (int(id_usuario), destino))
+            if anterior.get("id_equipe"):
+                cursor.execute("SELECT operacao FROM dbo.equipes_operacao WHERE id_equipe = ?", (int(anterior["id_equipe"]),))
+                equipe = cursor.fetchone()
+                if equipe and normalize_text(equipe[0]) not in operacoes_novas:
+                    cursor.execute("UPDATE dbo.usuarios SET id_equipe = NULL, atualizado_em = GETDATE() WHERE id_usuario = ?", (int(id_usuario),))
+            cursor.execute(
+                """
+                DELETE uc FROM dbo.usuarios_canais uc
+                JOIN dbo.monitoria_catalogo c ON c.id_item = uc.id_item_canal
+                WHERE uc.id_usuario = ? AND c.operacao = ?
+                """,
+                (int(id_usuario), origem),
+            )
+            cursor.execute(
+                "INSERT INTO dbo.usuarios_operacoes_historico (id_usuario, operacao, acao, detalhe, por) VALUES (?, ?, 'desvincular', ?, ?)",
+                (int(id_usuario), origem, f"transferido para {destino}", normalize_text(actor.nome)),
+            )
+            cursor.execute(
+                "INSERT INTO dbo.usuarios_operacoes_historico (id_usuario, operacao, acao, detalhe, por) VALUES (?, ?, 'vincular', ?, ?)",
+                (int(id_usuario), destino, f"transferido de {origem}", normalize_text(actor.nome)),
+            )
+            novo = self._mon_vinculos(cursor, id_usuario)
+            self.mon_log(
+                cursor, actor, acao="transferir_operacao", operacao=destino, entidade="usuario", entidade_id=id_usuario,
+                anterior=anterior, posterior=novo,
+                detalhes={"origem": origem, "destino": destino, "substituto": id_substituto, "operadores_reatribuidos": reatribuidos,
+                          "justificativa": justificativa},
+                ip=ip,
+            )
+            conn.commit()
+            return {"success": True, "vinculos": novo, "operadores_reatribuidos": reatribuidos}
+        finally:
+            conn.close()
+
     def mon_operadores_supervisionados(self, id_supervisor: int) -> set[int]:
         conn = self._connect()
         try:

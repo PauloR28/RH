@@ -36,6 +36,7 @@ from ..schemas.monitoria import (
     RiscoRequest,
     ReplicaRequest,
     TemaRequest,
+    TransferirOperacaoRequest,
     TransferirSupervisaoRequest,
     UsuarioMonitoriaRequest,
     VinculosMonitoriaRequest,
@@ -247,6 +248,26 @@ def salvar_ambiente_operacao(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_set_ambiente(user, chave, payload.model_dump(exclude_unset=True), ip=client_ip(request))
+
+
+@router.post("/usuarios/{id_usuario}/transferir-operacao", dependencies=[Depends(require_permissions("monitoria.usuarios"))])
+def transferir_operacao_usuario(
+    id_usuario: int,
+    payload: TransferirOperacaoRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_transferir_operacao(
+        user,
+        id_usuario,
+        origem=payload.origem,
+        destino=payload.destino,
+        supervisores=payload.supervisores,
+        id_substituto=payload.id_substituto,
+        justificativa=payload.justificativa,
+        ip=client_ip(request),
+    )
 
 
 @router.post("/supervisao/transferir", dependencies=[Depends(require_permissions("monitoria.usuarios"))])

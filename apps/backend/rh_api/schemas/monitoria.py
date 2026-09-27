@@ -65,6 +65,16 @@ class TransferirSupervisaoRequest(BaseSchema):
     justificativa: str = Field(default="", max_length=400)
 
 
+class TransferirOperacaoRequest(BaseSchema):
+    """QA T2-TRC-02/03: Operador ou Supervisor muda de operação."""
+
+    origem: str
+    destino: str
+    supervisores: list[int] = []
+    id_substituto: int | None = None
+    justificativa: str = Field(default="", max_length=400)
+
+
 class TemaRequest(BaseSchema):
     operacao: str = ""
 

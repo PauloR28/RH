@@ -46,6 +46,7 @@ import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
   CamposVinculosMonitoria,
+  ModalTransferirOperacao,
   ModalTransferirSupervisao,
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
@@ -558,6 +559,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [abaOperacao, setAbaOperacao] = useState('cadastro');
   const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
+  const [transferindoOperacao, setTransferindoOperacao] = useState(false);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
   // "Criar usuário rápido" — nome, e-mail e senha para candidatos aprovados
@@ -4114,6 +4116,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   onClick=${() => setTransferindoSupervisao(true)}
                 >
                   Transferir supervisão
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  title="Move um Operador ou Supervisor para outra operação"
+                  onClick=${() => setTransferindoOperacao(true)}
+                >
+                  Transferir de operação
                 </button>` : null}
               <button
                 type="button"
@@ -4143,6 +4153,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           aberto=${transferindoSupervisao}
           onClose=${() => setTransferindoSupervisao(false)}
           onFeito=${() => { setTransferindoSupervisao(false); setFeedback('Supervisão transferida.'); }}
+          showToast=${(mensagem, tipo) => (tipo === 'danger' ? setErro(mensagem) : setFeedback(mensagem))}
+        />
+        <${ModalTransferirOperacao}
+          aberto=${transferindoOperacao}
+          onClose=${() => setTransferindoOperacao(false)}
+          onFeito=${() => { setTransferindoOperacao(false); carregarAba('usuarios'); }}
           showToast=${(mensagem, tipo) => (tipo === 'danger' ? setErro(mensagem) : setFeedback(mensagem))}
         />` : null}
       ${carregando
