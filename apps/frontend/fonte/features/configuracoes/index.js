@@ -1999,6 +1999,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <option value="microsoft">Microsoft</option>
                           <option value="local">Local</option>
                         </select>
+                        <small class="text-muted">
+                          ${acessoMicrosoft
+          ? 'Entra só pelo botão "Entrar com a Microsoft", com o e-mail corporativo cadastrado acima (não tem senha no Conecta).'
+          : 'Entra com login e senha. No primeiro acesso a pessoa troca a senha inicial.'}
+                        </small>
                       </label>
                       <${CamposVinculosMonitoria}
                         perfil=${formUsuario.perfil}

@@ -361,9 +361,11 @@ export function useResumoNotificacoes(controlador) {
         operacoes,
         usuarios,
       ] = await Promise.all([
-        lerProcessos().catch(() => []),
-        lerEntrevistas().catch(() => []),
-        lerCandidatosProcessos().catch(() => []),
+        // Só busca o que o perfil pode ver (operador, por exemplo, não vê
+        // processos nem entrevistas: antes eram 3 requisições com 403 a cada tela).
+        controlador?.possuiPermissao?.('vagas.visualizar') ? lerProcessos().catch(() => []) : Promise.resolve([]),
+        controlador?.possuiPermissao?.('entrevistas.visualizar') ? lerEntrevistas().catch(() => []) : Promise.resolve([]),
+        controlador?.possuiPermissao?.('candidatos.visualizar') ? lerCandidatosProcessos().catch(() => []) : Promise.resolve([]),
         podeVerSolicitacoesEmail
           ? listarSolicitacoesAlteracaoEmailApi().then((valor) => valor?.solicitacoes || []).catch(() => [])
           : Promise.resolve([]),
