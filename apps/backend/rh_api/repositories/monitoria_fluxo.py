@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, status
 
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -48,6 +49,10 @@ class MonitoriaFluxoRepositoryMixin:
         if not row:
             raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
         m = rows_to_dicts(cursor, [row])[0]
+        # Excluída logicamente: nenhuma ação de fluxo (feedback, contestação...).
+        cursor.execute("SELECT 1 FROM dbo.monitoria_exclusoes WHERE id_monitoria = ?", (m["id_monitoria"],))
+        if cursor.fetchone():
+            raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
         cursor.execute(
             "SELECT status, resultado, sla_tipo, sla_inicio, sla_limite FROM dbo.monitoria_estado WITH (UPDLOCK, ROWLOCK) WHERE id_monitoria = ?",
             (m["id_monitoria"],),
@@ -377,13 +382,14 @@ class MonitoriaFluxoRepositoryMixin:
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT TOP (?) id_monitoria FROM dbo.monitoria_estado WHERE status IN (?, ?) AND sla_limite IS NOT NULL "
-                "AND sla_limite < GETDATE() ORDER BY sla_limite",
+                "SELECT TOP (?) id_monitoria FROM dbo.monitoria_estado m WHERE status IN (?, ?) AND sla_limite IS NOT NULL "
+                f"AND sla_limite < GETDATE() AND {SQL_MONITORIA_NAO_EXCLUIDA} ORDER BY sla_limite",
                 (int(lote), wf.AGUARDANDO_CONFIRMACAO, wf.REANALISE),
             )
             ids = [int(r[0]) for r in cursor.fetchall()]
             cursor.execute(
-                "SELECT COUNT(*) FROM dbo.monitoria_estado WHERE status = ? AND sla_limite IS NOT NULL AND sla_limite < GETDATE()",
+                "SELECT COUNT(*) FROM dbo.monitoria_estado m WHERE status = ? AND sla_limite IS NOT NULL AND sla_limite < GETDATE() "
+                f"AND {SQL_MONITORIA_NAO_EXCLUIDA}",
                 (wf.FEEDBACK_PENDENTE,),
             )
             feedbacks_vencidos = int(cursor.fetchone()[0])

@@ -15,6 +15,7 @@ from types import SimpleNamespace
 
 from fastapi import HTTPException, status
 
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition, get_role_permissions
 from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
@@ -52,6 +53,8 @@ class MonitoriaAnaliseRepositoryMixin:
             params.append(normalize_text(filtros["data_fim"])[:10])
 
     def _mon_linhas(self, cursor, condicoes: list[str], params: list, *, com_respostas: bool = True) -> list[dict]:
+        # Base única dos painéis/indicadores/exportações: excluídas logicamente ficam de fora.
+        condicoes = [*condicoes, SQL_MONITORIA_NAO_EXCLUIDA]
         where = f"WHERE {' AND '.join(condicoes)}" if condicoes else ""
         base = "FROM dbo.monitorias m JOIN dbo.monitoria_estado e ON e.id_monitoria = m.id_monitoria"
         cursor.execute(
@@ -141,7 +144,8 @@ class MonitoriaAnaliseRepositoryMixin:
             try:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT v.config_json FROM dbo.monitoria_matrizes m JOIN dbo.monitoria_matriz_versoes v ON v.id_versao = m.id_versao_ativa WHERE m.operacao = ?",
+                    "SELECT TOP 1 v.config_json FROM dbo.monitoria_matrizes m JOIN dbo.monitoria_matriz_versoes v ON v.id_versao = m.id_versao_ativa "
+                    "WHERE m.operacao = ? ORDER BY m.ativo DESC, m.id_matriz ASC",
                     (operacao,),
                 )
                 row = cursor.fetchone()

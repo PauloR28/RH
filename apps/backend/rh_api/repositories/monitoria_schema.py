@@ -422,7 +422,12 @@ def schema_statements() -> list[str]:
 
 
 def ensure_monitoria_schema(cursor) -> None:
-    for instrucao in schema_statements() + schema_ambiente_statements() + schema_tipos_atendimento_statements():
+    for instrucao in (
+        schema_statements()
+        + schema_ambiente_statements()
+        + schema_tipos_atendimento_statements()
+        + schema_formularios_exclusao_statements()
+    ):
         cursor.execute(instrucao)
 
 
@@ -497,3 +502,51 @@ def render_migration_tipos_atendimento_sql() -> str:
         "-- rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
     )
     return cabecalho + "\n\n".join(schema_tipos_atendimento_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Formulários duplicáveis e exclusão lógica de monitoria (Correções, 27/set/2026).
+# Aditivo e separado das anteriores; gera a V044.
+# - monitoria_matrizes.origem_*: de qual formulário/versão uma cópia nasceu.
+#   Uma operação pode ter vários formulários; o ativo (ativo = 1) é o usado nas
+#   novas monitorias.
+# - monitoria_exclusoes: exclusão LÓGICA (só Administrador). A monitoria continua
+#   intacta e imutável; a linha aqui a esconde de listas, painéis e indicadores e
+#   pode ser removida para restaurar. O histórico fica em monitoria_logs.
+# ---------------------------------------------------------------------------
+_COLUNAS_FORMULARIOS: list[tuple[str, str, str]] = [
+    ("monitoria_matrizes", "origem_id_matriz", "INT"),
+    ("monitoria_matrizes", "origem_id_versao", "INT"),
+]
+_TABELAS_EXCLUSAO: list[tuple[str, str]] = [
+    (
+        "monitoria_exclusoes",
+        """
+        id_monitoria INT NOT NULL PRIMARY KEY,
+        excluida_por INT NULL,
+        excluida_por_nome NVARCHAR(180) NULL,
+        motivo NVARCHAR(400) NOT NULL,
+        excluida_em DATETIME NOT NULL CONSTRAINT DF_monitoria_exclusoes_excluida_em DEFAULT GETDATE()
+        """,
+    ),
+]
+
+
+def schema_formularios_exclusao_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_FORMULARIOS] + [
+        _create_table_sql(nome, corpo) for nome, corpo in _TABELAS_EXCLUSAO
+    ]
+
+
+def render_migration_formularios_exclusao_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: formularios duplicaveis (varios por operacao, um ativo) e\n"
+        "-- exclusao logica de monitoria pelo Administrador (Correcoes, 27/set/2026).\n"
+        "-- Aditiva e idempotente. Gerada a partir de rh_api/repositories/monitoria_schema.py\n"
+        "-- (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_formularios_exclusao_statements()) + "\n"
+
+
+# Filtro SQL (alias "m" = dbo.monitorias): esconde monitorias excluídas logicamente.
+SQL_MONITORIA_NAO_EXCLUIDA = "NOT EXISTS (SELECT 1 FROM dbo.monitoria_exclusoes ex WHERE ex.id_monitoria = m.id_monitoria)"

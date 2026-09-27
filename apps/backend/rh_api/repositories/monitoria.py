@@ -16,6 +16,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -66,6 +67,11 @@ def _iso(valor: Any) -> str | None:
     return str(valor)
 
 
+
+# Monitoria excluída (logicamente) pelo Administrador não entra em listas, painéis,
+# indicadores nem contagens (Correções, 27/set/2026).
+_NAO_EXCLUIDA_X = "NOT EXISTS (SELECT 1 FROM dbo.monitoria_exclusoes ex WHERE ex.id_monitoria = x.id_monitoria)"
+
 class MonitoriaRepositoryMixin:
     # ------------------------------------------------------------------
     # Utilitários
@@ -97,7 +103,11 @@ class MonitoriaRepositoryMixin:
     def _mon_garantir_matriz(self, cursor, operacao: str) -> int:
         """Devolve o id da matriz da operação, criando a versão 1.0 padrão se
         a operação foi cadastrada depois do último bootstrap."""
-        cursor.execute("SELECT id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ?", (operacao,))
+        # Uma operação pode ter vários formulários (cópias); o ativo é o usado nas monitorias.
+        cursor.execute(
+            "SELECT TOP 1 id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ? ORDER BY ativo DESC, id_matriz ASC",
+            (operacao,),
+        )
         row = cursor.fetchone()
         if row:
             return int(row[0])
@@ -143,6 +153,29 @@ class MonitoriaRepositoryMixin:
             "criado_por": normalize_text(row[6]), "criado_em": _iso(row[7]),
         }
 
+    def _mon_matriz_alvo(self, cursor, operacao: str, id_matriz: int | None) -> int:
+        """Formulário escolhido (validado na operação) ou, sem escolha, o ativo."""
+        if not id_matriz:
+            return self._mon_garantir_matriz(cursor, operacao)
+        cursor.execute("SELECT operacao FROM dbo.monitoria_matrizes WHERE id_matriz = ?", (int(id_matriz),))
+        row = cursor.fetchone()
+        if not row or normalize_text(row[0]) != operacao:
+            raise _http(status.HTTP_404_NOT_FOUND, "Formulário não encontrado nesta operação.")
+        return int(id_matriz)
+
+    def _mon_config_versao_ativa_da_matriz(self, cursor, id_matriz: int) -> tuple[int, dict]:
+        cursor.execute(
+            """
+            SELECT v.numero, v.config_json FROM dbo.monitoria_matrizes m
+            JOIN dbo.monitoria_matriz_versoes v ON v.id_versao = m.id_versao_ativa WHERE m.id_matriz = ?
+            """,
+            (int(id_matriz),),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise _http(status.HTTP_404_NOT_FOUND, "O formulário não possui versão ativa.")
+        return int(row[0]), _load(row[1], {})
+
     def mon_get_matriz(self, user, operacao: str) -> dict:
         operacao = normalize_text(operacao)
         self._mon_exigir_permissao_operacao(user, operacao)
@@ -155,18 +188,25 @@ class MonitoriaRepositoryMixin:
         finally:
             conn.close()
 
-    def mon_list_versoes(self, user, operacao: str) -> list[dict]:
+    def mon_list_versoes(self, user, operacao: str, id_matriz: int | None = None) -> list[dict]:
         operacao = normalize_text(operacao)
         self._mon_exigir_permissao_operacao(user, operacao)
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            id_matriz = self._mon_garantir_matriz(cursor, operacao)
+            self._mon_garantir_matriz(cursor, operacao)
+            id_matriz = self._mon_matriz_alvo(cursor, operacao, id_matriz)
+            # Relatório por versão (Correções 27/set/2026): total de monitorias feitas,
+            # nota média e anuladas — monitorias excluídas pelo Administrador não contam.
             cursor.execute(
-                """
+                f"""
                 SELECT v.id_versao, v.numero, v.observacao, v.criado_por, v.criado_em,
                        CASE WHEN m.id_versao_ativa = v.id_versao THEN 1 ELSE 0 END AS ativa,
-                       (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_versao = v.id_versao) AS monitorias
+                       (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_versao = v.id_versao AND {_NAO_EXCLUIDA_X}) AS monitorias,
+                       (SELECT AVG(CAST(x.nota AS FLOAT)) FROM dbo.monitorias x
+                        WHERE x.id_versao = v.id_versao AND x.anulada = 0 AND {_NAO_EXCLUIDA_X}) AS nota_media,
+                       (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_versao = v.id_versao AND x.anulada = 1 AND {_NAO_EXCLUIDA_X}) AS anuladas,
+                       (SELECT MAX(x.data_monitoria) FROM dbo.monitorias x WHERE x.id_versao = v.id_versao AND {_NAO_EXCLUIDA_X}) AS ultima
                 FROM dbo.monitoria_matriz_versoes v
                 JOIN dbo.monitoria_matrizes m ON m.id_matriz = v.id_matriz
                 WHERE v.id_matriz = ? ORDER BY v.numero DESC
@@ -175,7 +215,9 @@ class MonitoriaRepositoryMixin:
             )
             itens = [
                 {"id_versao": r[0], "numero": r[1], "observacao": normalize_text(r[2]), "criado_por": normalize_text(r[3]),
-                 "criado_em": _iso(r[4]), "ativa": bool(r[5]), "monitorias": int(r[6] or 0)}
+                 "criado_em": _iso(r[4]), "ativa": bool(r[5]), "monitorias": int(r[6] or 0),
+                 "nota_media": None if r[7] is None else round(float(r[7]), 2), "anuladas": int(r[8] or 0),
+                 "ultima_monitoria": _iso(r[9]), "id_matriz": id_matriz}
                 for r in cursor.fetchall()
             ]
             conn.commit()
@@ -205,7 +247,9 @@ class MonitoriaRepositoryMixin:
         finally:
             conn.close()
 
-    def mon_save_versao(self, user, operacao: str, config_bruta: dict, observacao: str = "", *, ip: str = "") -> dict:
+    def mon_save_versao(
+        self, user, operacao: str, config_bruta: dict, observacao: str = "", *, id_matriz: int | None = None, ip: str = ""
+    ) -> dict:
         """Editar e salvar a matriz SEMPRE cria uma nova versão; a anterior fica
         arquivada e consultável. Monitorias antigas não são tocadas."""
         operacao = normalize_text(operacao)
@@ -218,8 +262,10 @@ class MonitoriaRepositoryMixin:
         try:
             cursor = conn.cursor()
             self._mon_exigir_operacao_ativa(cursor, operacao)
-            id_matriz = self._mon_garantir_matriz(cursor, operacao)
-            atual = self._mon_versao_ativa(cursor, operacao)
+            self._mon_garantir_matriz(cursor, operacao)
+            id_matriz = self._mon_matriz_alvo(cursor, operacao, id_matriz)
+            numero_atual, config_atual = self._mon_config_versao_ativa_da_matriz(cursor, id_matriz)
+            atual = {"numero": numero_atual, "config": config_atual}
             if atual["config"] == config:
                 raise _http(status.HTTP_409_CONFLICT, "Nenhuma alteração em relação à versão ativa.")
             cursor.execute("SELECT ISNULL(MAX(numero), 0) + 1 FROM dbo.monitoria_matriz_versoes WHERE id_matriz = ?", (id_matriz,))
@@ -237,6 +283,132 @@ class MonitoriaRepositoryMixin:
             return {"success": True, "id_versao": id_versao, "numero": numero}
         finally:
             conn.close()
+
+    # ------------------------------------------------------------------
+    # Formulários: vários por operação, duplicar, ativar e restaurar versão
+    # (Correções, 27/set/2026). Nada é sobrescrito: versões continuam imutáveis.
+    # ------------------------------------------------------------------
+    def mon_list_formularios(self, user, operacao: str) -> list[dict]:
+        operacao = normalize_text(operacao)
+        self._mon_exigir_permissao_operacao(user, operacao)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_garantir_matriz(cursor, operacao)
+            cursor.execute(
+                f"""
+                SELECT m.id_matriz, m.nome, m.ativo, m.criado_por, m.criado_em, m.origem_id_matriz, m.origem_id_versao,
+                       va.numero AS versao_ativa,
+                       (SELECT COUNT(*) FROM dbo.monitoria_matriz_versoes v WHERE v.id_matriz = m.id_matriz) AS versoes,
+                       (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_matriz = m.id_matriz AND {_NAO_EXCLUIDA_X}) AS monitorias,
+                       o.nome AS origem_nome, vo.numero AS origem_numero
+                FROM dbo.monitoria_matrizes m
+                LEFT JOIN dbo.monitoria_matriz_versoes va ON va.id_versao = m.id_versao_ativa
+                LEFT JOIN dbo.monitoria_matrizes o ON o.id_matriz = m.origem_id_matriz
+                LEFT JOIN dbo.monitoria_matriz_versoes vo ON vo.id_versao = m.origem_id_versao
+                WHERE m.operacao = ?
+                ORDER BY m.ativo DESC, m.id_matriz ASC
+                """,
+                (operacao,),
+            )
+            itens = [
+                {"id_matriz": r[0], "nome": normalize_text(r[1]), "ativo": bool(r[2]), "criado_por": normalize_text(r[3]),
+                 "criado_em": _iso(r[4]), "origem_id_matriz": r[5], "origem_id_versao": r[6], "versao_ativa": r[7],
+                 "versoes": int(r[8] or 0), "monitorias": int(r[9] or 0),
+                 "origem": (f"{normalize_text(r[10])} v{r[11]}" if r[10] else "")}
+                for r in cursor.fetchall()
+            ]
+            conn.commit()
+            return itens
+        finally:
+            conn.close()
+
+    def mon_duplicar_formulario(
+        self, user, operacao: str, *, id_versao: int, nome: str = "", operacao_destino: str = "", ip: str = ""
+    ) -> dict:
+        """Cria um formulário NOVO (inativo) a partir de uma versão: dá para editar
+        a cópia e manter o original, ou editar o original e guardar a cópia como
+        backup. Com `operacao_destino`, copia o formulário para outra operação."""
+        operacao = normalize_text(operacao)
+        destino = normalize_text(operacao_destino) or operacao
+        self._mon_exigir_permissao_operacao(user, operacao)
+        self._mon_exigir_permissao_operacao(user, destino)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_exigir_operacao_ativa(cursor, destino)
+            cursor.execute(
+                """
+                SELECT v.id_versao, v.numero, v.config_json, m.id_matriz, m.nome, m.operacao
+                FROM dbo.monitoria_matriz_versoes v JOIN dbo.monitoria_matrizes m ON m.id_matriz = v.id_matriz
+                WHERE v.id_versao = ?
+                """,
+                (int(id_versao),),
+            )
+            row = cursor.fetchone()
+            if not row or normalize_text(row[5]) != operacao:
+                raise _http(status.HTTP_404_NOT_FOUND, "Versão não encontrada nesta operação.")
+            self._mon_garantir_matriz(cursor, destino)
+            nome_copia = normalize_text(nome)[:180] or f"Cópia de {normalize_text(row[4])} (v{row[1]})"[:180]
+            cursor.execute(
+                "INSERT INTO dbo.monitoria_matrizes (operacao, nome, ativo, criado_por, origem_id_matriz, origem_id_versao) "
+                "OUTPUT INSERTED.id_matriz VALUES (?, ?, 0, ?, ?, ?)",
+                (destino, nome_copia, normalize_text(user.nome), int(row[3]), int(row[0])),
+            )
+            id_matriz = int(cursor.fetchone()[0])
+            cursor.execute(
+                "INSERT INTO dbo.monitoria_matriz_versoes (id_matriz, numero, config_json, observacao, criado_por) "
+                "OUTPUT INSERTED.id_versao VALUES (?, 1, ?, ?, ?)",
+                (id_matriz, row[2], f"Cópia de {normalize_text(row[4])} v{row[1]}"[:400], normalize_text(user.nome)),
+            )
+            id_versao_nova = int(cursor.fetchone()[0])
+            cursor.execute("UPDATE dbo.monitoria_matrizes SET id_versao_ativa = ? WHERE id_matriz = ?", (id_versao_nova, id_matriz))
+            self.mon_log(cursor, user, acao="duplicar_formulario", operacao=destino, entidade="matriz", entidade_id=id_matriz,
+                         detalhes={"origem_matriz": int(row[3]), "origem_versao": int(row[0]), "operacao_origem": operacao, "nome": nome_copia}, ip=ip)
+            conn.commit()
+            return {"success": True, "id_matriz": id_matriz, "id_versao": id_versao_nova, "nome": nome_copia, "operacao": destino}
+        finally:
+            conn.close()
+
+    def mon_ativar_formulario(self, user, operacao: str, id_matriz: int, *, ip: str = "") -> dict:
+        """Torna este o formulário usado nas NOVAS monitorias da operação. As já
+        realizadas continuam com o formulário/versão da época."""
+        operacao = normalize_text(operacao)
+        self._mon_exigir_permissao_operacao(user, operacao)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_exigir_operacao_ativa(cursor, operacao)
+            id_matriz = self._mon_matriz_alvo(cursor, operacao, int(id_matriz))
+            cursor.execute("SELECT id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ? AND ativo = 1", (operacao,))
+            anteriores = [int(r[0]) for r in cursor.fetchall()]
+            cursor.execute("UPDATE dbo.monitoria_matrizes SET ativo = CASE WHEN id_matriz = ? THEN 1 ELSE 0 END WHERE operacao = ?",
+                           (id_matriz, operacao))
+            self.mon_log(cursor, user, acao="ativar_formulario", operacao=operacao, entidade="matriz", entidade_id=id_matriz,
+                         anterior={"ativos": anteriores}, posterior={"ativo": id_matriz}, ip=ip)
+            conn.commit()
+            return {"success": True, "id_matriz": id_matriz}
+        finally:
+            conn.close()
+
+    def mon_restaurar_versao(self, user, id_versao: int, observacao: str = "", *, ip: str = "") -> dict:
+        """"Tornar esta versão a atual": cria uma NOVA versão com o conteúdo da
+        escolhida. O histórico continua intacto."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT v.numero, v.config_json, m.id_matriz, m.operacao FROM dbo.monitoria_matriz_versoes v "
+                "JOIN dbo.monitoria_matrizes m ON m.id_matriz = v.id_matriz WHERE v.id_versao = ?",
+                (int(id_versao),),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise _http(status.HTTP_404_NOT_FOUND, "Versão não encontrada.")
+        finally:
+            conn.close()
+        texto = normalize_text(observacao) or f"Restaurada a partir da v{row[0]}"
+        return self.mon_save_versao(user, normalize_text(row[3]), _load(row[1], {}), texto, id_matriz=int(row[2]), ip=ip)
 
     def mon_calcular(self, user, operacao: str, respostas: dict) -> dict:
         """Prévia da nota para o formulário — usa o MESMO motor da gravação
@@ -668,6 +840,8 @@ class MonitoriaRepositoryMixin:
         try:
             cursor = conn.cursor()
             base = "FROM dbo.monitorias m JOIN dbo.monitoria_estado e ON e.id_monitoria = m.id_monitoria"
+            # Excluídas logicamente pelo Administrador não aparecem na lista.
+            where = f"{where} AND {SQL_MONITORIA_NAO_EXCLUIDA}" if where else f"WHERE {SQL_MONITORIA_NAO_EXCLUIDA}"
             cursor.execute(f"SELECT COUNT(*) {base} {where}", tuple(params))
             total = int(cursor.fetchone()[0])
             cursor.execute(
@@ -712,6 +886,104 @@ class MonitoriaRepositoryMixin:
             "resultado": normalize_text(r.get("resultado")), "sla": sla, "tem_contestacao": bool(r.get("tem_contestacao")),
         }
 
+    # ------------------------------------------------------------------
+    # Exclusão LÓGICA (Correções, 27/set/2026): só o Administrador, com motivo e
+    # confirmação pelo código. A monitoria continua intacta (tabela imutável);
+    # monitoria_exclusoes a esconde de listas, painéis, indicadores e fluxo.
+    # ------------------------------------------------------------------
+    def _mon_exclusao(self, cursor, id_monitoria: int) -> dict | None:
+        cursor.execute(
+            "SELECT excluida_por_nome, motivo, excluida_em FROM dbo.monitoria_exclusoes WHERE id_monitoria = ?",
+            (int(id_monitoria),),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return {"por": normalize_text(row[0]), "motivo": normalize_text(row[1]), "em": _iso(row[2])}
+
+    def _mon_exigir_admin(self, user) -> None:
+        if user.perfil != ROLE_ADMIN:
+            raise _http(status.HTTP_403_FORBIDDEN, "Somente o Administrador pode excluir ou restaurar monitorias.")
+
+    def mon_excluir_monitoria(self, user, ref: str, *, motivo: str, confirmacao: str, ip: str = "") -> dict:
+        self._mon_exigir_admin(user)
+        motivo = normalize_text(motivo)
+        if len(motivo) < 5:
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe o motivo da exclusão (mínimo de 5 caracteres).")
+        ref = normalize_text(ref)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id_monitoria, codigo, operacao, id_operador, operador_nome, avaliador_nome, nota, data_monitoria, anulada "
+                "FROM dbo.monitorias WHERE " + ("codigo = ?" if len(ref) == 8 and ref.isdigit() else "id_monitoria = ?"),
+                (ref if len(ref) == 8 and ref.isdigit() else int(ref or 0),),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
+            m = rows_to_dicts(cursor, [row])[0]
+            if normalize_text(confirmacao) != normalize_text(m["codigo"]):
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Digite o ID da monitoria para confirmar a exclusão.")
+            if self._mon_exclusao(cursor, m["id_monitoria"]):
+                raise _http(status.HTTP_409_CONFLICT, "Esta monitoria já está excluída.")
+            cursor.execute(
+                "INSERT INTO dbo.monitoria_exclusoes (id_monitoria, excluida_por, excluida_por_nome, motivo) VALUES (?, ?, ?, ?)",
+                (int(m["id_monitoria"]), user.id_usuario, normalize_text(user.nome), motivo[:400]),
+            )
+            # Registro permanente (monitoria_logs é imutável): quem, quando, por quê e o que era.
+            self.mon_log(
+                cursor, user, acao="excluir_monitoria", operacao=normalize_text(m["operacao"]), entidade="monitoria",
+                entidade_id=m["id_monitoria"],
+                anterior={"codigo": m["codigo"], "operador": normalize_text(m["operador_nome"]), "avaliador": normalize_text(m["avaliador_nome"]),
+                          "nota": float(m["nota"]), "data_monitoria": _iso(m["data_monitoria"]), "anulada": bool(m["anulada"])},
+                detalhes={"motivo": motivo}, ip=ip,
+            )
+            conn.commit()
+            return {"success": True, "id_monitoria": int(m["id_monitoria"]), "codigo": m["codigo"]}
+        finally:
+            conn.close()
+
+    def mon_restaurar_monitoria(self, user, id_monitoria: int, *, motivo: str = "", ip: str = "") -> dict:
+        self._mon_exigir_admin(user)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            exclusao = self._mon_exclusao(cursor, int(id_monitoria))
+            if not exclusao:
+                raise _http(status.HTTP_404_NOT_FOUND, "Esta monitoria não está excluída.")
+            cursor.execute("SELECT operacao, codigo FROM dbo.monitorias WHERE id_monitoria = ?", (int(id_monitoria),))
+            row = cursor.fetchone()
+            cursor.execute("DELETE FROM dbo.monitoria_exclusoes WHERE id_monitoria = ?", (int(id_monitoria),))
+            self.mon_log(cursor, user, acao="restaurar_monitoria", operacao=normalize_text(row[0]) if row else "", entidade="monitoria",
+                         entidade_id=int(id_monitoria), anterior={"exclusao": exclusao}, detalhes={"motivo": normalize_text(motivo)}, ip=ip)
+            conn.commit()
+            return {"success": True, "id_monitoria": int(id_monitoria)}
+        finally:
+            conn.close()
+
+    def mon_list_excluidas(self, user) -> list[dict]:
+        self._mon_exigir_admin(user)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT m.id_monitoria, m.codigo, m.operacao_nome, m.operador_nome, m.nota, m.data_monitoria,
+                       ex.excluida_por_nome, ex.motivo, ex.excluida_em
+                FROM dbo.monitoria_exclusoes ex JOIN dbo.monitorias m ON m.id_monitoria = ex.id_monitoria
+                ORDER BY ex.excluida_em DESC
+                """
+            )
+            return [
+                {"id_monitoria": r[0], "codigo": r[1], "operacao_nome": normalize_text(r[2]), "operador_nome": normalize_text(r[3]),
+                 "nota": float(r[4]), "data_monitoria": _iso(r[5]), "excluida_por": normalize_text(r[6]), "motivo": normalize_text(r[7]),
+                 "excluida_em": _iso(r[8])}
+                for r in cursor.fetchall()
+            ]
+        finally:
+            conn.close()
+
     def mon_detalhe(self, user, ref: str, *, ip: str = "") -> dict:
         """Detalhe por ID interno ou código de 8 dígitos. Re-valida o escopo do
         registro (não confia na listagem)."""
@@ -740,6 +1012,11 @@ class MonitoriaRepositoryMixin:
                 conn.commit()
                 raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
 
+            # Excluída logicamente: só o Administrador ainda abre (para conferir ou restaurar).
+            exclusao = self._mon_exclusao(cursor, id_m)
+            if exclusao and user.perfil != ROLE_ADMIN:
+                raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
+
             cursor.execute("SELECT status, resultado, sla_tipo, sla_inicio, sla_limite FROM dbo.monitoria_estado WHERE id_monitoria = ?", (id_m,))
             estado = rows_to_dicts(cursor, [cursor.fetchone()])[0]
             agora = self._mon_agora(cursor)
@@ -765,6 +1042,7 @@ class MonitoriaRepositoryMixin:
             resultado = calcular_nota(config, _load(m["respostas_json"], {}))
             respostas = _load(m["respostas_json"], {})
             return {
+                "excluida": exclusao,
                 "id_monitoria": id_m, "codigo": m["codigo"], "operacao": normalize_text(m["operacao"]),
                 "operacao_nome": normalize_text(m["operacao_nome"]), "equipe_nome": normalize_text(m["equipe_nome"]),
                 "turno": normalize_text(m["turno"]), "id_operador": m["id_operador"], "operador_nome": normalize_text(m["operador_nome"]),

@@ -23,7 +23,11 @@ from ..schemas.monitoria import (
     ContestacaoRequest,
     EquipeRequest,
     FeedbackRequest,
+    DuplicarFormularioRequest,
+    ExcluirMonitoriaRequest,
     MatrizConfigRequest,
+    RestaurarMonitoriaRequest,
+    RestaurarVersaoRequest,
     MonitoriaCriarRequest,
     PlanoAcaoRequest,
     PlanoAcaoRevisaoRequest,
@@ -309,8 +313,38 @@ def obter_matriz(operacao: str, user: AuthenticatedUser = Depends(get_current_us
 
 
 @router.get("/matriz/versoes", dependencies=[Depends(_LER_MATRIZ)])
-def listar_versoes(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return {"itens": repository.mon_list_versoes(user, operacao)}
+def listar_versoes(operacao: str, id_matriz: int | None = None, user: AuthenticatedUser = Depends(get_current_user),
+                   repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_list_versoes(user, operacao, id_matriz)}
+
+
+@router.get("/matriz/formularios", dependencies=[Depends(_LER_MATRIZ)])
+def listar_formularios(operacao: str, user: AuthenticatedUser = Depends(get_current_user),
+                       repository: DatabaseRepository = Depends(get_repository)):
+    """Formulários da operação (o ativo e as cópias), com totais de versões e monitorias."""
+    return {"itens": repository.mon_list_formularios(user, operacao)}
+
+
+@router.post("/matriz/formularios/duplicar", dependencies=[Depends(require_permissions("monitoria.matriz"))])
+def duplicar_formulario(payload: DuplicarFormularioRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                        repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_duplicar_formulario(
+        user, payload.operacao, id_versao=payload.id_versao, nome=payload.nome, operacao_destino=payload.operacao_destino,
+        ip=client_ip(request),
+    )
+
+
+@router.post("/matriz/formularios/{id_matriz}/ativar", dependencies=[Depends(require_permissions("monitoria.matriz"))])
+def ativar_formulario(id_matriz: int, operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                      repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_ativar_formulario(user, operacao, id_matriz, ip=client_ip(request))
+
+
+@router.post("/matriz/versoes/{id_versao}/restaurar", dependencies=[Depends(require_permissions("monitoria.matriz"))])
+def restaurar_versao(id_versao: int, payload: RestaurarVersaoRequest, request: Request,
+                     user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    """"Tornar esta versão a atual": cria uma nova versão com o conteúdo dela."""
+    return repository.mon_restaurar_versao(user, id_versao, payload.observacao, ip=client_ip(request))
 
 
 @router.get("/matriz/versoes/{id_versao}", dependencies=[Depends(_LER_MATRIZ)])
@@ -326,7 +360,7 @@ def salvar_matriz(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.mon_save_versao(user, operacao, payload.config, payload.observacao, ip=client_ip(request))
+    return repository.mon_save_versao(user, operacao, payload.config, payload.observacao, id_matriz=payload.id_matriz, ip=client_ip(request))
 
 
 # ---------------------------------------------------------------------------
@@ -422,6 +456,25 @@ def detalhe_monitoria(
 # ---------------------------------------------------------------------------
 # Fluxo: feedback, confirmação, contestação, réplica, reanálise, evidências
 # ---------------------------------------------------------------------------
+@router.post("/monitorias/{ref}/excluir", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def excluir_monitoria(ref: str, payload: ExcluirMonitoriaRequest, request: Request,
+                      user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    """Exclusão LÓGICA, somente Administrador (validado no repositório), com motivo e
+    confirmação pelo ID da monitoria. Fica registrada em monitoria_logs."""
+    return repository.mon_excluir_monitoria(user, ref, motivo=payload.motivo, confirmacao=payload.confirmacao, ip=client_ip(request))
+
+
+@router.post("/monitorias/{id_monitoria}/restaurar", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def restaurar_monitoria(id_monitoria: int, payload: RestaurarMonitoriaRequest, request: Request,
+                        user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_restaurar_monitoria(user, id_monitoria, motivo=payload.motivo, ip=client_ip(request))
+
+
+@router.get("/monitorias-excluidas", dependencies=[Depends(require_permissions("monitoria.visualizar"))])
+def listar_monitorias_excluidas(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.mon_list_excluidas(user)}
+
+
 @router.post("/monitorias/{ref}/feedback", dependencies=[Depends(require_permissions("monitoria.feedback_aplicar"))])
 def aplicar_feedback(
     ref: str, payload: FeedbackRequest, request: Request,
