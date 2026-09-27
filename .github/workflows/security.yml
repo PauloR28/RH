@@ -50,7 +50,7 @@ jobs:
       # CDN (React, Bootstrap, SheetJS, JSZip) fica registrado como gap
       # conhecido, não coberto por este step.
       - name: SCA de dependências JavaScript (osv-scanner)
-        uses: google/osv-scanner-action/osv-scanner-action@v1
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0 (a tag v1 deixou de existir)
         with:
           scan-args: |-
             --lockfile=apps/frontend/package-lock.json
