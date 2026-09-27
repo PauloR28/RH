@@ -28,6 +28,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
@@ -2447,6 +2448,29 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                   </div>
                                 `;
               })}
+                              <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-expanded' : ''}`.trim()}>
+                                <button
+                                  type="button"
+                                  class=${`settings-permission-tree-session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-active' : ''}`.trim()}
+                                  aria-expanded=${sessaoPermissaoAtiva === '__tela_inicial__'}
+                                  onClick=${() => setSessaoPermissaoAtiva(sessaoPermissaoAtiva === '__tela_inicial__' ? '' : '__tela_inicial__')}
+                                >
+                                  <span>Tela inicial</span>
+                                  <small>blocos</small>
+                                  <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
+                                </button>
+                                ${sessaoPermissaoAtiva === '__tela_inicial__'
+                  ? html`
+                                      <div class="settings-permission-tree-content">
+                                        <${PainelTelaInicialPerfil}
+                                          perfil=${perfilSelecionado}
+                                          permissoes=${permissoesPerfilDraft}
+                                          podeEditar=${podeEditarPerfis && perfisDesbloqueados}
+                                        />
+                                      </div>
+                                    `
+                  : null}
+                              </div>
                             </div>
                           `
               : null}

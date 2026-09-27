@@ -15,6 +15,7 @@ from ..schemas.security import (
     LgpdRequestCreate,
     NotificationAutomationSettingsRequest,
     RolePermissionsUpdateRequest,
+    TelaInicialConfigRequest,
     QuickTrainingUserCreateRequest,
     UserCreateRequest,
     UserPasswordRequest,
@@ -60,6 +61,42 @@ def update_role_permissions(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.update_role_permissions(id_perfil, payload.model_dump(), actor=user)
+
+
+@router.get("/tela-inicial", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def list_tela_inicial_perfis(repository: DatabaseRepository = Depends(get_repository)):
+    """Configuração dos blocos da tela inicial de todos os perfis."""
+    return repository.list_tela_inicial_perfis()
+
+
+@router.get("/tela-inicial/minha")
+def get_minha_tela_inicial(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Blocos da tela inicial do perfil do usuário logado (o front ainda aplica
+    a permissão de cada bloco)."""
+    return repository.get_tela_inicial_perfil(user.perfil)
+
+
+@router.put("/tela-inicial/{id_perfil}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def save_tela_inicial_perfil(
+    id_perfil: str,
+    payload: TelaInicialConfigRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    result = repository.save_tela_inicial_perfil(id_perfil, payload.model_dump(), actor=user.username)
+    audit_action(
+        repository,
+        user,
+        modulo="Configurações",
+        acao="configurar_tela_inicial_perfil",
+        entidade="perfil",
+        entidade_id=id_perfil,
+        valor_novo={"blocos": result.get("blocos")},
+    )
+    return result
 
 
 @router.get("/users", dependencies=[Depends(require_permissions("usuarios.visualizar"))])

@@ -38,6 +38,7 @@ from .scorecards import ScorecardRepositoryMixin
 from .security import SecurityRepositoryMixin
 from .sistema import SistemaRepositoryMixin
 from .talent_bank import TalentBankRepositoryMixin
+from .tela_inicial import TelaInicialRepositoryMixin
 
 
 class DatabaseRepository(
@@ -73,6 +74,7 @@ class DatabaseRepository(
     MonitoriaPlanosRepositoryMixin,
     MonitoriaAnaliseRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
+    TelaInicialRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""

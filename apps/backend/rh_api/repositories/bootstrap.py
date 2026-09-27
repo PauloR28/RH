@@ -2366,6 +2366,23 @@ def ensure_notification_user_state_table(cursor) -> None:
     )
 
 
+def ensure_home_screen_config_table(cursor) -> None:
+    """Blocos da tela inicial por perfil (espelha infra/sql/migrations/V043)."""
+    cursor.execute(
+        """
+        IF OBJECT_ID('dbo.perfis_tela_inicial', 'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.perfis_tela_inicial (
+                id_perfil NVARCHAR(40) NOT NULL CONSTRAINT PK_perfis_tela_inicial PRIMARY KEY,
+                config_json NVARCHAR(MAX) NOT NULL,
+                atualizado_por NVARCHAR(180) NULL,
+                atualizado_em DATETIME NOT NULL CONSTRAINT DF_perfis_tela_inicial_atualizado_em DEFAULT GETDATE()
+            )
+        END
+        """
+    )
+
+
 def ensure_document_templates_table(cursor) -> None:
     """Templates de documentos com placeholders {{variavel}} (aditivo/idempotente)."""
     cursor.execute(

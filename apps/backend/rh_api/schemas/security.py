@@ -80,3 +80,15 @@ class NotificationAutomationSettingsRequest(BaseSchema):
 
     email_automatico_ativo: bool = False
     lembretes_automaticos_ativos: bool = False
+
+
+
+class TelaInicialBlocoInput(BaseSchema):
+    id: str = Field(min_length=1, max_length=40)
+    visivel: bool = True
+
+
+class TelaInicialConfigRequest(BaseSchema):
+    """Ordem e visibilidade dos blocos da tela inicial de um perfil."""
+
+    blocos: list[TelaInicialBlocoInput] = Field(default_factory=list, max_length=40)
