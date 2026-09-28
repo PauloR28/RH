@@ -38,7 +38,7 @@ if (-not (Test-Path $AppDir)) {
 }
 # /MIR apaga no destino tudo que nao existe no Git. data\private (uploads: CVs,
 # evidencias da Monitoria, imagens, logs arquivados) e logs NUNCA podem ser apagados.
-robocopy $sourceDir $AppDir /MIR /XD ".venv" ".git" (Join-Path $AppDir "data\private") (Join-Path $AppDir "logs") (Join-Path $sourceDir "data\private") (Join-Path $sourceDir "logs") /XF ".env" /NFL /NDL /NJH /NJS | Out-Null
+robocopy $sourceDir $AppDir /MIR /XD ".venv" ".git" (Join-Path $AppDir "data\private") (Join-Path $AppDir "logs") (Join-Path $sourceDir "data\private") (Join-Path $sourceDir "logs") /XF ".env" /R:3 /W:5 /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
 Write-Host "OK - arquivos atualizados em $AppDir"
 & powershell -ExecutionPolicy Bypass -File (Join-Path $AppDir "infra\scripts\powershell\verificar-pastas-dados.ps1") -AppDir $AppDir
