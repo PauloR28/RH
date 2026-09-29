@@ -1,16 +1,16 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20260922-collapsible';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20260929-qa-lucas';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20260921-alertas';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20260921-alertas';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20260921-alertas';
-import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260924-correcoes-txt4';
-import { TelaDashboard } from './painel.js';
-import { TelaFormularios } from './admin.js?v=20260921-alertas';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20260929-qa-lucas';
+import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260929-qa-lucas';
+import { TelaDashboard } from './painel.js?v=20260929-qa-lucas';
+import { TelaFormularios } from './admin.js?v=20260929-qa-lucas';
 import { TelaCentralMonitoria } from './central.js';
 
 // Vertente Monitoria: um único módulo de telas, cada uma com sua rota (screen-monitoria*).

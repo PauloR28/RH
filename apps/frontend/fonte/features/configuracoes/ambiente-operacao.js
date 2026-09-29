@@ -75,7 +75,14 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
     rotulo: `${i.nome}${i.outra_operacao ? ` — hoje em ${i.outra_operacao}` : ''}${i.ativo ? '' : ' (inativa)'}`,
   }));
 
+  // Intranets marcadas que hoje pertencem a outra operação: serão movidas ao salvar.
+  const intranetsMovidas = dados.intranets.filter((i) => i.outra_operacao && !i.vinculada && form.intranets.includes(i.id_ambiente));
+
   const salvar = async () => {
+    if (intranetsMovidas.length) {
+      const lista = intranetsMovidas.map((i) => `• ${i.nome} (sai de ${i.outra_operacao})`).join('\n');
+      if (!window.confirm(`Cada intranet pertence a uma única operação. Ao salvar, estas intranets serão movidas para ${nome || chave}:\n\n${lista}\n\nDeseja continuar?`)) return;
+    }
     setSalvando(true);
     try {
       aplicar(await salvarAmbienteOperacao(chave, form));
@@ -99,6 +106,7 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
 
   return html`
     <div class="amb">
+      ${!dados.ativa ? html`<div class="alert alert-warning amb-aviso" role="alert">Esta operação está inativa: o ambiente fica somente para consulta. Reative-a no Cadastro para alterar.</div>` : null}
       <div class="amb-totais" aria-label=${`Resumo do ambiente ${nome || chave}`}>
         ${totais.map(([rotulo, valor]) => html`<div key=${rotulo} class="amb-total"><strong>${valor}</strong><span>${rotulo}</span></div>`)}
       </div>
@@ -126,6 +134,11 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
       </${Secao}>
 
       <${Secao} titulo="Turnos e equipes" resumo=${`${equipes.length} equipe(s) · ${turnos.length} turno(s)`}>
+        <p class="amb-explicacao">
+          <strong>Equipes</strong> são grupos de operadores <em>desta operação</em> (ex.: "Equipe Manhã"); o operador é colocado na equipe em Configurações › Usuários.
+          <strong>Turnos</strong> são um catálogo único, compartilhado por todas as operações (ex.: Manhã, Tarde, Noite).
+          Estas listas salvam na hora — não dependem do botão "Salvar ambiente". Inativar esconde o item das novas seleções, mas mantém o histórico.
+        </p>
         <div class="amb-listas">
           <${CartaoLista} titulo="Equipes desta operação" placeholder="Nova equipe" vazio="Nenhuma equipe nesta operação." podeEditar=${podeEditarOrganizacao}
             itens=${equipes.map((e) => ({ id: e.id_equipe, nome: e.nome, ativo: e.ativo, detalhe: `${e.membros} membro(s)` }))}
@@ -145,6 +158,9 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
             onChange=${(lista) => definir('intranets', lista)} desabilitado=${!podeEditar} placeholder="Selecione as intranets"
             vazio="Nenhuma intranet cadastrada em Parâmetros > Conectores Externos." />
           <small>Cada intranet pertence a uma única operação: marcar uma que hoje está em outra operação a move para esta.</small>
+          ${intranetsMovidas.length ? html`<div class="alert alert-warning amb-aviso" role="alert">
+            ${intranetsMovidas.map((i) => html`<div key=${i.id_ambiente}><strong>${i.nome}</strong> será movida de <strong>${i.outra_operacao}</strong> para esta operação ao salvar.</div>`)}
+          </div>` : null}
         </div>
       </${Secao}>
 

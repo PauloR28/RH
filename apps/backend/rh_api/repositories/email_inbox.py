@@ -1451,6 +1451,10 @@ class EmailInboxRepositoryMixin:
             row = self._select_email_inbox_item(cursor, item_id)
             pre_analysis = self._load_email_inbox_pre_analysis(cursor, int(row.get("id_pre_analise") or 0))
             identity = self._resolve_email_inbox_candidate_identity(cursor, row, pre_analysis)
+            # Lido com a conexão ainda aberta: antes era chamado depois do close() e o
+            # cursor fechado estourava, fazendo todo envio da Caixa de CV falhar (T1-CV-06).
+            profile_kwargs = self._candidate_profile_kwargs_for_email_import(cursor, identity["id_teste"], identity["form_fields"])
+            conn.commit()
         finally:
             conn.close()
 
@@ -1472,7 +1476,7 @@ class EmailInboxRepositoryMixin:
                 "email": email,
                 "telefone": phone,
                 "whatsapp": whatsapp,
-                **self._candidate_profile_kwargs_for_email_import(cursor, id_teste, identity["form_fields"]),
+                **profile_kwargs,
             }
         )
         conn = self._connect()

@@ -400,6 +400,25 @@ def test_job_de_sla_confirma_e_anula_automaticamente_e_e_idempotente(repo, cenar
     assert len(repo.mon_detalhe(cenario["sup1"], a["codigo"])["eventos"]) == eventos_antes
 
 
+def test_job_de_sla_encerra_feedback_vencido_sem_anular(repo, cenario):
+    vencida = _criar(repo, cenario)
+    no_prazo = _criar(repo, cenario)
+    _sql(repo, "UPDATE dbo.monitoria_estado SET sla_limite = DATEADD(HOUR, -1, GETDATE()) WHERE id_monitoria = (SELECT id_monitoria FROM dbo.monitorias WHERE codigo = ?)", (vencida["codigo"],))
+    resultado = repo.mon_processar_slas()
+    assert resultado["encerradas_sem_feedback"] >= 1
+
+    d = repo.mon_detalhe(cenario["sup1"], vencida["codigo"])
+    assert d["status"] == "FINALIZADA" and d["resultado"] == "SEM_FEEDBACK"
+    assert d["eventos"][-1]["automatico"] is True
+    item = next(i for i in repo.mon_listar(cenario["sup1"], {"codigo": vencida["codigo"]})["itens"])
+    assert item["valida"] is True and item["anulada"] is False  # não é anulação: a nota segue valendo
+    assert repo.mon_detalhe(cenario["sup1"], no_prazo["codigo"])["status"] == "FEEDBACK_PENDENTE"  # dentro do prazo: intacta
+
+    eventos_antes = len(d["eventos"])
+    repo.mon_processar_slas()  # idempotente
+    assert len(repo.mon_detalhe(cenario["sup1"], vencida["codigo"])["eventos"]) == eventos_antes
+
+
 # ---------------------------------------------------------------------------
 # Escopo (deny por padrão) e busca
 # ---------------------------------------------------------------------------

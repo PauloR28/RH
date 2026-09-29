@@ -55,6 +55,7 @@ export function TagsMonitoria({ item }) {
   return html`
     ${item.possui_ncg ? html`<span class="mon-tag mon-tag--ncg" title="Não Conformidade Grave: nota zerada">NCG</span>` : null}
     ${item.anulada ? html`<span class="mon-tag mon-tag--anulada" title="Fora dos indicadores; mantida no histórico">Anulada</span>` : null}
+    ${item.resultado === 'SEM_FEEDBACK' ? html`<span class="mon-tag mon-tag--sem-feedback" title="Encerrada automaticamente: o feedback não foi aplicado em 72 horas. A nota continua valendo nos indicadores.">Sem feedback</span>` : null}
   `;
 }
 
@@ -114,7 +115,7 @@ export function hoje() {
 }
 
 export function useContextoMonitoria() {
-  const [contexto, setContexto] = useState(null);
+  const [contexto, setContexto] = useState(() => lerContextoMonitoria.emCache?.() || null);
   const [erro, setErro] = useState('');
   const carregar = useCallback(async () => {
     try {

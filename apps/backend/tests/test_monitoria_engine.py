@@ -255,6 +255,6 @@ def test_acao_automatica_por_vencimento():
     depois = limite + timedelta(minutes=1)
     assert wf.acao_automatica_por_vencimento(wf.AGUARDANDO_CONFIRMACAO, limite, depois) == "confirmar_automatico"
     assert wf.acao_automatica_por_vencimento(wf.REANALISE, limite, depois) == "anular_automatico"
-    assert wf.acao_automatica_por_vencimento(wf.FEEDBACK_PENDENTE, limite, depois) is None  # só sinaliza
+    assert wf.acao_automatica_por_vencimento(wf.FEEDBACK_PENDENTE, limite, depois) == "encerrar_sem_feedback"
     assert wf.acao_automatica_por_vencimento(wf.AGUARDANDO_CONFIRMACAO, limite, limite) is None
     assert wf.acao_automatica_por_vencimento(wf.FINALIZADA, limite, depois) is None

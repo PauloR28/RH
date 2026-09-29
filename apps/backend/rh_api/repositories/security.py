@@ -298,6 +298,8 @@ class SecurityRepositoryMixin:
             "permissoes": permissions or [],
             "operacoes": operacoes or [],
             "deve_trocar_senha": bool(row.get("deve_trocar_senha")),
+            # Só o indicador (nunca o hash): a tela mostra "senha definida" sem expor o valor.
+            "possui_senha": bool(row.get("possui_senha")),
         }
 
     def authenticate_system_user(
@@ -1354,6 +1356,7 @@ class SecurityRepositoryMixin:
                     usuarios.login,
                     usuarios.nome,
                     usuarios.sobrenome,
+                    usuarios.cargo,
                     usuarios.email,
                     usuarios.perfil_id,
                     perfis.nome AS perfil_nome,
@@ -1366,7 +1369,8 @@ class SecurityRepositoryMixin:
                     usuarios.ultimo_acesso_em,
                     usuarios.criado_por,
                     usuarios.atualizado_por,
-                    usuarios.atualizado_em
+                    usuarios.atualizado_em,
+                    CASE WHEN usuarios.senha_hash IS NULL OR usuarios.senha_hash = '' THEN 0 ELSE 1 END AS possui_senha
                 FROM usuarios
                 LEFT JOIN perfis ON perfis.id_perfil = usuarios.perfil_id
                 ORDER BY usuarios.nome, usuarios.email
@@ -1622,7 +1626,8 @@ class SecurityRepositoryMixin:
                 usuarios.ultimo_acesso_em,
                 usuarios.criado_por,
                 usuarios.atualizado_por,
-                usuarios.atualizado_em
+                usuarios.atualizado_em,
+                CASE WHEN usuarios.senha_hash IS NULL OR usuarios.senha_hash = '' THEN 0 ELSE 1 END AS possui_senha
             FROM usuarios
             LEFT JOIN perfis ON perfis.id_perfil = usuarios.perfil_id
             WHERE usuarios.id_usuario = ?

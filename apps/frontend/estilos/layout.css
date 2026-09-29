@@ -334,6 +334,24 @@
   color: var(--color-danger);
 }
 
+/* Itens em construção (Etapas do Processo, LGPD e Retenção): visivelmente acinzentados. */
+.rh-modern-topnav .rh-modern-subnav-btn.is-disabled {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.rh-modern-topnav .rh-modern-subnav-badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--color-text-muted);
+}
+
 .rh-modern-main {
   width: 100%;
   max-width: 100%;
@@ -350,6 +368,46 @@
  */
 :root[data-theme='dark'] .rh-modern-main {
   background: var(--color-bg);
+}
+
+/*
+ * Correções 29/set/2026 (T1-CFGX-07): estados de hover com fundo claro fixo
+ * (#f8fbff, #f3f7fb...) viravam "branco com texto claro" no modo escuro —
+ * a opção sob o mouse ficava ilegível. No escuro, todos usam o tom do tema.
+ */
+:root[data-theme='dark'] .rh-modern-history-table tbody tr:hover > *,
+:root[data-theme='dark'] #screen-process-details .quick-actions-panel button:hover,
+:root[data-theme='dark'] #screen-process-details .quick-actions-panel button:disabled:hover,
+:root[data-theme='dark'] .rh-login-microsoft-btn:hover,
+:root[data-theme='dark'] .email-row:hover,
+:root[data-theme='dark'] .email-row.is-selected,
+:root[data-theme='dark'] .email-quick-actions-close:hover,
+:root[data-theme='dark'] .email-quick-actions-list button:hover,
+:root[data-theme='dark'] .email-quick-process-action button:hover,
+:root[data-theme='dark'] #screen-generated-exams .generated-actions-dropdown button:not(:disabled):hover,
+:root[data-theme='dark'] #screen-processes-open .open-processes-list-card tbody tr:hover > *,
+:root[data-theme='dark'] #screen-settings-users .users-modern-table tbody tr:hover,
+:root[data-theme='dark'] #screen-settings .users-modern-table tbody tr:hover,
+:root[data-theme='dark'] #screen-generated-exams .generated-actions-dropdown button:not(:disabled):focus-visible,
+:root[data-theme='dark'] #screen-analysis-candidates .reports-process-table tbody tr:hover,
+:root[data-theme='dark'] #screen-analysis-candidates .reports-candidates-table tbody tr:hover,
+:root[data-theme='dark'] #screen-analysis-candidates .reports-ranking-table tbody tr:hover,
+:root[data-theme='dark'] .process-row-actions-item:hover,
+:root[data-theme='dark'] .process-row-actions-item:focus,
+:root[data-theme='dark'] .process-calendar-day:hover,
+:root[data-theme='dark'] .process-calendar-day:focus {
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+}
+
+:root[data-theme='dark'] #screen-process-details .quick-actions-panel button.is-success:hover,
+:root[data-theme='dark'] #screen-process-details .quick-actions-panel button.is-primary:hover {
+  background: var(--color-surface-strong);
+}
+
+:root[data-theme='dark'] .process-row-actions-item.is-danger:hover,
+:root[data-theme='dark'] .process-row-actions-item.is-danger:focus {
+  background: rgba(220, 38, 38, 0.16);
 }
 
 .rh-modern-topbar {

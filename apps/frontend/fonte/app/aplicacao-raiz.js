@@ -6,7 +6,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260922-collapsible';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260929-qa-lucas';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -84,8 +84,8 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260924-correcoes-txt4');
-const importarProcessos = () => import('../features/telas-processos.js?v=20260924-correcoes-txt4');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260929-qa-lucas');
+const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
 const TelaAnaliseCandidatos = carregarTela(importarGestao, 'TelaAnaliseCandidatos');
@@ -103,7 +103,7 @@ const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.j
 const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
-const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260920-drive'), 'TelaOneDriveArquivos');
+const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260929-qa-lucas'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
 const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260922-gerar-prova-collapse'), 'TelaProvasResultados');
@@ -112,10 +112,10 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260924-correcoes-txt4'),
+  () => import('../features/configuracoes/index.js?v=20260929-qa-lucas'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20260924-correcoes-txt4');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20260929-qa-lucas');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');

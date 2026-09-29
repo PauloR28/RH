@@ -5674,13 +5674,13 @@ function ModalAnaliseCvProcesso({
   return html`
     <${ModalPadrao}
       aberto=${aberto}
-      titulo="Adicionar candidato"
-      subtitulo="Envie um currículo para análise e vinculação ao processo."
+      titulo="Adicionar candidato (pré-análise de CV)"
+      subtitulo="Envie um currículo para análise e vinculação a este processo."
       className="process-preanalysis-modal-dialog"
       onClose=${onClose}
     >
       <div class="process-cv-modal-content">
-        <div class="process-cv-modal-intro"><span class="material-symbols-outlined">${IconeSvg('document_scanner')}</span><div><strong>Analisar currículo</strong><p>Se o candidato for qualificado, ele entra em Candidatos no processo. Caso contrário, ficará disponível em CVs não qualificados para eventual uso manual pelo RH.</p></div></div>
+        <div class="process-cv-modal-intro"><span class="material-symbols-outlined">${IconeSvg('document_scanner')}</span><div><strong>Analisar currículo</strong><p>Se o candidato for qualificado, ele entra em Candidatos no processo. Caso contrário, ficará disponível em CVs não qualificados para eventual uso manual pelo RH.</p><p class="mb-0"><small>Esta é a <strong>pré-análise de CV deste processo</strong>: você envia o arquivo e ele é avaliado só contra esta vaga. É diferente da <strong>Caixa de Currículos</strong> (menu Cx de Currículos), que reúne os CVs recebidos por e-mail para todas as vagas.</small></p></div></div>
         <label class=${`process-cv-picker ${processoEncerrado || analisando ? 'is-disabled' : ''}`.trim()}>
           <input key=${arquivoCv?.name || 'novo-cv-processo'} type="file" class="process-cv-native-input" accept=".pdf,.doc,.docx" disabled=${processoEncerrado || analisando} onChange=${(event) => onArquivo(event.target.files?.[0] || null)} />
           <span class="material-symbols-outlined">${IconeSvg('upload_file')}</span>
@@ -10754,8 +10754,8 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
       >
       <${SecaoDetalheExpansivel}
         aberto=${true}
-        titulo="Adicionar candidato"
-        description="Envie o CV para análise. Qualificados entram no processo; demais ficam em CVs analisados não qualificados."
+        titulo="Adicionar candidato (pré-análise de CV)"
+        description="Envie o CV para análise contra esta vaga. Qualificados entram no processo; demais ficam em CVs analisados não qualificados, onde o botão Utilizar os adiciona manualmente. CVs que chegam por e-mail ficam na Caixa de Currículos."
         className="process-preanalysis-section"
         tourId="process-cv-preanalysis"
         onToggle=${() => null}
@@ -11157,7 +11157,7 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
         <${SecaoDetalheExpansivel}
           aberto=${secoesExpandidas.cvsNaoQualificados}
           titulo="CVs analisados não qualificados"
-          description="Currículos já analisados que não seguiram automaticamente como candidatos qualificados."
+          description="Currículos já analisados que não seguiram automaticamente como candidatos qualificados. Use Utilizar para adicioná-los mesmo assim (recebem o selo Manualmente Qualificado)."
           className="process-unqualified-cv-section"
           tourId="process-unqualified-cvs"
           onToggle=${() => alternarSecao('cvsNaoQualificados')}
@@ -11217,14 +11217,15 @@ Nosso endereço fica na Rua Victor Civita, 77 - Bloco 1, 3° Andar. Se precisar 
                         <div class="unqualified-cv-actions process-preanalysis-actions">
                           <button
                             type="button"
-                            class="btn btn-sm btn-outline-success process-icon-action"
-                            title=${podeQualificar ? 'Utilizar' : 'Candidato já está no processo'}
+                            class="btn btn-sm btn-outline-success process-text-action"
+                            title=${podeQualificar ? 'Adiciona ao processo mesmo assim — o candidato recebe o selo "Manualmente Qualificado"' : 'Candidato já está no processo'}
                             aria-label="Utilizar"
                             disabled=${!podeQualificar ||
             usandoPreAnaliseId === String(item.id_pre_analise || '')}
                             onClick=${() => iniciarUsoPreAnalise(item)}
                           >
                             <span class="material-symbols-outlined">${IconeSvg('person_add')}</span>
+                            <span>Utilizar</span>
                           </button>
                           <button
                             type="button"

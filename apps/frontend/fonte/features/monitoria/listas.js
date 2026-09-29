@@ -235,9 +235,10 @@ export function TelaPlanos({ controlador, contexto, showToast }) {
   const [aberto, setAberto] = useState(null);
   const [novo, setNovo] = useState(false);
   const [recarga, setRecarga] = useState(0);
+  const [carregou, setCarregou] = useState(false);
   useEffect(() => {
     setCarregando(true);
-    listarPlanos({ ...filtros, por_pagina: 100 }).then(setDados).catch((e) => showToast(e?.message || 'Erro ao carregar planos.', 'danger')).finally(() => setCarregando(false));
+    listarPlanos({ ...filtros, por_pagina: 100 }).then((r) => { setDados(r); setCarregou(true); }).catch((e) => showToast(e?.message || 'Erro ao carregar planos.', 'danger')).finally(() => setCarregando(false));
   }, [filtros, recarga]);
   const contagem = (s) => dados.itens.filter((p) => p.status === s).length;
   return html`
@@ -253,7 +254,8 @@ export function TelaPlanos({ controlador, contexto, showToast }) {
         ${podeEditar ? html`<div class="mon-filtros-acoes"><button type="button" class="btn btn-primary" onClick=${() => setNovo(true)}>
           <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo plano de ação</button></div>` : null}
       </div>
-      ${carregando ? html`<${LoadingState} titulo="Carregando planos" />` : !dados.itens.length ? html`<${EmptyState} icon="task_alt" title="Nenhum plano de ação" text="Planos criados a partir das monitorias aparecem aqui." />` : html`
+      ${carregando && carregou ? html`<p class="mon-muted mon-atualizando" role="status">Atualizando…</p>` : null}
+      ${carregando && !carregou ? html`<${LoadingState} titulo="Carregando planos" />` : !dados.itens.length ? html`<${EmptyState} icon="task_alt" title="Nenhum plano de ação" text="Planos criados a partir das monitorias aparecem aqui." />` : html`
         <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Operação</th><th>Operador</th><th>Problema</th><th>Prazo</th><th>Status</th><th class="num">Antes → Depois</th></tr></thead><tbody>
           ${dados.itens.map((p) => html`<tr key=${p.id_plano} class="is-clicavel" onClick=${() => setAberto(p.id_plano)}>
             <td><${TagOperacao} chave=${p.operacao} nome=${p.operacao_nome} contexto=${contexto} /></td><td>${p.operador_nome}</td><td>${p.problema}</td>
@@ -352,7 +354,8 @@ export function TelaRelatorios({ controlador, contexto, showToast }) {
         <label class="mon-filtro mon-filtro--data">Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => setFiltros({ ...filtros, data_fim: e.target.value })} /></label>
         ${podeExportar ? html`<div class="mon-filtros-acoes"><${BotaoExportar} opcoes=${[{ rotulo: 'Exportar XLSX', onSelecionar: () => exportar('xlsx') }, { rotulo: 'Exportar CSV', onSelecionar: () => exportar('csv') }]} /></div>` : null}
       </div>
-      ${carregando ? html`<${LoadingState} titulo="Gerando relatório" />` : !linhas.length ? html`<${EmptyState} icon="table_chart" title="Sem dados" text="Nenhum registro para os filtros selecionados." />` : html`
+      ${carregando && dados ? html`<p class="mon-muted mon-atualizando" role="status">Atualizando…</p>` : null}
+      ${carregando && !dados ? html`<${LoadingState} titulo="Gerando relatório" />` : !linhas.length ? html`<${EmptyState} icon="table_chart" title="Sem dados" text="Nenhum registro para os filtros selecionados." />` : html`
         <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr>${dados.colunas.map((c) => html`<th key=${c}>${c}</th>`)}</tr></thead><tbody>
           ${linhas.slice((pagina - 1) * por, pagina * por).map((l, i) => html`<tr key=${i}>${l.map((v, j) => html`<td key=${j}>${v === null || v === undefined ? '' : String(v)}</td>`)}</tr>`)}
         </tbody></table></div>

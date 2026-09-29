@@ -156,7 +156,7 @@ def pendencias(linhas: Iterable[dict], agora: datetime | None = None) -> dict[st
     agora = agora or datetime.now()
     contagem = {
         "feedbacks_pendentes": 0, "feedbacks_aplicados": 0, "confirmacoes_e_contestacoes_pendentes": 0,
-        "baixas_ou_confirmacoes_pendentes": 0, "feedbacks_vencidos": 0,
+        "baixas_ou_confirmacoes_pendentes": 0, "feedbacks_vencidos": 0, "encerradas_sem_feedback": 0,
     }
     for linha in linhas:
         status = linha.get("status")
@@ -170,6 +170,8 @@ def pendencias(linhas: Iterable[dict], agora: datetime | None = None) -> dict[st
             contagem["baixas_ou_confirmacoes_pendentes"] += 1
         if linha.get("feedback_aplicado"):
             contagem["feedbacks_aplicados"] += 1
+        if linha.get("resultado") == wf.RESULTADO_SEM_FEEDBACK:
+            contagem["encerradas_sem_feedback"] += 1
     return contagem
 
 
@@ -230,5 +232,8 @@ def agrupar(linhas: list[dict], dimensao: str, *, faixas: list[dict] | None = No
         saida.append({"chave": g["chave"], "rotulo": g["rotulo"], "quantidade_realizadas": r["quantidade_realizadas"],
                       "quantidade_validas": r["quantidade_validas"], "nota_media": r["nota_media"], "ncg": r["ncg"],
                       "pilar_conhecimento": r["pilares"]["conhecimento"]["media"], "pilar_encantamento": r["pilares"]["encantamento"]["media"]})
+        if dimensao == "equipe":
+            # id da equipe para o filtro "Por equipe" do dashboard (o agrupamento continua pelo nome).
+            saida[-1]["id_equipe"] = next((l.get("id_equipe") for l in g["linhas"] if l.get("id_equipe")), None)
     saida.sort(key=lambda i: (-(i["nota_media"] if i["nota_media"] is not None else -1), str(i["rotulo"]).lower()))
     return saida

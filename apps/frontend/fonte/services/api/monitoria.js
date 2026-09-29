@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js';
+import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -16,13 +16,31 @@ const enviar = (caminho, metodo, corpo) =>
 // O gancho global (global.js) e a tela pedem o contexto ao mesmo tempo ao abrir a Monitoria:
 // chamadas simultâneas compartilham a mesma requisição (uma ida ao banco em vez de duas).
 let contextoEmAndamento = null;
+// Última resposta, por token: cada troca de aba remonta a tela da Monitoria, e sem isso ela
+// esperava o contexto de novo antes de pedir os dados da aba (Planos/Relatórios/Formulários
+// pareciam lentos). A tela mostra o valor em cache na hora e revalida em segundo plano.
+let contextoCache = null;
+const VALIDADE_CONTEXTO_MS = 5 * 60 * 1000;
 export const lerContextoMonitoria = () => {
   if (!contextoEmAndamento) {
-    contextoEmAndamento = requisitar('/monitoria/contexto', { method: 'GET' }).finally(() => {
-      contextoEmAndamento = null;
-    });
+    const token = lerSessaoAutenticacao().token;
+    contextoEmAndamento = requisitar('/monitoria/contexto', { method: 'GET' })
+      .then((dados) => {
+        contextoCache = { token, dados, em: Date.now() };
+        return dados;
+      })
+      .finally(() => {
+        contextoEmAndamento = null;
+      });
   }
   return contextoEmAndamento;
+};
+// Leitura síncrona do cache (propriedade, não export nomeado: um comum.js novo com um
+// monitoria.js antigo em cache do navegador só não usa o cache, em vez de quebrar o import).
+lerContextoMonitoria.emCache = () => {
+  const token = lerSessaoAutenticacao().token;
+  if (!contextoCache || !token || contextoCache.token !== token || Date.now() - contextoCache.em > VALIDADE_CONTEXTO_MS) return null;
+  return contextoCache.dados;
 };
 export const escolherDesignOperacao = (operacao) => enviar('/monitoria/tema', 'PUT', { operacao });
 // Correções.txt (24/set/2026, item 5/13): equipes/catálogo mudam pouco — cache

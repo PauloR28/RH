@@ -6,7 +6,6 @@ import {
   atualizarItemConfiguracao,
   atualizarPermissoesPerfil,
   atualizarUsuario,
-  baixarLogsAuditoria,
   criarItemConfiguracao,
   criarUsuario,
   criarUsuarioRapido,
@@ -54,7 +53,7 @@ import {
   validarVinculosMonitoria,
 } from './monitoria-config.js?v=20260924-correcoes-txt4';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -588,6 +587,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [buscaPermissao, setBuscaPermissao] = useState('');
   const [mostrarSomenteAtivas, setMostrarSomenteAtivas] = useState(false);
   const [perfilComparadoId, setPerfilComparadoId] = useState('');
+  const [comparacaoPerfis, setComparacaoPerfis] = useState({ a: '', b: '' });
   const [justificativaPerfil, setJustificativaPerfil] = useState('');
   const [sessaoPermissaoAtiva, setSessaoPermissaoAtiva] = useState(SESSOES_PERMISSAO[0].id);
   const [perfisDesbloqueados, setPerfisDesbloqueados] = useState(false);
@@ -1232,20 +1232,51 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     });
   };
 
-  const duplicarItem = (item) => {
-    editarItem(item);
-    setFormItem((atual) => ({
-      ...atual,
-      id_item: '',
-      nome: `Cópia de ${item.nome || 'item'}`,
-      chave: item.chave ? `${item.chave}_copia` : '',
-      justificativa: 'Duplicação de regra reutilizável.',
-    }));
+  // Duplicar cria o clone na hora ("Cópia de ..."), com todos os campos do original, e abre o
+  // clone para edição — antes só preenchia o formulário e dependia de o usuário achar o Salvar.
+  const duplicarItem = async (item) => {
+    if (!secaoCatalogoAtiva || !item) return;
+    const ehOperacao = secaoCatalogoAtiva.tipo === 'operacoes';
+    const nomesExistentes = new Set(itensCatalogo.map((atual) => String(atual.nome || '').trim().toLowerCase()));
+    const base = `Cópia de ${item.nome || 'item'}`;
+    let nome = base;
+    for (let n = 2; nomesExistentes.has(nome.toLowerCase()); n += 1) nome = `${base} (${n})`;
+    const sufixo = nome === base ? '' : `_${nome.slice(base.length).replace(/\D/g, '')}`;
+    setErro('');
+    setFeedback('');
+    setSalvando(true);
+    try {
+      await criarItemConfiguracao(secaoCatalogoAtiva.tipo, {
+        chave: ehOperacao ? nome.toUpperCase() : (item.chave ? `${item.chave}_copia${sufixo}` : ''),
+        nome,
+        descricao: item.descricao || '',
+        categoria: item.categoria || '',
+        payload: { ...(item.payload || {}) },
+        ativo: true,
+        justificativa: `Duplicação de "${item.nome || 'item'}".`,
+      });
+      await carregarAba(abaRenderizada);
+      const atualizados = await listarCatalogoConfiguracoes();
+      const secaoAtualizada = normalizarLista(atualizados?.sections).find((secao) => secao.tipo === secaoCatalogoAtiva.tipo);
+      const clone = normalizarLista(secaoAtualizada?.items).find((atual) => String(atual.nome || '').trim().toLowerCase() === nome.toLowerCase());
+      if (clone) editarItem(clone);
+      else setFormItem(FORM_ITEM_INICIAL);
+      setFeedback(`"${nome}" criada a partir de "${item.nome}". O original não foi alterado.`);
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível duplicar.');
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const salvarItem = async (event) => {
     event.preventDefault();
     if (!secaoCatalogoAtiva) return;
+    if (!String(formItem.nome || '').trim()) {
+      setFeedback('');
+      setErro(secaoCatalogoAtiva.tipo === 'operacoes' ? 'Informe o nome da operação antes de salvar.' : 'Informe o nome antes de salvar.');
+      return;
+    }
     setSalvando(true);
     setErro('');
     setFeedback('');
@@ -1400,11 +1431,27 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setAbaAtiva('usuarios');
   };
 
-  const exportarLogs = async () => {
+  // O CSV sai exatamente das linhas filtradas na tela (antes o servidor devolvia os últimos
+  // 500 eventos sem filtro algum, e o arquivo não batia com o que o usuário via).
+  const exportarLogs = () => {
     setErro('');
     try {
-      const arquivo = await baixarLogsAuditoria();
-      baixarBlob(arquivo.filename || 'logs_auditoria.csv', arquivo.blob);
+      const colunas = [
+        ['id_log', 'ID'], ['data_hora', 'Data/hora'], ['nome_usuario', 'Usuário'], ['email_usuario', 'E-mail'],
+        ['perfil_nome', 'Perfil'], ['modulo', 'Módulo'], ['acao', 'Ação'], ['entidade', 'Entidade'],
+        ['entidade_id', 'ID da entidade'], ['justificativa', 'Justificativa'], ['origem', 'Origem'], ['sucesso', 'Sucesso'],
+      ];
+      const celula = (valor) => {
+        const texto = valor === true ? 'Sim' : valor === false ? 'Não' : String(valor ?? '');
+        return /[";\n\r]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
+      };
+      const linhas = [
+        colunas.map(([, rotulo]) => rotulo).join(';'),
+        ...logsFiltrados.map((log) => colunas.map(([chave]) => celula(log[chave])).join(';')),
+      ];
+      const carimbo = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+      baixarBlob(`logs_auditoria_${carimbo}.csv`, new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+      setFeedback(`${logsFiltrados.length} evento(s) exportado(s) com os filtros atuais.`);
     } catch (error) {
       setErro(error?.message || 'Não foi possível exportar os logs.');
     }
@@ -2030,9 +2077,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                 value=${formUsuario.senha}
                                 onInput=${(event) => setFormUsuario({ ...formUsuario, senha: event.target.value })}
                               />
+                              ${!criandoUsuario ? html`<small class="text-muted">${formUsuario.possui_senha ? 'Este usuário já tem senha definida. Por segurança ela nunca é exibida.' : 'Este usuário ainda não tem senha local definida.'}</small>` : null}
                             </label>
                           `
-        : null}
+        : !acessoMicrosoft && !criandoUsuario
+          ? html`
+                            <label class="users-drawer-field-wide">
+                              <span>Senha</span>
+                              <input class="form-control" type="text" disabled value=${formUsuario.possui_senha ? 'Senha definida (oculta por segurança)' : 'Sem senha local definida'} />
+                              ${podeRedefinirSenha ? html`<small class="text-muted">Para trocar, clique em Editar e preencha "Nova senha".</small>` : null}
+                            </label>
+                          `
+          : null}
                       <label class="users-drawer-field-wide">
                         <span>Justificativa</span>
                         <textarea
@@ -2209,6 +2265,63 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     `;
   };
 
+  // Comparação lado a lado de dois perfis (sempre visível, sem precisar desbloquear a edição).
+  const renderComparacaoPerfis = () => {
+    const perfilA = perfis.find((perfil) => perfil.id === comparacaoPerfis.a) || null;
+    const perfilB = perfis.find((perfil) => perfil.id === comparacaoPerfis.b) || null;
+    const descricaoDe = (chave) => permissoes.find((permissao) => permissao.chave === chave)?.descricao || '';
+    const setA = new Set(normalizarLista(perfilA?.permissoes));
+    const setB = new Set(normalizarLista(perfilB?.permissoes));
+    const soA = [...setA].filter((chave) => !setB.has(chave)).sort();
+    const soB = [...setB].filter((chave) => !setA.has(chave)).sort();
+    const ambos = [...setA].filter((chave) => setB.has(chave)).length;
+    const lista = (chaves) => (chaves.length
+      ? html`<ul class="settings-compare-list">${chaves.map((chave) => html`<li key=${chave}><strong>${chave}</strong><small>${descricaoDe(chave) || '-'}</small></li>`)}</ul>`
+      : html`<p class="settings-compare-empty">Nenhuma diferença.</p>`);
+    return html`
+      <section class="c24-card settings-compare-card">
+        <header class="c24-card-header compact">
+          <div>
+            <span class="c24-eyebrow">Comparar perfis</span>
+            <h3>Diferenças de permissão entre dois perfis</h3>
+          </div>
+        </header>
+        <div class="settings-compare-selects">
+          <label>
+            <span>Perfil A</span>
+            <select class="form-select" value=${comparacaoPerfis.a} onChange=${(event) => setComparacaoPerfis({ ...comparacaoPerfis, a: event.target.value })}>
+              <option value="">Selecione</option>
+              ${perfis.filter((perfil) => perfil.id !== comparacaoPerfis.b).map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
+            </select>
+          </label>
+          <span class="material-symbols-outlined settings-compare-icon" aria-hidden="true">${IconeSvg('compare_arrows')}</span>
+          <label>
+            <span>Perfil B</span>
+            <select class="form-select" value=${comparacaoPerfis.b} onChange=${(event) => setComparacaoPerfis({ ...comparacaoPerfis, b: event.target.value })}>
+              <option value="">Selecione</option>
+              ${perfis.filter((perfil) => perfil.id !== comparacaoPerfis.a).map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
+            </select>
+          </label>
+        </div>
+        ${perfilA && perfilB
+      ? html`
+              <p class="settings-compare-summary">${ambos} permissão(ões) em comum · ${soA.length} só em ${perfilA.nome} · ${soB.length} só em ${perfilB.nome}</p>
+              <div class="settings-compare-grid">
+                <div>
+                  <h4>Só em ${perfilA.nome} <small>${soA.length}</small></h4>
+                  ${lista(soA)}
+                </div>
+                <div>
+                  <h4>Só em ${perfilB.nome} <small>${soB.length}</small></h4>
+                  ${lista(soB)}
+                </div>
+              </div>
+            `
+      : html`<p class="settings-compare-empty">Escolha dois perfis para ver o que um tem e o outro não.</p>`}
+      </section>
+    `;
+  };
+
   const renderPerfis = () => {
     const podeEditarPerfis = controlador.possuiPermissao('configuracoes.editar');
     const sessaoAtiva = sessaoPermissaoAtiva ? SESSOES_PERMISSAO.find((sessao) => sessao.id === sessaoPermissaoAtiva) : null;
@@ -2247,6 +2360,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               `
         : null}
         </div>
+
+        ${perfis.length > 1 ? renderComparacaoPerfis() : null}
 
         ${perfis.length
         ? html`
@@ -2594,11 +2709,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 nome=${formItem.nome}
                 podeEditar=${controlador.possuiPermissao('configuracoes.editar')}
                 podeEditarOrganizacao=${controlador.possuiPermissao('monitoria.equipes')}
-                onFeedback=${setFeedback}
-                onErro=${setErro}
-              />`
+                onFeedback=${(mensagem) => { setErro(''); setFeedback(mensagem); }}
+                onErro=${(mensagem) => { setFeedback(''); setErro(mensagem); }}
+              />
+              ${erro ? html`<div class="alert alert-danger c24-feedback mt-3 mb-0" role="alert">${erro}</div>` : null}
+              ${feedback ? html`<div class="alert alert-success c24-feedback mt-3 mb-0" role="status">${feedback}</div>` : null}`
       : html`
-          <form class="c24-form-grid settings-rule-form" onSubmit=${salvarItem}>
+          <form class="c24-form-grid settings-rule-form" noValidate onSubmit=${salvarItem}>
             <${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'details' : 'div'} class=${`settings-form-section ${secaoCatalogoAtiva?.tipo === 'operacoes' ? 'settings-form-accordion' : ''}`.trim()} open=${secaoCatalogoAtiva?.tipo === 'operacoes' ? true : undefined}>
             ${secaoCatalogoAtiva?.tipo === 'operacoes'
       ? html`<summary class="settings-form-section-title">Identificação</summary>`
@@ -3063,11 +3180,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   </details>
                 `
       : null}
+            ${erro ? html`<div class="alert alert-danger c24-feedback is-wide mb-0" role="alert">${erro}</div>` : null}
+            ${feedback ? html`<div class="alert alert-success c24-feedback is-wide mb-0" role="status">${feedback}</div>` : null}
             <footer class="settings-form-footer is-wide">
               <button type="submit" class="btn btn-primary" disabled=${salvando || !secaoCatalogoAtiva || !(controlador.possuiPermissao('configuracoes.editar') || (secaoCatalogoAtiva?.tipo === 'operacoes' && controlador.possuiPermissao('operacoes.editar')))}>
                 <${Icone} name="check" /> ${salvando ? 'Salvando...' : 'Salvar'}
               </button>
-              <button type="button" class="btn btn-outline-secondary" onClick=${() => setFormItem(FORM_ITEM_INICIAL)}>
+              <button type="button" class="btn btn-outline-secondary" onClick=${() => { setFormItem(FORM_ITEM_INICIAL); setErro(''); setFeedback(''); }}>
                 Limpar
               </button>
             </footer>

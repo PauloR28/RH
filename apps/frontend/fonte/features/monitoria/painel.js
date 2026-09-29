@@ -14,6 +14,14 @@ const MODOS = [
   ['operador', 'Por operador'],
 ];
 
+// O que cada visão faz — mostrado sob os filtros para deixar claro o efeito da troca.
+const DICA_MODO = {
+  geral: 'Visão consolidada de todas as monitorias do seu escopo.',
+  equipe: 'Escolha uma equipe para que todos os indicadores mostrem só ela; sem escolha, o comparativo entre equipes aparece no topo.',
+  periodo: 'A evolução da nota é agrupada por dia, semana ou mês — ajuste em "Agrupar por".',
+  operador: 'Escolha um operador para que todos os indicadores mostrem só ele; sem escolha, o comparativo entre operadores aparece no topo.',
+};
+
 function Kpi({ rotulo, valor, detalhe, alerta = false }) {
   return html`<div class=${`mon-kpi ${alerta ? 'is-alerta' : ''}`}><span>${rotulo}</span><strong>${valor}</strong>${detalhe ? html`<small>${detalhe}</small>` : null}</div>`;
 }
@@ -40,18 +48,28 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [opcoesOperador, setOpcoesOperador] = useState([]);
+  const [opcoesEquipe, setOpcoesEquipe] = useState([]);
 
   useEffect(() => {
     let ativo = true;
     setCarregando(true);
     lerDashboard(filtros)
-      .then((r) => { if (!ativo) return; setD(r); setErro(''); if (!filtros.id_operador) setOpcoesOperador((r.por_operador || []).map((o) => ({ chave: o.chave, rotulo: o.rotulo }))); })
+      .then((r) => {
+        if (!ativo) return;
+        setD(r);
+        setErro('');
+        // As opções dos seletores vêm da resposta sem o próprio filtro, para não "sumirem" ao escolher uma.
+        if (!filtros.id_operador) setOpcoesOperador((r.por_operador || []).map((o) => ({ chave: o.chave, rotulo: o.rotulo })));
+        if (!filtros.id_equipe) setOpcoesEquipe((r.por_equipe || []).filter((e) => e.id_equipe).map((e) => ({ chave: e.id_equipe, rotulo: e.rotulo })));
+      })
       .catch((e) => ativo && setErro(e?.message || 'Não foi possível carregar o dashboard.'))
       .finally(() => ativo && setCarregando(false));
     return () => { ativo = false; };
   }, [filtros]);
 
   const campo = (k, v) => setFiltros((f) => ({ ...f, [k]: v }));
+  // Trocar de visão limpa o recorte da visão anterior (equipe/operador escolhido).
+  const trocarModo = (modo) => setFiltros((f) => ({ ...f, modo, id_equipe: '', id_operador: '' }));
   const r = d?.resumo;
   const ehOperador = perfil === 'operador';
 
@@ -61,18 +79,28 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
 
   const comparativo = filtros.modo === 'equipe' ? d?.por_equipe : filtros.modo === 'operador' ? d?.por_operador : d?.por_operacao;
   const rotuloComparativo = filtros.modo === 'equipe' ? 'Equipe' : filtros.modo === 'operador' ? 'Operador' : 'Operação';
+  // Em "Por equipe"/"Por operador" o comparativo é o assunto da visão: sobe para logo abaixo dos KPIs.
+  const comparativoNoTopo = filtros.modo === 'equipe' || filtros.modo === 'operador';
+  const blocoComparativo = !ehOperador && comparativo?.length ? html`
+          <${SectionCard} title=${`Comparativo por ${rotuloComparativo.toLowerCase()}`}>
+            <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>${rotuloComparativo}</th><th class="num">Realizadas</th><th class="num">Válidas</th><th class="num">Nota média</th><th class="num">NCG</th><th class="num">Conhecimento</th><th class="num">Encantamento</th></tr></thead><tbody>
+              ${comparativo.map((c) => html`<tr key=${String(c.chave)}><td>${filtros.modo === 'geral' || filtros.modo === 'periodo' ? html`<${TagOperacao} chave=${c.chave} nome=${c.rotulo} contexto=${contexto} />` : c.rotulo}</td><td class="num">${c.quantidade_realizadas}</td><td class="num">${c.quantidade_validas}</td><td class="num"><strong>${formatarNota(c.nota_media)}</strong></td><td class="num">${c.ncg}</td><td class="num">${formatarNota(c.pilar_conhecimento)}</td><td class="num">${formatarNota(c.pilar_encantamento)}</td></tr>`)}
+            </tbody></table></div>
+          </${SectionCard}>` : null;
 
   return html`
     <div class="mon-shell">
-      <div class="mon-filtros mon-filtros--linha">
-        <div class="mon-segmentado" role="tablist" aria-label="Visão do dashboard">${MODOS.filter(([k]) => !ehOperador || k === 'geral' || k === 'periodo').map(([k, rot]) => html`<button key=${k} type="button" role="tab" aria-selected=${filtros.modo === k} class=${`mon-seg-btn ${filtros.modo === k ? 'is-active' : ''}`} onClick=${() => campo('modo', k)}>${rot}</button>`)}</div>
+      <div class="mon-filtros mon-filtros--linha mon-filtros--dashboard">
+        <div class="mon-filtro-seg"><span>Visão</span><div class="mon-segmentado" role="tablist" aria-label="Visão do dashboard">${MODOS.filter(([k]) => !ehOperador || k === 'geral' || k === 'periodo').map(([k, rot]) => html`<button key=${k} type="button" role="tab" aria-selected=${filtros.modo === k} class=${`mon-seg-btn ${filtros.modo === k ? 'is-active' : ''}`} onClick=${() => trocarModo(k)}>${rot}</button>`)}</div></div>
         ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => campo('operacao', v)} /></label>` : null}
         <label class="mon-filtro mon-filtro--data">Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => campo('data_inicio', e.target.value)} /></label>
         <label class="mon-filtro mon-filtro--data">Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => campo('data_fim', e.target.value)} /></label>
         ${filtros.modo === 'periodo' ? html`<label class="mon-filtro">Agrupar por<select class="form-select" value=${filtros.granularidade} onChange=${(e) => campo('granularidade', e.target.value)}><option value="dia">Dia</option><option value="semana">Semana</option><option value="mes">Mês</option></select></label>` : null}
-        ${!ehOperador && filtros.modo === 'operador' ? html`<label class="mon-filtro">Operador<select class="form-select" value=${filtros.id_operador} onChange=${(e) => campo('id_operador', e.target.value)}><option value="">Todos</option>${opcoesOperador.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
-        ${!ehOperador ? html`<label class="mon-filtro">Top<select class="form-select" value=${filtros.top} onChange=${(e) => campo('top', Number(e.target.value))}>${[3, 5, 10, 15].map((n) => html`<option key=${n} value=${n}>Top ${n}</option>`)}</select></label>` : null}
+        ${!ehOperador && filtros.modo === 'equipe' ? html`<label class="mon-filtro mon-filtro--select">Equipe<select class="form-select" value=${filtros.id_equipe} onChange=${(e) => campo('id_equipe', e.target.value)}><option value="">Todas (comparar)</option>${opcoesEquipe.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
+        ${!ehOperador && filtros.modo === 'operador' ? html`<label class="mon-filtro mon-filtro--select">Operador<select class="form-select" value=${filtros.id_operador} onChange=${(e) => campo('id_operador', e.target.value)}><option value="">Todos (comparar)</option>${opcoesOperador.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
+        ${!ehOperador ? html`<label class="mon-filtro mon-filtro--top">Top<select class="form-select" value=${filtros.top} onChange=${(e) => campo('top', Number(e.target.value))}>${[3, 5, 10, 15].map((n) => html`<option key=${n} value=${n}>Top ${n}</option>`)}</select></label>` : null}
       </div>
+      <p class="mon-muted mon-dica-modo">${DICA_MODO[filtros.modo]}${carregando && d ? ' · Atualizando…' : ''}</p>
 
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
       ${carregando && !d ? html`<${LoadingState} titulo="Carregando indicadores" />` : !r ? null : html`
@@ -89,10 +117,13 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
         <div class="mon-kpis">
           <${Kpi} rotulo="Feedbacks pendentes" valor=${r.pendencias.feedbacks_pendentes} alerta=${r.pendencias.feedbacks_vencidos > 0} detalhe=${r.pendencias.feedbacks_vencidos ? `${r.pendencias.feedbacks_vencidos} vencido(s)` : ''} />
           <${Kpi} rotulo="Feedbacks aplicados" valor=${r.pendencias.feedbacks_aplicados} />
+          <${Kpi} rotulo="Encerradas sem feedback" valor=${r.pendencias.encerradas_sem_feedback ?? 0} alerta=${(r.pendencias.encerradas_sem_feedback || 0) > 0} detalhe="feedback não aplicado em 72h" />
           <${Kpi} rotulo="Confirmações e contestações pendentes" valor=${r.pendencias.confirmacoes_e_contestacoes_pendentes} />
           <${Kpi} rotulo="Reanálises pendentes (manter ou anular)" valor=${r.pendencias.baixas_ou_confirmacoes_pendentes} />
         </div>
 
+        ${comparativoNoTopo ? blocoComparativo : null}
+        ${filtros.modo === 'periodo' ? html`<div class="mon-card"><h3>Evolução da nota por ${{ dia: 'dia', semana: 'semana', mes: 'mês' }[filtros.granularidade]}</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
         ${ehOperador ? html`<${EscalaOperador} escala=${d.escala} />` : null}
         ${perfil === 'supervisor' && d.visao_operacao ? html`
           <${SectionCard} title="Visão geral da operação (consolidada)">
@@ -105,7 +136,7 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
           </${SectionCard}>` : null}
 
         <div class="mon-grid-2">
-          <div class="mon-card"><h3>Evolução da nota</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>
+          ${filtros.modo !== 'periodo' ? html`<div class="mon-card"><h3>Evolução da nota</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
           <div class="mon-card"><h3>Pilares (indicadores, escala 1–10)</h3>
             ${eixosPilar.length >= 3 ? html`<${ScoreRadarChart} axes=${eixosPilar} series=${[{ name: 'Média', values: valoresPilar }]} size=${200} />` : html`<p class="rh-chart-empty">Sem dados de pilares.</p>`}</div>
           <div class="mon-card"><h3>Desempenho por bloco (% de acerto)</h3>
@@ -127,12 +158,7 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
             <p class="mon-muted">Desempate: mais monitorias válidas, depois ordem alfabética.</p></div>` : null}
         </div>
 
-        ${!ehOperador && comparativo?.length ? html`
-          <${SectionCard} title=${`Comparativo por ${rotuloComparativo.toLowerCase()}`}>
-            <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>${rotuloComparativo}</th><th class="num">Realizadas</th><th class="num">Válidas</th><th class="num">Nota média</th><th class="num">NCG</th><th class="num">Conhecimento</th><th class="num">Encantamento</th></tr></thead><tbody>
-              ${comparativo.map((c) => html`<tr key=${String(c.chave)}><td>${filtros.modo === 'geral' || filtros.modo === 'periodo' ? html`<${TagOperacao} chave=${c.chave} nome=${c.rotulo} contexto=${contexto} />` : c.rotulo}</td><td class="num">${c.quantidade_realizadas}</td><td class="num">${c.quantidade_validas}</td><td class="num"><strong>${formatarNota(c.nota_media)}</strong></td><td class="num">${c.ncg}</td><td class="num">${formatarNota(c.pilar_conhecimento)}</td><td class="num">${formatarNota(c.pilar_encantamento)}</td></tr>`)}
-            </tbody></table></div>
-          </${SectionCard}>` : null}
+        ${!comparativoNoTopo ? blocoComparativo : null}
         `}`}
     </div>`;
 }

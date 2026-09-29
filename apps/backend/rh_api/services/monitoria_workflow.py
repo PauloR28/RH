@@ -11,6 +11,8 @@ Ciclo:
   Condição especial (menos de 3 blocos avaliados):
      REALIZADA → ANULADA → FINALIZADA
 SLAs em horas corridas (24x7): feedback 72h, operador 48h, reanálise 72h.
+  Feedback não aplicado no prazo (Correções 29/set/2026):
+     FEEDBACK_PENDENTE → FINALIZADA (resultado SEM_FEEDBACK; nota continua válida)
 """
 
 from __future__ import annotations
@@ -50,6 +52,9 @@ HORAS_SLA_OFICIAIS = {SLA_FEEDBACK: 72, SLA_CONFIRMACAO: 48, SLA_REANALISE: 72}
 
 RESULTADO_CONFIRMADA = "CONFIRMADA"
 RESULTADO_ANULADA = "ANULADA"
+# Encerrada pelo job de SLA porque o feedback não foi aplicado em 72h. Não é anulação:
+# a nota segue válida nos indicadores; só registra que o ciclo fechou sem feedback.
+RESULTADO_SEM_FEEDBACK = "SEM_FEEDBACK"
 
 # Ação → (status de origem permitidos)
 ORIGENS_PERMITIDAS: dict[str, frozenset[str]] = {
@@ -91,6 +96,10 @@ def passos_confirmacao() -> list[PASSO]:
 
 def passos_contestacao() -> list[PASSO]:
     return [(CONTESTADA, None), (REANALISE, SLA_REANALISE)]
+
+
+def passos_encerramento_feedback_vencido() -> list[PASSO]:
+    return [(FINALIZADA, None)]
 
 
 def passos_reanalise(resultado: str) -> list[PASSO]:
@@ -158,11 +167,14 @@ def acao_automatica_por_vencimento(status: str, sla_limite_dt: datetime | None, 
     """Ação do job de SLA quando o prazo oficial vence:
       * AGUARDANDO_CONFIRMACAO vencido → confirmação automática;
       * REANALISE vencida → anulação automática;
-      * FEEDBACK_PENDENTE vencido → só sinalização (nenhuma mudança de status)."""
+      * FEEDBACK_PENDENTE vencido → encerramento automático sem feedback
+        (Correções 29/set/2026 — antes só sinalizava e a monitoria ficava aberta)."""
     if sla_limite_dt is None or agora <= sla_limite_dt:
         return None
     if status == AGUARDANDO_CONFIRMACAO:
         return "confirmar_automatico"
     if status == REANALISE:
         return "anular_automatico"
+    if status == FEEDBACK_PENDENTE:
+        return "encerrar_sem_feedback"
     return None

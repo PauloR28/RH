@@ -163,9 +163,12 @@ class OneDriveService:
         else:
             segment = self._item_path_segment(full_path)
             endpoint = f"{self._drive_root()}/{segment}/content"
+            # "rename": arquivo com o mesmo nome na pasta vira "nome 1.ext" em vez de
+            # sobrescrever o anterior (o padrão do Graph no PUT simples é "replace").
             response = client.request(
                 "PUT",
                 endpoint,
+                params={"@microsoft.graph.conflictBehavior": "rename"},
                 content=content,
                 content_type=content_type or "application/octet-stream",
             )

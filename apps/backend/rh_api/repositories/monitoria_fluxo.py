@@ -382,9 +382,9 @@ class MonitoriaFluxoRepositoryMixin:
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT TOP (?) id_monitoria FROM dbo.monitoria_estado m WHERE status IN (?, ?) AND sla_limite IS NOT NULL "
+                "SELECT TOP (?) id_monitoria FROM dbo.monitoria_estado m WHERE status IN (?, ?, ?) AND sla_limite IS NOT NULL "
                 f"AND sla_limite < GETDATE() AND {SQL_MONITORIA_NAO_EXCLUIDA} ORDER BY sla_limite",
-                (int(lote), wf.AGUARDANDO_CONFIRMACAO, wf.REANALISE),
+                (int(lote), wf.AGUARDANDO_CONFIRMACAO, wf.REANALISE, wf.FEEDBACK_PENDENTE),
             )
             ids = [int(r[0]) for r in cursor.fetchall()]
             cursor.execute(
@@ -395,7 +395,7 @@ class MonitoriaFluxoRepositoryMixin:
             feedbacks_vencidos = int(cursor.fetchone()[0])
         finally:
             conn.close()
-        confirmadas = anuladas = 0
+        confirmadas = anuladas = encerradas = 0
         for id_monitoria in ids:
             conn = self._connect()
             try:
@@ -417,6 +417,15 @@ class MonitoriaFluxoRepositoryMixin:
                         categoria="monitoria_confirmada_auto", id_monitoria=id_monitoria,
                     )
                     confirmadas += 1
+                elif acao == "encerrar_sem_feedback":
+                    obs = "Encerrada automaticamente: 72 horas sem aplicação do feedback."
+                    self._mon_registrar_passos(cursor, id_monitoria, wf.passos_encerramento_feedback_vencido(), None,
+                                               automatico=True, observacao=obs)
+                    cursor.execute("UPDATE dbo.monitoria_estado SET resultado = ? WHERE id_monitoria = ?",
+                                   (wf.RESULTADO_SEM_FEEDBACK, id_monitoria))
+                    self.mon_log(cursor, None, acao="encerrar_sem_feedback", operacao=m["operacao"], entidade="monitoria",
+                                 entidade_id=id_monitoria, detalhes={"sla": "FEEDBACK"})
+                    encerradas += 1
                 else:
                     obs = "Anulada automaticamente: 72 horas sem reanálise do supervisor."
                     cursor.execute(
@@ -444,4 +453,5 @@ class MonitoriaFluxoRepositoryMixin:
                 logger.exception("Falha ao processar SLA da monitoria %s", id_monitoria)
             finally:
                 conn.close()
-        return {"confirmadas_automaticamente": confirmadas, "anuladas_automaticamente": anuladas, "feedbacks_vencidos": feedbacks_vencidos}
+        return {"confirmadas_automaticamente": confirmadas, "anuladas_automaticamente": anuladas,
+                "encerradas_sem_feedback": encerradas, "feedbacks_vencidos": feedbacks_vencidos}

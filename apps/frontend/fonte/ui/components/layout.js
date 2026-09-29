@@ -803,7 +803,7 @@ export function BarraLateral({
                               aria-current=${subitemConfiguracaoAtivo(subitem) ? 'page' : null
               }
                               onClick=${() => {
-                if (subitem.desativado) return;
+                // Itens em construção abrem a tela "Em breve" (antes o clique era ignorado em silêncio).
                 setGrupoAberto(null);
                 controlador.irParaTelaProtegida(subitem.tela);
               }}
@@ -813,6 +813,7 @@ export function BarraLateral({
                                 aria-hidden="true"
                               >${IconeSvg(subitem.desativado ? 'lock' : subitem.icone)}</span>
                               <span>${subitem.label}</span>
+                              ${subitem.desativado ? html`<small class="rh-modern-subnav-badge">Em breve</small>` : null}
                             </button>
                           `,
           )}

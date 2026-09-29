@@ -70,6 +70,11 @@ function BotaoIcone({ icone, titulo, onClick, perigo = false, desabilitado = fal
     </button>`;
 }
 
+// Cache em memória (por sessão da página): voltar à aba mostra o último resultado na hora e
+// revalida em segundo plano, em vez de esperar 2 requisições em sequência de novo.
+const cacheVersoes = new Map();
+const cacheVersao = new Map();
+
 export function TelaFormularios({ controlador, contexto, showToast }) {
   const podeEditar = controlador.possuiPermissao('monitoria.matriz');
   const ativas = (contexto?.operacoes || []).filter((o) => o.ativo);
@@ -117,16 +122,25 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
   useEffect(() => {
     if (!operacao || !idMatriz) return;
     let ativo = true;
-    setVersoes(null);
-    setVersao(null);
-    setConfig(null);
+    const chaveCache = `${operacao}:${idMatriz}`;
+    const aplicarVersoes = (itens) => {
+      setVersoes(itens);
+      setIdVersao((atual) => (itens.some((v) => String(v.id_versao) === String(atual)) ? atual : String(itens.find((v) => v.ativa)?.id_versao || itens[0]?.id_versao || '')));
+    };
     setComparar([]);
+    const emCache = recarga ? null : cacheVersoes.get(chaveCache);
+    if (emCache) aplicarVersoes(emCache);
+    else {
+      setVersoes(null);
+      setVersao(null);
+      setConfig(null);
+    }
     listarVersoesMatriz(operacao, idMatriz)
       .then((r) => {
         if (!ativo) return;
         const itens = r.itens || [];
-        setVersoes(itens);
-        setIdVersao((atual) => (itens.some((v) => String(v.id_versao) === String(atual)) ? atual : String(itens.find((v) => v.ativa)?.id_versao || itens[0]?.id_versao || '')));
+        cacheVersoes.set(chaveCache, itens);
+        aplicarVersoes(itens);
       })
       .catch((e) => { if (ativo) { setVersoes([]); showToast(e?.message || 'Erro ao carregar os formulários.', 'danger'); } });
     return () => { ativo = false; };
@@ -136,8 +150,16 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
   useEffect(() => {
     if (!idVersao) return;
     let ativo = true;
+    const emCache = cacheVersao.get(String(idVersao));
+    if (emCache) { setVersao(emCache); setConfig(clonar(emCache.config)); }
     lerVersaoMatriz(idVersao)
-      .then((v) => { if (ativo) { setVersao(v); setConfig(clonar(v.config)); } })
+      .then((v) => {
+        cacheVersao.set(String(idVersao), v);
+        // Só troca o que está na tela se a versão mudou (evita apagar uma edição em andamento).
+        if (!ativo) return;
+        setVersao(v);
+        if (!emCache) setConfig(clonar(v.config));
+      })
       .catch((e) => { if (ativo) showToast(e?.message || 'Erro ao carregar o formulário.', 'danger'); });
     return () => { ativo = false; };
   }, [idVersao]);

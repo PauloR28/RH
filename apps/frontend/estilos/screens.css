@@ -11520,6 +11520,20 @@ display: grid;
   padding: 0;
 }
 
+/* "Utilizar" com rótulo em texto (T1-CV-09): antes era só um ícone. */
+#screen-process-details .unqualified-cv-actions .process-text-action.btn {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-weight: 600;
+}
+
+#screen-process-details .unqualified-cv-actions .process-text-action .material-symbols-outlined {
+  font-size: 16px;
+}
+
 #screen-process-details .unqualified-cv-row > .process-indication-panel {
   grid-column: 1 / -1;
   justify-self: end;
@@ -16401,6 +16415,97 @@ display: grid;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-soft);
+}
+
+/* Comparar perfis (Correções 29/set/2026 — T1-PERM-03): sempre visível no topo. */
+.settings-compare-card {
+  margin-bottom: 24px;
+  padding: 24px;
+}
+
+.settings-compare-selects {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.settings-compare-selects label {
+  display: flex;
+  flex: 1 1 240px;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+.settings-compare-icon {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-soft);
+  font-size: 24px;
+}
+
+.settings-compare-summary {
+  margin: 16px 0 0;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.settings-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.settings-compare-grid h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.settings-compare-grid h4 small {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.settings-compare-list {
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.settings-compare-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-compare-list li:last-child { border-bottom: 0; }
+.settings-compare-list strong { font-size: var(--font-sm); }
+.settings-compare-list small { color: var(--color-text-soft); }
+
+.settings-compare-empty {
+  margin: 16px 0 0;
+  color: var(--color-text-soft);
+  font-size: var(--font-sm);
 }
 
 .settings-profiles-toolbar-hint {

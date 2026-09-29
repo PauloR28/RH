@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import re
 from pathlib import Path
 from urllib.parse import quote
@@ -359,7 +360,7 @@ class MuralRepositoryMixin:
         # ficava com o título "cru", sem o prefixo de categoria — só o item
         # da lista "Mural Publicacoes" (_publicar_item_lista_mural) recebia o
         # prefixo. Usa a mesma função aqui para os dois ficarem iguais.
-        titulo = _titulo_mural_com_categoria(publicacao)
+        titulo = html.escape(_titulo_mural_com_categoria(publicacao))
         conteudo_html = str(publicacao.get("conteudo_html") or "")
         publicado_em = normalize_text(publicacao.get("publicado_em"))
         return f"""<!DOCTYPE html>
@@ -596,14 +597,31 @@ class MuralRepositoryMixin:
                 drive_root = f"/sites/{quote(site_id, safe=',')}/drive"
 
                 try:
+                    # Correções.txt (29/set/2026): o SharePoint preenche a coluna
+                    # "Título" da biblioteca lendo o <title> do .html e ignora tanto o
+                    # <meta charset> quanto o charset do Content-Type — lia os bytes
+                    # UTF-8 como cp1252 ("Atualização" -> "AtualizaÃ§Ã£o", emoji ->
+                    # "ðŸ—“ï¸"). Todo caractere não-ASCII vai como referência numérica
+                    # (&#231;), que não depende de charset nenhum.
                     resposta = client.request(
                         "PUT",
                         f"{drive_root}/{segmento}/content",
-                        content=html_publicacao.encode("utf-8"),
+                        content=html_publicacao.encode("ascii", "xmlcharrefreplace"),
                         content_type="text/html; charset=utf-8",
                     )
                     item = resposta.json()
                     web_url = normalize_text(item.get("webUrl"))
+                    # E grava o Título explicitamente via JSON (UTF-8 correto), em vez
+                    # de depender só da extração automática do <title>.
+                    if item.get("id"):
+                        try:
+                            client.request(
+                                "PATCH",
+                                f"{drive_root}/items/{item['id']}/listItem/fields",
+                                json_body={"Title": _titulo_mural_com_categoria(publicacao)},
+                            )
+                        except HTTPException:
+                            pass  # best-effort: o <title> em ASCII já cobre a extração automática
                     url_capa = self._enviar_imagens_sharepoint(
                         client, drive_root, pasta, slug, id_publicacao, publicacao, settings.training_upload_dir
                     )

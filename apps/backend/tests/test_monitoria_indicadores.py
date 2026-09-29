@@ -126,7 +126,7 @@ def test_pendencias_e_feedback_vencido():
     ]
     p = ind.pendencias(linhas, agora)
     assert p == {"feedbacks_pendentes": 2, "feedbacks_aplicados": 3, "confirmacoes_e_contestacoes_pendentes": 1,
-                 "baixas_ou_confirmacoes_pendentes": 1, "feedbacks_vencidos": 1}
+                 "baixas_ou_confirmacoes_pendentes": 1, "feedbacks_vencidos": 1, "encerradas_sem_feedback": 0}
 
 
 def test_agrupar_por_dimensao_ordena_por_nota():

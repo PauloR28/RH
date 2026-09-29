@@ -298,8 +298,11 @@ export function TelaOneDriveArquivos({ controlador }) {
     setEnviandoArquivo(true);
     setErro('');
     try {
-      await enviarArquivoOneDrive(caminho, arquivo);
-      setMensagem(`Arquivo "${arquivo.name}" enviado com sucesso.`);
+      const resultado = await enviarArquivoOneDrive(caminho, arquivo);
+      const nomeSalvo = resultado?.item?.nome || arquivo.name;
+      setMensagem(nomeSalvo !== arquivo.name
+        ? `Já existia um arquivo "${arquivo.name}" nesta pasta — o novo foi salvo como "${nomeSalvo}", sem sobrescrever o anterior.`
+        : `Arquivo "${arquivo.name}" enviado com sucesso.`);
       await carregarItens(caminho);
     } catch (error) {
       setErro(error?.message || 'Não foi possível enviar o arquivo.');

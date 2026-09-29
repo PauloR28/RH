@@ -143,7 +143,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
           <div class="mon-acoes" style=${{ marginTop: '8px' }}>
             <${TagOperacao} chave=${d.operacao} nome=${d.operacao_nome} contexto=${contexto} />
             <${BadgeStatus} status=${d.status} rotulo=${d.status_rotulo} perfil=${perfil} contestada=${d.contestacoes.length > 0} />
-            <${TagsMonitoria} item=${{ possui_ncg: d.possui_ncg, anulada: d.anulada || d.resultado === 'ANULADA' }} />
+            <${TagsMonitoria} item=${{ possui_ncg: d.possui_ncg, anulada: d.anulada || d.resultado === 'ANULADA', resultado: d.resultado }} />
             <${BadgeSla} sla=${d.sla} />
           </div>
         </div>

@@ -1034,7 +1034,7 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
       );
     } catch (error) {
       registrarErroAcao(
-        null,
+        error,
         'Não foi possível enviar o candidato para o Banco de Talentos. Verifique os dados do candidato e tente novamente.',
       );
     }
@@ -4986,7 +4986,11 @@ export function TelaCriarProcesso({ controlador }) {
               type="button"
               class="btn btn-outline-secondary"
               disabled=${salvando}
-              onClick=${() => controlador.irParaTelaProtegida('screen-processes')}
+              onClick=${() => {
+      // T1-PS-04: sair do wizard descarta tudo o que foi preenchido — pede confirmação.
+      if (!window.confirm(`Cancelar a criação do processo?\n\nTudo o que foi preenchido até a etapa ${etapaAtual} será descartado e não poderá ser recuperado.`)) return;
+      controlador.irParaTelaProtegida('screen-processes');
+    }}
             >
               Cancelar
             </button>
