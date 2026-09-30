@@ -195,3 +195,17 @@
 .wfm-grade.wfm-grade--semana th.wfm-col-nome { width: 240px; min-width: 240px; max-width: 240px; }
 .wfm-grade thead th.wfm-col-sel, .wfm-grade thead th.wfm-col-nome, .wfm-grade thead th.wfm-col-horas { position: sticky; z-index: 3; }
 .wfm-grade thead th.wfm-col-dia { position: relative; }
+
+/* Presença em lote: campos e botão numa linha só, exceções em grade regular */
+.wfm-lote { gap: 24px; padding: 24px; }
+.wfm-lote-titulo h4 { margin: 0 0 8px; }
+.wfm-lote-titulo p { margin: 0; }
+.wfm-lote-linha { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+.wfm-lote-linha .mon-campo { flex: 0 1 240px; min-width: 176px; }
+.wfm-lote-linha .mon-campo .form-select { width: 100%; }
+.wfm-lote-botao { height: 40px; white-space: nowrap; margin-left: auto; }
+.wfm-lote-excecoes { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
+.wfm-lote .wfm-excecoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; margin-top: 0; }
+.wfm-lote .wfm-excecao { height: 40px; padding: 0 16px; }
+.wfm-lote .wfm-excecao span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 720px) { .wfm-lote-botao { margin-left: 0; width: 100%; } }

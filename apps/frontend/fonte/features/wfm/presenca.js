@@ -112,19 +112,20 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
       </div>
 
       ${pode ? html`
-        <div class="wfm-form">
-          <h4>Presença em lote</h4>
-          <p class="mon-muted">Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <strong>não</strong> deve receber (faltou, está de atestado...).</p>
-          <div class="wfm-linha">
+        <div class="wfm-form wfm-lote">
+          <div class="wfm-lote-titulo"><h4>Presença em lote</h4>
+            <p class="mon-muted">Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <strong>não</strong> deve receber (faltou, está de atestado...).</p></div>
+          <div class="wfm-lote-linha">
             <label class="mon-campo"><span>Dia</span><select class="form-select" value=${lote.data} onChange=${(e) => setLote({ ...lote, data: e.target.value, excecoes: {} })}>${dias.map((d, i) => html`<option key=${d} value=${d}>${SEMANA[i]} ${br(d).slice(0, 5)}</option>`)}</select></label>
             <label class="mon-campo"><span>Aplicar a todos</span><select class="form-select" value=${lote.status} onChange=${(e) => setLote({ ...lote, status: e.target.value })}>${Object.entries(ROTULO_STATUS_PRESENCA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
             <label class="mon-campo"><span>Quem ficou de fora, marcar como</span><select class="form-select" value=${lote.marcar} onChange=${(e) => setLote({ ...lote, marcar: e.target.value })}><option value="">Não alterar</option>${['FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'].map((k) => html`<option key=${k} value=${k}>${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select></label>
+            <button type="button" class="btn btn-primary wfm-lote-botao" disabled=${ocupado || !escaladosDoDia.length || escaladosDoDia.length === contagemExc} onClick=${aplicarLote}>${ROTULO_STATUS_PRESENCA[lote.status]} para ${escaladosDoDia.length - contagemExc} operador(es)</button>
           </div>
           ${escaladosDoDia.length ? html`
-            <div><strong class="wfm-rotulo-sm">Exceto (${contagemExc} selecionado${contagemExc === 1 ? '' : 's'} de ${escaladosDoDia.length} escalados)</strong>
-              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /> ${o.nome}${statusDe(o.id_usuario, lote.data) ? html`<small>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div></div>
-            <div class="wfm-acoes"><button type="button" class="btn btn-primary" disabled=${ocupado} onClick=${aplicarLote}>${ROTULO_STATUS_PRESENCA[lote.status]} para ${escaladosDoDia.length - contagemExc} operador(es)</button></div>`
-            : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
+            <div class="wfm-lote-excecoes">
+              <strong class="wfm-rotulo-sm">Exceto (${contagemExc} de ${escaladosDoDia.length} escalados em ${br(lote.data).slice(0, 5)})</strong>
+              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div>
+            </div>` : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
         </div>` : null}
 
       <div class="wfm-filtros-escala">
