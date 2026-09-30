@@ -254,3 +254,22 @@ def test_auditoria_so_gestor_e_adm_leem(ctx):
         assert "wfm.auditoria" not in u.permissions
     assert ctx.repo.wfm_list_auditoria(ctx.gestor, ctx.op)
     assert ctx.repo.wfm_list_auditoria(ctx.gestor2, "") is not None
+
+
+def test_control_desk_pode_ser_vinculado_a_operacoes(ctx):
+    """Regressão: o Control Desk era impedido de receber vínculo de operação; o WFM precisa dele."""
+    repo = ctx.repo
+    criado = repo.mon_create_usuario(
+        ctx.admin,
+        {"nome": "CD Vinculado", "email": f"wfm_teste_{uuid.uuid4().hex[:10]}@example.com", "perfil": ROLE_CONTROL_DESK, "operacoes": [ctx.op]},
+    )
+    assert repo.mon_get_vinculos(criado["id_usuario"])["operacoes"] == [ctx.op]
+    # "Editar usuário": grava outro vínculo e confere (o bug era justamente aqui)
+    repo.mon_set_vinculos(ctx.admin, criado["id_usuario"], {"operacoes": [ctx.outra]})
+    assert repo.mon_get_vinculos(criado["id_usuario"])["operacoes"] == [ctx.outra]
+    repo.mon_set_vinculos(ctx.admin, criado["id_usuario"], {"operacoes": [ctx.op, ctx.outra]})
+    assert sorted(repo.mon_get_vinculos(criado["id_usuario"])["operacoes"]) == sorted([ctx.op, ctx.outra])
+    # vinculado, o Control Desk enxerga a operação no WFM; sem vínculo, nenhuma
+    cd = _user(ROLE_CONTROL_DESK, criado["id_usuario"], [ctx.op, ctx.outra], "CD Vinculado")
+    assert {o["chave"] for o in repo.wfm_contexto(cd)["operacoes"]} == {ctx.op, ctx.outra}
+    assert repo.wfm_contexto(_user(ROLE_CONTROL_DESK, criado["id_usuario"], [], "CD"))["operacoes"] == []

@@ -30,9 +30,16 @@ def _refresh_monitoria_scope(user: AuthenticatedUser, request: Request | None) -
     operações vinculadas ATUAIS do banco, não as gravadas no token no login — assim
     trocar o vínculo de um usuário vale na próxima requisição, sem novo login.
     Falha na leitura = nenhuma operação (DENY por padrão)."""
-    if request is None or not request.url.path.startswith("/monitoria") or not user.id_usuario:
+    if request is None or not user.id_usuario:
         return user
-    if escopo_global(user.perfil):
+    caminho = request.url.path
+    if caminho.startswith("/wfm"):
+        # WFM: só Administrador e Gestor são globais; Control Desk e demais usam os vínculos ATUAIS.
+        from .services.wfm_scope import PERFIS_GLOBAIS as _globais_wfm
+
+        if user.perfil in _globais_wfm:
+            return user
+    elif not caminho.startswith("/monitoria") or escopo_global(user.perfil):
         return user
     try:
         conn = get_repository()._connect()
