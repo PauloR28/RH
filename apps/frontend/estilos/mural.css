@@ -325,6 +325,18 @@ input.mural-filtro-select {
   position: relative;
 }
 
+/* Hover só com borda; fundo azul fica reservado ao estado realmente ativo (B/I/U). */
+.mural-editor .rh-editor-toolbar-btn:hover {
+  background: #f8fbff;
+  color: var(--color-text);
+}
+
+.mural-editor .rh-editor-toolbar-btn.is-active {
+  border-color: rgba(21, 61, 138, 0.3);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .mural-editor-body {
   min-height: 220px;
 }

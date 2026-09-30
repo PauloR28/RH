@@ -325,6 +325,18 @@ class MuralRepositoryMixin:
             cursor.execute("SELECT id_publicacao FROM dbo.mural_publicacoes WHERE id_publicacao = ?", (int(id_publicacao or 0),))
             if not cursor.fetchone():
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada.")
+            # Correções.txt (29/set/2026): excluir no Conecta também exclui do
+            # SharePoint — lista os ambientes já enviados antes de apagar as linhas.
+            cursor.execute(
+                """
+                SELECT a.site_id, a.biblioteca_destino, pa.sharepoint_list_item_id, a.nome
+                FROM dbo.mural_publicacao_ambientes pa
+                JOIN dbo.ambientes_sharepoint a ON a.id_ambiente = pa.id_ambiente
+                WHERE pa.id_publicacao = ? AND pa.status_envio = 'enviado'
+                """,
+                (int(id_publicacao),),
+            )
+            destinos = [(r[0], r[1], r[2], r[3]) for r in cursor.fetchall()]
             cursor.execute("DELETE FROM dbo.mural_publicacao_imagens WHERE id_publicacao = ?", (int(id_publicacao),))
             cursor.execute("DELETE FROM dbo.mural_publicacao_ambientes WHERE id_publicacao = ?", (int(id_publicacao),))
             cursor.execute("DELETE FROM dbo.mural_publicacoes WHERE id_publicacao = ?", (int(id_publicacao),))
@@ -332,7 +344,47 @@ class MuralRepositoryMixin:
         finally:
             conn.close()
 
-        return {"success": True}
+        avisos = self._remover_publicacao_sharepoint(int(id_publicacao), destinos)
+        return {"success": True, "avisos_sharepoint": avisos}
+
+    def _remover_publicacao_sharepoint(self, id_publicacao: int, destinos: list) -> list[str]:
+        """Best-effort: apaga do SharePoint o item da lista 'Mural Publicacoes', o
+        arquivo .html e as imagens da publicação. A exclusão no Conecta já foi
+        confirmada; falhas aqui viram avisos, nunca derrubam a exclusão."""
+        if not destinos:
+            return []
+        settings = self.settings
+        client = GraphClient(
+            tenant_id=settings.sharepoint_tenant_id,
+            client_id=settings.sharepoint_client_id,
+            client_secret=settings.sharepoint_client_secret,
+            scope=settings.sharepoint_scope,
+            base_url=settings.sharepoint_graph_base_url,
+        )
+        padrao = re.compile(rf"(-{id_publicacao}\.html|-{id_publicacao}-imagem-\d+\.\w+)$")
+        avisos: list[str] = []
+        for site_id, biblioteca_destino, item_id, nome_ambiente in destinos:
+            if not site_id:
+                continue
+            site_prefix = f"/sites/{quote(site_id, safe=',')}"
+            try:
+                if item_id:
+                    try:
+                        lista_id = self._garantir_lista_mural_sharepoint(client, site_id)
+                        client.request("DELETE", f"{site_prefix}/lists/{lista_id}/items/{item_id}")
+                    except HTTPException:
+                        pass  # item já apagado manualmente no SharePoint
+                pasta = f"{biblioteca_destino}/Mural" if biblioteca_destino else "Mural"
+                filhos = client.get_json(
+                    f"{site_prefix}/drive/root:/{quote(pasta, safe='/')}:/children",
+                    params={"$top": "999", "$select": "id,name"},
+                ).get("value") or []
+                for arquivo in filhos:
+                    if padrao.search(str(arquivo.get("name") or "")):
+                        client.request("DELETE", f"{site_prefix}/drive/items/{arquivo['id']}")
+            except HTTPException:
+                avisos.append(f"Não foi possível remover do SharePoint ({nome_ambiente or site_id}).")
+        return avisos
 
     # ------------------------------------------------------------------
     # Publicação nas intranets (SharePoint)

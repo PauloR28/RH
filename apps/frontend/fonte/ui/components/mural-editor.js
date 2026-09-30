@@ -1,4 +1,4 @@
-import { html, useEffect, useRef } from '../../infraestrutura-react.js';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
 import { formatarDocumentoRichText } from '../../regras-prova.js';
 import { IconeSvg } from '../icone.js';
 
@@ -20,6 +20,31 @@ function limparHtmlVazio(valor) {
 export function EditorMural({ valor, onChange }) {
   const editorRef = useRef(null);
   const ultimoValorEmitido = useRef(null);
+  const [formatosAtivos, setFormatosAtivos] = useState({ bold: false, italic: false, underline: false });
+
+  // Estado real dos botões B/I/U: só aparecem "selecionados" quando o cursor
+  // está de fato dentro de um texto com aquele formato (Correções.txt 29/set/2026:
+  // o B parecia já ativo ao iniciar uma publicação).
+  useEffect(() => {
+    const atualizar = () => {
+      const editor = editorRef.current;
+      const selecao = window.getSelection();
+      const dentro = !!editor && !!selecao?.anchorNode && editor.contains(selecao.anchorNode);
+      const estado = (cmd) => {
+        try {
+          return dentro && document.queryCommandState(cmd);
+        } catch {
+          return false;
+        }
+      };
+      const proximo = { bold: estado('bold'), italic: estado('italic'), underline: estado('underline') };
+      setFormatosAtivos((atual) =>
+        atual.bold === proximo.bold && atual.italic === proximo.italic && atual.underline === proximo.underline ? atual : proximo,
+      );
+    };
+    document.addEventListener('selectionchange', atualizar);
+    return () => document.removeEventListener('selectionchange', atualizar);
+  }, []);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -55,13 +80,13 @@ export function EditorMural({ valor, onChange }) {
   return html`
     <div class="rh-editor-card mural-editor">
       <div class="rh-editor-toolbar">
-        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Negrito" onMouseDown=${aplicarComando('bold')}>
+        <button type="button" tabIndex="-1" class=${'rh-editor-toolbar-btn' + (formatosAtivos.bold ? ' is-active' : '')} aria-pressed=${formatosAtivos.bold} title="Negrito" onMouseDown=${aplicarComando('bold')}>
           <strong>B</strong>
         </button>
-        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Itálico" onMouseDown=${aplicarComando('italic')}>
+        <button type="button" tabIndex="-1" class=${'rh-editor-toolbar-btn' + (formatosAtivos.italic ? ' is-active' : '')} aria-pressed=${formatosAtivos.italic} title="Itálico" onMouseDown=${aplicarComando('italic')}>
           <em>I</em>
         </button>
-        <button type="button" tabIndex="-1" class="rh-editor-toolbar-btn" title="Sublinhado" onMouseDown=${aplicarComando('underline')}>
+        <button type="button" tabIndex="-1" class=${'rh-editor-toolbar-btn' + (formatosAtivos.underline ? ' is-active' : '')} aria-pressed=${formatosAtivos.underline} title="Sublinhado" onMouseDown=${aplicarComando('underline')}>
           <u>U</u>
         </button>
         <select

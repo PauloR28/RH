@@ -8,7 +8,7 @@ import {
   PainelRh,
   SectionCard,
 } from '../../ui/componentes-compartilhados.js';
-import { EditorMural } from '../../ui/components/mural-editor.js';
+import { EditorMural } from '../../ui/components/mural-editor.js?v=20260929-bold-ativo';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { formatarDataHora } from '../../shared/helpers-visuais.js';
@@ -748,7 +748,7 @@ export function TelaMural({ controlador }) {
       <${ModalConfirmacaoAcao}
         aberto=${!!publicacaoParaExcluir}
         titulo="Excluir publicação"
-        descricao=${`Tem certeza que deseja excluir "${publicacaoParaExcluir?.titulo || ''}"? Esta ação não pode ser desfeita.`}
+        descricao=${`Tem certeza que deseja excluir "${publicacaoParaExcluir?.titulo || ''}"? A publicação também será removida das intranets (SharePoint). Esta ação não pode ser desfeita.`}
         tipo="destrutivo"
         textoConfirmar="Excluir"
         onClose=${() => setPublicacaoParaExcluir(null)}

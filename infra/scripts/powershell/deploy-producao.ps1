@@ -50,9 +50,11 @@ if (Test-Path $venvDir) {
     Remove-Item $venvDir -Recurse -Force
 }
 python -m venv $venvDir
-& (Join-Path $venvDir "Scripts\pip.exe") install --quiet --upgrade pip
+$venvPython = Join-Path $venvDir "Scripts\python.exe"
+# No Windows o pip.exe nao pode se sobrescrever: atualizar sempre via "python -m pip".
+& $venvPython -m pip install --quiet --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw "Falha ao atualizar o pip (codigo $LASTEXITCODE)." }
-& (Join-Path $venvDir "Scripts\pip.exe") install --quiet -r (Join-Path $AppDir "requirements.txt")
+& $venvPython -m pip install --quiet -r (Join-Path $AppDir "requirements.txt")
 if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar requirements.txt (codigo $LASTEXITCODE)." }
 Write-Host "OK - dependencias instaladas"
 
