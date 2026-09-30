@@ -41,7 +41,7 @@ import {
   salvarPreferenciasNotificacao,
 } from '../../shared/notificacoes.js?v=20260921-alertas';
 import { IconeSvg } from '../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -4251,32 +4251,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               >
                 <${Icone} name="refresh" />
               </button>
-              ${ehAdministrador ? html`
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  title="Passa os operadores de um supervisor para outro (ex.: férias)"
-                  onClick=${() => setTransferindoSupervisao(true)}
-                >
-                  Transferir supervisão
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  title="Move um Operador ou Supervisor para outra operação"
-                  onClick=${() => setTransferindoOperacao(true)}
-                >
-                  Transferir de operação
-                </button>` : null}
-              <button
-                type="button"
-                class="btn btn-outline-primary btn-sm"
-                title="Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento"
-                disabled=${!controlador.possuiPermissao('usuarios.criar')}
-                onClick=${abrirCriacaoUsuarioRapido}
-              >
-                Criar usuário rápido
-              </button>
               <button
                 type="button"
                 class="btn btn-primary btn-sm"
@@ -4285,6 +4259,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               >
                 Criar usuário
               </button>
+              <${MenuAcoesProcesso}
+                label="Ações"
+                mostrarLabel=${true}
+                icon="expand_more"
+                ariaLabel="Ações de usuários"
+                triggerClassName="btn btn-outline-secondary btn-sm c24-acoes-trigger"
+                acoes=${[
+                  ehAdministrador ? { label: 'Transferir supervisão', icon: 'swap_horiz', title: 'Passa os operadores de um supervisor para outro (ex.: férias)', onClick: () => setTransferindoSupervisao(true) } : null,
+                  ehAdministrador ? { label: 'Transferir de operação', icon: 'move_up', title: 'Move um Operador ou Supervisor para outra operação', onClick: () => setTransferindoOperacao(true) } : null,
+                  { label: 'Criar usuário rápido', icon: 'person_add', title: 'Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: abrirCriacaoUsuarioRapido },
+                ]}
+              />
             `
       : null}
       />

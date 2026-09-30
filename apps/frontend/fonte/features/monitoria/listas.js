@@ -4,12 +4,12 @@ import {
   compartilharMonitorias,
   criarPlano,
   exportarMonitorias,
+  excluirMonitoria,
   exportarRelatorio,
   lerPlano,
   lerRelatorio,
   listarDestinatarios,
   listarMonitorias,
-  listarMonitoriasExcluidas,
   listarOperadoresMonitoria,
   listarPlanos,
   revisarPlano,
@@ -51,14 +51,11 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       ? { ...PRESETS.historico, texto: 'Histórico das suas monitorias. Busque por ID, data ou avaliador.' }
       : PRESETS[modo] || PRESETS.historico;
   const podeExportar = controlador.possuiPermissao('monitoria.exportar');
-  const [excluidas, setExcluidas] = useState(null);
-  const abrirExcluidas = async () => {
-    try {
-      setExcluidas((await listarMonitoriasExcluidas())?.itens || []);
-    } catch (e) {
-      showToast?.(e?.message || 'Não foi possível listar as monitorias excluídas.', 'danger');
-    }
-  };
+  // Exclusão lógica em lote: só Administrador (o backend valida de novo, monitoria por monitoria).
+  const ehAdministrador = perfil === 'administrador';
+  const [excluindo, setExcluindo] = useState(null); // { motivo, confirmacao }
+  const [excluindoAndamento, setExcluindoAndamento] = useState(false);
+  const [codigos, setCodigos] = useState({});
   const padrao = { ...FILTROS_VAZIOS, status: preset.status };
   // `rascunho` é o que está nos campos; `filtros` é o que já foi aplicado à consulta.
   const [rascunho, setRascunho] = useState(padrao);
@@ -68,6 +65,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [selecionadas, setSelecionadas] = useState([]);
+  const podeSelecionar = podeExportar || (ehAdministrador && modo === 'historico');
   const porPagina = 20;
 
   useEffect(() => {
@@ -110,6 +108,30 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
   const alternarTodas = () =>
     setSelecionadas((s) => (todasMarcadas ? s.filter((id) => !idsDaPagina.includes(id)) : [...new Set([...s, ...idsDaPagina])]));
 
+  useEffect(() => {
+    setCodigos((atual) => ({ ...atual, ...Object.fromEntries((dados.itens || []).map((m) => [m.id_monitoria, m.codigo])) }));
+  }, [dados]);
+
+  const excluirSelecionadas = async () => {
+    setExcluindoAndamento(true);
+    let feitas = 0;
+    let falha = '';
+    for (const id of selecionadas) {
+      try {
+        await excluirMonitoria(codigos[id] || String(id), excluindo.motivo.trim(), codigos[id] || '');
+        feitas += 1;
+      } catch (e) {
+        falha = e?.message || 'Não foi possível excluir.';
+        break;
+      }
+    }
+    setExcluindoAndamento(false);
+    setExcluindo(null);
+    setSelecionadas([]);
+    showToast?.(falha ? `${feitas} excluída(s). Parou com erro: ${falha}` : `${feitas} monitoria(s) excluída(s).`, falha ? 'danger' : 'success');
+    setFiltros((f) => ({ ...f }));
+  };
+
   const exportarSelecionadas = async () => {
     try {
       baixarArquivo(await exportarMonitorias(selecionadas));
@@ -137,23 +159,33 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
             <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>
           </button>
           <button type="button" class="btn btn-primary" onClick=${aplicar}>Aplicar filtros</button>
-          ${perfil === 'administrador' && modo === 'historico' ? html`
-            <button type="button" class="btn btn-outline-secondary" onClick=${abrirExcluidas} title="Monitorias excluídas (somente Administrador)">Excluídas</button>` : null}
         </div>
       </div>
-      <${ModalPadrao} aberto=${excluidas !== null} titulo="Monitorias excluídas" subtitulo="Não aparecem em listas, painéis nem indicadores. Abra uma para ver o motivo ou restaurar." onClose=${() => setExcluidas(null)}>
-        ${excluidas && excluidas.length ? html`
-          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>ID</th><th>Operação</th><th>Operador</th><th class="num">Nota</th><th>Excluída em</th><th>Por</th><th>Motivo</th><th></th></tr></thead><tbody>
-            ${excluidas.map((m) => html`<tr key=${m.id_monitoria}><td>#${m.codigo}</td><td>${m.operacao_nome}</td><td>${m.operador_nome}</td><td class="num">${formatarNota(m.nota)}</td>
-              <td>${formatarDataHoraCurta(m.excluida_em)}</td><td>${m.excluida_por}</td><td>${m.motivo}</td>
-              <td><button type="button" class="btn btn-link btn-sm" onClick=${() => { setExcluidas(null); abrirDetalhe(m.codigo); }}>Abrir</button></td></tr>`)}
-          </tbody></table></div>` : html`<p class="mon-muted">Nenhuma monitoria excluída.</p>`}
+      <${ModalPadrao} aberto=${excluindo !== null} titulo="Excluir monitorias" onClose=${() => !excluindoAndamento && setExcluindo(null)}>
+        ${excluindo ? html`
+          <div class="mon-shell">
+            <p><strong>${selecionadas.length} monitoria(s) serão excluídas</strong> de listas, painéis e indicadores. Fica registrado no log com o motivo.</p>
+            <label class="mon-campo">Motivo (obrigatório)
+              <input class="form-control" maxlength="400" value=${excluindo.motivo} onInput=${(e) => setExcluindo({ ...excluindo, motivo: e.target.value })} />
+            </label>
+            <label class="mon-campo">Digite EXCLUIR para confirmar
+              <input class="form-control" value=${excluindo.confirmacao} onInput=${(e) => setExcluindo({ ...excluindo, confirmacao: e.target.value })} />
+            </label>
+            <div class="mon-acoes">
+              <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${excluindoAndamento} onClick=${() => setExcluindo(null)}>Cancelar</button>
+              <button type="button" class="btn btn-danger btn-sm" disabled=${excluindoAndamento || excluindo.motivo.trim().length < 5 || excluindo.confirmacao.trim() !== 'EXCLUIR'} onClick=${excluirSelecionadas}>
+                ${excluindoAndamento ? 'Excluindo...' : 'Excluir'}</button>
+            </div>
+          </div>` : null}
       </${ModalPadrao}>
 
-      ${podeExportar && selecionadas.length ? html`
+      ${podeSelecionar && selecionadas.length ? html`
         <div class="mon-acoes mon-acoes--selecao"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>
+          ${podeExportar ? html`
           <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportarSelecionadas}>Exportar seleção (XLSX)</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirDetalhe(selecionadas.length === 1 ? String(selecionadas[0]) : null, { compartilhar: selecionadas })}>Compartilhar por e-mail</button></div>` : null}
+          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirDetalhe(selecionadas.length === 1 ? String(selecionadas[0]) : null, { compartilhar: selecionadas })}>Compartilhar por e-mail</button>` : null}
+          ${ehAdministrador && modo === 'historico' ? html`
+          <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo({ motivo: '', confirmacao: '' })}>Excluir seleção</button>` : null}</div>` : null}
 
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
       ${carregando ? html`<${LoadingState} titulo="Carregando monitorias" />` : !dados.itens.length ? html`
@@ -162,7 +194,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
           <table class="mon-tabela">
             <thead><tr>
               <th><span class="mon-th-id">
-                ${podeExportar ? html`<input type="checkbox" aria-label="Selecionar todas as monitorias da página" checked=${todasMarcadas}
+                ${podeSelecionar ? html`<input type="checkbox" aria-label="Selecionar todas as monitorias da página" checked=${todasMarcadas}
                   ref=${(el) => { if (el) el.indeterminate = algumaMarcada && !todasMarcadas; }} onChange=${alternarTodas} />` : null}
                 ID</span></th><th>Data</th><th>Operação</th><th>Operador</th><th>Equipe</th><th>Avaliador</th><th class="num">Nota</th><th>Status nota</th><th>Status</th><th>Prazo</th>
             </tr></thead>
@@ -170,7 +202,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
               ${dados.itens.map((m) => html`
                 <tr key=${m.id_monitoria} class="is-clicavel" onClick=${() => abrirDetalhe(String(m.id_monitoria))}>
                   <td><span class="mon-th-id">
-                    ${podeExportar ? html`<input type="checkbox" aria-label=${`Selecionar ${m.codigo}`} checked=${selecionadas.includes(m.id_monitoria)}
+                    ${podeSelecionar ? html`<input type="checkbox" aria-label=${`Selecionar ${m.codigo}`} checked=${selecionadas.includes(m.id_monitoria)}
                       onClick=${(e) => e.stopPropagation()} onChange=${() => alternar(m.id_monitoria)} />` : null}
                     <strong>#${m.codigo}</strong></span></td>
                   <td>${formatarData(m.data_monitoria)}</td>

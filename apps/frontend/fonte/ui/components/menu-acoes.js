@@ -6,6 +6,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 export function MenuAcoesProcesso({
   acoes = [],
   label = '',
+  mostrarLabel = false,
   icon = 'more_horiz',
   ariaLabel = 'Mais ações',
   className = '',
@@ -92,6 +93,7 @@ export function MenuAcoesProcesso({
         onClick=${alternarMenu}
       >
        
+        ${mostrarLabel && label ? label : null}
         <span class="material-symbols-outlined">${IconeSvg(icon)}</span>
       </button>
       ${aberto

@@ -16,7 +16,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA, schema_formularios_exclusao_statements
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -839,6 +839,7 @@ class MonitoriaRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            self._mon_garantir_exclusoes(cursor)
             base = "FROM dbo.monitorias m JOIN dbo.monitoria_estado e ON e.id_monitoria = m.id_monitoria"
             # Excluídas logicamente pelo Administrador não aparecem na lista.
             where = f"{where} AND {SQL_MONITORIA_NAO_EXCLUIDA}" if where else f"WHERE {SQL_MONITORIA_NAO_EXCLUIDA}"
@@ -891,6 +892,18 @@ class MonitoriaRepositoryMixin:
     # confirmação pelo código. A monitoria continua intacta (tabela imutável);
     # monitoria_exclusoes a esconde de listas, painéis, indicadores e fluxo.
     # ------------------------------------------------------------------
+    def _mon_garantir_exclusoes(self, cursor) -> None:
+        """Se o bootstrap do schema não rodou/falhou neste ambiente, a tabela de exclusão
+        lógica não existe e excluir estourava erro. Cria (idempotente) na primeira necessidade."""
+        if getattr(type(self), "_mon_exclusoes_ok", False):
+            return
+        cursor.execute("SELECT OBJECT_ID('dbo.monitoria_exclusoes', 'U')")
+        if not cursor.fetchone()[0]:
+            # Só a tabela de exclusão (a última instrução): evita DDL em tabelas em uso.
+            cursor.execute(schema_formularios_exclusao_statements()[-1])
+            cursor.connection.commit()  # DDL precisa persistir mesmo se a operação seguinte der erro
+        type(self)._mon_exclusoes_ok = True
+
     def _mon_exclusao(self, cursor, id_monitoria: int) -> dict | None:
         cursor.execute(
             "SELECT excluida_por_nome, motivo, excluida_em FROM dbo.monitoria_exclusoes WHERE id_monitoria = ?",
@@ -914,6 +927,7 @@ class MonitoriaRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            self._mon_garantir_exclusoes(cursor)
             cursor.execute(
                 "SELECT id_monitoria, codigo, operacao, id_operador, operador_nome, avaliador_nome, nota, data_monitoria, anulada "
                 "FROM dbo.monitorias WHERE " + ("codigo = ?" if len(ref) == 8 and ref.isdigit() else "id_monitoria = ?"),
