@@ -273,3 +273,31 @@ def test_control_desk_pode_ser_vinculado_a_operacoes(ctx):
     cd = _user(ROLE_CONTROL_DESK, criado["id_usuario"], [ctx.op, ctx.outra], "CD Vinculado")
     assert {o["chave"] for o in repo.wfm_contexto(cd)["operacoes"]} == {ctx.op, ctx.outra}
     assert repo.wfm_contexto(_user(ROLE_CONTROL_DESK, criado["id_usuario"], [], "CD"))["operacoes"] == []
+
+
+def test_semeio_de_padroes_tolera_requisicoes_simultaneas(ctx):
+    """Regressão: a tela de Cadastros faz 5 chamadas em paralelo; o semeio não pode estourar a chave única."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    repo = ctx.repo
+    nova = f"WFMTESTE_{uuid.uuid4().hex[:4].upper()}"
+    repo.upsert_configuration_item("operacoes", {"chave": nova, "nome": f"Op {nova}", "ativo": True})
+    gestor = _user(ROLE_MANAGER, 9010, [], "Gestor")
+    try:
+        chamadas = [lambda: repo.wfm_list_contratos(gestor, nova), lambda: repo.wfm_list_turnos(gestor, nova),
+                    lambda: repo.wfm_list_skills(gestor, nova), lambda: repo.wfm_list_calendario(gestor, nova),
+                    lambda: repo.wfm_get_escala(gestor, nova, "2027-03")] * 2
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            resultados = [f.result() for f in [pool.submit(c) for c in chamadas]]
+        assert len(resultados) == 10
+        assert {c["codigo"] for c in repo.wfm_list_contratos(gestor, nova)} >= {"CLT8", "APR6"}
+    finally:
+        conn = repo._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM dbo.wfm_contratos WHERE operacao = ?", (nova,))
+            cur.execute("DELETE FROM dbo.wfm_turnos WHERE operacao = ?", (nova,))
+            cur.execute("DELETE FROM dbo.wfm_escalas WHERE operacao = ?", (nova,))
+            conn.commit()
+        finally:
+            conn.close()

@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import pyodbc
+
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR
@@ -133,23 +135,31 @@ class WfmRepositoryMixin:
 
     def _wfm_garantir_padroes(self, cursor, operacao: str) -> None:
         """Semeia contratos e turnos fixos (folga/DSR) da operação, sem sobrescrever."""
+        # A tela dispara várias requisições ao mesmo tempo: o semeio precisa tolerar concorrência
+        # (travas no EXISTS e, por garantia, colisão de chave única é ignorada — outra requisição já semeou).
         for codigo, nome, tipo, jornada, inter, dias, feriado, duro, pausas in CONTRATOS_PADRAO:
-            cursor.execute(
-                """
-                IF NOT EXISTS (SELECT 1 FROM dbo.wfm_contratos WHERE operacao = ? AND codigo = ?)
-                INSERT INTO dbo.wfm_contratos (operacao, codigo, nome, tipo, jornada_diaria_max_min,
-                    interjornada_min_min, max_dias_consecutivos, jornada_feriado_max_min,
-                    jornada_bloqueio_duro, exigencias_pausa_json, atualizado_por)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sistema')
-                """,
-                (operacao, codigo, operacao, codigo, nome, tipo, jornada, inter, dias, feriado, 1 if duro else 0, _json(pausas)),
-            )
+            try:
+                cursor.execute(
+                    """
+                    IF NOT EXISTS (SELECT 1 FROM dbo.wfm_contratos WITH (UPDLOCK, HOLDLOCK) WHERE operacao = ? AND codigo = ?)
+                    INSERT INTO dbo.wfm_contratos (operacao, codigo, nome, tipo, jornada_diaria_max_min,
+                        interjornada_min_min, max_dias_consecutivos, jornada_feriado_max_min,
+                        jornada_bloqueio_duro, exigencias_pausa_json, atualizado_por)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sistema')
+                    """,
+                    (operacao, codigo, operacao, codigo, nome, tipo, jornada, inter, dias, feriado, 1 if duro else 0, _json(pausas)),
+                )
+            except pyodbc.IntegrityError:
+                pass
         for codigo, nome, tipo, cor in TURNOS_FIXOS_PADRAO:
-            cursor.execute(
-                "IF NOT EXISTS (SELECT 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ?) "
-                "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, atualizado_por) VALUES (?, ?, ?, ?, ?, 'sistema')",
-                (operacao, codigo, operacao, codigo, nome, tipo, cor),
-            )
+            try:
+                cursor.execute(
+                    "IF NOT EXISTS (SELECT 1 FROM dbo.wfm_turnos WITH (UPDLOCK, HOLDLOCK) WHERE operacao = ? AND codigo = ?) "
+                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, atualizado_por) VALUES (?, ?, ?, ?, ?, 'sistema')",
+                    (operacao, codigo, operacao, codigo, nome, tipo, cor),
+                )
+            except pyodbc.IntegrityError:
+                pass
 
     # ------------------------------------------------------------------
     # Contexto
