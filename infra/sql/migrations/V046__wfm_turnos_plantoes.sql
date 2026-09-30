@@ -163,7 +163,7 @@ BEGIN
         operacao NVARCHAR(60) NOT NULL,
         id_operador INT NOT NULL,
         data DATE NOT NULL,
-        status NVARCHAR(12) NOT NULL,
+        status NVARCHAR(20) NOT NULL,
         observacao NVARCHAR(300) NULL,
         lancado_por NVARCHAR(180) NULL,
         atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_presencas_atualizado_em DEFAULT GETDATE(),

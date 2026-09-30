@@ -229,6 +229,12 @@ def test_presenca_sem_prazo_e_atestado_sem_arquivo(ctx):
     # Sem prazo: lança e corrige em qualquer data (aqui, mês passado e futuro).
     ctx.repo.wfm_lancar_presenca(ctx.sup, ctx.op, ctx.id_a, "2026-01-05", "FALTA")
     ctx.repo.wfm_lancar_presenca(ctx.sup, ctx.op, ctx.id_a, "2026-01-05", "PRESENTE", "corrigido")
+    # todos os status cabem na coluna (regressão: FALTA_JUSTIFICADA estourava NVARCHAR(12))
+    from rh_api.repositories.wfm_escala import STATUS_PRESENCA
+
+    for n, st in enumerate(STATUS_PRESENCA):
+        ctx.repo.wfm_lancar_presenca(ctx.sup, ctx.op, ctx.id_a, f"2026-01-{10 + n:02d}", st)
+    assert {p["status"] for p in ctx.repo.wfm_list_presencas(ctx.sup, ctx.op, "2026-01")} >= {"FALTA_JUSTIFICADA"}
     assert _erro(ctx.repo.wfm_lancar_presenca, ctx.sup, ctx.op, ctx.id_c, "2027-03-05", "FALTA").status_code == 403  # fora da equipe
     ctx.repo.wfm_registrar_atestado(ctx.sup, ctx.op, ctx.id_a, "2027-03-10", "2027-03-12", "MEDICO")
     pres = {p["data"]: p["status"] for p in ctx.repo.wfm_list_presencas(ctx.sup, ctx.op, MES)}

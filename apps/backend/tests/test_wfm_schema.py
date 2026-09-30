@@ -29,3 +29,11 @@ def test_atestado_nao_guarda_arquivo_nem_cid():
     sql = "\n".join(schema_statements()).lower()
     bloco = sql.split("create table dbo.wfm_atestados")[1].split(");")[0]
     assert "cid" not in bloco.replace("validado", "") and "arquivo" not in bloco and "anexo" not in bloco
+
+
+def test_migration_v048_ajustes_e_gerada_do_mesmo_ddl():
+    from rh_api.repositories.wfm_schema import render_migration_ajustes_sql
+
+    arquivo = REPO_ROOT / "infra" / "sql" / "migrations" / "V048__wfm_ajustes.sql"
+    assert arquivo.read_text(encoding="utf-8") == render_migration_ajustes_sql()
+    assert "NVARCHAR(20)" in render_migration_ajustes_sql()

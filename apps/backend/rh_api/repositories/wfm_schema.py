@@ -162,7 +162,7 @@ _TABELAS: list[tuple[str, str]] = [
         operacao NVARCHAR(60) NOT NULL,
         id_operador INT NOT NULL,
         data DATE NOT NULL,
-        status NVARCHAR(12) NOT NULL,
+        status NVARCHAR(20) NOT NULL,
         observacao NVARCHAR(300) NULL,
         lancado_por NVARCHAR(180) NULL,
         atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_presencas_atualizado_em DEFAULT GETDATE(),
@@ -247,7 +247,7 @@ def schema_statements() -> list[str]:
 
 
 def ensure_wfm_schema(cursor) -> None:
-    for instrucao in schema_statements() + schema_trocas_statements():
+    for instrucao in schema_statements() + schema_trocas_statements() + schema_ajustes_statements():
         cursor.execute(instrucao)
 
 
@@ -327,3 +327,22 @@ def render_migration_trocas_sql() -> str:
         "-- wfm_trocas_eventos recebe trigger INSTEAD OF UPDATE/DELETE (historico imutavel).\n\n"
     )
     return cabecalho + "\n\n".join(schema_trocas_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Ajustes (V048): alarga wfm_presencas.status (12 -> 20; 'FALTA_JUSTIFICADA' tem 17). Idempotente.
+# Bancos criados pela V046 original ficam com NVARCHAR(12); os novos já nascem com 20.
+# ---------------------------------------------------------------------------
+def schema_ajustes_statements() -> list[str]:
+    return [
+        "IF OBJECT_ID('dbo.wfm_presencas', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_presencas', 'status') < 40\n"
+        "BEGIN\n    ALTER TABLE dbo.wfm_presencas ALTER COLUMN status NVARCHAR(20) NOT NULL;\nEND;"
+    ]
+
+
+def render_migration_ajustes_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: ajustes de schema (alarga wfm_presencas.status para NVARCHAR(20)).\n"
+        "-- Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py (teste garante que coincide).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_ajustes_statements()) + "\n"
