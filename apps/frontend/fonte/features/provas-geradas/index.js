@@ -34,6 +34,8 @@ import {
 } from '../../servico-api.js?v=20260902-correcoes-txt';
 import { escaparHtml, obterItensPaginados } from '../../utilitarios.js';
 import { listarOperacoes } from '../../services/api/operations.js';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js';
 import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js';
 import { TelaConectaProvas } from '../conecta-provas/index.js';
 import { PainelResultadoDisc } from '../disc/index.js';
@@ -377,6 +379,8 @@ function montarFormularioInicial(contexto = {}) {
     ),
     expira_em: normalizarTexto(candidato.expira_em || ''),
     login_method: normalizarTexto(candidato.login_method || ''),
+    agendada_para: '',
+    agendada_duracao_min: 60,
     duracao_etapas: Array.isArray(candidato.etapas)
       ? Object.fromEntries(
         candidato.etapas
@@ -925,6 +929,29 @@ export function ModalGerarProva({
     };
   };
 
+  const [extraindoCv, setExtraindoCv] = useState(false);
+  const podePreencherComCv = Boolean(contexto.processoIndividual && contexto.candidato?.id_teste);
+
+  const preencherComCv = async () => {
+    setExtraindoCv(true);
+    setErro('');
+    try {
+      const contato = await extrairContatoCvCandidato(contexto.candidato.id_teste);
+      setFormulario((anterior) => ({
+        ...anterior,
+        nome_candidato: contato?.nome || anterior.nome_candidato,
+        email: contato?.email || anterior.email,
+        telefone: contato?.telefone
+          ? formatarTelefoneBrasileiro(contato.telefone)
+          : anterior.telefone,
+      }));
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível ler os dados do currículo.');
+    } finally {
+      setExtraindoCv(false);
+    }
+  };
+
   const gerar = async () => {
     const nome = normalizarTexto(formulario.nome_candidato);
     const email = normalizarTexto(formulario.email);
@@ -953,8 +980,13 @@ export function ModalGerarProva({
       setErro('Selecione o candidato que receberá a prova.');
       return;
     }
-    if (!contexto.provaEditar && candidatoSelecionado && !statusPermiteGerarProva(candidatoSelecionado)) {
+    if (!contexto.provaEditar && !contexto.processoIndividual && candidatoSelecionado && !statusPermiteGerarProva(candidatoSelecionado)) {
       setErro('O status atual do candidato não está apto para gerar prova.');
+      return;
+    }
+
+    if (contexto.processoIndividual && !formulario.agendada_para) {
+      setErro('Informe o dia e o horário em que o candidato deve vir fazer a prova.');
       return;
     }
 
@@ -1025,6 +1057,8 @@ export function ModalGerarProva({
       situacao_pratica_operacao: formulario.situacao_pratica_operacao,
       expira_em: formulario.expira_em,
       login_method: formulario.personalizacao_inteligente ? formulario.login_method : '',
+      agendada_para: formulario.agendada_para || '',
+      agendada_duracao_min: Number(formulario.agendada_duracao_min || 60),
       configuracao: {
         blueprint_key: blueprint.key || '',
         blueprint_label: blueprint.label || formulario.area_prova || '',
@@ -1106,6 +1140,16 @@ export function ModalGerarProva({
           title="Dados do candidato"
           description="Esses dados serão usados para autenticar e confirmar o candidato."
           className="rh-section-card--flat"
+          actions=${podePreencherComCv ? html`
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              disabled=${extraindoCv}
+              onClick=${preencherComCv}
+            >
+              ${extraindoCv ? 'Lendo CV...' : 'Preencher com o CV'}
+            </button>
+          ` : null}
         >
           <div class="row g-3">
             ${candidatosElegiveis.length ? html`
@@ -1155,7 +1199,7 @@ export function ModalGerarProva({
             </div>
             <div class="col-md-4">
               <label class="form-label">Processo vinculado</label>
-              <input class="form-control" readonly value=${formulario.id_processo_ref || 'Prova avulsa'} />
+              <input class="form-control" readonly value=${formulario.id_processo_ref || (contexto.processoIndividual ? 'Processo individual' : 'Prova avulsa')} />
             </div>
             <div class="col-md-4">
               <label class="form-label">Cargo/Vaga</label>
@@ -1178,6 +1222,30 @@ export function ModalGerarProva({
                 value=${candidatosElegiveis.find((item) => String(item.id_registro || item.id_teste || '') === String(formulario.id_registro || formulario.id_teste || ''))?.status_entrevista || contexto.candidato?.status_fluxo || contexto.candidato?.status_candidato || contexto.candidato?.status_entrevista || (contexto.provaEditar ? 'Prova não iniciada' : 'Prova avulsa')}
               />
             </div>
+            ${contexto.processoIndividual ? html`
+              <div class="col-md-4">
+                <label class="form-label">Dia e horário da prova</label>
+                <input
+                  class="form-control"
+                  type="datetime-local"
+                  value=${formulario.agendada_para}
+                  onInput=${(event) => atualizarCampo('agendada_para', event.target.value)}
+                />
+                <div class="form-text">Ocupa esse horário no Calendário.</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Duração reservada (min)</label>
+                <input
+                  class="form-control"
+                  type="number"
+                  min="15"
+                  max="480"
+                  step="15"
+                  value=${formulario.agendada_duracao_min}
+                  onInput=${(event) => atualizarCampo('agendada_duracao_min', event.target.value)}
+                />
+              </div>
+            ` : null}
           </div>
         </${SectionCard}>
 
@@ -2369,10 +2437,12 @@ function ModalDecisaoRh({ prova, onClose, onSave }) {
     score_considerado: true,
   });
   const [salvando, setSalvando] = useState(false);
+  const [aprovando, setAprovando] = useState(false);
   const [erro, setErro] = useState('');
 
   useEffect(() => {
     if (!prova) return;
+    setAprovando(false);
     setFormulario({
       decisao: 'Pendente',
       justificativa: '',
@@ -2384,16 +2454,27 @@ function ModalDecisaoRh({ prova, onClose, onSave }) {
 
   if (!prova) return null;
 
-  const salvar = async () => {
+  const salvar = async (extra = {}) => {
     setSalvando(true);
     setErro('');
     try {
-      await onSave(formulario);
+      await onSave({ ...formulario, ...extra });
     } catch (error) {
       setErro(error?.message || 'Não foi possível registrar a decisão.');
     } finally {
       setSalvando(false);
+      setAprovando(false);
     }
+  };
+
+  // Aprovado abre os mesmos campos de aprovação da Central (mensagem,
+  // data de comparecimento, documentos e anexo) antes de registrar.
+  const registrar = () => {
+    if (String(formulario.decisao || '').startsWith('Aprovado')) {
+      setAprovando(true);
+      return;
+    }
+    salvar();
   };
 
   return html`
@@ -2449,11 +2530,18 @@ function ModalDecisaoRh({ prova, onClose, onSave }) {
       </div>
       <footer class="rh-modal-footer">
         <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${onClose}>Cancelar</button>
-        <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${salvar}>
+        <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${registrar}>
           ${salvando ? 'Registrando...' : 'Registrar decisão'}
         </button>
       </footer>
     </${ModalPadrao}>
+    <${ModalAprovacaoCandidato}
+      aberto=${aprovando}
+      candidato=${{ nome_candidato: prova.nome_candidato, vaga: prova.vaga }}
+      salvando=${salvando}
+      onClose=${() => setAprovando(false)}
+      onConfirm=${(dadosAprovacao) => salvar(dadosAprovacao)}
+    />
   `;
 }
 

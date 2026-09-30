@@ -3179,6 +3179,8 @@ def ensure_conecta_exams_tables(cursor) -> None:
         ("cancelada_por", "NVARCHAR(180)"),
         ("motivo_cancelamento", "NVARCHAR(MAX)"),
         ("dados_confirmados_em", "DATETIME"),
+        ("agendada_para", "DATETIME"),
+        ("agendada_duracao_min", "INT"),
         ("atualizado_em", "DATETIME"),
     ):
         cursor.execute(

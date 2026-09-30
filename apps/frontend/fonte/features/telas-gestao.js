@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20260929-qa-lucas';
+} from './gestao/index.js?v=20260930-processo-individual';

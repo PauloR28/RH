@@ -616,6 +616,21 @@ class PublicCandidacyRepositoryMixin:
                             "size_bytes": len(content),
                         }
 
+                if safe_id_teste.upper().startswith("EMAIL-"):
+                    # CV manual anterior ao vínculo por id_teste: o arquivo fica
+                    # salvo no item da caixa (id = id_teste sem o prefixo).
+                    try:
+                        saved = self.get_configured_email_inbox_attachment(safe_id_teste[6:], "")
+                    except HTTPException:
+                        saved = None
+                    if saved and saved.get("path"):
+                        return {
+                            "path": saved["path"],
+                            "filename": normalize_text(saved.get("filename")) or "curriculo",
+                            "media_type": normalize_text(saved.get("content_type")) or "application/octet-stream",
+                            "size_bytes": saved.get("size"),
+                        }
+
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Currículo do candidato não encontrado.")
 
             row = rows[0]

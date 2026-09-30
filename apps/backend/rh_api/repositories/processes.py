@@ -917,8 +917,20 @@ class ProcessRepositoryMixin:
                     for item in rows
                     if normalize_text(item.get("id_teste"))
                 }
+                standalone_exam_rows = self._get_standalone_generated_exam_candidates(
+                    cursor,
+                    existing_candidate_ids,
+                )
+                rows.extend(standalone_exam_rows)
+                existing_candidate_ids |= {
+                    normalize_text(item.get("id_teste"))
+                    for item in standalone_exam_rows
+                    if normalize_text(item.get("id_teste"))
+                }
+                # Todo candidato entra no Conecta e precisa aparecer aqui, com ou
+                # sem prova/processo (CV adicionado manualmente na Caixa de CV).
                 rows.extend(
-                    self._get_standalone_generated_exam_candidates(
+                    self._get_standalone_manual_cv_candidates(
                         cursor,
                         existing_candidate_ids,
                     )

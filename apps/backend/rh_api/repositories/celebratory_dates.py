@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from ..cache import get_cache_client
 from ..services.graph_client import GraphClient
 from ..services.helpers import normalize_text, rows_to_dicts, safe_json_loads
-from .bootstrap import ensure_celebratory_dates_table
+from .bootstrap import ensure_celebratory_dates_table, ensure_conecta_exams_tables
 from .interviews import OCCUPYING_INTERVIEW_STATUSES
 
 # Cache de queries (roadmap de expansão, respostas.txt): listagem de datas
@@ -109,7 +109,7 @@ class CelebratoryDateRepositoryMixin:
         cache.set(_CELEBRATORY_DATES_CACHE_KEY, rows, ttl_seconds=_CELEBRATORY_DATES_CACHE_TTL_SECONDS)
         return rows
 
-    def list_calendar_events(self, *, include_interviews: bool = False) -> list[dict]:
+    def list_calendar_events(self, *, include_interviews: bool = False, include_exams: bool = False) -> list[dict]:
         """Combina datas comemorativas com entrevistas agendadas ativas, lendo ao vivo das
         duas fontes já existentes (sem duplicar dados em uma tabela própria de eventos)."""
         events: list[dict] = [
@@ -144,7 +144,44 @@ class CelebratoryDateRepositoryMixin:
                     }
                 )
 
+        if include_exams:
+            events.extend(self._list_scheduled_exam_events())
+
         return events
+
+    def _list_scheduled_exam_events(self) -> list[dict]:
+        """Provas com dia/horário marcado (ex.: "Gerar processo individual")
+        ocupam um horário no calendário, ao lado das entrevistas."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_conecta_exams_tables(cursor)
+            cursor.execute(
+                """
+                SELECT id_prova, nome_candidato, vaga, status, agendada_para, agendada_duracao_min
+                FROM dbo.provas_geradas
+                WHERE agendada_para IS NOT NULL
+                  AND ISNULL(status, '') NOT IN ('Cancelada', 'Finalizada', 'Corrigida', 'Expirada')
+                ORDER BY agendada_para
+                """
+            )
+            rows = rows_to_dicts(cursor, cursor.fetchall())
+        except Exception:
+            return []
+        finally:
+            conn.close()
+        return [
+            {
+                "id": f"prova-{row.get('id_prova')}",
+                "tipo": "prova",
+                "titulo": f"Prova — {row.get('nome_candidato') or 'Candidato'}",
+                "data": row["agendada_para"].isoformat() if hasattr(row["agendada_para"], "isoformat") else row["agendada_para"],
+                "duracao_minutos": row.get("agendada_duracao_min") or 60,
+                "vaga": row.get("vaga"),
+                "status": row.get("status"),
+            }
+            for row in rows
+        ]
 
     def get_endereco_empresa_formatado(self) -> str:
         """Endereço principal da empresa (Configurações > Operações),

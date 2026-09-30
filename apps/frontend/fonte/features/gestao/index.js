@@ -2669,6 +2669,7 @@ const FORM_CURRICULO_MANUAL_INICIAL = {
 };
 
 export function TelaCaixaEmail({ controlador }) {
+  const { showToast, ToastHost } = useToast();
   const [modalComporAberto, setModalComporAberto] = useState(false);
   const [modalCvManualAberto, setModalCvManualAberto] = useState(false);
   const [arquivoCvManual, setArquivoCvManual] = useState(null);
@@ -2699,6 +2700,7 @@ export function TelaCaixaEmail({ controlador }) {
       await adicionarCvManualCaixaEmail(arquivoCvManual);
       cacheSecoesEmail.clear();
       setChaveRecarregarEmails((valor) => valor + 1);
+      showToast('Currículo cadastrado. O candidato já está na Central de Candidatos.', 'success');
       setModalCvManualAberto(false);
       setArquivoCvManual(null);
     } catch (error) {
@@ -2771,6 +2773,7 @@ export function TelaCaixaEmail({ controlador }) {
       await criarCurriculoManualCaixaEmail(formCurriculoManual);
       cacheSecoesEmail.clear();
       setChaveRecarregarEmails((valor) => valor + 1);
+      showToast('Currículo cadastrado. O candidato já está na Central de Candidatos.', 'success');
       fecharModalCriarCurriculo();
     } catch (error) {
       setErroCurriculoManual(error?.message || 'Não foi possível criar o currículo.');
@@ -2787,6 +2790,7 @@ export function TelaCaixaEmail({ controlador }) {
       placeholderBusca="Cx de Currículos"
       controlador=${controlador}
     >
+      <${ToastHost} />
       <${PageIntro}
         kicker="Currículos recebidos"
         title="Cx de Currículos"

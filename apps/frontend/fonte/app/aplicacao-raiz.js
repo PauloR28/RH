@@ -84,7 +84,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260929-qa-lucas');
+const importarGestao = () => import('../features/telas-gestao.js?v=20260930-processo-individual');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -99,14 +99,14 @@ const TelaDetalhesProcesso = carregarTela(importarProcessos, 'TelaDetalhesProces
 const TelaProcessosDecisoesPendentes = carregarTela(importarProcessos, 'TelaProcessosDecisoesPendentes');
 const TelaProcessosEncerrados = carregarTela(importarProcessos, 'TelaProcessosEncerrados');
 const TelaProcessos = carregarTela(importarProcessos, 'TelaProcessos');
-const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaCandidatos');
-const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260916-correcoes-round4'), 'TelaDetalhesCandidato');
+const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260930-processo-individual'), 'TelaCandidatos');
+const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260930-processo-individual'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
 const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260929-qa-lucas'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
-const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260922-gerar-prova-collapse'), 'TelaProvasResultados');
+const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260930-processo-individual'), 'TelaProvasResultados');
 const TelaResultadosAnaliticosProcesso = carregarTela(
   () => import('../features/resultados-analiticos/index.js?v=20260904-identidade-conecta'),
   'TelaResultadosAnaliticosProcesso',
@@ -119,7 +119,7 @@ const importarMonitoria = () => import('../features/monitoria/index.js?v=2026092
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260916-correcoes-round4'), 'TelaCalendario');
+const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260923-emoji-categorias'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(

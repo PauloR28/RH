@@ -86,7 +86,10 @@ def list_calendar_events(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.list_calendar_events(include_interviews=user.has_permission("entrevistas.visualizar"))
+    return repository.list_calendar_events(
+        include_interviews=user.has_permission("entrevistas.visualizar"),
+        include_exams=user.has_permission("provas.visualizar"),
+    )
 
 
 @router.post("", dependencies=[Depends(require_permissions("calendario.editar"))])

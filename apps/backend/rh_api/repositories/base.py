@@ -12,6 +12,7 @@ from fastapi import HTTPException, status
 from ..config import Settings
 from ..db import get_connection
 from ..task_queue import enfileirar
+from ..services.email_inbox_service import MANUAL_UPLOAD_ORIGIN
 from ..services.helpers import (
     clamp_limit,
     normalize_compare_text,
@@ -494,6 +495,93 @@ class BaseRepository:
                     "prova_cancelada_em": row.get("cancelada_em"),
                     "status_prova": normalize_text(row.get("status")),
                     "etapas_prova_json": normalize_text(row.get("resumo_etapas_json")),
+                }
+            )
+        return candidates
+
+    def _get_standalone_manual_cv_candidates(
+        self,
+        cursor,
+        existing_candidate_ids: set[str] | None = None,
+    ) -> list[dict]:
+        """Central de Candidatos: todo CV adicionado manualmente na Caixa de
+        Currículos (upload ou "Criar currículo") é candidato desde o primeiro
+        instante, mesmo sem processo nem prova. Enquanto não existir
+        candidatos_processos para o mesmo id_teste, ele entra na lista aqui;
+        depois de vinculado a um processo (ou de gerar prova individual) o
+        registro real assume e este some por deduplicação de id_teste."""
+        cursor.execute("SELECT OBJECT_ID('dbo.email_inbox_items', 'U')")
+        if not cursor.fetchone()[0]:
+            return []
+        cursor.execute(
+            """
+            SELECT
+                id, remetente, remetente_nome, data_recebimento, nome_detectado,
+                telefone_detectado, email_detectado, vaga_detectada, nome_anexo,
+                candidato_id, status, criado_em
+            FROM dbo.email_inbox_items
+            WHERE ISNULL(origem, '') = ?
+              AND ISNULL(ignorado, 0) = 0
+              AND ISNULL(status, '') NOT IN
+                  ('Vinculado ao processo', 'Enviado ao Banco de Talentos', 'Ignorado', 'Excluído')
+            ORDER BY data_recebimento DESC, criado_em DESC
+            """,
+            (MANUAL_UPLOAD_ORIGIN,),
+        )
+        rows = rows_to_dicts(cursor, cursor.fetchall())
+        if not rows:
+            return []
+
+        existing_ids = {
+            normalize_text(candidate_id)
+            for candidate_id in (existing_candidate_ids or set())
+            if normalize_text(candidate_id)
+        }
+        cursor.execute(
+            """
+            SELECT id_teste, status
+            FROM (
+                SELECT id_teste, status,
+                       ROW_NUMBER() OVER (PARTITION BY id_teste ORDER BY data_iso DESC) AS ordem
+                FROM historico_provas
+                WHERE ISNULL(id_teste, '') <> ''
+            ) historico
+            WHERE ordem = 1
+            """
+        )
+        status_por_teste = {
+            normalize_text(item.get("id_teste")): canonicalize_candidate_status(item.get("status"))
+            for item in rows_to_dicts(cursor, cursor.fetchall())
+        }
+
+        candidates = []
+        for row in rows:
+            id_teste = normalize_text(row.get("candidato_id")) or f"EMAIL-{normalize_text(row.get('id'))[:110]}"
+            if id_teste in existing_ids:
+                continue
+            nome = normalize_text(row.get("nome_detectado"))
+            if not nome:
+                stem = normalize_text(row.get("nome_anexo")).rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip()
+                nome = stem or "Candidato (CV manual)"
+            status_atual = status_por_teste.get(id_teste) or CANDIDATE_STATUS_ANALYSIS
+            telefone = normalize_text(row.get("telefone_detectado"))
+            candidates.append(
+                {
+                    "id_registro": None,
+                    "id_teste": id_teste,
+                    "nome_candidato": nome,
+                    "email": normalize_text(row.get("email_detectado")),
+                    "telefone": telefone,
+                    "whatsapp": telefone,
+                    "vaga": normalize_text(row.get("vaga_detectada")),
+                    "status_candidato": status_atual,
+                    "pontuacao_final": None,
+                    "data_prova": row.get("data_recebimento") or row.get("criado_em"),
+                    "origem": "CV manual",
+                    "etapa_pipeline": infer_pipeline_stage(status_atual, "CV manual", ""),
+                    "data_atualizacao_pipeline": row.get("criado_em"),
+                    "cv_manual_item_id": normalize_text(row.get("id")),
+                    "sem_processo": True,
                 }
             )
         return candidates

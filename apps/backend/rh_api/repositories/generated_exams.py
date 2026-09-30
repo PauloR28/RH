@@ -1058,6 +1058,12 @@ class GeneratedExamRepositoryMixin:
                     },
                 }
             expires_at = _parse_datetime(data.get("expira_em"))
+            scheduled_at = _parse_datetime(data.get("agendada_para"))
+            if normalize_text(data.get("agendada_para")) and scheduled_at is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Informe um dia e horário válidos para a prova.",
+                )
 
             cursor.execute(
                 """
@@ -1090,10 +1096,12 @@ class GeneratedExamRepositoryMixin:
                     gerada_por,
                     gerada_em,
                     expira_em,
+                    agendada_para,
+                    agendada_duracao_min,
                     atualizado_em
                 )
                 OUTPUT INSERTED.id_prova
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, GETDATE())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?, ?, GETDATE())
                 """,
                 (
                     id_teste,
@@ -1122,6 +1130,8 @@ class GeneratedExamRepositoryMixin:
                     normalize_text(data.get("login_method")) or None,
                     generated_by,
                     expires_at,
+                    scheduled_at,
+                    int(data.get("agendada_duracao_min") or 60) if scheduled_at else None,
                 ),
             )
             row = cursor.fetchone()
@@ -2846,7 +2856,7 @@ class GeneratedExamRepositoryMixin:
                     movement_note = justification or observation or f"Decisao RH: {decision}"
                     approval_payload = {
                         **data,
-                        "mensagem_aprovacao": movement_note,
+                        "mensagem_aprovacao": normalize_text(data.get("mensagem_aprovacao")) or movement_note,
                         "motivo_eliminacao": movement_note,
                         "etapa_eliminacao": "Decisao RH",
                         "usuario_responsavel": user_name,
@@ -2865,10 +2875,33 @@ class GeneratedExamRepositoryMixin:
                     )
                 status_synced = True
             conn.commit()
-            return {
-                "success": True,
-                "status_sincronizado": status_synced,
-                "status_candidato": candidate_status,
-            }
+            id_teste_decisao = normalize_text(row.get("id_teste"))
+            standalone_status = (
+                candidate_status
+                if candidate_status in {CANDIDATE_STATUS_APPROVED, CANDIDATE_STATUS_ELIMINATED}
+                else ""
+            )
         finally:
             conn.close()
+
+        # Candidato sem processo (prova avulsa / processo individual): a decisão
+        # do RH precisa refletir no status dele, senão ele não vira Aprovado nem
+        # Eliminado na Central de Candidatos. Usa o mesmo caminho da Central
+        # (status avulso + dados de aprovação).
+        if standalone_status and not status_synced and id_teste_decisao:
+            self.update_standalone_candidate_status(
+                id_teste_decisao,
+                {
+                    **data,
+                    "status_candidato": standalone_status,
+                    "data_movimentacao": datetime.now().isoformat(),
+                    "motivo_eliminacao": normalize_text(data.get("justificativa") or data.get("observacao")),
+                    "etapa_eliminacao": "Decisao RH",
+                },
+            )
+            status_synced = True
+        return {
+            "success": True,
+            "status_sincronizado": status_synced,
+            "status_candidato": candidate_status,
+        }

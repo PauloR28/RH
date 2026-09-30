@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 
 from ..services.helpers import normalize_compare_text, normalize_string_list, normalize_text, rows_to_dicts
 from ..services.cv import is_valid_email, is_valid_phone
+from .bootstrap import ensure_email_inbox_items_table
 from ..services.process_flow import (
     CANDIDATE_STATUS_APPROVED,
     CANDIDATE_STATUS_ELIMINATED,
@@ -48,6 +49,7 @@ class CandidateProfileRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            ensure_email_inbox_items_table(cursor)
             cursor.execute(
                 """
                 SELECT status_candidato
@@ -106,9 +108,19 @@ class CandidateProfileRepositoryMixin:
                     SELECT nome_candidato FROM historico_provas WHERE id_teste = ?
                     UNION ALL
                     SELECT nome_candidato FROM provas_geradas WHERE id_teste = ?
+                    UNION ALL
+                    SELECT COALESCE(NULLIF(nome_detectado, ''), NULLIF(nome_anexo, ''), 'Candidato (CV manual)')
+                    FROM email_inbox_items WHERE candidato_id = ? OR id = ?
                 ) origem
                 """,
-                (safe_id_teste, safe_id_teste, safe_id_teste, safe_id_teste),
+                (
+                    safe_id_teste,
+                    safe_id_teste,
+                    safe_id_teste,
+                    safe_id_teste,
+                    safe_id_teste,
+                    safe_id_teste[6:] if safe_id_teste.upper().startswith("EMAIL-") else safe_id_teste,
+                ),
             )
             candidate_name_row = cursor.fetchone()
             if not history_row and not candidate_name_row:

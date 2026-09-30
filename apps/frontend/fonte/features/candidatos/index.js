@@ -1,5 +1,7 @@
 import {
   html,
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useState,
@@ -62,6 +64,9 @@ import {
 } from '../../shared/helpers-visuais.js';
 import { obterReferenciaProcesso } from '../../shared/process-reference.js';
 import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js';
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20260930-processo-individual').then((modulo) => ({
+  default: modulo.ModalGerarProva,
+})));
 import { IconeSvg } from '../../ui/icone.js';
 
 function normalizarTexto(valor) {
@@ -213,7 +218,9 @@ function candidatoPodeAtrelar(candidato) {
     return false;
   }
 
-  if (candidato?.origem_cadastro === 'processo') {
+  // Candidato sem vínculo real (prova avulsa / CV manual) chega como
+  // 'processo' vindo do backend, mas ainda pode ser atrelado a um processo.
+  if (candidato?.origem_cadastro === 'processo' && !candidato?.pode_atrelar) {
     return false;
   }
 
@@ -222,6 +229,16 @@ function candidatoPodeAtrelar(candidato) {
   }
 
   return estadoAcoes.canAttach;
+}
+
+// "Gerar processo individual": mesmo candidato sem processo, com prova única e
+// dia/horário próprios. Vale para quem ainda pode ser atrelado a um processo.
+function candidatoPodeGerarProcessoIndividual(candidato) {
+  return (
+    candidato?.origem_cadastro !== 'banco' &&
+    !!candidato?.id_teste &&
+    candidatoPodeAtrelar(candidato)
+  );
 }
 
 function renderizarAcoesCandidatoCentral({
@@ -233,6 +250,7 @@ function renderizarAcoesCandidatoCentral({
   onEliminar,
   onBanco,
   onAtrelar,
+  onProcessoIndividual,
   onCurriculo,
   controlador,
 }) {
@@ -312,6 +330,21 @@ function renderizarAcoesCandidatoCentral({
     });
   }
 
+  if (
+    typeof onProcessoIndividual === 'function' &&
+    candidatoPodeGerarProcessoIndividual(candidato) &&
+    podeCriar &&
+    controlador?.possuiPermissao?.('provas.criar')
+  ) {
+    acoes.push({
+      key: 'processo-individual',
+      label: 'Gerar processo individual',
+      icon: 'assignment_ind',
+      disabled: salvando,
+      onClick: () => onProcessoIndividual(candidato),
+    });
+  }
+
   if (estadoAcoes.canEliminate && podeEliminar) {
     acoes.push({
       key: 'descartar',
@@ -383,6 +416,7 @@ function renderizarAcoesRapidasDetalhe({
   onBanco,
   onEditar,
   onAtrelar,
+  onProcessoIndividual,
   controlador,
   mostrarEditar = true,
 }) {
@@ -396,6 +430,7 @@ function renderizarAcoesRapidasDetalhe({
     'candidatos.editar_admissional',
   );
   const podeCriar = controlador?.possuiPermissao?.('candidatos.criar');
+  const podeCriarProva = controlador?.possuiPermissao?.('provas.criar');
   const podeEditar =
     mostrarEditar &&
     podeEditarPermissao &&
@@ -410,6 +445,7 @@ function renderizarAcoesRapidasDetalhe({
       detalhe.id_teste &&
       podeMover) ||
     (candidatoPodeAtrelar(detalhe) && podeCriar) ||
+    (candidatoPodeGerarProcessoIndividual(detalhe) && podeCriar && podeCriarProva) ||
     podeEditar;
 
   if (!temMovimentacao) {
@@ -484,6 +520,21 @@ function renderizarAcoesRapidasDetalhe({
               onClick=${() => onAtrelar(detalhe)}
             >
               Adicionar a processo seletivo
+            </button>
+          `
+      : null}
+      ${candidatoPodeGerarProcessoIndividual(detalhe) &&
+      podeCriar &&
+      podeCriarProva &&
+      typeof onProcessoIndividual === 'function'
+      ? html`
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              disabled=${salvando}
+              onClick=${() => onProcessoIndividual(detalhe)}
+            >
+              Gerar processo individual
             </button>
           `
       : null}
@@ -657,6 +708,7 @@ function montarCandidatoDeProcesso(item, processosPorReferencia) {
     },
     statusProcesso,
   );
+  const semVinculoProcesso = !item.id_registro && !possuiReferenciaProcessoReal(item);
 
   return {
     ...item,
@@ -682,10 +734,10 @@ function montarCandidatoDeProcesso(item, processosPorReferencia) {
     contato_principal: obterContatoPrincipal(item),
     acoes_fluxo: {
       ...estadoAcoes,
-      canAttach: false,
+      canAttach: semVinculoProcesso ? estadoAcoes.canAttach : false,
     },
     pode_movimentar: estadoAcoes.canMoveCandidate,
-    pode_atrelar: false,
+    pode_atrelar: semVinculoProcesso && estadoAcoes.canAttach,
     id_registro_processo: item.id_registro,
   };
 }
@@ -1988,6 +2040,7 @@ export function TelaCandidatos({ controlador }) {
   const [enviandoCvDetalhe, setEnviandoCvDetalhe] = useState(false);
   const [analisandoCvDetalhe, setAnalisandoCvDetalhe] = useState(false);
   const [candidatoParaAtrelar, setCandidatoParaAtrelar] = useState(null);
+  const [contextoProvaIndividual, setContextoProvaIndividual] = useState(null);
   const [origemAtrelamento, setOrigemAtrelamento] = useState('Central de Candidatos');
   const [indicadoPorAtrelamento, setIndicadoPorAtrelamento] = useState('');
   const [processoSelecionado, setProcessoSelecionado] = useState('');
@@ -2675,6 +2728,24 @@ export function TelaCandidatos({ controlador }) {
     setProcessoSelecionado('');
   };
 
+  const abrirProcessoIndividual = (candidato) => {
+    if (candidatoEstaAprovado(candidato)) {
+      showToast(MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO, 'warning');
+      return;
+    }
+
+    setContextoProvaIndividual({
+      processoIndividual: true,
+      candidato: {
+        ...candidato,
+        vaga: candidato?.vaga && candidato.vaga !== '-' ? candidato.vaga : '',
+        id_registro: null,
+        id_processo: '',
+        id_processo_ref: '',
+      },
+    });
+  };
+
   const candidatoJaVinculadoAoProcessoSelecionado = () => {
     if (!candidatoParaAtrelar || !processoSelecionado) {
       return false;
@@ -3049,6 +3120,7 @@ export function TelaCandidatos({ controlador }) {
                     onBanco: enviarParaBanco,
                     onAtrelar: (item) =>
                       abrirAtrelar(item, 'Central de Candidatos'),
+                    onProcessoIndividual: abrirProcessoIndividual,
                     controlador,
                   })}
                                 </div>
@@ -3525,6 +3597,7 @@ export function TelaCandidatos({ controlador }) {
                     onEditar: abrirEdicaoCandidato,
                     onAtrelar: (item) =>
                       abrirAtrelar(item, 'Ficha do candidato'),
+                    onProcessoIndividual: abrirProcessoIndividual,
                     controlador,
                     mostrarEditar: false,
                   })}
@@ -3774,6 +3847,23 @@ export function TelaCandidatos({ controlador }) {
             `
       : null}
       </${ModalPadrao}>
+
+      ${contextoProvaIndividual
+      ? html`
+            <${Suspense} fallback=${null}>
+              <${ModalGerarProva}
+                aberto=${true}
+                contexto=${contextoProvaIndividual}
+                controlador=${controlador}
+                onClose=${() => setContextoProvaIndividual(null)}
+                onGerada=${async () => {
+          setDetalhe(null);
+          await carregar({ forcar: true });
+        }}
+              />
+            </${Suspense}>
+          `
+      : null}
 
       <${ModalAprovacaoCandidato}
         aberto=${!!aprovacaoSelecionada}

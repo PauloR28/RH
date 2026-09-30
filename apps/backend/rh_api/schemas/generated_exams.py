@@ -49,6 +49,9 @@ class GeneratedExamCreateRequest(BaseSchema):
     instrucoes_operacao: str = ""
     expira_em: str = ""
     login_method: str = ""
+    # Dia/horário em que o candidato deve vir fazer a prova; ocupa um horário no Calendário.
+    agendada_para: str = ""
+    agendada_duracao_min: int = Field(default=60, ge=15, le=480)
 
     @field_validator("login_method")
     @classmethod
@@ -140,3 +143,11 @@ class DecisionRhRequest(BaseSchema):
     justificativa: str = ""
     observacao: str = ""
     score_considerado: bool = True
+    # Campos de aprovação (mesmo modal "Aprovar candidato" da Central), usados quando decisao = Aprovado.
+    mensagem_aprovacao: str = ""
+    data_comparecimento_aprovacao: str = ""
+    documentos_aprovacao: list[str] = Field(default_factory=list)
+    anexo_aprovacao_nome: str = ""
+    anexo_aprovacao_tipo: str = ""
+    anexo_aprovacao_tamanho: int = 0
+    anexo_aprovacao_base64: str = ""

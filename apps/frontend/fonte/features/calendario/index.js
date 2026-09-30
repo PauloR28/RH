@@ -143,7 +143,7 @@ export function TelaCalendario({ controlador }) {
       }
       if (eventosResp.status === 'fulfilled') {
         const eventos = Array.isArray(eventosResp.value) ? eventosResp.value : [];
-        setEventosEntrevista(eventos.filter((evento) => evento?.tipo === 'entrevista'));
+        setEventosEntrevista(eventos.filter((evento) => evento?.tipo === 'entrevista' || evento?.tipo === 'prova'));
       }
     } finally {
       setCarregando(false);
@@ -369,7 +369,7 @@ export function TelaCalendario({ controlador }) {
             `}
       </${SectionCard}>
 
-      <${SectionCard} title="Entrevistas agendadas" className="rh-section-card--flat">
+      <${SectionCard} title="Entrevistas e provas agendadas" className="rh-section-card--flat">
         <div class="table-responsive">
           <table class="table align-middle rh-modern-history-table">
             <thead>
@@ -401,7 +401,7 @@ export function TelaCalendario({ controlador }) {
         : html`
                       <${TabelaVazia}
                         colunas=${4}
-                        texto="Nenhuma entrevista agendada no momento."
+                        texto="Nenhuma entrevista ou prova agendada no momento."
                         icone="event_available"
                       />
                     `}

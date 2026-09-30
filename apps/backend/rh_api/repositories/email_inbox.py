@@ -65,6 +65,22 @@ def _parse_datetime(value) -> datetime | None:
         return None
 
 
+def _extract_cv_contact(filename: str, content: bytes, content_type: str = "") -> dict:
+    """Nome/e-mail/telefone extraídos do texto do CV (sem IA). Falha de leitura
+    nunca bloqueia o cadastro: devolve o que conseguiu (ou vazio)."""
+    try:
+        texto = extract_text_from_uploaded_file(filename, content, content_type)
+    except Exception:
+        return {"nome": "", "email": "", "telefone": ""}
+    email = extract_email(texto)
+    telefone = extract_phone(texto)
+    return {
+        "nome": normalize_text(extract_candidate_name_details(texto, "", filename).get("nome")),
+        "email": email if is_valid_email(email) else "",
+        "telefone": telefone if is_valid_phone(telefone) else "",
+    }
+
+
 def _format_datetime(value) -> str:
     if isinstance(value, datetime):
         return value.isoformat()
@@ -501,9 +517,10 @@ class EmailInboxRepositoryMixin:
                 lido
             FROM email_inbox_items
             WHERE (? = 1 OR ISNULL(ignorado, 0) = 0)
+              AND ISNULL(origem, '') <> ?
             ORDER BY data_recebimento DESC, criado_em DESC
             """,
-            (1 if include_ignored else 0,),
+            (1 if include_ignored else 0, MANUAL_UPLOAD_ORIGIN),
         )
         rows = rows_to_dicts(cursor, cursor.fetchall())
         query_term = normalize_compare_text(query)
@@ -647,6 +664,7 @@ class EmailInboxRepositoryMixin:
             content_type=content_type,
         )
         attachment = saved["attachment"]
+        contato = _extract_cv_contact(filename, content, content_type)
         item = {
             "id": item_id,
             "remetente_nome": f"Upload manual — {normalize_text(actor) or 'RH'}",
@@ -656,6 +674,9 @@ class EmailInboxRepositoryMixin:
             "nome_anexo": attachment.get("filename"),
             "anexos": [attachment],
             "origem": MANUAL_UPLOAD_ORIGIN,
+            "nome_detectado": contato["nome"],
+            "email_detectado": contato["email"],
+            "telefone_detectado": contato["telefone"],
         }
 
         conn = self._connect()
@@ -663,11 +684,72 @@ class EmailInboxRepositoryMixin:
             cursor = conn.cursor()
             ensure_email_inbox_items_table(cursor)
             self._upsert_email_inbox_summary(cursor, item)
+            self._register_manual_cv_candidate(
+                cursor,
+                item_id=item_id,
+                nome=contato["nome"] or Path(normalize_text(filename)).stem,
+                email=contato["email"],
+                telefone=contato["telefone"],
+                attachment=attachment,
+            )
             conn.commit()
             row = self._select_email_inbox_item(cursor, item_id)
             return {"success": True, "item": self._serialize_email_inbox_item(row, include_body=True)}
         finally:
             conn.close()
+
+    def extract_candidate_cv_contact(self, id_teste: str) -> dict:
+        """"Preencher com o CV": lê o currículo salvo do candidato e devolve
+        nome/e-mail/telefone para o RH revisar (nada é gravado aqui)."""
+        asset = self.get_candidate_cv_asset(id_teste)
+        if asset.get("bytes") is not None:
+            content = asset["bytes"]
+        else:
+            content = Path(asset["path"]).read_bytes()
+        contato = _extract_cv_contact(asset.get("filename") or "curriculo.pdf", content, asset.get("media_type") or "")
+        if not any(contato.values()):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Não foi possível identificar nome, e-mail ou telefone neste currículo.",
+            )
+        return {"success": True, **contato}
+
+    def _register_manual_cv_candidate(
+        self,
+        cursor,
+        *,
+        item_id: str,
+        nome: str,
+        email: str = "",
+        telefone: str = "",
+        attachment: dict | None = None,
+    ) -> None:
+        """CV manual = candidato desde o início (aparece na Central de
+        Candidatos sem processo). Cria a ficha e vincula o arquivo pelo
+        id_teste para "Ver CV" e "Preencher com o CV" funcionarem."""
+        id_teste = f"EMAIL-{normalize_text(item_id)[:110]}"
+        try:
+            self._upsert_candidate_profile(
+                cursor,
+                id_teste=id_teste,
+                nome_candidato=normalize_text(nome),
+                email=email or None,
+                telefone=telefone or None,
+                whatsapp=telefone or None,
+            )
+            if attachment:
+                self._save_email_inbox_attachment_link(
+                    cursor,
+                    id_teste=id_teste,
+                    processo=None,
+                    attachment=attachment,
+                )
+            cursor.execute(
+                "UPDATE email_inbox_items SET candidato_id = ? WHERE id = ?",
+                (id_teste, normalize_text(item_id)),
+            )
+        except Exception:
+            self.logger.exception("Falha ao registrar candidato do CV manual %s.", item_id)
 
     def create_manual_structured_email_inbox_item(self, *, dados: dict, actor: str = "") -> dict:
         """Correcoes.txt (rodada de 02/set/2026): "Criar curriculo" na Cx de
@@ -773,6 +855,14 @@ class EmailInboxRepositoryMixin:
             cursor = conn.cursor()
             ensure_email_inbox_items_table(cursor)
             self._upsert_email_inbox_summary(cursor, item)
+            self._register_manual_cv_candidate(
+                cursor,
+                item_id=item_id,
+                nome=nome,
+                email=email if is_valid_email(email) else "",
+                telefone=telefone if is_valid_phone(telefone) else "",
+                attachment=None,
+            )
             conn.commit()
             row = self._select_email_inbox_item(cursor, item_id)
             return {"success": True, "item": self._serialize_email_inbox_item(row, include_body=True)}

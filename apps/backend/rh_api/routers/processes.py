@@ -858,6 +858,14 @@ def download_candidate_cv(
     )
 
 
+@router.post("/candidate-profiles/{id_teste}/cv-contact", dependencies=[Depends(require_permissions("candidatos.baixar_curriculo"))])
+def extract_candidate_cv_contact(
+    id_teste: str,
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.extract_candidate_cv_contact(id_teste)
+
+
 @router.post("/candidate-profiles/{id_teste}/cv", dependencies=[Depends(require_permissions("candidatos.editar", "candidatos.editar_basico", "candidatos.avaliar_curriculo"))])
 async def upload_candidate_cv(
     id_teste: str,
