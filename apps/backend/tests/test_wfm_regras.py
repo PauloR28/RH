@@ -57,7 +57,7 @@ def test_estagiario_jornada_e_bloqueio_duro_sem_override():
 
 
 def test_refeicao_e_descontada_da_jornada_liquida():
-    dia = dia_de_turno(date(2026, 9, 1), CLT, entrada="08:00", saida="17:00", pausas=((240, 60, "REFEICAO"),))
+    dia = dia_de_turno(date(2026, 9, 1), CLT, entrada="08:00", saida="17:00", pausas=((240, 60, "INTERVALO"),))
     assert dia.jornada_liquida_min() == 480
     assert validar_escala([dia], periodo=(date(2026, 9, 1), date(2026, 9, 1))) == []
 
@@ -197,3 +197,9 @@ def test_regra_de_domingos_por_genero_nao_existe_no_motor():
     fonte = inspect.getsource(r).lower()
     assert "def " in fonte
     assert not any(n for n in dir(r) if "genero" in n.lower() or "domingo" in n.lower())
+
+
+def test_pausas_nr17_contam_como_jornada_e_so_o_intervalo_e_descontado():
+    nr17 = dia_de_turno(date(2026, 9, 1), CLT_NR17, entrada="07:00", saida="13:00", pausas=PAUSAS_OK)
+    assert nr17.jornada_liquida_min() == 360  # 6h de relógio = 6h de jornada (descansos e refeição de 20 min contam)
+    assert validar_escala([nr17], periodo=(date(2026, 9, 1), date(2026, 9, 1))) == []

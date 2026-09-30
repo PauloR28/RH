@@ -26,7 +26,8 @@ function CartaoDia({ data, item, eventos, hoje }) {
       ${item?.trabalha ? html`
         <span class="wfm-tag-escalado"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check_circle')}</span>Escalado</span>
         <span class="wfm-dia-horario">${item.entrada} – ${item.saida}</span>
-        <span class="wfm-dia-horas">${minutosParaHoras(item.minutos)} · ${item.codigo}</span>`
+        <span class="wfm-dia-horas">${minutosParaHoras(item.minutos)} · ${item.codigo}</span>
+        ${(item.pausas || []).length ? html`<span class="wfm-dia-pausas" title="Seus horários de pausa">${item.pausas.map((x) => `${x.inicio} (${x.duracao_min}m)`).join(' · ')}</span>` : null}`
         : item ? html`<span class="wfm-dia-folga">${item.codigo === 'DSR' ? 'DSR' : 'Folga'}</span>`
         : html`<span class="wfm-dia-vazio">Sem escala</span>`}
       ${eventos.length ? html`<span class="wfm-dia-evento" title=${eventos.map((e) => e.descricao).join(' · ')}>${eventos[0].descricao}</span>` : null}

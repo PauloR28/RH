@@ -14,6 +14,7 @@ import {
   salvarEventoWfm,
   salvarSkillWfm,
   salvarTurnoWfm,
+  excluirTurnoWfm,
   vincularContratoOperadorWfm,
 } from '../../services/api/wfm.js';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
@@ -24,7 +25,7 @@ import { descreverTurno } from './escala.js';
 
 const Campo = ({ rotulo, children }) => html`<label class="mon-campo"><span>${rotulo}</span>${children}</label>`;
 const CATEGORIAS_SKILL = { IDIOMA: 'Idioma', PRODUTO: 'Produto', RETENCAO: 'Retenção', OUTRO: 'Outro' };
-const TIPOS_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Outra' };
+const TIPOS_PAUSA = { DESCANSO: 'Descanso (10 min)', REFEICAO: 'Refeição (20 min)', INTERVALO: 'Intervalo não remunerado', LANCHE: 'Lanche', OUTRA: 'Outra' };
 const CONTRATO_VAZIO = { codigo: '', nome: '', tipo: 'CLT', jornada_diaria_max_min: 480, interjornada_min_min: 660, max_dias_consecutivos: 6, jornada_feriado_max_min: '', jornada_bloqueio_duro: false, exigencias_pausa: [], ativo: true };
 const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', pausas: [], ativo: true };
 const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '' };
@@ -33,15 +34,26 @@ const paraMin = (hhmm) => { const [h, m] = (hhmm || '00:00').split(':').map(Numb
 const horaDe = (min) => `${String(Math.floor((((min % 1440) + 1440) % 1440) / 60)).padStart(2, '0')}:${String((((min % 1440) + 1440) % 1440) % 60).padStart(2, '0')}`;
 const offsetDe = (entrada, inicio) => (((paraMin(inicio) - paraMin(entrada)) % 1440) + 1440) % 1440;
 
-// Turnos de exemplo (CLT 6h com as pausas obrigatórias da NR-17: 2 descansos de 10 min + 1 refeição de 20 min).
+// Turnos de exemplo: jornada de 6h (contrato CLT6) com as 3 pausas por operador (2 de 10 min + 1 de 20 min),
+// que contam como jornada — por isso a saída é entrada + 6h.
 const TURNOS_EXEMPLO = [
-  { codigo: 'M', nome: 'Manhã', cor: '#1f5fbf', entrada: '06:00', saida: '12:20', pausas: [['07:30', 10, 'DESCANSO'], ['09:00', 20, 'REFEICAO'], ['10:40', 10, 'DESCANSO']] },
-  { codigo: 'T', nome: 'Tarde', cor: '#b45309', entrada: '12:00', saida: '18:20', pausas: [['13:30', 10, 'DESCANSO'], ['15:00', 20, 'REFEICAO'], ['16:40', 10, 'DESCANSO']] },
-  { codigo: 'N', nome: 'Noite', cor: '#475569', entrada: '18:00', saida: '00:20', pausas: [['19:30', 10, 'DESCANSO'], ['21:00', 20, 'REFEICAO'], ['22:40', 10, 'DESCANSO']] },
+  { codigo: 'M', nome: 'Manhã', cor: '#1f5fbf', entrada: '06:00', pausas: [['07:30', 10, 'DESCANSO'], ['09:00', 20, 'REFEICAO'], ['10:30', 10, 'DESCANSO']] },
+  { codigo: 'T', nome: 'Tarde', cor: '#b45309', entrada: '12:00', pausas: [['13:30', 10, 'DESCANSO'], ['15:00', 20, 'REFEICAO'], ['16:30', 10, 'DESCANSO']] },
+  { codigo: 'N', nome: 'Noite', cor: '#475569', entrada: '18:00', pausas: [['19:30', 10, 'DESCANSO'], ['21:00', 20, 'REFEICAO'], ['22:30', 10, 'DESCANSO']] },
 ];
 
-function Secao({ titulo, descricao, acoes, children }) {
-  return html`<section class="mon-card"><div class="wfm-cabecalho"><div><h3>${titulo}</h3><p class="mon-muted">${descricao}</p></div><div class="wfm-acoes-cab">${acoes}</div></div>${children}</section>`;
+function Secao({ titulo, descricao, acoes, children, aberta = true }) {
+  const [aberto, setAberto] = useState(aberta);
+  return html`<section class="mon-card wfm-secao">
+    <div class="wfm-cabecalho">
+      <button type="button" class="wfm-secao-toggle" aria-expanded=${aberto} onClick=${() => setAberto(!aberto)}>
+        <span class=${`material-symbols-outlined wfm-seta ${aberto ? 'is-aberta' : ''}`} aria-hidden="true">${IconeSvg('expand_more')}</span>
+        <span><h3>${titulo}</h3><p class="mon-muted">${descricao}</p></span>
+      </button>
+      ${aberto ? html`<div class="wfm-acoes-cab">${acoes}</div>` : null}
+    </div>
+    ${aberto ? children : null}
+  </section>`;
 }
 
 function Contratos({ operacao, contratos, podeEditar, recarregar, showToast }) {
@@ -58,7 +70,7 @@ function Contratos({ operacao, contratos, podeEditar, recarregar, showToast }) {
   const set = (k, v) => setEdit({ ...edit, [k]: v });
   const setPausa = (i, k, v) => setEdit({ ...edit, exigencias_pausa: edit.exigencias_pausa.map((p, j) => (j === i ? { ...p, [k]: k === 'tipo' ? v : Number(v) } : p)) });
   return html`
-    <${Secao} titulo="Contratos de jornada" descricao="Limites do motor de regras. Todos são parâmetros editáveis; nenhum é fixo no código."
+    <${Secao} aberta=${false} titulo="Contratos de jornada" descricao="Limites do motor de regras. Todos são parâmetros editáveis; nenhum é fixo no código."
       acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary" onClick=${() => setEdit({ ...CONTRATO_VAZIO })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo contrato</button>` : null}>
       <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Jornada máx.</th><th>Interjornada</th><th>Dias seguidos</th><th>Bloqueio por lei</th><th></th></tr></thead><tbody>
         ${contratos.map((c) => html`<tr key=${c.id_contrato}><td><b>${c.codigo}</b></td><td>${c.nome}${c.ativo ? '' : ' (inativo)'}</td><td>${c.tipo}</td><td>${minutosParaHoras(c.jornada_diaria_max_min)}</td><td>${minutosParaHoras(c.interjornada_min_min)}</td><td>${c.max_dias_consecutivos}</td><td>${c.jornada_bloqueio_duro ? 'Sim' : 'Não'}</td>
@@ -89,7 +101,7 @@ function Contratos({ operacao, contratos, podeEditar, recarregar, showToast }) {
     </${Secao}>`;
 }
 
-function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
+function Turnos({ operacao, turnos, contratos, podeEditar, recarregar, showToast }) {
   const [edit, setEdit] = useState(null);
   const abrirEdicao = (t) => setEdit({
     ...t,
@@ -99,8 +111,10 @@ function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
   });
   const criarExemplos = async () => {
     try {
+      const clt6 = contratos.find((c) => c.codigo === 'CLT6' && c.ativo);
       for (const t of TURNOS_EXEMPLO.filter((x) => !turnos.some((y) => y.codigo === x.codigo))) {
-        await salvarTurnoWfm({ operacao, codigo: t.codigo, nome: t.nome, cor: t.cor, entrada: t.entrada, saida: t.saida,
+        await salvarTurnoWfm({ operacao, codigo: t.codigo, nome: t.nome, cor: t.cor, entrada: t.entrada, saida: horaDe(paraMin(t.entrada) + 360),
+          id_contrato: clt6 ? clt6.id_contrato : null,
           pausas: t.pausas.map(([inicio, duracao_min, tipo]) => ({ offset_min: offsetDe(t.entrada, inicio), duracao_min, tipo })) });
       }
       showToast?.('Turnos de exemplo criados. Ajuste horários e pausas como precisar.', 'success');
@@ -111,7 +125,7 @@ function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
     e.preventDefault();
     try {
       const pausas = (edit.pausas || []).map((p) => ({ offset_min: offsetDe(edit.entrada, p.inicio), duracao_min: p.duracao_min, tipo: p.tipo }));
-      await salvarTurnoWfm({ ...edit, pausas, operacao }, edit.id_turno);
+      await salvarTurnoWfm({ ...edit, pausas, operacao, saida: saidaCalculada(edit) || edit.saida, id_contrato: edit.id_contrato ? Number(edit.id_contrato) : null }, edit.id_turno);
       showToast?.('Turno salvo.', 'success');
       setEdit(null);
       recarregar();
@@ -119,12 +133,24 @@ function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
   };
   const set = (k, v) => setEdit({ ...edit, [k]: v });
   const setPausa = (i, k, v) => setEdit({ ...edit, pausas: edit.pausas.map((p, j) => (j === i ? { ...p, [k]: ['tipo', 'inicio'].includes(k) ? v : Number(v) } : p)) });
+  // Turno atrelado a contrato: saída = entrada + jornada do contrato (+ intervalos não remunerados).
+  const contratoDe = (t) => contratos.find((c) => String(c.id_contrato) === String(t.id_contrato));
+  const saidaCalculada = (t) => {
+    const c = contratoDe(t);
+    if (!c || !t.entrada) return '';
+    return horaDe(paraMin(t.entrada) + c.jornada_diaria_max_min + (t.pausas || []).filter((p) => p.tipo === 'INTERVALO').reduce((a, p) => a + Number(p.duracao_min || 0), 0));
+  };
+  const excluir = async (t) => {
+    if (!window.confirm(`Excluir o turno ${t.codigo} (${t.nome})? Só é possível se ele nunca foi usado em uma escala.`)) return;
+    try { await excluirTurnoWfm(operacao, t.id_turno); showToast?.('Turno excluído.', 'success'); setEdit(null); recarregar(); }
+    catch (err) { showToast?.(err?.message || 'Não foi possível excluir o turno.', 'error'); }
+  };
   return html`
     <${Secao} titulo="Turnos-modelo" descricao="Código, cor, horários e pausas padrão. Folga e DSR são turnos fixos de cada operação."
       acoes=${podeEditar ? html`${turnos.filter((t) => t.tipo === 'TRABALHO').length === 0 ? html`<button type="button" class="btn btn-primary" onClick=${criarExemplos}>Criar turnos de exemplo</button>` : null}<button type="button" class="btn btn-outline-primary" onClick=${() => setEdit({ ...TURNO_VAZIO })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Pausas (horário real)</th><th></th></tr></thead><tbody>
-        ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : ' (inativo)'}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
-          <td>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>` : null}</td></tr>`)}
+      <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Jornada</th><th>Pausas (horário real)</th><th></th></tr></thead><tbody>
+        ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : ' (inativo)'}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}${t.id_contrato ? html`<small class="wfm-sub">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
+          <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>${t.tipo === 'TRABALHO' ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluir(t)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}` : null}</td></tr>`)}
       </tbody></table></div>
       ${edit ? html`<form class="wfm-form" onSubmit=${salvar}>
         <div class="mon-form-grid">
@@ -134,11 +160,13 @@ function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
           <${Campo} rotulo="Cor"><input class="form-control" type="color" value=${edit.cor} onInput=${(e) => set('cor', e.target.value)} /></${Campo}>
           ${edit.tipo === 'TRABALHO' ? html`
             <${Campo} rotulo="Entrada"><input class="form-control" type="time" required value=${edit.entrada} onInput=${(e) => set('entrada', e.target.value)} /></${Campo}>
-            <${Campo} rotulo="Saída (atravessa a meia-noite se menor que a entrada)"><input class="form-control" type="time" required value=${edit.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>` : null}
+            <${Campo} rotulo="Contrato de jornada (opcional)"><select class="form-select" value=${edit.id_contrato || ''} onChange=${(e) => setEdit({ ...edit, id_contrato: e.target.value, saida: saidaCalculada({ ...edit, id_contrato: e.target.value }) || edit.saida })}>
+              <option value="">Sem contrato: informo a saída</option>${contratos.filter((c) => c.ativo).map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo} · ${minutosParaHoras(c.jornada_diaria_max_min)}</option>`)}</select></${Campo}>
+            <${Campo} rotulo=${edit.id_contrato ? 'Saída (calculada: entrada + jornada do contrato)' : 'Saída (atravessa a meia-noite se menor que a entrada)'}><input class="form-control" type="time" required disabled=${!!edit.id_contrato} value=${edit.id_contrato ? saidaCalculada(edit) : edit.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>` : null}
         </div>
         <label class="wfm-check"><input type="checkbox" checked=${edit.ativo} onChange=${(e) => set('ativo', e.target.checked)} /> Ativo</label>
         ${edit.tipo === 'TRABALHO' ? html`<h4>Pausas padrão do turno</h4>
-          <p class="mon-muted">Informe o horário de cada pausa. Descanso e refeição são as pausas exigidas pela NR-17 (configuradas no contrato); a refeição é descontada da jornada.</p>
+          <p class="mon-muted">Informe o horário de cada pausa. Descanso (10 min) e refeição (20 min) são as pausas da NR-17 e contam como jornada. Use "Intervalo não remunerado" só para intervalos que NÃO entram na jornada (ex.: 1h de almoço).</p>
           ${edit.pausas.map((p, i) => html`<div class="wfm-linha" key=${i}>
             <${Campo} rotulo="Tipo"><select class="form-select" value=${p.tipo} onChange=${(e) => setPausa(i, 'tipo', e.target.value)}>${Object.entries(TIPOS_PAUSA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></${Campo}>
             <${Campo} rotulo="Horário de início"><input class="form-control" type="time" value=${p.inicio} onInput=${(e) => setPausa(i, 'inicio', e.target.value)} /></${Campo}>
@@ -201,7 +229,7 @@ function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToas
   const alternar = (id) => setEditandoOp({ ...editandoOp, skills: editandoOp.skills.includes(id) ? editandoOp.skills.filter((s) => s !== id) : [...editandoOp.skills, id] });
   const ativas = skills.filter((s) => s.ativo);
   return html`
-    <${Secao} titulo="Skills" descricao="Idioma, produto e retenção. A compatibilidade de skills é usada nas trocas (Fase 2).">
+    <${Secao} aberta=${false} titulo="Skills" descricao="Idioma, produto e retenção. A compatibilidade de skills é usada nas trocas (Fase 2).">
       <div class="wfm-chips">${skills.length ? skills.map((s) => html`<span key=${s.id_skill} class="mon-tag">${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</span>`) : html`<span class="mon-muted">Nenhuma skill cadastrada.</span>`}</div>
       ${podeEditar ? html`<form class="mon-linha-form" onSubmit=${adicionar}>
         <${Campo} rotulo="Categoria"><select class="form-select" value=${form.categoria} onChange=${(e) => setForm({ ...form, categoria: e.target.value })}>${Object.entries(CATEGORIAS_SKILL).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></${Campo}>
@@ -216,25 +244,6 @@ function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToas
             ${ativas.length ? html`<div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>` : html`<span class="mon-muted">Cadastre ao menos uma skill acima para atribuir ao operador.</span>`}
             <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${salvarOp}>Salvar skills</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></td></tr>` : null}
         </${Fragment}>`)}
-      </tbody></table></div>
-    </${Secao}>`;
-}
-
-function OperadoresContrato({ operacao, operadores, contratos, podeEditar, recarregar, showToast }) {
-  const [sel, setSel] = useState({});
-  const ativos = contratos.filter((c) => c.ativo);
-  const vincular = async (op) => {
-    const s = sel[op.id_usuario] || {};
-    if (!s.id_contrato || !s.vigencia_ini) { showToast?.('Escolha o contrato e a data de início.', 'error'); return; }
-    try { await vincularContratoOperadorWfm(op.id_usuario, { operacao, id_contrato: Number(s.id_contrato), vigencia_ini: s.vigencia_ini }); showToast?.('Contrato vinculado.', 'success'); recarregar(); } catch (err) { showToast?.(err?.message || 'Não foi possível vincular.', 'error'); }
-  };
-  return html`
-    <${Secao} titulo="Contrato dos operadores" descricao="Cada operador precisa de um contrato vigente; sem ele a escala não é publicada. A mudança de contrato vale a partir da data informada.">
-      <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Operador</th><th>Contrato vigente</th>${podeEditar ? html`<th>Novo contrato</th><th>A partir de</th><th></th>` : null}</tr></thead><tbody>
-        ${operadores.map((o) => { const s = sel[o.id_usuario] || {}; const atual = (o.contratos || []).filter((c) => !c.fim).pop() || (o.contratos || []).slice(-1)[0]; return html`<tr key=${o.id_usuario}><td>${o.nome}</td><td>${atual ? `${atual.codigo} desde ${atual.ini.split('-').reverse().join('/')}` : html`<span class="wfm-alerta-txt">sem contrato</span>`}</td>
-          ${podeEditar ? html`<td><select class="form-select" value=${s.id_contrato || ''} onChange=${(e) => setSel({ ...sel, [o.id_usuario]: { ...s, id_contrato: e.target.value } })}><option value="">Selecione</option>${ativos.map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo}</option>`)}</select></td>
-            <td><input class="form-control" type="date" value=${s.vigencia_ini || ''} onInput=${(e) => setSel({ ...sel, [o.id_usuario]: { ...s, vigencia_ini: e.target.value } })} /></td>
-            <td><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => vincular(o)}>Vincular</button></td>` : null}</tr>`; })}
       </tbody></table></div>
     </${Secao}>`;
 }
@@ -260,8 +269,7 @@ export function TelaCadastros({ controlador, operacao, anoMes, showToast }) {
   const comum = { operacao, showToast, recarregar: carregar };
   return html`
     <${Contratos} ...${comum} contratos=${dados.contratos} podeEditar=${podeContratos} />
-    <${OperadoresContrato} ...${comum} operadores=${dados.operadores} contratos=${dados.contratos} podeEditar=${podeCadastros} />
-    <${Turnos} ...${comum} turnos=${dados.turnos} podeEditar=${podeCadastros} />
+    <${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} podeEditar=${podeCadastros} />
     <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} podeEditar=${podeCadastros} />
     <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
 }

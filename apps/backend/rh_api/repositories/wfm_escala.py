@@ -89,16 +89,27 @@ class WfmEscalaRepositoryMixin:
         """Operadores da operação que o usuário PODE VER (Operador: só ele; Supervisor: só a equipe)."""
         cursor.execute(
             """
-            SELECT u.id_usuario, u.nome, u.sobrenome FROM dbo.usuarios u
+            SELECT u.id_usuario, u.nome, u.sobrenome, u.id_equipe, e.nome FROM dbo.usuarios u
             JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
+            LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
             WHERE u.perfil_id = ? AND ISNULL(u.status, 'Ativo') = 'Ativo'
             ORDER BY u.nome, u.sobrenome
             """,
             (operacao, ROLE_OPERATOR),
         )
         todos = [
-            {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip()} for r in cursor.fetchall()
+            {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(),
+             "id_equipe": int(r[3]) if r[3] else None, "equipe": normalize_text(r[4])}
+            for r in cursor.fetchall()
         ]
+        cursor.execute(
+            "SELECT s.id_operador, s.id_supervisor, u.nome FROM dbo.usuarios_supervisores s JOIN dbo.usuarios u ON u.id_usuario = s.id_supervisor"
+        )
+        supervisores: dict[int, list[dict]] = {}
+        for id_op, id_sup, nome_sup in cursor.fetchall():
+            supervisores.setdefault(int(id_op), []).append({"id_usuario": int(id_sup), "nome": normalize_text(nome_sup)})
+        for op in todos:
+            op["supervisores"] = supervisores.get(op["id_usuario"], [])
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
         return [
             op
@@ -194,6 +205,15 @@ class WfmEscalaRepositoryMixin:
                     for i in itens:
                         if i["id_turno"] in modelos:
                             i.update(horario_efetivo(date.fromisoformat(i["data"]), modelos[i["id_turno"]], modelos, evs))
+                    cursor.execute(
+                        "SELECT data, ordem, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND id_operador = ? AND data BETWEEN ? AND ? ORDER BY data, ordem",
+                        (operacao, user.id_usuario, dias[0], dias[-1]),
+                    )
+                    pausas_por_dia: dict[str, list[dict]] = {}
+                    for r in cursor.fetchall():
+                        pausas_por_dia.setdefault(r[0].isoformat(), []).append({"tipo": normalize_text(r[2]), "inicio": normalize_text(r[3]), "duracao_min": int(r[4])})
+                    for i in itens:
+                        i["pausas"] = pausas_por_dia.get(i["data"], [])
             elif ids:
                 marcadores = ",".join("?" for _ in ids)
                 cursor.execute(
@@ -842,3 +862,47 @@ class WfmEscalaRepositoryMixin:
             {"nome": "Horários", "colunas": ["Operador", "Data", "Turno", "Entrada", "Saída", "Horas líquidas"], "linhas": linhas_horarios},
         ]
         return gerar_xlsx(abas), nome, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    def wfm_lancar_presenca_lote(
+        self, user, operacao: str, data: Any, status_presenca: str, excecoes: list[int] | None = None, *, ip: str = ""
+    ) -> dict:
+        """Aplica o mesmo status a TODOS os operadores escalados do dia que o usuário pode editar, exceto
+        os `excecoes` (ex.: "presença para todos, menos quem faltou"). Sem prazo; tudo auditado."""
+        data = _parse_data(data)
+        status_presenca = normalize_text(status_presenca).upper()
+        if status_presenca not in STATUS_PRESENCA:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Status de presença inválido.")
+        excecoes_set = {int(i) for i in (excecoes or [])}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            cursor.execute(
+                "SELECT DISTINCT i.id_operador FROM dbo.wfm_escala_itens i JOIN dbo.wfm_turnos t ON t.id_turno = i.id_turno "
+                "WHERE i.operacao = ? AND i.data = ? AND t.tipo = 'TRABALHO'",
+                (operacao, data),
+            )
+            escalados = [int(r[0]) for r in cursor.fetchall()]
+            alvos = [
+                i for i in escalados
+                if i not in excecoes_set
+                and wfm_scope.pode_editar_escala_de(
+                    perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
+                    operacao=operacao, id_operador=i, equipe_supervisor=equipe,
+                )
+            ]
+            autor = normalize_text(user.nome) or user.username
+            for id_op in alvos:
+                cursor.execute(
+                    "IF EXISTS (SELECT 1 FROM dbo.wfm_presencas WHERE operacao = ? AND id_operador = ? AND data = ?) "
+                    "UPDATE dbo.wfm_presencas SET status = ?, lancado_por = ?, atualizado_em = GETDATE() WHERE operacao = ? AND id_operador = ? AND data = ? "
+                    "ELSE INSERT INTO dbo.wfm_presencas (operacao, id_operador, data, status, lancado_por) VALUES (?, ?, ?, ?, ?)",
+                    (operacao, id_op, data, status_presenca, autor, operacao, id_op, data, operacao, id_op, data, status_presenca, autor),
+                )
+            self.wfm_audit(cursor, user, operacao=operacao, acao="lancar_presenca_lote", entidade="presenca", entidade_id=data.isoformat(),
+                           depois={"status": status_presenca, "operadores": len(alvos), "excecoes": sorted(excecoes_set)}, ip=ip)
+            conn.commit()
+            return {"success": True, "aplicados": len(alvos), "ignorados": len(excecoes_set & set(escalados))}
+        finally:
+            conn.close()

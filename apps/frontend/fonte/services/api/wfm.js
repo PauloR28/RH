@@ -53,3 +53,12 @@ export const responderTrocaWfm = (id, aceitar) => enviar(`/wfm/trocas/${id}/resp
 export const cancelarTrocaWfm = (id) => enviar(`/wfm/trocas/${id}/cancelar`, 'POST', {});
 export const decidirTrocaWfm = (id, aprovar, justificativa = '') => enviar(`/wfm/trocas/${id}/decidir`, 'POST', { aprovar, justificativa });
 export const desfazerTrocaWfm = (id, justificativa) => enviar(`/wfm/trocas/${id}/desfazer`, 'POST', { justificativa });
+
+export const excluirTurnoWfm = (operacao, id) => requisitar(`/wfm/turnos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
+export const lerContratoOperadorWfm = (operacao, idOperador) => requisitar(`/wfm/operadores/${idOperador}/contrato${consulta({ operacao })}`, { method: 'GET' });
+export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'PUT', dados);
+
+export const lerPausasDiaWfm = (operacao, data) => requisitar(`/wfm/pausas${consulta({ operacao, data })}`, { method: 'GET' });
+export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);
+export const distribuirPausasWfm = (dados) => enviar('/wfm/pausas/distribuir', 'POST', dados);
+export const definirCapacidadePausasWfm = (dados) => enviar('/wfm/pausas/capacidade', 'PUT', dados);

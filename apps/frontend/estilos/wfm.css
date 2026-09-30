@@ -128,3 +128,70 @@
 .wfm-legenda-detalhe h4 { margin: 0; font-size: var(--text-sm); }
 .wfm-legenda-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: var(--text-sm); }
 .wfm-legenda-linha .wfm-legenda-txt { margin-left: 0; }
+
+/* Escala: espaçamento, filtros, seleção e total de horas */
+.wfm-escala { gap: 24px; }
+.wfm-filtros-escala { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.wfm-filtros-escala .mon-campo { min-width: 220px; }
+.wfm-contagem { margin-left: auto; color: var(--ink-soft); font-size: var(--text-sm); padding-bottom: 8px; }
+.wfm-paleta { gap: 16px 8px; padding: 16px 24px; }
+.wfm-paleta-espaco { flex: 1 1 16px; }
+.wfm-grade th, .wfm-grade td { height: 48px; min-width: 48px; }
+.wfm-grade .wfm-col-sel { position: sticky; left: 0; z-index: 2; min-width: 40px; width: 40px; background: var(--paper); }
+.wfm-grade thead .wfm-col-sel { background: var(--paper-sunken); }
+.wfm-col-nome { left: 40px; min-width: 220px; padding: 0 16px !important; line-height: 1.4; }
+.wfm-grade:not(.wfm-grade--sem-sel) .wfm-col-nome { box-shadow: none; }
+.wfm-nome { display: block; }
+.wfm-col-horas { position: sticky; left: 260px; z-index: 1; min-width: 88px; background: var(--paper); text-align: center !important; line-height: 1.3; }
+.wfm-col-horas small { display: block; color: var(--ink-soft); font-weight: 400; }
+.wfm-grade thead .wfm-col-horas { background: var(--paper-sunken); }
+.wfm-grade tr.is-selecionada th, .wfm-grade tr.is-selecionada td { background: var(--brand-soft); }
+.wfm-grade tbody tr + tr th, .wfm-grade tbody tr + tr td { border-top: 0; }
+.wfm-chip { min-width: 36px; height: 28px; }
+.wfm-grade--sem-sel .wfm-col-nome { left: 0; }
+.wfm-grade--sem-sel .wfm-col-horas { left: 220px; }
+
+/* Abas internas da Escala e escala de pausas */
+.wfm-abas-internas { display: flex; gap: 24px; border-bottom: 1px solid var(--line); }
+.wfm-abas-internas button { border: 0; background: none; padding: 8px 0 16px; font-size: var(--text-sm); font-weight: 600; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.wfm-abas-internas button.is-ativo { color: var(--brand-ink); border-bottom-color: var(--brand); }
+.wfm-data { width: 176px; }
+.wfm-pausas-config { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.wfm-pausas-config .mon-campo { min-width: 320px; }
+.wfm-pausas-config p { flex: 1 1 100%; margin: 0; }
+.wfm-tabela-pausas td, .wfm-tabela-pausas th { padding: 16px; }
+.wfm-hora { width: 128px; }
+.wfm-tabela-pausas tr.is-pendente td { background: var(--brand-soft); }
+.wfm-ocupacao { display: flex; gap: 8px; align-items: flex-end; overflow-x: auto; padding: 8px 0; }
+.wfm-ocupacao-barra { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 40px; height: 96px; font-size: var(--text-xs); color: var(--ink-soft); }
+.wfm-ocupacao-barra span { width: 24px; background: var(--brand); border-radius: 4px 4px 0 0; }
+.wfm-ocupacao-barra.is-excesso span { background: var(--status-danger); }
+
+/* Seções expansíveis, ações de linha, exceções de presença */
+.wfm-secao-toggle { display: flex; align-items: flex-start; gap: 16px; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; flex: 1 1 auto; }
+.wfm-secao-toggle h3 { margin: 0; font-size: var(--text-md); }
+.wfm-secao-toggle p { margin: 4px 0 0; }
+.wfm-seta { transition: transform 0.15s ease; transform: rotate(-90deg); color: var(--ink-soft); margin-top: 2px; }
+.wfm-seta.is-aberta { transform: rotate(0); }
+.wfm-secao-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: 8px; }
+.wfm-acoes-linha { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-outline-danger .material-symbols-outlined { font-size: 16px; margin-right: 4px; }
+.wfm-rotulo-sm { font-size: var(--text-sm); }
+.wfm-excecoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.wfm-excecao { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: var(--text-sm); cursor: pointer; }
+.wfm-excecao.is-marcada { border-color: var(--status-danger); background: var(--status-danger-bg); }
+.wfm-excecao small { color: var(--ink-soft); font-weight: 700; }
+.wfm-grade--semana .wfm-col-nome { min-width: 240px; }
+.wfm-grade--semana td { min-width: 88px; }
+.wfm-grade--semana td.is-escalada { background: var(--paper); box-shadow: inset 0 -3px 0 var(--brand-soft); }
+.wfm-dia-pausas { color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.5; }
+
+/* Colunas fixas da grade: largura explícita (vence a regra genérica de th/td) */
+.wfm-grade th.wfm-col-sel { width: 40px; min-width: 40px; max-width: 40px; }
+.wfm-grade th.wfm-col-nome { width: 220px; min-width: 220px; max-width: 220px; left: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wfm-grade th.wfm-col-horas { width: 88px; min-width: 88px; max-width: 88px; left: 260px; }
+.wfm-grade.wfm-grade--sem-sel th.wfm-col-nome { left: 0; }
+.wfm-grade.wfm-grade--sem-sel th.wfm-col-horas { left: 220px; }
+.wfm-grade.wfm-grade--semana th.wfm-col-nome { width: 240px; min-width: 240px; max-width: 240px; }
+.wfm-grade thead th.wfm-col-sel, .wfm-grade thead th.wfm-col-nome, .wfm-grade thead th.wfm-col-horas { position: sticky; z-index: 3; }
+.wfm-grade thead th.wfm-col-dia { position: relative; }

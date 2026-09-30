@@ -43,6 +43,7 @@ from .tela_inicial import TelaInicialRepositoryMixin
 from .wfm import WfmRepositoryMixin
 from .wfm_escala import WfmEscalaRepositoryMixin
 from .wfm_trocas import WfmTrocasRepositoryMixin
+from .wfm_pausas_repo import WfmPausasRepositoryMixin
 
 
 class DatabaseRepository(
@@ -83,6 +84,7 @@ class DatabaseRepository(
     WfmRepositoryMixin,
     WfmEscalaRepositoryMixin,
     WfmTrocasRepositoryMixin,
+    WfmPausasRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""

@@ -27,7 +27,7 @@ CATEGORIAS_SKILL = ("IDIOMA", "PRODUTO", "RETENCAO", "OUTRO")
 TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO", "APRENDIZ")
 TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR")
 TIPOS_EVENTO = ("FERIADO", "DATA_ESPECIAL", "DIA_ESPECIAL", "HORARIO_ESPECIAL")
-TIPOS_PAUSA = ("DESCANSO", "REFEICAO", "LANCHE", "OUTRA")
+TIPOS_PAUSA = ("DESCANSO", "REFEICAO", "INTERVALO", "LANCHE", "OUTRA")
 
 # Padrões semeados por operação (editáveis). NR-17 (pausas) parametrizado por contrato.
 _NR17_PADRAO = [
@@ -62,6 +62,16 @@ def _hhmm_valido(valor: str | None) -> bool:
     except ValueError:
         return False
     return 0 <= hh <= 23 and 0 <= mm <= 59
+
+
+def _minutos_liquidos(entrada: str | None, saida: str | None, pausas: list[dict]) -> int:
+    """Jornada líquida do turno: relógio menos os INTERVALOS não remunerados (as pausas NR-17 contam como jornada)."""
+    if not entrada or not saida:
+        return 0
+    ini = int(entrada[:2]) * 60 + int(entrada[3:])
+    fim = int(saida[:2]) * 60 + int(saida[3:])
+    bruto = (fim - ini) % 1440 or 1440
+    return max(bruto - sum(int(p["duracao_min"]) for p in pausas if p.get("tipo") == "INTERVALO"), 0)
 
 
 class WfmRepositoryMixin:
@@ -311,7 +321,7 @@ class WfmRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             cursor.execute(
-                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo "
+                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato "
                 "FROM dbo.wfm_turnos WHERE operacao = ? ORDER BY tipo DESC, codigo",
                 (operacao,),
             )
@@ -322,6 +332,7 @@ class WfmRepositoryMixin:
                     r["pausas"] = json.loads(r.pop("pausas_json") or "[]")
                 except ValueError:
                     r["pausas"] = []
+                r["minutos"] = _minutos_liquidos(r["entrada"], r["saida"], r["pausas"]) if r["tipo"] == "TRABALHO" else 0
                 itens.append(r)
             return itens
         finally:
@@ -363,6 +374,15 @@ class WfmRepositoryMixin:
         try:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, data.get("operacao", ""), escrita=True)
+            id_contrato = int(data["id_contrato"]) if tipo == "TRABALHO" and data.get("id_contrato") not in (None, "", 0) else None
+            if id_contrato:
+                # Turno atrelado a um contrato: a saída é a entrada + jornada do contrato (+ intervalos não remunerados).
+                cursor.execute("SELECT jornada_diaria_max_min FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ? AND ativo = 1", (id_contrato, operacao))
+                contrato = cursor.fetchone()
+                if not contrato:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contrato inválido ou inativo nesta operação.")
+                total = (int(entrada[:2]) * 60 + int(entrada[3:]) + int(contrato[0]) + sum(p["duracao_min"] for p in pausas if p["tipo"] == "INTERVALO")) % 1440
+                saida = f"{total // 60:02d}:{total % 60:02d}"
             anterior = None
             if id_turno:
                 cursor.execute(
@@ -377,9 +397,9 @@ class WfmRepositoryMixin:
                 anterior["ativo"] = bool(anterior["ativo"])
                 codigo = normalize_text(anterior["codigo"])  # o código do turno nunca muda
                 cursor.execute(
-                    "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, "
+                    "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, "
                     "atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
-                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, normalize_text(user.nome) or user.username, int(id_turno), operacao),
+                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, normalize_text(user.nome) or user.username, int(id_turno), operacao),
                 )
                 resolved = int(id_turno)
             else:
@@ -387,17 +407,71 @@ class WfmRepositoryMixin:
                 if cursor.fetchone():
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe um turno com este código nesta operação.")
                 cursor.execute(
-                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, atualizado_por) "
-                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, normalize_text(user.nome) or user.username),
+                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, atualizado_por) "
+                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_turno", entidade="turno", entidade_id=resolved,
-                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo)}, ip=ip,
+                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato}, ip=ip,
             )
             conn.commit()
-            return {"success": True, "id_turno": resolved}
+            return {"success": True, "id_turno": resolved, "saida": saida}
+        finally:
+            conn.close()
+
+    def wfm_excluir_turno(self, user, operacao: str, id_turno: int, *, ip: str = "") -> dict:
+        """Exclui um turno-modelo que nunca foi usado. Turno em uso (escala, calendário especial) só pode ser
+        desativado — excluir apagaria o sentido das marcações existentes. Folga e DSR são fixos."""
+        if not wfm_scope.pode_editar_cadastros(user.perfil):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para excluir turnos.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cursor.execute("SELECT codigo, nome, tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
+            if normalize_text(row[2]) != "TRABALHO":
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Folga e DSR são turnos fixos e não podem ser excluídos.")
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
+            na_escala = int(cursor.fetchone()[0])
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_calendario_especial WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
+            no_calendario = int(cursor.fetchone()[0])
+            if na_escala or no_calendario:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"O turno {normalize_text(row[0])} está em uso ({na_escala} dia(s) de escala, {no_calendario} item(ns) do calendário especial). "
+                           "Remova-o da escala ou apenas desative o turno.",
+                )
+            cursor.execute("DELETE FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+            self.wfm_audit(cursor, user, operacao=operacao, acao="excluir_turno", entidade="turno", entidade_id=int(id_turno),
+                           antes={"codigo": normalize_text(row[0]), "nome": normalize_text(row[1])}, ip=ip)
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
+    def wfm_get_contrato_operador(self, user, operacao: str, id_operador: int) -> dict:
+        """Contrato vigente e histórico de um operador (usado no modal de usuário em Configurações)."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            cursor.execute(
+                "SELECT oc.id_contrato, c.codigo, oc.vigencia_ini, oc.vigencia_fim FROM dbo.wfm_operador_contratos oc "
+                "JOIN dbo.wfm_contratos c ON c.id_contrato = oc.id_contrato WHERE oc.operacao = ? AND oc.id_operador = ? ORDER BY oc.vigencia_ini DESC",
+                (operacao, int(id_operador)),
+            )
+            historico = [
+                {"id_contrato": int(r[0]), "codigo": normalize_text(r[1]), "vigencia_ini": r[2].isoformat(), "vigencia_fim": r[3].isoformat() if r[3] else None}
+                for r in cursor.fetchall()
+            ]
+            atual = next((h for h in historico if h["vigencia_fim"] is None), historico[0] if historico else None)
+            return {"atual": atual, "historico": historico}
         finally:
             conn.close()
 

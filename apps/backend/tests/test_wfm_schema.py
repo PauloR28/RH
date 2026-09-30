@@ -37,3 +37,12 @@ def test_migration_v048_ajustes_e_gerada_do_mesmo_ddl():
     arquivo = REPO_ROOT / "infra" / "sql" / "migrations" / "V048__wfm_ajustes.sql"
     assert arquivo.read_text(encoding="utf-8") == render_migration_ajustes_sql()
     assert "NVARCHAR(20)" in render_migration_ajustes_sql()
+
+
+def test_migration_v049_pausas_e_gerada_do_mesmo_ddl():
+    from rh_api.repositories.wfm_schema import render_migration_pausas_sql
+
+    arquivo = REPO_ROOT / "infra" / "sql" / "migrations" / "V049__wfm_pausas_turno_contrato.sql"
+    sql = render_migration_pausas_sql()
+    assert arquivo.read_text(encoding="utf-8") == sql
+    assert "operacao NVARCHAR(60) NOT NULL" in sql and "DROP " not in sql.upper()

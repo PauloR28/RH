@@ -51,7 +51,8 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20260930-wfm4';
+} from './monitoria-config.js?v=20260930-wfm7';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
 
@@ -914,9 +915,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         turno: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.turno || null : null,
         canais: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.canais || [] : [],
       });
+      // Contrato de jornada (Turnos e Plantões): só o Operador; grava quando o contrato mudou e vale a partir da data informada.
+      const gravarContratoWfm = async (idUsuario) => {
+        if (formUsuario.perfil !== 'operador' || !vinculosMon.id_contrato || !operacoesSelecionadas[0]) return;
+        if (String(vinculosMon.id_contrato) === String(vinculosMon.contrato_atual)) return;
+        const hoje = new Date();
+        const vigenciaIni = vinculosMon.vigencia_ini || `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+        await vincularContratoOperadorWfm(idUsuario, { operacao: operacoesSelecionadas[0], id_contrato: Number(vinculosMon.id_contrato), vigencia_ini: vigenciaIni });
+      };
       if (formUsuario.id_usuario) {
         await atualizarUsuario(formUsuario.id_usuario, payload);
         if (perfilMonitoria) await gravarVinculosMonitoria(formUsuario.id_usuario);
+        await gravarContratoWfm(formUsuario.id_usuario);
         if (formUsuario.senha) {
           await redefinirSenhaUsuario(formUsuario.id_usuario, {
             senha: formUsuario.senha,
@@ -929,6 +939,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         if (perfilMonitoria && criado?.id_usuario) {
           try {
             await gravarVinculosMonitoria(criado.id_usuario);
+            await gravarContratoWfm(criado.id_usuario);
           } catch (falhaVinculos) {
             // O usuário já existe: avisa e recarrega a lista para não sugerir que nada foi criado.
             setCriandoUsuario(false);

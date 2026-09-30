@@ -14,6 +14,10 @@ from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.wfm import (
     AtestadoRequest,
+    CapacidadePausasRequest,
+    DistribuirPausasRequest,
+    PresencaLoteRequest,
+    SalvarPausasRequest,
     ContratoOperadorRequest,
     ContratoRequest,
     EventoRequest,
@@ -232,3 +236,41 @@ def decidir_troca(id_troca: int, payload: TrocaDecidirRequest, request: Request,
 @router.post("/trocas/{id_troca}/desfazer", dependencies=[Depends(require_permissions("wfm.troca.desfazer"))])
 def desfazer_troca(id_troca: int, payload: TrocaDesfazerRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_desfazer_troca(user, id_troca, payload.justificativa, ip=client_ip(request))
+
+
+# ---- Turnos: excluir; contrato do operador (leitura) ---------------------
+@router.delete("/turnos/{id_turno}", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def excluir_turno(id_turno: int, operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_excluir_turno(user, operacao, id_turno, ip=client_ip(request))
+
+
+@router.get("/operadores/{id_operador}/contrato", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar"))])
+def contrato_do_operador(id_operador: int, operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_contrato_operador(user, operacao, id_operador)
+
+
+# ---- Presença em lote ------------------------------------------------------
+@router.put("/presencas/lote", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def lancar_presenca_lote(payload: PresencaLoteRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_lancar_presenca_lote(user, payload.operacao, payload.data, payload.status, payload.excecoes, ip=client_ip(request))
+
+
+# ---- Escala de pausas --------------------------------------------------------
+@router.get("/pausas", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
+def pausas_do_dia(operacao: str, data: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_pausas_dia(user, operacao, data)
+
+
+@router.put("/pausas", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
+def salvar_pausas(payload: SalvarPausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_salvar_pausas(user, payload.operacao, payload.data, [i.model_dump() for i in payload.itens], ip=client_ip(request))
+
+
+@router.post("/pausas/distribuir", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
+def distribuir_pausas(payload: DistribuirPausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_distribuir_pausas(user, payload.operacao, payload.data, payload.ids, sobrescrever=payload.sobrescrever, ip=client_ip(request))
+
+
+@router.put("/pausas/capacidade", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def capacidade_pausas(payload: CapacidadePausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_set_capacidade_pausas(user, payload.operacao, payload.pausas_simultaneas, ip=client_ip(request))

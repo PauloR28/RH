@@ -247,7 +247,7 @@ def schema_statements() -> list[str]:
 
 
 def ensure_wfm_schema(cursor) -> None:
-    for instrucao in schema_statements() + schema_trocas_statements() + schema_ajustes_statements():
+    for instrucao in schema_statements() + schema_trocas_statements() + schema_ajustes_statements() + schema_pausas_statements():
         cursor.execute(instrucao)
 
 
@@ -346,3 +346,54 @@ def render_migration_ajustes_sql() -> str:
         "-- Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py (teste garante que coincide).\n\n"
     )
     return cabecalho + "\n\n".join(schema_ajustes_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# V049: turno-modelo ligado a contrato, capacidade de pausas por operação e escala de pausas
+# individual (cada operador tem 3 pausas por dia: 2 de 10 min e 1 de 20 min). Aditiva e idempotente.
+# ---------------------------------------------------------------------------
+_TABELAS_PAUSAS: list[tuple[str, str]] = [
+    (
+        "wfm_operacao_config",
+        """
+        operacao NVARCHAR(60) NOT NULL PRIMARY KEY,
+        pausas_simultaneas INT NOT NULL CONSTRAINT DF_wfm_operacao_config_simult DEFAULT 1,
+        atualizado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_operacao_config_atualizado_em DEFAULT GETDATE()
+        """,
+    ),
+    (
+        "wfm_pausas",
+        """
+        id_pausa INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao NVARCHAR(60) NOT NULL,
+        id_operador INT NOT NULL,
+        data DATE NOT NULL,
+        ordem INT NOT NULL,
+        tipo NVARCHAR(12) NOT NULL,
+        inicio NVARCHAR(5) NOT NULL,
+        duracao_min INT NOT NULL,
+        atualizado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_pausas_atualizado_em DEFAULT GETDATE(),
+        CONSTRAINT UQ_wfm_pausas UNIQUE (operacao, id_operador, data, ordem)
+        """,
+    ),
+]
+
+
+def schema_pausas_statements() -> list[str]:
+    instrucoes = [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_PAUSAS]
+    instrucoes.append(
+        "IF OBJECT_ID('dbo.wfm_turnos', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_turnos', 'id_contrato') IS NULL\n"
+        "BEGIN\n    ALTER TABLE dbo.wfm_turnos ADD id_contrato INT NULL;\nEND;"
+    )
+    instrucoes.append(_index_sql("IX_wfm_pausas_dia", "wfm_pausas", "operacao, data"))
+    return instrucoes
+
+
+def render_migration_pausas_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: turno-modelo ligado a contrato, capacidade de pausas por operacao e escala de\n"
+        "-- pausas individual. Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py.\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_pausas_statements()) + "\n"

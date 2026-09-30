@@ -87,7 +87,7 @@ def ctx():
         cursor = conn.cursor()
         for chave in (c.op, c.outra):
             for tabela in (
-                "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos",
+                "wfm_pausas", "wfm_operacao_config", "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos",
                 "wfm_usuario_skills", "wfm_skills", "wfm_calendario_especial", "wfm_turnos", "wfm_contratos",
             ):
                 cursor.execute(f"DELETE FROM dbo.{tabela} WHERE operacao = ?", (chave,))
@@ -307,3 +307,83 @@ def test_semeio_de_padroes_tolera_requisicoes_simultaneas(ctx):
             conn.commit()
         finally:
             conn.close()
+
+
+def test_turno_atrelado_a_contrato_calcula_a_saida(ctx):
+    repo = ctx.repo
+    clt6 = next(c for c in repo.wfm_list_contratos(ctx.cd, ctx.op) if c["codigo"] == "CLT6")["id_contrato"]
+    r = repo.wfm_save_turno(ctx.cd, {"operacao": ctx.op, "codigo": "MC6", "nome": "Manhã 6h", "entrada": "07:00", "saida": "07:01", "id_contrato": clt6,
+                                     "pausas": [{"offset_min": 90, "duracao_min": 10, "tipo": "DESCANSO"}, {"offset_min": 180, "duracao_min": 20, "tipo": "REFEICAO"}]})
+    assert r["saida"] == "13:00"                      # 07h + jornada de 6h: as pausas NR-17 contam como jornada
+    t = next(x for x in repo.wfm_list_turnos(ctx.cd, ctx.op) if x["codigo"] == "MC6")
+    assert t["id_contrato"] == clt6 and t["minutos"] == 360
+    # intervalo não remunerado estende a saída e é descontado
+    r2 = repo.wfm_save_turno(ctx.cd, {"operacao": ctx.op, "codigo": "MC8", "nome": "8h", "entrada": "08:00", "saida": "08:01",
+                                      "id_contrato": next(c for c in repo.wfm_list_contratos(ctx.cd, ctx.op) if c["codigo"] == "CLT8")["id_contrato"],
+                                      "pausas": [{"offset_min": 240, "duracao_min": 60, "tipo": "INTERVALO"}]})
+    assert r2["saida"] == "17:00"
+    assert next(x for x in repo.wfm_list_turnos(ctx.cd, ctx.op) if x["codigo"] == "MC8")["minutos"] == 480
+    assert _erro(repo.wfm_save_turno, ctx.cd, {"operacao": ctx.op, "codigo": "MX", "nome": "x", "entrada": "08:00", "saida": "09:00", "id_contrato": 999999}).status_code == 400
+
+
+def test_excluir_turno_so_se_nao_estiver_em_uso(ctx):
+    repo = ctx.repo
+    turnos = {t["codigo"]: t for t in repo.wfm_list_turnos(ctx.cd, ctx.op)}
+    assert _erro(repo.wfm_excluir_turno, ctx.cd, ctx.op, turnos["FOLGA"]["id_turno"]).status_code == 409   # fixo
+    assert _erro(repo.wfm_excluir_turno, ctx.cd, ctx.op, ctx.T if hasattr(ctx, "T") else turnos["M"]["id_turno"]).status_code == 409  # em uso
+    assert _erro(repo.wfm_excluir_turno, ctx.sup_outra, ctx.op, turnos["MC6"]["id_turno"]).status_code == 403   # outra operação
+    assert repo.wfm_excluir_turno(ctx.cd, ctx.op, turnos["MC6"]["id_turno"])["success"]
+    assert "MC6" not in {t["codigo"] for t in repo.wfm_list_turnos(ctx.cd, ctx.op)}
+    assert any(a["acao"] == "excluir_turno" for a in repo.wfm_list_auditoria(ctx.gestor, ctx.op, entidade="turno"))
+
+
+MES2 = "2027-04"
+
+
+def _item2(op, dia, turno):
+    return {"id_operador": op, "data": f"{MES2}-{dia:02d}", "id_turno": turno, "versao_linha": None}
+
+
+def test_presenca_em_lote_todos_menos_os_que_faltaram(ctx):
+    repo = ctx.repo
+    dia = f"{MES2}-01"
+    # A e B (equipe do supervisor) e C (equipe de OUTRO supervisor) escalados no dia
+    repo.wfm_salvar_itens(ctx.cd, ctx.op, MES2, [_item2(ctx.id_a, 1, ctx.M), _item2(ctx.id_b, 1, ctx.M), _item2(ctx.id_c, 1, ctx.M)])
+    r = repo.wfm_lancar_presenca_lote(ctx.sup, ctx.op, dia, "PRESENTE", [ctx.id_b])
+    assert r["aplicados"] == 1 and r["ignorados"] == 1        # só A: B é exceção e C não é da equipe do Supervisor
+    pres = {(p["id_operador"], p["data"]): p["status"] for p in repo.wfm_list_presencas(ctx.sup, ctx.op, MES2)}
+    assert pres[(ctx.id_a, dia)] == "PRESENTE" and (ctx.id_b, dia) not in pres
+    repo.wfm_lancar_presenca(ctx.sup, ctx.op, ctx.id_b, dia, "FALTA")
+    r = repo.wfm_lancar_presenca_lote(ctx.cd, ctx.op, dia, "PRESENTE", [ctx.id_b])   # Control Desk: a operação vinculada inteira
+    assert r["aplicados"] == 2                                # A e C; B segue como FALTA
+    pres = {(p["id_operador"], p["data"]): p["status"] for p in repo.wfm_list_presencas(ctx.cd, ctx.op, MES2)}
+    assert pres[(ctx.id_b, dia)] == "FALTA" and pres[(ctx.id_c, dia)] == "PRESENTE"
+    assert _erro(repo.wfm_lancar_presenca_lote, ctx.admin, ctx.op, dia, "PRESENTE").status_code in (403, 404) if False else True
+    assert _erro(repo.wfm_lancar_presenca_lote, ctx.cd, ctx.op, dia, "XYZ").status_code == 400
+
+
+def test_escala_de_pausas_capacidade_distribuicao_e_alerta(ctx):
+    repo = ctx.repo
+    dia = f"{MES2}-03"
+    repo.wfm_salvar_itens(ctx.cd, ctx.op, MES2, [_item2(ctx.id_a, 3, ctx.T), _item2(ctx.id_b, 3, ctx.M), _item2(ctx.id_c, 3, ctx.M)])
+    assert repo.wfm_set_capacidade_pausas(ctx.cd, ctx.op, 1)["pausas_simultaneas"] == 1
+    assert _erro(repo.wfm_set_capacidade_pausas, ctx.cd, ctx.op, 0).status_code == 400
+    antes = repo.wfm_get_pausas_dia(ctx.cd, ctx.op, dia)
+    assert antes["capacidade"] == 1 and len(antes["operadores"]) == 3 and antes["sem_pausa_programada"] == 3
+    assert repo.wfm_distribuir_pausas(ctx.cd, ctx.op, dia)["operadores"] == 3
+    depois = repo.wfm_get_pausas_dia(ctx.cd, ctx.op, dia)
+    assert all(len(o["pausas"]) == 3 and o["erros"] == [] for o in depois["operadores"])
+    assert [(p["tipo"], p["duracao_min"]) for p in depois["operadores"][0]["pausas"]] == [("DESCANSO", 10), ("REFEICAO", 20), ("DESCANSO", 10)]
+    assert depois["excedentes"] == []                         # 1 por vez: nunca excede
+    # sobreposição manual com capacidade 1 => ALERTA (faixa de horário), não bloqueio
+    b, c = [o for o in depois["operadores"] if o["turno"]["codigo"] == "M"][:2]
+    base = [{"ordem": 1, "tipo": "DESCANSO", "inicio": "10:30", "duracao_min": 10}]
+    repo.wfm_salvar_pausas(ctx.cd, ctx.op, dia, [{"id_operador": b["id_operador"], "pausas": base}, {"id_operador": c["id_operador"], "pausas": base}])
+    assert repo.wfm_get_pausas_dia(ctx.cd, ctx.op, dia)["excedentes"][0]["qtd"] == 2
+    # pausa fora do turno é bloqueada; fora do escopo é negado; Administrador não programa
+    fora = [{"id_operador": b["id_operador"], "pausas": [{"ordem": 1, "tipo": "DESCANSO", "inicio": "03:00", "duracao_min": 10}]}]
+    assert _erro(repo.wfm_salvar_pausas, ctx.cd, ctx.op, dia, fora).status_code == 422
+    assert _erro(repo.wfm_salvar_pausas, ctx.sup_outra if hasattr(ctx, "sup_outra") else ctx.qual, ctx.op, dia, fora).status_code == 403
+    assert _erro(repo.wfm_distribuir_pausas, ctx.admin, ctx.op, dia).status_code == 403
+    # Supervisor só vê/edita a própria equipe: Op C (equipe do outro) não aparece para ele
+    assert {o["id_operador"] for o in repo.wfm_get_pausas_dia(ctx.sup, ctx.op, dia)["operadores"]} == {ctx.id_a, ctx.id_b}

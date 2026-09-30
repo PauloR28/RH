@@ -37,6 +37,7 @@ class PausaTurnoRequest(BaseSchema):
 
 class TurnoRequest(BaseSchema):
     operacao: str = Field(default="", max_length=60)
+    id_contrato: int | None = None  # turno atrelado a um contrato: a saída = entrada + jornada do contrato
     codigo: str = Field(default="", max_length=20)
     nome: str = Field(default="", max_length=120)
     tipo: str = Field(default="TRABALHO", max_length=12)
@@ -138,3 +139,40 @@ class TrocaDecidirRequest(BaseSchema):
 
 class TrocaDesfazerRequest(BaseSchema):
     justificativa: str = Field(max_length=400)
+
+
+class PresencaLoteRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    data: str = Field(max_length=10)
+    status: str = Field(max_length=20)
+    excecoes: list[int] = Field(default_factory=list, max_length=500)  # operadores que NÃO recebem o status
+
+
+class CapacidadePausasRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    pausas_simultaneas: int = Field(ge=1, le=200)
+
+
+class PausaItemRequest(BaseSchema):
+    ordem: int = Field(default=1, ge=1, le=6)
+    tipo: str = Field(max_length=12)
+    inicio: str = Field(max_length=5)
+    duracao_min: int = Field(ge=1, le=120)
+
+
+class PausasOperadorRequest(BaseSchema):
+    id_operador: int
+    pausas: list[PausaItemRequest] = Field(default_factory=list, max_length=6)
+
+
+class SalvarPausasRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    data: str = Field(max_length=10)
+    itens: list[PausasOperadorRequest] = Field(default_factory=list, max_length=500)
+
+
+class DistribuirPausasRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    data: str = Field(max_length=10)
+    ids: list[int] | None = None  # None = todos os escalados do escopo
+    sobrescrever: bool = False

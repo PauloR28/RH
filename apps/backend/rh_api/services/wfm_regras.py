@@ -40,7 +40,8 @@ INTERJORNADA = "INTERJORNADA"
 PAUSA_OBRIGATORIA = "PAUSA_OBRIGATORIA"
 DIAS_SEM_DSR = "DIAS_SEM_DSR"
 
-TIPO_PAUSA_REFEICAO = "REFEICAO"
+TIPO_PAUSA_REFEICAO = "REFEICAO"  # pausa de 20 min (NR-17): CONTA como jornada
+TIPO_PAUSA_INTERVALO = "INTERVALO"  # intervalo não remunerado (ex.: 1h de almoço CLT 8h): é DESCONTADO da jornada
 
 
 @dataclass(frozen=True)
@@ -77,7 +78,8 @@ class Pausa:
 
     @property
     def desconta_da_jornada(self) -> bool:
-        return self.tipo == TIPO_PAUSA_REFEICAO
+        # Pausas NR-17 (descanso e refeição de 20 min) fazem parte da jornada; só o INTERVALO é descontado.
+        return self.tipo == TIPO_PAUSA_INTERVALO
 
 
 @dataclass(frozen=True)

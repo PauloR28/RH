@@ -14,6 +14,7 @@ import {
   transferirSupervisao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
+import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e
@@ -25,7 +26,7 @@ import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonit
 export const PERFIS_MONITORIA = ['operador', 'supervisor', 'qualidade', 'control_desk'];
 const LIMITE_OPERACOES = { operador: 1, supervisor: 3, qualidade: 2, control_desk: 99 };
 const NOME_PERFIL = { operador: 'O Operador', supervisor: 'O Supervisor', qualidade: 'A Qualidade' };
-export const VINCULOS_INICIAIS = { supervisores: [], id_equipe: '', turno: '', canais: [] };
+export const VINCULOS_INICIAIS = { supervisores: [], id_equipe: '', turno: '', canais: [], id_contrato: '', contrato_atual: '', vigencia_ini: '' };
 
 // Espelha `validar_vinculos` do backend para avisar antes de gravar o usuário.
 export function validarVinculosMonitoria(perfil, operacoes, vinculos) {
@@ -57,6 +58,15 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
     listarCatalogoMonitoria('turno').then((r) => setTurnos(r.itens || [])).catch(() => setTurnos([]));
   }, []);
 
+  // Contratos de jornada da operação do Operador (WFM). Sem permissão/sem contratos o campo fica oculto.
+  const [contratosWfm, setContratosWfm] = useState([]);
+  useEffect(() => {
+    let ativo = true;
+    if (perfil !== 'operador' || !operacoes[0]) { setContratosWfm([]); return undefined; }
+    listarContratosWfm(operacoes[0]).then((r) => ativo && setContratosWfm((r.itens || []).filter((c) => c.ativo))).catch(() => ativo && setContratosWfm([]));
+    return () => { ativo = false; };
+  }, [perfil, operacoes[0]]);
+
   useEffect(() => {
     let ativo = true;
     if (!operacoes.length) {
@@ -75,12 +85,21 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
     }
     let ativo = true;
     lerVinculosUsuarioMonitoria(idUsuario)
-      .then((v) => ativo && setVinculos({
-        supervisores: (v.supervisores || []).map((s) => s.id_usuario),
-        id_equipe: v.id_equipe ? String(v.id_equipe) : '',
-        turno: v.turno || '',
-        canais: (v.canais || []).map((c) => c.id_item),
-      }))
+      .then(async (v) => {
+        // Contrato de jornada vigente (WFM): leitura tolerante — sem permissão, o campo simplesmente não aparece.
+        const op = (v.operacoes || [])[0];
+        const c = op ? await lerContratoOperadorWfm(op, idUsuario).catch(() => null) : null;
+        const atual = c?.atual ? String(c.atual.id_contrato) : '';
+        if (ativo) setVinculos({
+          supervisores: (v.supervisores || []).map((s) => s.id_usuario),
+          id_equipe: v.id_equipe ? String(v.id_equipe) : '',
+          turno: v.turno || '',
+          canais: (v.canais || []).map((c2) => c2.id_item),
+          id_contrato: atual,
+          contrato_atual: atual,
+          vigencia_ini: '',
+        });
+      })
       .catch(() => ativo && setVinculos(VINCULOS_INICIAIS));
     return () => { ativo = false; };
   }, [idUsuario]);
@@ -142,6 +161,16 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
               <option value="">Sem equipe</option>${equipesDaOperacao.map((t) => html`<option key=${t.id_equipe} value=${String(t.id_equipe)}>${t.nome}</option>`)}
             </select>
           </label>` : null}
+        ${ehOperador && contratosWfm.length ? html`
+          <label class="mon-campo"><span>Contrato de jornada <small class="mon-muted">(Turnos e Plantões)</small></span>
+            <select class="form-select" disabled=${bloqueado} value=${vinculos.id_contrato || ''} onChange=${(e) => definir('id_contrato', e.target.value)}>
+              <option value="">Sem contrato</option>${contratosWfm.map((c) => html`<option key=${c.id_contrato} value=${String(c.id_contrato)}>${c.codigo} · ${Math.floor(c.jornada_diaria_max_min / 60)}h${String(c.jornada_diaria_max_min % 60).padStart(2, '0')}</option>`)}
+            </select>
+          </label>
+          ${vinculos.id_contrato && String(vinculos.id_contrato) !== String(vinculos.contrato_atual) ? html`
+            <label class="mon-campo"><span>Contrato vale a partir de</span>
+              <input class="form-control" type="date" disabled=${bloqueado} value=${vinculos.vigencia_ini || ''} onInput=${(e) => definir('vigencia_ini', e.target.value)} />
+            </label>` : null}` : null}
         ${precisaCanais ? html`
           <div class="mon-campo">
             <span>Canais de atendimento</span>

@@ -2,58 +2,91 @@ import { html, useCallback, useEffect, useMemo, useState } from '../../infraestr
 import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
+  lancarPresencaLoteWfm,
   lancarPresencaWfm,
   lerEscalaWfm,
   listarAtestadosWfm,
   listarPresencasWfm,
   registrarAtestadoWfm,
 } from '../../services/api/wfm.js';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, infoDia } from './comum.js';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
 
-// Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Sem prazo para
-// lançar ou corrigir (regra do RH); tudo fica em auditoria. Atestado guarda só período, tipo e
-// quem validou — o arquivo do atestado NUNCA é armazenado (dado de saúde).
+// Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.
+// Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria. Atestado guarda só período,
+// tipo e quem validou — o arquivo do atestado NUNCA é armazenado (dado de saúde).
 
 const TIPOS_ATESTADO = { MEDICO: 'Médico', ACOMPANHAMENTO: 'Acompanhamento de familiar', DOACAO_SANGUE: 'Doação de sangue', OUTRO: 'Outro' };
+const SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const paraIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const somar = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const segundaDe = (d) => somar(d, -((d.getDay() + 6) % 7));
+const br = (iso) => iso.split('-').reverse().join('/');
 
-export function TelaPresenca({ controlador, operacao, anoMes, showToast }) {
+export function TelaPresenca({ controlador, operacao, showToast }) {
+  const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [presencas, setPresencas] = useState({});
   const [atestados, setAtestados] = useState([]);
   const [erro, setErro] = useState('');
+  const [filtro, setFiltro] = useState('todos'); // todos | faltas | atestados
+  const [busca, setBusca] = useState('');
   const [form, setForm] = useState({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
+  const [lote, setLote] = useState({ data: '', status: 'PRESENTE', excecoes: {}, marcar: '' });
+  const [ocupado, setOcupado] = useState(false);
   const pode = controlador.possuiPermissao('wfm.presenca.lancar');
+
+  const segunda = segundaDe(ancora);
+  const dias = useMemo(() => Array.from({ length: 7 }, (_, i) => paraIso(somar(segunda, i))), [ancora]);
+  const meses = useMemo(() => [...new Set(dias.map((d) => d.slice(0, 7)))], [dias]);
 
   const carregar = useCallback(async () => {
     if (!operacao) return;
     setErro('');
     try {
-      const [escala, pres] = await Promise.all([lerEscalaWfm(operacao, anoMes), listarPresencasWfm(operacao, anoMes)]);
-      setDados(escala);
-      setPresencas(Object.fromEntries((pres.itens || []).map((p) => [`${p.id_operador}:${p.data}`, p.status])));
-      if (pode) listarAtestadosWfm(operacao, anoMes).then((r) => setAtestados(r.itens || [])).catch(() => setAtestados([]));
-    } catch (e) {
-      setDados(null);
-      setErro(e?.message || 'Não foi possível carregar a presença.');
-    }
-  }, [operacao, anoMes, pode]);
+      const escalas = await Promise.all(meses.map((m) => lerEscalaWfm(operacao, m)));
+      const pres = await Promise.all(meses.map((m) => listarPresencasWfm(operacao, m)));
+      setDados({
+        operadores: escalas[0].operadores,
+        turnos: Object.fromEntries(escalas[0].turnos.map((t) => [t.id_turno, t])),
+        itens: Object.fromEntries(escalas.flatMap((e) => e.itens).map((i) => [`${i.id_operador}:${i.data}`, i])),
+      });
+      setPresencas(Object.fromEntries(pres.flatMap((p) => p.itens).map((p) => [`${p.id_operador}:${p.data}`, p.status])));
+      if (pode) {
+        const ats = await Promise.all(meses.map((m) => listarAtestadosWfm(operacao, m).catch(() => ({ itens: [] }))));
+        setAtestados([...new Map(ats.flatMap((a) => a.itens).map((a) => [a.id_atestado, a])).values()]);
+      }
+    } catch (e) { setDados(null); setErro(e?.message || 'Não foi possível carregar a presença.'); }
+  }, [operacao, meses.join(','), pode]);
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
+  useEffect(() => { setLote((l) => ({ ...l, data: dias.includes(l.data) ? l.data : (dias.includes(paraIso(new Date())) ? paraIso(new Date()) : dias[0]), excecoes: {} })); }, [dias.join(',')]);
 
   const nomes = useMemo(() => Object.fromEntries((dados?.operadores || []).map((o) => [o.id_usuario, o.nome])), [dados]);
-
   if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
   if (!dados) return html`<${LoadingState} titulo="Carregando a presença" />`;
 
+  const escalado = (id, d) => dados.turnos[dados.itens[`${id}:${d}`]?.id_turno]?.tipo === 'TRABALHO';
+  const statusDe = (id, d) => presencas[`${id}:${d}`] || '';
+  const operadores = dados.operadores.filter((o) => (!busca || o.nome.toLowerCase().includes(busca.toLowerCase()))
+    && (filtro === 'todos' || dias.some((d) => statusDe(o.id_usuario, d) === (filtro === 'faltas' ? 'FALTA' : 'ATESTADO')
+      || (filtro === 'faltas' && statusDe(o.id_usuario, d) === 'FALTA_JUSTIFICADA'))));
+  const escaladosDoDia = dados.operadores.filter((o) => escalado(o.id_usuario, lote.data));
+
   const lancar = async (idOperador, data, status) => {
     if (!status) return;
-    try {
-      await lancarPresencaWfm({ operacao, id_operador: idOperador, data, status });
-      setPresencas((p) => ({ ...p, [`${idOperador}:${data}`]: status }));
-    } catch (e) {
-      showToast?.(e?.message || 'Não foi possível lançar a presença.', 'error');
-    }
+    try { await lancarPresencaWfm({ operacao, id_operador: idOperador, data, status }); setPresencas((p) => ({ ...p, [`${idOperador}:${data}`]: status })); }
+    catch (e) { showToast?.(e?.message || 'Não foi possível lançar a presença.', 'error'); }
   };
-
+  const aplicarLote = async () => {
+    const excecoes = Object.keys(lote.excecoes).filter((k) => lote.excecoes[k]).map(Number);
+    setOcupado(true);
+    try {
+      const r = await lancarPresencaLoteWfm({ operacao, data: lote.data, status: lote.status, excecoes });
+      if (lote.marcar) await Promise.all(excecoes.map((id) => lancarPresencaWfm({ operacao, id_operador: id, data: lote.data, status: lote.marcar })));
+      showToast?.(`${r.aplicados} operador(es) com ${ROTULO_STATUS_PRESENCA[lote.status].toLowerCase()}${excecoes.length ? `; ${excecoes.length} exceção(ões) preservada(s)` : ''}.`, 'success');
+      setLote({ ...lote, excecoes: {}, marcar: '' });
+      await carregar();
+    } catch (e) { showToast?.(e?.message || 'Não foi possível aplicar a presença.', 'error'); } finally { setOcupado(false); }
+  };
   const registrarAtestado = async (e) => {
     e.preventDefault();
     try {
@@ -61,36 +94,52 @@ export function TelaPresenca({ controlador, operacao, anoMes, showToast }) {
       showToast?.('Atestado registrado (somente período, tipo e validador).', 'success');
       setForm({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
       await carregar();
-    } catch (err) {
-      showToast?.(err?.message || 'Não foi possível registrar o atestado.', 'error');
-    }
+    } catch (err) { showToast?.(err?.message || 'Não foi possível registrar o atestado.', 'error'); }
   };
 
   if (!dados.operadores.length) return html`<${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />`;
+  const contagemExc = Object.values(lote.excecoes).filter(Boolean).length;
 
   return html`
     <section class="mon-card wfm-escala">
-      <div class="wfm-cabecalho"><div><h3>Presença</h3>
-        <p class="mon-muted">Sem prazo para lançar ou corrigir. Cada lançamento é auditado. ${Object.entries(SIGLA_PRESENCA).map(([k, s]) => `${s} = ${ROTULO_STATUS_PRESENCA[k]}`).join(' · ')}</p></div></div>
-      <div class="wfm-grade-wrap" role="region" aria-label="Presença do mês" tabindex="0">
-        <table class="wfm-grade">
-          <thead><tr><th class="wfm-col-nome">Operador</th>
-            ${dados.dias.map((d) => { const i = infoDia(d); return html`<th key=${d} class=${`wfm-col-dia ${i.fimDeSemana ? 'is-fds' : ''}`}><span>${i.dia}</span><small>${i.semana}</small></th>`; })}
-          </tr></thead>
-          <tbody>
-            ${dados.operadores.map((op) => html`<tr key=${op.id_usuario}>
-              <th class="wfm-col-nome" scope="row">${op.nome}</th>
-              ${dados.dias.map((d) => {
-                const valor = presencas[`${op.id_usuario}:${d}`] || '';
-                return html`<td key=${d} class=${infoDia(d).fimDeSemana ? 'is-fds' : ''}>
-                  ${pode ? html`<select class=${`wfm-select wfm-pres-${valor.toLowerCase()}`} aria-label=${`${op.nome}, dia ${infoDia(d).dia}`} value=${valor} onChange=${(e) => lancar(op.id_usuario, d, e.target.value)}>
-                    <option value="">—</option>
-                    ${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s}</option>`)}
-                  </select>` : html`<span class=${`wfm-pres wfm-pres-${valor.toLowerCase()}`}>${SIGLA_PRESENCA[valor] || '·'}</span>`}
-                </td>`;
-              })}
-            </tr>`)}
-          </tbody>
+      <div class="wfm-cabecalho">
+        <div><h3>Presença da semana</h3><p class="mon-muted">${br(dias[0])} a ${br(dias[6])} · sem prazo para lançar ou corrigir; cada lançamento é auditado.</p></div>
+        <div class="wfm-acoes-cab">
+          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Semana anterior" onClick=${() => setAncora(somar(ancora, -7))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setAncora(new Date())}>Esta semana</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Próxima semana" onClick=${() => setAncora(somar(ancora, 7))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
+        </div>
+      </div>
+
+      ${pode ? html`
+        <div class="wfm-form">
+          <h4>Presença em lote</h4>
+          <p class="mon-muted">Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <strong>não</strong> deve receber (faltou, está de atestado...).</p>
+          <div class="wfm-linha">
+            <label class="mon-campo"><span>Dia</span><select class="form-select" value=${lote.data} onChange=${(e) => setLote({ ...lote, data: e.target.value, excecoes: {} })}>${dias.map((d, i) => html`<option key=${d} value=${d}>${SEMANA[i]} ${br(d).slice(0, 5)}</option>`)}</select></label>
+            <label class="mon-campo"><span>Aplicar a todos</span><select class="form-select" value=${lote.status} onChange=${(e) => setLote({ ...lote, status: e.target.value })}>${Object.entries(ROTULO_STATUS_PRESENCA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
+            <label class="mon-campo"><span>Quem ficou de fora, marcar como</span><select class="form-select" value=${lote.marcar} onChange=${(e) => setLote({ ...lote, marcar: e.target.value })}><option value="">Não alterar</option>${['FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'].map((k) => html`<option key=${k} value=${k}>${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select></label>
+          </div>
+          ${escaladosDoDia.length ? html`
+            <div><strong class="wfm-rotulo-sm">Exceto (${contagemExc} selecionado${contagemExc === 1 ? '' : 's'} de ${escaladosDoDia.length} escalados)</strong>
+              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /> ${o.nome}${statusDe(o.id_usuario, lote.data) ? html`<small>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div></div>
+            <div class="wfm-acoes"><button type="button" class="btn btn-primary" disabled=${ocupado} onClick=${aplicarLote}>${ROTULO_STATUS_PRESENCA[lote.status]} para ${escaladosDoDia.length - contagemExc} operador(es)</button></div>`
+            : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
+        </div>` : null}
+
+      <div class="wfm-filtros-escala">
+        <label class="mon-campo"><span>Mostrar</span><select class="form-select" value=${filtro} onChange=${(e) => setFiltro(e.target.value)}><option value="todos">Todos os operadores</option><option value="faltas">Só quem faltou na semana</option><option value="atestados">Só quem está de atestado</option></select></label>
+        <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
+        <span class="wfm-contagem">${operadores.length} de ${dados.operadores.length} operador(es) · ${Object.entries(SIGLA_PRESENCA).map(([k, s]) => `${s} = ${ROTULO_STATUS_PRESENCA[k]}`).join(' · ')}</span>
+      </div>
+      <div class="wfm-grade-wrap" role="region" aria-label="Presença da semana" tabindex="0">
+        <table class="wfm-grade wfm-grade--sem-sel wfm-grade--semana">
+          <thead><tr><th class="wfm-col-nome">Operador</th>${dias.map((d, i) => html`<th key=${d} class=${`wfm-col-dia ${i > 4 ? 'is-fds' : ''}`}><span>${d.slice(8)}</span><small>${SEMANA[i]}</small></th>`)}</tr></thead>
+          <tbody>${operadores.map((op) => html`<tr key=${op.id_usuario}><th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span></th>
+            ${dias.map((d, i) => { const valor = statusDe(op.id_usuario, d); const esc = escalado(op.id_usuario, d);
+              return html`<td key=${d} class=${`${i > 4 ? 'is-fds' : ''} ${esc ? 'is-escalada' : ''}`} title=${esc ? 'Escalado neste dia' : 'Sem escala de trabalho neste dia'}>
+                ${pode ? html`<select class=${`wfm-select wfm-pres-${valor.toLowerCase()}`} aria-label=${`${op.nome}, ${br(d)}`} value=${valor} onChange=${(e) => lancar(op.id_usuario, d, e.target.value)}><option value="">${esc ? '·' : '—'}</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s}</option>`)}</select>`
+                  : html`<span class=${`wfm-pres wfm-pres-${valor.toLowerCase()}`}>${SIGLA_PRESENCA[valor] || '·'}</span>`}</td>`; })}</tr>`)}</tbody>
         </table>
       </div>
     </section>
@@ -113,6 +162,6 @@ export function TelaPresenca({ controlador, operacao, anoMes, showToast }) {
           <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Registrar</button>
         </form>
         ${atestados.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Operador</th><th>Período</th><th>Tipo</th><th>Validado por</th></tr></thead>
-          <tbody>${atestados.map((a) => html`<tr key=${a.id_atestado}><td>${nomes[a.id_operador] || a.id_operador}</td><td>${a.data_ini.split('-').reverse().join('/')} a ${a.data_fim.split('-').reverse().join('/')}</td><td>${TIPOS_ATESTADO[a.tipo] || a.tipo}</td><td>${a.validado_por}</td></tr>`)}</tbody></table></div>` : null}
+          <tbody>${atestados.map((a) => html`<tr key=${a.id_atestado}><td>${nomes[a.id_operador] || a.id_operador}</td><td>${br(a.data_ini)} a ${br(a.data_fim)}</td><td>${TIPOS_ATESTADO[a.tipo] || a.tipo}</td><td>${a.validado_por}</td></tr>`)}</tbody></table></div>` : null}
       </section>` : null}`;
 }

@@ -9,6 +9,7 @@ import { TelaPresenca } from './presenca.js';
 import { TelaCadastros } from './cadastros.js';
 import { TelaMinhaEscala } from './minha.js';
 import { TelaTrocas } from './trocas.js';
+import { TelaPausas } from './pausas.js';
 
 // WFM — Turnos e Plantões (Fase 1). Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
@@ -107,6 +108,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   const { contexto, erro } = useContextoWfm();
   const [operacao, setOperacao] = useState('');
   const [anoMes, setAnoMes] = useState(mesAtual());
+  const [visaoEscala, setVisaoEscala] = useState('turnos'); // 'turnos' | 'pausas'
   useEffect(() => {
     if (contexto && !operacao && contexto.operacoes.length) setOperacao(contexto.operacoes[0].chave);
   }, [contexto, operacao]);
@@ -127,9 +129,14 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   else if (telaAtual === 'screen-wfm-presenca') corpo = html`<${TelaPresenca} ...${props} />`;
   else if (telaAtual === 'screen-wfm-cadastros') corpo = html`<${TelaCadastros} ...${props} />`;
   else if (telaAtual === 'screen-wfm-auditoria') corpo = html`<${TelaAuditoria} contexto=${contexto} />`;
-  else corpo = html`<${TelaEscala} ...${props} />`;
+  else corpo = html`
+    <div class="wfm-abas-internas" role="tablist" aria-label="Escala">
+      <button type="button" role="tab" aria-selected=${visaoEscala === 'turnos'} class=${visaoEscala === 'turnos' ? 'is-ativo' : ''} onClick=${() => setVisaoEscala('turnos')}>Escala de turnos</button>
+      <button type="button" role="tab" aria-selected=${visaoEscala === 'pausas'} class=${visaoEscala === 'pausas' ? 'is-ativo' : ''} onClick=${() => setVisaoEscala('pausas')}>Escala de pausas</button>
+    </div>
+    ${visaoEscala === 'pausas' ? html`<${TelaPausas} ...${props} />` : html`<${TelaEscala} ...${props} />`}`;
 
-  const semPeriodo = ['screen-wfm-auditoria', 'screen-wfm-minha-escala', 'screen-wfm-trocas'].includes(telaAtual);
+  const semPeriodo = ['screen-wfm-auditoria', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca'].includes(telaAtual);
   return html`
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca=${telaAtual === 'screen-wfm-auditoria' ? 'Auditoria de Plantões' : 'Turnos e Plantões'} placeholderBusca="Turnos e Plantões" controlador=${controlador}>
       <${ToastHost} />

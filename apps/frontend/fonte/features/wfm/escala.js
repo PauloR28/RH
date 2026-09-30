@@ -10,7 +10,7 @@ import {
   salvarItensEscalaWfm,
   validarEscalaWfm,
 } from '../../services/api/wfm.js';
-import { dataHora, infoDia } from './comum.js';
+import { dataHora, infoDia, minutosParaHoras } from './comum.js';
 import { baixarArquivo } from '../monitoria/comum.js';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
@@ -75,7 +75,11 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [versoes, setVersoes] = useState([]);
   const [pincel, setPincel] = useState(null); // {id}: null id = borracha
   const [arrastando, setArrastando] = useState(false);
-  const [padrao, setPadrao] = useState(null); // {id_usuario, nome, semana: [7 x id|''], sobrescrever}
+  const [padrao, setPadrao] = useState(null); // {semana: [7 x id|''], sobrescrever}
+  const [filtroEquipe, setFiltroEquipe] = useState('');
+  const [filtroSup, setFiltroSup] = useState('');
+  const [busca, setBusca] = useState('');
+  const [selecionados, setSelecionados] = useState({});
 
   const pode = (p) => controlador.possuiPermissao(p);
 
@@ -141,18 +145,41 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     if (!pincel) { showToast?.('Escolha um turno na paleta acima e depois clique nos dias.', 'info'); return; }
     mudar(idOperador, data, pincel.id);
   };
+  // Operadores exibidos depois dos filtros (equipe, supervisor, nome).
+  const visiveis = dados.operadores.filter((op) => (!filtroEquipe || String(op.id_equipe || '') === filtroEquipe)
+    && (!filtroSup || (op.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
+    && (!busca || op.nome.toLowerCase().includes(busca.toLowerCase())));
+  const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
+  const supervisores = [...new Map(dados.operadores.flatMap((o) => o.supervisores || []).map((s) => [s.id_usuario, s.nome])).entries()];
+  const idTurnoDe = (idOp, d) => {
+    const chave = `${idOp}:${d}`;
+    return chave in pendentes ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
+  };
+  // Horas do mês do operador, já contando o que você pintou e ainda não salvou.
+  const totalDe = (idOp) => dados.dias.reduce((acc, d) => {
+    const t = turnosPorId[idTurnoDe(idOp, d)];
+    return t?.tipo === 'TRABALHO' ? { min: acc.min + (t.minutos || 0), dias: acc.dias + 1 } : acc;
+  }, { min: 0, dias: 0 });
+  const alvosDoPadrao = () => (visiveis.filter((o) => selecionados[o.id_usuario]).length ? visiveis.filter((o) => selecionados[o.id_usuario]) : visiveis);
   const aplicarPadrao = () => {
-    dados.dias.forEach((d) => {
+    const alvos = alvosDoPadrao();
+    alvos.forEach((op) => dados.dias.forEach((d) => {
       const [a, m, dia] = d.split('-').map(Number);
-      const idx = (new Date(a, m - 1, dia).getDay() + 6) % 7;
-      const alvo = padrao.semana[idx];
-      const chave = `${padrao.id_usuario}:${d}`;
-      const atual = pendentes[chave] ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
-      if (alvo === '' || (!padrao.sobrescrever && atual !== null)) return;
-      mudar(padrao.id_usuario, d, Number(alvo));
-    });
+      const alvo = padrao.semana[(new Date(a, m - 1, dia).getDay() + 6) % 7];
+      if (alvo === '' || (!padrao.sobrescrever && idTurnoDe(op.id_usuario, d) !== null)) return;
+      mudar(op.id_usuario, d, Number(alvo));
+    }));
+    showToast?.(`Padrão aplicado a ${alvos.length} operador(es). Revise e clique em "Salvar alterações".`, 'success');
     setPadrao(null);
   };
+  const limparTabela = () => {
+    const alvos = visiveis.filter((o) => dados.dias.some((d) => idTurnoDe(o.id_usuario, d) !== null));
+    if (!alvos.length) { showToast?.('Não há turnos para limpar nos operadores exibidos.', 'info'); return; }
+    if (!window.confirm(`Limpar a escala de ${alvos.length} operador(es) exibido(s) neste mês? Nada é apagado até você salvar.`)) return;
+    alvos.forEach((o) => dados.dias.forEach((d) => { if (idTurnoDe(o.id_usuario, d) !== null) mudar(o.id_usuario, d, null); }));
+  };
+  const alternarSel = (id) => setSelecionados((s0) => ({ ...s0, [id]: !s0[id] }));
+  const todosSel = visiveis.length > 0 && visiveis.every((o) => selecionados[o.id_usuario]);
 
   const executar = async (fn, sucesso) => {
     setOcupado(true);
@@ -217,20 +244,41 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       </div>
 
       ${somentePropria ? null : html`<${GuiaEscala} dados=${dados} editavel=${editavel} controlador=${controlador} fechada=${fechada} />`}
-      ${editavel && !semItens && dados.turnos.some((t) => t.tipo === 'TRABALHO') ? html`
-        <div class="wfm-paleta" role="toolbar" aria-label="Paleta de turnos">
-          <span class="wfm-paleta-rotulo">1. Escolha o turno:</span>
-          ${dados.turnos.map((t) => html`<button key=${t.id_turno} type="button" class=${`wfm-paleta-item ${pincel?.id === t.id_turno ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: t.id_turno })} title=${t.nome + (t.entrada ? ' · ' + descreverTurno(t) : '')}>
-            <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
-          <button type="button" class=${`wfm-paleta-item ${pincel && pincel.id === null ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: null })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span><span>Limpar dia</span></button>
-          <span class="wfm-paleta-rotulo">2. Clique (ou arraste) nos dias da grade.</span>
-        </div>` : null}
       ${semItens ? html`<${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />` : html`
+        <div class="wfm-filtros-escala">
+          <label class="mon-campo"><span>Equipe</span><select class="form-select" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Todas as equipes</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
+          <label class="mon-campo"><span>Supervisor</span><select class="form-select" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Todos os supervisores</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
+          <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
+          <span class="wfm-contagem">${visiveis.length} de ${dados.operadores.length} operador(es)</span>
+        </div>
+        ${editavel && dados.turnos.some((t) => t.tipo === 'TRABALHO') ? html`
+          <div class="wfm-paleta" role="toolbar" aria-label="Paleta de turnos">
+            <span class="wfm-paleta-rotulo">1. Escolha o turno:</span>
+            ${dados.turnos.map((t) => html`<button key=${t.id_turno} type="button" class=${`wfm-paleta-item ${pincel?.id === t.id_turno ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: t.id_turno })} title=${t.nome + (t.entrada ? ' · ' + descreverTurno(t) : '')}>
+              <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
+            <button type="button" class=${`wfm-paleta-item ${pincel && pincel.id === null ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: null })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span><span>Borracha</span></button>
+            <span class="wfm-paleta-rotulo">2. Clique ou arraste nos dias.</span>
+            <span class="wfm-paleta-espaco"></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao({ semana: ['', '', '', '', '', '', ''], sobrescrever: false })}>Padrão semanal para a equipe</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${limparTabela}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Limpar tabela</button>
+          </div>` : null}
+        ${padrao ? html`
+          <div class="wfm-form">
+            <h4>Padrão semanal — ${visiveis.filter((o) => selecionados[o.id_usuario]).length ? `${visiveis.filter((o) => selecionados[o.id_usuario]).length} operador(es) selecionado(s)` : `todos os ${visiveis.length} operador(es) exibidos`}</h4>
+            <p class="mon-muted">Escolha o turno de cada dia da semana e aplique ao mês de todos de uma vez. Use os filtros para trabalhar uma equipe por vez ou marque as caixinhas para escolher operadores. Depois você ainda ajusta dia a dia.</p>
+            <div class="wfm-padrao">${DIAS_SEMANA_LONGO.map((nome, i) => html`<label key=${nome} class="mon-campo"><span>${nome}</span>
+              <select class="form-select" value=${padrao.semana[i]} onChange=${(e) => setPadrao({ ...padrao, semana: padrao.semana.map((v, j) => (j === i ? e.target.value : v)) })}>
+                <option value="">—</option>${dados.turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>`)}</div>
+            <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
+            <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
+          </div>` : null}
         <div class="wfm-grade-wrap" role="region" aria-label="Escala do mês" tabindex="0">
-          <table class="wfm-grade">
+          <table class=${`wfm-grade ${editavel ? '' : 'wfm-grade--sem-sel'}`}>
             <thead>
               <tr>
+                ${editavel ? html`<th class="wfm-col-sel"><input type="checkbox" aria-label="Selecionar todos os exibidos" checked=${todosSel} onChange=${() => setSelecionados(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])))} /></th>` : null}
                 <th class="wfm-col-nome">Operador</th>
+                <th class="wfm-col-horas" title="Horas de trabalho no mês (inclui o que você ainda não salvou)">Horas</th>
                 ${dados.dias.map((d) => {
                   const inf = infoDia(d);
                   const evs = eventosPorDia[d] || [];
@@ -241,35 +289,26 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
               </tr>
             </thead>
             <tbody>
-              ${dados.operadores.map((op) => html`
-                <tr key=${op.id_usuario}>
-                  <th class="wfm-col-nome" scope="row">${op.nome}${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}</small>` : html`<small class="wfm-alerta-txt">sem contrato</small>`}${editavel ? html`<button type="button" class="wfm-link" onClick=${() => setPadrao({ id_usuario: op.id_usuario, nome: op.nome, semana: ['', '', '', '', '', '', ''], sobrescrever: false })}>Padrão semanal</button>` : null}</th>
+              ${visiveis.map((op) => { const tot = totalDe(op.id_usuario); return html`
+                <tr key=${op.id_usuario} class=${selecionados[op.id_usuario] ? 'is-selecionada' : ''}>
+                  ${editavel ? html`<th class="wfm-col-sel"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} /></th>` : null}
+                  <th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span>${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}${op.equipe ? ` · ${op.equipe}` : ''}</small>` : html`<small class="wfm-alerta-txt">sem contrato</small>`}</th>
+                  <th class="wfm-col-horas" scope="row" title=${`${tot.dias} dia(s) de trabalho`}><strong>${minutosParaHoras(tot.min)}</strong><small>${tot.dias} dias</small></th>
                   ${dados.dias.map((d) => {
                     const chave = `${op.id_usuario}:${d}`;
                     const pend = chave in pendentes;
-                    const idTurno = pend ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
                     const viol = violacoesPorCelula[chave];
                     return html`<td key=${d} class=${`${infoDia(d).fimDeSemana ? 'is-fds' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : ''}>
-                      <${Celula} turno=${turnosPorId[idTurno]} editavel=${editavel} titulo=${`${op.nome}, dia ${infoDia(d).dia}`} onPintar=${() => { setArrastando(true); pintar(op.id_usuario, d); }} onEntrar=${() => { if (arrastando && pincel) mudar(op.id_usuario, d, pincel.id); }} />
+                      <${Celula} turno=${turnosPorId[idTurnoDe(op.id_usuario, d)]} editavel=${editavel} titulo=${`${op.nome}, dia ${infoDia(d).dia}`} onPintar=${() => { setArrastando(true); pintar(op.id_usuario, d); }} onEntrar=${() => { if (arrastando && pincel) mudar(op.id_usuario, d, pincel.id); }} />
                     </td>`;
                   })}
-                </tr>`)}
+                </tr>`; })}
             </tbody>
           </table>
         </div>
-        ${padrao ? html`
-          <div class="wfm-form">
-            <h4>Padrão semanal — ${padrao.nome}</h4>
-            <p class="mon-muted">Escolha o turno de cada dia da semana e aplique ao mês inteiro de uma vez. Depois você ainda ajusta dia a dia.</p>
-            <div class="wfm-padrao">${DIAS_SEMANA_LONGO.map((nome, i) => html`<label key=${nome} class="mon-campo"><span>${nome}</span>
-              <select class="form-select" value=${padrao.semana[i]} onChange=${(e) => setPadrao({ ...padrao, semana: padrao.semana.map((v, j) => (j === i ? e.target.value : v)) })}>
-                <option value="">—</option>${dados.turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>`)}</div>
-            <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
-            <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
-          </div>` : null}
         <div class="wfm-legenda-detalhe">
           <h4>Turnos e pausas</h4>
-          ${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-linha"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><strong>${t.nome}</strong><span class="wfm-legenda-txt">${t.entrada ? descreverTurno(t) : 'sem horário'}</span></div>`)}
+          ${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-linha"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><strong>${t.nome}</strong><span class="wfm-legenda-txt">${t.entrada ? `${descreverTurno(t)} · ${minutosParaHoras(t.minutos || 0)} de jornada` : 'sem horário'}</span></div>`)}
         </div>`}
 
       ${!somentePropria && validacao?.violacoes?.length ? html`
