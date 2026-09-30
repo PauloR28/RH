@@ -68,6 +68,11 @@ export const ROTAS_POR_TELA = {
   'screen-settings-monitoria': 'configuracoes/central-monitoria',
   'screen-settings-monitoria-equipes': 'configuracoes/equipes-catalogos',
   'screen-settings-monitoria-logs': 'configuracoes/logs-monitoria',
+  'screen-wfm': 'turnos-plantoes',
+  'screen-wfm-minha-escala': 'turnos-plantoes/minha-escala',
+  'screen-wfm-presenca': 'turnos-plantoes/presenca',
+  'screen-wfm-cadastros': 'turnos-plantoes/cadastros',
+  'screen-wfm-auditoria': 'turnos-plantoes/auditoria',
   'screen-help': 'ajuda',
 };
 

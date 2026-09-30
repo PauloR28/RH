@@ -356,6 +356,19 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("monitoria.equipes", "Monitoria", "Gerenciar equipes, turnos, canais e tipos de atendimento.", critical=True),
         _permission("monitoria.configurar", "Monitoria", "Acessar a Central de Monitoria nas Configurações (SLAs, guia, zona de risco).", critical=True),
         _permission("monitoria.usuarios", "Monitoria", "Criar/editar usuários subordinados na hierarquia da Monitoria.", critical=True),
+        _permission("sessao.wfm.acessar", "Sessões", "Acessar a sessão Turnos e Plantões (WFM)."),
+        _permission("wfm.escala.propria", "WFM", "Consultar a própria escala e o calendário mensal (Operador)."),
+        _permission("wfm.escala.visualizar", "WFM", "Consultar a escala dentro do escopo de operação/equipe do perfil."),
+        _permission("wfm.escala.editar", "WFM", "Editar a escala mensal (Supervisor: própria equipe; Control Desk: operações vinculadas).", critical=True),
+        _permission("wfm.escala.publicar", "WFM", "Validar e publicar a escala (gera nova versão).", critical=True),
+        _permission("wfm.escala.publicar_com_violacao", "WFM", "Publicar escala com violação pendente, com justificativa em auditoria.", critical=True),
+        _permission("wfm.escala.fechar", "WFM", "Fechar o período (mês) da escala.", critical=True),
+        _permission("wfm.escala.corrigir_fechada", "WFM", "Corrigir escala após o fechamento do período, com justificativa.", critical=True),
+        _permission("wfm.presenca.lancar", "WFM", "Lançar presença/falta e registrar atestados (período, tipo e validador).", critical=True),
+        _permission("wfm.cadastros.visualizar", "WFM", "Consultar contratos, turnos, skills e calendário especial."),
+        _permission("wfm.cadastros.editar", "WFM", "Editar turnos-modelo, skills e calendário especial (feriados, datas, dias e horários especiais).", critical=True),
+        _permission("wfm.contratos.editar", "WFM", "Editar contratos de jornada e limites do motor de regras.", critical=True),
+        _permission("wfm.auditoria", "WFM", "Consultar a trilha de auditoria completa do WFM.", critical=True),
     )
 }
 
@@ -658,6 +671,38 @@ for _role_id, _perms in list(ROLE_PERMISSIONS.items()):
         ):
             _perms.add(f"sessao.{_session_id}.acessar")
 
+# ---------------------------------------------------------------------------
+# WFM — Turnos e Plantões (Fase 1, branch wfm)
+# ---------------------------------------------------------------------------
+# Perfis (decisões do RH): Gestor = "Gestor/RH"; Administrador = "Adm" (configuração,
+# sem decisões operacionais); Control Desk = mesmas permissões do Supervisor.
+_WFM_LEITURA = {"sessao.wfm.acessar", "wfm.escala.visualizar", "wfm.cadastros.visualizar"}
+_WFM_EQUIPE = _WFM_LEITURA | {"wfm.escala.editar", "wfm.escala.publicar", "wfm.escala.fechar", "wfm.presenca.lancar", "wfm.cadastros.editar"}
+_WFM_ROLE_PERMISSIONS: dict[str, set[str]] = {
+    ROLE_SUPERVISOR: set(_WFM_EQUIPE),
+    ROLE_CONTROL_DESK: _WFM_EQUIPE | {"wfm.contratos.editar"},
+    ROLE_QUALIDADE: set(_WFM_LEITURA),
+    # Gestor/RH: sem lançamento de presença (Supervisor/Control Desk); publica com violação e corrige após fechamento.
+    ROLE_MANAGER: _WFM_LEITURA
+    | {"wfm.escala.editar", "wfm.escala.publicar", "wfm.escala.fechar", "wfm.escala.publicar_com_violacao", "wfm.escala.corrigir_fechada", "wfm.auditoria"},
+    ROLE_OPERATOR: {"sessao.wfm.acessar", "wfm.escala.propria"},
+}
+for _role_id, _perms in _WFM_ROLE_PERMISSIONS.items():
+    ROLE_PERMISSIONS.setdefault(_role_id, set()).update(_perms)
+# Administrador: configuração geral + auditoria; sem decisões operacionais sobre a escala
+# (editar/publicar/fechar/corrigir/presença). Reforçado também no servidor (wfm_scope).
+WFM_PERMISSOES_OPERACIONAIS = frozenset(
+    {
+        "wfm.escala.editar",
+        "wfm.escala.publicar",
+        "wfm.escala.publicar_com_violacao",
+        "wfm.escala.fechar",
+        "wfm.escala.corrigir_fechada",
+        "wfm.presenca.lancar",
+    }
+)
+ROLE_PERMISSIONS[ROLE_ADMIN] -= WFM_PERMISSOES_OPERACIONAIS
+
 SCREEN_PERMISSIONS.update(
     {
         "screen-monitoria": "monitoria.visualizar",
@@ -672,6 +717,16 @@ SCREEN_PERMISSIONS.update(
         "screen-settings-monitoria": "monitoria.configurar",
         "screen-settings-monitoria-equipes": "monitoria.equipes",
         "screen-settings-monitoria-logs": "monitoria.logs",
+    }
+)
+
+SCREEN_PERMISSIONS.update(
+    {
+        "screen-wfm": "wfm.escala.visualizar",
+        "screen-wfm-minha-escala": "wfm.escala.propria",
+        "screen-wfm-presenca": "wfm.presenca.lancar",
+        "screen-wfm-cadastros": "wfm.cadastros.visualizar",
+        "screen-wfm-auditoria": "wfm.auditoria",
     }
 )
 

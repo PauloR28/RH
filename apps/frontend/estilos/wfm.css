@@ -1,0 +1,58 @@
+/* WFM — Turnos e Plantões. Tokens do design system (--line, --paper, --ink*, --brand*),
+ * grade de 8px, bordas de 1px, sem gradiente. Reaproveita .mon-* (subnav, card, tabela, campo). */
+
+.wfm-filtros { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.wfm-filtros .mon-campo { min-width: 240px; }
+
+.wfm-cabecalho { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.wfm-acoes-cab { display: flex; gap: 8px; flex-wrap: wrap; }
+.wfm-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.wfm-just { flex: 1 1 320px; }
+.wfm-form { display: flex; flex-direction: column; gap: 16px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-sunken); }
+.wfm-form h4 { margin: 0; font-size: var(--text-sm); }
+.wfm-linha { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+.wfm-check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
+.wfm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wfm-alerta-txt { color: var(--status-danger); }
+.wfm-sub { display: block; color: var(--ink-soft); font-size: var(--text-xs); }
+.wfm-json { max-width: 240px; font-family: ui-monospace, monospace; font-size: var(--text-xs); word-break: break-all; }
+
+/* Grade mensal */
+.wfm-grade-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.wfm-grade { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: var(--text-xs); }
+.wfm-grade th, .wfm-grade td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; padding: 0; height: 40px; min-width: 40px; }
+.wfm-grade tr:last-child th, .wfm-grade tr:last-child td { border-bottom: 0; }
+.wfm-grade thead th { background: var(--paper-sunken); color: var(--ink-soft); font-weight: 600; position: relative; }
+.wfm-col-nome { position: sticky; left: 0; z-index: 1; min-width: 200px; text-align: left !important; padding: 0 16px !important; background: var(--paper); font-weight: 600; white-space: nowrap; }
+.wfm-grade thead .wfm-col-nome { background: var(--paper-sunken); }
+.wfm-col-nome small { display: block; color: var(--ink-soft); font-weight: 400; }
+.wfm-col-dia span { display: block; color: var(--ink); }
+.wfm-col-dia small { display: block; font-weight: 400; }
+.wfm-grade .is-fds { background: var(--paper-sunken); }
+.wfm-ponto { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+.wfm-grade td.is-pendente { outline: 2px solid var(--brand); outline-offset: -2px; }
+.wfm-grade td.is-violacao { background: var(--status-danger-bg); box-shadow: inset 0 0 0 1px var(--status-danger); }
+
+.wfm-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--wfm-cor, var(--brand)); color: #fff; font-weight: 700; font-size: var(--text-xs); }
+.wfm-vazio { color: var(--ink-soft); }
+.wfm-select:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.wfm-select { appearance: none; -webkit-appearance: none; width: 100%; height: 40px; border: 0; background: transparent; text-align: center; text-align-last: center; font-size: var(--text-xs); color: var(--ink); cursor: pointer; padding: 0 4px; }
+.wfm-legenda { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.wfm-legenda-txt { color: var(--ink-soft); font-size: var(--text-xs); margin-left: -8px; }
+
+.wfm-validacao { border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; font-size: var(--text-sm); }
+.wfm-validacao p, .wfm-validacao ul { margin: 0; }
+.wfm-validacao ul { padding-left: 24px; max-height: 240px; overflow-y: auto; }
+.wfm-validacao.is-ok { border-color: var(--status-success, var(--line)); background: var(--status-success-bg, var(--paper)); }
+.wfm-validacao.is-bloqueio { border-color: var(--status-danger); background: var(--status-danger-bg); }
+.wfm-validacao.is-alerta { border-color: var(--status-warning, var(--line)); background: var(--status-warning-bg, var(--paper)); }
+.wfm-versoes summary { cursor: pointer; font-weight: 600; font-size: var(--text-sm); margin-bottom: 8px; }
+
+.wfm-pres { font-weight: 700; }
+.wfm-pres-falta { color: var(--status-danger); }
+.wfm-pres-atestado, .wfm-pres-falta_justificada { color: var(--status-warning, var(--ink-soft)); }
+.wfm-pres-presente { color: var(--status-success, var(--ink)); }
+
+@media (max-width: 720px) {
+  .wfm-col-nome { min-width: 144px; }
+}

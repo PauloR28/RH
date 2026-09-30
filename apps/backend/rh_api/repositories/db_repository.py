@@ -40,6 +40,8 @@ from .sistema import SistemaRepositoryMixin
 from .talent_bank import TalentBankRepositoryMixin
 from .lgpd_retencao import LgpdRetencaoRepositoryMixin
 from .tela_inicial import TelaInicialRepositoryMixin
+from .wfm import WfmRepositoryMixin
+from .wfm_escala import WfmEscalaRepositoryMixin
 
 
 class DatabaseRepository(
@@ -77,6 +79,8 @@ class DatabaseRepository(
     MonitoriaOrgRepositoryMixin,
     TelaInicialRepositoryMixin,
     LgpdRetencaoRepositoryMixin,
+    WfmRepositoryMixin,
+    WfmEscalaRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""

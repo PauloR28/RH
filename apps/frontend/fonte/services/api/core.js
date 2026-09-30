@@ -270,6 +270,7 @@ async function lerMensagemErro(resposta) {
   if (tipo.includes('application/json')) {
     const json = await resposta.json().catch(() => null);
     if (json?.message) return json.message;
+    if (json?.detail && typeof json.detail === 'object' && !Array.isArray(json.detail) && json.detail.mensagem) return json.detail.mensagem;
     if (json?.detail) return json.detail;
   }
 

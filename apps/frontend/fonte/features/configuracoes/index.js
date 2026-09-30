@@ -79,6 +79,7 @@ const SESSOES_PERMISSAO = [
   { id: 'drive', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
   { id: 'treinamentos', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   { id: 'monitoria', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
+  { id: 'wfm', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
   {
     id: 'configuracoes',
     label: 'Configurações',

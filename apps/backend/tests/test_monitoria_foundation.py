@@ -58,7 +58,11 @@ def test_perfis_antigos_continuam_existindo_mas_ocultos():
 
 
 def test_admin_tem_todas_as_permissoes_novas():
-    assert set(PERMISSION_DEFINITIONS) <= ROLE_PERMISSIONS[ROLE_ADMIN]
+    # WFM: o Administrador só configura — não tem as permissões operacionais da escala (regra do RH).
+    from rh_api.rbac import WFM_PERMISSOES_OPERACIONAIS
+
+    assert set(PERMISSION_DEFINITIONS) - WFM_PERMISSOES_OPERACIONAIS <= ROLE_PERMISSIONS[ROLE_ADMIN]
+    assert not WFM_PERMISSOES_OPERACIONAIS & ROLE_PERMISSIONS[ROLE_ADMIN]
     assert "monitoria.configurar" in ROLE_PERMISSIONS[ROLE_ADMIN]
     assert "sessao.monitoria.acessar" in ROLE_PERMISSIONS[ROLE_ADMIN]
 

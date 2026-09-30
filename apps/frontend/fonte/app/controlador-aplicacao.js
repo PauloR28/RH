@@ -219,6 +219,12 @@ export const PERMISSOES_TELAS = {
   'screen-settings-monitoria': 'monitoria.configurar',
   'screen-settings-monitoria-equipes': 'monitoria.equipes',
   'screen-settings-monitoria-logs': 'monitoria.logs',
+  // WFM — Turnos e Plantões
+  'screen-wfm': 'wfm.escala.visualizar',
+  'screen-wfm-minha-escala': 'wfm.escala.propria',
+  'screen-wfm-presenca': 'wfm.presenca.lancar',
+  'screen-wfm-cadastros': 'wfm.cadastros.visualizar',
+  'screen-wfm-auditoria': 'wfm.auditoria',
 };
 
 // Sessão (chave-mestra liga/desliga em Perfis e Permissões) a que cada tela pertence.
@@ -263,6 +269,11 @@ export const SESSAO_DA_TELA = {
   'screen-settings-monitoria': 'configuracoes',
   'screen-settings-monitoria-equipes': 'configuracoes',
   'screen-settings-monitoria-logs': 'configuracoes',
+  'screen-wfm': 'wfm',
+  'screen-wfm-minha-escala': 'wfm',
+  'screen-wfm-presenca': 'wfm',
+  'screen-wfm-cadastros': 'wfm',
+  'screen-wfm-auditoria': 'wfm',
 };
 const logger = criarLogger('controlador-aplicacao');
 

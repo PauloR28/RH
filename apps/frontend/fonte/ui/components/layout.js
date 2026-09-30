@@ -161,6 +161,14 @@ export function BarraLateral({
     { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
   ];
   const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
+  const sublinksWfm = [
+    { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minha escala', permissao: 'wfm.escala.propria' },
+    { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
+    { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
+    { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
+    { tela: 'screen-wfm-auditoria', icone: 'history', label: 'Auditoria', permissao: 'wfm.auditoria' },
+  ];
+  const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
   const sublinksGestao = [
     {
       tela: 'screen-analysis-candidates',
@@ -371,6 +379,9 @@ export function BarraLateral({
   const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
   const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
+  const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem));
+  const grupoWfmAtivo = telasRelacionadasWfm.includes(navAtiva);
+  const subitemWfmAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>
     navAtiva === subitem.tela ||
     (navAtiva === 'screen-training' && subitem.tela === 'screen-training-trilhas');
@@ -739,6 +750,67 @@ export function BarraLateral({
                               title=${subitem.label}
                               role="menuitem"
                               aria-current=${subitemMonitoriaAtivo(subitem) ? 'page' : null
+              }
+                              onClick=${() => {
+                setGrupoAberto(null);
+                controlador.irParaTelaProtegida(subitem.tela);
+              }}
+                            >
+                              <span
+                                class="material-symbols-outlined"
+                                aria-hidden="true"
+                              >${IconeSvg(subitem.icone)}</span>
+                              <span>${subitem.label}</span>
+                            </button>
+                          `,
+          )}
+                      </div>
+                    `
+          : null}
+              </div>
+            `
+      : null}
+        ${sublinksWfmVisiveis.length
+      ? html`
+              <div
+                class=${`rh-modern-nav-group ${grupoAberto === 'wfm' ? 'is-open' : ''
+          } ${grupoWfmAtivo ? 'has-active' : ''}`.trim()}
+              >
+                <button
+                  type="button"
+                  class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${grupoWfmAtivo && !sublinksWfmVisiveis.some(subitemWfmAtivo) ? 'is-active' : ''
+          }`.trim()}
+                  title="Turnos e Plantões"
+                  aria-expanded=${grupoAberto === 'wfm'}
+                  aria-haspopup="true"
+                  aria-controls="rh-modern-subnav-wfm"
+                  onClick=${() => alternarGrupo('wfm')}
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('calendar_month')}</span>
+                  <span class="rh-modern-nav-label">Turnos e Plantões</span>
+                  <span
+                    class="material-symbols-outlined rh-modern-nav-chevron"
+                    aria-hidden="true"
+                  >${IconeSvg('expand_more')}</span>
+                </button>
+                ${grupoAberto === 'wfm'
+          ? html`
+                      <div
+                        class="rh-modern-subnav"
+                        id="rh-modern-subnav-wfm"
+                        role="menu"
+                        aria-label="Submenu de Turnos e Plantões"
+                      >
+                        ${sublinksWfmVisiveis.map(
+            (subitem) => html`
+                            <button
+                              key=${subitem.tela}
+                              type="button"
+                              class=${`rh-modern-subnav-btn ${subitemWfmAtivo(subitem) ? 'is-active' : ''
+                }`.trim()}
+                              title=${subitem.label}
+                              role="menuitem"
+                              aria-current=${subitemWfmAtivo(subitem) ? 'page' : null
               }
                               onClick=${() => {
                 setGrupoAberto(null);

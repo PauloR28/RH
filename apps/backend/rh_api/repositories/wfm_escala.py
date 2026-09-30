@@ -1,0 +1,746 @@
+"""WFM — escala mensal, validação (motor de regras), publicação versionada,
+fechamento de período, presença e atestados. Mixin do DatabaseRepository.
+
+Regras de negócio deste módulo:
+  * Escala é VERSIONADA: publicar grava uma linha imutável em `wfm_escala_versoes`
+    (snapshot completo) e nunca sobrescreve a anterior.
+  * Edição concorrente: cada linha tem `versao_linha`; quem edita com versão
+    desatualizada recebe 409 com quem alterou por último (aviso de conflito).
+  * Toda validação roda AQUI (servidor) via `services/wfm_regras.py`.
+  * Publicar com violação (bloqueio não-duro) só o Gestor/RH, com justificativa
+    obrigatória em auditoria. Bloqueio duro por lei (ex.: estagiário) nunca publica.
+  * Após o fechamento do período, só o Gestor/RH corrige, com justificativa.
+  * Conflito de interesse: ninguém edita/publica escala em que é a própria parte.
+  * Atestado guarda só período, tipo e validador (dado de saúde; sem arquivo/CID).
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from datetime import date, timedelta
+from typing import Any
+
+from fastapi import HTTPException, status
+
+from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR
+from ..services import wfm_scope
+from ..services.helpers import normalize_text, rows_to_dicts
+from ..services.wfm_montagem import (
+    EventoCalendario,
+    TurnoModelo,
+    VigenciaContrato,
+    dias_do_mes,
+    montar_dias,
+)
+from ..services.wfm_regras import (
+    ExigenciaPausa,
+    ParametrosContrato,
+    tem_bloqueio,
+    tem_bloqueio_duro,
+    validar_escala,
+)
+
+STATUS_PRESENCA = ("PRESENTE", "FALTA", "FALTA_JUSTIFICADA", "ATESTADO")
+TIPOS_ATESTADO = ("MEDICO", "ACOMPANHAMENTO", "DOACAO_SANGUE", "OUTRO")
+_RE_ANO_MES = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+CONTEXTO_DIAS = 7  # dias de contexto antes/depois do mês para interjornada e sequência
+
+
+def _exigir_ano_mes(ano_mes: str) -> str:
+    ano_mes = normalize_text(ano_mes)
+    if not _RE_ANO_MES.match(ano_mes):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Período inválido (use AAAA-MM).")
+    return ano_mes
+
+
+def _parse_data(valor: Any) -> date:
+    try:
+        return date.fromisoformat(str(valor))
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Data inválida (AAAA-MM-DD).")
+
+
+def _contrato_de_linha(row: dict) -> ParametrosContrato:
+    try:
+        exig = json.loads(row.get("exigencias_pausa_json") or "[]")
+    except ValueError:
+        exig = []
+    return ParametrosContrato(
+        codigo=normalize_text(row["codigo"]),
+        jornada_diaria_max_min=int(row["jornada_diaria_max_min"]),
+        interjornada_min_min=int(row["interjornada_min_min"]),
+        max_dias_consecutivos=int(row["max_dias_consecutivos"]),
+        exigencias_pausa=tuple(
+            ExigenciaPausa(int(e["a_partir_de_min"]), e["tipo"], int(e["quantidade"]), int(e["duracao_min"])) for e in exig
+        ),
+        jornada_feriado_max_min=int(row["jornada_feriado_max_min"]) if row.get("jornada_feriado_max_min") is not None else None,
+        jornada_bloqueio_duro=bool(row.get("jornada_bloqueio_duro")),
+    )
+
+
+class WfmEscalaRepositoryMixin:
+    # ------------------------------------------------------------------
+    # Leitura auxiliar
+    # ------------------------------------------------------------------
+    def _wfm_operadores_visiveis(self, cursor, user, operacao: str) -> list[dict]:
+        """Operadores da operação que o usuário PODE VER (Operador: só ele; Supervisor: só a equipe)."""
+        cursor.execute(
+            """
+            SELECT u.id_usuario, u.nome, u.sobrenome FROM dbo.usuarios u
+            JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
+            WHERE u.perfil_id = ? AND ISNULL(u.status, 'Ativo') = 'Ativo'
+            ORDER BY u.nome, u.sobrenome
+            """,
+            (operacao, ROLE_OPERATOR),
+        )
+        todos = [
+            {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip()} for r in cursor.fetchall()
+        ]
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+        return [
+            op
+            for op in todos
+            if wfm_scope.pode_ver_escala_de(
+                perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
+                operacao=operacao, id_operador=op["id_usuario"], equipe_supervisor=equipe,
+            )
+        ]
+
+    def _wfm_todos_operadores(self, cursor, operacao: str) -> list[dict]:
+        cursor.execute(
+            """
+            SELECT u.id_usuario, u.nome, u.sobrenome FROM dbo.usuarios u
+            JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
+            WHERE u.perfil_id = ? AND ISNULL(u.status, 'Ativo') = 'Ativo'
+            """,
+            (operacao, ROLE_OPERATOR),
+        )
+        return [{"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip()} for r in cursor.fetchall()]
+
+    def _wfm_cabecalho(self, cursor, operacao: str, ano_mes: str, *, criar: bool = False) -> dict:
+        cursor.execute(
+            "SELECT versao_publicada, fechada, fechada_por, fechada_em FROM dbo.wfm_escalas WHERE operacao = ? AND ano_mes = ?",
+            (operacao, ano_mes),
+        )
+        row = cursor.fetchone()
+        if not row and criar:
+            cursor.execute("INSERT INTO dbo.wfm_escalas (operacao, ano_mes) VALUES (?, ?)", (operacao, ano_mes))
+            return {"versao_publicada": 0, "fechada": False, "fechada_por": None, "fechada_em": None}
+        if not row:
+            return {"versao_publicada": 0, "fechada": False, "fechada_por": None, "fechada_em": None}
+        return {
+            "versao_publicada": int(row[0]),
+            "fechada": bool(row[1]),
+            "fechada_por": normalize_text(row[2]) or None,
+            "fechada_em": row[3].isoformat() if row[3] else None,
+        }
+
+    def _wfm_turnos_modelo(self, cursor, operacao: str) -> dict[int, TurnoModelo]:
+        cursor.execute("SELECT id_turno, codigo, tipo, entrada, saida, pausas_json FROM dbo.wfm_turnos WHERE operacao = ?", (operacao,))
+        out: dict[int, TurnoModelo] = {}
+        for r in cursor.fetchall():
+            try:
+                pausas = tuple(
+                    (int(p["offset_min"]), int(p["duracao_min"]), p["tipo"]) for p in json.loads(r[5] or "[]")
+                )
+            except (ValueError, KeyError, TypeError):
+                pausas = ()
+            out[int(r[0])] = TurnoModelo(int(r[0]), normalize_text(r[1]), normalize_text(r[2]), r[3], r[4], pausas)
+        return out
+
+    # ------------------------------------------------------------------
+    # Escala (leitura)
+    # ------------------------------------------------------------------
+    def wfm_get_escala(self, user, operacao: str, ano_mes: str) -> dict:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        dias = dias_do_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
+            operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
+            ids = [op["id_usuario"] for op in operadores]
+            somente_propria = user.perfil == ROLE_OPERATOR
+            itens: list[dict] = []
+            fonte = "rascunho"
+            if somente_propria:
+                # Operador lê SEMPRE a última versão PUBLICADA (nunca o rascunho) e só a própria linha.
+                fonte = "publicada"
+                if cab["versao_publicada"] > 0 and ids:
+                    cursor.execute(
+                        "SELECT snapshot_json FROM dbo.wfm_escala_versoes WHERE operacao = ? AND ano_mes = ? AND versao = ?",
+                        (operacao, ano_mes, cab["versao_publicada"]),
+                    )
+                    row = cursor.fetchone()
+                    snap = json.loads(row[0]) if row else {"itens": []}
+                    itens = [
+                        {"id_operador": i["id_operador"], "data": i["data"], "id_turno": i["id_turno"], "versao_linha": None}
+                        for i in snap.get("itens", [])
+                        if i["id_operador"] == user.id_usuario
+                    ]
+            elif ids:
+                marcadores = ",".join("?" for _ in ids)
+                cursor.execute(
+                    f"SELECT id_operador, data, id_turno, versao_linha, atualizado_por, atualizado_em FROM dbo.wfm_escala_itens "
+                    f"WHERE operacao = ? AND ano_mes = ? AND id_operador IN ({marcadores})",
+                    (operacao, ano_mes, *ids),
+                )
+                for r in cursor.fetchall():
+                    itens.append(
+                        {
+                            "id_operador": int(r[0]), "data": r[1].isoformat(), "id_turno": int(r[2]),
+                            "versao_linha": int(r[3]), "atualizado_por": normalize_text(r[4]) or None,
+                            "atualizado_em": r[5].isoformat() if r[5] else None,
+                        }
+                    )
+            turnos = self.wfm_list_turnos(user, operacao)
+            eventos = self.wfm_list_calendario(user, operacao, ano_mes)
+            contratos_op = self._wfm_contratos_vigentes(cursor, operacao, ids, dias[0], dias[-1]) if ids else {}
+            skills_op: dict[int, list[int]] = {}
+            if ids:
+                cursor.execute(
+                    f"SELECT id_usuario, id_skill FROM dbo.wfm_usuario_skills WHERE operacao = ? AND id_usuario IN ({','.join('?' for _ in ids)})",
+                    (operacao, *ids),
+                )
+                for r in cursor.fetchall():
+                    skills_op.setdefault(int(r[0]), []).append(int(r[1]))
+            for op in operadores:
+                op["contratos"] = contratos_op.get(op["id_usuario"], [])
+                op["skills"] = sorted(skills_op.get(op["id_usuario"], []))
+            pode_editar = (
+                not somente_propria
+                and user.has_permission("wfm.escala.editar")
+                and user.perfil != ROLE_ADMIN
+                and (not cab["fechada"] or user.has_permission("wfm.escala.corrigir_fechada"))
+            )
+            return {
+                "operacao": operacao,
+                "ano_mes": ano_mes,
+                "dias": [d.isoformat() for d in dias],
+                "fonte": fonte,
+                "status": cab,
+                "operadores": operadores,
+                "itens": itens,
+                "turnos": [t for t in turnos if t["ativo"]],
+                "eventos": eventos,
+                "pode_editar": pode_editar,
+            }
+        finally:
+            conn.close()
+
+    def _wfm_contratos_vigentes(self, cursor, operacao: str, ids: list[int], ini: date, fim: date) -> dict[int, list[dict]]:
+        marcadores = ",".join("?" for _ in ids)
+        cursor.execute(
+            f"""
+            SELECT oc.id_operador, oc.vigencia_ini, oc.vigencia_fim, c.codigo
+            FROM dbo.wfm_operador_contratos oc JOIN dbo.wfm_contratos c ON c.id_contrato = oc.id_contrato
+            WHERE oc.operacao = ? AND oc.id_operador IN ({marcadores})
+              AND oc.vigencia_ini <= ? AND (oc.vigencia_fim IS NULL OR oc.vigencia_fim >= ?)
+            ORDER BY oc.vigencia_ini
+            """,
+            (operacao, *ids, fim, ini),
+        )
+        out: dict[int, list[dict]] = {}
+        for r in cursor.fetchall():
+            out.setdefault(int(r[0]), []).append(
+                {"codigo": normalize_text(r[3]), "ini": r[1].isoformat(), "fim": r[2].isoformat() if r[2] else None}
+            )
+        return out
+
+    # ------------------------------------------------------------------
+    # Escala (edição com trava otimista)
+    # ------------------------------------------------------------------
+    def wfm_salvar_itens(
+        self, user, operacao: str, ano_mes: str, itens: list[dict], *, justificativa: str = "", ip: str = ""
+    ) -> dict:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        dias_validos = set(dias_do_mes(ano_mes))
+        justificativa = normalize_text(justificativa)
+        if not itens:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma alteração informada.")
+        if len(itens) > 1500:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Alterações demais em uma única operação.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cab = self._wfm_cabecalho(cursor, operacao, ano_mes, criar=True)
+            if cab["fechada"]:
+                if not user.has_permission("wfm.escala.corrigir_fechada"):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Período fechado: somente o Gestor/RH corrige.")
+                if not justificativa:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe a justificativa da correção após o fechamento.")
+            turnos = self._wfm_turnos_modelo(cursor, operacao)
+            cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND ativo = 1", (operacao,))
+            turnos_ativos = {int(r[0]) for r in cursor.fetchall()}
+            operadores = {op["id_usuario"] for op in self._wfm_todos_operadores(cursor, operacao)}
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            conflitos: list[dict] = []
+            mudancas: list[tuple[str, dict, dict | None, dict | None]] = []
+            for item in itens:
+                id_operador = int(item["id_operador"])
+                data = _parse_data(item["data"])
+                if id_operador not in operadores:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operador não encontrado nesta operação.")
+                if not wfm_scope.pode_editar_escala_de(
+                    perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
+                    operacao=operacao, id_operador=id_operador, equipe_supervisor=equipe,
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Você não pode editar a escala deste operador (fora da sua equipe/escopo ou conflito de interesse).",
+                    )
+                if data not in dias_validos:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Data fora do mês da escala.")
+                id_turno = item.get("id_turno")
+                if id_turno is not None:
+                    id_turno = int(id_turno)
+                    if id_turno not in turnos_ativos:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Turno inválido ou inativo para esta operação.")
+                cursor.execute(
+                    "SELECT id_item, id_turno, versao_linha, atualizado_por, atualizado_em FROM dbo.wfm_escala_itens "
+                    "WHERE operacao = ? AND id_operador = ? AND data = ?",
+                    (operacao, id_operador, data),
+                )
+                atual = cursor.fetchone()
+                esperado = item.get("versao_linha")
+                if atual and (esperado is None or int(esperado) != int(atual[2])):
+                    conflitos.append(
+                        {
+                            "id_operador": id_operador, "data": data.isoformat(), "versao_atual": int(atual[2]),
+                            "alterado_por": normalize_text(atual[3]) or None,
+                            "alterado_em": atual[4].isoformat() if atual[4] else None,
+                        }
+                    )
+                    continue
+                if not atual and esperado is not None:
+                    conflitos.append({"id_operador": id_operador, "data": data.isoformat(), "versao_atual": None, "alterado_por": None, "alterado_em": None})
+                    continue
+                antes = {"id_turno": int(atual[1]), "codigo": turnos[int(atual[1])].codigo} if atual and int(atual[1]) in turnos else None
+                depois = {"id_turno": id_turno, "codigo": turnos[id_turno].codigo} if id_turno else None
+                if (antes or {}).get("id_turno") == (depois or {}).get("id_turno"):
+                    continue  # sem mudança real
+                mudancas.append(("upsert" if id_turno else "remover", {"id_operador": id_operador, "data": data, "atual": atual, "id_turno": id_turno}, antes, depois))
+            if conflitos:
+                conn.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={"mensagem": "A escala foi alterada por outra pessoa. Recarregue antes de salvar.", "conflitos": conflitos},
+                )
+            autor = normalize_text(user.nome) or user.username
+            for tipo, alvo, antes, depois in mudancas:
+                if tipo == "remover":
+                    cursor.execute("DELETE FROM dbo.wfm_escala_itens WHERE id_item = ?", (int(alvo["atual"][0]),))
+                elif alvo["atual"]:
+                    cursor.execute(
+                        "UPDATE dbo.wfm_escala_itens SET id_turno = ?, versao_linha = versao_linha + 1, atualizado_por = ?, "
+                        "atualizado_em = GETDATE(), ano_mes = ? WHERE id_item = ?",
+                        (alvo["id_turno"], autor, ano_mes, int(alvo["atual"][0])),
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, atualizado_por) VALUES (?, ?, ?, ?, ?, ?)",
+                        (operacao, ano_mes, alvo["id_operador"], alvo["data"], alvo["id_turno"], autor),
+                    )
+                self.wfm_audit(
+                    cursor, user, operacao=operacao, acao="editar_escala" if not cab["fechada"] else "corrigir_escala_fechada",
+                    entidade="escala_item", entidade_id=f"{alvo['id_operador']}:{alvo['data'].isoformat()}",
+                    antes=antes, depois=depois, justificativa=justificativa, ip=ip,
+                )
+            cursor.execute("UPDATE dbo.wfm_escalas SET atualizado_em = GETDATE() WHERE operacao = ? AND ano_mes = ?", (operacao, ano_mes))
+            conn.commit()
+            return {"success": True, "alteradas": len(mudancas)}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Validação pelo motor de regras
+    # ------------------------------------------------------------------
+    def _wfm_violacoes(self, cursor, operacao: str, ano_mes: str, operadores: list[dict]) -> list[dict]:
+        dias = dias_do_mes(ano_mes)
+        ini, fim = dias[0], dias[-1]
+        janela_ini, janela_fim = ini - timedelta(days=CONTEXTO_DIAS), fim + timedelta(days=CONTEXTO_DIAS)
+        turnos = self._wfm_turnos_modelo(cursor, operacao)
+        cursor.execute(
+            "SELECT tipo, data_ini, data_fim, id_turno, entrada, saida FROM dbo.wfm_calendario_especial "
+            "WHERE operacao = ? AND ativo = 1 AND data_ini <= ? AND data_fim >= ?",
+            (operacao, janela_fim, janela_ini),
+        )
+        eventos = [EventoCalendario(normalize_text(r[0]), r[1], r[2], r[3], r[4], r[5]) for r in cursor.fetchall()]
+        ids = [op["id_usuario"] for op in operadores]
+        if not ids:
+            return []
+        marcadores = ",".join("?" for _ in ids)
+        cursor.execute(
+            f"SELECT id_operador, data, id_turno FROM dbo.wfm_escala_itens WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marcadores})",
+            (operacao, janela_ini, janela_fim, *ids),
+        )
+        por_operador: dict[int, dict[date, int]] = {}
+        for r in cursor.fetchall():
+            por_operador.setdefault(int(r[0]), {})[r[1]] = int(r[2])
+        cursor.execute(
+            f"""
+            SELECT oc.id_operador, oc.vigencia_ini, oc.vigencia_fim, c.codigo, c.jornada_diaria_max_min, c.interjornada_min_min,
+                   c.max_dias_consecutivos, c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json
+            FROM dbo.wfm_operador_contratos oc JOIN dbo.wfm_contratos c ON c.id_contrato = oc.id_contrato
+            WHERE oc.operacao = ? AND oc.id_operador IN ({marcadores})
+            """,
+            (operacao, *ids),
+        )
+        vigencias: dict[int, list[VigenciaContrato]] = {}
+        for row in rows_to_dicts(cursor, cursor.fetchall()):
+            vigencias.setdefault(int(row["id_operador"]), []).append(
+                VigenciaContrato(_contrato_de_linha(row), row["vigencia_ini"], row["vigencia_fim"])
+            )
+        nomes = {op["id_usuario"]: op["nome"] for op in operadores}
+        saida: list[dict] = []
+        for id_operador in ids:
+            itens = por_operador.get(id_operador, {})
+            if not any(ini <= d <= fim for d in itens):
+                continue  # operador sem escala no mês
+            dias_motor, violacoes = montar_dias(itens, turnos, eventos, vigencias.get(id_operador, []))
+            violacoes = violacoes + validar_escala(dias_motor, periodo=(ini, fim))
+            for v in violacoes:
+                if not (ini <= v.data <= fim):
+                    continue
+                saida.append(
+                    {
+                        "id_operador": id_operador,
+                        "operador": nomes.get(id_operador, ""),
+                        "codigo": v.codigo,
+                        "severidade": v.severidade,
+                        "data": v.data.isoformat(),
+                        "mensagem": v.mensagem,
+                        "permite_override": v.permite_override,
+                        "detalhe": v.detalhe,
+                    }
+                )
+        return sorted(saida, key=lambda x: (x["data"], x["operador"], x["codigo"]))
+
+    @staticmethod
+    def _wfm_resumo_violacoes(violacoes: list[dict]) -> dict:
+        return {
+            "violacoes": violacoes,
+            "bloqueio": any(v["severidade"] == "bloqueio" for v in violacoes),
+            "bloqueio_duro": any(v["severidade"] == "bloqueio" and not v["permite_override"] for v in violacoes),
+        }
+
+    def wfm_validar(self, user, operacao: str, ano_mes: str) -> dict:
+        """Validação da escala-rascunho para a tela; devolve só violações dos operadores que o usuário pode ver."""
+        ano_mes = _exigir_ano_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            visiveis = self._wfm_operadores_visiveis(cursor, user, operacao)
+            return self._wfm_resumo_violacoes(self._wfm_violacoes(cursor, operacao, ano_mes, visiveis))
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Publicação (versionada) e fechamento
+    # ------------------------------------------------------------------
+    def _wfm_snapshot(self, cursor, operacao: str, ano_mes: str) -> dict:
+        turnos = self._wfm_turnos_modelo(cursor, operacao)
+        cursor.execute(
+            "SELECT id_operador, data, id_turno FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ? ORDER BY id_operador, data",
+            (operacao, ano_mes),
+        )
+        itens = [
+            {"id_operador": int(r[0]), "data": r[1].isoformat(), "id_turno": int(r[2]), "codigo": turnos[int(r[2])].codigo if int(r[2]) in turnos else None}
+            for r in cursor.fetchall()
+        ]
+        return {"itens": itens}
+
+    def wfm_publicar(self, user, operacao: str, ano_mes: str, *, justificativa: str = "", ip: str = "") -> dict:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        justificativa = normalize_text(justificativa)
+        if user.perfil == ROLE_ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não publica escalas.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cab = self._wfm_cabecalho(cursor, operacao, ano_mes, criar=True)
+            if cab["fechada"]:
+                if not user.has_permission("wfm.escala.corrigir_fechada"):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Período fechado: somente o Gestor/RH publica correções.")
+                if not justificativa:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe a justificativa da correção após o fechamento.")
+            snapshot = self._wfm_snapshot(cursor, operacao, ano_mes)
+            if not snapshot["itens"]:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A escala está vazia: nada a publicar.")
+            # Conflito de interesse: quem está na escala como operador não a publica.
+            if any(i["id_operador"] == user.id_usuario for i in snapshot["itens"]):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você consta nesta escala como operador e não pode publicá-la.")
+            todos = self._wfm_todos_operadores(cursor, operacao)
+            resumo = self._wfm_resumo_violacoes(self._wfm_violacoes(cursor, operacao, ano_mes, todos))
+            violacoes = resumo["violacoes"]
+            com_violacao = resumo["bloqueio"]
+            if resumo["bloqueio_duro"]:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={"mensagem": "Existe violação de lei que nenhum perfil pode publicar. Corrija a escala.", **self._wfm_filtrar_violacoes(cursor, user, operacao, resumo)},
+                )
+            if com_violacao:
+                if not user.has_permission("wfm.escala.publicar_com_violacao"):
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail={"mensagem": "A escala tem violações pendentes. Corrija ou peça ao Gestor/RH para publicar com justificativa.", **self._wfm_filtrar_violacoes(cursor, user, operacao, resumo)},
+                    )
+                if not justificativa:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"mensagem": "Justificativa obrigatória para publicar com violação pendente.", "exige_justificativa": True})
+            # O histórico é imutável: a próxima versão parte do maior número JÁ gravado, nunca só do cabeçalho.
+            cursor.execute("SELECT ISNULL(MAX(versao), 0) FROM dbo.wfm_escala_versoes WHERE operacao = ? AND ano_mes = ?", (operacao, ano_mes))
+            versao = max(cab["versao_publicada"], int(cursor.fetchone()[0])) + 1
+            cursor.execute(
+                "INSERT INTO dbo.wfm_escala_versoes (operacao, ano_mes, versao, publicado_por, publicado_por_nome, com_violacao, justificativa, violacoes_json, snapshot_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    operacao, ano_mes, versao, user.id_usuario, normalize_text(user.nome) or user.username,
+                    1 if com_violacao else 0, justificativa or None,
+                    json.dumps(violacoes, ensure_ascii=False) if violacoes else None,
+                    json.dumps(snapshot, ensure_ascii=False),
+                ),
+            )
+            cursor.execute(
+                "UPDATE dbo.wfm_escalas SET versao_publicada = ?, atualizado_em = GETDATE() WHERE operacao = ? AND ano_mes = ?",
+                (versao, operacao, ano_mes),
+            )
+            self.wfm_audit(
+                cursor, user, operacao=operacao, acao="publicar_com_violacao" if com_violacao else "publicar_escala",
+                entidade="escala", entidade_id=f"{ano_mes}:v{versao}",
+                antes={"versao": cab["versao_publicada"]},
+                depois={"versao": versao, "itens": len(snapshot["itens"]), "violacoes": len(violacoes)},
+                justificativa=justificativa, ip=ip,
+            )
+            conn.commit()
+            return {"success": True, "versao": versao, "com_violacao": com_violacao}
+        finally:
+            conn.close()
+
+    def _wfm_filtrar_violacoes(self, cursor, user, operacao: str, resumo: dict) -> dict:
+        """Detalhe de violações só dos operadores que o usuário pode ver; o resto vira contagem."""
+        visiveis = {op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)}
+        vistas = [v for v in resumo["violacoes"] if v["id_operador"] in visiveis]
+        return {"violacoes": vistas, "violacoes_outras_equipes": len(resumo["violacoes"]) - len(vistas)}
+
+    def wfm_fechar_periodo(self, user, operacao: str, ano_mes: str, *, ip: str = "") -> dict:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        if user.perfil == ROLE_ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não fecha períodos.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
+            if cab["fechada"]:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este período já está fechado.")
+            if cab["versao_publicada"] < 1:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Publique a escala antes de fechar o período.")
+            cursor.execute(
+                "SELECT snapshot_json FROM dbo.wfm_escala_versoes WHERE operacao = ? AND ano_mes = ? AND versao = ?",
+                (operacao, ano_mes, cab["versao_publicada"]),
+            )
+            publicado = json.loads(cursor.fetchone()[0])
+            atual = self._wfm_snapshot(cursor, operacao, ano_mes)
+            chave = lambda s: sorted((i["id_operador"], i["data"], i["id_turno"]) for i in s["itens"])  # noqa: E731
+            if chave(publicado) != chave(atual):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Há alterações não publicadas: publique antes de fechar o período.")
+            autor = normalize_text(user.nome) or user.username
+            cursor.execute(
+                "UPDATE dbo.wfm_escalas SET fechada = 1, fechada_por = ?, fechada_em = GETDATE() WHERE operacao = ? AND ano_mes = ?",
+                (autor, operacao, ano_mes),
+            )
+            self.wfm_audit(
+                cursor, user, operacao=operacao, acao="fechar_periodo", entidade="escala", entidade_id=ano_mes,
+                antes={"fechada": False}, depois={"fechada": True, "versao": cab["versao_publicada"]}, ip=ip,
+            )
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
+    def wfm_list_versoes(self, user, operacao: str, ano_mes: str) -> list[dict]:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            cursor.execute(
+                "SELECT versao, publicado_por_nome, publicado_em, com_violacao, justificativa FROM dbo.wfm_escala_versoes "
+                "WHERE operacao = ? AND ano_mes = ? ORDER BY versao DESC",
+                (operacao, ano_mes),
+            )
+            return [
+                {
+                    "versao": int(r[0]), "publicado_por": normalize_text(r[1]) or None,
+                    "publicado_em": r[2].isoformat() if r[2] else None, "com_violacao": bool(r[3]),
+                    "justificativa": normalize_text(r[4]) or None,
+                }
+                for r in cursor.fetchall()
+            ]
+        finally:
+            conn.close()
+
+    def wfm_get_versao(self, user, operacao: str, ano_mes: str, versao: int) -> dict:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            cursor.execute(
+                "SELECT snapshot_json, violacoes_json FROM dbo.wfm_escala_versoes WHERE operacao = ? AND ano_mes = ? AND versao = ?",
+                (operacao, ano_mes, int(versao)),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Versão não encontrada.")
+            visiveis = {op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)}
+            snap = json.loads(row[0])
+            snap["itens"] = [i for i in snap["itens"] if i["id_operador"] in visiveis]
+            violacoes = [v for v in (json.loads(row[1]) if row[1] else []) if v["id_operador"] in visiveis]
+            return {"versao": int(versao), **snap, "violacoes": violacoes}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Presença e atestados
+    # ------------------------------------------------------------------
+    def wfm_list_presencas(self, user, operacao: str, ano_mes: str) -> list[dict]:
+        ano_mes = _exigir_ano_mes(ano_mes)
+        dias = dias_do_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)]
+            if not ids:
+                return []
+            marcadores = ",".join("?" for _ in ids)
+            cursor.execute(
+                f"SELECT id_operador, data, status, observacao, lancado_por FROM dbo.wfm_presencas "
+                f"WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marcadores})",
+                (operacao, dias[0], dias[-1], *ids),
+            )
+            return [
+                {"id_operador": int(r[0]), "data": r[1].isoformat(), "status": normalize_text(r[2]),
+                 "observacao": normalize_text(r[3]) or None, "lancado_por": normalize_text(r[4]) or None}
+                for r in cursor.fetchall()
+            ]
+        finally:
+            conn.close()
+
+    def wfm_lancar_presenca(
+        self, user, operacao: str, id_operador: int, data: Any, status_presenca: str, observacao: str = "", *, ip: str = ""
+    ) -> dict:
+        """Sem prazo para lançar ou corrigir (regra do RH): a alteração é sempre permitida, sempre auditada."""
+        data = _parse_data(data)
+        status_presenca = normalize_text(status_presenca).upper()
+        if status_presenca not in STATUS_PRESENCA:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Status de presença inválido.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            self._wfm_operador_da_operacao(cursor, operacao, id_operador)
+            self._wfm_exigir_edicao_do_operador(cursor, user, operacao, id_operador)
+            cursor.execute(
+                "SELECT id_presenca, status, observacao FROM dbo.wfm_presencas WHERE operacao = ? AND id_operador = ? AND data = ?",
+                (operacao, int(id_operador), data),
+            )
+            atual = cursor.fetchone()
+            autor = normalize_text(user.nome) or user.username
+            obs = normalize_text(observacao)[:300] or None
+            if atual:
+                cursor.execute(
+                    "UPDATE dbo.wfm_presencas SET status = ?, observacao = ?, lancado_por = ?, atualizado_em = GETDATE() WHERE id_presenca = ?",
+                    (status_presenca, obs, autor, int(atual[0])),
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO dbo.wfm_presencas (operacao, id_operador, data, status, observacao, lancado_por) VALUES (?, ?, ?, ?, ?, ?)",
+                    (operacao, int(id_operador), data, status_presenca, obs, autor),
+                )
+            self.wfm_audit(
+                cursor, user, operacao=operacao, acao="lancar_presenca", entidade="presenca", entidade_id=f"{id_operador}:{data.isoformat()}",
+                antes={"status": normalize_text(atual[1]), "observacao": normalize_text(atual[2])} if atual else None,
+                depois={"status": status_presenca, "observacao": obs}, ip=ip,
+            )
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
+    def wfm_registrar_atestado(
+        self, user, operacao: str, id_operador: int, data_ini: Any, data_fim: Any, tipo: str, *, ip: str = ""
+    ) -> dict:
+        """Guarda só período, tipo e quem validou. Nunca o arquivo do atestado nem CID (dado de saúde)."""
+        data_ini, data_fim = _parse_data(data_ini), _parse_data(data_fim)
+        tipo = normalize_text(tipo).upper()
+        if tipo not in TIPOS_ATESTADO:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de atestado inválido.")
+        if data_fim < data_ini or (data_fim - data_ini).days > 60:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Período do atestado inválido (máximo 60 dias).")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            self._wfm_operador_da_operacao(cursor, operacao, id_operador)
+            self._wfm_exigir_edicao_do_operador(cursor, user, operacao, id_operador)
+            autor = normalize_text(user.nome) or user.username
+            cursor.execute(
+                "INSERT INTO dbo.wfm_atestados (operacao, id_operador, data_ini, data_fim, tipo, validado_por) OUTPUT INSERTED.id_atestado VALUES (?, ?, ?, ?, ?, ?)",
+                (operacao, int(id_operador), data_ini, data_fim, tipo, autor),
+            )
+            id_atestado = int(cursor.fetchone()[0])
+            dia = data_ini
+            while dia <= data_fim:
+                cursor.execute(
+                    "IF EXISTS (SELECT 1 FROM dbo.wfm_presencas WHERE operacao = ? AND id_operador = ? AND data = ?) "
+                    "UPDATE dbo.wfm_presencas SET status = 'ATESTADO', lancado_por = ?, atualizado_em = GETDATE() WHERE operacao = ? AND id_operador = ? AND data = ? "
+                    "ELSE INSERT INTO dbo.wfm_presencas (operacao, id_operador, data, status, lancado_por) VALUES (?, ?, ?, 'ATESTADO', ?)",
+                    (operacao, int(id_operador), dia, autor, operacao, int(id_operador), dia, operacao, int(id_operador), dia, autor),
+                )
+                dia += timedelta(days=1)
+            self.wfm_audit(
+                cursor, user, operacao=operacao, acao="registrar_atestado", entidade="atestado", entidade_id=id_atestado,
+                depois={"id_operador": int(id_operador), "data_ini": str(data_ini), "data_fim": str(data_fim), "tipo": tipo}, ip=ip,
+            )
+            conn.commit()
+            return {"success": True, "id_atestado": id_atestado}
+        finally:
+            conn.close()
+
+    def wfm_list_atestados(self, user, operacao: str, ano_mes: str) -> list[dict]:
+        """Leitura mínima: só quem lança presença (dentro do próprio escopo/equipe). Sem arquivo, sem CID."""
+        ano_mes = _exigir_ano_mes(ano_mes)
+        dias = dias_do_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)]
+            if not ids:
+                return []
+            marcadores = ",".join("?" for _ in ids)
+            cursor.execute(
+                f"SELECT id_atestado, id_operador, data_ini, data_fim, tipo, validado_por FROM dbo.wfm_atestados "
+                f"WHERE operacao = ? AND data_ini <= ? AND data_fim >= ? AND id_operador IN ({marcadores}) ORDER BY data_ini",
+                (operacao, dias[-1], dias[0], *ids),
+            )
+            return [
+                {"id_atestado": int(r[0]), "id_operador": int(r[1]), "data_ini": r[2].isoformat(), "data_fim": r[3].isoformat(),
+                 "tipo": normalize_text(r[4]), "validado_por": normalize_text(r[5])}
+                for r in cursor.fetchall()
+            ]
+        finally:
+            conn.close()

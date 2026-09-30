@@ -44,6 +44,7 @@ from .routers.history import router as history_router
 from .routers.interviews import router as interviews_router
 from .routers.monitoria import public_router as monitoria_public_router
 from .routers.monitoria import router as monitoria_router
+from .routers.wfm import router as wfm_router
 from .routers.mural import public_router as mural_public_router
 from .routers.mural import router as mural_router
 from .routers.onboarding import router as onboarding_router
@@ -390,6 +391,7 @@ def create_app() -> FastAPI:
     app.include_router(documentos_biblioteca_router)
     app.include_router(mural_router)
     app.include_router(monitoria_router)
+    app.include_router(wfm_router)
     app.include_router(monitoria_public_router)
     app.include_router(mural_public_router)
     app.include_router(disc_router)

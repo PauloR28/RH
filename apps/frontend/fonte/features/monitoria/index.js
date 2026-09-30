@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20260929-qa-lucas';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20260930-wfm';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20260921-alertas';
@@ -126,6 +126,7 @@ const SESSOES = [
   { id: 'drive', titulo: 'Drive', icone: 'cloud', desc: 'Arquivos e documentos.', telas: ['screen-onedrive-files'] },
   { id: 'treinamentos', titulo: 'Central de Treinamento', icone: 'school', desc: 'Treinamentos, trilhas e atribuições.', telas: ['screen-training', 'screen-training-mine', 'screen-training-trilhas'] },
   { id: 'monitoria', titulo: 'Monitorias', icone: 'fact_check', desc: 'Avaliações de qualidade, feedback e indicadores.', telas: ['__monitoria__'] },
+  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-cadastros'] },
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];
 
