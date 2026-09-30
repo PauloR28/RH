@@ -153,7 +153,9 @@ def test_validacao_dos_vinculos_por_perfil():
     assert validar_vinculos(ROLE_SUPERVISOR, ["A", "B", "C", "D"], [])
     assert validar_vinculos(ROLE_QUALIDADE, ["A", "B"], []) == []
     assert validar_vinculos(ROLE_QUALIDADE, ["A", "B", "C"], [])
-    assert validar_vinculos(ROLE_CONTROL_DESK, ["A"], [])  # CD é global
+    # WFM: o Control Desk pode (opcionalmente) ser vinculado a operações; na Monitoria segue global.
+    assert validar_vinculos(ROLE_CONTROL_DESK, ["A"], []) == []
+    assert validar_vinculos(ROLE_CONTROL_DESK, [], []) == []
     assert validar_vinculos(ROLE_SUPERVISOR, ["A"], [4])  # só operador tem supervisor
 
 

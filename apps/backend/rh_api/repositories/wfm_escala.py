@@ -26,11 +26,13 @@ from fastapi import HTTPException, status
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
+from ..services.monitoria_export import gerar_csv, gerar_xlsx
 from ..services.wfm_montagem import (
     EventoCalendario,
     TurnoModelo,
     VigenciaContrato,
     dias_do_mes,
+    horario_efetivo,
     montar_dias,
 )
 from ..services.wfm_regras import (
@@ -181,6 +183,17 @@ class WfmEscalaRepositoryMixin:
                         for i in snap.get("itens", [])
                         if i["id_operador"] == user.id_usuario
                     ]
+                    # Horário efetivo (feriado/dia/horário especial aplicados) e minutos líquidos por dia.
+                    modelos = self._wfm_turnos_modelo(cursor, operacao)
+                    cursor.execute(
+                        "SELECT tipo, data_ini, data_fim, id_turno, entrada, saida FROM dbo.wfm_calendario_especial "
+                        "WHERE operacao = ? AND ativo = 1 AND data_ini <= ? AND data_fim >= ?",
+                        (operacao, dias[-1], dias[0]),
+                    )
+                    evs = [EventoCalendario(normalize_text(r[0]), r[1], r[2], r[3], r[4], r[5]) for r in cursor.fetchall()]
+                    for i in itens:
+                        if i["id_turno"] in modelos:
+                            i.update(horario_efetivo(date.fromisoformat(i["data"]), modelos[i["id_turno"]], modelos, evs))
             elif ids:
                 marcadores = ",".join("?" for _ in ids)
                 cursor.execute(
@@ -345,6 +358,7 @@ class WfmEscalaRepositoryMixin:
                         "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, atualizado_por) VALUES (?, ?, ?, ?, ?, ?)",
                         (operacao, ano_mes, alvo["id_operador"], alvo["data"], alvo["id_turno"], autor),
                     )
+                self._wfm_invalidar_trocas(cursor, user, operacao, alvo["id_operador"], alvo["data"])
                 self.wfm_audit(
                     cursor, user, operacao=operacao, acao="editar_escala" if not cab["fechada"] else "corrigir_escala_fechada",
                     entidade="escala_item", entidade_id=f"{alvo['id_operador']}:{alvo['data'].isoformat()}",
@@ -359,9 +373,24 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Validação pelo motor de regras
     # ------------------------------------------------------------------
-    def _wfm_violacoes(self, cursor, operacao: str, ano_mes: str, operadores: list[dict]) -> list[dict]:
-        dias = dias_do_mes(ano_mes)
-        ini, fim = dias[0], dias[-1]
+    def _wfm_violacoes(
+        self,
+        cursor,
+        operacao: str,
+        ano_mes: str,
+        operadores: list[dict],
+        *,
+        sobrescritas: dict | None = None,
+        periodo: tuple[date, date] | None = None,
+        contexto: str = "publicacao",
+    ) -> list[dict]:
+        """Roda o motor sobre a escala-rascunho. `sobrescritas` ((id_operador, data) -> id_turno|None)
+        simula uma escala hipotética (ex.: depois de uma troca); `periodo` restringe o intervalo avaliado."""
+        if periodo:
+            ini, fim = periodo
+        else:
+            dias = dias_do_mes(ano_mes)
+            ini, fim = dias[0], dias[-1]
         janela_ini, janela_fim = ini - timedelta(days=CONTEXTO_DIAS), fim + timedelta(days=CONTEXTO_DIAS)
         turnos = self._wfm_turnos_modelo(cursor, operacao)
         cursor.execute(
@@ -381,6 +410,11 @@ class WfmEscalaRepositoryMixin:
         por_operador: dict[int, dict[date, int]] = {}
         for r in cursor.fetchall():
             por_operador.setdefault(int(r[0]), {})[r[1]] = int(r[2])
+        for (id_op, dia), id_turno in (sobrescritas or {}).items():
+            if id_turno is None:
+                por_operador.get(int(id_op), {}).pop(dia, None)
+            else:
+                por_operador.setdefault(int(id_op), {})[dia] = int(id_turno)
         cursor.execute(
             f"""
             SELECT oc.id_operador, oc.vigencia_ini, oc.vigencia_fim, c.codigo, c.jornada_diaria_max_min, c.interjornada_min_min,
@@ -402,7 +436,7 @@ class WfmEscalaRepositoryMixin:
             if not any(ini <= d <= fim for d in itens):
                 continue  # operador sem escala no mês
             dias_motor, violacoes = montar_dias(itens, turnos, eventos, vigencias.get(id_operador, []))
-            violacoes = violacoes + validar_escala(dias_motor, periodo=(ini, fim))
+            violacoes = violacoes + validar_escala(dias_motor, periodo=(ini, fim), contexto=contexto)
             for v in violacoes:
                 if not (ini <= v.data <= fim):
                     continue
@@ -744,3 +778,67 @@ class WfmEscalaRepositoryMixin:
             ]
         finally:
             conn.close()
+
+    # ------------------------------------------------------------------
+    # Exportação em planilha (escala mensal do escopo do usuário)
+    # ------------------------------------------------------------------
+    def wfm_exportar_escala(self, user, operacao: str, ano_mes: str, formato: str = "xlsx", *, ip: str = "") -> tuple[bytes, str, str]:
+        """XLSX/CSV da escala-rascunho do mês, só dos operadores que o usuário pode ver. Duas abas:
+        "Escala" (código do turno por dia + total de horas) e "Horários" (um dia por linha, com
+        entrada, saída e horas líquidas já com feriado/dia/horário especial aplicados)."""
+        ano_mes = _exigir_ano_mes(ano_mes)
+        formato = "csv" if normalize_text(formato).lower() == "csv" else "xlsx"
+        dias = dias_do_mes(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
+            ids = [op["id_usuario"] for op in operadores]
+            modelos = self._wfm_turnos_modelo(cursor, operacao)
+            cursor.execute(
+                "SELECT tipo, data_ini, data_fim, id_turno, entrada, saida FROM dbo.wfm_calendario_especial "
+                "WHERE operacao = ? AND ativo = 1 AND data_ini <= ? AND data_fim >= ?",
+                (operacao, dias[-1], dias[0]),
+            )
+            eventos = [EventoCalendario(normalize_text(r[0]), r[1], r[2], r[3], r[4], r[5]) for r in cursor.fetchall()]
+            itens: dict[tuple[int, date], int] = {}
+            if ids:
+                cursor.execute(
+                    f"SELECT id_operador, data, id_turno FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ? AND id_operador IN ({','.join('?' for _ in ids)})",
+                    (operacao, ano_mes, *ids),
+                )
+                itens = {(int(r[0]), r[1]): int(r[2]) for r in cursor.fetchall()}
+            contratos = self._wfm_contratos_vigentes(cursor, operacao, ids, dias[0], dias[-1]) if ids else {}
+            cab_dias = [f"{d.day:02d}/{d.month:02d}" for d in dias]
+            linhas_escala, linhas_horarios = [], []
+            for op in operadores:
+                codigos, total_min, trabalhados = [], 0, 0
+                for d in dias:
+                    id_turno = itens.get((op["id_usuario"], d))
+                    if id_turno is None or id_turno not in modelos:
+                        codigos.append("")
+                        continue
+                    h = horario_efetivo(d, modelos[id_turno], modelos, eventos)
+                    codigos.append(h["codigo"])
+                    if h["trabalha"]:
+                        total_min += h["minutos"]
+                        trabalhados += 1
+                    linhas_horarios.append([op["nome"], d.strftime("%d/%m/%Y"), h["codigo"], h["entrada"] or "", h["saida"] or "", round(h["minutos"] / 60, 2) if h["trabalha"] else 0])
+                contrato = (contratos.get(op["id_usuario"]) or [{}])[-1].get("codigo", "")
+                linhas_escala.append([op["nome"], contrato, *codigos, trabalhados, round(total_min / 60, 2)])
+            colunas = ["Operador", "Contrato", *cab_dias, "Dias trabalhados", "Horas no mês"]
+            self.wfm_audit(cursor, user, operacao=operacao, acao="exportar_escala", entidade="escala", entidade_id=ano_mes,
+                           depois={"formato": formato, "operadores": len(operadores)}, ip=ip)
+            conn.commit()
+        finally:
+            conn.close()
+        nome = f"escala_{operacao}_{ano_mes}.{formato}"
+        if formato == "csv":
+            return gerar_csv(colunas, linhas_escala), nome, "text/csv; charset=utf-8"
+        abas = [
+            {"nome": "Escala", "colunas": colunas, "linhas": linhas_escala},
+            {"nome": "Horários", "colunas": ["Operador", "Data", "Turno", "Entrada", "Saída", "Horas líquidas"], "linhas": linhas_horarios},
+        ]
+        return gerar_xlsx(abas), nome, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -369,6 +369,10 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("wfm.cadastros.editar", "WFM", "Editar turnos-modelo, skills e calendário especial (feriados, datas, dias e horários especiais).", critical=True),
         _permission("wfm.contratos.editar", "WFM", "Editar contratos de jornada e limites do motor de regras.", critical=True),
         _permission("wfm.auditoria", "WFM", "Consultar a trilha de auditoria completa do WFM.", critical=True),
+        _permission("wfm.troca.visualizar", "WFM", "Ver solicitações de troca de plantão (as próprias ou as do escopo)."),
+        _permission("wfm.troca.solicitar", "WFM", "Solicitar troca de plantão e responder pedidos de colegas (Operador).", critical=True),
+        _permission("wfm.troca.aprovar", "WFM", "Aprovar ou reprovar trocas de plantão (Supervisor, Control Desk, Gestor/RH).", critical=True),
+        _permission("wfm.troca.desfazer", "WFM", "Desfazer uma troca já aprovada, com justificativa.", critical=True),
     )
 }
 
@@ -685,8 +689,11 @@ _WFM_ROLE_PERMISSIONS: dict[str, set[str]] = {
     # Gestor/RH: sem lançamento de presença (Supervisor/Control Desk); publica com violação e corrige após fechamento.
     ROLE_MANAGER: _WFM_LEITURA
     | {"wfm.escala.editar", "wfm.escala.publicar", "wfm.escala.fechar", "wfm.escala.publicar_com_violacao", "wfm.escala.corrigir_fechada", "wfm.auditoria"},
-    ROLE_OPERATOR: {"sessao.wfm.acessar", "wfm.escala.propria"},
+    ROLE_OPERATOR: {"sessao.wfm.acessar", "wfm.escala.propria", "wfm.troca.visualizar", "wfm.troca.solicitar"},
 }
+# Trocas: aprovam/desfazem Supervisor, Control Desk e Gestor/RH (Adm não decide; Qualidade não vê).
+for _papel in (ROLE_SUPERVISOR, ROLE_CONTROL_DESK, ROLE_MANAGER):
+    _WFM_ROLE_PERMISSIONS[_papel] |= {"wfm.troca.visualizar", "wfm.troca.aprovar", "wfm.troca.desfazer"}
 for _role_id, _perms in _WFM_ROLE_PERMISSIONS.items():
     ROLE_PERMISSIONS.setdefault(_role_id, set()).update(_perms)
 # Administrador: configuração geral + auditoria; sem decisões operacionais sobre a escala
@@ -699,6 +706,11 @@ WFM_PERMISSOES_OPERACIONAIS = frozenset(
         "wfm.escala.fechar",
         "wfm.escala.corrigir_fechada",
         "wfm.presenca.lancar",
+        "wfm.troca.solicitar",
+        "wfm.troca.aprovar",
+        "wfm.troca.desfazer",
+        "wfm.troca.visualizar",
+        "wfm.escala.propria",  # Adm/Gestão não têm escala própria
     }
 )
 ROLE_PERMISSIONS[ROLE_ADMIN] -= WFM_PERMISSOES_OPERACIONAIS
@@ -727,6 +739,7 @@ SCREEN_PERMISSIONS.update(
         "screen-wfm-presenca": "wfm.presenca.lancar",
         "screen-wfm-cadastros": "wfm.cadastros.visualizar",
         "screen-wfm-auditoria": "wfm.auditoria",
+        "screen-wfm-trocas": "wfm.troca.visualizar",
     }
 )
 

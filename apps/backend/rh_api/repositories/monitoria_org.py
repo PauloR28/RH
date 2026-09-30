@@ -554,8 +554,6 @@ class MonitoriaOrgRepositoryMixin:
             anterior = self._mon_vinculos(cursor, id_usuario)
             operacoes = sorted({normalize_text(item) for item in (data.get("operacoes", anterior["operacoes"]) or []) if normalize_text(item)})
             supervisores = sorted({int(item) for item in (data.get("supervisores", [s["id_usuario"] for s in anterior["supervisores"]]) or [])})
-            if perfil == ROLE_CONTROL_DESK:
-                operacoes = []
             erros = validar_vinculos(perfil, operacoes, supervisores)
             if erros:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(erros))
@@ -956,8 +954,6 @@ class MonitoriaOrgRepositoryMixin:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nível de usuário inválido para a Monitoria.")
         operacoes = sorted({normalize_text(item) for item in (data.get("operacoes") or []) if normalize_text(item)})
         supervisores = sorted({int(item) for item in (data.get("supervisores") or [])})
-        if perfil == ROLE_CONTROL_DESK:
-            operacoes = []
         erros = validar_vinculos(perfil, operacoes, supervisores)
         if erros:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(erros))

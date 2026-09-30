@@ -164,9 +164,9 @@ export function BarraLateral({
   const sublinksWfm = [
     { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minha escala', permissao: 'wfm.escala.propria' },
     { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
+    { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
-    { tela: 'screen-wfm-auditoria', icone: 'history', label: 'Auditoria', permissao: 'wfm.auditoria' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
   const sublinksGestao = [
@@ -261,6 +261,12 @@ export function BarraLateral({
       permissao: 'lgpd.visualizar',
     },
     {
+      tela: 'screen-wfm-auditoria',
+      icone: 'history',
+      label: 'Auditoria de Plantões',
+      permissao: 'wfm.auditoria',
+    },
+    {
       tela: 'screen-settings-logs',
       icone: 'history_edu',
       label: 'Logs',
@@ -332,6 +338,7 @@ export function BarraLateral({
     'screen-settings-logs',
     'screen-settings-monitoria-equipes',
     'screen-settings-monitoria-logs',
+    'screen-wfm-auditoria',
     'screen-settings-document-templates',
     'screen-settings-administracao',
     'screen-settings-monitoria',
@@ -379,7 +386,8 @@ export function BarraLateral({
   const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
   const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
-  const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem));
+  // "Minha escala" é só do Operador (Adm/Gestão não têm escala própria).
+  const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem) && (subitem.tela !== 'screen-wfm-minha-escala' || controlador?.estado?.perfilUsuario === 'operador'));
   const grupoWfmAtivo = telasRelacionadasWfm.includes(navAtiva);
   const subitemWfmAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>

@@ -56,3 +56,55 @@
 @media (max-width: 720px) {
   .wfm-col-nome { min-width: 144px; }
 }
+
+/* Cabeçalho com filtros alinhados à direita (Auditoria) */
+.wfm-cabecalho--centro { align-items: center; }
+.wfm-cabecalho--centro h3 { margin: 0; }
+.wfm-filtros-direita { display: flex; gap: 16px; margin-left: auto; align-items: flex-end; flex-wrap: wrap; }
+.wfm-filtros-direita .mon-campo { min-width: 200px; }
+.wfm-auditoria-valor { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--text-xs); }
+.wfm-auditoria-valor li span { color: var(--ink-soft); }
+.wfm-auditoria-valor li span::after { content: ':'; }
+.wfm-linha-edicao td { background: var(--paper-sunken); }
+.wfm-linha-edicao .wfm-acoes { margin-top: 16px; }
+
+/* Minha escala (Operador) */
+.wfm-alternador { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.wfm-alternador button { height: 32px; padding: 0 16px; border: 0; background: var(--paper); color: var(--ink-soft); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.wfm-alternador button + button { border-left: 1px solid var(--line); }
+.wfm-alternador button.is-ativo { background: var(--brand-soft); color: var(--brand-ink); }
+.wfm-resumo { display: flex; gap: 24px; flex-wrap: wrap; }
+.wfm-resumo > div { display: flex; flex-direction: column; gap: 4px; padding: 16px 24px; border: 1px solid var(--line); border-radius: 8px; min-width: 200px; }
+.wfm-resumo span { color: var(--ink-soft); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.04em; }
+.wfm-resumo strong { font-size: var(--text-lg, 1.25rem); }
+.wfm-semana, .wfm-mes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.wfm-mes-cab { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; color: var(--ink-soft); font-size: var(--text-xs); font-weight: 600; text-align: center; text-transform: uppercase; }
+.wfm-dia { display: flex; flex-direction: column; gap: 8px; min-height: 120px; padding: 16px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: var(--text-xs); min-width: 0; }
+.wfm-dia.is-fds { background: var(--paper-sunken); }
+.wfm-dia.is-fora { border-style: dashed; background: transparent; }
+.wfm-dia.is-escalado { border-color: var(--brand); }
+.wfm-dia.is-hoje { box-shadow: inset 0 0 0 2px var(--brand); }
+.wfm-dia-topo { display: flex; justify-content: space-between; align-items: baseline; color: var(--ink-soft); }
+.wfm-dia-topo strong { color: var(--ink); font-size: var(--text-md); }
+.wfm-tag-escalado { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-ink); font-weight: 700; }
+.wfm-tag-escalado .material-symbols-outlined { font-size: 16px; }
+.wfm-dia-horario { font-weight: 700; color: var(--ink); font-size: var(--text-sm); }
+.wfm-dia-horas, .wfm-dia-folga, .wfm-dia-vazio { color: var(--ink-soft); }
+.wfm-dia-evento { color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 720px) {
+  .wfm-semana, .wfm-mes, .wfm-mes-cab { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wfm-mes-cab { display: none; }
+  .wfm-filtros-direita { margin-left: 0; width: 100%; }
+}
+
+/* Trocas de plantão */
+.wfm-trocas { display: flex; flex-direction: column; gap: 16px; }
+.wfm-troca { display: flex; flex-direction: column; gap: 16px; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.wfm-troca header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.wfm-troca-seta { color: var(--ink-soft); padding: 0 8px; }
+.wfm-troca-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 0; }
+.wfm-troca-dados dt { color: var(--ink-soft); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.04em; }
+.wfm-troca-dados dd { margin: 4px 0 0; font-size: var(--text-sm); }
+.wfm-troca-largo { grid-column: 1 / -1; }
+.wfm-linha-tempo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: var(--text-sm); }
+.wfm-linha-tempo span { color: var(--ink-soft); }

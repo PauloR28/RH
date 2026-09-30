@@ -23,14 +23,14 @@ import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonit
 // Vínculos organizacionais no formulário de usuário
 // ---------------------------------------------------------------------------
 export const PERFIS_MONITORIA = ['operador', 'supervisor', 'qualidade', 'control_desk'];
-const LIMITE_OPERACOES = { operador: 1, supervisor: 3, qualidade: 2, control_desk: 0 };
+const LIMITE_OPERACOES = { operador: 1, supervisor: 3, qualidade: 2, control_desk: 99 };
 const NOME_PERFIL = { operador: 'O Operador', supervisor: 'O Supervisor', qualidade: 'A Qualidade' };
 export const VINCULOS_INICIAIS = { supervisores: [], id_equipe: '', turno: '', canais: [] };
 
 // Espelha `validar_vinculos` do backend para avisar antes de gravar o usuário.
 export function validarVinculosMonitoria(perfil, operacoes, vinculos) {
   const erros = [];
-  if (!PERFIS_MONITORIA.includes(perfil) || perfil === 'control_desk') return erros;
+  if (!PERFIS_MONITORIA.includes(perfil) || perfil === 'control_desk') return erros; // vínculo do Control Desk é opcional
   const limite = LIMITE_OPERACOES[perfil];
   if (perfil === 'operador' && operacoes.length !== 1) erros.push('O Operador deve estar vinculado a exatamente 1 operação.');
   else if (operacoes.length > limite) erros.push(`${NOME_PERFIL[perfil]} pode ter no máximo ${limite} operação(ões).`);
@@ -97,7 +97,7 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
     operador: 'Escolha a operação do operador; a equipe, os supervisores e os canais dependem dela.',
     supervisor: 'Marque de 1 a 3 operações.',
     qualidade: 'Marque 1 ou 2 operações.',
-    control_desk: 'O Control Desk enxerga todas as operações e não recebe vínculo de operação.',
+    control_desk: 'Na Monitoria o Control Desk enxerga todas as operações. Vincule as operações em que ele trabalha nos Turnos e Plantões.',
   }[perfil] || 'Sem seleção, o usuário mantém acesso a todas as operações.';
   const definir = (campo, valor) => setVinculos({ ...vinculos, [campo]: valor });
 
@@ -120,8 +120,8 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
               <option value="">Selecione a operação</option>${opcoesOperacao.map((o) => html`<option key=${o.valor} value=${o.valor}>${o.rotulo}</option>`)}
             </select>` : html`
             <${SelectMultiplo} rotulo="Operações vinculadas" opcoes=${opcoesOperacao} valores=${operacoes} onChange=${trocarOperacoes}
-              desabilitado=${bloqueado || ehControlDesk} limite=${LIMITE_OPERACOES[perfil] || 0}
-              placeholder=${ehControlDesk ? 'Todas as operações' : ehMonitoria ? 'Selecione as operações' : 'Todas as operações'} vazio="Nenhuma operação cadastrada." />`}
+              desabilitado=${bloqueado} limite=${LIMITE_OPERACOES[perfil] || 0}
+              placeholder=${ehControlDesk ? 'Selecione as operações (Turnos e Plantões)' : ehMonitoria ? 'Selecione as operações' : 'Todas as operações'} vazio="Nenhuma operação cadastrada." />`}
         </div>
         ${ehOperador ? html`
           <div class="mon-campo">

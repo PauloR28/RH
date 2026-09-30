@@ -225,6 +225,7 @@ export const PERMISSOES_TELAS = {
   'screen-wfm-presenca': 'wfm.presenca.lancar',
   'screen-wfm-cadastros': 'wfm.cadastros.visualizar',
   'screen-wfm-auditoria': 'wfm.auditoria',
+  'screen-wfm-trocas': 'wfm.troca.visualizar',
 };
 
 // Sessão (chave-mestra liga/desliga em Perfis e Permissões) a que cada tela pertence.
@@ -274,6 +275,7 @@ export const SESSAO_DA_TELA = {
   'screen-wfm-presenca': 'wfm',
   'screen-wfm-cadastros': 'wfm',
   'screen-wfm-auditoria': 'wfm',
+  'screen-wfm-trocas': 'wfm',
 };
 const logger = criarLogger('controlador-aplicacao');
 

@@ -73,6 +73,7 @@ export const ROTAS_POR_TELA = {
   'screen-wfm-presenca': 'turnos-plantoes/presenca',
   'screen-wfm-cadastros': 'turnos-plantoes/cadastros',
   'screen-wfm-auditoria': 'turnos-plantoes/auditoria',
+  'screen-wfm-trocas': 'turnos-plantoes/trocas',
   'screen-help': 'ajuda',
 };
 

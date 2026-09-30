@@ -79,6 +79,45 @@ def contrato_em(data: date, vigencias: list[VigenciaContrato]) -> ParametrosCont
     return max(cobrindo, key=lambda v: v.ini).contrato
 
 
+def _aplicar_eventos(
+    data: date,
+    turno: TurnoModelo,
+    turnos: dict[int, TurnoModelo],
+    eventos: list[EventoCalendario],
+) -> tuple[bool, TurnoModelo, str | None, str | None]:
+    """Aplica o calendário especial ao turno do dia: (feriado, turno efetivo, entrada, saída)."""
+    ativos = [e for e in eventos if e.cobre(data)]
+    feriado = any(e.tipo == EVENTO_FERIADO for e in ativos)
+    efetivo = turno
+    for evento in ativos:
+        if evento.tipo == EVENTO_DIA_ESPECIAL and evento.id_turno in turnos:
+            efetivo = turnos[evento.id_turno]
+    entrada, saida = efetivo.entrada, efetivo.saida
+    for evento in ativos:
+        if evento.tipo == EVENTO_HORARIO_ESPECIAL and evento.id_turno == efetivo.id_turno:
+            entrada = evento.entrada or entrada
+            saida = evento.saida or saida
+    return feriado, efetivo, entrada, saida
+
+
+def horario_efetivo(
+    data: date,
+    turno: TurnoModelo,
+    turnos: dict[int, TurnoModelo],
+    eventos: list[EventoCalendario],
+) -> dict:
+    """Horário que o operador realmente cumpre no dia (para exibição): entrada, saída e minutos líquidos."""
+    feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos)
+    if efetivo.tipo != TIPO_TURNO_TRABALHO or not entrada or not saida:
+        return {"trabalha": False, "codigo": efetivo.codigo, "entrada": None, "saida": None, "minutos": 0, "feriado": feriado}
+    dia = dia_de_turno(data, _CONTRATO_EXIBICAO, entrada=entrada, saida=saida, pausas=efetivo.pausas)
+    return {"trabalha": True, "codigo": efetivo.codigo, "entrada": entrada, "saida": saida, "minutos": dia.jornada_liquida_min(), "feriado": feriado}
+
+
+# Contrato fictício só para reaproveitar o cálculo de jornada líquida na exibição (não valida nada).
+_CONTRATO_EXIBICAO = ParametrosContrato("EXIBICAO", 1440, 0, 31)
+
+
 def montar_dias(
     itens: dict[date, int],
     turnos: dict[int, TurnoModelo],
@@ -109,17 +148,7 @@ def montar_dias(
         if turno.tipo != TIPO_TURNO_TRABALHO:
             dias.append(folga(data, contrato, dsr=turno.tipo == TIPO_TURNO_DSR))
             continue
-        ativos = [e for e in eventos if e.cobre(data)]
-        feriado = any(e.tipo == EVENTO_FERIADO for e in ativos)
-        efetivo = turno
-        for evento in ativos:
-            if evento.tipo == EVENTO_DIA_ESPECIAL and evento.id_turno in turnos:
-                efetivo = turnos[evento.id_turno]
-        entrada, saida = efetivo.entrada, efetivo.saida
-        for evento in ativos:
-            if evento.tipo == EVENTO_HORARIO_ESPECIAL and evento.id_turno == efetivo.id_turno:
-                entrada = evento.entrada or entrada
-                saida = evento.saida or saida
+        feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos)
         if efetivo.tipo != TIPO_TURNO_TRABALHO or not entrada or not saida:
             dias.append(folga(data, contrato, dsr=efetivo.tipo == TIPO_TURNO_DSR))
             continue

@@ -2,6 +2,7 @@ import { html, useCallback, useEffect, useMemo, useState } from '../../infraestr
 import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
+  exportarEscalaWfm,
   fecharPeriodoWfm,
   lerEscalaWfm,
   listarVersoesEscalaWfm,
@@ -10,6 +11,7 @@ import {
   validarEscalaWfm,
 } from '../../services/api/wfm.js';
 import { dataHora, infoDia } from './comum.js';
+import { baixarArquivo } from '../monitoria/comum.js';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -126,6 +128,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     if (r) await carregar();
   };
 
+  const exportar = async (formato) => {
+    try { baixarArquivo(await exportarEscalaWfm(operacao, anoMes, formato)); } catch (e) { showToast?.(e?.message || 'Não foi possível exportar.', 'error'); }
+  };
   const semItens = !dados.operadores.length;
   const bloqueio = validacao?.bloqueio;
   const duro = validacao?.bloqueio_duro;
@@ -144,7 +149,10 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
             ${somentePropria ? ' · Exibe sempre a última versão publicada.' : ''}
           </p>
         </div>
-        ${fechada ? html`<span class="mon-badge mon-badge--info">Período fechado</span>` : null}
+        <div class="wfm-acoes-cab">
+          ${fechada ? html`<span class="mon-badge mon-badge--info">Período fechado</span>` : null}
+          ${!somentePropria && pode('wfm.escala.visualizar') ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => exportar('xlsx')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('download')}</span>Exportar planilha</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => exportar('csv')}>CSV</button>` : null}
+        </div>
       </div>
 
       ${semItens ? html`<${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />` : html`
@@ -183,9 +191,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           ${dados.turnos.map((t) => html`<span key=${t.id_turno} class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span class="wfm-legenda-txt">${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</span>`)}
         </div>`}
 
-      ${!somentePropria && validacao ? html`
-        <div class=${`wfm-validacao ${validacao.violacoes.length ? (bloqueio ? 'is-bloqueio' : 'is-alerta') : 'is-ok'}`} role="status">
-          <strong>${validacao.violacoes.length ? `${validacao.violacoes.length} violação(ões) nas regras trabalhistas` : 'Escala dentro das regras trabalhistas'}</strong>
+      ${!somentePropria && validacao?.violacoes?.length ? html`
+        <div class=${`wfm-validacao ${bloqueio ? 'is-bloqueio' : 'is-alerta'}`} role="status">
+          <strong>${validacao.violacoes.length} violação(ões) nas regras trabalhistas</strong>
           ${duro ? html`<p>Há violação de lei que nem o Gestor/RH pode publicar. Corrija a escala.</p>` : bloqueio ? html`<p>${podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir. Somente o Gestor/RH publica com violação pendente.'}</p>` : null}
           <ul>${validacao.violacoes.slice(0, 40).map((v, i) => html`<li key=${i}><b>${v.operador}</b> · ${v.data.split('-').reverse().join('/')} · ${v.mensagem}${v.permite_override ? '' : ' (lei)'}</li>`)}</ul>
         </div>` : null}

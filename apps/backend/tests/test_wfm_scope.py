@@ -66,3 +66,29 @@ def test_perfis_restritos_sem_vinculo_nao_acessam_nada():
 def test_contratos_so_admin_e_control_desk():
     assert sc.pode_editar_contratos(ROLE_ADMIN) and sc.pode_editar_contratos(ROLE_CONTROL_DESK)
     assert not sc.pode_editar_contratos(ROLE_SUPERVISOR) and not sc.pode_editar_contratos(ROLE_MANAGER)
+
+
+def _decide(perfil, id_usuario, **kw):
+    return sc.pode_decidir_troca(perfil=perfil, id_usuario=id_usuario, operacoes_usuario=kw.get("ops", ["A"]),
+                                 operacao=kw.get("operacao", "A"), id_a=10, id_b=50, equipe_supervisor=kw.get("equipe", [10]))
+
+
+def test_decidir_troca_respeita_perfil_equipe_operacao_e_conflito():
+    assert _decide(ROLE_SUPERVISOR, 1)
+    assert not _decide(ROLE_SUPERVISOR, 1, equipe=[99])          # nenhum dos dois é da equipe
+    assert _decide(ROLE_SUPERVISOR, 1, equipe=[50])              # basta um deles
+    assert not _decide(ROLE_SUPERVISOR, 10)                      # parte da troca
+    assert not _decide(ROLE_MANAGER, 50)                         # parte da troca (qualquer perfil)
+    assert _decide(ROLE_MANAGER, 9, ops=[], operacao="Z")
+    assert _decide(ROLE_CONTROL_DESK, 9) and not _decide(ROLE_CONTROL_DESK, 9, operacao="B")
+    for perfil in (ROLE_ADMIN, ROLE_QUALIDADE, ROLE_OPERATOR):
+        assert not _decide(perfil, 9)
+
+
+def test_ver_troca_so_os_dois_operadores_e_gestores():
+    def ve(perfil, uid, **kw):
+        return sc.pode_ver_troca(perfil=perfil, id_usuario=uid, operacoes_usuario=["A"], operacao="A", id_a=10, id_b=50, equipe_supervisor=kw.get("equipe", [10]))
+    assert ve(ROLE_OPERATOR, 10) and ve(ROLE_OPERATOR, 50) and not ve(ROLE_OPERATOR, 77)
+    assert ve(ROLE_SUPERVISOR, 1) and not ve(ROLE_SUPERVISOR, 1, equipe=[99])
+    assert ve(ROLE_MANAGER, 9) and ve(ROLE_CONTROL_DESK, 9)
+    assert not ve(ROLE_QUALIDADE, 9) and not ve(ROLE_ADMIN, 9)

@@ -117,3 +117,24 @@ class AtestadoRequest(BaseSchema):
     data_fim: str = Field(max_length=10)
     tipo: str = Field(max_length=30)
     # Sem campo de arquivo nem CID: dado de saúde, guardamos só período, tipo e validador.
+
+
+class TrocaSolicitarRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    id_alvo: int
+    data_a: str = Field(max_length=10)  # dia que o solicitante cede
+    data_b: str = Field(default="", max_length=10)  # dia do colega que o solicitante assume (vazio = mesmo dia)
+    motivo: str = Field(default="", max_length=300)
+
+
+class TrocaResponderRequest(BaseSchema):
+    aceitar: bool
+
+
+class TrocaDecidirRequest(BaseSchema):
+    aprovar: bool
+    justificativa: str = Field(default="", max_length=400)
+
+
+class TrocaDesfazerRequest(BaseSchema):
+    justificativa: str = Field(max_length=400)

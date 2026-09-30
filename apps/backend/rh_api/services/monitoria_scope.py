@@ -109,6 +109,6 @@ def validar_vinculos(
             erros.append(f"O Operador pode ter no máximo {MAX_SUPERVISORES_OPERADOR} supervisores.")
     elif supervisores:
         erros.append("Somente o Operador possui supervisor responsável.")
-    if perfil == ROLE_CONTROL_DESK and operacoes:
-        erros.append("O Control Desk enxerga todas as operações e não recebe vínculo de operação.")
+    # Control Desk: na Monitoria segue global (vínculo opcional e sem efeito ali); o WFM usa o vínculo
+    # para limitar as operações em que ele edita a escala (sem vínculo = nenhuma operação no WFM).
     return erros

@@ -1,4 +1,4 @@
-import { requisitar } from './core.js';
+import { requisitar, requisitarArquivo } from './core.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -42,3 +42,14 @@ export const listarAtestadosWfm = (operacao, anoMes) => requisitar(`/wfm/atestad
 export const registrarAtestadoWfm = (dados) => enviar('/wfm/atestados', 'POST', dados);
 
 export const listarAuditoriaWfm = (filtros = {}) => requisitar(`/wfm/auditoria${consulta(filtros)}`, { method: 'GET' });
+
+export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx') =>
+  requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato })}`, { method: 'GET' });
+
+export const listarTrocasWfm = (operacao, estado = '') => requisitar(`/wfm/trocas${consulta({ operacao, estado })}`, { method: 'GET' });
+export const listarColegasTrocaWfm = (operacao) => requisitar(`/wfm/trocas/colegas${consulta({ operacao })}`, { method: 'GET' });
+export const solicitarTrocaWfm = (dados) => enviar('/wfm/trocas', 'POST', dados);
+export const responderTrocaWfm = (id, aceitar) => enviar(`/wfm/trocas/${id}/responder`, 'POST', { aceitar });
+export const cancelarTrocaWfm = (id) => enviar(`/wfm/trocas/${id}/cancelar`, 'POST', {});
+export const decidirTrocaWfm = (id, aprovar, justificativa = '') => enviar(`/wfm/trocas/${id}/decidir`, 'POST', { aprovar, justificativa });
+export const desfazerTrocaWfm = (id, justificativa) => enviar(`/wfm/trocas/${id}/desfazer`, 'POST', { justificativa });

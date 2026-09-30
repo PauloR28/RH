@@ -22,7 +22,7 @@ from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
 
 CATEGORIAS_SKILL = ("IDIOMA", "PRODUTO", "RETENCAO", "OUTRO")
-TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO")
+TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO", "APRENDIZ")
 TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR")
 TIPOS_EVENTO = ("FERIADO", "DATA_ESPECIAL", "DIA_ESPECIAL", "HORARIO_ESPECIAL")
 TIPOS_PAUSA = ("DESCANSO", "REFEICAO", "LANCHE", "OUTRA")
@@ -38,6 +38,7 @@ CONTRATOS_PADRAO = (
     ("CLT6", "CLT 6h", "CLT", 360, 660, 6, None, False, _NR17_PADRAO),
     ("CLT8", "CLT 8h", "CLT", 480, 660, 6, None, False, []),
     ("TERCEIRO", "Terceiro (contrato próprio)", "TERCEIRO", 480, 660, 6, None, False, []),
+    ("APR6", "Jovem aprendiz 6h", "APRENDIZ", 360, 660, 6, None, True, []),
 )
 TURNOS_FIXOS_PADRAO = (
     ("FOLGA", "Folga", "FOLGA", "#94a3b8"),
@@ -132,18 +133,17 @@ class WfmRepositoryMixin:
 
     def _wfm_garantir_padroes(self, cursor, operacao: str) -> None:
         """Semeia contratos e turnos fixos (folga/DSR) da operação, sem sobrescrever."""
-        cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_contratos WHERE operacao = ?", (operacao,))
-        if not cursor.fetchone():
-            for codigo, nome, tipo, jornada, inter, dias, feriado, duro, pausas in CONTRATOS_PADRAO:
-                cursor.execute(
-                    """
-                    INSERT INTO dbo.wfm_contratos (operacao, codigo, nome, tipo, jornada_diaria_max_min,
-                        interjornada_min_min, max_dias_consecutivos, jornada_feriado_max_min,
-                        jornada_bloqueio_duro, exigencias_pausa_json, atualizado_por)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sistema')
-                    """,
-                    (operacao, codigo, nome, tipo, jornada, inter, dias, feriado, 1 if duro else 0, _json(pausas)),
-                )
+        for codigo, nome, tipo, jornada, inter, dias, feriado, duro, pausas in CONTRATOS_PADRAO:
+            cursor.execute(
+                """
+                IF NOT EXISTS (SELECT 1 FROM dbo.wfm_contratos WHERE operacao = ? AND codigo = ?)
+                INSERT INTO dbo.wfm_contratos (operacao, codigo, nome, tipo, jornada_diaria_max_min,
+                    interjornada_min_min, max_dias_consecutivos, jornada_feriado_max_min,
+                    jornada_bloqueio_duro, exigencias_pausa_json, atualizado_por)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sistema')
+                """,
+                (operacao, codigo, operacao, codigo, nome, tipo, jornada, inter, dias, feriado, 1 if duro else 0, _json(pausas)),
+            )
         for codigo, nome, tipo, cor in TURNOS_FIXOS_PADRAO:
             cursor.execute(
                 "IF NOT EXISTS (SELECT 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ?) "

@@ -1,4 +1,6 @@
-import { html, useCallback, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useCallback, useEffect, useState, React } from '../../infraestrutura-react.js';
+
+const Fragment = React.Fragment;
 import { LoadingState } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
@@ -54,7 +56,7 @@ function Contratos({ operacao, contratos, podeEditar, recarregar, showToast }) {
         <div class="mon-form-grid">
           <${Campo} rotulo="Código"><input class="form-control" required maxlength="30" disabled=${!!edit.id_contrato} value=${edit.codigo} onInput=${(e) => set('codigo', e.target.value)} /></${Campo}>
           <${Campo} rotulo="Nome"><input class="form-control" required maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /></${Campo}>
-          <${Campo} rotulo="Tipo"><select class="form-select" value=${edit.tipo} onChange=${(e) => set('tipo', e.target.value)}><option value="ESTAGIARIO">Estagiário</option><option value="CLT">CLT</option><option value="TERCEIRO">Terceiro</option></select></${Campo}>
+          <${Campo} rotulo="Tipo"><select class="form-select" value=${edit.tipo} onChange=${(e) => set('tipo', e.target.value)}><option value="ESTAGIARIO">Estagiário</option><option value="CLT">CLT</option><option value="TERCEIRO">Terceiro</option><option value="APRENDIZ">Jovem aprendiz</option></select></${Campo}>
           <${Campo} rotulo="Jornada diária máx. (min)"><input class="form-control" type="number" min="30" required value=${edit.jornada_diaria_max_min} onInput=${(e) => set('jornada_diaria_max_min', Number(e.target.value))} /></${Campo}>
           <${Campo} rotulo="Interjornada mín. (min)"><input class="form-control" type="number" min="0" required value=${edit.interjornada_min_min} onInput=${(e) => set('interjornada_min_min', Number(e.target.value))} /></${Campo}>
           <${Campo} rotulo="Máx. dias seguidos sem DSR"><input class="form-control" type="number" min="1" required value=${edit.max_dias_consecutivos} onInput=${(e) => set('max_dias_consecutivos', Number(e.target.value))} /></${Campo}>
@@ -177,11 +179,14 @@ function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToas
         <button type="submit" class="btn btn-primary">Adicionar</button></form>` : null}
       <h4>Skills por operador</h4>
       <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Operador</th><th>Skills</th><th></th></tr></thead><tbody>
-        ${operadores.map((o) => html`<tr key=${o.id_usuario}><td>${o.nome}</td><td>${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
-          <td>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp({ id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>Editar</button>` : null}</td></tr>`)}
+        ${operadores.map((o) => html`<${Fragment} key=${o.id_usuario}>
+          <tr><td>${o.nome}</td><td>${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
+            <td>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(editandoOp?.id_usuario === o.id_usuario ? null : { id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>${editandoOp?.id_usuario === o.id_usuario ? 'Fechar' : 'Editar'}</button>` : null}</td></tr>
+          ${editandoOp?.id_usuario === o.id_usuario ? html`<tr class="wfm-linha-edicao"><td colspan="3">
+            ${ativas.length ? html`<div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>` : html`<span class="mon-muted">Cadastre ao menos uma skill acima para atribuir ao operador.</span>`}
+            <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${salvarOp}>Salvar skills</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></td></tr>` : null}
+        </${Fragment}>`)}
       </tbody></table></div>
-      ${editandoOp ? html`<div class="wfm-form"><h4>${editandoOp.nome}</h4><div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>
-        <div class="wfm-acoes"><button type="button" class="btn btn-primary" onClick=${salvarOp}>Salvar</button><button type="button" class="btn btn-outline-secondary" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></div>` : null}
     </${Secao}>`;
 }
 

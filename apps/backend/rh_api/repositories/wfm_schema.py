@@ -247,7 +247,7 @@ def schema_statements() -> list[str]:
 
 
 def ensure_wfm_schema(cursor) -> None:
-    for instrucao in schema_statements():
+    for instrucao in schema_statements() + schema_trocas_statements():
         cursor.execute(instrucao)
 
 
@@ -259,3 +259,71 @@ def render_migration_sql() -> str:
         "-- wfm_auditoria recebem trigger INSTEAD OF UPDATE/DELETE (imutaveis).\n\n"
     )
     return cabecalho + "\n\n".join(schema_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Trocas de plantão (V047, branch wfm). Separada da V046 para não alterá-la.
+# `wfm_trocas` é mutável (estado do fluxo); `wfm_trocas_eventos` é o histórico imutável.
+# ---------------------------------------------------------------------------
+TABELAS_IMUTAVEIS_TROCAS = ("wfm_trocas_eventos",)
+
+_TABELAS_TROCAS: list[tuple[str, str]] = [
+    (
+        "wfm_trocas",
+        """
+        id_troca INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao NVARCHAR(60) NOT NULL,
+        id_solicitante INT NOT NULL,
+        id_alvo INT NOT NULL,
+        data_a DATE NOT NULL,
+        data_b DATE NOT NULL,
+        estado NVARCHAR(24) NOT NULL,
+        motivo NVARCHAR(300) NULL,
+        prazo_resposta DATETIME NOT NULL,
+        prazo_decisao DATETIME NULL,
+        base_json NVARCHAR(MAX) NOT NULL,
+        alertas_json NVARCHAR(MAX) NULL,
+        bloqueios_json NVARCHAR(MAX) NULL,
+        decidido_por NVARCHAR(180) NULL,
+        decidido_em DATETIME NULL,
+        justificativa NVARCHAR(400) NULL,
+        criado_em DATETIME NOT NULL CONSTRAINT DF_wfm_trocas_criado_em DEFAULT GETDATE(),
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_trocas_atualizado_em DEFAULT GETDATE()
+        """,
+    ),
+    (
+        "wfm_trocas_eventos",
+        """
+        id_evento INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao NVARCHAR(60) NOT NULL,
+        id_troca INT NOT NULL,
+        evento NVARCHAR(40) NOT NULL,
+        por_id INT NULL,
+        por_nome NVARCHAR(180) NULL,
+        detalhe NVARCHAR(600) NULL,
+        criado_em DATETIME NOT NULL CONSTRAINT DF_wfm_trocas_eventos_criado_em DEFAULT GETDATE()
+        """,
+    ),
+]
+
+_INDICES_TROCAS: list[tuple[str, str, str]] = [
+    ("IX_wfm_trocas_estado", "wfm_trocas", "operacao, estado"),
+    ("IX_wfm_trocas_operadores", "wfm_trocas", "id_solicitante, id_alvo"),
+    ("IX_wfm_trocas_eventos", "wfm_trocas_eventos", "id_troca"),
+]
+
+
+def schema_trocas_statements() -> list[str]:
+    instrucoes = [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_TROCAS]
+    instrucoes += [_index_sql(*item) for item in _INDICES_TROCAS]
+    instrucoes += [_trigger_sql(tabela) for tabela in TABELAS_IMUTAVEIS_TROCAS]
+    return instrucoes
+
+
+def render_migration_trocas_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: solicitacao de troca de plantoes. Aditiva e idempotente. Gerada a partir de\n"
+        "-- rh_api/repositories/wfm_schema.py (um teste garante que coincide com o bootstrap).\n"
+        "-- wfm_trocas_eventos recebe trigger INSTEAD OF UPDATE/DELETE (historico imutavel).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_trocas_statements()) + "\n"

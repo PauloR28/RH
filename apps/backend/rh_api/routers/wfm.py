@@ -7,6 +7,7 @@ notificações, aderência e sugestão automática de escala."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import Response
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
@@ -22,6 +23,10 @@ from ..schemas.wfm import (
     SalvarItensRequest,
     SkillRequest,
     SkillsOperadorRequest,
+    TrocaDecidirRequest,
+    TrocaDesfazerRequest,
+    TrocaResponderRequest,
+    TrocaSolicitarRequest,
     TurnoRequest,
 )
 
@@ -139,6 +144,12 @@ def fechar(payload: FecharRequest, request: Request, user: AuthenticatedUser = D
     return repository.wfm_fechar_periodo(user, payload.operacao, payload.ano_mes, ip=client_ip(request))
 
 
+@router.get("/escala/exportar", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
+def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request))
+    return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
 @router.get("/escala/versoes", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
 def listar_versoes(operacao: str, ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return {"itens": repository.wfm_list_versoes(user, operacao, ano_mes)}
@@ -185,3 +196,39 @@ def auditoria(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return {"itens": repository.wfm_list_auditoria(user, operacao, limite, entidade, acao)}
+
+
+# ---- Trocas de plantão ---------------------------------------------------
+@router.get("/trocas", dependencies=[Depends(require_permissions("wfm.troca.visualizar"))])
+def listar_trocas(operacao: str, estado: str = "", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_trocas(user, operacao, estado)}
+
+
+@router.get("/trocas/colegas", dependencies=[Depends(require_permissions("wfm.troca.solicitar"))])
+def listar_colegas_troca(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_colegas_troca(user, operacao)}
+
+
+@router.post("/trocas", dependencies=[Depends(require_permissions("wfm.troca.solicitar"))])
+def solicitar_troca(payload: TrocaSolicitarRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_solicitar_troca(user, payload.operacao, payload.id_alvo, payload.data_a, payload.data_b, payload.motivo, ip=client_ip(request))
+
+
+@router.post("/trocas/{id_troca}/responder", dependencies=[Depends(require_permissions("wfm.troca.solicitar"))])
+def responder_troca(id_troca: int, payload: TrocaResponderRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_responder_troca(user, id_troca, payload.aceitar, ip=client_ip(request))
+
+
+@router.post("/trocas/{id_troca}/cancelar", dependencies=[Depends(require_permissions("wfm.troca.solicitar"))])
+def cancelar_troca(id_troca: int, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_cancelar_troca(user, id_troca, ip=client_ip(request))
+
+
+@router.post("/trocas/{id_troca}/decidir", dependencies=[Depends(require_permissions("wfm.troca.aprovar"))])
+def decidir_troca(id_troca: int, payload: TrocaDecidirRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_decidir_troca(user, id_troca, payload.aprovar, payload.justificativa, ip=client_ip(request))
+
+
+@router.post("/trocas/{id_troca}/desfazer", dependencies=[Depends(require_permissions("wfm.troca.desfazer"))])
+def desfazer_troca(id_troca: int, payload: TrocaDesfazerRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_desfazer_troca(user, id_troca, payload.justificativa, ip=client_ip(request))

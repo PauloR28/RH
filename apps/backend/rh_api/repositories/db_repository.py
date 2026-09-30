@@ -42,6 +42,7 @@ from .lgpd_retencao import LgpdRetencaoRepositoryMixin
 from .tela_inicial import TelaInicialRepositoryMixin
 from .wfm import WfmRepositoryMixin
 from .wfm_escala import WfmEscalaRepositoryMixin
+from .wfm_trocas import WfmTrocasRepositoryMixin
 
 
 class DatabaseRepository(
@@ -81,6 +82,7 @@ class DatabaseRepository(
     LgpdRetencaoRepositoryMixin,
     WfmRepositoryMixin,
     WfmEscalaRepositoryMixin,
+    WfmTrocasRepositoryMixin,
     BaseRepository,
 ):
     """Fachada de compatibilidade que agrega os repositorios por dominio."""

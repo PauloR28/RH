@@ -51,7 +51,7 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20260924-correcoes-txt4';
+} from './monitoria-config.js?v=20260930-wfm3';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
 
@@ -904,11 +904,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         cargo: formUsuario.cargo,
         status: formUsuario.status,
         provedor_autenticacao: formUsuario.provedor_autenticacao,
-        operacoes: formUsuario.perfil === 'control_desk' ? [] : operacoesSelecionadas,
+        operacoes: operacoesSelecionadas,
         justificativa: formUsuario.justificativa,
       };
       const gravarVinculosMonitoria = (idUsuario) => salvarVinculosUsuarioMonitoria(idUsuario, {
-        operacoes: formUsuario.perfil === 'control_desk' ? [] : operacoesSelecionadas,
+        operacoes: operacoesSelecionadas,
         supervisores: formUsuario.perfil === 'operador' ? vinculosMon.supervisores : [],
         id_equipe: formUsuario.perfil === 'operador' && vinculosMon.id_equipe ? Number(vinculosMon.id_equipe) : null,
         turno: ['operador', 'supervisor'].includes(formUsuario.perfil) ? vinculosMon.turno || null : null,
