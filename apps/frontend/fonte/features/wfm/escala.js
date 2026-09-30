@@ -17,16 +17,52 @@ import { baixarArquivo } from '../monitoria/comum.js';
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
 // a tela só exibe o resultado. Conflito de edição concorrente volta como 409 e recarrega.
 
-function Celula({ turno, editavel, valor, onMudar, turnos, titulo }) {
-  if (editavel) {
-    return html`
-      <select class="wfm-select" aria-label=${titulo} value=${valor ?? ''} onChange=${(e) => onMudar(e.target.value === '' ? null : Number(e.target.value))}>
-        <option value="">—</option>
-        ${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}</option>`)}
-      </select>`;
+const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa' };
+const DIAS_SEMANA_LONGO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+function horaMais(entrada, minutos) {
+  const [h, m] = entrada.split(':').map(Number);
+  const total = (h * 60 + m + minutos) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// "08:00–14:00 · Descanso 09:30 (10 min) · Refeição 11:00 (20 min)"
+export function descreverTurno(t) {
+  if (!t.entrada) return t.nome;
+  const pausas = (t.pausas || []).map((p) => `${ROTULO_PAUSA[p.tipo] || 'Pausa'} ${horaMais(t.entrada, p.offset_min)} (${p.duracao_min} min)`);
+  return [`${t.entrada}–${t.saida}`, ...pausas].join(' · ');
+}
+
+function Celula({ turno, editavel, onPintar, onEntrar, titulo }) {
+  const dica = turno ? `${titulo}: ${turno.nome}${turno.entrada ? ` · ${descreverTurno(turno)}` : ''}` : titulo;
+  const conteudo = turno
+    ? html`<span class="wfm-chip" style=${{ '--wfm-cor': turno.cor }}>${turno.codigo}</span>`
+    : html`<span class="wfm-vazio">${editavel ? '+' : '·'}</span>`;
+  if (!editavel) return html`<span title=${dica}>${conteudo}</span>`;
+  return html`<button type="button" class="wfm-celula" aria-label=${dica} title=${dica} onMouseDown=${(e) => { e.preventDefault(); onPintar(); }} onMouseEnter=${onEntrar} onKeyDown=${(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPintar(); } }}>${conteudo}</button>`;
+}
+
+// Explica o estado da tela: por que está somente leitura, o que falta cadastrar e como montar a escala.
+function GuiaEscala({ dados, editavel, controlador, fechada }) {
+  const trabalho = dados.turnos.filter((t) => t.tipo === 'TRABALHO');
+  const semContrato = dados.operadores.filter((o) => !o.contratos?.length);
+  const perfil = controlador?.estado?.perfilUsuario;
+  const itens = [];
+  if (!editavel) {
+    itens.push(fechada && controlador.possuiPermissao('wfm.escala.editar')
+      ? 'Este período está fechado: somente o Gestor/RH corrige, com justificativa.'
+      : perfil === 'administrador'
+        ? 'Você está em modo leitura: o Administrador configura contratos, turnos e skills. A escala é montada por Supervisor, Control Desk ou Gestor/RH.'
+        : 'Você está em modo leitura nesta escala.');
   }
-  if (!turno) return html`<span class="wfm-vazio" title=${titulo}>·</span>`;
-  return html`<span class="wfm-chip" style=${{ '--wfm-cor': turno.cor }} title=${`${titulo}: ${turno.nome}${turno.entrada ? ` (${turno.entrada}–${turno.saida})` : ''}`}>${turno.codigo}</span>`;
+  if (!trabalho.length) itens.push('Ainda não há turnos de trabalho. Cadastre em Cadastros › Turnos-modelo (horário de entrada, saída e pausas).');
+  if (semContrato.length) itens.push(`${semContrato.length} operador(es) sem contrato de jornada (${semContrato.slice(0, 3).map((o) => o.nome).join(', ')}${semContrato.length > 3 ? '…' : ''}). Sem contrato a escala não pode ser publicada: vincule em Cadastros › Contrato dos operadores.`);
+  if (!itens.length && editavel && !dados.status.versao_publicada) {
+    return html`<div class="wfm-guia"><strong>Como montar a escala</strong><ol><li>Escolha um turno na paleta.</li><li>Clique ou arraste sobre os dias de cada operador (ou use "Padrão semanal" na linha do operador).</li><li>Salve as alterações, confira as violações e publique: o operador só vê a escala depois de publicada.</li></ol></div>`;
+  }
+  if (!itens.length) return null;
+  return html`<div class="wfm-guia" role="note"><strong>Antes de montar a escala</strong><ul>${itens.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
+    ${(!trabalho.length || semContrato.length) && controlador.possuiPermissao('wfm.cadastros.visualizar') ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => controlador.irParaTelaProtegida('screen-wfm-cadastros')}>Ir para Cadastros</button>` : null}</div>`;
 }
 
 export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false }) {
@@ -37,6 +73,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [justificativa, setJustificativa] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [versoes, setVersoes] = useState([]);
+  const [pincel, setPincel] = useState(null); // {id}: null id = borracha
+  const [arrastando, setArrastando] = useState(false);
+  const [padrao, setPadrao] = useState(null); // {id_usuario, nome, semana: [7 x id|''], sobrescrever}
 
   const pode = (p) => controlador.possuiPermissao(p);
 
@@ -58,6 +97,11 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   }, [operacao, anoMes, somentePropria]);
 
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
+  useEffect(() => {
+    const soltar = () => setArrastando(false);
+    window.addEventListener('mouseup', soltar);
+    return () => window.removeEventListener('mouseup', soltar);
+  }, []);
 
   const turnosPorId = useMemo(() => Object.fromEntries((dados?.turnos || []).map((t) => [t.id_turno, t])), [dados]);
   const itensPorChave = useMemo(() => Object.fromEntries((dados?.itens || []).map((i) => [`${i.id_operador}:${i.data}`, i])), [dados]);
@@ -91,6 +135,23 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       else novo[chave] = { id_operador: idOperador, data, id_turno: idTurno, versao_linha: itensPorChave[chave]?.versao_linha ?? null };
       return novo;
     });
+  };
+
+  const pintar = (idOperador, data) => {
+    if (!pincel) { showToast?.('Escolha um turno na paleta acima e depois clique nos dias.', 'info'); return; }
+    mudar(idOperador, data, pincel.id);
+  };
+  const aplicarPadrao = () => {
+    dados.dias.forEach((d) => {
+      const [a, m, dia] = d.split('-').map(Number);
+      const idx = (new Date(a, m - 1, dia).getDay() + 6) % 7;
+      const alvo = padrao.semana[idx];
+      const chave = `${padrao.id_usuario}:${d}`;
+      const atual = pendentes[chave] ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
+      if (alvo === '' || (!padrao.sobrescrever && atual !== null)) return;
+      mudar(padrao.id_usuario, d, Number(alvo));
+    });
+    setPadrao(null);
   };
 
   const executar = async (fn, sucesso) => {
@@ -155,6 +216,15 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
         </div>
       </div>
 
+      ${somentePropria ? null : html`<${GuiaEscala} dados=${dados} editavel=${editavel} controlador=${controlador} fechada=${fechada} />`}
+      ${editavel && !semItens && dados.turnos.some((t) => t.tipo === 'TRABALHO') ? html`
+        <div class="wfm-paleta" role="toolbar" aria-label="Paleta de turnos">
+          <span class="wfm-paleta-rotulo">1. Escolha o turno:</span>
+          ${dados.turnos.map((t) => html`<button key=${t.id_turno} type="button" class=${`wfm-paleta-item ${pincel?.id === t.id_turno ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: t.id_turno })} title=${t.nome + (t.entrada ? ' · ' + descreverTurno(t) : '')}>
+            <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
+          <button type="button" class=${`wfm-paleta-item ${pincel && pincel.id === null ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: null })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span><span>Limpar dia</span></button>
+          <span class="wfm-paleta-rotulo">2. Clique (ou arraste) nos dias da grade.</span>
+        </div>` : null}
       ${semItens ? html`<${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />` : html`
         <div class="wfm-grade-wrap" role="region" aria-label="Escala do mês" tabindex="0">
           <table class="wfm-grade">
@@ -173,22 +243,33 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
             <tbody>
               ${dados.operadores.map((op) => html`
                 <tr key=${op.id_usuario}>
-                  <th class="wfm-col-nome" scope="row">${op.nome}${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}</small>` : html`<small class="wfm-alerta-txt">sem contrato</small>`}</th>
+                  <th class="wfm-col-nome" scope="row">${op.nome}${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}</small>` : html`<small class="wfm-alerta-txt">sem contrato</small>`}${editavel ? html`<button type="button" class="wfm-link" onClick=${() => setPadrao({ id_usuario: op.id_usuario, nome: op.nome, semana: ['', '', '', '', '', '', ''], sobrescrever: false })}>Padrão semanal</button>` : null}</th>
                   ${dados.dias.map((d) => {
                     const chave = `${op.id_usuario}:${d}`;
                     const pend = chave in pendentes;
                     const idTurno = pend ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
                     const viol = violacoesPorCelula[chave];
                     return html`<td key=${d} class=${`${infoDia(d).fimDeSemana ? 'is-fds' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : ''}>
-                      <${Celula} turno=${turnosPorId[idTurno]} editavel=${editavel} valor=${idTurno} turnos=${dados.turnos} titulo=${`${op.nome}, dia ${infoDia(d).dia}`} onMudar=${(v) => mudar(op.id_usuario, d, v)} />
+                      <${Celula} turno=${turnosPorId[idTurno]} editavel=${editavel} titulo=${`${op.nome}, dia ${infoDia(d).dia}`} onPintar=${() => { setArrastando(true); pintar(op.id_usuario, d); }} onEntrar=${() => { if (arrastando && pincel) mudar(op.id_usuario, d, pincel.id); }} />
                     </td>`;
                   })}
                 </tr>`)}
             </tbody>
           </table>
         </div>
-        <div class="wfm-legenda">
-          ${dados.turnos.map((t) => html`<span key=${t.id_turno} class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span class="wfm-legenda-txt">${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</span>`)}
+        ${padrao ? html`
+          <div class="wfm-form">
+            <h4>Padrão semanal — ${padrao.nome}</h4>
+            <p class="mon-muted">Escolha o turno de cada dia da semana e aplique ao mês inteiro de uma vez. Depois você ainda ajusta dia a dia.</p>
+            <div class="wfm-padrao">${DIAS_SEMANA_LONGO.map((nome, i) => html`<label key=${nome} class="mon-campo"><span>${nome}</span>
+              <select class="form-select" value=${padrao.semana[i]} onChange=${(e) => setPadrao({ ...padrao, semana: padrao.semana.map((v, j) => (j === i ? e.target.value : v)) })}>
+                <option value="">—</option>${dados.turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>`)}</div>
+            <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
+            <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
+          </div>` : null}
+        <div class="wfm-legenda-detalhe">
+          <h4>Turnos e pausas</h4>
+          ${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-linha"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><strong>${t.nome}</strong><span class="wfm-legenda-txt">${t.entrada ? descreverTurno(t) : 'sem horário'}</span></div>`)}
         </div>`}
 
       ${!somentePropria && validacao?.violacoes?.length ? html`

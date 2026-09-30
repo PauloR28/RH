@@ -51,7 +51,7 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20260930-wfm3';
+} from './monitoria-config.js?v=20260930-wfm4';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
 

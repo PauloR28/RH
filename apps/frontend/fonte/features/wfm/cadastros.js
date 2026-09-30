@@ -17,6 +17,7 @@ import {
   vincularContratoOperadorWfm,
 } from '../../services/api/wfm.js';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
+import { descreverTurno } from './escala.js';
 
 // Cadastros do WFM: contratos e limites do motor (Adm e Control Desk), turnos-modelo, skills,
 // calendário especial (feriado, data, dia e horário especiais) e vínculos dos operadores.
@@ -27,6 +28,17 @@ const TIPOS_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lan
 const CONTRATO_VAZIO = { codigo: '', nome: '', tipo: 'CLT', jornada_diaria_max_min: 480, interjornada_min_min: 660, max_dias_consecutivos: 6, jornada_feriado_max_min: '', jornada_bloqueio_duro: false, exigencias_pausa: [], ativo: true };
 const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', pausas: [], ativo: true };
 const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '' };
+
+const paraMin = (hhmm) => { const [h, m] = (hhmm || '00:00').split(':').map(Number); return h * 60 + m; };
+const horaDe = (min) => `${String(Math.floor((((min % 1440) + 1440) % 1440) / 60)).padStart(2, '0')}:${String((((min % 1440) + 1440) % 1440) % 60).padStart(2, '0')}`;
+const offsetDe = (entrada, inicio) => (((paraMin(inicio) - paraMin(entrada)) % 1440) + 1440) % 1440;
+
+// Turnos de exemplo (CLT 6h com as pausas obrigatórias da NR-17: 2 descansos de 10 min + 1 refeição de 20 min).
+const TURNOS_EXEMPLO = [
+  { codigo: 'M', nome: 'Manhã', cor: '#1f5fbf', entrada: '06:00', saida: '12:20', pausas: [['07:30', 10, 'DESCANSO'], ['09:00', 20, 'REFEICAO'], ['10:40', 10, 'DESCANSO']] },
+  { codigo: 'T', nome: 'Tarde', cor: '#b45309', entrada: '12:00', saida: '18:20', pausas: [['13:30', 10, 'DESCANSO'], ['15:00', 20, 'REFEICAO'], ['16:40', 10, 'DESCANSO']] },
+  { codigo: 'N', nome: 'Noite', cor: '#475569', entrada: '18:00', saida: '00:20', pausas: [['19:30', 10, 'DESCANSO'], ['21:00', 20, 'REFEICAO'], ['22:40', 10, 'DESCANSO']] },
+];
 
 function Secao({ titulo, descricao, acoes, children }) {
   return html`<section class="mon-card"><div class="wfm-cabecalho"><div><h3>${titulo}</h3><p class="mon-muted">${descricao}</p></div><div class="wfm-acoes-cab">${acoes}</div></div>${children}</section>`;
@@ -79,23 +91,40 @@ function Contratos({ operacao, contratos, podeEditar, recarregar, showToast }) {
 
 function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
   const [edit, setEdit] = useState(null);
+  const abrirEdicao = (t) => setEdit({
+    ...t,
+    entrada: t.entrada || '',
+    saida: t.saida || '',
+    pausas: (t.pausas || []).map((p) => ({ inicio: t.entrada ? horaDe(paraMin(t.entrada) + p.offset_min) : '00:00', duracao_min: p.duracao_min, tipo: p.tipo })),
+  });
+  const criarExemplos = async () => {
+    try {
+      for (const t of TURNOS_EXEMPLO.filter((x) => !turnos.some((y) => y.codigo === x.codigo))) {
+        await salvarTurnoWfm({ operacao, codigo: t.codigo, nome: t.nome, cor: t.cor, entrada: t.entrada, saida: t.saida,
+          pausas: t.pausas.map(([inicio, duracao_min, tipo]) => ({ offset_min: offsetDe(t.entrada, inicio), duracao_min, tipo })) });
+      }
+      showToast?.('Turnos de exemplo criados. Ajuste horários e pausas como precisar.', 'success');
+      recarregar();
+    } catch (err) { showToast?.(err?.message || 'Não foi possível criar os turnos.', 'error'); }
+  };
   const salvar = async (e) => {
     e.preventDefault();
     try {
-      await salvarTurnoWfm({ ...edit, operacao }, edit.id_turno);
+      const pausas = (edit.pausas || []).map((p) => ({ offset_min: offsetDe(edit.entrada, p.inicio), duracao_min: p.duracao_min, tipo: p.tipo }));
+      await salvarTurnoWfm({ ...edit, pausas, operacao }, edit.id_turno);
       showToast?.('Turno salvo.', 'success');
       setEdit(null);
       recarregar();
     } catch (err) { showToast?.(err?.message || 'Não foi possível salvar o turno.', 'error'); }
   };
   const set = (k, v) => setEdit({ ...edit, [k]: v });
-  const setPausa = (i, k, v) => setEdit({ ...edit, pausas: edit.pausas.map((p, j) => (j === i ? { ...p, [k]: k === 'tipo' ? v : Number(v) } : p)) });
+  const setPausa = (i, k, v) => setEdit({ ...edit, pausas: edit.pausas.map((p, j) => (j === i ? { ...p, [k]: ['tipo', 'inicio'].includes(k) ? v : Number(v) } : p)) });
   return html`
     <${Secao} titulo="Turnos-modelo" descricao="Código, cor, horários e pausas padrão. Folga e DSR são turnos fixos de cada operação."
-      acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary" onClick=${() => setEdit({ ...TURNO_VAZIO })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Pausas</th><th></th></tr></thead><tbody>
-        ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : ' (inativo)'}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.pausas.length}</td>
-          <td>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...t, entrada: t.entrada || '', saida: t.saida || '' })}>Editar</button>` : null}</td></tr>`)}
+      acoes=${podeEditar ? html`${turnos.filter((t) => t.tipo === 'TRABALHO').length === 0 ? html`<button type="button" class="btn btn-primary" onClick=${criarExemplos}>Criar turnos de exemplo</button>` : null}<button type="button" class="btn btn-outline-primary" onClick=${() => setEdit({ ...TURNO_VAZIO })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
+      <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Pausas (horário real)</th><th></th></tr></thead><tbody>
+        ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : ' (inativo)'}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
+          <td>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>` : null}</td></tr>`)}
       </tbody></table></div>
       ${edit ? html`<form class="wfm-form" onSubmit=${salvar}>
         <div class="mon-form-grid">
@@ -108,13 +137,14 @@ function Turnos({ operacao, turnos, podeEditar, recarregar, showToast }) {
             <${Campo} rotulo="Saída (atravessa a meia-noite se menor que a entrada)"><input class="form-control" type="time" required value=${edit.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>` : null}
         </div>
         <label class="wfm-check"><input type="checkbox" checked=${edit.ativo} onChange=${(e) => set('ativo', e.target.checked)} /> Ativo</label>
-        ${edit.tipo === 'TRABALHO' ? html`<h4>Pausas padrão</h4>
+        ${edit.tipo === 'TRABALHO' ? html`<h4>Pausas padrão do turno</h4>
+          <p class="mon-muted">Informe o horário de cada pausa. Descanso e refeição são as pausas exigidas pela NR-17 (configuradas no contrato); a refeição é descontada da jornada.</p>
           ${edit.pausas.map((p, i) => html`<div class="wfm-linha" key=${i}>
-            <${Campo} rotulo="Minutos após a entrada"><input class="form-control" type="number" min="0" value=${p.offset_min} onInput=${(e) => setPausa(i, 'offset_min', e.target.value)} /></${Campo}>
-            <${Campo} rotulo="Duração (min)"><input class="form-control" type="number" min="1" value=${p.duracao_min} onInput=${(e) => setPausa(i, 'duracao_min', e.target.value)} /></${Campo}>
             <${Campo} rotulo="Tipo"><select class="form-select" value=${p.tipo} onChange=${(e) => setPausa(i, 'tipo', e.target.value)}>${Object.entries(TIPOS_PAUSA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></${Campo}>
+            <${Campo} rotulo="Horário de início"><input class="form-control" type="time" value=${p.inicio} onInput=${(e) => setPausa(i, 'inicio', e.target.value)} /></${Campo}>
+            <${Campo} rotulo="Duração (min)"><input class="form-control" type="number" min="1" value=${p.duracao_min} onInput=${(e) => setPausa(i, 'duracao_min', e.target.value)} /></${Campo}>
             <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...edit, pausas: edit.pausas.filter((_, j) => j !== i) })}>Remover</button></div>`)}
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...edit, pausas: [...edit.pausas, { offset_min: 90, duracao_min: 10, tipo: 'DESCANSO' }] })}>Adicionar pausa</button>` : null}
+          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...edit, pausas: [...edit.pausas, { inicio: edit.entrada ? horaDe(paraMin(edit.entrada) + 90) : '09:00', duracao_min: 10, tipo: 'DESCANSO' }] })}>Adicionar pausa</button>` : null}
         <div class="wfm-acoes"><button type="submit" class="btn btn-primary">Salvar turno</button><button type="button" class="btn btn-outline-secondary" onClick=${() => setEdit(null)}>Cancelar</button></div>
       </form>` : null}
     </${Secao}>`;
