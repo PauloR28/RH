@@ -19,6 +19,12 @@ from __future__ import annotations
 
 TABELAS_IMUTAVEIS = ("wfm_escala_versoes", "wfm_auditoria")
 
+# Tipos de escala do setor de TI semeados (o Analista de TI cadastra/edita/exclui os demais).
+TIPOS_ESCALA_TI_PADRAO = (
+    ("PLANTAO-SABADO", "Plantão de sábado", "Escala de plantão de sábado da equipe de TI."),
+    ("SOBREAVISO", "Sobreaviso", "Escala de sobreaviso da equipe de TI."),
+)
+
 _TABELAS: list[tuple[str, str]] = [
     (
         "wfm_contratos",
@@ -247,7 +253,7 @@ def schema_statements() -> list[str]:
 
 
 def ensure_wfm_schema(cursor) -> None:
-    for instrucao in schema_statements() + schema_trocas_statements() + schema_ajustes_statements() + schema_pausas_statements():
+    for instrucao in schema_statements() + schema_trocas_statements() + schema_ajustes_statements() + schema_pausas_statements() + schema_horarios_statements() + schema_aprovacao_ti_statements() + schema_config_escala_statements() + schema_gestao_escalas_statements() + schema_troca_antecedencia_statements():
         cursor.execute(instrucao)
 
 
@@ -397,3 +403,208 @@ def render_migration_pausas_sql() -> str:
         "-- pausas individual. Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py.\n\n"
     )
     return cabecalho + "\n\n".join(schema_pausas_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# V050: horário ajustado por dia (ex.: sábado flexível) na escala e lançamento de hora extra.
+# Aditiva e idempotente.
+# ---------------------------------------------------------------------------
+_TABELAS_HORARIOS: list[tuple[str, str]] = [
+    (
+        "wfm_horas_extras",
+        """
+        id_hora_extra INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao NVARCHAR(60) NOT NULL,
+        id_operador INT NOT NULL,
+        data DATE NOT NULL,
+        minutos INT NOT NULL,
+        observacao NVARCHAR(200) NULL,
+        lancado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_horas_extras_atualizado_em DEFAULT GETDATE(),
+        CONSTRAINT UQ_wfm_horas_extras UNIQUE (operacao, id_operador, data)
+        """,
+    ),
+]
+
+
+def schema_horarios_statements() -> list[str]:
+    instrucoes = []
+    for tabela, coluna, tipo in (
+        ("wfm_escala_itens", "entrada_ajuste", "NVARCHAR(5)"),
+        ("wfm_escala_itens", "saida_ajuste", "NVARCHAR(5)"),
+        ("wfm_turnos", "id_supervisor", "INT"),  # supervisor responsável pelo turno (a equipe vem do supervisor)
+    ):
+        instrucoes.append(
+            f"IF OBJECT_ID('dbo.{tabela}', 'U') IS NOT NULL AND COL_LENGTH('dbo.{tabela}', '{coluna}') IS NULL\n"
+            f"BEGIN\n    ALTER TABLE dbo.{tabela} ADD {coluna} {tipo} NULL;\nEND;"
+        )
+    instrucoes += [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_HORARIOS]
+    instrucoes.append(_index_sql("IX_wfm_horas_extras_data", "wfm_horas_extras", "operacao, data"))
+    return instrucoes
+
+
+def render_migration_horarios_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: horario ajustado por dia na escala (entrada_ajuste/saida_ajuste) e lancamento de\n"
+        "-- hora extra. Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py.\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_horarios_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# V051: aprovação da escala antes da publicação (Gestor/Supervisor) e setor de Tecnologia (TI) com
+# tipos de escala cadastráveis (Plantão de sábado, Sobreaviso...). Aditiva e idempotente.
+# ---------------------------------------------------------------------------
+_TABELAS_TI: list[tuple[str, str]] = [
+    (
+        "wfm_tipos_escala",
+        """
+        id_tipo INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao_base NVARCHAR(60) NOT NULL,
+        chave NVARCHAR(60) NOT NULL,
+        nome NVARCHAR(120) NOT NULL,
+        descricao NVARCHAR(200) NULL,
+        ativo BIT NOT NULL CONSTRAINT DF_wfm_tipos_escala_ativo DEFAULT 1,
+        criado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_tipos_escala_atualizado_em DEFAULT GETDATE(),
+        CONSTRAINT UQ_wfm_tipos_escala_chave UNIQUE (chave)
+        """,
+    ),
+]
+
+_COLUNAS_APROVACAO = (
+    ("aprov_estado", "NVARCHAR(20) NOT NULL CONSTRAINT DF_wfm_escalas_aprov_estado DEFAULT 'RASCUNHO'"),
+    ("aprov_enviado_por", "INT NULL"),
+    ("aprov_enviado_nome", "NVARCHAR(180) NULL"),
+    ("aprov_enviado_em", "DATETIME NULL"),
+    ("aprov_decidido_por", "NVARCHAR(180) NULL"),
+    ("aprov_decidido_em", "DATETIME NULL"),
+    ("aprov_motivo", "NVARCHAR(400) NULL"),
+    ("aprov_hash", "NVARCHAR(64) NULL"),
+)
+
+_OPERACAO_TI_SQL = (
+    "IF OBJECT_ID('dbo.operacoes', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.operacoes WHERE chave = 'TI')\n"
+    "BEGIN\n    INSERT INTO dbo.operacoes (chave, nome, descricao, categoria, payload_json, ativo, usado)\n"
+    "    VALUES ('TI', N'Tecnologia (TI)', NULL, N'Tecnologia', N'{}', 1, 1);\nEND;"
+)
+
+
+def _tipos_padrao_ti_sql() -> str:
+    linhas = []
+    for chave, nome, descricao in TIPOS_ESCALA_TI_PADRAO:
+        linhas.append(
+            f"IF NOT EXISTS (SELECT 1 FROM dbo.wfm_tipos_escala WHERE chave = 'TI::{chave}')\n"
+            f"    INSERT INTO dbo.wfm_tipos_escala (operacao_base, chave, nome, descricao, criado_por)\n"
+            f"    VALUES ('TI', 'TI::{chave}', N'{nome}', N'{descricao}', 'sistema');"
+        )
+    return "IF OBJECT_ID('dbo.wfm_tipos_escala', 'U') IS NOT NULL\nBEGIN\n" + "\n".join(linhas) + "\nEND;"
+
+
+def schema_aprovacao_ti_statements() -> list[str]:
+    instrucoes = []
+    for coluna, definicao in _COLUNAS_APROVACAO:
+        instrucoes.append(
+            f"IF OBJECT_ID('dbo.wfm_escalas', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_escalas', '{coluna}') IS NULL\n"
+            f"BEGIN\n    ALTER TABLE dbo.wfm_escalas ADD {coluna} {definicao};\nEND;"
+        )
+    instrucoes += [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_TI]
+    instrucoes.append(_OPERACAO_TI_SQL)
+    instrucoes.append(_tipos_padrao_ti_sql())
+    return instrucoes
+
+
+def render_migration_aprovacao_ti_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: aprovacao da escala antes da publicacao e setor de Tecnologia (TI) com tipos de\n"
+        "-- escala cadastraveis. Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py.\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_aprovacao_ti_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# V052: nome da escala e quem aprova (perfis e/ou usuários) por escala/operação. Aditiva e idempotente.
+# Sem linhas em wfm_aprovadores vale o padrão: Supervisor ou Gestor.
+# ---------------------------------------------------------------------------
+_TABELAS_CONFIG_ESCALA: list[tuple[str, str]] = [
+    (
+        "wfm_aprovadores",
+        """
+        id_aprovador INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        operacao NVARCHAR(60) NOT NULL,
+        tipo NVARCHAR(10) NOT NULL,
+        valor NVARCHAR(60) NOT NULL,
+        atualizado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_wfm_aprovadores_atualizado_em DEFAULT GETDATE(),
+        CONSTRAINT UQ_wfm_aprovadores UNIQUE (operacao, tipo, valor)
+        """,
+    ),
+]
+
+
+def schema_config_escala_statements() -> list[str]:
+    instrucoes = [
+        "IF OBJECT_ID('dbo.wfm_operacao_config', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_operacao_config', 'nome_escala') IS NULL@@N@@"
+        "BEGIN@@N@@    ALTER TABLE dbo.wfm_operacao_config ADD nome_escala NVARCHAR(120) NULL;@@N@@END;".replace("@@N@@", chr(10))
+    ]
+    instrucoes += [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_CONFIG_ESCALA]
+    return instrucoes
+
+
+def render_migration_config_escala_sql() -> str:
+    cabecalho = (
+        "-- Conecta - WFM: nome da escala e aprovadores (perfis/usuarios) por escala. Aditiva e idempotente.@@N@@"
+        "-- Gerada de rh_api/repositories/wfm_schema.py.@@N@@@@N@@".replace("@@N@@", chr(10))
+    )
+    return cabecalho + (chr(10) * 2).join(schema_config_escala_statements()) + chr(10)
+
+
+# ---------------------------------------------------------------------------
+# V053: gestão de escalas — ativar/desativar a escala principal da operação e jornada (contrato) padrão da escala.
+# Escalas criadas pelo usuário reutilizam wfm_tipos_escala (ativo já existe ali). Aditiva e idempotente.
+# ---------------------------------------------------------------------------
+def schema_gestao_escalas_statements() -> list[str]:
+    nl = chr(10)
+    return [
+        "IF OBJECT_ID('dbo.wfm_operacao_config', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_operacao_config', 'ativa') IS NULL" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_operacao_config ADD ativa BIT NOT NULL CONSTRAINT DF_wfm_operacao_config_ativa DEFAULT 1;" + nl + "END;",
+        "IF OBJECT_ID('dbo.wfm_operacao_config', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_operacao_config', 'id_contrato') IS NULL" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_operacao_config ADD id_contrato INT NULL;" + nl + "END;",
+        "IF OBJECT_ID('dbo.wfm_operacao_config', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_operacao_config', 'excluida') IS NULL" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_operacao_config ADD excluida BIT NOT NULL CONSTRAINT DF_wfm_operacao_config_excluida DEFAULT 0;" + nl + "END;",
+        "IF OBJECT_ID('dbo.wfm_turnos', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_turnos', 'excluido') IS NULL" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_turnos ADD excluido BIT NOT NULL CONSTRAINT DF_wfm_turnos_excluido DEFAULT 0;" + nl + "END;",
+        "IF OBJECT_ID('dbo.wfm_turnos', 'U') IS NOT NULL AND EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_wfm_turnos')" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_turnos DROP CONSTRAINT UQ_wfm_turnos;" + nl + "END;",
+        "IF OBJECT_ID('dbo.wfm_turnos', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_wfm_turnos_codigo' AND object_id = OBJECT_ID('dbo.wfm_turnos'))" + nl
+        + "BEGIN" + nl + "    CREATE UNIQUE INDEX UX_wfm_turnos_codigo ON dbo.wfm_turnos (operacao, codigo) WHERE excluido = 0;" + nl + "END;",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# V054: antecedência mínima (em dias) para pedir troca de plantão, configurável por escala (padrão 3). Aditiva e idempotente.
+# ---------------------------------------------------------------------------
+def schema_troca_antecedencia_statements() -> list[str]:
+    nl = chr(10)
+    return [
+        "IF OBJECT_ID('dbo.wfm_operacao_config', 'U') IS NOT NULL AND COL_LENGTH('dbo.wfm_operacao_config', 'troca_antecedencia_dias') IS NULL" + nl
+        + "BEGIN" + nl + "    ALTER TABLE dbo.wfm_operacao_config ADD troca_antecedencia_dias INT NOT NULL CONSTRAINT DF_wfm_operacao_config_troca_ant DEFAULT 3;" + nl + "END;",
+    ]
+
+
+def render_migration_troca_antecedencia_sql() -> str:
+    nl = chr(10)
+    cabecalho = (
+        "-- Conecta - WFM: antecedencia minima (dias) para pedir troca de plantao, configuravel por escala (padrao 3)." + nl
+        + "-- Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py." + nl + nl
+    )
+    return cabecalho + (nl * 2).join(schema_troca_antecedencia_statements()) + nl
+
+
+def render_migration_gestao_escalas_sql() -> str:
+    nl = chr(10)
+    cabecalho = (
+        "-- Conecta - WFM: escala ativa/inativa, excluida (logica) e jornada padrao da escala; turno excluido (logico) e codigo reutilizavel." + nl
+        + "-- Aditiva e idempotente. Gerada de rh_api/repositories/wfm_schema.py." + nl + nl
+    )
+    return cabecalho + (nl * 2).join(schema_gestao_escalas_statements()) + nl

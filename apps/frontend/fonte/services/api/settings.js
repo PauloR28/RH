@@ -196,3 +196,15 @@ export async function atualizarAutomacaoNotificacoes(payload) {
     body: JSON.stringify(payload || {}),
   });
 }
+
+// Cadastro de usuários em massa (planilha): modelo, prévia (confirmar=false) e criação (confirmar=true).
+export const baixarModeloUsuariosEmMassa = () => requisitarArquivo('/settings/users/bulk/template', { method: 'GET' });
+
+export async function enviarPlanilhaUsuarios(arquivo, confirmar = false) {
+  const corpo = new FormData();
+  corpo.append('arquivo', arquivo);
+  corpo.append('confirmar', confirmar ? 'true' : 'false');
+  const resultado = await requisitar('/settings/users/bulk', { method: 'POST', body: corpo });
+  if (confirmar) invalidarCacheApi('settings:roles', 'settings:users');
+  return resultado;
+}

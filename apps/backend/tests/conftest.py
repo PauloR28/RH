@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
+
+# Os testes exercitam o desenho completo do WFM (inclusive Operador/Técnico); a restrição da fase de teste tem teste próprio.
+os.environ.setdefault("RH_WFM_LIBERAR_PARTICIPANTES", "1")
 
 API_DIR = Path(__file__).resolve().parents[1]
 if str(API_DIR) not in sys.path:

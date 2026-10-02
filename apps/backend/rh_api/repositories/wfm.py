@@ -13,19 +13,29 @@ SUPOSIÇÕES (pendentes de confirmação — ver resumo da Fase 1; versão mais 
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import Any
 
 import pyodbc
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR
+from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES, WFM_PERFIS_TI
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
 
 CATEGORIAS_SKILL = ("IDIOMA", "PRODUTO", "RETENCAO", "OUTRO")
 TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO", "APRENDIZ")
-TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR")
+TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR", "SOBREAVISO")
+# Perfis que participam (aparecem na grade) de uma escala: Operador nas operações comuns; Técnicos e
+# Analista de TI nos tipos de escala do setor de TI.
+PERFIS_ESCALA_COMUM = (ROLE_OPERATOR,)
+PERFIS_ESCALA_TI = tuple(sorted(WFM_PERFIS_TI))
+# Turnos-modelo semeados por tipo de escala do TI (editáveis em Cadastros).
+TURNOS_TIPO_PADRAO = {
+    "PLANTAO-SABADO": (("PLS", "Plantão de sábado", "TRABALHO", "#1f5fbf", "08:00", "12:00"),),
+    "SOBREAVISO": (("SOB", "Sobreaviso", "SOBREAVISO", "#b45309", None, None),),
+}
 TIPOS_EVENTO = ("FERIADO", "DATA_ESPECIAL", "DIA_ESPECIAL", "HORARIO_ESPECIAL")
 TIPOS_PAUSA = ("DESCANSO", "REFEICAO", "INTERVALO", "LANCHE", "OUTRA")
 
@@ -114,20 +124,50 @@ class WfmRepositoryMixin:
             ),
         )
 
-    def _wfm_exigir_operacao(self, cursor, user, operacao: str, *, escrita: bool = False) -> str:
+    def _wfm_exigir_operacao(self, cursor, user, operacao: str, *, escrita: bool = False, permitir_inativa: bool = False, escala: bool = False) -> str:
+        # `escala=True`: operação de escala (editar/publicar/fechar). A escala principal desativada/excluída só trava aí;
+        # cadastros, jornadas e presença da operação continuam funcionando.
+        """Valida escopo e existência. `operacao` pode ser a chave de um tipo de escala do TI (`TI::SOBREAVISO`):
+        o escopo vale para a operação-base e a chave virtual é a que indexa as tabelas wfm_*."""
         operacao = normalize_text(operacao)
         if not operacao:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe a operação.")
         if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, operacao):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta operação está fora do seu escopo de acesso.")
-        cursor.execute("SELECT ativo FROM dbo.operacoes WHERE chave = ?", (operacao,))
+        if wfm_scope.eh_tipo_escala(operacao) or escala:
+            cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_operacao_config WHERE operacao = ? AND excluida = 1", (operacao,))
+            if cursor.fetchone():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Esta escala foi excluída.")
+        cursor.execute("SELECT ativo FROM dbo.operacoes WHERE chave = ?", (wfm_scope.operacao_base(operacao),))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operação não encontrada.")
         if escrita and not bool(row[0]):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A operação está inativa: nenhuma alteração é permitida.")
+        if wfm_scope.eh_tipo_escala(operacao):
+            cursor.execute("SELECT chave, ativo FROM dbo.wfm_tipos_escala WHERE chave = ?", (operacao,))
+            tipo = cursor.fetchone()
+            if not tipo:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de escala não encontrado.")
+            operacao = normalize_text(tipo[0])
+            if escrita and not permitir_inativa and not bool(tipo[1]):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Esta escala está desativada: ative-a nas configurações para alterar.")
+        elif escala and escrita and not permitir_inativa:
+            cursor.execute("SELECT ativa FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
+            cfg = cursor.fetchone()
+            if cfg and not bool(cfg[0]):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Esta escala está desativada: ative-a nas configurações para alterar.")
         self._wfm_garantir_padroes(cursor, operacao)
         return operacao
+
+    def _wfm_perfis_participantes(self, operacao: str) -> tuple[str, ...]:
+        # Escalas criadas (tipos) reúnem os dois grupos: o vínculo à operação separa Operadores (atendimento) de Técnicos/Analista (TI).
+        return PERFIS_ESCALA_COMUM + PERFIS_ESCALA_TI if wfm_scope.eh_tipo_escala(operacao) else PERFIS_ESCALA_COMUM
+
+    def _wfm_participantes_sql(self, operacao: str) -> tuple[str, tuple]:
+        """Filtro SQL (sobre `u`) dos participantes da escala + parâmetros (operação-base e perfis)."""
+        perfis = self._wfm_perfis_participantes(operacao)
+        return f"u.perfil_id IN ({','.join('?' for _ in perfis)})", (wfm_scope.operacao_base(operacao), *perfis)
 
     def _wfm_equipe_ids(self, cursor, id_supervisor: int | None, operacao: str) -> set[int]:
         """Operadores da equipe de um supervisor NESTA operação (usuarios_supervisores)."""
@@ -139,7 +179,7 @@ class WfmRepositoryMixin:
             JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = s.id_operador AND uo.operacao = ?
             WHERE s.id_supervisor = ?
             """,
-            (operacao, int(id_supervisor)),
+            (wfm_scope.operacao_base(operacao), int(id_supervisor)),
         )
         return {int(r[0]) for r in cursor.fetchall()}
 
@@ -147,7 +187,14 @@ class WfmRepositoryMixin:
         """Semeia contratos e turnos fixos (folga/DSR) da operação, sem sobrescrever."""
         # A tela dispara várias requisições ao mesmo tempo: o semeio precisa tolerar concorrência
         # (travas no EXISTS e, por garantia, colisão de chave única é ignorada — outra requisição já semeou).
-        for codigo, nome, tipo, jornada, inter, dias, feriado, duro, pausas in CONTRATOS_PADRAO:
+        # Jornadas e turnos-padrão só são semeados na PRIMEIRA vez que a escala é usada: o que o usuário excluir depois
+        # não volta sozinho. (Folga/DSR são fixos e sempre existem.)
+        cursor.execute(
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.wfm_turnos WHERE operacao = ?) OR EXISTS (SELECT 1 FROM dbo.wfm_contratos WHERE operacao = ?) THEN 0 ELSE 1 END",
+            (operacao, operacao),
+        )
+        primeira = bool(cursor.fetchone()[0])
+        for codigo, nome, tipo, jornada, inter, dias, feriado, duro, pausas in (CONTRATOS_PADRAO if primeira else ()):
             try:
                 cursor.execute(
                     """
@@ -170,6 +217,17 @@ class WfmRepositoryMixin:
                 )
             except pyodbc.IntegrityError:
                 pass
+        if primeira and wfm_scope.eh_tipo_escala(operacao):
+            slug = operacao.split(wfm_scope.SEPARADOR_TIPO, 1)[1].upper()
+            for codigo, nome, tipo, cor, entrada, saida in TURNOS_TIPO_PADRAO.get(slug, ()):
+                try:
+                    cursor.execute(
+                        "IF NOT EXISTS (SELECT 1 FROM dbo.wfm_turnos WITH (UPDLOCK, HOLDLOCK) WHERE operacao = ? AND codigo = ?) "
+                        "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, atualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, 'sistema')",
+                        (operacao, codigo, operacao, codigo, nome, tipo, cor, entrada, saida),
+                    )
+                except pyodbc.IntegrityError:
+                    pass
 
     # ------------------------------------------------------------------
     # Contexto
@@ -180,10 +238,30 @@ class WfmRepositoryMixin:
             cursor = conn.cursor()
             cursor.execute("SELECT chave, nome, ativo FROM dbo.operacoes WHERE ativo = 1 ORDER BY nome")
             todas = [{"chave": normalize_text(r[0]), "nome": normalize_text(r[1])} for r in cursor.fetchall()]
+            cursor.execute("SELECT operacao_base, chave, nome, ativo FROM dbo.wfm_tipos_escala ORDER BY nome")
+            tipos = [(normalize_text(r[0]), normalize_text(r[1]), normalize_text(r[2]), bool(r[3])) for r in cursor.fetchall()]
+            cursor.execute("SELECT operacao, ativa, excluida FROM dbo.wfm_operacao_config WHERE ativa = 0 OR excluida = 1")
+            cfg_fora = [(normalize_text(r[0]), bool(r[2])) for r in cursor.fetchall()]
+            principais_inativas = {chave for chave, _ in cfg_fora}
+            excluidas = {chave for chave, exc in cfg_fora if exc}
         finally:
             conn.close()
         permitidas = wfm_scope.operacoes_permitidas(user.perfil, user.operacoes)
-        operacoes = todas if permitidas is None else [o for o in todas if o["chave"] in permitidas]
+        operacoes = []
+        for o in todas:
+            if permitidas is not None and o["chave"] not in permitidas:
+                continue
+            # Escala principal da operação (some só nas operações que vivem de escalas criadas, como o TI, ou se desativada)
+            if o["chave"].upper() not in wfm_scope.OPERACOES_SO_TIPOS:
+                # A operação segue disponível para Cadastros/Jornadas/Presença mesmo com a escala principal desativada ou
+                # excluída; as telas de escala escondem as marcadas com `escala_ativa=False`.
+                # Quem só é escalado (Operador, Técnicos) não enxerga escala principal desativada/excluída.
+                if not (user.perfil in WFM_PERFIS_PARTICIPANTES and o["chave"] in principais_inativas):
+                    operacoes.append({**o, "escala_ativa": o["chave"] not in principais_inativas, "escala_excluida": o["chave"] in excluidas})
+            operacoes += [
+                {"chave": chave, "nome": f"{o['nome']} · {nome}", "tipo_escala": True}
+                for base, chave, nome, ativo in tipos if base.upper() == o["chave"].upper() and ativo and chave not in excluidas
+            ]
         return {
             "perfil": user.perfil,
             "global": permitidas is None,
@@ -194,6 +272,7 @@ class WfmRepositoryMixin:
             "tipos_turno": list(TIPOS_TURNO),
             "tipos_evento": list(TIPOS_EVENTO),
             "tipos_pausa": list(TIPOS_PAUSA),
+            "pode_editar_tipos_escala": wfm_scope.pode_editar_tipos_escala(user.perfil),
         }
 
     # ------------------------------------------------------------------
@@ -244,6 +323,7 @@ class WfmRepositoryMixin:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de pausa obrigatória inválido.")
             exigencias.append(
                 {
+                    "nome": normalize_text(item.get("nome"))[:60],
                     "a_partir_de_min": int(item.get("a_partir_de_min") or 0),
                     "tipo": tipo_pausa,
                     "quantidade": int(item.get("quantidade") or 0),
@@ -311,23 +391,154 @@ class WfmRepositoryMixin:
         finally:
             conn.close()
 
-    # ------------------------------------------------------------------
-    # Turnos-modelo (Adm, Control Desk, Supervisor)
-    # ------------------------------------------------------------------
-    def wfm_list_turnos(self, user, operacao: str) -> list[dict]:
+    def _wfm_supervisores_da_operacao(self, cursor, operacao: str) -> list[dict]:
+        """Supervisores ativos da operação com a equipe de cada um (a do próprio cadastro; sem ela, a mais comum
+        entre os operadores que ele supervisiona)."""
+        cursor.execute(
+            """
+            SELECT u.id_usuario, u.nome, u.sobrenome, u.id_equipe, e.nome FROM dbo.usuarios u
+            JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
+            LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
+            WHERE u.perfil_id = ? AND ISNULL(u.status, 'Ativo') = 'Ativo' ORDER BY u.nome, u.sobrenome
+            """,
+            (wfm_scope.operacao_base(operacao), ROLE_SUPERVISOR),
+        )
+        sups = [
+            {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(),
+             "id_equipe": int(r[3]) if r[3] else None, "equipe": normalize_text(r[4]) or None}
+            for r in cursor.fetchall()
+        ]
+        faltando = [s["id_usuario"] for s in sups if not s["id_equipe"]]
+        if faltando:
+            cursor.execute(
+                f"""
+                SELECT us.id_supervisor, o.id_equipe, e.nome, COUNT(*) FROM dbo.usuarios_supervisores us
+                JOIN dbo.usuarios o ON o.id_usuario = us.id_operador AND o.id_equipe IS NOT NULL
+                JOIN dbo.equipes_operacao e ON e.id_equipe = o.id_equipe
+                WHERE us.id_supervisor IN ({','.join('?' for _ in faltando)}) GROUP BY us.id_supervisor, o.id_equipe, e.nome
+                """,
+                tuple(faltando),
+            )
+            melhor: dict[int, tuple] = {}
+            for id_sup, id_eq, nome_eq, qtd in cursor.fetchall():
+                if int(id_sup) not in melhor or int(qtd) > melhor[int(id_sup)][2]:
+                    melhor[int(id_sup)] = (int(id_eq), normalize_text(nome_eq), int(qtd))
+            for s in sups:
+                if not s["id_equipe"] and s["id_usuario"] in melhor:
+                    s["id_equipe"], s["equipe"] = melhor[s["id_usuario"]][0], melhor[s["id_usuario"]][1]
+        return sups
+
+    def wfm_list_supervisores(self, user, operacao: str) -> list[dict]:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            return self._wfm_supervisores_da_operacao(cursor, operacao)
+        finally:
+            conn.close()
+
+    def wfm_list_operadores_do_contrato(self, user, operacao: str, id_contrato: int) -> list[dict]:
+        """Operadores vinculados à jornada (com a vigência de cada vínculo)."""
         conn = self._connect()
         try:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             cursor.execute(
-                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato "
-                "FROM dbo.wfm_turnos WHERE operacao = ? ORDER BY tipo DESC, codigo",
+                """
+                SELECT oc.id_operador, u.nome, u.sobrenome, oc.vigencia_ini, oc.vigencia_fim
+                FROM dbo.wfm_operador_contratos oc JOIN dbo.usuarios u ON u.id_usuario = oc.id_operador
+                WHERE oc.operacao = ? AND oc.id_contrato = ? ORDER BY u.nome, u.sobrenome, oc.vigencia_ini
+                """,
+                (operacao, int(id_contrato)),
+            )
+            return [
+                {"id_operador": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(),
+                 "vigencia_ini": r[3].isoformat() if r[3] else None, "vigencia_fim": r[4].isoformat() if r[4] else None}
+                for r in cursor.fetchall()
+            ]
+        finally:
+            conn.close()
+
+    def wfm_desvincular_operador_contrato(self, user, operacao: str, id_contrato: int, id_operador: int, *, ip: str = "") -> dict:
+        """Remove o vínculo do operador com a jornada. Sem outra jornada vigente, a escala dele deixa de validar até um novo vínculo."""
+        if not wfm_scope.pode_editar_contratos(user.perfil):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente Administrador e Control Desk desvinculam operadores.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cursor.execute(
+                "SELECT COUNT(*) FROM dbo.wfm_operador_contratos WHERE operacao = ? AND id_contrato = ? AND id_operador = ?",
+                (operacao, int(id_contrato), int(id_operador)),
+            )
+            if not int(cursor.fetchone()[0]):
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Este operador não está vinculado a esta jornada.")
+            cursor.execute(
+                "DELETE FROM dbo.wfm_operador_contratos WHERE operacao = ? AND id_contrato = ? AND id_operador = ?",
+                (operacao, int(id_contrato), int(id_operador)),
+            )
+            self.wfm_audit(cursor, user, operacao=operacao, acao="desvincular_contrato", entidade="contrato", entidade_id=int(id_contrato),
+                           antes={"id_operador": int(id_operador)}, ip=ip)
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
+    def wfm_excluir_contrato(self, user, operacao: str, id_contrato: int, *, ip: str = "") -> dict:
+        """Exclui uma jornada (contrato) sem vínculos. Com operador ou turno vinculado só é possível desativar."""
+        if not wfm_scope.pode_editar_contratos(user.perfil):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente Administrador e Control Desk excluem jornadas.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cursor.execute("SELECT codigo, nome FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ?", (int(id_contrato), operacao))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jornada não encontrada nesta operação.")
+            cursor.execute("SELECT COUNT(DISTINCT id_operador) FROM dbo.wfm_operador_contratos WHERE operacao = ? AND id_contrato = ?", (operacao, int(id_contrato)))
+            operadores = int(cursor.fetchone()[0])
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_turnos WHERE operacao = ? AND id_contrato = ?", (operacao, int(id_contrato)))
+            turnos = int(cursor.fetchone()[0])
+            if operadores or turnos:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A jornada {normalize_text(row[0])} está em uso ({operadores} operador(es), {turnos} turno(s)). "
+                           "Troque os vínculos ou apenas desative a jornada.",
+                )
+            cursor.execute("DELETE FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ?", (int(id_contrato), operacao))
+            self.wfm_audit(cursor, user, operacao=operacao, acao="excluir_contrato", entidade="contrato", entidade_id=int(id_contrato),
+                           antes={"codigo": normalize_text(row[0]), "nome": normalize_text(row[1])}, ip=ip)
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Turnos-modelo (Adm, Control Desk, Supervisor)
+    # ------------------------------------------------------------------
+    def wfm_list_turnos(self, user, operacao: str, *, incluir_excluidos: bool = False) -> list[dict]:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            cursor.execute(
+                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor "
+                f"FROM dbo.wfm_turnos WHERE operacao = ? {'' if incluir_excluidos else 'AND excluido = 0'} ORDER BY tipo DESC, codigo",
                 (operacao,),
             )
+            linhas = rows_to_dicts(cursor, cursor.fetchall())  # antes de reutilizar o cursor (supervisores)
+            sups = {s["id_usuario"]: s for s in self._wfm_supervisores_da_operacao(cursor, operacao)}
             itens = []
-            for r in rows_to_dicts(cursor, cursor.fetchall()):
+            for r in linhas:
                 r["ativo"] = bool(r["ativo"])
+                sup = sups.get(r.get("id_supervisor"))
+                r["supervisor"] = sup["nome"] if sup else None
+                r["id_equipe"] = sup["id_equipe"] if sup else None
+                r["equipe"] = sup["equipe"] if sup else None
                 try:
                     r["pausas"] = json.loads(r.pop("pausas_json") or "[]")
                 except ValueError:
@@ -375,6 +586,9 @@ class WfmRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, data.get("operacao", ""), escrita=True)
             id_contrato = int(data["id_contrato"]) if tipo == "TRABALHO" and data.get("id_contrato") not in (None, "", 0) else None
+            id_supervisor = int(data["id_supervisor"]) if data.get("id_supervisor") not in (None, "", 0) else None
+            if id_supervisor and id_supervisor not in {s["id_usuario"] for s in self._wfm_supervisores_da_operacao(cursor, operacao)}:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supervisor inválido para esta operação.")
             if id_contrato:
                 # Turno atrelado a um contrato: a saída é a entrada + jornada do contrato (+ intervalos não remunerados).
                 cursor.execute("SELECT jornada_diaria_max_min FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ? AND ativo = 1", (id_contrato, operacao))
@@ -397,24 +611,24 @@ class WfmRepositoryMixin:
                 anterior["ativo"] = bool(anterior["ativo"])
                 codigo = normalize_text(anterior["codigo"])  # o código do turno nunca muda
                 cursor.execute(
-                    "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, "
+                    "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, id_supervisor = ?, "
                     "atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
-                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, normalize_text(user.nome) or user.username, int(id_turno), operacao),
+                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, normalize_text(user.nome) or user.username, int(id_turno), operacao),
                 )
                 resolved = int(id_turno)
             else:
-                cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ?", (operacao, codigo))
+                cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ? AND excluido = 0", (operacao, codigo))
                 if cursor.fetchone():
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe um turno com este código nesta operação.")
                 cursor.execute(
-                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, atualizado_por) "
-                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, normalize_text(user.nome) or user.username),
+                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, atualizado_por) "
+                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_turno", entidade="turno", entidade_id=resolved,
-                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato}, ip=ip,
+                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato, "id_supervisor": id_supervisor}, ip=ip,
             )
             conn.commit()
             return {"success": True, "id_turno": resolved, "saida": saida}
@@ -422,35 +636,54 @@ class WfmRepositoryMixin:
             conn.close()
 
     def wfm_excluir_turno(self, user, operacao: str, id_turno: int, *, ip: str = "") -> dict:
-        """Exclui um turno-modelo que nunca foi usado. Turno em uso (escala, calendário especial) só pode ser
-        desativado — excluir apagaria o sentido das marcações existentes. Folga e DSR são fixos."""
+        """Exclui o turno-modelo de vez: some do cadastro e o código pode ser reutilizado. Turno nunca usado é apagado do banco;
+        turno que já foi usado só em datas passadas (escala, calendário especial) é excluído LOGICAMENTE, para o histórico
+        e os relatórios continuarem mostrando o que foi escalado. Turno ainda em uso de hoje em diante não pode ser excluído
+        (a escala ficaria sem definição): remova-o dessas datas antes. Folga e DSR são fixos."""
         if not wfm_scope.pode_editar_cadastros(user.perfil):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para excluir turnos.")
+        hoje = date.today()
         conn = self._connect()
         try:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
-            cursor.execute("SELECT codigo, nome, tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+            cursor.execute("SELECT codigo, nome, tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ? AND excluido = 0", (int(id_turno), operacao))
             row = cursor.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
-            if normalize_text(row[2]) != "TRABALHO":
+            if normalize_text(row[2]) not in ("TRABALHO", "SOBREAVISO"):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Folga e DSR são turnos fixos e não podem ser excluídos.")
-            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
-            na_escala = int(cursor.fetchone()[0])
-            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_calendario_especial WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
-            no_calendario = int(cursor.fetchone()[0])
-            if na_escala or no_calendario:
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ? AND data >= ?", (operacao, int(id_turno), hoje))
+            futuro_escala = int(cursor.fetchone()[0])
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_calendario_especial WHERE operacao = ? AND id_turno = ? AND data_fim >= ?", (operacao, int(id_turno), hoje))
+            futuro_calendario = int(cursor.fetchone()[0])
+            # Lançamentos de uma escala já excluída são histórico: não seguram a exclusão do turno.
+            cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_operacao_config WHERE operacao = ? AND excluida = 1", (operacao,))
+            if cursor.fetchone():
+                futuro_escala = 0
+            if futuro_escala or futuro_calendario:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=f"O turno {normalize_text(row[0])} está em uso ({na_escala} dia(s) de escala, {no_calendario} item(ns) do calendário especial). "
-                           "Remova-o da escala ou apenas desative o turno.",
+                    detail=f"O turno {normalize_text(row[0])} ainda está em uso de hoje em diante ({futuro_escala} dia(s) de escala, {futuro_calendario} item(ns) do calendário especial). "
+                           "Remova-o dessas datas e tente excluir de novo.",
                 )
-            cursor.execute("DELETE FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
+            usado = int(cursor.fetchone()[0])
+            cursor.execute("SELECT COUNT(*) FROM dbo.wfm_calendario_especial WHERE operacao = ? AND id_turno = ?", (operacao, int(id_turno)))
+            usado += int(cursor.fetchone()[0])
+            logica = bool(usado)
+            if not logica:
+                try:
+                    cursor.execute("DELETE FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+                except pyodbc.IntegrityError:
+                    conn.rollback()
+                    logica = True
+            if logica:
+                cursor.execute("UPDATE dbo.wfm_turnos SET excluido = 1, ativo = 0, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
             self.wfm_audit(cursor, user, operacao=operacao, acao="excluir_turno", entidade="turno", entidade_id=int(id_turno),
-                           antes={"codigo": normalize_text(row[0]), "nome": normalize_text(row[1])}, ip=ip)
+                           antes={"codigo": normalize_text(row[0]), "nome": normalize_text(row[1])}, depois={"logica": logica}, ip=ip)
             conn.commit()
-            return {"success": True}
+            return {"success": True, "logica": logica}
         finally:
             conn.close()
 
@@ -544,9 +777,9 @@ class WfmRepositoryMixin:
             """
             SELECT u.id_usuario, u.nome, u.sobrenome FROM dbo.usuarios u
             JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
-            WHERE u.id_usuario = ? AND u.perfil_id = ?
-            """,
-            (operacao, int(id_operador), ROLE_OPERATOR),
+            WHERE u.id_usuario = ? AND u.perfil_id IN (%s)
+            """ % ",".join("?" for _ in self._wfm_perfis_participantes(operacao)),
+            (wfm_scope.operacao_base(operacao), int(id_operador), *self._wfm_perfis_participantes(operacao)),
         )
         row = cursor.fetchone()
         if not row:
@@ -763,8 +996,9 @@ class WfmRepositoryMixin:
                 if permitidas is not None:
                     if not permitidas:
                         return []
-                    sql += f" AND operacao IN ({','.join('?' for _ in permitidas)})"
-                    params += sorted(permitidas)
+                    # inclui as chaves virtuais dos tipos de escala (`TI::SOBREAVISO`) das operações permitidas
+                    sql += f" AND (operacao IN ({','.join('?' for _ in permitidas)}) OR " + " OR ".join("operacao LIKE ?" for _ in permitidas) + ")"
+                    params += sorted(permitidas) + [f"{p}{wfm_scope.SEPARADOR_TIPO}%" for p in sorted(permitidas)]
             if entidade:
                 sql += " AND entidade = ?"
                 params.append(normalize_text(entidade))

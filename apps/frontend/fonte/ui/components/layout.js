@@ -162,10 +162,12 @@ export function BarraLateral({
   ];
   const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
   const sublinksWfm = [
-    { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minha escala', permissao: 'wfm.escala.propria' },
+    { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minhas escalas', permissao: 'wfm.escala.propria' },
     { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
+    { tela: 'screen-wfm-relatorios', icone: 'analytics', label: 'Relatórios', permissao: 'wfm.relatorios' },
+    { tela: 'screen-wfm-jornadas', icone: 'schedule', label: 'Jornadas', permissao: 'wfm.cadastros.visualizar' },
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
@@ -386,8 +388,8 @@ export function BarraLateral({
   const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
   const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
-  // "Minha escala" é só do Operador (Adm/Gestão não têm escala própria).
-  const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem) && (subitem.tela !== 'screen-wfm-minha-escala' || controlador?.estado?.perfilUsuario === 'operador'));
+  // "Minhas escalas" segue a permissão wfm.escala.propria (Operador, Técnicos de TI e Analista de TI; Adm/Gestão não têm escala própria).
+  const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem));
   const grupoWfmAtivo = telasRelacionadasWfm.includes(navAtiva);
   const subitemWfmAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>

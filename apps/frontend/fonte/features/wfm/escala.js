@@ -2,7 +2,7 @@ import { html, useCallback, useEffect, useMemo, useState } from '../../infraestr
 import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
-  exportarEscalaWfm,
+  distribuirPausasWfm,
   fecharPeriodoWfm,
   lerEscalaWfm,
   listarVersoesEscalaWfm,
@@ -11,7 +11,10 @@ import {
   validarEscalaWfm,
 } from '../../services/api/wfm.js';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
-import { baixarArquivo } from '../monitoria/comum.js';
+import { PainelAprovacao } from './aprovacao.js';
+import { MenuCompartilharEscala } from './compartilhar.js';
+import { ModalConfigEscala } from './configuracao.js';
+import { OutrasEscalas } from './outras.js';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -37,36 +40,14 @@ function Celula({ turno, editavel, onPintar, onEntrar, titulo }) {
   const dica = turno ? `${titulo}: ${turno.nome}${turno.entrada ? ` · ${descreverTurno(turno)}` : ''}` : titulo;
   const conteudo = turno
     ? html`<span class="wfm-chip" style=${{ '--wfm-cor': turno.cor }}>${turno.codigo}</span>`
-    : html`<span class="wfm-vazio">${editavel ? '+' : '·'}</span>`;
+    : html`<span class="wfm-vazio wfm-dsr">DSR</span>`;
   if (!editavel) return html`<span title=${dica}>${conteudo}</span>`;
   return html`<button type="button" class="wfm-celula" aria-label=${dica} title=${dica} onMouseDown=${(e) => { e.preventDefault(); onPintar(); }} onMouseEnter=${onEntrar} onKeyDown=${(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPintar(); } }}>${conteudo}</button>`;
 }
 
-// Explica o estado da tela: por que está somente leitura, o que falta cadastrar e como montar a escala.
-function GuiaEscala({ dados, editavel, controlador, fechada }) {
-  const trabalho = dados.turnos.filter((t) => t.tipo === 'TRABALHO');
-  const semContrato = dados.operadores.filter((o) => !o.contratos?.length);
-  const perfil = controlador?.estado?.perfilUsuario;
-  const itens = [];
-  if (!editavel) {
-    itens.push(fechada && controlador.possuiPermissao('wfm.escala.editar')
-      ? 'Este período está fechado: somente o Gestor/RH corrige, com justificativa.'
-      : perfil === 'administrador'
-        ? 'Você está em modo leitura: o Administrador configura contratos, turnos e skills. A escala é montada por Supervisor, Control Desk ou Gestor/RH.'
-        : 'Você está em modo leitura nesta escala.');
-  }
-  if (!trabalho.length) itens.push('Ainda não há turnos de trabalho. Cadastre em Cadastros › Turnos-modelo (horário de entrada, saída e pausas).');
-  if (semContrato.length) itens.push(`${semContrato.length} operador(es) sem contrato de jornada (${semContrato.slice(0, 3).map((o) => o.nome).join(', ')}${semContrato.length > 3 ? '…' : ''}). Sem contrato a escala não pode ser publicada: vincule em Cadastros › Contrato dos operadores.`);
-  if (!itens.length && editavel && !dados.status.versao_publicada) {
-    return html`<div class="wfm-guia"><strong>Como montar a escala</strong><ol><li>Escolha um turno na paleta.</li><li>Clique ou arraste sobre os dias de cada operador (ou use "Padrão semanal" na linha do operador).</li><li>Salve as alterações, confira as violações e publique: o operador só vê a escala depois de publicada.</li></ol></div>`;
-  }
-  if (!itens.length) return null;
-  return html`<div class="wfm-guia" role="note"><strong>Antes de montar a escala</strong><ul>${itens.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
-    ${(!trabalho.length || semContrato.length) && controlador.possuiPermissao('wfm.cadastros.visualizar') ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => controlador.irParaTelaProtegida('screen-wfm-cadastros')}>Ir para Cadastros</button>` : null}</div>`;
-}
-
-export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false }) {
+export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoVoltarLista, aoTrocarEscala }) {
   const [dados, setDados] = useState(null);
+  const [configurando, setConfigurando] = useState(false);
   const [erro, setErro] = useState('');
   const [validacao, setValidacao] = useState(null);
   const [pendentes, setPendentes] = useState({});
@@ -80,6 +61,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [filtroSup, setFiltroSup] = useState('');
   const [busca, setBusca] = useState('');
   const [selecionados, setSelecionados] = useState({});
+  const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
 
   const pode = (p) => controlador.possuiPermissao(p);
 
@@ -126,7 +108,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   if (!dados) return html`<${LoadingState} titulo="Carregando a escala" />`;
 
   const fechada = dados.status.fechada;
-  const editavel = dados.pode_editar && !somentePropria;
+  const editavel = dados.pode_editar && !somentePropria && !somenteLeitura;
   const totalPend = Object.keys(pendentes).length;
   const exigeJustFechada = fechada && editavel;
 
@@ -197,11 +179,21 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   };
 
   const salvar = async () => {
+    const datasComTurno = [...new Set(Object.values(pendentes).filter((x) => x.id_turno !== null).map((x) => x.data))].sort();
     const r = await executar(
       () => salvarItensEscalaWfm({ operacao, ano_mes: anoMes, itens: Object.values(pendentes), justificativa }),
       (x) => `${x.alteradas} alteração(ões) salva(s).`,
     );
-    if (r) { setJustificativa(''); await carregar(); }
+    if (r) {
+      setJustificativa('');
+      if (programarPausas && datasComTurno.length) {
+        let feitos = 0;
+        for (const d of datasComTurno) { try { const x = await distribuirPausasWfm({ operacao, data: d }); if (x.operadores) feitos += 1; } catch { /* dia fechado ou sem escalados */ } }
+        showToast?.(`Pausas programadas em ${feitos} dia(s).`, 'success');
+        setProgramarPausas(false);
+      }
+      await carregar();
+    }
   };
   const publicar = async () => {
     const r = await executar(
@@ -216,15 +208,13 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     if (r) await carregar();
   };
 
-  const exportar = async (formato) => {
-    try { baixarArquivo(await exportarEscalaWfm(operacao, anoMes, formato)); } catch (e) { showToast?.(e?.message || 'Não foi possível exportar.', 'error'); }
-  };
   const semItens = !dados.operadores.length;
   const bloqueio = validacao?.bloqueio;
   const duro = validacao?.bloqueio_duro;
   const podePublicarComViolacao = pode('wfm.escala.publicar_com_violacao');
   const publicarBloqueado = ocupado || totalPend > 0 || duro || (bloqueio && !podePublicarComViolacao)
-    || ((bloqueio || exigeJustFechada) && !justificativa.trim());
+    || ((bloqueio || exigeJustFechada) && !justificativa.trim())
+    || (!fechada && dados.aprovacao?.estado !== 'APROVADA');
 
   return html`
     <section class="mon-card wfm-escala">
@@ -238,12 +228,14 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           </p>
         </div>
         <div class="wfm-acoes-cab">
+          ${aoVoltarLista ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${aoVoltarLista}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_back')}</span>Escalas</button>` : null}
           ${fechada ? html`<span class="mon-badge mon-badge--info">Período fechado</span>` : null}
-          ${!somentePropria && pode('wfm.escala.visualizar') ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => exportar('xlsx')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('download')}</span>Exportar planilha</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => exportar('csv')}>CSV</button>` : null}
+          ${!somentePropria && pode('wfm.escala.visualizar') ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${dados.nome_escala || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} />` : null}
         </div>
       </div>
 
-      ${somentePropria ? null : html`<${GuiaEscala} dados=${dados} editavel=${editavel} controlador=${controlador} fechada=${fechada} />`}
+      ${!somentePropria ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${totalPend > 0} />` : null}
+
       ${semItens ? html`<${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />` : html`
         <div class="wfm-filtros-escala">
           <label class="mon-campo"><span>Equipe</span><select class="form-select" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Todas as equipes</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
@@ -251,10 +243,10 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
           <span class="wfm-contagem">${visiveis.length} de ${dados.operadores.length} operador(es)</span>
         </div>
-        ${editavel && dados.turnos.some((t) => t.tipo === 'TRABALHO') ? html`
+        ${editavel && dados.turnos.some((t) => t.ativo !== false && t.tipo !== 'FOLGA' && t.tipo !== 'DSR') ? html`
           <div class="wfm-paleta" role="toolbar" aria-label="Paleta de turnos">
             <span class="wfm-paleta-rotulo">1. Escolha o turno:</span>
-            ${dados.turnos.map((t) => html`<button key=${t.id_turno} type="button" class=${`wfm-paleta-item ${pincel?.id === t.id_turno ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: t.id_turno })} title=${t.nome + (t.entrada ? ' · ' + descreverTurno(t) : '')}>
+            ${dados.turnos.filter((t) => t.ativo !== false).map((t) => html`<button key=${t.id_turno} type="button" class=${`wfm-paleta-item ${pincel?.id === t.id_turno ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: t.id_turno })} title=${t.nome + (t.entrada ? ' · ' + descreverTurno(t) : '')}>
               <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
             <button type="button" class=${`wfm-paleta-item ${pincel && pincel.id === null ? 'is-ativo' : ''}`} onClick=${() => setPincel({ id: null })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span><span>Borracha</span></button>
             <span class="wfm-paleta-rotulo">2. Clique ou arraste nos dias.</span>
@@ -268,7 +260,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
             <p class="mon-muted">Escolha o turno de cada dia da semana e aplique ao mês de todos de uma vez. Use os filtros para trabalhar uma equipe por vez ou marque as caixinhas para escolher operadores. Depois você ainda ajusta dia a dia.</p>
             <div class="wfm-padrao">${DIAS_SEMANA_LONGO.map((nome, i) => html`<label key=${nome} class="mon-campo"><span>${nome}</span>
               <select class="form-select" value=${padrao.semana[i]} onChange=${(e) => setPadrao({ ...padrao, semana: padrao.semana.map((v, j) => (j === i ? e.target.value : v)) })}>
-                <option value="">—</option>${dados.turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>`)}</div>
+                <option value="">—</option>${dados.turnos.filter((t) => t.ativo !== false).map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>`)}</div>
+            <label class="wfm-check"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /> Programar também as pausas dos dias aplicados (ao salvar)</label>
             <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
             <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
           </div>` : null}
@@ -292,7 +285,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
               ${visiveis.map((op) => { const tot = totalDe(op.id_usuario); return html`
                 <tr key=${op.id_usuario} class=${selecionados[op.id_usuario] ? 'is-selecionada' : ''}>
                   ${editavel ? html`<th class="wfm-col-sel"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} /></th>` : null}
-                  <th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span>${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}${op.equipe ? ` · ${op.equipe}` : ''}</small>` : html`<small class="wfm-alerta-txt">sem contrato</small>`}</th>
+                  <th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span>${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}${op.equipe ? ` · ${op.equipe}` : ''}</small>` : html`<small class="wfm-alerta-txt">sem jornada</small>`}</th>
                   <th class="wfm-col-horas" scope="row" title=${`${tot.dias} dia(s) de trabalho`}><strong>${minutosParaHoras(tot.min)}</strong><small>${tot.dias} dias</small></th>
                   ${dados.dias.map((d) => {
                     const chave = `${op.id_usuario}:${d}`;
@@ -307,15 +300,15 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           </table>
         </div>
         <div class="wfm-legenda-detalhe">
-          <h4>Turnos e pausas</h4>
-          ${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-linha"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><strong>${t.nome}</strong><span class="wfm-legenda-txt">${t.entrada ? `${descreverTurno(t)} · ${minutosParaHoras(t.minutos || 0)} de jornada` : 'sem horário'}</span></div>`)}
+          <h4>Legenda</h4>
+          <div class="wfm-legenda-grade">${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-item"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span class="wfm-legenda-corpo"><strong>${t.nome}</strong><small>${t.entrada ? `${t.entrada}–${t.saida} · ${minutosParaHoras(t.minutos || 0)}` : 'Sem horário'}</small></span></div>`)}</div>
         </div>`}
 
       ${!somentePropria && validacao?.violacoes?.length ? html`
         <div class=${`wfm-validacao ${bloqueio ? 'is-bloqueio' : 'is-alerta'}`} role="status">
-          <strong>${validacao.violacoes.length} violação(ões) nas regras trabalhistas</strong>
-          ${duro ? html`<p>Há violação de lei que nem o Gestor/RH pode publicar. Corrija a escala.</p>` : bloqueio ? html`<p>${podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir. Somente o Gestor/RH publica com violação pendente.'}</p>` : null}
-          <ul>${validacao.violacoes.slice(0, 40).map((v, i) => html`<li key=${i}><b>${v.operador}</b> · ${v.data.split('-').reverse().join('/')} · ${v.mensagem}${v.permite_override ? '' : ' (lei)'}</li>`)}</ul>
+          <strong>${validacao.violacoes.length} violação(ões) de jornada</strong>
+          ${duro ? html`<p>Bloqueio duro: corrija a escala para publicar.</p>` : bloqueio ? html`<p>${podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir. Somente o Gestor/RH publica com violação pendente.'}</p>` : null}
+          <ul>${validacao.violacoes.slice(0, 40).map((v, i) => html`<li key=${i}><b>${v.operador}</b> · ${v.data.split('-').reverse().join('/')} · ${v.mensagem}${v.permite_override ? '' : ' (bloqueio duro)'}</li>`)}</ul>
         </div>` : null}
 
       ${editavel || (!somentePropria && pode('wfm.escala.publicar')) ? html`
@@ -326,15 +319,17 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
             </label>` : null}
           ${editavel ? html`<button type="button" class="btn btn-primary" disabled=${ocupado || totalPend === 0 || (fechada && !justificativa.trim())} onClick=${salvar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Salvar alterações${totalPend ? ` (${totalPend})` : ''}</button>` : null}
           ${totalPend ? html`<button type="button" class="btn btn-outline-secondary" onClick=${() => setPendentes({})}>Descartar</button>` : null}
-          ${pode('wfm.escala.publicar') ? html`<button type="button" class="btn btn-outline-primary" disabled=${publicarBloqueado} title=${totalPend ? 'Salve as alterações antes de publicar.' : ''} onClick=${publicar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('event_available')}</span>Publicar nova versão</button>` : null}
+          ${pode('wfm.escala.publicar') ? html`<button type="button" class="btn btn-outline-primary" disabled=${publicarBloqueado} title=${totalPend ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : ''} onClick=${publicar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('event_available')}</span>Publicar nova versão</button>` : null}
           ${pode('wfm.escala.fechar') && !fechada ? html`<button type="button" class="btn btn-outline-secondary" disabled=${ocupado || !dados.status.versao_publicada} onClick=${fechar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('lock')}</span>Fechar período</button>` : null}
         </div>` : null}
 
       ${!somentePropria && versoes.length ? html`
         <details class="wfm-versoes">
           <summary>Histórico de versões (${versoes.length})</summary>
-          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Versão</th><th>Publicada por</th><th>Em</th><th>Violação</th><th>Justificativa</th></tr></thead>
-            <tbody>${versoes.map((v) => html`<tr key=${v.versao}><td>v${v.versao}</td><td>${v.publicado_por || '—'}</td><td>${dataHora(v.publicado_em)}</td><td>${v.com_violacao ? 'Sim' : 'Não'}</td><td>${v.justificativa || '—'}</td></tr>`)}</tbody></table></div>
+          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Versão</th><th>Aprovada por</th><th>Publicada por</th><th>Em</th><th>Violação</th><th>Justificativa</th></tr></thead>
+            <tbody>${versoes.map((v) => html`<tr key=${v.versao}><td>v${v.versao}</td><td>${v.aprovado_por || '—'}</td><td>${v.publicado_por || '—'}</td><td>${dataHora(v.publicado_em)}</td><td>${v.com_violacao ? 'Sim' : 'Não'}</td><td>${v.justificativa || '—'}</td></tr>`)}</tbody></table></div>
         </details>` : null}
-    </section>`;
+    </section>
+    ${somenteLeitura && !somentePropria ? html`<${OutrasEscalas} anoMes=${anoMes} operacao=${operacao} versao=${`${dados.aprovacao?.estado}:${dados.status?.versao_publicada}`} onEscolher=${(chave) => aoTrocarEscala?.(chave)} />` : null}
+    ${configurando ? html`<${ModalConfigEscala} operacao=${operacao} nomePadrao=${(contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao} showToast=${showToast} onClose=${() => setConfigurando(false)} onSalvo=${() => { setConfigurando(false); carregar(); }} onMudouLista=${() => { setConfigurando(false); aoVoltarLista?.(); }} />` : null}`;
 }

@@ -22,6 +22,7 @@ export function TelaPausas({ controlador, operacao, anoMes, showToast }) {
   const [edicao, setEdicao] = useState({});      // id_operador -> pausas editadas
   const [capacidade, setCapacidade] = useState('');
   const [sobrescrever, setSobrescrever] = useState(false);
+  const [escopo, setEscopo] = useState('dia'); // 'dia' | 'semana' | 'mes'
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const podeEditar = controlador.possuiPermissao('wfm.escala.editar');
@@ -62,10 +63,28 @@ export function TelaPausas({ controlador, operacao, anoMes, showToast }) {
     () => salvarPausasWfm({ operacao, data: dia, itens: Object.entries(edicao).map(([id, pausas]) => ({ id_operador: Number(id), pausas })) }),
     'Pausas salvas.',
   );
-  const distribuir = () => executar(
-    () => distribuirPausasWfm({ operacao, data: dia, sobrescrever }),
-    'Pausas distribuídas respeitando o limite de operadores em pausa ao mesmo tempo.',
-  );
+  // Período atingido: o dia, a semana (seg–dom) ou o mês, sempre dentro do mês aberto.
+  const periodo = () => {
+    const [a, m] = anoMes.split('-').map(Number);
+    const ultimo = paraIso(new Date(a, m, 0));
+    if (escopo === 'mes') return [`${anoMes}-01`, ultimo];
+    const base = doIso(dia);
+    const seg = new Date(base); seg.setDate(seg.getDate() - ((base.getDay() + 6) % 7));
+    const dom = new Date(seg); dom.setDate(dom.getDate() + 6);
+    return [paraIso(seg) < `${anoMes}-01` ? `${anoMes}-01` : paraIso(seg), paraIso(dom) > ultimo ? ultimo : paraIso(dom)];
+  };
+  const distribuir = async () => {
+    if (escopo === 'dia') {
+      return executar(() => distribuirPausasWfm({ operacao, data: dia, sobrescrever }), 'Pausas distribuídas respeitando o limite de operadores em pausa ao mesmo tempo.');
+    }
+    const [ini, fim] = periodo();
+    setOcupado(true);
+    try {
+      const r = await distribuirPausasWfm({ operacao, data: ini, data_fim: fim, sobrescrever });
+      showToast?.(`Pausas programadas em ${r.dias_programados} dia(s) (${r.operadores} operador(es))${r.dias_pulados ? `; ${r.dias_pulados} dia(s) sem alteração` : ''}.`, 'success');
+      await carregar();
+    } catch (e) { showToast?.(e?.message || 'Não foi possível distribuir as pausas.', 'error'); } finally { setOcupado(false); }
+  };
   const salvarCapacidade = () => executar(
     () => definirCapacidadePausasWfm({ operacao, pausas_simultaneas: Number(capacidade) }),
     'Limite de operadores em pausa atualizado.',
@@ -97,6 +116,7 @@ export function TelaPausas({ controlador, operacao, anoMes, showToast }) {
 
       ${!dados.operadores.length ? html`<${EmptyState} icon="schedule" title="Ninguém escalado neste dia" text="As pausas são programadas para quem tem turno de trabalho no dia. Monte a escala de turnos primeiro." />` : html`
         ${podeEditar ? html`<div class="wfm-acoes">
+          <label class="wfm-campo"><span>Aplicar em</span><select class="form-select" value=${escopo} onChange=${(e) => setEscopo(e.target.value)}><option value="dia">Só este dia</option><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
           <button type="button" class="btn btn-primary" disabled=${ocupado} onClick=${distribuir}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('schedule')}</span>Distribuir pausas automaticamente</button>
           <label class="wfm-check"><input type="checkbox" checked=${sobrescrever} onChange=${(e) => setSobrescrever(e.target.checked)} /> Refazer também quem já tem pausas (${dados.operadores.length - dados.sem_pausa_programada} de ${dados.operadores.length})</label>
         </div>` : null}

@@ -53,7 +53,7 @@ def test_perfis_antigos_continuam_existindo_mas_ocultos():
     assert ROLE_DEFINITIONS["candidato"].hidden is True
     visiveis = {r.id for r in ROLE_DEFINITIONS.values() if not r.hidden}
     assert visiveis == {
-        "administrador", "gestor", "rh", "dp", "estagiario", "supervisor", "operador", "qualidade", "control_desk",
+        "administrador", "gestor", "rh", "dp", "estagiario", "supervisor", "operador", "qualidade", "control_desk", "tecnico_junior", "tecnico_pleno", "tecnico_senior", "analista_ti",
     }
 
 

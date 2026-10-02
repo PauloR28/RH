@@ -11,24 +11,19 @@ QUI = datetime(2026, 10, 1, 9, 0)
 SEX = datetime(2026, 10, 2, 9, 0)
 
 
-def test_so_abre_de_segunda_a_quinta():
-    d = date(2026, 10, 3)
-    assert t.validar_janela(QUI, d, d, []) == []
-    assert any("segunda a quinta" in e for e in t.validar_janela(SEX, d, d, []))
-    assert any("segunda a quinta" in e for e in t.validar_janela(datetime(2026, 10, 3, 9), d, d, []))  # sábado
+def test_troca_pode_ser_pedida_em_qualquer_dia_da_semana():
+    d = date(2026, 10, 10)
+    for agora in (SEG, QUI, SEX, datetime(2026, 10, 3, 9), datetime(2026, 10, 4, 9)):  # inclusive sábado e domingo
+        assert t.validar_janela(agora, d, d, [datetime(2026, 10, 10, 8)]) == []
 
 
-def test_so_dias_da_semana_corrente_inclusive_dias_diferentes():
-    assert t.validar_janela(SEG, date(2026, 9, 29), date(2026, 10, 2), []) == []
-    e = t.validar_janela(SEG, date(2026, 9, 29), date(2026, 10, 5), [])  # próxima segunda
-    assert any("semana corrente" in x for x in e)
-    assert any("semana corrente" in x for x in t.validar_janela(SEG, date(2026, 9, 27), date(2026, 9, 29), []))  # domingo passado
-
-
-def test_antecedencia_minima_de_12_horas():
-    d = date(2026, 9, 28)
-    assert any("antecedência" in e for e in t.validar_janela(SEG, d, d, [datetime(2026, 9, 28, 20, 59)]))
-    assert t.validar_janela(SEG, d, d, [datetime(2026, 9, 28, 21, 0)]) == []  # exatamente 12h
+def test_antecedencia_padrao_de_3_dias_e_configuravel():
+    d = date(2026, 10, 1)
+    assert any("3 dia(s)" in e for e in t.validar_janela(SEG, d, d, [datetime(2026, 10, 1, 8, 59)]))
+    assert t.validar_janela(SEG, d, d, [datetime(2026, 10, 1, 9, 0)]) == []  # exatamente 3 dias
+    um_dia = t.ParametrosTroca(antecedencia_horas=24)
+    assert t.validar_janela(SEG, d, d, [datetime(2026, 9, 29, 9, 0)], um_dia) == []
+    assert any("1 dia(s)" in e for e in t.validar_janela(SEG, d, d, [datetime(2026, 9, 29, 8, 0)], um_dia))
 
 
 def test_horas_uteis_pulam_fim_de_semana_e_feriado():

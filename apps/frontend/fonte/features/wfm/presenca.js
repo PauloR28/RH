@@ -33,6 +33,8 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
   const [form, setForm] = useState({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
   const [lote, setLote] = useState({ data: '', status: 'PRESENTE', excecoes: {}, marcar: '' });
   const [ocupado, setOcupado] = useState(false);
+  const [verLote, setVerLote] = useState(false);
+  const [verAtestados, setVerAtestados] = useState(false);
   const pode = controlador.possuiPermissao('wfm.presenca.lancar');
 
   const segunda = segundaDe(ancora);
@@ -91,7 +93,7 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
     e.preventDefault();
     try {
       await registrarAtestadoWfm({ operacao, ...form, id_operador: Number(form.id_operador) });
-      showToast?.('Atestado registrado (somente período, tipo e validador).', 'success');
+      showToast?.('Atestado registrado.', 'success');
       setForm({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
       await carregar();
     } catch (err) { showToast?.(err?.message || 'Não foi possível registrar o atestado.', 'error'); }
@@ -103,7 +105,7 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
   return html`
     <section class="mon-card wfm-escala">
       <div class="wfm-cabecalho">
-        <div><h3>Presença da semana</h3><p class="mon-muted">${br(dias[0])} a ${br(dias[6])} · sem prazo para lançar ou corrigir; cada lançamento é auditado.</p></div>
+        <div><h3>Presença da semana</h3><p class="mon-muted">${br(dias[0])} a ${br(dias[6])}</p></div>
         <div class="wfm-acoes-cab">
           <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Semana anterior" onClick=${() => setAncora(somar(ancora, -7))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
           <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setAncora(new Date())}>Esta semana</button>
@@ -111,7 +113,10 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
         </div>
       </div>
 
-      ${pode ? html`
+      ${pode ? html`<div class="wfm-ferramentas"><button type="button" class=${`btn btn-sm ${verLote ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verLote} onClick=${() => setVerLote(!verLote)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('fact_check')}</span>Presença em lote</button>
+        <button type="button" class=${`btn btn-sm ${verAtestados ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verAtestados} onClick=${() => setVerAtestados(!verAtestados)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Atestados${atestados.length ? ` (${atestados.length})` : ''}</button></div>` : null}
+
+      ${pode && verLote ? html`
         <div class="wfm-form wfm-lote">
           <div class="wfm-lote-titulo"><h4>Presença em lote</h4>
             <p class="mon-muted">Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <strong>não</strong> deve receber (faltou, está de atestado...).</p></div>
@@ -124,14 +129,15 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
           ${escaladosDoDia.length ? html`
             <div class="wfm-lote-excecoes">
               <strong class="wfm-rotulo-sm">Exceto (${contagemExc} de ${escaladosDoDia.length} escalados em ${br(lote.data).slice(0, 5)})</strong>
-              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div>
+              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small class=${`wfm-pres wfm-pres-${statusDe(o.id_usuario, lote.data).toLowerCase()}`}>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div>
             </div>` : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
         </div>` : null}
 
       <div class="wfm-filtros-escala">
         <label class="mon-campo"><span>Mostrar</span><select class="form-select" value=${filtro} onChange=${(e) => setFiltro(e.target.value)}><option value="todos">Todos os operadores</option><option value="faltas">Só quem faltou na semana</option><option value="atestados">Só quem está de atestado</option></select></label>
         <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
-        <span class="wfm-contagem">${operadores.length} de ${dados.operadores.length} operador(es) · ${Object.entries(SIGLA_PRESENCA).map(([k, s]) => `${s} = ${ROTULO_STATUS_PRESENCA[k]}`).join(' · ')}</span>
+        <span class="wfm-contagem">${operadores.length} de ${dados.operadores.length} operador(es)</span>
+        <span class="wfm-legenda-pres">${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k}><span class=${`wfm-pres wfm-pres-${k.toLowerCase()}`}>${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}</span>
       </div>
       <div class="wfm-grade-wrap" role="region" aria-label="Presença da semana" tabindex="0">
         <table class="wfm-grade wfm-grade--sem-sel wfm-grade--semana">
@@ -145,11 +151,11 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
       </div>
     </section>
 
-    ${pode ? html`
+    ${pode && verAtestados ? html`
       <section class="mon-card">
         <h3>Atestados</h3>
-        <p class="mon-muted">Registra apenas período, tipo e quem validou. Não anexe nem digite o conteúdo do atestado: é dado de saúde e não é armazenado.</p>
-        <form class="mon-linha-form" onSubmit=${registrarAtestado}>
+        <p class="mon-muted">Registra período, tipo e quem validou.</p>
+        <form class="wfm-linha-form" onSubmit=${registrarAtestado}>
           <label class="mon-campo"><span>Operador</span>
             <select class="form-select" required value=${form.id_operador} onChange=${(e) => setForm({ ...form, id_operador: e.target.value })}>
               <option value="">Selecione</option>${dados.operadores.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}

@@ -15,6 +15,10 @@ from ..repositories import DatabaseRepository
 from ..schemas.wfm import (
     AtestadoRequest,
     CapacidadePausasRequest,
+    ConfigEscalaRequest,
+    CriarEscalaRequest,
+    DuplicarEscalaRequest,
+    DeclinarRequest,
     DistribuirPausasRequest,
     PresencaLoteRequest,
     SalvarPausasRequest,
@@ -22,6 +26,7 @@ from ..schemas.wfm import (
     ContratoRequest,
     EventoRequest,
     FecharRequest,
+    HoraExtraRequest,
     PresencaRequest,
     PublicarRequest,
     SalvarItensRequest,
@@ -31,6 +36,7 @@ from ..schemas.wfm import (
     TrocaDesfazerRequest,
     TrocaResponderRequest,
     TrocaSolicitarRequest,
+    TipoEscalaRequest,
     TurnoRequest,
 )
 
@@ -62,6 +68,26 @@ def criar_contrato(payload: ContratoRequest, request: Request, user: Authenticat
 @router.put("/contratos/{id_contrato}", dependencies=[Depends(require_permissions("wfm.contratos.editar"))])
 def atualizar_contrato(id_contrato: int, payload: ContratoRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_save_contrato(user, payload.model_dump(), id_contrato, ip=client_ip(request))
+
+
+@router.delete("/contratos/{id_contrato}", dependencies=[Depends(require_permissions("wfm.contratos.editar"))])
+def excluir_contrato(id_contrato: int, operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_excluir_contrato(user, operacao, id_contrato, ip=client_ip(request))
+
+
+@router.get("/contratos/{id_contrato}/operadores", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar"))])
+def operadores_do_contrato(id_contrato: int, operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_operadores_do_contrato(user, operacao, id_contrato)}
+
+
+@router.delete("/contratos/{id_contrato}/operadores/{id_operador}", dependencies=[Depends(require_permissions("wfm.contratos.editar"))])
+def desvincular_operador_do_contrato(id_contrato: int, id_operador: int, operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_desvincular_operador_contrato(user, operacao, id_contrato, id_operador, ip=client_ip(request))
+
+
+@router.get("/supervisores", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar", *_LER_ESCALA))])
+def listar_supervisores(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_supervisores(user, operacao)}
 
 
 @router.get("/turnos", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar"))])
@@ -121,8 +147,8 @@ def atualizar_evento(id_item: int, payload: EventoRequest, request: Request, use
 
 # ---- Escala ------------------------------------------------------------
 @router.get("/escala", dependencies=[Depends(require_permissions(*_LER_ESCALA))])
-def obter_escala(operacao: str, ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return repository.wfm_get_escala(user, operacao, ano_mes)
+def obter_escala(operacao: str, ano_mes: str, propria: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_escala(user, operacao, ano_mes, propria=propria)
 
 
 @router.put("/escala/itens", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
@@ -151,6 +177,17 @@ def fechar(payload: FecharRequest, request: Request, user: AuthenticatedUser = D
 @router.get("/escala/exportar", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
 def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request))
+    return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.get("/relatorios", dependencies=[Depends(require_permissions("wfm.relatorios"))])
+def relatorio(operacao: str, data_ini: str, data_fim: str, tipo: str = "resumo", id_operador: int | None = None, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_relatorio(user, operacao, tipo, data_ini, data_fim, id_operador)
+
+
+@router.get("/relatorios/exportar", dependencies=[Depends(require_permissions("wfm.relatorios"))])
+def exportar_relatorio(operacao: str, data_ini: str, data_fim: str, tipo: str = "resumo", id_operador: int | None = None, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    conteudo, nome, mime = repository.wfm_relatorio_exportar(user, operacao, tipo, data_ini, data_fim, id_operador, formato)
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
@@ -249,6 +286,17 @@ def contrato_do_operador(id_operador: int, operacao: str, user: AuthenticatedUse
     return repository.wfm_get_contrato_operador(user, operacao, id_operador)
 
 
+# ---- Hora extra ----------------------------------------------------------------
+@router.get("/horas-extras", dependencies=[Depends(require_permissions(*_LER_ESCALA))])
+def listar_horas_extras(operacao: str, ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_horas_extras(user, operacao, ano_mes)}
+
+
+@router.put("/horas-extras", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def lancar_hora_extra(payload: HoraExtraRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_lancar_hora_extra(user, payload.operacao, payload.id_operador, payload.data, payload.minutos, payload.observacao, ip=client_ip(request))
+
+
 # ---- Presença em lote ------------------------------------------------------
 @router.put("/presencas/lote", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
 def lancar_presenca_lote(payload: PresencaLoteRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
@@ -268,9 +316,93 @@ def salvar_pausas(payload: SalvarPausasRequest, request: Request, user: Authenti
 
 @router.post("/pausas/distribuir", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
 def distribuir_pausas(payload: DistribuirPausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    if payload.data_fim:
+        return repository.wfm_distribuir_pausas_periodo(
+            user, payload.operacao, payload.data, payload.data_fim, payload.ids, sobrescrever=payload.sobrescrever,
+            dias_semana=payload.dias_semana, ip=client_ip(request),
+        )
     return repository.wfm_distribuir_pausas(user, payload.operacao, payload.data, payload.ids, sobrescrever=payload.sobrescrever, ip=client_ip(request))
 
 
 @router.put("/pausas/capacidade", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
 def capacidade_pausas(payload: CapacidadePausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_set_capacidade_pausas(user, payload.operacao, payload.pausas_simultaneas, ip=client_ip(request))
+
+
+# ---- Aprovação da escala (antes da publicação) -----------------------------------
+@router.post("/escala/enviar-aprovacao", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
+def enviar_aprovacao(payload: FecharRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_enviar_aprovacao(user, payload.operacao, payload.ano_mes, ip=client_ip(request))
+
+
+@router.post("/escala/aprovar", dependencies=[Depends(require_permissions("wfm.escala.aprovar"))])
+def aprovar_escala(payload: FecharRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_aprovar_escala(user, payload.operacao, payload.ano_mes, ip=client_ip(request))
+
+
+@router.post("/escala/declinar", dependencies=[Depends(require_permissions("wfm.escala.aprovar"))])
+def declinar_escala(payload: DeclinarRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_declinar_escala(user, payload.operacao, payload.ano_mes, payload.justificativa, ip=client_ip(request))
+
+
+@router.post("/escala/cancelar-envio", dependencies=[Depends(require_permissions("wfm.escala.editar", "wfm.escala.aprovar"))])
+def cancelar_envio(payload: FecharRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_cancelar_envio(user, payload.operacao, payload.ano_mes, ip=client_ip(request))
+
+
+# ---- Tipos de escala do setor de TI (Analista de TI) -----------------------------
+@router.get("/tipos-escala", dependencies=[Depends(require_permissions("wfm.tipos_escala.editar"))])
+def listar_tipos_escala(operacao_base: str = "TI", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_tipos_escala(user, operacao_base)}
+
+
+@router.post("/tipos-escala", dependencies=[Depends(require_permissions("wfm.tipos_escala.editar"))])
+def criar_tipo_escala(payload: TipoEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_save_tipo_escala(user, payload.model_dump(), ip=client_ip(request))
+
+
+@router.put("/tipos-escala/{id_tipo}", dependencies=[Depends(require_permissions("wfm.tipos_escala.editar"))])
+def atualizar_tipo_escala(id_tipo: int, payload: TipoEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_save_tipo_escala(user, payload.model_dump(), id_tipo, ip=client_ip(request))
+
+
+@router.delete("/tipos-escala/{id_tipo}", dependencies=[Depends(require_permissions("wfm.tipos_escala.editar"))])
+def excluir_tipo_escala(id_tipo: int, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_excluir_tipo_escala(user, id_tipo, ip=client_ip(request))
+
+
+# ---- Configuração da escala (nome e aprovadores) e resumo das escalas ----------------
+@router.get("/escala/config", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
+def obter_config_escala(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_config_escala(user, operacao)
+
+
+@router.put("/escala/config", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def salvar_config_escala(payload: ConfigEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_save_config_escala(user, payload.operacao, payload.nome_escala, payload.perfis, payload.usuarios, ip=client_ip(request),
+                                                  ativa=payload.ativa, id_contrato=payload.id_contrato, alterar_contrato=payload.alterar_jornada, troca_antecedencia_dias=payload.troca_antecedencia_dias)
+
+
+@router.get("/escalas/gestao", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
+def gestao_escalas(ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_gestao_escalas(user, ano_mes)
+
+
+@router.post("/escalas", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
+def criar_escala(payload: CriarEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_criar_escala(user, payload.operacao_base, payload.nome, ip=client_ip(request))
+
+
+@router.post("/escalas/duplicar", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
+def duplicar_escala(payload: DuplicarEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_duplicar_escala(user, payload.operacao, payload.operacao_destino, payload.nome, ip=client_ip(request))
+
+
+@router.delete("/escalas", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
+def excluir_escala(operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_excluir_escala(user, operacao, ip=client_ip(request))
+
+
+@router.get("/escalas/resumo", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
+def resumo_escalas(ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_resumo_escalas(user, ano_mes)}

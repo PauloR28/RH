@@ -9,6 +9,7 @@ from .common import BaseSchema
 
 
 class ExigenciaPausaRequest(BaseSchema):
+    nome: str = Field(default="", max_length=60)
     a_partir_de_min: int = Field(default=0, ge=0, le=1440)
     tipo: str = Field(default="", max_length=20)
     quantidade: int = Field(default=0, ge=0, le=20)
@@ -38,6 +39,7 @@ class PausaTurnoRequest(BaseSchema):
 class TurnoRequest(BaseSchema):
     operacao: str = Field(default="", max_length=60)
     id_contrato: int | None = None  # turno atrelado a um contrato: a saída = entrada + jornada do contrato
+    id_supervisor: int | None = None  # supervisor responsável pelo turno (a equipe vem do supervisor)
     codigo: str = Field(default="", max_length=20)
     nome: str = Field(default="", max_length=120)
     tipo: str = Field(default="TRABALHO", max_length=12)
@@ -83,6 +85,9 @@ class ItemEscalaRequest(BaseSchema):
     data: str = Field(max_length=10)
     id_turno: int | None = None  # None remove a marcação do dia
     versao_linha: int | None = None  # versão lida; exigida para editar linha existente
+    ajustar_horario: bool = False  # True: `entrada`/`saida` vazias removem o horário combinado do dia
+    entrada: str = Field(default="", max_length=5)
+    saida: str = Field(default="", max_length=5)
 
 
 class SalvarItensRequest(BaseSchema):
@@ -98,6 +103,41 @@ class PublicarRequest(BaseSchema):
     justificativa: str = Field(default="", max_length=400)
 
 
+class DeclinarRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    ano_mes: str = Field(max_length=7)
+    justificativa: str = Field(default="", max_length=400)
+
+
+class TipoEscalaRequest(BaseSchema):
+    operacao_base: str = Field(default="TI", max_length=60)
+    nome: str = Field(default="", max_length=120)
+    descricao: str = Field(default="", max_length=200)
+    ativo: bool = True
+
+
+class ConfigEscalaRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    nome_escala: str = Field(default="", max_length=120)
+    perfis: list[str] = Field(default_factory=list, max_length=5)
+    usuarios: list[int] = Field(default_factory=list, max_length=100)
+    ativa: bool | None = None
+    alterar_jornada: bool = False
+    id_contrato: int | None = None
+    troca_antecedencia_dias: int | None = Field(default=None, ge=0, le=30)
+
+
+class CriarEscalaRequest(BaseSchema):
+    operacao_base: str = Field(max_length=60)
+    nome: str = Field(max_length=120)
+
+
+class DuplicarEscalaRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    operacao_destino: str = Field(max_length=60)
+    nome: str = Field(default="", max_length=120)
+
+
 class FecharRequest(BaseSchema):
     operacao: str = Field(max_length=60)
     ano_mes: str = Field(max_length=7)
@@ -109,6 +149,14 @@ class PresencaRequest(BaseSchema):
     data: str = Field(max_length=10)
     status: str = Field(max_length=20)
     observacao: str = Field(default="", max_length=300)
+
+
+class HoraExtraRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    id_operador: int
+    data: str = Field(max_length=10)
+    minutos: int = Field(ge=0, le=720)  # 0 remove o lançamento
+    observacao: str = Field(default="", max_length=200)
 
 
 class AtestadoRequest(BaseSchema):
@@ -176,3 +224,5 @@ class DistribuirPausasRequest(BaseSchema):
     data: str = Field(max_length=10)
     ids: list[int] | None = None  # None = todos os escalados do escopo
     sobrescrever: bool = False
+    data_fim: str = Field(default="", max_length=10)  # preenchido: distribui de `data` até `data_fim` (semana/mês)
+    dias_semana: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = todos os dias do período

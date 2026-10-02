@@ -46,3 +46,12 @@ def test_migration_v049_pausas_e_gerada_do_mesmo_ddl():
     sql = render_migration_pausas_sql()
     assert arquivo.read_text(encoding="utf-8") == sql
     assert "operacao NVARCHAR(60) NOT NULL" in sql and "DROP " not in sql.upper()
+
+
+def test_migration_v050_horarios_e_gerada_do_mesmo_ddl():
+    from rh_api.repositories.wfm_schema import render_migration_horarios_sql
+
+    arquivo = REPO_ROOT / "infra" / "sql" / "migrations" / "V050__wfm_horarios_extras.sql"
+    sql = render_migration_horarios_sql()
+    assert arquivo.read_text(encoding="utf-8") == sql
+    assert "entrada_ajuste" in sql and "wfm_horas_extras" in sql and "DROP " not in sql.upper()

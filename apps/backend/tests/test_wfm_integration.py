@@ -38,6 +38,16 @@ class Ctx:
     pass
 
 
+def _aprovar(ctx, remetente, aprovador):
+    """Fluxo exigido antes de publicar: quem monta envia, outro Gestor/Supervisor aprova (idempotente)."""
+    estado = ctx.repo.wfm_get_escala(remetente, ctx.op, MES)["aprovacao"]["estado"]
+    if estado == "RASCUNHO":
+        ctx.repo.wfm_enviar_aprovacao(remetente, ctx.op, MES)
+        estado = "EM_APROVACAO"
+    if estado == "EM_APROVACAO":
+        ctx.repo.wfm_aprovar_escala(aprovador, ctx.op, MES)
+
+
 @pytest.fixture(scope="module")
 def ctx():
     repo = repositorio_dev()
@@ -155,16 +165,18 @@ def test_edicao_concorrente_gera_conflito_409(ctx):
 def test_publicar_versiona_e_operador_ve_so_o_publicado_proprio(ctx):
     ctx.repo.wfm_salvar_itens(ctx.sup, ctx.op, MES, [_item(ctx.id_a, d, ctx.M) for d in (2, 3)] if False else [_item(ctx.id_a, 2, ctx.M), _item(ctx.id_a, 3, ctx.M), _item(ctx.id_b, 1, ctx.M)])
     assert ctx.repo.wfm_get_escala(ctx.op_a, ctx.op, MES)["itens"] == []  # nada publicado ainda
-    v1 = ctx.repo.wfm_publicar(ctx.sup, ctx.op, MES)
-    assert v1["versao"] == 1 and not v1["com_violacao"]
+    assert _erro(ctx.repo.wfm_publicar, ctx.sup, ctx.op, MES).status_code == 409  # sem aprovação não publica
+    _aprovar(ctx, ctx.sup, ctx.gestor)
+    v1 = ctx.repo.wfm_list_versoes(ctx.sup, ctx.op, MES)[0]  # aprovar já publica
+    assert v1["versao"] == 1 and not v1["com_violacao"] and v1["aprovado_por"]
     escala_op = ctx.repo.wfm_get_escala(ctx.op_a, ctx.op, MES)
     assert escala_op["fonte"] == "publicada" and {i["id_operador"] for i in escala_op["itens"]} == {ctx.id_a}
     assert [o["id_usuario"] for o in escala_op["operadores"]] == [ctx.id_a]  # sem colegas
     # editar depois de publicar NÃO altera o que o operador vê
     ctx.repo.wfm_salvar_itens(ctx.sup, ctx.op, MES, [_item(ctx.id_a, 4, ctx.M)])
     assert len(ctx.repo.wfm_get_escala(ctx.op_a, ctx.op, MES)["itens"]) == 3
-    v2 = ctx.repo.wfm_publicar(ctx.sup, ctx.op, MES)
-    assert v2["versao"] == 2
+    assert ctx.repo.wfm_get_escala(ctx.sup, ctx.op, MES)["aprovacao"]["estado"] == "RASCUNHO"  # editar invalida a aprovação
+    _aprovar(ctx, ctx.sup, ctx.gestor)
     assert [v["versao"] for v in ctx.repo.wfm_list_versoes(ctx.sup, ctx.op, MES)] == [2, 1]
 
 
@@ -191,6 +203,7 @@ def test_violacao_bloqueia_supervisor_e_gestor_publica_com_justificativa(ctx):
     ctx.repo.wfm_salvar_itens(ctx.sup, ctx.op, MES, [_item(ctx.id_b, 1, ctx.T, linha["versao_linha"]), _item(ctx.id_b, 2, ctx.M)])
     val = ctx.repo.wfm_validar(ctx.sup, ctx.op, MES)
     assert val["bloqueio"] and not val["bloqueio_duro"] and val["violacoes"][0]["codigo"] == "INTERJORNADA"
+    _aprovar(ctx, ctx.sup, ctx.gestor2)
     assert _erro(ctx.repo.wfm_publicar, ctx.sup, ctx.op, MES).status_code == 422
     assert _erro(ctx.repo.wfm_publicar, ctx.cd, ctx.op, MES).status_code == 422
     assert _erro(ctx.repo.wfm_publicar, ctx.gestor, ctx.op, MES).status_code == 422  # sem justificativa
@@ -202,13 +215,14 @@ def test_violacao_bloqueia_supervisor_e_gestor_publica_com_justificativa(ctx):
 
 def test_violacao_de_lei_do_estagiario_nem_o_gestor_publica(ctx):
     ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [_item(ctx.id_c, 5, ctx.M)])  # estagiário 6h com turno de 8h
-    e = _erro(ctx.repo.wfm_publicar, ctx.gestor, ctx.op, MES, justificativa="tentativa")
-    assert e.status_code == 422 and "lei" in e.detail["mensagem"].lower()
+    e = _erro(ctx.repo.wfm_enviar_aprovacao, ctx.cd, ctx.op, MES)  # violação de lei nem vai para aprovação
+    assert e.status_code == 422 and "lei" in e.detail.lower()
     linha = next(i for i in ctx.repo.wfm_get_escala(ctx.gestor, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_c)
     ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [_item(ctx.id_c, 5, None, linha["versao_linha"])])
 
 
 def test_fechamento_so_gestor_corrige_com_justificativa(ctx):
+    _aprovar(ctx, ctx.sup, ctx.gestor2)
     ctx.repo.wfm_publicar(ctx.gestor, ctx.op, MES, justificativa="mantida")  # publica o rascunho atual
     ctx.repo.wfm_fechar_periodo(ctx.sup, ctx.op, MES)
     assert _erro(ctx.repo.wfm_salvar_itens, ctx.sup, ctx.op, MES, [_item(ctx.id_a, 8, ctx.M)]).status_code == 403

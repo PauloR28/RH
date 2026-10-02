@@ -23,6 +23,7 @@ from conecta.infrastructure.security.totp import (
     verify_code,
 )
 from ..rbac import (
+    aplicar_restricao_wfm_em_teste,
     PERMISSION_DEFINITIONS,
     ROLE_ADMIN,
     ROLE_DEFINITIONS,
@@ -240,7 +241,7 @@ class SecurityRepositoryMixin:
             for row in rows
             if normalize_text(row[0]) and bool(row[1])
         ]
-        return permissions
+        return aplicar_restricao_wfm_em_teste(safe_role, permissions)
 
     def _get_user_operacoes(self, cursor, id_usuario) -> list[str]:
         """Operações às quais o usuário tem acesso — lista vazia = sem

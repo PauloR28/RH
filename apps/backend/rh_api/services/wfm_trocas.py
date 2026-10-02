@@ -39,8 +39,9 @@ TIPO_CONTRATO_APRENDIZ = "APRENDIZ"
 
 @dataclass(frozen=True)
 class ParametrosTroca:
-    dias_abertura: tuple[int, ...] = (0, 1, 2, 3)  # segunda(0) a quinta(3)
-    antecedencia_horas: int = 12
+    # A troca pode ser pedida em qualquer dia; só exige antecedência mínima antes do turno envolvido
+    # (configurável por escala: `troca_antecedencia_dias`, padrão 3 dias).
+    antecedencia_horas: int = 72
     prazo_resposta_horas_uteis: int = 48
     prazo_decisao_horas_uteis: int = 48
 
@@ -82,16 +83,11 @@ def validar_janela(
     """Erros de elegibilidade de calendário. `inicios_dos_turnos`: início dos turnos de trabalho
     (de A e B) nas datas envolvidas, já resolvidos pelo chamador."""
     erros: list[str] = []
-    if agora.weekday() not in params.dias_abertura:
-        erros.append("A troca só pode ser aberta de segunda a quinta-feira.")
-    segunda, domingo = semana_de(agora.date())
-    for d in datas_envolvidas(data_a, data_b):
-        if not (segunda <= d <= domingo):
-            erros.append("A troca só pode envolver dias da semana corrente.")
-            break
     limite = agora + timedelta(hours=params.antecedencia_horas)
     if any(inicio < limite for inicio in inicios_dos_turnos):
-        erros.append(f"A troca exige antecedência mínima de {params.antecedencia_horas} horas antes do turno envolvido.")
+        dias = params.antecedencia_horas // 24
+        erros.append(f"A troca exige antecedência mínima de {dias} dia(s) antes do turno envolvido." if params.antecedencia_horas % 24 == 0
+                     else f"A troca exige antecedência mínima de {params.antecedencia_horas} horas antes do turno envolvido.")
     return erros
 
 

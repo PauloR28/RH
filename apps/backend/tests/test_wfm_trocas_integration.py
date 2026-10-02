@@ -81,13 +81,15 @@ def ctx():
         _item(c.id_b, 3, c.M), _item(c.id_b, 5, c.M), _item(c.id_b, 6, c.T),
         _item(c.id_c, 3, c.M), _item(c.id_d, 3, c.P),
     ])
-    repo.wfm_publicar(c.gestor, c.op, MES, justificativa="base dos testes")
+    repo.wfm_enviar_aprovacao(c.cd, c.op, MES)
+    repo.wfm_aprovar_escala(c.gestor, c.op, MES)  # aprovar já publica
+    _antecedencia(c, 0)  # os cenários abaixo usam datas coladas ao "agora" simulado; a regra dos 3 dias é testada à parte
     yield c
     conn = repo._connect()
     try:
         cur = conn.cursor()
         cur.execute("DELETE FROM dbo.wfm_trocas WHERE operacao = ?", (c.op,))
-        for tabela in ("wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos", "wfm_usuario_skills",
+        for tabela in ("wfm_operacao_config", "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos", "wfm_usuario_skills",
                        "wfm_skills", "wfm_calendario_especial", "wfm_turnos", "wfm_contratos"):
             cur.execute(f"DELETE FROM dbo.{tabela} WHERE operacao = ?", (c.op,))
         cur.execute("SELECT id_usuario FROM dbo.usuarios WHERE email LIKE 'wfm_teste_%'")
@@ -97,6 +99,17 @@ def ctx():
             cur.execute("DELETE FROM dbo.usuarios_operacoes_historico WHERE id_usuario = ?", (uid,))
             cur.execute("DELETE FROM dbo.usuarios WHERE id_usuario = ?", (uid,))
         cur.execute("DELETE FROM dbo.operacoes WHERE chave LIKE 'WFMTROCA_%'")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _antecedencia(ctx, dias):
+    conn = ctx.repo._connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("IF NOT EXISTS (SELECT 1 FROM dbo.wfm_operacao_config WHERE operacao = ?) INSERT INTO dbo.wfm_operacao_config (operacao) VALUES (?)", (ctx.op, ctx.op))
+        cur.execute("UPDATE dbo.wfm_operacao_config SET troca_antecedencia_dias = ? WHERE operacao = ?", (dias, ctx.op))
         conn.commit()
     finally:
         conn.close()
@@ -113,10 +126,15 @@ def test_colegas_excluem_aprendiz_e_a_si_mesmo(ctx):
 
 
 def test_regras_de_elegibilidade(ctx):
-    ctx.relogio["agora"] = datetime(2027, 3, 5, 9, 0)  # sexta-feira: não abre pedido
-    assert "segunda a quinta" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 6).detail)
-    ctx.relogio["agora"] = datetime(2027, 3, 4, 10, 0)  # quinta 10h: turno de B em 05/03 às 08:00 => 22h; turno de A em 04/03 14:00 => 4h
+    ctx.relogio["agora"] = datetime(2027, 3, 5, 9, 0)  # sexta-feira: troca pode ser pedida em qualquer dia
+    assert "segunda a quinta" not in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 3).detail)  # (falha por outro motivo: A não trabalha no 03)
+    _antecedencia(ctx, 1)
+    ctx.relogio["agora"] = datetime(2027, 3, 4, 10, 0)  # turno de A em 04/03 às 14:00 => 4h < 1 dia
     assert "antecedência" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 4, 5).detail)
+    _antecedencia(ctx, 3)
+    ctx.relogio["agora"] = SEGUNDA  # 3 dias (padrão): turno de B em 03/03 às 08:00 => 2d23h
+    assert "3 dia(s)" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 6, 3).detail)
+    _antecedencia(ctx, 0)
     ctx.relogio["agora"] = SEGUNDA
     e = _erro(ctx.repo.wfm_solicitar_troca, ctx.a, ctx.op, ctx.id_b, "2027-03-08", "2027-03-08")  # semana seguinte
     assert e.status_code == 422 or e.status_code == 409

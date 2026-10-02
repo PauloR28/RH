@@ -6,7 +6,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20260930-wfm8';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261002-wfm10';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -112,14 +112,14 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20260930-wfm8'),
+  () => import('../features/configuracoes/index.js?v=20261002-wfm28'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20260930-wfm8');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261002-wfm10');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaWfm = carregarTela(() => import('../features/wfm/index.js?v=20260930-wfm8'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../features/wfm/index.js?v=20261002-wfm28'), 'TelaWfm');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260929-excluir-bold'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');

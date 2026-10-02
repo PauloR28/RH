@@ -41,7 +41,11 @@ from .talent_bank import TalentBankRepositoryMixin
 from .lgpd_retencao import LgpdRetencaoRepositoryMixin
 from .tela_inicial import TelaInicialRepositoryMixin
 from .wfm import WfmRepositoryMixin
+from .wfm_aprovacao import WfmAprovacaoRepositoryMixin
 from .wfm_escala import WfmEscalaRepositoryMixin
+from .wfm_gestao import WfmGestaoRepositoryMixin
+from .wfm_relatorios import WfmRelatoriosRepositoryMixin
+from .usuarios_massa import UsuariosMassaRepositoryMixin
 from .wfm_trocas import WfmTrocasRepositoryMixin
 from .wfm_pausas_repo import WfmPausasRepositoryMixin
 
@@ -83,6 +87,10 @@ class DatabaseRepository(
     LgpdRetencaoRepositoryMixin,
     WfmRepositoryMixin,
     WfmEscalaRepositoryMixin,
+    WfmAprovacaoRepositoryMixin,
+    WfmGestaoRepositoryMixin,
+    WfmRelatoriosRepositoryMixin,
+    UsuariosMassaRepositoryMixin,
     WfmTrocasRepositoryMixin,
     WfmPausasRepositoryMixin,
     BaseRepository,

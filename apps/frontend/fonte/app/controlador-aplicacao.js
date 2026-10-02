@@ -223,7 +223,9 @@ export const PERMISSOES_TELAS = {
   'screen-wfm': 'wfm.escala.visualizar',
   'screen-wfm-minha-escala': 'wfm.escala.propria',
   'screen-wfm-presenca': 'wfm.presenca.lancar',
+  'screen-wfm-relatorios': 'wfm.relatorios',
   'screen-wfm-cadastros': 'wfm.cadastros.visualizar',
+  'screen-wfm-jornadas': 'wfm.cadastros.visualizar',
   'screen-wfm-auditoria': 'wfm.auditoria',
   'screen-wfm-trocas': 'wfm.troca.visualizar',
 };
@@ -273,7 +275,9 @@ export const SESSAO_DA_TELA = {
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',
   'screen-wfm-presenca': 'wfm',
+  'screen-wfm-relatorios': 'wfm',
   'screen-wfm-cadastros': 'wfm',
+  'screen-wfm-jornadas': 'wfm',
   'screen-wfm-auditoria': 'wfm',
   'screen-wfm-trocas': 'wfm',
 };

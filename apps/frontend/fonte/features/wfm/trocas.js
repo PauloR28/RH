@@ -5,10 +5,8 @@ import {
   cancelarTrocaWfm,
   decidirTrocaWfm,
   desfazerTrocaWfm,
-  listarColegasTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-  solicitarTrocaWfm,
 } from '../../services/api/wfm.js';
 import { dataHora } from './comum.js';
 
@@ -29,44 +27,6 @@ const ESTADOS = {
 };
 const br = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
-function semanaAtual() {
-  const hoje = new Date();
-  const seg = new Date(hoje); seg.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7));
-  const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
-  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return { min: iso(seg), max: iso(dom) };
-}
-
-function FormSolicitar({ operacao, onFeito, onCancelar, showToast }) {
-  const [colegas, setColegas] = useState([]);
-  const [form, setForm] = useState({ id_alvo: '', data_a: '', data_b: '', motivo: '' });
-  const [enviando, setEnviando] = useState(false);
-  const semana = semanaAtual();
-  useEffect(() => { listarColegasTrocaWfm(operacao).then((r) => setColegas(r.itens || [])).catch(() => setColegas([])); }, [operacao]);
-  const enviar = async (e) => {
-    e.preventDefault();
-    setEnviando(true);
-    try {
-      await solicitarTrocaWfm({ operacao, id_alvo: Number(form.id_alvo), data_a: form.data_a, data_b: form.data_b || form.data_a, motivo: form.motivo });
-      showToast?.('Troca solicitada. Seu colega tem 48 horas úteis para responder.', 'success');
-      onFeito();
-    } catch (err) { showToast?.(err?.message || 'Não foi possível solicitar a troca.', 'error'); } finally { setEnviando(false); }
-  };
-  const set = (k, v) => setForm({ ...form, [k]: v });
-  return html`
-    <form class="wfm-form" onSubmit=${enviar}>
-      <p class="mon-muted">Regras: só de segunda a quinta, com 12 horas de antecedência, em dias da semana corrente (${br(semana.min)} a ${br(semana.max)}), entre operadores com as mesmas skills. A troca precisa da aprovação do seu supervisor ou do RH.</p>
-      <div class="mon-form-grid">
-        <label class="mon-campo"><span>Colega</span>
-          <select class="form-select" required value=${form.id_alvo} onChange=${(e) => set('id_alvo', e.target.value)}><option value="">Selecione</option>${colegas.map((c) => html`<option key=${c.id_usuario} value=${c.id_usuario}>${c.nome}</option>`)}</select></label>
-        <label class="mon-campo"><span>Dia que eu cedo</span><input class="form-control" type="date" required min=${semana.min} max=${semana.max} value=${form.data_a} onInput=${(e) => set('data_a', e.target.value)} /></label>
-        <label class="mon-campo"><span>Dia do colega que eu assumo <small class="mon-muted">(vazio = o mesmo dia)</small></span><input class="form-control" type="date" min=${semana.min} max=${semana.max} value=${form.data_b} onInput=${(e) => set('data_b', e.target.value)} /></label>
-        <label class="mon-campo"><span>Motivo (opcional)</span><input class="form-control" maxlength="300" value=${form.motivo} onInput=${(e) => set('motivo', e.target.value)} /></label>
-      </div>
-      <div class="wfm-acoes"><button type="submit" class="btn btn-primary" disabled=${enviando}>Solicitar troca</button><button type="button" class="btn btn-outline-secondary" onClick=${onCancelar}>Cancelar</button></div>
-    </form>`;
-}
-
 function CartaoTroca({ troca, executar }) {
   const [pendente, setPendente] = useState(null); // 'reprovar' | 'desfazer'
   const [texto, setTexto] = useState('');
@@ -86,7 +46,8 @@ function CartaoTroca({ troca, executar }) {
       <dl class="wfm-troca-dados">
         <div><dt>Dia cedido</dt><dd>${br(troca.data_a)}</dd></div>
         <div><dt>Dia assumido</dt><dd>${br(troca.data_b)}</dd></div>
-        ${troca.detalhe.map((d) => html`<div key=${d.data}><dt>Turnos em ${br(d.data)}</dt><dd>${troca.solicitante.split(' ')[0]}: ${d.solicitante_antes} · ${troca.alvo.split(' ')[0]}: ${d.alvo_antes}</dd></div>`)}
+        ${troca.detalhe.map((d) => html`<div key=${d.data} class="wfm-troca-largo"><dt>Turnos em ${br(d.data)}</dt>
+          <dd class="wfm-troca-turnos">${[[troca.solicitante, d.solicitante_antes, d.solicitante_supervisor, d.solicitante_equipe], [troca.alvo, d.alvo_antes, d.alvo_supervisor, d.alvo_equipe]].map(([nome, turno, sup, eq]) => html`<span key=${nome}><b>${nome.split(' ')[0]}</b> ${turno}${sup ? html` · Sup. ${sup}` : ''}${eq ? html` · Equipe ${eq}` : ''}</span>`)}</dd></div>`)}
         ${troca.estado === 'AGUARDANDO_B' ? html`<div><dt>Prazo do colega</dt><dd>${dataHora(troca.prazo_resposta)}</dd></div>` : null}
         ${troca.estado === 'AGUARDANDO_APROVACAO' ? html`<div><dt>Prazo da decisão</dt><dd>${dataHora(troca.prazo_decisao)}</dd></div>` : null}
         ${troca.motivo ? html`<div class="wfm-troca-largo"><dt>Motivo</dt><dd>${troca.motivo}</dd></div>` : null}
@@ -112,7 +73,6 @@ export function TelaTrocas({ controlador, operacao, showToast }) {
   const [itens, setItens] = useState(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState('andamento');
-  const [novo, setNovo] = useState(false);
   const podeSolicitar = controlador.possuiPermissao('wfm.troca.solicitar');
 
   const carregar = useCallback(async () => {
@@ -132,18 +92,18 @@ export function TelaTrocas({ controlador, operacao, showToast }) {
   const visiveis = aba === 'andamento' ? ativos : itens.filter((t) => !['AGUARDANDO_B', 'AGUARDANDO_APROVACAO'].includes(t.estado));
   return html`
     <section class="mon-card">
-      <div class="wfm-cabecalho">
-        <div><h3>Trocas de plantão</h3></div>
+      <div class="wfm-cabecalho wfm-cabecalho--centro">
+        <div><h3>Pedidos de troca</h3></div>
         <div class="wfm-acoes-cab">
           <div class="wfm-alternador" role="group" aria-label="Filtro">
             <button type="button" class=${aba === 'andamento' ? 'is-ativo' : ''} onClick=${() => setAba('andamento')}>Em andamento (${ativos.length})</button>
             <button type="button" class=${aba === 'historico' ? 'is-ativo' : ''} onClick=${() => setAba('historico')}>Histórico</button>
           </div>
-          ${podeSolicitar ? html`<button type="button" class="btn btn-outline-primary" onClick=${() => setNovo(!novo)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Solicitar troca</button>` : null}
+          ${podeSolicitar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => controlador.irParaTelaProtegida('screen-wfm-minha-escala')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Pedir troca</button>` : null}
         </div>
       </div>
-      ${novo ? html`<${FormSolicitar} operacao=${operacao} showToast=${showToast} onCancelar=${() => setNovo(false)} onFeito=${() => { setNovo(false); carregar(); }} />` : null}
+      ${podeSolicitar ? html`<p class="mon-muted wfm-dica">Para pedir uma troca, abra <b>Minha escala</b> e clique no dia que quer trocar. Aqui você acompanha e responde os pedidos.</p>` : null}
       ${visiveis.length ? html`<div class="wfm-trocas">${visiveis.map((t) => html`<${CartaoTroca} key=${t.id_troca} troca=${t} executar=${executar} />`)}</div>`
-        : html`<${EmptyState} icon="compare_arrows" title=${aba === 'andamento' ? 'Nenhuma troca em andamento' : 'Nenhuma troca no histórico'} text=${podeSolicitar ? 'Use "Solicitar troca" para pedir uma troca de plantão a um colega.' : 'Quando houver pedidos para aprovar, eles aparecem aqui.'} />`}
+        : html`<${EmptyState} icon="compare_arrows" title=${aba === 'andamento' ? 'Nenhuma troca em andamento' : 'Nenhuma troca no histórico'} text=${podeSolicitar ? 'Para pedir uma troca, clique em um dia da sua escala em Minha escala.' : 'Quando houver pedidos para aprovar, eles aparecem aqui.'} />`}
     </section>`;
 }

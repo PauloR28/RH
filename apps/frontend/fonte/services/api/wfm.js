@@ -29,7 +29,7 @@ export const vincularContratoOperadorWfm = (idOperador, dados) => enviar(`/wfm/o
 export const listarCalendarioWfm = (operacao, anoMes = '') => requisitar(`/wfm/calendario${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 export const salvarEventoWfm = (dados, id) => enviar(id ? `/wfm/calendario/${id}` : '/wfm/calendario', id ? 'PUT' : 'POST', dados);
 
-export const lerEscalaWfm = (operacao, anoMes) => requisitar(`/wfm/escala${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
+export const lerEscalaWfm = (operacao, anoMes, propria = false) => requisitar(`/wfm/escala${consulta({ operacao, ano_mes: anoMes, ...(propria ? { propria: true } : {}) })}`, { method: 'GET' });
 export const salvarItensEscalaWfm = (dados) => enviar('/wfm/escala/itens', 'PUT', dados);
 export const validarEscalaWfm = (operacao, anoMes) => requisitar(`/wfm/escala/validar${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 export const publicarEscalaWfm = (dados) => enviar('/wfm/escala/publicar', 'POST', dados);
@@ -46,6 +46,9 @@ export const listarAuditoriaWfm = (filtros = {}) => requisitar(`/wfm/auditoria${
 export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx') =>
   requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato })}`, { method: 'GET' });
 
+export const lerRelatorioWfm = (filtros) => requisitar(`/wfm/relatorios${consulta(filtros)}`, { method: 'GET' });
+export const exportarRelatorioWfm = (filtros) => requisitarArquivo(`/wfm/relatorios/exportar${consulta(filtros)}`, { method: 'GET' });
+
 export const listarTrocasWfm = (operacao, estado = '') => requisitar(`/wfm/trocas${consulta({ operacao, estado })}`, { method: 'GET' });
 export const listarColegasTrocaWfm = (operacao) => requisitar(`/wfm/trocas/colegas${consulta({ operacao })}`, { method: 'GET' });
 export const solicitarTrocaWfm = (dados) => enviar('/wfm/trocas', 'POST', dados);
@@ -54,7 +57,13 @@ export const cancelarTrocaWfm = (id) => enviar(`/wfm/trocas/${id}/cancelar`, 'PO
 export const decidirTrocaWfm = (id, aprovar, justificativa = '') => enviar(`/wfm/trocas/${id}/decidir`, 'POST', { aprovar, justificativa });
 export const desfazerTrocaWfm = (id, justificativa) => enviar(`/wfm/trocas/${id}/desfazer`, 'POST', { justificativa });
 
-export const excluirTurnoWfm = (operacao, id) => requisitar(`/wfm/turnos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
+export const listarHorasExtrasWfm = (operacao, anoMes) => requisitar(`/wfm/horas-extras${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
+export const lancarHoraExtraWfm = (dados) => enviar('/wfm/horas-extras', 'PUT', dados);
+export const listarOperadoresContratoWfm = (operacao, id) => requisitar(`/wfm/contratos/${id}/operadores${consulta({ operacao })}`, { method: 'GET' });
+export const desvincularOperadorContratoWfm = (operacao, id, idOperador) => requisitar(`/wfm/contratos/${id}/operadores/${idOperador}${consulta({ operacao })}`, { method: 'DELETE' });
+export const listarSupervisoresWfm = (operacao) => requisitar(`/wfm/supervisores${consulta({ operacao })}`, { method: 'GET' });
+export const excluirContratoWfm = (operacao, id) => requisitar(`/wfm/contratos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
+export const excluirTurnoWfm =(operacao, id) => requisitar(`/wfm/turnos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
 export const lerContratoOperadorWfm = (operacao, idOperador) => requisitar(`/wfm/operadores/${idOperador}/contrato${consulta({ operacao })}`, { method: 'GET' });
 export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'PUT', dados);
 
@@ -62,3 +71,21 @@ export const lerPausasDiaWfm = (operacao, data) => requisitar(`/wfm/pausas${cons
 export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);
 export const distribuirPausasWfm = (dados) => enviar('/wfm/pausas/distribuir', 'POST', dados);
 export const definirCapacidadePausasWfm = (dados) => enviar('/wfm/pausas/capacidade', 'PUT', dados);
+
+// Aprovação da escala antes da publicação e tipos de escala do setor de TI.
+export const enviarAprovacaoEscalaWfm = (dados) => enviar('/wfm/escala/enviar-aprovacao', 'POST', dados);
+export const aprovarEscalaWfm = (dados) => enviar('/wfm/escala/aprovar', 'POST', dados);
+export const declinarEscalaWfm = (dados) => enviar('/wfm/escala/declinar', 'POST', dados);
+export const cancelarEnvioEscalaWfm = (dados) => enviar('/wfm/escala/cancelar-envio', 'POST', dados);
+export const listarTiposEscalaWfm = (operacaoBase = 'TI') => requisitar(`/wfm/tipos-escala${consulta({ operacao_base: operacaoBase })}`, { method: 'GET' });
+export const salvarTipoEscalaWfm = (dados, id) => enviar(id ? `/wfm/tipos-escala/${id}` : '/wfm/tipos-escala', id ? 'PUT' : 'POST', dados);
+export const excluirTipoEscalaWfm = (id) => requisitar(`/wfm/tipos-escala/${id}`, { method: 'DELETE' });
+
+// Configuração da escala (nome e aprovadores) e resumo das escalas para trocar de escala sem sair da tela.
+export const lerConfigEscalaWfm = (operacao) => requisitar(`/wfm/escala/config${consulta({ operacao })}`, { method: 'GET' });
+export const salvarConfigEscalaWfm = (dados) => enviar('/wfm/escala/config', 'PUT', dados);
+export const resumoEscalasWfm = (anoMes) => requisitar(`/wfm/escalas/resumo${consulta({ ano_mes: anoMes })}`, { method: 'GET' });
+export const gestaoEscalasWfm = (anoMes) => requisitar(`/wfm/escalas/gestao${consulta({ ano_mes: anoMes })}`, { method: 'GET' });
+export const criarEscalaWfm = (dados) => enviar('/wfm/escalas', 'POST', dados);
+export const duplicarEscalaWfm = (dados) => enviar('/wfm/escalas/duplicar', 'POST', dados);
+export const excluirEscalaWfm = (operacao) => requisitar(`/wfm/escalas${consulta({ operacao })}`, { method: 'DELETE' });

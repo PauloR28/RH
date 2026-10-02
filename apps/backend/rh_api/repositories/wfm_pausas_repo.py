@@ -77,13 +77,13 @@ class WfmPausasRepositoryMixin:
             (operacao, dia, dia),
         )
         eventos = [EventoCalendario(normalize_text(r[0]), r[1], r[2], r[3], r[4], r[5]) for r in cursor.fetchall()]
-        cursor.execute("SELECT id_operador, id_turno FROM dbo.wfm_escala_itens WHERE operacao = ? AND data = ?", (operacao, dia))
+        cursor.execute("SELECT id_operador, id_turno, entrada_ajuste, saida_ajuste FROM dbo.wfm_escala_itens WHERE operacao = ? AND data = ?", (operacao, dia))
         saida: dict[int, dict] = {}
-        for id_op, id_turno in cursor.fetchall():
+        for id_op, id_turno, e_aj, s_aj in cursor.fetchall():
             modelo = modelos.get(int(id_turno))
             if not modelo:
                 continue
-            h = horario_efetivo(dia, modelo, modelos, eventos)
+            h = horario_efetivo(dia, modelo, modelos, eventos, (e_aj, s_aj) if e_aj and s_aj else None)
             if h["trabalha"]:
                 saida[int(id_op)] = {"codigo": h["codigo"], "entrada": h["entrada"], "saida": h["saida"]}
         return saida
@@ -202,6 +202,32 @@ class WfmPausasRepositoryMixin:
             return {"success": True, "operadores": len(gravar)}
         finally:
             conn.close()
+
+    def wfm_distribuir_pausas_periodo(
+        self, user, operacao: str, data_ini: Any, data_fim: Any, ids: list[int] | None = None, *,
+        sobrescrever: bool = False, dias_semana: list[int] | None = None, ip: str = "",
+    ) -> dict:
+        """Distribui as pausas de cada dia entre `data_ini` e `data_fim` (semana ou mês). Dia de período fechado
+        ou sem escalados é pulado; o resumo informa quantos dias foram programados."""
+        ini, fim = _data(data_ini), _data(data_fim)
+        if fim < ini or (fim - ini).days > 62:
+            raise _http(status.HTTP_400_BAD_REQUEST, "Período inválido (máximo de 2 meses).")
+        dias_ok = set(dias_semana) if dias_semana is not None else set(range(7))
+        programados, pulados, operadores = 0, 0, 0
+        dia = ini
+        while dia <= fim:
+            if dia.weekday() in dias_ok:
+                try:
+                    r = self.wfm_distribuir_pausas(user, operacao, dia, ids, sobrescrever=sobrescrever, ip=ip)
+                    if r["operadores"]:
+                        programados += 1
+                        operadores += r["operadores"]
+                except HTTPException as exc:
+                    if exc.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN) and user.perfil == ROLE_ADMIN:
+                        raise
+                    pulados += 1
+            dia = date.fromordinal(dia.toordinal() + 1)
+        return {"success": True, "dias_programados": programados, "dias_pulados": pulados, "operadores": operadores}
 
     def wfm_distribuir_pausas(self, user, operacao: str, data: Any, ids: list[int] | None = None, *, sobrescrever: bool = False, ip: str = "") -> dict:
         """Preenche as 3 pausas de cada operador escalado do escopo (ou só dos `ids`), respeitando a

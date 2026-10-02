@@ -13,7 +13,7 @@ from fastapi import HTTPException, status
 from conecta.infrastructure.security.token_denylist import InMemoryTokenDenylist
 
 from .config import get_settings
-from .rbac import PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
+from .rbac import aplicar_restricao_wfm_em_teste, PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
 from .services.helpers import normalize_text
 
 
@@ -164,6 +164,7 @@ def _user_from_record(record: dict | None) -> AuthenticatedUser:
     permissions = sanitize_permissions(safe_record.get("permissoes") or safe_record.get("permissions"))
     if not permissions:
         permissions = get_role_permissions(role.id)
+    permissions = aplicar_restricao_wfm_em_teste(role.id, permissions)  # token antigo não reabre o WFM na fase de teste
     return AuthenticatedUser(
         username=normalize_text(safe_record.get("login") or safe_record.get("usuario") or safe_record.get("email")),
         id_usuario=safe_record.get("id_usuario"),
@@ -280,6 +281,7 @@ def validate_access_token(token: str) -> AuthenticatedUser:
     permissions = sanitize_permissions(data.get("permissions") or data.get("permissoes"))
     if not permissions:
         permissions = get_role_permissions(role.id)
+    permissions = aplicar_restricao_wfm_em_teste(role.id, permissions)
 
     return AuthenticatedUser(
         username=username,

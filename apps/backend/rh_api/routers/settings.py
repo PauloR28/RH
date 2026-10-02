@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import Response
 
 from ..auth import AuthenticatedUser
@@ -118,6 +118,31 @@ def create_user(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.create_system_user(payload.model_dump(), actor=user)
+
+
+@router.get("/users/bulk/template", dependencies=[Depends(require_permissions("usuarios.criar"))])
+def baixar_modelo_usuarios_em_massa(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return Response(
+        content=repository.usuarios_massa_modelo(user),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="modelo-cadastro-usuarios.xlsx"'},
+    )
+
+
+@router.post("/users/bulk", dependencies=[Depends(require_permissions("usuarios.criar"))])
+async def cadastrar_usuarios_em_massa(
+    request: Request,
+    arquivo: UploadFile = File(...),
+    confirmar: bool = Form(default=False),
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Prévia (confirmar=false) ou criação (confirmar=true) dos usuários de uma planilha; linhas incompletas são ignoradas."""
+    conteudo = await arquivo.read(2 * 1024 * 1024 + 1)
+    return repository.usuarios_massa_processar(user, conteudo, confirmar=confirmar, ip=request.client.host if request.client else "")
 
 
 @router.post("/users/quick", dependencies=[Depends(require_permissions("usuarios.criar"))])

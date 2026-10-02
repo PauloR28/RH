@@ -84,8 +84,10 @@ def _aplicar_eventos(
     turno: TurnoModelo,
     turnos: dict[int, TurnoModelo],
     eventos: list[EventoCalendario],
+    ajuste: tuple[str, str] | None = None,
 ) -> tuple[bool, TurnoModelo, str | None, str | None]:
-    """Aplica o calendário especial ao turno do dia: (feriado, turno efetivo, entrada, saída)."""
+    """Aplica o calendário especial ao turno do dia: (feriado, turno efetivo, entrada, saída).
+    `ajuste` = (entrada, saída) combinada para o operador naquele dia (ex.: sábado flexível); vence o calendário."""
     ativos = [e for e in eventos if e.cobre(data)]
     feriado = any(e.tipo == EVENTO_FERIADO for e in ativos)
     efetivo = turno
@@ -97,6 +99,8 @@ def _aplicar_eventos(
         if evento.tipo == EVENTO_HORARIO_ESPECIAL and evento.id_turno == efetivo.id_turno:
             entrada = evento.entrada or entrada
             saida = evento.saida or saida
+    if ajuste and efetivo.tipo == TIPO_TURNO_TRABALHO:
+        entrada, saida = ajuste
     return feriado, efetivo, entrada, saida
 
 
@@ -105,9 +109,10 @@ def horario_efetivo(
     turno: TurnoModelo,
     turnos: dict[int, TurnoModelo],
     eventos: list[EventoCalendario],
+    ajuste: tuple[str, str] | None = None,
 ) -> dict:
     """Horário que o operador realmente cumpre no dia (para exibição): entrada, saída e minutos líquidos."""
-    feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos)
+    feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos, ajuste)
     if efetivo.tipo != TIPO_TURNO_TRABALHO or not entrada or not saida:
         return {"trabalha": False, "codigo": efetivo.codigo, "entrada": None, "saida": None, "minutos": 0, "feriado": feriado}
     dia = dia_de_turno(data, _CONTRATO_EXIBICAO, entrada=entrada, saida=saida, pausas=efetivo.pausas)
@@ -123,8 +128,10 @@ def montar_dias(
     turnos: dict[int, TurnoModelo],
     eventos: list[EventoCalendario],
     vigencias: list[VigenciaContrato],
+    ajustes: dict[date, tuple[str, str]] | None = None,
 ) -> tuple[list[DiaEscala], list[Violacao]]:
-    """`itens`: data -> id_turno do operador. Devolve (dias, violações de montagem)."""
+    """`itens`: data -> id_turno do operador; `ajustes`: data -> (entrada, saída) combinada.
+    Devolve (dias, violações de montagem)."""
     dias: list[DiaEscala] = []
     violacoes: list[Violacao] = []
     sem_contrato_reportado = False
@@ -148,7 +155,7 @@ def montar_dias(
         if turno.tipo != TIPO_TURNO_TRABALHO:
             dias.append(folga(data, contrato, dsr=turno.tipo == TIPO_TURNO_DSR))
             continue
-        feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos)
+        feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos, (ajustes or {}).get(data))
         if efetivo.tipo != TIPO_TURNO_TRABALHO or not entrada or not saida:
             dias.append(folga(data, contrato, dsr=efetivo.tipo == TIPO_TURNO_DSR))
             continue

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unicodedata
 from dataclasses import dataclass
 
@@ -16,12 +17,17 @@ ROLE_OPERATOR = "operador"
 # Vertente Monitoria (promt.txt, rodada 20/set/2026): dois perfis novos.
 ROLE_QUALIDADE = "qualidade"
 ROLE_CONTROL_DESK = "control_desk"
+# Setor de Tecnologia (TI): funciona como uma operação à parte (sem Supervisor nem Control Desk).
+ROLE_TEC_JUNIOR = "tecnico_junior"
+ROLE_TEC_PLENO = "tecnico_pleno"
+ROLE_TEC_SENIOR = "tecnico_senior"
+ROLE_ANALISTA_TI = "analista_ti"  # Gestor de TI: monta, aprova, publica e administra as escalas do TI
 
 
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-09-22-operador-treinamentos"
+PERMISSIONS_VERSION = "2026-10-01-wfm-gestao-escalas"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -116,6 +122,30 @@ ROLE_DEFINITIONS: dict[str, RoleDefinition] = {
         name="Control Desk",
         level="Intermediário",
         description="Visualiza dashboards e relatórios de qualidade de todas as operações, cada uma identificada por tag.",
+    ),
+    ROLE_TEC_JUNIOR: RoleDefinition(
+        id=ROLE_TEC_JUNIOR,
+        name="Técnico Júnior",
+        level="Básico",
+        description="Técnico de TI (júnior): consulta a própria escala de plantão/sobreaviso e solicita trocas.",
+    ),
+    ROLE_TEC_PLENO: RoleDefinition(
+        id=ROLE_TEC_PLENO,
+        name="Técnico Pleno",
+        level="Básico",
+        description="Técnico de TI (pleno): consulta a própria escala de plantão/sobreaviso e solicita trocas.",
+    ),
+    ROLE_TEC_SENIOR: RoleDefinition(
+        id=ROLE_TEC_SENIOR,
+        name="Técnico Sênior",
+        level="Básico",
+        description="Técnico de TI (sênior): consulta a própria escala de plantão/sobreaviso e solicita trocas.",
+    ),
+    ROLE_ANALISTA_TI: RoleDefinition(
+        id=ROLE_ANALISTA_TI,
+        name="Analista de TI (Gestor de TI)",
+        level="Alto",
+        description="Gestor do setor de Tecnologia: cadastra, monta, aprova, publica e administra as escalas do TI (plantão de sábado, sobreaviso e as que criar).",
     ),
 }
 
@@ -360,10 +390,14 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("wfm.escala.propria", "WFM", "Consultar a própria escala e o calendário mensal (Operador)."),
         _permission("wfm.escala.visualizar", "WFM", "Consultar a escala dentro do escopo de operação/equipe do perfil."),
         _permission("wfm.escala.editar", "WFM", "Editar a escala mensal (Supervisor: própria equipe; Control Desk: operações vinculadas).", critical=True),
-        _permission("wfm.escala.publicar", "WFM", "Validar e publicar a escala (gera nova versão).", critical=True),
+        _permission("wfm.escala.criar", "WFM", "Criar, configurar, ativar/desativar, duplicar e excluir escalas (nome, aprovadores, jornada).", critical=True),
+        _permission("wfm.escala.publicar", "WFM", "Validar e publicar a escala (gera nova versão). Exige escala aprovada.", critical=True),
+        _permission("wfm.escala.aprovar", "WFM", "Aprovar ou declinar (com justificativa) a escala enviada para aprovação antes da publicação.", critical=True),
+        _permission("wfm.tipos_escala.editar", "WFM", "Cadastrar, editar e excluir tipos de escala do setor de TI (plantão de sábado, sobreaviso...).", critical=True),
         _permission("wfm.escala.publicar_com_violacao", "WFM", "Publicar escala com violação pendente, com justificativa em auditoria.", critical=True),
         _permission("wfm.escala.fechar", "WFM", "Fechar o período (mês) da escala.", critical=True),
         _permission("wfm.escala.corrigir_fechada", "WFM", "Corrigir escala após o fechamento do período, com justificativa.", critical=True),
+        _permission("wfm.relatorios", "WFM", "Consultar e exportar os relatórios de Turnos e Plantões (escalas, presenças, trocas, aprovações e horas)."),
         _permission("wfm.presenca.lancar", "WFM", "Lançar presença/falta e registrar atestados (período, tipo e validador).", critical=True),
         _permission("wfm.cadastros.visualizar", "WFM", "Consultar contratos, turnos, skills e calendário especial."),
         _permission("wfm.cadastros.editar", "WFM", "Editar turnos-modelo, skills e calendário especial (feriados, datas, dias e horários especiais).", critical=True),
@@ -681,7 +715,7 @@ for _role_id, _perms in list(ROLE_PERMISSIONS.items()):
 # Perfis (decisões do RH): Gestor = "Gestor/RH"; Administrador = "Adm" (configuração,
 # sem decisões operacionais); Control Desk = mesmas permissões do Supervisor.
 _WFM_LEITURA = {"sessao.wfm.acessar", "wfm.escala.visualizar", "wfm.cadastros.visualizar"}
-_WFM_EQUIPE = _WFM_LEITURA | {"wfm.escala.editar", "wfm.escala.publicar", "wfm.escala.fechar", "wfm.presenca.lancar", "wfm.cadastros.editar"}
+_WFM_EQUIPE = _WFM_LEITURA | {"wfm.escala.criar", "wfm.escala.editar", "wfm.escala.publicar", "wfm.escala.fechar", "wfm.presenca.lancar", "wfm.cadastros.editar"}
 _WFM_ROLE_PERMISSIONS: dict[str, set[str]] = {
     ROLE_SUPERVISOR: set(_WFM_EQUIPE),
     ROLE_CONTROL_DESK: _WFM_EQUIPE | {"wfm.contratos.editar"},
@@ -694,17 +728,47 @@ _WFM_ROLE_PERMISSIONS: dict[str, set[str]] = {
 # Trocas: aprovam/desfazem Supervisor, Control Desk e Gestor/RH (Adm não decide; Qualidade não vê).
 for _papel in (ROLE_SUPERVISOR, ROLE_CONTROL_DESK, ROLE_MANAGER):
     _WFM_ROLE_PERMISSIONS[_papel] |= {"wfm.troca.visualizar", "wfm.troca.aprovar", "wfm.troca.desfazer"}
+# Aprovação da escala antes de publicar: Gestor/RH e Supervisor (Control Desk só monta e envia).
+for _papel in (ROLE_SUPERVISOR, ROLE_MANAGER):
+    _WFM_ROLE_PERMISSIONS[_papel] |= {"wfm.escala.aprovar"}
+# Setor de TI: Técnicos = Operador (própria escala + trocas); Analista de TI = Gestor de TI (monta, aprova a
+# própria escala, publica com violação, fecha/corrige, cadastra tipos de escala, decide trocas).
+WFM_PERFIS_PARTICIPANTES = frozenset({ROLE_OPERATOR, ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR})
+WFM_PERFIS_TI = frozenset({ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR, ROLE_ANALISTA_TI})
+for _papel in (ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR):
+    _WFM_ROLE_PERMISSIONS[_papel] = set(_WFM_ROLE_PERMISSIONS[ROLE_OPERATOR]) | {"inicio.visualizar", "notificacoes.visualizar"}
+_WFM_ROLE_PERMISSIONS[ROLE_ANALISTA_TI] = (
+    _WFM_EQUIPE
+    | {"inicio.visualizar", "notificacoes.visualizar", "operacoes.visualizar","wfm.contratos.editar", "wfm.escala.publicar_com_violacao", "wfm.escala.corrigir_fechada", "wfm.escala.aprovar",
+       "wfm.escala.propria",  # o Analista de TI também se inclui em escalas: tem a aba "Minhas escalas"
+       "wfm.tipos_escala.editar", "wfm.troca.visualizar", "wfm.troca.aprovar", "wfm.troca.desfazer", "wfm.auditoria"}
+)
+# Relatórios (somente leitura): quem gere as escalas.
+for _papel in (ROLE_SUPERVISOR, ROLE_CONTROL_DESK, ROLE_MANAGER, ROLE_ANALISTA_TI):
+    _WFM_ROLE_PERMISSIONS[_papel] |= {"wfm.relatorios"}
+# FASE DE TESTE do WFM: enquanto RH_WFM_LIBERAR_PARTICIPANTES não for ligado (1/true/sim), a sessão Turnos e Plantões fica
+# restrita a quem gere escalas (Control Desk, Supervisor, Gestor/RH, Analista de TI e Administrador). Operadores, Técnicos de TI
+# e Qualidade não veem a aba e as rotas /wfm respondem 403 para eles (a permissão é exigida no servidor). Para liberar a todos,
+# basta ligar a variável de ambiente e reiniciar — nenhuma outra mudança de código.
+WFM_PARTICIPANTES_LIBERADO = (os.getenv("RH_WFM_LIBERAR_PARTICIPANTES") or "").strip().lower() in {"1", "true", "sim", "yes", "on"}
+WFM_PERFIS_EM_TESTE_FECHADO = frozenset({ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR})
 for _role_id, _perms in _WFM_ROLE_PERMISSIONS.items():
+    if not WFM_PARTICIPANTES_LIBERADO and _role_id in WFM_PERFIS_EM_TESTE_FECHADO:
+        # Técnicos de TI só existem para o WFM: mantêm apenas o acesso básico (início e notificações).
+        ROLE_PERMISSIONS.setdefault(_role_id, set()).update(p for p in _perms if p in {"inicio.visualizar", "notificacoes.visualizar"})
+        continue
     ROLE_PERMISSIONS.setdefault(_role_id, set()).update(_perms)
 # Administrador: configuração geral + auditoria; sem decisões operacionais sobre a escala
 # (editar/publicar/fechar/corrigir/presença). Reforçado também no servidor (wfm_scope).
 WFM_PERMISSOES_OPERACIONAIS = frozenset(
     {
+        "wfm.escala.criar",
         "wfm.escala.editar",
         "wfm.escala.publicar",
         "wfm.escala.publicar_com_violacao",
         "wfm.escala.fechar",
         "wfm.escala.corrigir_fechada",
+        "wfm.escala.aprovar",
         "wfm.presenca.lancar",
         "wfm.troca.solicitar",
         "wfm.troca.aprovar",
@@ -737,7 +801,9 @@ SCREEN_PERMISSIONS.update(
         "screen-wfm": "wfm.escala.visualizar",
         "screen-wfm-minha-escala": "wfm.escala.propria",
         "screen-wfm-presenca": "wfm.presenca.lancar",
+        "screen-wfm-relatorios": "wfm.relatorios",
         "screen-wfm-cadastros": "wfm.cadastros.visualizar",
+        "screen-wfm-jornadas": "wfm.cadastros.visualizar",
         "screen-wfm-auditoria": "wfm.auditoria",
         "screen-wfm-trocas": "wfm.troca.visualizar",
     }
@@ -795,12 +861,29 @@ def normalize_role_id(value: str | None) -> str:
         "analista_de_qualidade": ROLE_QUALIDADE,
         "control_desk": ROLE_CONTROL_DESK,
         "controldesk": ROLE_CONTROL_DESK,
+        "tecnico_junior": ROLE_TEC_JUNIOR,
+        "tecnico_jr": ROLE_TEC_JUNIOR,
+        "tecnico_pleno": ROLE_TEC_PLENO,
+        "tecnico_senior": ROLE_TEC_SENIOR,
+        "analista_ti": ROLE_ANALISTA_TI,
+        "analista_de_ti": ROLE_ANALISTA_TI,
+        "gestor_ti": ROLE_ANALISTA_TI,
+        "gestor_de_ti": ROLE_ANALISTA_TI,
     }
     return aliases.get(normalized, normalized)
 
 
 def get_role_definition(role_id: str | None) -> RoleDefinition:
     return ROLE_DEFINITIONS.get(normalize_role_id(role_id), ROLE_DEFINITIONS[ROLE_ADMIN])
+
+
+def aplicar_restricao_wfm_em_teste(role_id: str | None, permissions) -> list[str]:
+    """Na fase de teste do WFM, tira as permissões WFM de Operador/Técnico/Qualidade MESMO que estejam gravadas no banco
+    (`perfil_permissoes`, semeado em rodadas anteriores) ou dentro de um token antigo. Não faz nada quando o WFM está liberado."""
+    lista = list(permissions or [])
+    if WFM_PARTICIPANTES_LIBERADO or normalize_role_id(role_id) not in WFM_PERFIS_EM_TESTE_FECHADO:
+        return lista
+    return [p for p in lista if not (p.startswith("wfm.") or p == "sessao.wfm.acessar")]
 
 
 def get_role_permissions(role_id: str | None) -> set[str]:

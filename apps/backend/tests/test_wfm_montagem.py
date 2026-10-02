@@ -71,3 +71,21 @@ def test_data_especial_nao_tem_efeito_no_motor():
 def test_folga_e_dsr_sao_marcadas():
     dias, _ = m.montar_dias({date(2026, 9, 1): 3, date(2026, 9, 2): 4}, TURNOS, [], VIG)
     assert not dias[0].trabalha and not dias[0].folga_dsr and dias[1].folga_dsr
+
+
+def test_horario_ajustado_do_dia_vence_o_turno_e_o_calendario():
+    sab = date(2026, 10, 3)
+    h = m.horario_efetivo(sab, MANHA, TURNOS, [], ("08:00", "12:00"))
+    assert (h["entrada"], h["saida"], h["minutos"]) == ("08:00", "12:00", 240)
+    evento = m.EventoCalendario("HORARIO_ESPECIAL", sab, sab, 1, "09:00", "13:00")
+    assert m.horario_efetivo(sab, MANHA, TURNOS, [evento], ("10:00", "14:00"))["entrada"] == "10:00"
+    # folga ignora o ajuste
+    assert m.horario_efetivo(sab, FOLGA, TURNOS, [], ("08:00", "12:00"))["trabalha"] is False
+
+
+def test_montagem_usa_o_horario_ajustado_na_validacao():
+    sab = date(2026, 10, 3)
+    dias, viol = m.montar_dias({sab: 1}, TURNOS, [], VIG, {sab: ("08:00", "20:00")})
+    assert viol == [] and dias[0].jornada_liquida_min() == 720
+    res = validar_escala(dias, periodo=(date(2026, 10, 1), date(2026, 10, 31)))
+    assert any(v.codigo == "JORNADA_LEI" or "JORNADA" in v.codigo for v in res)

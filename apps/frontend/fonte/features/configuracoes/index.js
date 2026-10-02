@@ -51,9 +51,10 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20260930-wfm8';
+} from './monitoria-config.js?v=20261002-wfm10';
 import { vincularContratoOperadorWfm } from '../../services/api/wfm.js';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
+import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
 
 const ABAS = [
@@ -104,6 +105,10 @@ const ICONE_POR_PERFIL = {
   operador: 'support_agent',
   qualidade: 'fact_check',
   control_desk: 'monitoring',
+  tecnico_junior: 'support_agent',
+  tecnico_pleno: 'support_agent',
+  tecnico_senior: 'support_agent',
+  analista_ti: 'admin_panel_settings',
 };
 
 function ToggleSwitch({ checked, disabled, onChange }) {
@@ -562,6 +567,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
   const [transferindoOperacao, setTransferindoOperacao] = useState(false);
+  const [cadastrandoEmMassa, setCadastrandoEmMassa] = useState(false);
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [criandoUsuario, setCriandoUsuario] = useState(false);
   // "Criar usuário rápido" — nome, e-mail e senha para candidatos aprovados
@@ -4280,6 +4286,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 acoes=${[
                   ehAdministrador ? { label: 'Transferir supervisão', icon: 'swap_horiz', title: 'Passa os operadores de um supervisor para outro (ex.: férias)', onClick: () => setTransferindoSupervisao(true) } : null,
                   ehAdministrador ? { label: 'Transferir de operação', icon: 'move_up', title: 'Move um Operador ou Supervisor para outra operação', onClick: () => setTransferindoOperacao(true) } : null,
+                  { label: 'Cadastro em massa', icon: 'upload_file', title: 'Baixa uma planilha modelo e cadastra vários usuários de uma vez a partir dela', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: () => setCadastrandoEmMassa(true) },
                   { label: 'Criar usuário rápido', icon: 'person_add', title: 'Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: abrirCriacaoUsuarioRapido },
                 ]}
               />
@@ -4289,6 +4296,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
       ${erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
       ${feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
+      <${ModalCadastroEmMassa}
+        aberto=${cadastrandoEmMassa}
+        onClose=${() => setCadastrandoEmMassa(false)}
+        onFeito=${(r) => { setFeedback(`${(r?.criados || []).length} usuário(s) cadastrado(s) em massa.`); carregarAba('usuarios'); }}
+      />
       ${ehAdministrador ? html`
         <${ModalTransferirSupervisao}
           aberto=${transferindoSupervisao}
