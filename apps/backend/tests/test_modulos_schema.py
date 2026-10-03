@@ -79,3 +79,13 @@ def test_administrador_e_chamadas_internas_nao_tem_trava():
     _garantir_fronteira_administrador({"perfil": "administrador"}, "administrador")
     with pytest.raises(HTTPException):
         _garantir_fronteira_administrador({"perfil": "gestor"}, "administrador")
+
+
+def test_v057_liga_negacoes_existentes_uma_unica_vez_e_o_rollback_restaura():
+    """A tela de Perfis grava 0 para toda permissão não marcada; a V057 liga essas linhas (valor_anterior = 0) mas cada par
+    é tratado uma só vez, para as migrations reaplicadas no deploy não desfazerem decisões posteriores."""
+    frente = ms.render_migration_perfis_ti_sql()
+    assert "UPDATE pp SET permitido = 1" in frente and "valor_anterior" in frente
+    assert frente.count("NOT EXISTS (SELECT 1 FROM dbo.modularizacao_grants_log l") == 2
+    volta = ms.render_rollback_perfis_ti_sql()
+    assert "SET permitido = 0" in volta and "l.valor_anterior = 0" in volta and "l.valor_anterior IS NULL" in volta

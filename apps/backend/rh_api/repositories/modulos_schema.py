@@ -20,6 +20,23 @@ def _lit(texto: str) -> str:
     return texto.replace("'", "''")
 
 
+def _nstr(texto: str) -> str:
+    """Literal NVARCHAR 100% ASCII: caracteres acentuados viram NCHAR(código). O `sqlcmd` da implantação lê o arquivo na
+    página de código do console e gravaria "Operação" como "OperaÃ§Ã£o"; assim a migration é imune à codificação do arquivo."""
+    partes, atual = [], ""
+    for ch in texto:
+        if ord(ch) < 128:
+            atual += ch.replace("'", "''")
+        else:
+            if atual:
+                partes.append(f"N'{atual}'")
+                atual = ""
+            partes.append(f"NCHAR({ord(ch)})")
+    if atual or not partes:
+        partes.append(f"N'{atual}'")
+    return " + ".join(partes)
+
+
 # ---------------------------------------------------------------- V055
 def schema_modulos_statements() -> list[str]:
     instrucoes = [
@@ -39,7 +56,7 @@ def schema_modulos_statements() -> list[str]:
     for chave, nome, ordem, protegido in MODULOS_PADRAO:
         instrucoes.append(
             f"IF OBJECT_ID('dbo.modulos_sistema', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.modulos_sistema WHERE chave = '{chave}')\n"
-            f"    INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('{chave}', N'{_lit(nome)}', {ordem}, 1, {1 if protegido else 0});"
+            f"    INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('{chave}', {_nstr(nome)}, {ordem}, 1, {1 if protegido else 0});"
         )
     return instrucoes
 
@@ -118,7 +135,7 @@ def _grants_ti() -> list[tuple[str, str]]:
 
 
 def schema_perfis_ti_statements() -> list[str]:
-    valores = ",\n        ".join(f"('{p}', '{c}')" for p, c in _grants_ti())
+    valores = ",\n            ".join(f"('{p}', '{c}')" for p, c in _grants_ti())
     return [
         "IF OBJECT_ID('dbo.modularizacao_grants_log', 'U') IS NULL\n"
         "BEGIN\n"
@@ -126,24 +143,41 @@ def schema_perfis_ti_statements() -> list[str]:
         "        id_perfil NVARCHAR(40) NOT NULL,\n"
         "        chave_permissao NVARCHAR(120) NOT NULL,\n"
         "        migration NVARCHAR(20) NOT NULL,\n"
+        "        valor_anterior BIT NULL,\n"
         "        criado_em DATETIME NOT NULL CONSTRAINT DF_modularizacao_grants_log_criado_em DEFAULT GETDATE(),\n"
         "        CONSTRAINT PK_modularizacao_grants_log PRIMARY KEY (id_perfil, chave_permissao, migration)\n"
         "    );\n"
         "END;",
-        # Só insere o que falta (nunca altera linha existente, nem uma negação explícita do Administrador) e registra
-        # no log exatamente as linhas que ESTA migration criou, para o rollback desfazer só isso.
+        # Cada par (perfil, permissão) é tratado UMA ÚNICA vez (o log marca): as migrations são reaplicadas a cada deploy e
+        # não podem desfazer uma decisão posterior do Administrador/Tecnologia.
+        # 1) A tela de Perfis grava uma linha para TODA permissão (0 = não marcada); portanto a negação existente não é uma
+        #    decisão explícita contra a TI. Liga a linha e registra o valor anterior (0) para o rollback restaurar.
+        "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"
+        "BEGIN\n"
+        "    UPDATE pp SET permitido = 1, atualizado_em = GETDATE()\n"
+        "    OUTPUT INSERTED.id_perfil, INSERTED.chave_permissao, 'V057', 0, GETDATE()\n"
+        "        INTO dbo.modularizacao_grants_log (id_perfil, chave_permissao, migration, valor_anterior, criado_em)\n"
+        "    FROM dbo.perfil_permissoes pp\n"
+        "    INNER JOIN (VALUES\n"
+        f"            {valores}\n"
+        "        ) AS v (id_perfil, chave) ON v.id_perfil = pp.id_perfil AND v.chave = pp.chave_permissao\n"
+        "    WHERE pp.permitido = 0\n"
+        "      AND NOT EXISTS (SELECT 1 FROM dbo.modularizacao_grants_log l WHERE l.id_perfil = pp.id_perfil AND l.chave_permissao = pp.chave_permissao AND l.migration = 'V057');\n"
+        "END;",
+        # 2) Linhas que faltam são inseridas (valor_anterior NULL = a migration criou a linha).
         "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"
         "BEGIN\n"
         "    INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)\n"
-        "    OUTPUT INSERTED.id_perfil, INSERTED.chave_permissao, 'V057', GETDATE()\n"
-        "        INTO dbo.modularizacao_grants_log (id_perfil, chave_permissao, migration, criado_em)\n"
+        "    OUTPUT INSERTED.id_perfil, INSERTED.chave_permissao, 'V057', NULL, GETDATE()\n"
+        "        INTO dbo.modularizacao_grants_log (id_perfil, chave_permissao, migration, valor_anterior, criado_em)\n"
         "    SELECT v.id_perfil, v.chave, 1, GETDATE(), GETDATE()\n"
         "    FROM (VALUES\n"
         f"        {valores}\n"
         "    ) AS v (id_perfil, chave)\n"
         "    WHERE EXISTS (SELECT 1 FROM dbo.perfis p WHERE p.id_perfil = v.id_perfil)\n"
         "      AND EXISTS (SELECT 1 FROM dbo.permissoes x WHERE x.chave = v.chave)\n"
-        "      AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes e WHERE e.id_perfil = v.id_perfil AND e.chave_permissao = v.chave);\n"
+        "      AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes e WHERE e.id_perfil = v.id_perfil AND e.chave_permissao = v.chave)\n"
+        "      AND NOT EXISTS (SELECT 1 FROM dbo.modularizacao_grants_log l WHERE l.id_perfil = v.id_perfil AND l.chave_permissao = v.chave AND l.migration = 'V057');\n"
         "END;",
     ]
 
@@ -151,21 +185,27 @@ def schema_perfis_ti_statements() -> list[str]:
 def render_migration_perfis_ti_sql() -> str:
     cabecalho = (
         "-- Conecta - Modularizacao (V057): administracao completa (modulos core e tecnologia) para os perfis de TI.\n"
-        "-- Aditiva e idempotente: so insere o que falta e registra em modularizacao_grants_log. Gerada de\n"
-        "-- rh_api/repositories/modulos_schema.py.\n\n"
+        "-- Aditiva e idempotente: liga linhas negadas e insere as que faltam, cada par (perfil, permissao) uma unica vez,\n"
+        "-- registrando tudo em modularizacao_grants_log. Gerada de rh_api/repositories/modulos_schema.py.\n\n"
     )
     return cabecalho + "\n\n".join(schema_perfis_ti_statements()) + "\n"
 
 
 def render_rollback_perfis_ti_sql() -> str:
     return (
-        "-- Rollback da V057: remove de perfil_permissoes SOMENTE as linhas que a V057 criou (registradas no log).\n"
-        "-- O que ja existia antes (ou foi inserido por outro caminho) nao e tocado.\n"
+        "-- Rollback da V057: restaura SOMENTE o que a V057 mexeu (registrado no log): linhas ligadas voltam a 0 e as\n"
+        "-- linhas inseridas sao removidas. O que ja existia antes (ou foi inserido por outro caminho) nao e tocado.\n"
         "IF OBJECT_ID('dbo.modularizacao_grants_log', 'U') IS NOT NULL\n"
         "BEGIN\n"
+        "    UPDATE pp SET permitido = 0, atualizado_em = GETDATE()\n"
+        "    FROM dbo.perfil_permissoes pp\n"
+        "    INNER JOIN dbo.modularizacao_grants_log l\n"
+        "        ON l.id_perfil = pp.id_perfil AND l.chave_permissao = pp.chave_permissao AND l.migration = 'V057'\n"
+        "    WHERE l.valor_anterior = 0;\n"
         "    DELETE pp FROM dbo.perfil_permissoes pp\n"
         "    INNER JOIN dbo.modularizacao_grants_log l\n"
-        "        ON l.id_perfil = pp.id_perfil AND l.chave_permissao = pp.chave_permissao AND l.migration = 'V057';\n"
+        "        ON l.id_perfil = pp.id_perfil AND l.chave_permissao = pp.chave_permissao AND l.migration = 'V057'\n"
+        "    WHERE l.valor_anterior IS NULL;\n"
         "    DROP TABLE dbo.modularizacao_grants_log;\n"
         "END;\n"
     )

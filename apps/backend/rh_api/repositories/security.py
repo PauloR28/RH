@@ -1287,12 +1287,17 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def list_permissions(self) -> list[dict]:
+        from ..services import acesso
+
         return [
             {
                 "chave": item.key,
                 "modulo": item.module,
                 "descricao": item.description,
                 "critica": item.critical,
+                # Modularização (aditivo): módulo dono (core/rh/operacao/tecnologia) e se a permissão abre o módulo.
+                "modulo_dono": acesso.modulo_da_permissao(item.key, item.module),
+                "abre_modulo": acesso.modulo_aberto_por(item.key) is not None,
             }
             for item in PERMISSION_DEFINITIONS.values()
         ]

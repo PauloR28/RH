@@ -21,7 +21,7 @@ IF OBJECT_ID('dbo.modulos_sistema', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FR
     INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('rh', N'RH', 1, 1, 0);
 
 IF OBJECT_ID('dbo.modulos_sistema', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.modulos_sistema WHERE chave = 'operacao')
-    INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('operacao', N'Operação', 2, 1, 0);
+    INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('operacao', N'Opera' + NCHAR(231) + NCHAR(227) + N'o', 2, 1, 0);
 
 IF OBJECT_ID('dbo.modulos_sistema', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.modulos_sistema WHERE chave = 'tecnologia')
     INSERT INTO dbo.modulos_sistema (chave, nome, ordem, ativo, protegido) VALUES ('tecnologia', N'Tecnologia', 3, 1, 1);
