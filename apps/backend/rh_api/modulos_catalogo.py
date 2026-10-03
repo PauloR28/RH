@@ -14,6 +14,10 @@ MODULO_RH = "rh"
 MODULO_OPERACAO = "operacao"
 MODULO_TECNOLOGIA = "tecnologia"
 
+# Operação interna da equipe de TI no WFM (já semeada pela V051). A tela "Escalas e Plantões" do módulo tecnologia é a do WFM
+# filtrada por esta operação; o isolamento real continua no servidor (vínculos em usuarios_operacoes + wfm_scope).
+OPERACAO_TI = "TI"
+
 # chave, nome, ordem, protegido (nunca desligável). core e tecnologia são protegidos (decisão 6).
 MODULOS_PADRAO: tuple[tuple[str, str, int, bool], ...] = (
     (MODULO_CORE, "Conecta", 0, True),

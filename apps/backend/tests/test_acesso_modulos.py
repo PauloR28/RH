@@ -159,7 +159,7 @@ def test_endpoint_core_acesso_devolve_modulos_e_permissoes():
     corpo = _cliente(perms, "analista_ti").get("/core/acesso").json()
     visiveis = [x["chave"] for x in corpo["modulos"] if x["visivel"]]
     assert visiveis == ["operacao", "tecnologia"] and corpo["modulo_padrao"] == "operacao"
-    assert corpo["permissoes"] == sorted(perms)
+    assert corpo["permissoes"] == sorted(perms) and corpo["operacao_ti"] == "TI"
     assert {x["chave"]: x["protegido"] for x in corpo["modulos"]} == {"rh": False, "operacao": False, "tecnologia": True}
 
 

@@ -26,6 +26,7 @@ from ..modulos_catalogo import (
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
+    OPERACAO_TI,
     modulo_dono_padrao,
 )
 
@@ -181,6 +182,7 @@ def descrever(permissoes: Iterable[str]) -> dict:
     return {
         "modulos": modulos,
         "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
+        "operacao_ti": OPERACAO_TI,
         "permissoes": sorted(efetivas),
     }
 
