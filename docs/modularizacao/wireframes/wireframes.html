@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conecta — Wireframes da modularização</title>
+<style>
+  /* Baixa fidelidade: cinzas + a cor da operação (--op). Grade de 8px. Sem gradiente. */
+  :root{--op:#086fca;--op-soft:#eaf3fb;--bg:#f4f7fb;--surface:#fff;--line:#dbe4f0;--line-strong:#c7d3e3;--ink:#101d33;--ink2:#4d5f79;--ink3:#7a8aa3;--ok:#13795b;--warn:#b97810;--danger:#c23b4d;--r:8px;--r-sm:6px}
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9eef7;color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
+  .doc{max-width:1200px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:24px;margin:0 0 8px} h2{font-size:18px;margin:0 0 8px} h3{font-size:14px;margin:0 0 8px}
+  .lede{color:var(--ink2);margin:0 0 24px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+  .tab{border:1px solid var(--line-strong);background:#fff;border-radius:var(--r-sm);padding:8px 16px;cursor:pointer;font:inherit;color:var(--ink2)}
+  .tab[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .panel{display:none}.panel.on{display:block}
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:24px}
+  .note{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .note ol{margin:0;padding-left:24px}.note li{margin-bottom:8px}
+  .badge-n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#e2921a;color:#fff;font-size:11px;font-weight:700;margin-right:4px;vertical-align:middle}
+  /* "tela" */
+  .screen{background:var(--bg);border:1px solid var(--line-strong);border-radius:12px;overflow:hidden;margin-bottom:24px}
+  .cap{font-size:12px;color:var(--ink3);margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em}
+  .topnav{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px;position:relative}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700}
+  .logo i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--op);display:inline-block}
+  .modsel{display:flex;align-items:center;gap:8px;margin-left:8px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:#fff;font:inherit;cursor:pointer}
+  .modsel .nm{font-weight:600}
+  .navitem{padding:8px 12px;border-radius:var(--r-sm);color:var(--ink2);white-space:nowrap}
+  .navitem.on{background:var(--op-soft);color:var(--op);font-weight:600}
+  .grow{flex:1}.user{display:flex;align-items:center;gap:8px;color:var(--ink2)}
+  .av{width:32px;height:32px;border-radius:50%;background:var(--line-strong);display:inline-block}
+  .menu{position:absolute;top:56px;left:152px;width:280px;background:#fff;border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:0 8px 24px rgba(12,31,58,.12);padding:8px;z-index:5;display:none}
+  .menu.open{display:block}
+  .menu .opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-sm);cursor:pointer}
+  .menu .opt:hover{background:var(--bg)}.menu .opt.cur{background:var(--op-soft)}
+  .menu small{display:block;color:var(--ink3)}
+  .ico{width:32px;height:32px;border:1px dashed var(--line-strong);border-radius:var(--r-sm);display:inline-grid;place-items:center;color:var(--ink3);font-size:11px;flex:none}
+  .body{padding:24px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px;flex:1 1 240px;box-shadow:0 1px 2px rgba(15,33,57,.04)}
+  .card h3{display:flex;align-items:center;gap:8px}
+  .muted{color:var(--ink3);font-size:12px}
+  .btn{border:1px solid var(--line-strong);background:#fff;border-radius:var(--r-sm);padding:8px 16px;font:inherit;cursor:pointer}
+  .btn.pri{background:var(--op);border-color:var(--op);color:#fff}.btn.dang{background:#fff;color:var(--danger);border-color:var(--danger)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}.kpi b{font-size:24px;display:block}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line-strong);color:var(--ink2)}
+  .pill.ok{color:var(--ok);border-color:#b8e3d4;background:#e7f7f1}.pill.warn{color:var(--warn);border-color:#f0d9a8;background:#fff4de}.pill.lock{background:var(--bg)}
+  .tile{display:flex;gap:12px;align-items:flex-start;padding:16px;background:#fff;border:1px solid var(--line);border-radius:var(--r);cursor:pointer}
+  .tile:hover{border-color:var(--op)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(256px,1fr));gap:16px}
+  .sw{width:40px;height:24px;border-radius:12px;background:var(--line-strong);position:relative;display:inline-block;flex:none;cursor:pointer;border:0}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .14s}
+  .sw.on{background:var(--op)}.sw.on::after{left:18px}.sw.lock{opacity:.45;cursor:not-allowed}
+  .line{display:flex;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}.line:first-child{border-top:0}
+  .line .t{flex:1}
+  .split{display:grid;grid-template-columns:264px 1fr;gap:24px}
+  @media(max-width:860px){.split{grid-template-columns:1fr}.menu{left:16px}}
+  .plist{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:8px}
+  .pi{padding:12px;border-radius:var(--r-sm);cursor:pointer;display:flex;gap:8px;align-items:center}.pi.on{background:var(--op-soft);color:var(--op);font-weight:600}
+  .mtabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
+  .mt{padding:8px 16px;border-bottom:2px solid transparent;cursor:pointer;color:var(--ink2)}.mt.on{border-color:var(--op);color:var(--op);font-weight:600}
+  .grp{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px}
+  .grp>header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-weight:600}
+  .grp .line{padding:12px 16px}
+  .banner{border:1px solid #f0d9a8;background:#fff4de;border-radius:var(--r);padding:12px 16px;margin-bottom:16px;color:#7a5106}
+  .banner.info{border-color:#bfe0f2;background:#eaf7fd;color:#0c5a82}
+  .modal-bg{display:none;position:absolute;inset:0;background:rgba(16,29,51,.4);place-items:center;z-index:9}
+  .modal-bg.open{display:grid}
+  .modal{background:#fff;border-radius:12px;padding:24px;width:min(480px,92%);box-shadow:0 12px 40px rgba(12,31,58,.14)}
+  .rel{position:relative}
+  code{background:#eef2f8;padding:1px 6px;border-radius:4px;font-size:12px}
+  .mobile-note{display:flex;gap:16px;flex-wrap:wrap}
+  .phone{width:320px;border:1px solid var(--line-strong);border-radius:16px;overflow:hidden;background:var(--bg)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Conecta — Wireframes da modularização (Etapa 6)</h1>
+  <p class="lede">Baixa fidelidade, navegável: clique no seletor de módulo, nos interruptores, nas abas e no botão de liberação do WFM. A cor azul representa a <b>cor da operação</b> do usuário (muda por operação, como hoje; módulos não têm cor própria). Padrão visual atual: navbar no topo, grade de 8 px, bordas de 1 px, cantos de 6–8 px, sem gradiente.</p>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" aria-selected="true" data-p="p1">1 · Seletor de módulo (navbar)</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="p2">2 · Tecnologia — tela inicial</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="p3">3 · Perfis e Permissões por módulo</button>
+  </div>
+
+  <!-- ======================= 1 SELETOR ======================= -->
+  <section class="panel on" id="p1">
+    <h2>Seletor de módulo na navbar</h2>
+    <p class="cap">A · Analista de TI (2 módulos: Operação e Tecnologia) — clique no seletor</p>
+    <div class="screen rel" id="scrA">
+      <div class="topnav">
+        <div class="logo"><i></i> Conecta</div>
+        <button class="modsel" id="modbtn" aria-haspopup="true"><span class="ico">▦</span><span class="nm">Tecnologia</span><span>▾</span></button>
+        <span class="navitem on">Início</span><span class="navitem">Escalas e Plantões</span><span class="navitem">Usuários</span><span class="navitem">Perfis e permissões</span><span class="navitem">Auditoria</span>
+        <span class="grow"></span><span class="user"><span class="ico">🔔</span><span class="av"></span> Ana (TI)</span>
+        <div class="menu" id="modmenu" role="menu">
+          <div class="muted" style="padding:8px 12px">Seus módulos</div>
+          <div class="opt" data-n="Operação"><span class="ico">▦</span><div><b>Operação</b><small>Turnos e Plantões, Monitoria</small></div></div>
+          <div class="opt cur" data-n="Tecnologia"><span class="ico">▦</span><div><b>Tecnologia</b><small>Administração do Conecta</small></div></div>
+        </div>
+      </div>
+      <div class="body"><div class="card" style="min-height:96px"><span class="muted">Conteúdo do módulo selecionado. Ao trocar, o usuário vai para a tela inicial daquele módulo e o menu se refaz a partir de <code>GET /core/acesso</code>.</span></div></div>
+    </div>
+
+    <p class="cap">B · Analista de RH (só o módulo RH): <u>sem seletor</u> — o Gestor (RH + Operação) tem seletor, como o exemplo A</p>
+    <div class="screen">
+      <div class="topnav">
+        <div class="logo"><i></i> Conecta</div>
+        <span class="navitem on">Início</span><span class="navitem">Caixa de Currículos</span><span class="navitem">Processos</span><span class="navitem">Provas</span><span class="navitem">Treinamentos</span><span class="navitem">Mural</span>
+        <span class="grow"></span><span class="user"><span class="ico">🔔</span><span class="av"></span> Rita (RH)</span>
+      </div>
+      <div class="body"><span class="muted">Quem tem um só módulo cai direto nele: nada de seletor, nem espaço reservado, e o nome do módulo não aparece ao lado do logo.</span></div>
+    </div>
+
+    <p class="cap">C · Mobile (&lt; 768 px): seletor vira item no menu recolhido</p>
+    <div class="mobile-note">
+      <div class="phone"><div class="topnav" style="height:48px"><span class="ico">☰</span><div class="logo"><i style="width:24px;height:24px"></i></div><button class="modsel" style="margin-left:auto;padding:4px 8px"><span class="nm">Tecnologia</span> ▾</button></div><div class="body"><span class="muted">Nome do módulo ao lado do logo, igual ao desktop.</span></div></div>
+    </div>
+
+    <div class="legend">
+      <div class="note"><h3>Regras desta tela</h3><ol>
+        <li><span class="badge-n">1</span>O seletor só renderiza com <b>2 ou mais</b> módulos visíveis; o nome do módulo fica ao lado do logo.</li>
+        <li><span class="badge-n">2</span>O <b>core</b> nunca aparece como módulo. Módulo desativado some do seletor.</li>
+        <li><span class="badge-n">3</span>A escolha é lembrada no navegador; o padrão é o primeiro módulo visível (<code>modulo_padrao</code>).</li>
+        <li><span class="badge-n">4</span>Sem cor própria: só a cor da operação continua mudando o tema.</li></ol></div>
+      <div class="note"><h3>Quem vê o quê (matriz do plano)</h3><ol>
+        <li>Administrador: RH · Operação · Tecnologia (seletor)</li><li>Gestor: RH · Operação (seletor)</li>
+        <li>Analista de TI: Operação · Tecnologia (seletor); Técnicos: Tecnologia (+ Operação com o WFM liberado)</li>
+        <li>Analista, DP, Estagiário: só RH · Supervisor, Control Desk, Qualidade, Operador: só Operação · Funcionário: só o essencial (core)</li></ol></div>
+    </div>
+  </section>
+
+  <!-- ======================= 2 TECNOLOGIA ======================= -->
+  <section class="panel" id="p2">
+    <h2>Tecnologia — tela inicial (centro de administração)</h2>
+    <p class="cap">100% administração: de onde se administra tudo do Conecta</p>
+    <div class="screen rel" id="scrB">
+      <div class="topnav">
+        <div class="logo"><i></i> Conecta</div>
+        <button class="modsel"><span class="ico">▦</span><span class="nm">Tecnologia</span><span>▾</span></button>
+        <span class="navitem on">Início</span><span class="navitem">Acessos ▾</span><span class="navitem">Sistema ▾</span><span class="navitem">Auditoria</span><span class="navitem">Escalas e Plantões</span>
+        <span class="grow"></span><span class="user"><span class="av"></span> Ana (TI)</span>
+      </div>
+      <div class="body">
+        <h2 style="margin-bottom:4px">Administração do Conecta</h2>
+        <p class="muted" style="margin:0 0 24px">Tudo o que governa o sistema, em um só lugar. Quem controla permissões de qualquer módulo é a Tecnologia.</p>
+
+        <div class="kpis">
+          <div class="kpi"><span class="muted">Módulos ativos</span><b>3 de 3</b><span class="pill ok">core · rh · operação · tecnologia</span></div>
+          <div class="kpi"><span class="muted">Usuários ativos</span><b>128</b><span class="muted">4 bloqueados</span></div>
+          <div class="kpi"><span class="muted">WFM para participantes</span><b>Fechado</b><span class="pill warn">fase de teste</span></div>
+          <div class="kpi"><span class="muted">Acessos negados (24 h)</span><b>7</b><span class="muted">ver auditoria</span></div>
+        </div>
+
+        <h3>Áreas de administração</h3>
+        <div class="tiles" style="margin-bottom:24px">
+          <div class="tile"><span class="ico">👥</span><div><b>Usuários</b><div class="muted">Criar, editar, bloquear, redefinir senha. Perfil Administrador só por Administrador.</div></div></div>
+          <div class="tile"><span class="ico">🛡</span><div><b>Perfis e permissões</b><div class="muted">Agrupadas por módulo (RH, Operação, Tecnologia, Núcleo).</div></div></div>
+          <div class="tile"><span class="ico">🏢</span><div><b>Operações</b><div class="muted">Cadastro, tema e logo por operação, vínculos.</div></div></div>
+          <div class="tile"><span class="ico">▦</span><div><b>Módulos</b><div class="muted">Ativar/desativar RH e Operação. Núcleo e Tecnologia são protegidos.</div></div></div>
+          <div class="tile"><span class="ico">🔌</span><div><b>Integrações</b><div class="muted">Microsoft 365, SharePoint, e-mail. Segredos ficam no servidor, não na tela.</div></div></div>
+          <div class="tile"><span class="ico">⚙</span><div><b>Configurações globais</b><div class="muted">Catálogos, LGPD e retenção, notificações, parâmetros de negócio.</div></div></div>
+          <div class="tile"><span class="ico">📜</span><div><b>Auditoria</b><div class="muted">Logs de acesso e de alterações, exportação.</div></div></div>
+          <div class="tile"><span class="ico">📅</span><div><b>Escalas e Plantões (TI)</b><div class="muted">Tela do WFM filtrada pela operação TI — a mesma tela, sem cópia.</div></div></div>
+        </div>
+
+        <div class="row">
+          <div class="card" style="flex:2 1 400px">
+            <h3>Ativação de módulos</h3>
+            <div class="line"><div class="t"><b>Núcleo (core)</b><div class="muted">Login, usuários, perfis, operações, notificações</div></div><span class="pill lock">protegido</span><button class="sw on lock" disabled aria-label="core"></button></div>
+            <div class="line"><div class="t"><b>RH</b><div class="muted">Currículos, Processos, Provas, Treinamentos (gestão)</div></div><span class="pill ok" id="st-rh">ativo</span><button class="sw on" data-mod="rh" aria-label="RH"></button></div>
+            <div class="line"><div class="t"><b>Operação</b><div class="muted">Monitoria, Turnos e Plantões</div></div><span class="pill ok" id="st-op">ativo</span><button class="sw on" data-mod="op" aria-label="Operação"></button></div>
+            <div class="line"><div class="t"><b>Tecnologia</b><div class="muted">Esta administração</div></div><span class="pill lock">protegido</span><button class="sw on lock" disabled aria-label="tecnologia"></button></div>
+            <div class="muted" style="margin-top:8px" id="modnote">Desligar um módulo esconde as telas e bloqueia as rotas dele no servidor. O app de treinamento (autoatendimento) continua funcionando.</div>
+          </div>
+          <div class="card" style="flex:1 1 300px">
+            <h3>WFM para participantes</h3>
+            <p class="muted" style="margin-top:0">Libera Turnos e Plantões para Operador, Técnico de TI e Qualidade (fase de teste).</p>
+            <div class="line"><div class="t"><b id="wfmst">Fechado</b></div><span class="pill" id="wfmorig">origem: banco</span></div>
+            <button class="btn pri" id="wfmbtn">Liberar para participantes…</button>
+            <p class="muted" style="margin-bottom:0">Ao liberar, só esses perfis refazem o login. Fica registrado em auditoria (quem, quando, de → para).</p>
+            <label class="muted" style="display:block;margin-top:8px"><input type="checkbox" id="envchk"> simular: variável de ambiente definida (botão desabilitado e aviso “controlado pelo ambiente”)</label>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Atividade recente</h3>
+          <div class="line"><span class="pill">hoje 09:12</span><div class="t">Ana (TI) alterou o perfil de <b>Supervisor</b> (+2 permissões)</div></div>
+          <div class="line"><span class="pill">ontem 17:40</span><div class="t">Carlos (TI) bloqueou o usuário <b>lucas.m</b></div></div>
+          <div class="line"><span class="pill">ontem 10:03</span><div class="t">Sistema: WFM para participantes <b>fechado</b> (valor inicial = ambiente)</div></div>
+        </div>
+      </div>
+      <div class="modal-bg" id="wfmmodal"><div class="modal">
+        <h3 id="mtitle">Liberar Turnos e Plantões?</h3>
+        <p class="muted">Operador, Técnico de TI e Qualidade passam a acessar o WFM. Eles precisarão entrar de novo. Esta ação é registrada em auditoria.</p>
+        <label class="muted">Justificativa (opcional)<br><input style="width:100%;padding:8px;border:1px solid var(--line-strong);border-radius:6px;margin-top:4px" placeholder="ex.: início do piloto com a equipe de atendimento"></label>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" id="mcancel">Cancelar</button><button class="btn pri" id="mok">Confirmar</button></div>
+      </div></div>
+    </div>
+    <div class="legend">
+      <div class="note"><h3>Notas</h3><ol>
+        <li><span class="badge-n">1</span>Menu da Tecnologia é todo administração, em poucos grupos: <b>Acessos</b> (Usuários, Perfis e permissões, Operações), <b>Sistema</b> (Módulos, Integrações, Configurações globais), <b>Auditoria</b>. <b>Escalas e Plantões</b> é a tela emprestada do WFM, filtrada pela operação TI. Abaixo de 1200 px o menu vira só ícones, como hoje.</li>
+        <li><span class="badge-n">2</span>Módulos <b>protegidos</b> mostram o interruptor travado — não há como se trancar para fora.</li>
+        <li><span class="badge-n">3</span>O botão do WFM <b>exige confirmação</b>; com a variável de ambiente definida ele fica desabilitado e explica o porquê (transição de homologação).</li>
+        <li><span class="badge-n">4</span>Cards de administração são links para as telas já existentes (Usuários, Perfis, Operações, Logs…) reorganizadas sob este módulo; novas: Módulos, WFM e Integrações (somente status, sem segredos).</li></ol></div>
+      <div class="note"><h3>Estados</h3><ol>
+        <li>Módulo desativado: interruptor desligado, tag “desativado”, aviso do que deixa de funcionar.</li>
+        <li>Sem permissão de editar (<code>configuracoes.editar</code>): interruptores e botão viram somente leitura.</li>
+        <li>Erro ao salvar: mensagem inline no cartão, valor volta ao anterior.</li></ol></div>
+    </div>
+  </section>
+
+  <!-- ======================= 3 PERFIS ======================= -->
+  <section class="panel" id="p3">
+    <h2>Perfis e Permissões — agrupado por módulo</h2>
+    <p class="cap">Hoje: uma lista por “sessão”. Proposta: abas por módulo, grupos dentro de cada aba</p>
+    <div class="screen">
+      <div class="topnav">
+        <div class="logo"><i></i> Conecta</div>
+        <button class="modsel"><span class="ico">▦</span><span class="nm">Tecnologia</span><span>▾</span></button>
+        <span class="navitem">Início</span><span class="navitem">Usuários</span><span class="navitem on">Perfis e permissões</span><span class="navitem">Operações</span><span class="navitem">Módulos</span><span class="navitem">Auditoria</span>
+        <span class="grow"></span><span class="user"><span class="av"></span> Ana (TI)</span>
+      </div>
+      <div class="body">
+        <div class="banner">Perfil <b>Administrador</b>: somente um Administrador pode editar. Você está vendo este perfil em leitura.</div>
+        <div class="split">
+          <div class="plist" id="plist">
+            <div class="muted" style="padding:8px 12px">Perfis</div>
+            <div class="pi on" data-n="Supervisor">🛡 Supervisor</div><div class="pi" data-n="Gestor">🛡 Gestor</div><div class="pi" data-n="Analista (RH)">🛡 Analista (RH)</div><div class="pi" data-n="Control Desk">🛡 Control Desk</div><div class="pi" data-n="Operador">🛡 Operador</div><div class="pi" data-n="Qualidade">🛡 Qualidade</div><div class="pi" data-n="Analista de TI">🛡 Analista de TI</div><div class="pi" data-n="Administrador">🔒 Administrador</div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+              <div style="flex:1 1 240px"><h3 id="ptitle" style="margin-bottom:4px">Supervisor</h3><span class="muted">Este perfil enxerga os módulos:</span> <span class="pill ok">Operação</span> <span class="pill">Núcleo</span></div>
+              <button class="btn pri">Salvar alterações</button>
+            </div>
+            <div class="mtabs" id="mtabs">
+              <div class="mt on" data-m="op">Operação <span class="pill">27</span></div><div class="mt" data-m="rh">RH <span class="pill">7</span></div><div class="mt" data-m="tec">Tecnologia <span class="pill">0</span></div><div class="mt" data-m="core">Núcleo <span class="pill">3</span></div>
+            </div>
+            <div id="mbody">
+              <div class="grp"><header>Monitoria <span class="pill">grupo</span><span class="grow"></span><span class="muted">interruptor-mestre da sessão</span><button class="sw on" aria-label="sessão"></button></header>
+                <div class="line"><div class="t">Realizar (registrar) monitorias <div class="muted"><code>monitoria.criar</code> · crítica</div></div><span class="pill lock">módulo: Operação</span><button class="sw on" aria-label=""></button></div>
+                <div class="line"><div class="t">Aplicar feedback <div class="muted"><code>monitoria.feedback_aplicar</code></div></div><span class="pill lock">módulo: Operação</span><button class="sw on" aria-label=""></button></div>
+                <div class="line"><div class="t">Exportar e compartilhar <div class="muted"><code>monitoria.exportar</code> · crítica</div></div><span class="pill lock">módulo: Operação</span><button class="sw on" aria-label=""></button></div>
+              </div>
+              <div class="grp"><header>Turnos e Plantões (WFM) <span class="pill">grupo</span><span class="grow"></span><button class="sw on" aria-label="sessão"></button></header>
+                <div class="line"><div class="t">Montar a escala mensal <div class="muted"><code>wfm.escala.editar</code> · crítica</div></div><span class="pill lock">módulo: Operação</span><button class="sw on" aria-label=""></button></div>
+                <div class="line"><div class="t">Criar e configurar escalas <div class="muted"><code>wfm.escala.criar</code> · crítica</div></div><span class="pill lock">módulo: Operação</span><button class="sw on" aria-label=""></button></div>
+              </div>
+              <div class="muted">Relatórios exibe o módulo dono “Tecnologia” (configurável): <a href="#" onclick="return false">mover permissão de módulo…</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="note"><h3>Notas</h3><ol>
+        <li><span class="badge-n">1</span>As <b>abas são os módulos</b>; dentro, os grupos atuais (Monitoria, WFM, Candidatos…). O interruptor do cabeçalho do grupo é a chave-mestra da sessão, como hoje.</li>
+        <li><span class="badge-n">2</span>Cada permissão mostra seu <b>módulo dono</b> (chip). Quem tem <code>configuracoes.editar</code> pode reatribuí-lo (ex.: Relatórios) — ação auditada.</li>
+        <li><span class="badge-n">3</span>O resumo no topo calcula <b>quais módulos o perfil enxerga</b> pela regra do plano (só as 6 permissões que “abrem” módulo), para ver o efeito antes de salvar.</li>
+        <li><span class="badge-n">4</span>A permissão que abre a Tecnologia não pode ser movida nem retirada de todos (evita trancar a administração).</li>
+        <li><span class="badge-n">5</span>Perfil Administrador: edição só por Administrador (aviso e interruptores travados para a TI).</li></ol></div>
+      <div class="note"><h3>Perfis de TI</h3><ol><li>Analista de TI e Técnicos: administração completa de Núcleo + Tecnologia.</li><li>Só o Analista monta/cria escala: <code>wfm.escala.criar</code> e <code>editar</code> ficam desligadas para os Técnicos (editável aqui).</li></ol></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+$$('#tabs .tab').forEach(t=>t.onclick=()=>{$$('#tabs .tab').forEach(x=>x.setAttribute('aria-selected',x===t));$$('.panel').forEach(p=>p.classList.toggle('on',p.id===t.dataset.p));});
+// seletor
+const mb=$('#modbtn'), mm=$('#modmenu');
+mb.onclick=e=>{e.stopPropagation();mm.classList.toggle('open')};
+document.addEventListener('click',()=>mm.classList.remove('open'));
+$$('#modmenu .opt').forEach(o=>o.onclick=()=>{ $('.nm',mb).textContent=o.dataset.n; $$('#modmenu .opt').forEach(x=>x.classList.toggle('cur',x===o)); mm.classList.remove('open'); });
+// switches
+document.addEventListener('click',e=>{const s=e.target.closest('.sw');if(!s||s.classList.contains('lock'))return;s.classList.toggle('on');
+  if(s.dataset.mod){const on=s.classList.contains('on');const st=$('#st-'+s.dataset.mod);st.textContent=on?'ativo':'desativado';st.className='pill '+(on?'ok':'warn');}});
+// WFM
+let wfm=false;
+function envState(){const env=$('#envchk').checked;$('#wfmbtn').disabled=env;$('#wfmorig').textContent=env?'origem: variável de ambiente':'origem: banco';
+  $('#wfmbtn').textContent=env?'Controlado pelo ambiente':(wfm?'Fechar para participantes…':'Liberar para participantes…');}
+$('#envchk').onchange=envState;
+$('#wfmbtn').onclick=()=>{$('#mtitle').textContent=wfm?'Fechar Turnos e Plantões?':'Liberar Turnos e Plantões?';$('#wfmmodal').classList.add('open')};
+$('#mcancel').onclick=()=>$('#wfmmodal').classList.remove('open');
+$('#mok').onclick=()=>{wfm=!wfm;$('#wfmst').textContent=wfm?'Liberado':'Fechado';$('#wfmmodal').classList.remove('open');envState();};
+// perfis
+$$('#plist .pi').forEach(p=>p.onclick=()=>{$$('#plist .pi').forEach(x=>x.classList.toggle('on',x===p));$('#ptitle').textContent=p.dataset.n;});
+const corpos={
+ op:$('#mbody').innerHTML,
+ rh:'<div class="grp"><header>Processos <span class="pill">grupo</span><span class="grow"></span><button class="sw" aria-label=""></button></header><div class="line"><div class="t">Visualizar processos <div class="muted"><code>processos.visualizar</code></div></div><span class="pill lock">módulo: RH</span><button class="sw on" aria-label=""></button></div></div><div class="grp"><header>E-mails <span class="pill">grupo</span></header><div class="line"><div class="t">Enviar e-mail por modelo <div class="muted"><code>emails.enviar_modelo</code></div></div><span class="pill lock">módulo: RH</span><button class="sw" aria-label=""></button></div></div><div class="muted">As sessões de RH (Currículos, Processos, Provas) é que “abrem” o módulo RH para o perfil.</div>',
+ tec:'<div class="grp"><header>Relatórios <span class="pill">grupo</span></header><div class="line"><div class="t">Visualizar relatórios <div class="muted"><code>relatorios.visualizar</code> · não abre o módulo</div></div><span class="pill lock">módulo: Tecnologia ▾</span><button class="sw" aria-label=""></button></div></div><div class="muted">Este perfil não abre o módulo Tecnologia (nenhuma permissão que o abre está ligada).</div>',
+ core:'<div class="grp"><header>Início e notificações <span class="pill">grupo</span></header><div class="line"><div class="t">Página inicial <div class="muted"><code>inicio.visualizar</code></div></div><span class="pill lock">módulo: Núcleo</span><button class="sw on" aria-label=""></button></div><div class="line"><div class="t">Treinamentos atribuídos a mim <div class="muted"><code>onboarding.visualizar</code> · autoatendimento</div></div><span class="pill lock">módulo: Núcleo</span><button class="sw on" aria-label=""></button></div></div>'};
+$$('#mtabs .mt').forEach(t=>t.onclick=()=>{$$('#mtabs .mt').forEach(x=>x.classList.toggle('on',x===t));$('#mbody').innerHTML=corpos[t.dataset.m];});
+</script>
+</body>
+</html>
