@@ -1,0 +1,1198 @@
+{
+ "/analises-curriculo-ia/{id_analise}/marcar-revisada": [
+  "POST"
+ ],
+ "/answer-files": [
+  "GET",
+  "POST"
+ ],
+ "/api/status": [
+  "GET"
+ ],
+ "/auth/app/login-email": [
+  "POST"
+ ],
+ "/auth/login": [
+  "POST"
+ ],
+ "/auth/logout": [
+  "POST"
+ ],
+ "/auth/me": [
+  "GET"
+ ],
+ "/auth/me/ativar-login-local": [
+  "POST"
+ ],
+ "/auth/me/avatar": [
+  "PUT"
+ ],
+ "/auth/me/cargo": [
+  "PUT"
+ ],
+ "/auth/me/email": [
+  "PUT"
+ ],
+ "/auth/me/nome": [
+  "PUT"
+ ],
+ "/auth/me/provedor-autenticacao": [
+  "PUT"
+ ],
+ "/auth/me/senha": [
+  "PUT"
+ ],
+ "/auth/me/senha-inicial": [
+  "POST"
+ ],
+ "/auth/me/sobrenome": [
+  "PUT"
+ ],
+ "/auth/mfa/enable": [
+  "POST"
+ ],
+ "/auth/mfa/setup": [
+  "POST"
+ ],
+ "/auth/microsoft/complete": [
+  "POST"
+ ],
+ "/calendar/events": [
+  "GET"
+ ],
+ "/candidate-analytics": [
+  "GET"
+ ],
+ "/candidate-analytics/{id_teste}": [
+  "GET"
+ ],
+ "/candidate-pipeline": [
+  "GET",
+  "POST"
+ ],
+ "/candidate-pipeline/{id_registro}": [
+  "DELETE"
+ ],
+ "/candidate-pipeline/{id_registro}/stage": [
+  "PUT"
+ ],
+ "/candidate-profiles/{id_teste}": [
+  "PUT"
+ ],
+ "/candidate-profiles/{id_teste}/analyze-cv": [
+  "POST"
+ ],
+ "/candidate-profiles/{id_teste}/anonimizar": [
+  "POST"
+ ],
+ "/candidate-profiles/{id_teste}/cv": [
+  "GET",
+  "POST"
+ ],
+ "/candidate-profiles/{id_teste}/cv-contact": [
+  "POST"
+ ],
+ "/candidate-profiles/{id_teste}/sheet": [
+  "GET",
+  "PUT"
+ ],
+ "/candidate-profiles/{id_teste}/status": [
+  "PUT"
+ ],
+ "/celebratory-dates": [
+  "GET",
+  "POST"
+ ],
+ "/celebratory-dates/ambientes": [
+  "GET"
+ ],
+ "/celebratory-dates/endereco-empresa": [
+  "GET"
+ ],
+ "/celebratory-dates/imagens": [
+  "POST"
+ ],
+ "/celebratory-dates/imagens/{nome_arquivo}": [
+  "GET"
+ ],
+ "/celebratory-dates/{id_data}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/conecta-provas-api/acesso/codigo": [
+  "POST"
+ ],
+ "/conecta-provas-api/acesso/email": [
+  "POST"
+ ],
+ "/conecta-provas-api/acesso/telefone": [
+  "POST"
+ ],
+ "/conecta-provas-api/concluir-etapa": [
+  "POST"
+ ],
+ "/conecta-provas-api/confirmar-dados": [
+  "POST"
+ ],
+ "/conecta-provas-api/finalizar": [
+  "POST"
+ ],
+ "/conecta-provas-api/iniciar": [
+  "POST"
+ ],
+ "/conecta-provas-api/iniciar-etapa": [
+  "POST"
+ ],
+ "/conecta-provas-api/interromper-etapa": [
+  "POST"
+ ],
+ "/conecta-provas-api/respostas": [
+  "POST"
+ ],
+ "/conecta-provas-api/revisao": [
+  "POST"
+ ],
+ "/conecta-provas-api/sessao": [
+  "POST"
+ ],
+ "/curriculos-ia/configuracao": [
+  "GET"
+ ],
+ "/curriculos/{id_candidato}/analisar-ia": [
+  "POST"
+ ],
+ "/curriculos/{id_candidato}/analises-ia": [
+  "GET"
+ ],
+ "/curriculos/{id_candidato}/analises-ia/ultima": [
+  "GET"
+ ],
+ "/cv-pre-analyses/{id_pre_analise}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/cv-pre-analyses/{id_pre_analise}/add-to-process": [
+  "POST"
+ ],
+ "/cv-pre-analyses/{id_pre_analise}/dismiss": [
+  "POST"
+ ],
+ "/cv-pre-analyses/{id_pre_analise}/talent-bank": [
+  "POST"
+ ],
+ "/debug/gabaritos-columns": [
+  "GET"
+ ],
+ "/debug/historico-provas-columns": [
+  "GET"
+ ],
+ "/disc-api/aplicacoes/{id_aplicacao}": [
+  "GET"
+ ],
+ "/disc-api/aplicacoes/{id_aplicacao}/finalizar": [
+  "POST"
+ ],
+ "/disc/aplicacoes": [
+  "POST"
+ ],
+ "/disc/aplicacoes/{id_aplicacao}": [
+  "GET"
+ ],
+ "/disc/blocos": [
+  "GET",
+  "POST"
+ ],
+ "/disc/blocos/{id_bloco}": [
+  "PUT"
+ ],
+ "/disc/candidatos/{id_teste}/resultado": [
+  "GET"
+ ],
+ "/document-templates": [
+  "GET",
+  "POST"
+ ],
+ "/document-templates/gerar": [
+  "POST"
+ ],
+ "/document-templates/variables": [
+  "GET"
+ ],
+ "/document-templates/{id_template}": [
+  "DELETE",
+  "GET",
+  "PUT"
+ ],
+ "/documentos-biblioteca": [
+  "GET",
+  "POST"
+ ],
+ "/documentos-biblioteca/{id_documento}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/email-inbox": [
+  "GET"
+ ],
+ "/email-inbox/messages": [
+  "GET"
+ ],
+ "/email-inbox/messages/manual": [
+  "POST"
+ ],
+ "/email-inbox/messages/manual-estruturado": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}": [
+  "DELETE",
+  "GET"
+ ],
+ "/email-inbox/messages/{item_id}/analyze-cv": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}/attachment": [
+  "GET"
+ ],
+ "/email-inbox/messages/{item_id}/attachment/{attachment_id}": [
+  "GET"
+ ],
+ "/email-inbox/messages/{item_id}/download-attachments": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}/ignore": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}/link-process": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}/mark-read": [
+  "POST"
+ ],
+ "/email-inbox/messages/{item_id}/talent-bank": [
+  "POST"
+ ],
+ "/email-inbox/status": [
+  "GET"
+ ],
+ "/email-inbox/{item_id}": [
+  "GET"
+ ],
+ "/email-inbox/{item_id}/analyze-cv": [
+  "POST"
+ ],
+ "/email-inbox/{item_id}/ignore": [
+  "POST"
+ ],
+ "/email-inbox/{item_id}/link-process": [
+  "POST"
+ ],
+ "/email-inbox/{item_id}/talent-bank": [
+  "POST"
+ ],
+ "/emails/enviar": [
+  "POST"
+ ],
+ "/emails/modelos": [
+  "GET"
+ ],
+ "/fit-cultural-api/frases": [
+  "GET"
+ ],
+ "/fit-cultural-api/respostas": [
+  "POST"
+ ],
+ "/fit-cultural/candidatos/{candidato_processo_id}/resultado": [
+  "GET"
+ ],
+ "/fit-cultural/valores": [
+  "GET",
+  "POST"
+ ],
+ "/fit-cultural/valores/{id_valor}": [
+  "PUT"
+ ],
+ "/generated-exams": [
+  "GET",
+  "POST"
+ ],
+ "/generated-exams/question-heatmap": [
+  "GET"
+ ],
+ "/generated-exams/{id_prova}": [
+  "DELETE",
+  "GET",
+  "PUT"
+ ],
+ "/generated-exams/{id_prova}/cancel": [
+  "POST"
+ ],
+ "/generated-exams/{id_prova}/decision": [
+  "POST"
+ ],
+ "/generated-exams/{id_prova}/manual-evaluation": [
+  "POST"
+ ],
+ "/generated-exams/{id_prova}/preview-session": [
+  "GET"
+ ],
+ "/generated-exams/{id_prova}/reopen": [
+  "POST"
+ ],
+ "/generated-exams/{id_prova}/replay": [
+  "GET"
+ ],
+ "/generated-exams/{id_prova}/score/recalculate": [
+  "POST"
+ ],
+ "/health": [
+  "GET"
+ ],
+ "/history": [
+  "GET",
+  "POST"
+ ],
+ "/interview-slots": [
+  "GET",
+  "POST"
+ ],
+ "/interview-slots/{id_slot}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/interviews": [
+  "GET",
+  "POST"
+ ],
+ "/interviews/{id_entrevista}": [
+  "PUT"
+ ],
+ "/monitoria/anexos/{id_anexo}": [
+  "GET"
+ ],
+ "/monitoria/calcular": [
+  "POST"
+ ],
+ "/monitoria/catalogo": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/catalogo/{id_item}": [
+  "PUT"
+ ],
+ "/monitoria/compartilhar": [
+  "POST"
+ ],
+ "/monitoria/config": [
+  "GET",
+  "PUT"
+ ],
+ "/monitoria/contexto": [
+  "GET"
+ ],
+ "/monitoria/dashboard": [
+  "GET"
+ ],
+ "/monitoria/destinatarios": [
+  "GET"
+ ],
+ "/monitoria/equipes": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/equipes/{id_equipe}": [
+  "PUT"
+ ],
+ "/monitoria/exportar/monitorias": [
+  "POST"
+ ],
+ "/monitoria/guia": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/guia/{id_guia}": [
+  "PUT"
+ ],
+ "/monitoria/identidade": [
+  "GET"
+ ],
+ "/monitoria/identidade/{operacao}": [
+  "PUT"
+ ],
+ "/monitoria/identidade/{operacao}/logo": [
+  "POST"
+ ],
+ "/monitoria/logos/{arquivo}": [
+  "GET"
+ ],
+ "/monitoria/logs": [
+  "GET"
+ ],
+ "/monitoria/matriz": [
+  "GET",
+  "PUT"
+ ],
+ "/monitoria/matriz/formularios": [
+  "GET"
+ ],
+ "/monitoria/matriz/formularios/duplicar": [
+  "POST"
+ ],
+ "/monitoria/matriz/formularios/{id_matriz}/ativar": [
+  "POST"
+ ],
+ "/monitoria/matriz/versoes": [
+  "GET"
+ ],
+ "/monitoria/matriz/versoes/{id_versao}": [
+  "GET"
+ ],
+ "/monitoria/matriz/versoes/{id_versao}/restaurar": [
+  "POST"
+ ],
+ "/monitoria/monitorias": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/monitorias-excluidas": [
+  "GET"
+ ],
+ "/monitoria/monitorias/{id_monitoria}/restaurar": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}": [
+  "GET"
+ ],
+ "/monitoria/monitorias/{ref}/anexos": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/confirmar": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/contestar": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/excluir": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/feedback": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/reanalise": [
+  "POST"
+ ],
+ "/monitoria/monitorias/{ref}/replica": [
+  "POST"
+ ],
+ "/monitoria/operacoes/{chave}/ambiente": [
+  "GET",
+  "PUT"
+ ],
+ "/monitoria/operadores": [
+  "GET"
+ ],
+ "/monitoria/planos": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/planos/{id_plano}": [
+  "GET",
+  "PUT"
+ ],
+ "/monitoria/rascunhos": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/rascunhos/{id_rascunho}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/monitoria/relatorios/{tipo}": [
+  "GET"
+ ],
+ "/monitoria/relatorios/{tipo}/exportar": [
+  "GET"
+ ],
+ "/monitoria/risco/{acao}": [
+  "POST"
+ ],
+ "/monitoria/sla/processar": [
+  "POST"
+ ],
+ "/monitoria/supervisao/transferir": [
+  "POST"
+ ],
+ "/monitoria/tema": [
+  "PUT"
+ ],
+ "/monitoria/tipos-atendimento": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/tipos-atendimento/{id_item}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/monitoria/usuarios": [
+  "GET",
+  "POST"
+ ],
+ "/monitoria/usuarios/{id_usuario}": [
+  "PUT"
+ ],
+ "/monitoria/usuarios/{id_usuario}/liberar-design": [
+  "POST"
+ ],
+ "/monitoria/usuarios/{id_usuario}/transferir-operacao": [
+  "POST"
+ ],
+ "/monitoria/usuarios/{id_usuario}/vinculos": [
+  "GET",
+  "PUT"
+ ],
+ "/motivos-eliminacao": [
+  "GET"
+ ],
+ "/mural": [
+  "GET",
+  "POST"
+ ],
+ "/mural/ambientes": [
+  "GET"
+ ],
+ "/mural/imagens": [
+  "POST"
+ ],
+ "/mural/imagens/{nome_arquivo}": [
+  "GET"
+ ],
+ "/mural/{id_publicacao}": [
+  "DELETE",
+  "GET",
+  "PUT"
+ ],
+ "/mural/{id_publicacao}/arquivar": [
+  "POST"
+ ],
+ "/mural/{id_publicacao}/publicar": [
+  "POST"
+ ],
+ "/mural/{id_publicacao}/restaurar": [
+  "POST"
+ ],
+ "/notificacoes": [
+  "DELETE",
+  "GET"
+ ],
+ "/notificacoes/entidade/{entidade}/{entidade_id}/marcar-lidas": [
+  "POST"
+ ],
+ "/notificacoes/estado-usuario": [
+  "GET",
+  "POST"
+ ],
+ "/notificacoes/marcar-todas-lidas": [
+  "POST"
+ ],
+ "/notificacoes/{id_notificacao}": [
+  "DELETE"
+ ],
+ "/notificacoes/{id_notificacao}/marcar-lida": [
+  "POST"
+ ],
+ "/onboarding/anexos/{id_anexo}": [
+  "DELETE"
+ ],
+ "/onboarding/anexos/{id_anexo}/arquivo": [
+  "GET"
+ ],
+ "/onboarding/anexos/{id_anexo}/download": [
+  "PUT"
+ ],
+ "/onboarding/assignments": [
+  "GET"
+ ],
+ "/onboarding/assignments/presenca": [
+  "POST"
+ ],
+ "/onboarding/assignments/{id_onboarding}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/onboarding/candidatos-elegiveis": [
+  "GET"
+ ],
+ "/onboarding/candidatos/iniciar": [
+  "POST"
+ ],
+ "/onboarding/candidatos/{id_registro}": [
+  "GET"
+ ],
+ "/onboarding/itens/{id_item}/secoes-imagens": [
+  "POST"
+ ],
+ "/onboarding/itens/{id_item}/video": [
+  "GET",
+  "POST"
+ ],
+ "/onboarding/itens/{id_onboarding_item}": [
+  "PUT"
+ ],
+ "/onboarding/meus-treinamentos": [
+  "GET"
+ ],
+ "/onboarding/meus-treinamentos/itens/{id_onboarding_item}/concluir": [
+  "POST"
+ ],
+ "/onboarding/meus-treinamentos/presenciais": [
+  "GET"
+ ],
+ "/onboarding/modulos/modelo": [
+  "GET"
+ ],
+ "/onboarding/modulos/schema": [
+  "GET"
+ ],
+ "/onboarding/modulos/validar": [
+  "POST"
+ ],
+ "/onboarding/participantes/busca": [
+  "GET"
+ ],
+ "/onboarding/participantes/operacoes": [
+  "GET"
+ ],
+ "/onboarding/processos-treinamentos": [
+  "GET"
+ ],
+ "/onboarding/processos-treinamentos/{id_processo_treinamento}/candidatos": [
+  "GET"
+ ],
+ "/onboarding/processos-treinamentos/{id_processo_treinamento}/liberar": [
+  "POST"
+ ],
+ "/onboarding/relatorios/conclusao-operacao": [
+  "GET"
+ ],
+ "/onboarding/relatorios/presenca": [
+  "GET"
+ ],
+ "/onboarding/relatorios/status": [
+  "GET"
+ ],
+ "/onboarding/secoes-imagens/{nome_arquivo}": [
+  "GET"
+ ],
+ "/onboarding/treinamentos": [
+  "POST"
+ ],
+ "/onboarding/trilhas": [
+  "GET",
+  "POST"
+ ],
+ "/onboarding/trilhas/{id_trilha}": [
+  "DELETE",
+  "GET",
+  "PUT"
+ ],
+ "/onboarding/trilhas/{id_trilha}/anexos": [
+  "POST"
+ ],
+ "/onboarding/trilhas/{id_trilha}/pptx": [
+  "POST"
+ ],
+ "/onboarding/trilhas/{id_trilha}/pptx-pdf": [
+  "GET"
+ ],
+ "/onboarding/trilhas/{id_trilha}/vincular-processo": [
+  "POST"
+ ],
+ "/onboarding/usuarios/busca": [
+  "GET"
+ ],
+ "/onboarding/usuarios/iniciar": [
+  "POST"
+ ],
+ "/onedrive/download": [
+  "GET"
+ ],
+ "/onedrive/folders": [
+  "POST"
+ ],
+ "/onedrive/items": [
+  "DELETE",
+  "GET"
+ ],
+ "/onedrive/preview": [
+  "GET"
+ ],
+ "/onedrive/upload": [
+  "POST"
+ ],
+ "/operacoes": [
+  "GET"
+ ],
+ "/policies": [
+  "GET",
+  "POST"
+ ],
+ "/policies/pending": [
+  "GET"
+ ],
+ "/policies/{id_politica}": [
+  "PUT"
+ ],
+ "/policies/{id_politica}/confirm": [
+  "POST"
+ ],
+ "/process-candidates": [
+  "GET",
+  "POST"
+ ],
+ "/process-candidates/{id_registro}/approval-email": [
+  "POST"
+ ],
+ "/process-candidates/{id_registro}/approval-whatsapp": [
+  "POST"
+ ],
+ "/process-candidates/{id_registro}/reconsider": [
+  "POST"
+ ],
+ "/process-candidates/{id_registro}/scorecard": [
+  "GET",
+  "PUT"
+ ],
+ "/process-candidates/{id_registro}/scorecard/criterios": [
+  "GET"
+ ],
+ "/process-candidates/{id_registro}/status": [
+  "PUT"
+ ],
+ "/process-candidates/{id_registro}/whatsapp-contact": [
+  "POST"
+ ],
+ "/process-dossier-notes/{id_anotacao}": [
+  "PUT"
+ ],
+ "/processes": [
+  "GET",
+  "POST"
+ ],
+ "/processes/inactivity-alerts/run": [
+  "POST"
+ ],
+ "/processes/{id_processo}": [
+  "PUT"
+ ],
+ "/processes/{id_processo}/cancel": [
+  "POST"
+ ],
+ "/processes/{id_processo}/candidatos-sugeridos": [
+  "GET"
+ ],
+ "/processes/{id_processo}/close": [
+  "POST"
+ ],
+ "/processes/{id_processo}/cv-pre-analyses": [
+  "GET",
+  "POST"
+ ],
+ "/processes/{id_processo}/cv-pre-analyses/clear-list": [
+  "POST"
+ ],
+ "/processes/{id_processo}/details": [
+  "GET"
+ ],
+ "/processes/{id_processo}/dossier/notes": [
+  "GET",
+  "POST"
+ ],
+ "/processes/{id_processo}/email-inbox": [
+  "GET"
+ ],
+ "/processes/{id_processo}/email-inbox/analyze-cv": [
+  "POST"
+ ],
+ "/processes/{id_processo}/pause": [
+  "POST"
+ ],
+ "/processes/{id_processo}/resume": [
+  "POST"
+ ],
+ "/processes/{process_id}/analytical-results": [
+  "GET"
+ ],
+ "/processes/{process_id}/analytical-results/candidates/{candidate_id}": [
+  "GET"
+ ],
+ "/processes/{process_id}/analytical-results/categories": [
+  "PUT"
+ ],
+ "/processes/{process_id}/analytical-results/compare": [
+  "GET"
+ ],
+ "/processes/{process_id}/analytical-results/configuration": [
+  "GET"
+ ],
+ "/processes/{process_id}/analytical-results/ideal-profile": [
+  "PUT"
+ ],
+ "/processes/{process_id}/analytical-results/status": [
+  "GET"
+ ],
+ "/processes/{process_id}/analytical-results/weights": [
+  "PUT"
+ ],
+ "/processos/{id_processo}/gerar-link-candidatura": [
+  "POST"
+ ],
+ "/processos/{id_processo}/link-candidatura/desativar": [
+  "PATCH"
+ ],
+ "/public/candidatura/{slug}": [
+  "GET"
+ ],
+ "/public/candidatura/{slug}/enviar": [
+  "POST"
+ ],
+ "/raciocinio-logico-api/aplicacoes/{id_aplicacao}": [
+  "GET"
+ ],
+ "/raciocinio-logico-api/aplicacoes/{id_aplicacao}/finalizar": [
+  "POST"
+ ],
+ "/raciocinio-logico-api/aplicacoes/{id_aplicacao}/proxima-adaptativa": [
+  "POST"
+ ],
+ "/raciocinio-logico/aplicacoes": [
+  "POST"
+ ],
+ "/raciocinio-logico/aplicacoes/{id_aplicacao}": [
+  "GET"
+ ],
+ "/raciocinio-logico/candidatos/{id_teste}/resultado": [
+  "GET"
+ ],
+ "/raciocinio-logico/perguntas": [
+  "GET",
+  "POST"
+ ],
+ "/raciocinio-logico/perguntas/{id_pergunta}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/ready": [
+  "GET"
+ ],
+ "/reports/candidates": [
+  "GET"
+ ],
+ "/reports/candidates/export": [
+  "GET"
+ ],
+ "/reports/funnel-dashboard": [
+  "GET"
+ ],
+ "/reports/processes": [
+  "GET"
+ ],
+ "/reports/processes/export": [
+  "GET"
+ ],
+ "/settings/audit-logs": [
+  "GET"
+ ],
+ "/settings/audit-logs/export": [
+  "GET"
+ ],
+ "/settings/automacao-notificacoes": [
+  "GET",
+  "PUT"
+ ],
+ "/settings/catalog": [
+  "GET"
+ ],
+ "/settings/catalog/{tipo}": [
+  "POST"
+ ],
+ "/settings/catalog/{tipo}/{id_item}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/settings/catalog/{tipo}/{id_item}/permanente": [
+  "DELETE"
+ ],
+ "/settings/health": [
+  "GET"
+ ],
+ "/settings/lgpd/requests": [
+  "POST"
+ ],
+ "/settings/lgpd/retencao": [
+  "GET",
+  "PUT"
+ ],
+ "/settings/lgpd/retencao/executar": [
+  "POST"
+ ],
+ "/settings/lgpd/retencao/simulacao": [
+  "GET"
+ ],
+ "/settings/security/permissions": [
+  "GET"
+ ],
+ "/settings/security/roles": [
+  "GET"
+ ],
+ "/settings/security/roles/{id_perfil}/permissions": [
+  "PUT"
+ ],
+ "/settings/tela-inicial": [
+  "GET"
+ ],
+ "/settings/tela-inicial/minha": [
+  "GET"
+ ],
+ "/settings/tela-inicial/{id_perfil}": [
+  "PUT"
+ ],
+ "/settings/users": [
+  "GET",
+  "POST"
+ ],
+ "/settings/users/bulk": [
+  "POST"
+ ],
+ "/settings/users/bulk/template": [
+  "GET"
+ ],
+ "/settings/users/email-change-requests": [
+  "GET"
+ ],
+ "/settings/users/email-change-requests/{id_solicitacao}/approve": [
+  "POST"
+ ],
+ "/settings/users/email-change-requests/{id_solicitacao}/reject": [
+  "POST"
+ ],
+ "/settings/users/quick": [
+  "POST"
+ ],
+ "/settings/users/{id_usuario}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/settings/users/{id_usuario}/mfa/reset": [
+  "POST"
+ ],
+ "/settings/users/{id_usuario}/password": [
+  "POST"
+ ],
+ "/settings/users/{id_usuario}/status": [
+  "POST"
+ ],
+ "/sistema/ambientes-sharepoint": [
+  "GET",
+  "POST"
+ ],
+ "/sistema/ambientes-sharepoint/{id_ambiente}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/sistema/ambientes-sharepoint/{id_ambiente}/testar": [
+  "POST"
+ ],
+ "/sistema/parametros": [
+  "GET"
+ ],
+ "/sistema/parametros/infraestrutura": [
+  "GET"
+ ],
+ "/sistema/parametros/{chave}": [
+  "PUT"
+ ],
+ "/sistema/resetar": [
+  "POST"
+ ],
+ "/sistema/resetar/categorias": [
+  "GET"
+ ],
+ "/talent-bank": [
+  "GET",
+  "POST"
+ ],
+ "/talent-bank/{id_banco}": [
+  "DELETE"
+ ],
+ "/talent-bank/{id_banco}/revalidate": [
+  "POST"
+ ],
+ "/talent-bank/{id_banco}/use": [
+  "POST"
+ ],
+ "/version": [
+  "GET"
+ ],
+ "/wfm/atestados": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/auditoria": [
+  "GET"
+ ],
+ "/wfm/calendario": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/calendario/{id_item}": [
+  "PUT"
+ ],
+ "/wfm/contexto": [
+  "GET"
+ ],
+ "/wfm/contratos": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/contratos/{id_contrato}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/wfm/contratos/{id_contrato}/operadores": [
+  "GET"
+ ],
+ "/wfm/contratos/{id_contrato}/operadores/{id_operador}": [
+  "DELETE"
+ ],
+ "/wfm/escala": [
+  "GET"
+ ],
+ "/wfm/escala/aprovar": [
+  "POST"
+ ],
+ "/wfm/escala/cancelar-envio": [
+  "POST"
+ ],
+ "/wfm/escala/config": [
+  "GET",
+  "PUT"
+ ],
+ "/wfm/escala/declinar": [
+  "POST"
+ ],
+ "/wfm/escala/enviar-aprovacao": [
+  "POST"
+ ],
+ "/wfm/escala/exportar": [
+  "GET"
+ ],
+ "/wfm/escala/fechar": [
+  "POST"
+ ],
+ "/wfm/escala/itens": [
+  "PUT"
+ ],
+ "/wfm/escala/publicar": [
+  "POST"
+ ],
+ "/wfm/escala/validar": [
+  "GET"
+ ],
+ "/wfm/escala/versoes": [
+  "GET"
+ ],
+ "/wfm/escala/versoes/{versao}": [
+  "GET"
+ ],
+ "/wfm/escalas": [
+  "DELETE",
+  "POST"
+ ],
+ "/wfm/escalas/duplicar": [
+  "POST"
+ ],
+ "/wfm/escalas/gestao": [
+  "GET"
+ ],
+ "/wfm/escalas/resumo": [
+  "GET"
+ ],
+ "/wfm/horas-extras": [
+  "GET",
+  "PUT"
+ ],
+ "/wfm/operadores/{id_operador}/contrato": [
+  "GET",
+  "PUT"
+ ],
+ "/wfm/operadores/{id_operador}/skills": [
+  "PUT"
+ ],
+ "/wfm/pausas": [
+  "GET",
+  "PUT"
+ ],
+ "/wfm/pausas/capacidade": [
+  "PUT"
+ ],
+ "/wfm/pausas/distribuir": [
+  "POST"
+ ],
+ "/wfm/presencas": [
+  "GET",
+  "PUT"
+ ],
+ "/wfm/presencas/lote": [
+  "PUT"
+ ],
+ "/wfm/relatorios": [
+  "GET"
+ ],
+ "/wfm/relatorios/exportar": [
+  "GET"
+ ],
+ "/wfm/skills": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/skills/{id_skill}": [
+  "PUT"
+ ],
+ "/wfm/supervisores": [
+  "GET"
+ ],
+ "/wfm/tipos-escala": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/tipos-escala/{id_tipo}": [
+  "DELETE",
+  "PUT"
+ ],
+ "/wfm/trocas": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/trocas/colegas": [
+  "GET"
+ ],
+ "/wfm/trocas/{id_troca}/cancelar": [
+  "POST"
+ ],
+ "/wfm/trocas/{id_troca}/decidir": [
+  "POST"
+ ],
+ "/wfm/trocas/{id_troca}/desfazer": [
+  "POST"
+ ],
+ "/wfm/trocas/{id_troca}/responder": [
+  "POST"
+ ],
+ "/wfm/turnos": [
+  "GET",
+  "POST"
+ ],
+ "/wfm/turnos/{id_turno}": [
+  "DELETE",
+  "PUT"
+ ]
+}

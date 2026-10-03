@@ -1,0 +1,186 @@
+{
+ "flag_aberta": {
+  "administrador": {
+   "hash": "febf771d74d6",
+   "permissoes": 143,
+   "rotas": 437,
+   "telas": 67
+  },
+  "analista_ti": {
+   "hash": "94c9bb774106",
+   "permissoes": 23,
+   "rotas": 134,
+   "telas": 9
+  },
+  "candidato": {
+   "hash": "0f6f547b98e9",
+   "permissoes": 0,
+   "rotas": 64,
+   "telas": 4
+  },
+  "control_desk": {
+   "hash": "f402cdf49a89",
+   "permissoes": 23,
+   "rotas": 145,
+   "telas": 11
+  },
+  "dp": {
+   "hash": "3624eb799b75",
+   "permissoes": 45,
+   "rotas": 181,
+   "telas": 25
+  },
+  "estagiario": {
+   "hash": "32b0a8c194da",
+   "permissoes": 34,
+   "rotas": 166,
+   "telas": 20
+  },
+  "funcionario": {
+   "hash": "5d78fcd7e75c",
+   "permissoes": 6,
+   "rotas": 87,
+   "telas": 7
+  },
+  "gestor": {
+   "hash": "723d1226aa7d",
+   "permissoes": 63,
+   "rotas": 242,
+   "telas": 37
+  },
+  "operador": {
+   "hash": "accc6975f76e",
+   "permissoes": 13,
+   "rotas": 112,
+   "telas": 11
+  },
+  "qualidade": {
+   "hash": "dbb0a10385bc",
+   "permissoes": 16,
+   "rotas": 131,
+   "telas": 10
+  },
+  "rh": {
+   "hash": "5c191846c050",
+   "permissoes": 67,
+   "rotas": 260,
+   "telas": 37
+  },
+  "supervisor": {
+   "hash": "4b5342109713",
+   "permissoes": 38,
+   "rotas": 229,
+   "telas": 22
+  },
+  "tecnico_junior": {
+   "hash": "43bc4a65ab47",
+   "permissoes": 6,
+   "rotas": 83,
+   "telas": 3
+  },
+  "tecnico_pleno": {
+   "hash": "43bc4a65ab47",
+   "permissoes": 6,
+   "rotas": 83,
+   "telas": 3
+  },
+  "tecnico_senior": {
+   "hash": "43bc4a65ab47",
+   "permissoes": 6,
+   "rotas": 83,
+   "telas": 3
+  }
+ },
+ "flag_fechada": {
+  "administrador": {
+   "hash": "febf771d74d6",
+   "permissoes": 143,
+   "rotas": 437,
+   "telas": 67
+  },
+  "analista_ti": {
+   "hash": "94c9bb774106",
+   "permissoes": 23,
+   "rotas": 134,
+   "telas": 9
+  },
+  "candidato": {
+   "hash": "0f6f547b98e9",
+   "permissoes": 0,
+   "rotas": 64,
+   "telas": 4
+  },
+  "control_desk": {
+   "hash": "f402cdf49a89",
+   "permissoes": 23,
+   "rotas": 145,
+   "telas": 11
+  },
+  "dp": {
+   "hash": "3624eb799b75",
+   "permissoes": 45,
+   "rotas": 181,
+   "telas": 25
+  },
+  "estagiario": {
+   "hash": "32b0a8c194da",
+   "permissoes": 34,
+   "rotas": 166,
+   "telas": 20
+  },
+  "funcionario": {
+   "hash": "5d78fcd7e75c",
+   "permissoes": 6,
+   "rotas": 87,
+   "telas": 7
+  },
+  "gestor": {
+   "hash": "723d1226aa7d",
+   "permissoes": 63,
+   "rotas": 242,
+   "telas": 37
+  },
+  "operador": {
+   "hash": "494f75475883",
+   "permissoes": 9,
+   "rotas": 101,
+   "telas": 9
+  },
+  "qualidade": {
+   "hash": "630241a6aa28",
+   "permissoes": 13,
+   "rotas": 112,
+   "telas": 7
+  },
+  "rh": {
+   "hash": "5c191846c050",
+   "permissoes": 67,
+   "rotas": 260,
+   "telas": 37
+  },
+  "supervisor": {
+   "hash": "4b5342109713",
+   "permissoes": 38,
+   "rotas": 229,
+   "telas": 22
+  },
+  "tecnico_junior": {
+   "hash": "079a7f9d175b",
+   "permissoes": 2,
+   "rotas": 72,
+   "telas": 5
+  },
+  "tecnico_pleno": {
+   "hash": "079a7f9d175b",
+   "permissoes": 2,
+   "rotas": 72,
+   "telas": 5
+  },
+  "tecnico_senior": {
+   "hash": "079a7f9d175b",
+   "permissoes": 2,
+   "rotas": 72,
+   "telas": 5
+  }
+ }
+}
