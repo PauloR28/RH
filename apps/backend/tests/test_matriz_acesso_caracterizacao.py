@@ -76,9 +76,12 @@ def test_rotas_liberadas_por_perfil_nao_mudaram(atual, base):
 
 def test_telas_liberadas_por_perfil_nao_mudaram(atual, base):
     divergencias = []
+    # Telas NOVAS (ex.: as do módulo Tecnologia) não existiam no snapshot: só se compara o universo de telas de antes.
+    universo = set(base["telas"]["permissao"]) | set(base["telas"]["sessao"])
     for estado, perfis in base["estados"].items():
         for perfil, dados in perfis.items():
-            antes, depois = set(dados["telas_liberadas"]), set(atual["estados"][estado][perfil]["telas_liberadas"])
+            antes = set(dados["telas_liberadas"])
+            depois = {t for t in atual["estados"][estado][perfil]["telas_liberadas"] if t in universo}
             if perfil in PERFIS_APROVADOS:
                 # Os perfis de TI passam a ter chaves `sessao.*`; antes não tinham nenhuma e, por isso, o frontend não
                 # restringia sessão alguma (telas SEM permissão própria ficavam abertas, ex.: screen-processes-open, que
@@ -133,3 +136,10 @@ def test_fase_de_teste_do_wfm_fecha_so_os_perfis_previstos(base):
 
 def test_matriz_sem_banco_cobre_todos_os_perfis(base):
     assert len(_perfis_a_comparar(base)) == 15
+
+
+def test_telas_novas_da_tecnologia_so_abrem_para_quem_pode_configurar(atual):
+    for estado, perfis in atual["estados"].items():
+        for perfil, dados in perfis.items():
+            for tela in ("screen-tecnologia", "screen-tecnologia-modulos"):
+                assert (tela in dados["telas_liberadas"]) == ("configuracoes.visualizar" in dados["permissoes"]), f"{estado}/{perfil}/{tela}"
