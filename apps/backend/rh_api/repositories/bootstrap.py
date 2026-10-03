@@ -13,6 +13,7 @@ from ..config import Settings
 from ..db import get_connection
 from ..passwords import hash_password
 from .monitoria_schema import ensure_monitoria_schema
+from .modulos_schema import ensure_modulos_schema
 from .wfm_schema import ensure_wfm_schema
 from ..rbac import PERMISSION_DEFINITIONS, ROLE_ADMIN, ROLE_DEFINITIONS, ROLE_PERMISSIONS, SETTINGS_CATALOGS
 from ..services.helpers import (
@@ -3701,6 +3702,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
         try:
             cursor = conn.cursor()
             ensure_security_tables(cursor, settings)
+            ensure_modulos_schema(cursor)
             ensure_reusable_config_tables(cursor)
             ensure_parametros_sistema_table(cursor)
             ensure_ambientes_sharepoint_table(cursor)

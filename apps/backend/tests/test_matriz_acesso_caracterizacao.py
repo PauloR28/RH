@@ -13,9 +13,15 @@ import pytest
 
 import _matriz_acesso as m
 
-# Mudança aprovada (decisão 2 do RH): perfis de TI ganham administração completa no módulo tecnologia.
-# Vazio enquanto a mudança não foi implementada; a Etapa 3 preenche com o que for aprovado.
-DIFERENCAS_APROVADAS: dict[str, set[str]] = {}
+# Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
+# tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
+PERFIS_APROVADOS = frozenset(m.PERFIS_TI)
+
+
+def _esperado_para_ti(antes: set[str]) -> set[str]:
+    from rh_api.rbac import PERMISSOES_ADMINISTRACAO_TI
+
+    return set(antes) | set(PERMISSOES_ADMINISTRACAO_TI)
 
 
 def _carregar(nome: str):
@@ -41,13 +47,9 @@ def test_permissoes_efetivas_nao_mudaram(atual, base):
     for estado, perfis in base["estados"].items():
         for perfil, dados in perfis.items():
             antes, depois = set(dados["permissoes"]), set(atual["estados"][estado][perfil]["permissoes"])
-            if antes == depois:
-                continue
-            tolerado = DIFERENCAS_APROVADAS.get(perfil, set())
-            novas = (depois - antes) - tolerado
-            perdidas = antes - depois
-            if novas or perdidas:
-                divergencias.append(f"{estado}/{perfil}: +{sorted(novas)} -{sorted(perdidas)}")
+            esperado = _esperado_para_ti(antes) if perfil in PERFIS_APROVADOS else antes
+            if depois != esperado:
+                divergencias.append(f"{estado}/{perfil}: +{sorted(depois - esperado)} -{sorted(esperado - depois)}")
     assert not divergencias, "Regressão de permissões:\n" + "\n".join(divergencias)
 
 
@@ -64,7 +66,10 @@ def test_rotas_liberadas_por_perfil_nao_mudaram(atual, base):
         for perfil, dados in perfis.items():
             antes = set(dados["rotas_liberadas"])
             depois = {r for r in atual["estados"][estado][perfil]["rotas_liberadas"] if r in base["rotas"]}
-            if antes != depois and perfil not in DIFERENCAS_APROVADAS:
+            if perfil in PERFIS_APROVADOS:
+                if not antes <= depois:
+                    divergencias.append(f"{estado}/{perfil}: perdeu {sorted(antes - depois)}")
+            elif antes != depois:
                 divergencias.append(f"{estado}/{perfil}: +{sorted(depois - antes)} -{sorted(antes - depois)}")
     assert not divergencias, "Regressão de rotas:\n" + "\n".join(divergencias)
 
@@ -74,7 +79,15 @@ def test_telas_liberadas_por_perfil_nao_mudaram(atual, base):
     for estado, perfis in base["estados"].items():
         for perfil, dados in perfis.items():
             antes, depois = set(dados["telas_liberadas"]), set(atual["estados"][estado][perfil]["telas_liberadas"])
-            if antes != depois and perfil not in DIFERENCAS_APROVADAS:
+            if perfil in PERFIS_APROVADOS:
+                # Os perfis de TI passam a ter chaves `sessao.*`; antes não tinham nenhuma e, por isso, o frontend não
+                # restringia sessão alguma (telas SEM permissão própria ficavam abertas, ex.: screen-processes-open, que
+                # só mostra uma tela vazia). Perdem só essas telas "abertas por falta de chave", nunca uma com permissão.
+                perdidas = antes - depois
+                com_permissao = [t for t in perdidas if base["telas"]["permissao"].get(t)]
+                if com_permissao:
+                    divergencias.append(f"{estado}/{perfil}: perdeu tela com permissão {sorted(com_permissao)}")
+            elif antes != depois:
                 divergencias.append(f"{estado}/{perfil}: +{sorted(depois - antes)} -{sorted(antes - depois)}")
     assert not divergencias, "Regressão de telas:\n" + "\n".join(divergencias)
 
@@ -84,6 +97,25 @@ def test_rotas_da_api_nao_foram_renomeadas_nem_removidas():
     antes, depois = _carregar("openapi_paths.json"), m.paths_openapi()
     faltando = {c: sorted(set(ms) - set(depois.get(c, []))) for c, ms in antes.items() if set(ms) - set(depois.get(c, []))}
     assert not faltando, f"Rotas/métodos ausentes: {faltando}"
+
+
+def test_perfis_de_ti_nao_ganham_permissao_de_rh_nem_operacao(atual, base):
+    """D-10: a TI controla QUEM tem o quê, mas não recebe as permissões operacionais de RH/Operação."""
+    from rh_api.modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, modulo_dono_padrao
+    from rh_api.rbac import PERMISSION_DEFINITIONS
+
+    for estado, perfis in base["estados"].items():
+        for perfil in PERFIS_APROVADOS:
+            novas = set(atual["estados"][estado][perfil]["permissoes"]) - set(perfis[perfil]["permissoes"])
+            fora = [p for p in novas if modulo_dono_padrao(p, PERMISSION_DEFINITIONS[p].module) not in (MODULO_CORE, MODULO_TECNOLOGIA)]
+            assert not fora, f"{estado}/{perfil} ganhou permissão de outro módulo: {fora}"
+
+
+def test_so_o_analista_de_ti_cria_escala_por_padrao(atual):
+    for estado, perfis in atual["estados"].items():
+        for perfil in ("tecnico_junior", "tecnico_pleno", "tecnico_senior"):
+            assert "wfm.escala.criar" not in perfis[perfil]["permissoes"], f"{estado}/{perfil}"
+        assert "wfm.escala.criar" in perfis["analista_ti"]["permissoes"]
 
 
 def test_fase_de_teste_do_wfm_fecha_so_os_perfis_previstos(base):

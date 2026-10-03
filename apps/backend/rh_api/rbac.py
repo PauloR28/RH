@@ -4,6 +4,8 @@ import os
 import unicodedata
 from dataclasses import dataclass
 
+from .modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, modulo_dono_padrao
+
 
 ROLE_INTERN = "estagiario"
 ROLE_DP = "dp"
@@ -27,7 +29,7 @@ ROLE_ANALISTA_TI = "analista_ti"  # Gestor de TI: monta, aprova, publica e admin
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-10-01-wfm-gestao-escalas"
+PERMISSIONS_VERSION = "2026-10-03-modularizacao"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -778,6 +780,19 @@ WFM_PERMISSOES_OPERACIONAIS = frozenset(
     }
 )
 ROLE_PERMISSIONS[ROLE_ADMIN] -= WFM_PERMISSOES_OPERACIONAIS
+
+# Modularização (decisão 2 do RH): todos os perfis de TI recebem a administração completa do Conecta, isto é, o que o
+# Administrador pode nos módulos core e tecnologia (inclusive Perfis e Permissões, que vale para TODOS os módulos). Não recebem
+# as permissões operacionais de RH/Operação do Administrador: a TI controla QUEM tem o quê, não opera esses módulos.
+# O que cada perfil de TI já tinha no WFM (Escalas e Plantões da equipe) permanece. Montar/criar escala continua só com o Analista.
+PERFIS_TI = (ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR, ROLE_ANALISTA_TI)
+PERMISSOES_ADMINISTRACAO_TI = frozenset(
+    chave
+    for chave in ROLE_PERMISSIONS[ROLE_ADMIN]
+    if modulo_dono_padrao(chave, PERMISSION_DEFINITIONS[chave].module) in (MODULO_CORE, MODULO_TECNOLOGIA)
+)
+for _papel in PERFIS_TI:
+    ROLE_PERMISSIONS.setdefault(_papel, set()).update(PERMISSOES_ADMINISTRACAO_TI)
 
 SCREEN_PERMISSIONS.update(
     {

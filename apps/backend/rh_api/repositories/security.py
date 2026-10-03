@@ -86,6 +86,21 @@ def _json_dump(value) -> str:
         return str(value)
 
 
+def _garantir_fronteira_administrador(actor, *perfis_alvo: str | None) -> None:
+    """Modularização (decisão 2): perfis de TI administram usuários e permissões de todos os módulos, mas atribuir,
+    editar ou agir sobre o perfil Administrador continua exclusivo do Administrador. Sem ator (chamada interna) = sem trava."""
+    if actor is None:
+        return
+    perfil_ator = actor.get("perfil") if isinstance(actor, dict) else getattr(actor, "perfil", None)
+    if normalize_role_id(perfil_ator) == ROLE_ADMIN:
+        return
+    if any(normalize_role_id(alvo) == ROLE_ADMIN for alvo in perfis_alvo if alvo):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Somente o Administrador pode atribuir ou alterar o perfil Administrador e seus usuários.",
+        )
+
+
 def _actor_payload(user: AuthenticatedUser | dict | None) -> dict:
     if isinstance(user, AuthenticatedUser):
         return {
@@ -1228,7 +1243,8 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            self._get_system_user_by_id(cursor, id_usuario)
+            _alvo = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
+            _garantir_fronteira_administrador(actor, _alvo["perfil"])
             cursor.execute(
                 """
                 UPDATE usuarios
@@ -1291,6 +1307,7 @@ class SecurityRepositoryMixin:
         safe_role = normalize_role_id(role_id)
         if safe_role not in ROLE_DEFINITIONS:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil não encontrado.")
+        _garantir_fronteira_administrador(actor, safe_role)
 
         requested_permissions = sanitize_permissions(data.get("permissoes") or data.get("permissions"))
         conn = self._connect()
@@ -1451,6 +1468,7 @@ class SecurityRepositoryMixin:
         safe_login = normalize_text(data.get("login")) or safe_email
         safe_password = normalize_text(data.get("senha") or data.get("password"))
         role = get_role_definition(data.get("perfil") or data.get("perfil_id") or ROLE_INTERN)
+        _garantir_fronteira_administrador(actor, role.id)
         safe_cargo = normalize_text(data.get("cargo"))
         safe_status = normalize_text(data.get("status")) or "Ativo"
         auth_provider = _normalize_auth_provider(data.get("provedor_autenticacao"))
@@ -1646,6 +1664,7 @@ class SecurityRepositoryMixin:
             cursor = conn.cursor()
             previous = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
             role = get_role_definition(data.get("perfil") or data.get("perfil_id") or previous["perfil"])
+            _garantir_fronteira_administrador(actor, previous["perfil"], role.id)
             requested_email = _normalize_email(data.get("email")) or previous["email"]
             if not _EMAIL_PATTERN.fullmatch(requested_email):
                 raise HTTPException(
@@ -1734,7 +1753,8 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            self._get_system_user_by_id(cursor, id_usuario)
+            _alvo = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
+            _garantir_fronteira_administrador(actor, _alvo["perfil"])
             actor_info = _actor_payload(actor)
             cursor.execute(
                 """
@@ -1778,6 +1798,7 @@ class SecurityRepositoryMixin:
         try:
             cursor = conn.cursor()
             previous = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
+            _garantir_fronteira_administrador(actor, previous["perfil"])
             new_status = status_by_action[action]
             actor_info = _actor_payload(actor)
             cursor.execute(
@@ -1863,6 +1884,9 @@ class SecurityRepositoryMixin:
                         status_code=status.HTTP_409_CONFLICT,
                         detail="Este é o último administrador ativo; não pode ser excluído.",
                     )
+
+            # Depois da checagem do último administrador (mantém o 409 existente); ver modularização, decisão 2.
+            _garantir_fronteira_administrador(actor, previous.get("perfil"))
 
             for table, column, label in self._USER_MONITORIA_HISTORY:
                 cursor.execute("SELECT OBJECT_ID(?)", (f"dbo.{table}",))
