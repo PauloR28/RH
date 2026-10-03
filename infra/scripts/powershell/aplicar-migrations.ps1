@@ -18,16 +18,17 @@ if ($Files.Count -eq 0) {
 Write-Host ""
 Write-Host "Aplicando $($Files.Count) migrations idempotentes em '$Database' @ '$Server'"
 Write-Host "Todas usam IF NOT EXISTS / COL_LENGTH - reaplicar uma ja aplicada nao tem efeito."
+Write-Host "Arquivos lidos como UTF-8 (sqlcmd -f 65001): sem isso os acentos viravam mojibake (ver V058)."
 Write-Host ""
 
 foreach ($file in $Files) {
     Write-Host "-> $($file.Name)" -NoNewline
 
     if ($TrustedConnection) {
-        $result = sqlcmd -S $Server -d $Database -E -I -i $file.FullName -b 2>&1
+        $result = sqlcmd -S $Server -d $Database -E -I -f 65001 -i $file.FullName -b 2>&1
     }
     else {
-        $result = sqlcmd -S $Server -d $Database -U $Username -P $Password -I -i $file.FullName -b 2>&1
+        $result = sqlcmd -S $Server -d $Database -U $Username -P $Password -I -f 65001 -i $file.FullName -b 2>&1
     }
 
     if ($LASTEXITCODE -ne 0) {
