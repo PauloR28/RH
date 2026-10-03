@@ -13,7 +13,7 @@ from fastapi import HTTPException, status
 from conecta.infrastructure.security.token_denylist import InMemoryTokenDenylist
 
 from .config import get_settings
-from .rbac import aplicar_restricao_wfm_em_teste, PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
+from .rbac import WFM_PERFIS_EM_TESTE_FECHADO, aplicar_restricao_wfm_em_teste, wfm_participantes_liberado, PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
 from .services.helpers import normalize_text
 
 
@@ -117,6 +117,7 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
         "operacoes": sorted(user.operacoes),
         "pwd": bool(user.deve_trocar_senha),
         "pv": PERMISSIONS_VERSION,
+        "wl": bool(wfm_participantes_liberado()),  # liberação do WFM na emissão (ver validate_access_token)
     }
 
 
@@ -278,6 +279,13 @@ def validate_access_token(token: str) -> AuthenticatedUser:
         )
 
     role = get_role_definition(data.get("role") or data.get("perfil") or ROLE_ADMIN)
+    # WFM liberado DEPOIS da emissão: o token dos perfis da fase de teste não traz as permissões WFM; só eles refazem o login.
+    # (Fechar não precisa: o filtro abaixo roda a cada pedido.) Os demais perfis não são tocados.
+    if role.id in WFM_PERFIS_EM_TESTE_FECHADO and data.get("wl") is False and wfm_participantes_liberado():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="O acesso a Turnos e Plantões foi liberado. Faça login novamente.",
+        )
     permissions = sanitize_permissions(data.get("permissions") or data.get("permissoes"))
     if not permissions:
         permissions = get_role_permissions(role.id)

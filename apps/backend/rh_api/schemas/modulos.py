@@ -14,3 +14,9 @@ class PermissaoModuloRequest(BaseSchema):
     modulo: str = Field(min_length=1, max_length=30)
     abre_modulo: bool | None = None
     justificativa: str = Field(default="", max_length=400)
+
+
+class WfmParticipantesRequest(BaseSchema):
+    valor: bool
+    confirmar: bool = False
+    justificativa: str = Field(default="", max_length=400)

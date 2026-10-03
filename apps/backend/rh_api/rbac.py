@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import unicodedata
 from dataclasses import dataclass
 
@@ -748,17 +747,14 @@ _WFM_ROLE_PERMISSIONS[ROLE_ANALISTA_TI] = (
 # Relatórios (somente leitura): quem gere as escalas.
 for _papel in (ROLE_SUPERVISOR, ROLE_CONTROL_DESK, ROLE_MANAGER, ROLE_ANALISTA_TI):
     _WFM_ROLE_PERMISSIONS[_papel] |= {"wfm.relatorios"}
-# FASE DE TESTE do WFM: enquanto RH_WFM_LIBERAR_PARTICIPANTES não for ligado (1/true/sim), a sessão Turnos e Plantões fica
-# restrita a quem gere escalas (Control Desk, Supervisor, Gestor/RH, Analista de TI e Administrador). Operadores, Técnicos de TI
-# e Qualidade não veem a aba e as rotas /wfm respondem 403 para eles (a permissão é exigida no servidor). Para liberar a todos,
-# basta ligar a variável de ambiente e reiniciar — nenhuma outra mudança de código.
-WFM_PARTICIPANTES_LIBERADO = (os.getenv("RH_WFM_LIBERAR_PARTICIPANTES") or "").strip().lower() in {"1", "true", "sim", "yes", "on"}
+# FASE DE TESTE do WFM: enquanto os participantes não forem liberados, a sessão Turnos e Plantões fica restrita a quem gere
+# escalas (Control Desk, Supervisor, Gestor/RH, Analista de TI e Administrador). Operadores, Técnicos de TI e Qualidade não veem
+# a aba e as rotas /wfm respondem 403 para eles. A liberação deixou de ser lida na importação: é decidida a cada uso por
+# `services.acesso.wfm_participantes_liberado()` (configuração no banco, controlada por botão em Tecnologia; a variável de
+# ambiente RH_WFM_LIBERAR_PARTICIPANTES, se definida, prevalece). ROLE_PERMISSIONS guarda o desenho COMPLETO; o filtro da fase
+# de teste é aplicado na leitura (`get_role_permissions` / `aplicar_restricao_wfm_em_teste`).
 WFM_PERFIS_EM_TESTE_FECHADO = frozenset({ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_TEC_JUNIOR, ROLE_TEC_PLENO, ROLE_TEC_SENIOR})
 for _role_id, _perms in _WFM_ROLE_PERMISSIONS.items():
-    if not WFM_PARTICIPANTES_LIBERADO and _role_id in WFM_PERFIS_EM_TESTE_FECHADO:
-        # Técnicos de TI só existem para o WFM: mantêm apenas o acesso básico (início e notificações).
-        ROLE_PERMISSIONS.setdefault(_role_id, set()).update(p for p in _perms if p in {"inicio.visualizar", "notificacoes.visualizar"})
-        continue
     ROLE_PERMISSIONS.setdefault(_role_id, set()).update(_perms)
 # Administrador: configuração geral + auditoria; sem decisões operacionais sobre a escala
 # (editar/publicar/fechar/corrigir/presença). Reforçado também no servidor (wfm_scope).
@@ -892,17 +888,25 @@ def get_role_definition(role_id: str | None) -> RoleDefinition:
     return ROLE_DEFINITIONS.get(normalize_role_id(role_id), ROLE_DEFINITIONS[ROLE_ADMIN])
 
 
+def wfm_participantes_liberado() -> bool:
+    """Ponto único de leitura da liberação do WFM para Operador/Técnico/Qualidade (ver services/acesso.py)."""
+    from .services.acesso import wfm_participantes_liberado as _liberado
+
+    return _liberado()
+
+
 def aplicar_restricao_wfm_em_teste(role_id: str | None, permissions) -> list[str]:
     """Na fase de teste do WFM, tira as permissões WFM de Operador/Técnico/Qualidade MESMO que estejam gravadas no banco
     (`perfil_permissoes`, semeado em rodadas anteriores) ou dentro de um token antigo. Não faz nada quando o WFM está liberado."""
     lista = list(permissions or [])
-    if WFM_PARTICIPANTES_LIBERADO or normalize_role_id(role_id) not in WFM_PERFIS_EM_TESTE_FECHADO:
+    if normalize_role_id(role_id) not in WFM_PERFIS_EM_TESTE_FECHADO or wfm_participantes_liberado():
         return lista
     return [p for p in lista if not (p.startswith("wfm.") or p == "sessao.wfm.acessar")]
 
 
 def get_role_permissions(role_id: str | None) -> set[str]:
-    return set(ROLE_PERMISSIONS.get(normalize_role_id(role_id), set()))
+    papel = normalize_role_id(role_id)
+    return set(aplicar_restricao_wfm_em_teste(papel, ROLE_PERMISSIONS.get(papel, set())))
 
 
 def is_known_permission(permission: str | None) -> bool:

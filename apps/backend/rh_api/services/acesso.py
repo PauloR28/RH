@@ -183,3 +183,144 @@ def descrever(permissoes: Iterable[str]) -> dict:
         "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
         "permissoes": sorted(efetivas),
     }
+
+
+# ---------------------------------------------------------------- liberação do WFM (fase de teste)
+# Substitui a leitura da variável de ambiente na importação (rbac.py). Valor em `dbo.parametros_sistema`, categoria
+# `sistema_interno` (a tela de parâmetros esconde e não deixa editar), alterado pelo botão de Tecnologia com auditoria.
+# Enquanto a mudança não for validada em homologação, a variável de ambiente, se DEFINIDA (mesmo vazia), prevalece.
+# Para remover o fallback: apagar RH_WFM_LIBERAR_PARTICIPANTES do .env e reiniciar; depois, num commit à parte, apagar
+# o ramo `os.environ` de `_ler_ambiente()` (ver HOMOLOGACAO.md).
+PARAM_WFM_PARTICIPANTES = "wfm.liberar_participantes"
+VAR_AMBIENTE_WFM = "RH_WFM_LIBERAR_PARTICIPANTES"
+_VERDADEIROS = {"1", "true", "sim", "yes", "on"}
+_TTL_WFM_SEGUNDOS = 5.0
+
+_wfm_cache: tuple[float, bool] | None = None
+_wfm_log_emitido = False
+
+
+def _interpretar(texto: str | None) -> bool:
+    return str(texto or "").strip().lower() in _VERDADEIROS
+
+
+def _ler_ambiente() -> bool | None:
+    """None = variável ausente (a configuração do banco decide); valor = variável definida (prevalece)."""
+    import os
+
+    bruto = os.environ.get(VAR_AMBIENTE_WFM)
+    return None if bruto is None else _interpretar(bruto)
+
+
+def _ler_banco_wfm(semente: bool) -> bool:
+    """Lê a configuração; se a linha não existe, cria com `semente` (valor atual do ambiente) — assim nada muda no dia da
+    implantação. INSERT guardado contra requisições simultâneas."""
+    from ..config import get_settings
+    from ..db import get_connection
+
+    conn = get_connection(get_settings(), autocommit=True)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT valor FROM dbo.parametros_sistema WHERE chave = ?", (PARAM_WFM_PARTICIPANTES,))
+        linha = cursor.fetchone()
+        if linha is None:
+            cursor.execute(
+                """
+                IF NOT EXISTS (SELECT 1 FROM dbo.parametros_sistema WITH (UPDLOCK, HOLDLOCK) WHERE chave = ?)
+                    INSERT INTO dbo.parametros_sistema (chave, valor, categoria, descricao, mascarado, atualizado_por, criado_em, atualizado_em)
+                    VALUES (?, ?, 'sistema_interno', ?, 0, 'sistema', GETDATE(), GETDATE())
+                """,
+                (
+                    PARAM_WFM_PARTICIPANTES,
+                    PARAM_WFM_PARTICIPANTES,
+                    "1" if semente else "0",
+                    "Libera o WFM (Turnos e Plantões) para Operador, Técnico de TI e Qualidade (fase de teste).",
+                ),
+            )
+            cursor.execute("SELECT valor FROM dbo.parametros_sistema WHERE chave = ?", (PARAM_WFM_PARTICIPANTES,))
+            linha = cursor.fetchone()
+        return _interpretar(linha[0] if linha else None)
+    finally:
+        conn.close()
+
+
+def wfm_participantes_liberado() -> bool:
+    """O WFM está liberado para Operador/Técnico de TI/Qualidade? (ponto ÚNICO de leitura.)
+
+    Ordem: variável de ambiente (se definida) > banco. Falha ao ler o banco = FECHADO (o desenho de hoje quando a variável
+    não existe): é mais seguro não abrir o acesso por engano do que abrir."""
+    global _wfm_cache, _wfm_log_emitido
+    ambiente = _ler_ambiente()
+    if ambiente is not None:
+        if not _wfm_log_emitido:
+            _wfm_log_emitido = True
+            try:
+                no_banco = _ler_banco_wfm(ambiente)
+            except Exception:  # noqa: BLE001
+                no_banco = None
+            logger.warning(
+                "WFM: %s=%s (variável de ambiente) PREVALECE sobre a configuração do banco (%s). "
+                "Remova a variável do ambiente para passar o controle ao botão de Tecnologia.",
+                VAR_AMBIENTE_WFM,
+                int(ambiente),
+                "indisponível" if no_banco is None else int(no_banco),
+            )
+        return ambiente
+    agora = time.monotonic()
+    atual = _wfm_cache
+    if atual is not None and atual[0] > agora:
+        return atual[1]
+    try:
+        valor = _ler_banco_wfm(False)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Configuração de liberação do WFM indisponível (%s); mantendo FECHADO.", exc)
+        _wfm_cache = (agora + _TTL_FALHA_SEGUNDOS, False)
+        return False
+    _wfm_cache = (agora + _TTL_WFM_SEGUNDOS, valor)
+    return valor
+
+
+def invalidar_cache_wfm() -> None:
+    global _wfm_cache
+    _wfm_cache = None
+
+
+def situacao_wfm_participantes() -> dict:
+    """Para o botão em Tecnologia: valor efetivo, origem e se o botão pode alterar."""
+    ambiente = _ler_ambiente()
+    try:
+        no_banco: bool | None = _ler_banco_wfm(bool(ambiente))
+    except Exception:  # noqa: BLE001
+        no_banco = None
+    return {
+        "liberado": ambiente if ambiente is not None else bool(no_banco),
+        "origem": "ambiente" if ambiente is not None else "banco",
+        "valor_ambiente": ambiente,
+        "valor_banco": no_banco,
+        "editavel": ambiente is None and no_banco is not None,
+    }
+
+
+def definir_wfm_participantes(valor: bool, *, autor: str) -> dict:
+    """Altera a configuração (botão de Tecnologia). Recusa enquanto a variável de ambiente prevalecer: a mudança não teria efeito."""
+    from fastapi import HTTPException, status
+
+    from ..config import get_settings
+    from ..db import get_connection
+
+    if _ler_ambiente() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A liberação está controlada pela variável de ambiente {VAR_AMBIENTE_WFM}. Remova-a do ambiente para usar este botão.",
+        )
+    anterior = _ler_banco_wfm(False)
+    conn = get_connection(get_settings(), autocommit=True)
+    try:
+        conn.cursor().execute(
+            "UPDATE dbo.parametros_sistema SET valor = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE chave = ?",
+            ("1" if valor else "0", autor[:180], PARAM_WFM_PARTICIPANTES),
+        )
+    finally:
+        conn.close()
+    invalidar_cache_wfm()
+    return {"valor_anterior": anterior, "valor": bool(valor)}
