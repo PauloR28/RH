@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   lancarPresencaLoteWfm,
   lancarPresencaWfm,
@@ -8,7 +8,7 @@ import {
   listarAtestadosWfm,
   listarPresencasWfm,
   registrarAtestadoWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
 
 // Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.

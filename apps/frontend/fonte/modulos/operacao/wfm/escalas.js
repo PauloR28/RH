@@ -1,7 +1,7 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { criarEscalaWfm, gestaoEscalasWfm } from '../../services/api/wfm.js';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
+import { criarEscalaWfm, gestaoEscalasWfm } from '../../../services/api/wfm.js';
 import { Campo, ModalForm } from './formulario.js';
 
 // Tela inicial da aba Escala: a lista de escalas do mês.

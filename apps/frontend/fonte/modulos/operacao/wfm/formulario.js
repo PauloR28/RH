@@ -1,6 +1,6 @@
-import { html, useState } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useState } from '../../../infraestrutura-react.js';
+import { ModalPadrao } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 
 // WFM — peças de formulário compactas, compartilhadas por Jornadas, Cadastros e Presença.
 // Campos em grade de 12 colunas (`span` = quantas colunas ocupa) para caber o máximo por linha.

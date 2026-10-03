@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js';
+import { html } from '../../../infraestrutura-react.js';
 
 // Gráficos dos Relatórios do WFM, em SVG/CSS puro (sem biblioteca). Cores vêm de variáveis CSS (`--wfm-g-*`, em wfm.css),
 // nunca fixas aqui; cada gráfico traz rótulos e valores em texto (legenda/tabela), então nenhuma informação depende só da cor.

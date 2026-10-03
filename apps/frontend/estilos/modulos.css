@@ -1,0 +1,81 @@
+/* Módulos do Conecta (seletor na navbar e módulo Tecnologia). Grade de 8px, bordas de 1px, sem gradiente.
+   A cor vem da operação (--brand); módulos não têm cor própria. */
+:root {
+  --mod-accent: var(--brand, var(--color-primary));
+  --mod-accent-soft: var(--brand-soft, var(--color-primary-soft));
+}
+
+/* ---- seletor de módulo (navbar) ---- */
+.mod-seletor { position: relative; display: inline-flex; align-items: center; margin-left: 8px; }
+.mod-seletor-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px;
+  border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-surface);
+  color: var(--color-text); font: inherit; font-weight: 600; cursor: pointer;
+}
+.mod-seletor-btn:hover { border-color: var(--mod-accent); }
+.mod-seletor-btn .material-symbols-outlined { font-size: 20px; }
+.mod-seletor-menu {
+  position: absolute; top: 48px; left: 0; z-index: 60; min-width: 280px; padding: 8px;
+  background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 8px; box-shadow: var(--shadow-lg);
+}
+.mod-seletor-titulo { padding: 8px 12px; font-size: var(--font-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.mod-seletor-op {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: 6px;
+  background: transparent; text-align: left; font: inherit; color: var(--color-text); cursor: pointer;
+}
+.mod-seletor-op:hover { background: var(--color-surface-soft); }
+.mod-seletor-op.is-atual { background: var(--mod-accent-soft); }
+.mod-seletor-op strong { display: block; }
+.mod-seletor-op small { display: block; color: var(--color-text-muted); }
+
+/* ---- navbar da Tecnologia ---- */
+.tec-nav-grupo { position: relative; }
+
+/* ---- telas da Tecnologia ---- */
+.tec-shell { display: flex; flex-direction: column; gap: 24px; }
+.tec-toast { position: relative; }
+.tec-secao { margin: 0; font-size: var(--font-lg); font-weight: 700; }
+.tec-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.tec-kpi { display: flex; flex-direction: column; gap: 4px; padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-sm); }
+.tec-kpi span { color: var(--color-text-muted); font-size: var(--font-sm); }
+.tec-kpi strong { font-size: 24px; line-height: 32px; }
+.tec-kpi small { color: var(--color-text-muted); }
+.tec-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 16px; }
+.tec-tile {
+  display: flex; align-items: flex-start; gap: 16px; padding: 16px; text-align: left; font: inherit; color: var(--color-text);
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; box-shadow: var(--shadow-sm);
+}
+.tec-tile:hover { border-color: var(--mod-accent); }
+.tec-tile-icone { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 8px; background: var(--mod-accent-soft); color: var(--mod-accent); }
+.tec-tile-texto strong { display: block; margin-bottom: 4px; }
+.tec-tile-texto small { color: var(--color-text-muted); line-height: 1.4; }
+.tec-linha-cartoes { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.tec-card { flex: 1 1 320px; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-sm); }
+.tec-card--grande { flex: 2 1 480px; }
+.tec-card-titulo { margin: 0 0 16px; font-size: var(--font-lg); font-weight: 700; }
+.tec-linha { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--color-border); }
+.tec-linha:first-of-type { border-top: 0; padding-top: 0; }
+.tec-linha-texto { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.tec-linha-texto small { color: var(--color-text-muted); }
+.tec-pill { display: inline-block; padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 999px; font-size: var(--font-xs); color: var(--color-text-soft); white-space: nowrap; }
+.tec-pill.is-ok { color: var(--color-success); background: var(--color-success-soft); border-color: transparent; }
+.tec-pill.is-aviso { color: var(--color-warning); background: var(--color-warning-soft); border-color: transparent; }
+.tec-ajuda { margin: 16px 0 0; color: var(--color-text-muted); font-size: var(--font-sm); }
+.tec-ajuda--topo { margin: 0 0 16px; }
+.tec-campo { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; font-size: var(--font-sm); color: var(--color-text-soft); }
+.tec-switch { flex: none; position: relative; width: 40px; height: 24px; border: 0; border-radius: 12px; background: var(--color-border-strong); cursor: pointer; padding: 0; }
+.tec-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left var(--transition-sm); }
+.tec-switch.is-on { background: var(--mod-accent); }
+.tec-switch.is-on::after { left: 18px; }
+.tec-switch:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---- Perfis e permissões: agrupado por módulo ---- */
+.settings-permission-modulo { margin: 16px 0 8px; padding: 0 8px; display: flex; align-items: center; gap: 8px; font-size: var(--font-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted); }
+.settings-permission-modulo small { font-weight: 500; text-transform: none; letter-spacing: 0; }
+.settings-permission-resumo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 12px 16px; background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-soft); }
+.settings-permission-dono { margin-left: auto; font-size: var(--font-xs); border: 1px solid var(--color-border-strong); border-radius: 6px; padding: 2px 8px; background: var(--color-surface); color: var(--color-text-soft); }
+
+@media (max-width: 860px) {
+  .mod-seletor-menu { min-width: 240px; }
+  .tec-card { padding: 16px; }
+}

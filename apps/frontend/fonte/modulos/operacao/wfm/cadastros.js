@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useState, React } from '../../infraestrutura-react.js';
+import { html, useCallback, useEffect, useState, React } from '../../../infraestrutura-react.js';
 
 const Fragment = React.Fragment;
-import { LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   definirSkillsOperadorWfm,
   lerEscalaWfm,
@@ -18,7 +18,7 @@ import {
   excluirTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
 import { descreverTurno } from './escala.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm, Secao } from './formulario.js';

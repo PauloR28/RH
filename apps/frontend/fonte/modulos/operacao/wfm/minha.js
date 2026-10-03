@@ -1,7 +1,7 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../services/api/wfm.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
+import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js';
 import { minutosParaHoras } from './comum.js';
 
 // Visão do Operador: só a própria escala PUBLICADA. Semana (segunda a domingo) é a visão padrão; o mês

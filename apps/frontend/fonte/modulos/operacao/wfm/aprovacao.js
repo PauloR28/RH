@@ -1,11 +1,11 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   aprovarEscalaWfm,
   cancelarEnvioEscalaWfm,
   declinarEscalaWfm,
   enviarAprovacaoEscalaWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { dataHora } from './comum.js';
 
 // Aprovação da escala antes de publicar: Rascunho -> Em aprovação -> Aprovada -> (publicar).

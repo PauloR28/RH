@@ -219,6 +219,9 @@ export const PERMISSOES_TELAS = {
   'screen-settings-monitoria': 'monitoria.configurar',
   'screen-settings-monitoria-equipes': 'monitoria.equipes',
   'screen-settings-monitoria-logs': 'monitoria.logs',
+  // Módulo Tecnologia (centro de administração)
+  'screen-tecnologia': 'configuracoes.visualizar',
+  'screen-tecnologia-modulos': 'configuracoes.visualizar',
   // WFM — Turnos e Plantões
   'screen-wfm': 'wfm.escala.visualizar',
   'screen-wfm-minha-escala': 'wfm.escala.propria',
@@ -272,6 +275,8 @@ export const SESSAO_DA_TELA = {
   'screen-settings-monitoria': 'configuracoes',
   'screen-settings-monitoria-equipes': 'configuracoes',
   'screen-settings-monitoria-logs': 'configuracoes',
+  'screen-tecnologia': 'configuracoes',
+  'screen-tecnologia-modulos': 'configuracoes',
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',
   'screen-wfm-presenca': 'wfm',

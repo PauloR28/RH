@@ -1,4 +1,6 @@
 import { requisitar, requisitarArquivo } from './core.js';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261003-modulos-c';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261003-modulos-c';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -13,7 +15,12 @@ const enviar = (caminho, metodo, corpo) =>
   requisitar(caminho, { method: metodo, headers: JSON_HEADERS, body: JSON.stringify(corpo || {}) });
 
 // WFM — Turnos e Plantões. Toda restrição (operação, equipe, perfil) é aplicada no backend.
-export const lerContextoWfm = () => requisitar('/wfm/contexto', { method: 'GET' });
+// Em Tecnologia a tela emprestada do WFM mostra só a operação da TI (filtro de conveniência; o isolamento real é do servidor).
+export const lerContextoWfm = () =>
+  requisitar('/wfm/contexto', { method: 'GET' }).then((contexto) => {
+    const base = operacaoBaseAtiva();
+    return base && contexto ? { ...contexto, operacoes: filtrarPorOperacaoBase(contexto.operacoes, base, 'chave') } : contexto;
+  });
 
 export const listarContratosWfm = (operacao) => requisitar(`/wfm/contratos${consulta({ operacao })}`, { method: 'GET' });
 export const salvarContratoWfm = (dados, id) => enviar(id ? `/wfm/contratos/${id}` : '/wfm/contratos', id ? 'PUT' : 'POST', dados);
@@ -85,7 +92,11 @@ export const excluirTipoEscalaWfm = (id) => requisitar(`/wfm/tipos-escala/${id}`
 export const lerConfigEscalaWfm = (operacao) => requisitar(`/wfm/escala/config${consulta({ operacao })}`, { method: 'GET' });
 export const salvarConfigEscalaWfm = (dados) => enviar('/wfm/escala/config', 'PUT', dados);
 export const resumoEscalasWfm = (anoMes) => requisitar(`/wfm/escalas/resumo${consulta({ ano_mes: anoMes })}`, { method: 'GET' });
-export const gestaoEscalasWfm = (anoMes) => requisitar(`/wfm/escalas/gestao${consulta({ ano_mes: anoMes })}`, { method: 'GET' });
+export const gestaoEscalasWfm = (anoMes) =>
+  requisitar(`/wfm/escalas/gestao${consulta({ ano_mes: anoMes })}`, { method: 'GET' }).then((resposta) => {
+    const base = operacaoBaseAtiva();
+    return base && resposta ? { ...resposta, itens: filtrarPorOperacaoBase(resposta.itens, base, 'operacao_base') } : resposta;
+  });
 export const criarEscalaWfm = (dados) => enviar('/wfm/escalas', 'POST', dados);
 export const duplicarEscalaWfm = (dados) => enviar('/wfm/escalas/duplicar', 'POST', dados);
 export const excluirEscalaWfm = (operacao) => requisitar(`/wfm/escalas${consulta({ operacao })}`, { method: 'DELETE' });

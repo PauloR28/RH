@@ -68,6 +68,8 @@ export const ROTAS_POR_TELA = {
   'screen-settings-monitoria': 'configuracoes/central-monitoria',
   'screen-settings-monitoria-equipes': 'configuracoes/equipes-catalogos',
   'screen-settings-monitoria-logs': 'configuracoes/logs-monitoria',
+  'screen-tecnologia': 'administracao-ti',
+  'screen-tecnologia-modulos': 'administracao-ti/modulos',
   'screen-wfm': 'turnos-plantoes',
   'screen-wfm-minha-escala': 'turnos-plantoes/minha-escala',
   'screen-wfm-presenca': 'turnos-plantoes/presenca',

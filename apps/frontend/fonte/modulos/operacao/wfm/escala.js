@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   distribuirPausasWfm,
   fecharPeriodoWfm,
@@ -9,7 +9,7 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
 import { PainelAprovacao } from './aprovacao.js';
 import { MenuCompartilharEscala } from './compartilhar.js';

@@ -7,6 +7,9 @@ import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20260921-alertas';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
+import { useModulos } from '../../modulos/estado.js?v=20261003-modulos-c';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261003-modulos-c';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261003-modulos-c';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -67,6 +70,11 @@ export function BarraLateral({
   onOpenHelp = null,
   mostrarAjuda = false,
 }) {
+  // Módulos (core, rh, operacao, tecnologia): o menu mostra só os grupos do módulo atual. Sem o acesso por módulo carregado,
+  // nada é filtrado (comportamento de antes). Tecnologia usa menu próprio (modulos/componentes.js).
+  const modulos = useModulos();
+  const emTecnologia = ehModuloTecnologia(modulos);
+  const noModulo = (grupo) => grupoNoModulo(grupo, modulos.moduloAtual, modulos.carregado);
   const itensPrincipais = [
     { tela: 'screen-menu', icone: 'home', label: 'Início', permissao: 'inicio.visualizar' },
     {
@@ -369,7 +377,10 @@ export function BarraLateral({
   );
   const ehAdministrador = controlador?.estado?.perfilUsuario === 'administrador';
   const sublinksConfiguracoesVisiveis = sublinksConfiguracoes.filter(
-    (subitem) => possuiSub(subitem) && (!subitem.somenteAdmin || ehAdministrador),
+    (subitem) =>
+      possuiSub(subitem) &&
+      (!subitem.somenteAdmin || ehAdministrador) &&
+      itemConfiguracaoNoModulo(subitem.tela, modulos.moduloAtual, modulos.carregado),
   );
   const sublinksGestaoVisiveis = sublinksGestao.filter((subitem) =>
     possuiSub(subitem),
@@ -450,7 +461,7 @@ export function BarraLateral({
           type="button"
           class="rh-modern-logo-btn"
           aria-label="Voltar ao painel principal"
-          onClick=${() => controlador.irParaMenu()}
+          onClick=${() => (emTecnologia ? controlador.irParaTelaProtegida(TELA_INICIO_TECNOLOGIA) : controlador.irParaMenu())}
           title=${subtituloMarca || 'Conecta'}
         >
           ${logoComErro
@@ -470,9 +481,14 @@ export function BarraLateral({
         </button>
       </div>
 
+      <${SeletorModulo} controlador=${controlador} modulos=${modulos} />
+
       <nav class="rh-modern-nav">
-        ${itensPrincipais.map(renderizarItem)}
-        ${sublinksProcessosVisiveis.length
+        ${emTecnologia
+      ? html`<${NavTecnologia} controlador=${controlador} navAtiva=${navAtiva} grupoAberto=${grupoAberto} alternarGrupo=${alternarGrupo} fecharGrupo=${() => setGrupoAberto(null)} />`
+      : null}
+        ${(emTecnologia ? [] : itensPrincipais.filter((item) => item.tela !== 'screen-email-inbox' || noModulo('cx-curriculos'))).map(renderizarItem)}
+        ${sublinksProcessosVisiveis.length && noModulo('processos')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'processos' ? 'is-open' : ''
@@ -535,7 +551,7 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${sublinksProvasVisiveis.length
+        ${sublinksProvasVisiveis.length && noModulo('provas')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'provas' ? 'is-open' : ''
@@ -596,7 +612,7 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${sublinksGestaoVisiveis.length
+        ${sublinksGestaoVisiveis.length && noModulo('gestao')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'gestao' ? 'is-open' : ''
@@ -657,8 +673,8 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${itensDriveConecta.map(renderizarItem)}
-        ${sublinksTreinamentosVisiveis.length
+        ${(noModulo('drive') ? itensDriveConecta : []).map(renderizarItem)}
+        ${sublinksTreinamentosVisiveis.length && noModulo('treinamentos')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'treinamentos' ? 'is-open' : ''
@@ -719,7 +735,7 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${sublinksMonitoriaVisiveis.length
+        ${sublinksMonitoriaVisiveis.length && noModulo('monitoria')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'monitoria' ? 'is-open' : ''
@@ -780,7 +796,7 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${sublinksWfmVisiveis.length
+        ${sublinksWfmVisiveis.length && noModulo('wfm')
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'wfm' ? 'is-open' : ''
@@ -841,7 +857,7 @@ export function BarraLateral({
               </div>
             `
       : null}
-        ${sublinksConfiguracoesVisiveis.length
+        ${sublinksConfiguracoesVisiveis.length && !emTecnologia
       ? html`
               <div
                 class=${`rh-modern-nav-group ${grupoAberto === 'configuracoes' ? 'is-open' : ''

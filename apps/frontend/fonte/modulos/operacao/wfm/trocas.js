@@ -1,13 +1,13 @@
-import { html, useCallback, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   cancelarTrocaWfm,
   decidirTrocaWfm,
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { dataHora } from './comum.js';
 
 // Trocas de plantão. Nenhuma troca é automática: mesmo com o colega de acordo, um Supervisor,

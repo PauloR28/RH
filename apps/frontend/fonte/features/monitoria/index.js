@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261002-wfm10';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261003-modulos-c';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20260921-alertas';

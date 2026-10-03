@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
 import {
   definirCapacidadePausasWfm,
   distribuirPausasWfm,
@@ -15,7 +15,7 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../services/api/wfm.js';
+} from '../../../services/api/wfm.js';
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
 import { PainelAprovacao } from './aprovacao.js';

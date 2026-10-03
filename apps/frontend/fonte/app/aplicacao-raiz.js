@@ -6,7 +6,9 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261002-wfm10';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261003-modulos-c';
+import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261003-modulos-c';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261003-modulos-c';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -112,14 +114,15 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261002-wfm28'),
+  () => import('../features/configuracoes/index.js?v=20261003-modulos-c'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261002-wfm10');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261003-modulos-c');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaWfm = carregarTela(() => import('../features/wfm/index.js?v=20261002-wfm28'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261003-modulos-c'), 'TelaWfm');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261003-modulos-c'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260929-excluir-bold'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
@@ -195,6 +198,14 @@ function resolverTelaProtegida(telaAtual, controlador) {
 
   if (telaAtual === 'screen-processes-open') {
     return 'screen-processes';
+  }
+
+  // Módulo Tecnologia: o início é o centro de administração (quem só tem esse módulo cai direto nele).
+  if (telaAtual === 'screen-menu') {
+    const modulos = obterEstadoModulos();
+    if (modulos.carregado && modulos.moduloAtual === 'tecnologia' && controlador.podeAcessarTela(TELA_INICIO_TECNOLOGIA)) {
+      return TELA_INICIO_TECNOLOGIA;
+    }
   }
 
   // Vertente Monitoria (20/set/2026): Supervisor e Operador deixam de cair direto na
@@ -371,6 +382,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida.startsWith('screen-wfm')) {
     return html`<${TelaWfm} controlador=${controlador} telaAtual=${telaResolvida} />`;
+  }
+
+  if (telaResolvida.startsWith('screen-tecnologia')) {
+    return html`<${TelaTecnologia} controlador=${controlador} telaAtual=${telaResolvida} />`;
   }
 
   if (telaResolvida.startsWith('screen-monitoria')) {
@@ -582,6 +597,8 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 }
 
 export function Aplicacao() {
+  // Re-renderiza quando o módulo atual muda (o início de Tecnologia depende dele).
+  useModulos();
   const controlador = useControladorAplicacao();
   const telaAtual = usarTelaAtual(controlador.estado.autenticado);
   const telaResolvida = resolverTelaProtegida(telaAtual, controlador);

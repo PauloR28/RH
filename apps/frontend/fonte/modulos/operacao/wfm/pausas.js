@@ -1,7 +1,7 @@
-import { html, useCallback, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { definirCapacidadePausasWfm, distribuirPausasWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../services/api/wfm.js';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
+import { definirCapacidadePausasWfm, distribuirPausasWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js';
 
 // Escala de pausas: cada operador escalado tem 3 pausas por dia (2 de 10 min e 1 de 20 min), todas
 // contadas como jornada. A quantidade de operadores em pausa ao mesmo tempo é da operação (alerta, não bloqueio).

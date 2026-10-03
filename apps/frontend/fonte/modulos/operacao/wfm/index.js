@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
-import { listarAuditoriaWfm } from '../../services/api/wfm.js';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../../ui/componentes-compartilhados.js';
+import { IconeSvg } from '../../../ui/icone.js';
+import { useToast } from '../../../shared/hooks/use-toast.js';
+import { listarAuditoriaWfm } from '../../../services/api/wfm.js';
 import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js';
 import { TelaEscala } from './escala.js';
 import { TelaPresenca } from './presenca.js';

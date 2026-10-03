@@ -26,6 +26,8 @@ import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
 import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
+import { definirModuloDaPermissao } from '../../services/api/modulos.js';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261003-modulos-c';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -74,21 +76,26 @@ const ABAS = [
 // perfil selecionado mostre uma sessão por vez em vez de todos os módulos
 // abertos ao mesmo tempo (era o que tornava a tela "absurdamente longa").
 const SESSOES_PERMISSAO = [
-  { id: 'curriculos', label: 'Caixa de Currículos', icon: 'badge', modulos: ['Candidatos', 'Vagas'] },
-  { id: 'processos', label: 'Processos', icon: 'checklist', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
-  { id: 'provas', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
-  { id: 'gestao', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
-  { id: 'drive', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
-  { id: 'treinamentos', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
-  { id: 'monitoria', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
-  { id: 'wfm', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
+  { id: 'curriculos', modulo: 'rh', label: 'Caixa de Currículos', icon: 'badge', modulos: ['Candidatos', 'Vagas'] },
+  { id: 'processos', modulo: 'rh', label: 'Processos', icon: 'checklist', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
+  { id: 'provas', modulo: 'rh', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
+  { id: 'gestao', modulo: 'core', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
+  { id: 'drive', modulo: 'core', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
+  { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
+  { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
+  { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
   {
     id: 'configuracoes',
+    modulo: 'tecnologia',
     label: 'Configurações',
     icon: 'settings',
     modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Ajuda', 'Operações', 'Logs', 'Políticas'],
   },
 ];
+
+// Modularização: a árvore de Perfis e permissões agrupa as sessões por MÓDULO (RH, Operação, Tecnologia e Núcleo).
+const ORDEM_MODULOS_PERMISSAO = ['rh', 'operacao', 'tecnologia', 'core'];
+const NOME_MODULO_PERMISSAO = { ...NOMES_MODULOS, core: 'Núcleo' };
 
 // Ícone por perfil na árvore de Perfis e permissões — antes todo perfil usava
 // o mesmo ícone genérico "badge"; um por papel ajuda a distinguir a lista
@@ -2347,6 +2354,24 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       Object.entries(permissoesPorModulo)
         .filter(([modulo]) => sessao.modulos.includes(modulo))
         .reduce((total, [, itens]) => total + itens.length, 0);
+    const sessoesPorModulo = ORDEM_MODULOS_PERMISSAO.flatMap((modulo) => {
+      const sessoes = SESSOES_PERMISSAO.filter((sessao) => sessao.modulo === modulo);
+      return sessoes.length ? [{ cabecalho: modulo, total: sessoes.length }, ...sessoes.map((sessao) => ({ sessao }))] : [];
+    });
+    // Módulos que o perfil abre: só as permissões marcadas como `abre_modulo` (regra do módulo visível), com o rascunho atual.
+    const modulosQueOPerfilAbre = ORDEM_MODULOS_PERMISSAO.filter((modulo) =>
+      modulo !== 'core' && permissoes.some((permissao) => permissao.abre_modulo && permissao.modulo_dono === modulo && permissoesPerfilDraft.includes(permissao.chave)));
+    const podeMoverModulo = perfisDesbloqueados && podeEditarPerfis;
+    const moverPermissaoDeModulo = async (chave, modulo) => {
+      setErro('');
+      try {
+        await definirModuloDaPermissao(chave, modulo);
+        setPermissoes((atuais) => atuais.map((permissao) => (permissao.chave === chave ? { ...permissao, modulo_dono: modulo } : permissao)));
+        setFeedback(`Permissão ${chave} movida para o módulo ${NOME_MODULO_PERMISSAO[modulo] || modulo}.`);
+      } catch (error) {
+        setErro(error?.message || 'Não foi possível mover a permissão de módulo.');
+      }
+    };
     const permissoesDaSessao = sessaoAtiva
       ? permissoesFiltradasPorModulo.filter(([modulo]) => sessaoAtiva.modulos.includes(modulo))
       : [];
@@ -2404,7 +2429,17 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       ${expandido
               ? html`
                             <div class="settings-permission-tree-children">
-                              ${SESSOES_PERMISSAO.map((sessao) => {
+                              ${expandido
+                ? html`<div class="settings-permission-resumo"><strong>Este perfil enxerga os módulos:</strong>
+                                    ${modulosQueOPerfilAbre.length
+                    ? modulosQueOPerfilAbre.map((modulo) => html`<${Badge} key=${modulo} label=${NOME_MODULO_PERMISSAO[modulo] || modulo} tone="success" />`)
+                    : html`<${Badge} label="Somente o essencial (Núcleo)" tone="muted" />`}</div>`
+                : null}
+                              ${sessoesPorModulo.map((entrada) => {
+                if (entrada.cabecalho) {
+                  return html`<div class="settings-permission-modulo" key=${`modulo-${entrada.cabecalho}`}>${NOME_MODULO_PERMISSAO[entrada.cabecalho] || entrada.cabecalho}<small>${entrada.total} sessão(ões)</small></div>`;
+                }
+                const sessao = entrada.sessao;
                 const sessaoExpandida = sessaoAtiva?.id === sessao.id;
                 const total = contagemPorSessao(sessao);
                 return html`
@@ -2524,6 +2559,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                                       <small>${permissao.descricao || '-'}</small>
                                                                     </span>
                                                                     <span class="settings-permission-badges">
+                                                                      ${permissao.modulo_dono
+                                      ? (podeMoverModulo
+                                        ? html`<select class="settings-permission-dono" aria-label=${`Módulo de ${permissao.chave}`} value=${permissao.modulo_dono}
+                                            onChange=${(event) => moverPermissaoDeModulo(permissao.chave, event.target.value)}>
+                                            ${ORDEM_MODULOS_PERMISSAO.map((modulo) => html`<option key=${modulo} value=${modulo}>${NOME_MODULO_PERMISSAO[modulo] || modulo}</option>`)}
+                                          </select>`
+                                        : html`<span class="settings-permission-dono" title="Módulo dono da permissão">${NOME_MODULO_PERMISSAO[permissao.modulo_dono] || permissao.modulo_dono}${permissao.abre_modulo ? ' · abre o módulo' : ''}</span>`)
+                                      : null}
                                                                       <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
                                                                       ${perfilComparado
                                       ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`

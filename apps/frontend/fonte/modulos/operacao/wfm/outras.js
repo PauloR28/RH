@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { gestaoEscalasWfm } from '../../services/api/wfm.js';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js';
+import { IconeSvg } from '../../../ui/icone.js';
+import { gestaoEscalasWfm } from '../../../services/api/wfm.js';
 import { foraDeRascunho } from './escalas.js';
 
 // Outras escalas do mês, na visão do Gestor: só aparece se houver outra escala ATIVA que já saiu de rascunho
