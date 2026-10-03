@@ -11,6 +11,7 @@ from .auth import AuthenticatedUser, validate_access_token
 from .config import get_settings
 from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
+from .services import acesso as acesso_modulos
 from .services.monitoria_scope import escopo_global
 from conecta.domain.permissoes import AuthorizationPolicy
 from conecta.infrastructure.observability.context import user_id_var
@@ -69,6 +70,10 @@ def get_current_user(
 
     user = validate_access_token(credentials.credentials)
     user = _refresh_monitoria_scope(user, request)
+    # Módulo desativado: as permissões dele deixam de valer já neste pedido (sem relogin). Com todos ativos, não muda nada.
+    permissoes_efetivas = acesso_modulos.filtrar_permissoes(user.permissions)
+    if permissoes_efetivas != user.permissions:
+        user = replace(user, permissions=permissoes_efetivas)
     user_id_var.set(str(user.id_usuario or user.username))
     if request is not None:
         # Dependências síncronas rodam em outra thread: o contextvar não volta ao

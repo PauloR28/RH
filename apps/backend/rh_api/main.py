@@ -28,6 +28,7 @@ from .routers.calendar import (
     public_router as calendar_public_router,
     router as calendar_router,
 )
+from .routers.core import router as core_router
 from .routers.curriculos_ia import router as curriculos_ia_router
 from .routers.disc import public_router as disc_public_router
 from .routers.disc import router as disc_router
@@ -61,6 +62,7 @@ from .routers.scorecards import router as scorecards_router
 from .routers.settings import router as settings_router
 from .routers.sistema import router as sistema_router
 from .routers.system import build_system_status, router as system_router
+from .routers.tecnologia import router as tecnologia_router
 from .scheduler import start_scheduler, stop_scheduler
 from conecta.interfaces.http.middlewares.request_context import (
     RequestContextMiddleware,
@@ -369,6 +371,8 @@ def create_app() -> FastAPI:
 
     app.include_router(system_router)
     app.include_router(auth_router)
+    app.include_router(core_router)
+    app.include_router(tecnologia_router)
     app.include_router(curriculos_ia_router)
     app.include_router(history_router)
     app.include_router(email_inbox_router)
