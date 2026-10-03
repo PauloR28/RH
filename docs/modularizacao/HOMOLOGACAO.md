@@ -45,6 +45,7 @@ Administrador: RH · Operação · Tecnologia — Gestor: RH · Operação — A
    - `SELECT chave, nome, ativo, protegido FROM dbo.modulos_sistema` → 4 linhas (core/tecnologia protegidos; "Operação" com acento correto);
    - `SELECT COUNT(*) FROM dbo.permissoes WHERE modulo_dono IS NULL` → 0; `SELECT COUNT(*) FROM dbo.permissoes WHERE abre_modulo = 1` → 6;
    - `SELECT id_perfil, COUNT(*) FROM dbo.modularizacao_grants_log GROUP BY id_perfil` → só `analista_ti`, `tecnico_junior/pleno/senior`;
+   - **Acentos:** `sqlcmd -S <servidor> -d <banco> -E -I -f 65001 -i infra\sql\diagnostico_acentos.sql` antes (anote o que aparecer com valor > 0) e depois (deve ficar tudo 0);
    - `SELECT id_perfil, SUM(CAST(permitido AS int)) FROM dbo.perfil_permissoes WHERE id_perfil IN ('analista_ti','tecnico_junior','tecnico_pleno','tecnico_senior') GROUP BY id_perfil`.
 
 **Aplicação**
@@ -84,6 +85,7 @@ sqlcmd -S <servidor> -d <banco> -E -I -b -i infra\sql\migrations\V057__perfis_ti
 sqlcmd … -i infra\sql\migrations\V056__modulo_dono_permissoes.rollback.sql
 sqlcmd … -i infra\sql\migrations\V055__modulos_sistema.rollback.sql
 ```
+A V058 (acentos) não tem rollback de dados (só troca texto corrompido pelo correto); para voltar, use o backup.
 A V057 restaura exatamente o que ela mexeu (linhas ligadas voltam a 0; linhas inseridas são removidas; o log guia). Conferir `COUNT(*)` e checksum de `perfil_permissoes` com o backup. A linha `wfm.liberar_participantes` em `parametros_sistema` (categoria `sistema_interno`) pode ficar (inofensiva) ou ser apagada.
 **Sem rollback de banco:** se só a tela der problema, desligar **RH/Operação** em Tecnologia ou, se `GET /core/acesso` falhar, o frontend trata como "sem filtro" e o menu volta ao de antes.
 
@@ -91,7 +93,7 @@ A V057 restaura exatamente o que ela mexeu (linhas ligadas voltam a 0; linhas in
 - **Todos refazem o login** no deploy. Operador/Qualidade/Técnicos refazem de novo ao abrir o WFM.
 - **O banco manda, não o código** (achado da Etapa 2): no DEV o Gestor não tem 10 permissões WFM e o Supervisor 6 que o código lhe dá (edição do Administrador). Em cada ambiente a V057 só mexe nos 4 perfis de TI; nada mais é reescrito.
 - Perfis de TI ganham poder amplo de administração: trava de servidor impede mexer no perfil Administrador; tudo é auditado.
-- **`sqlcmd` e acentos (achado real, fora desta leva):** `aplicar-migrations.ps1` roda `sqlcmd` sem `-f 65001`; ele leu minha V055 (UTF-8) na página de código do console e gravou "Operação" como "OperaÃ§Ã£o" — por isso as migrations novas são ASCII. **13 migrations anteriores têm texto acentuado** (ex.: V036 `seed_motivos_eliminacao_padrao`, V051 tipos de escala da TI, V024 perfis, V043…). Se foram aplicadas por esse script, os textos semeados por elas podem estar com mojibake em produção/homologação — **confira** (ex.: motivos de eliminação, "Plantão de sábado"). Correção sugerida (não feita aqui): passar `-f 65001` ao `sqlcmd` no script.
+- **`sqlcmd` e acentos — CORRIGIDO numa leva à parte** (ver `ACENTOS.md`): `aplicar-migrations.ps1` agora usa `sqlcmd -f 65001` e a nova **V058** repara os textos já gravados com mojibake. Rode `infra\sql\diagnostico_acentos.sql` (somente leitura) antes e depois.
 - Falhas de teste **pré-existentes** (não relacionadas): 8 de `test_onedrive_upload_guardrails`, `test_e2e_login_bypass`, `test_lgpd_retencao::test_executar_apaga_so_quem_venceu`, `test_monitoria_fluxo_integration::test_tipos_de_atendimento_pertencem_a_operacao_e_canal`; 5 dos 6 smoke tests de frontend do CI (expectativas antigas).
 - `test_trigger_bloqueia_update_e_delete_direto` (monitoria) fica >5 min no SQL Express local; desselecionado nas minhas execuções.
 
