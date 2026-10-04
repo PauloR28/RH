@@ -39,6 +39,14 @@ A cada deploy, o script `verificar-pastas-dados.ps1` avisa se alguma dessas vari
 - Toda execução grava no Log de Eventos do Windows (Aplicativo, origem `Conecta-Backup`): evento 9000 para OK, 9001 para falha.
 - Se `-AlertTo` e `-SmtpServer` estiverem configurados, as falhas também chegam por e-mail. Com `-NotifySuccess`, os sucessos também.
 
+## 2.1 Servidor sem as tarefas do runbook (tarefa única `Conecta-Backup`)
+
+Se o servidor roda só a tarefa `Conecta-Backup` (script `backup-producao.ps1` com `-SqlPassword`), valem estas regras:
+
+- **Pasta de arquivos:** sem `-DataDir`, o script usa `data\private` junto da aplicação (ex.: `C:\Conecta\data\private`), onde ficam CVs, evidências, imagens e anexos dos Chamados. Para desligar o backup de arquivos, passe `-DataDir -`. Antes desta mudança a tarefa não passava `-DataDir` e os arquivos ficavam **fora** do backup.
+- **Verificação do `.bak`:** `RESTORE VERIFYONLY` exige a permissão `CREATE DATABASE`. Se a conta não tiver, o script registra um **AVISO** ("não verificado"), segue com o zip dos arquivos e não marca falha; o `BACKUP ... WITH CHECKSUM` já valida as páginas ao gravar. Qualquer outro erro de verificação continua sendo falha. O ideal continua sendo dar a permissão (ver `infra/sql/security/create_backup_user.sql`) e rodar o teste de restauração semanal.
+- **Senha:** evite `-SqlPassword` na tarefa (fica visível na linha de comando). Prefira a variável de ambiente `CONECTA_BACKUP_SQL_PASSWORD` ou autenticação Windows.
+
 ## 3. Instalação (uma vez, no servidor)
 
 1. **Pasta de dados:**

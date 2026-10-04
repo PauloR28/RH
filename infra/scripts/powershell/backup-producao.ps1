@@ -7,8 +7,8 @@ param(
     [string]$SqlPassword = "",
     [string]$BackupDir = "C:\Backups",
     [int]$RetentionDays = 14,
-    # Pasta de dados do Conecta (CVs, evidencias da Monitoria, imagens, logs arquivados).
-    # Vazio = nao faz backup de arquivos (so do banco).
+    # Pasta de dados do Conecta (CVs, evidencias da Monitoria, imagens, anexos dos Chamados, logs arquivados).
+    # Vazio = usa data\private junto da aplicacao, se existir. "-" = nao faz backup de arquivos (so do banco).
     [string]$DataDir = "",
     # Copia externa (pasta de rede, NAS ou pasta sincronizada do OneDrive/SharePoint).
     # Vazio = sem copia externa (nao recomendado).
@@ -36,6 +36,16 @@ if ($SqlPassword -and -not $env:CONECTA_BACKUP_SQL_PASSWORD) { $env:CONECTA_BACK
 if (-not $SqlUsername -and $SqlPassword) { $SqlUsername = "rh_app" }
 
 Iniciar-LogBackup -LogDir $LogDir -Prefixo "backup"
+if ($DataDir -eq "-") { $DataDir = "" }
+elseif (-not $DataDir) {
+    # A tarefa antiga nao passava -DataDir e, por isso, os uploads ficavam fora do backup.
+    $raizApp = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+    $padrao = Join-Path $raizApp "data\private"
+    if (Test-Path $padrao) {
+        $DataDir = $padrao
+        Escrever-Log "-DataDir nao informado: usando a pasta de uploads '$DataDir'." "INFO"
+    }
+}
 $inicio = Get-Date
 $dataHora = Get-Date -Format "yyyy-MM-dd_HHmm"
 $resumo = New-Object System.Collections.Generic.List[string]
@@ -90,11 +100,24 @@ try {
     Invoke-SqlBackup -Server $SqlServer -Username $SqlUsername -Query "BACKUP DATABASE [$SqlDatabase] TO DISK = N'$bakSql' WITH $opcoes" | Out-Null
 
     Escrever-Log "Verificando o backup (RESTORE VERIFYONLY WITH CHECKSUM)..."
-    Invoke-SqlBackup -Server $SqlServer -Username $SqlUsername -Query "RESTORE VERIFYONLY FROM DISK = N'$bakSql' WITH CHECKSUM" | Out-Null
+    $verificado = $true
+    try {
+        Invoke-SqlBackup -Server $SqlServer -Username $SqlUsername -Query "RESTORE VERIFYONLY FROM DISK = N'$bakSql' WITH CHECKSUM" | Out-Null
+    }
+    catch {
+        # O SQL Server exige CREATE DATABASE ate para o VERIFYONLY. Sem essa permissao a conferencia nao roda, mas isso nao
+        # indica backup ruim: o BACKUP ... WITH CHECKSUM ja valida as paginas ao gravar. Segue com aviso; qualquer outro erro continua sendo falha.
+        if ($_.Exception.Message -match "Msg 262|permission denied") {
+            $verificado = $false
+            Escrever-Log "Verificacao do .bak NAO executada: a conta nao tem permissao CREATE DATABASE (Msg 262). O backup foi gerado, mas nao conferido. Veja infra\BACKUP.md." "AVISO"
+        }
+        else { throw }
+    }
     $hashBak = Escrever-Hash -Arquivo $arquivoBak
     $tamanhoBak = [math]::Round((Get-Item $arquivoBak).Length / 1MB, 1)
-    Escrever-Log "Banco OK: $tamanhoBak MB, SHA-256 $hashBak" "OK"
-    $resumo.Add("Banco: $(Split-Path $arquivoBak -Leaf) ($tamanhoBak MB) - verificado")
+    $situacaoBak = if ($verificado) { "verificado" } else { "NAO verificado (sem permissao CREATE DATABASE)" }
+    Escrever-Log "Banco OK: $tamanhoBak MB, $situacaoBak, SHA-256 $hashBak" "OK"
+    $resumo.Add("Banco: $(Split-Path $arquivoBak -Leaf) ($tamanhoBak MB) - $situacaoBak")
     $gerados.Add($arquivoBak)
 
     # ------------------------------------------------------------- 2. arquivos
@@ -140,7 +163,7 @@ try {
         }
     }
     else {
-        Escrever-Log "-DataDir nao informado: CVs, evidencias e imagens NAO estao no backup." "AVISO"
+        Escrever-Log "Backup de arquivos desligado (-DataDir -) ou pasta de uploads nao encontrada: CVs, evidencias, imagens e anexos NAO estao no backup." "AVISO"
     }
 
     # ------------------------------------------------------- 3. copia externa
