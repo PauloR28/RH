@@ -55,6 +55,18 @@ def _run_monitoria_sla_job(settings: Settings) -> None:
         logger.exception("Falha ao executar o job de SLA da Monitoria.")
 
 
+def _run_chamados_prazos_job(settings: Settings) -> None:
+    """Chamados (Suporte TI), a cada 15 min: encerra Resolvidos sem validação no prazo, avisa SLA estourado/prestes a
+    vencer e remove anexos apagados há mais que a retenção. Idempotente; mesma blindagem dos demais jobs."""
+    try:
+        from .repositories import DatabaseRepository
+
+        resultado = DatabaseRepository(settings).ch_processar_prazos()
+        logger.info("Job de prazos dos Chamados executado: %s", resultado)
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao executar o job de prazos dos Chamados.")
+
+
 def _run_log_archive_job(settings: Settings) -> None:
     """Compacta em ZIP e remove do banco os logs do sistema mais antigos que a retenção
     (Correções.txt 21/set/2026). Só remove depois de gravar e conferir o ZIP; os logs
@@ -139,6 +151,16 @@ def start_scheduler(settings: Settings):
             minutes=5,
             args=(settings,),
             id="sla_monitoria",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_chamados_prazos_job,
+            trigger="interval",
+            minutes=15,
+            args=(settings,),
+            id="prazos_chamados",
             replace_existing=True,
             coalesce=True,
             max_instances=1,

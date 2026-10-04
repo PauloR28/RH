@@ -28,6 +28,7 @@ from .routers.calendar import (
     public_router as calendar_public_router,
     router as calendar_router,
 )
+from .routers.chamados import router as chamados_router
 from .routers.core import router as core_router
 from .routers.curriculos_ia import router as curriculos_ia_router
 from .routers.disc import public_router as disc_public_router
@@ -373,6 +374,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(core_router)
     app.include_router(tecnologia_router)
+    app.include_router(chamados_router)
     app.include_router(curriculos_ia_router)
     app.include_router(history_router)
     app.include_router(email_inbox_router)
