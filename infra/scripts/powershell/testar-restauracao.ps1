@@ -132,6 +132,10 @@ try {
         try {
             $amostra += Invoke-SqlBackup -Server $SqlServer -Database $RestoreDbName -Username $SqlUsername -Query "SELECT TOP 5 arquivo FROM dbo.monitoria_anexos ORDER BY NEWID()"
         } catch { }
+        try {
+            # Anexos dos Chamados (Suporte TI): so os ativos que ainda tem arquivo guardado.
+            $amostra += Invoke-SqlBackup -Server $SqlServer -Database $RestoreDbName -Username $SqlUsername -Query "SELECT TOP 5 chave_storage FROM dbo.chamado_anexos WHERE excluido_em IS NULL AND chave_storage <>  ORDER BY NEWID()"
+        } catch { }
         $faltando = @($amostra | ForEach-Object { (Split-Path $_.Trim() -Leaf).ToLowerInvariant() } | Where-Object { $_ -and -not $nomes.ContainsKey($_) })
         if ($faltando.Count -gt 0) {
             Escrever-Log ("Zip {0}: {1} arquivo(s) referenciado(s) no banco nao encontrado(s): {2}" -f $zip.Name, $faltando.Count, ($faltando -join ", ")) "ERRO"

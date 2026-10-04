@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conecta — Wireframes de Chamados</title>
+<style>
+  /* Grade de 8px: todo espaço é múltiplo de 8. Raio 8px (controles 6px). Bordas 1px. Sem gradiente. */
+  :root{--op:#086fca;--op-soft:#eaf3fb;--bg:#f5f7fb;--surface:#fff;--line:#e3e9f2;--line2:#cfd8e6;--ink:#101d33;--ink2:#4d5f79;--ink3:#7a8aa3;
+    --ok:#13795b;--ok-bg:#e7f7f1;--warn:#a86a0a;--warn-bg:#fff4de;--bad:#c23b4d;--bad-bg:#fdecef;--r:8px;--rs:6px;--sh:0 1px 2px rgba(15,33,57,.06)}
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9eef7;color:var(--ink);font:14px/20px Inter,system-ui,sans-serif}
+  svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  svg.i.l{width:24px;height:24px}
+  .doc{max-width:1240px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:24px;line-height:32px;margin:0 0 8px}
+  .lede{color:var(--ink2);margin:0 0 24px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+  .tab{height:40px;padding:0 16px;border:1px solid var(--line2);background:#fff;border-radius:var(--rs);cursor:pointer;font:inherit;color:var(--ink2)}
+  .tab[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .panel{display:none}.panel.on{display:block}
+  .screen{background:var(--bg);border:1px solid var(--line2);border-radius:12px;overflow:hidden;margin-bottom:24px}
+
+  /* navbar */
+  .nav{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 24px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;margin-right:8px}.logo i{width:32px;height:32px;border-radius:var(--rs);background:var(--op)}
+  .mod{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--line2);border-radius:var(--rs);font-weight:600;margin-right:8px}
+  .ni{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:var(--rs);color:var(--ink2);white-space:nowrap}
+  .ni.on{background:var(--op-soft);color:var(--op);font-weight:600}
+  .grow{flex:1}.av{width:32px;height:32px;border-radius:50%;background:var(--op-soft);color:var(--op);display:grid;place-items:center;font-size:12px;font-weight:600}
+
+  /* página */
+  .page{padding:24px;max-width:1120px;margin:0 auto}
+  .ph{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+  .ph .t{flex:1}.ph h2{margin:0;font-size:24px;line-height:32px}.ph p{margin:0;color:var(--ink2)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border:1px solid var(--line2);background:#fff;border-radius:var(--rs);font:inherit;font-weight:500;color:var(--ink);white-space:nowrap}
+  .btn.pri{background:var(--op);border-color:var(--op);color:#fff}.btn.dg{color:var(--bad);border-color:#ecbcc4}.btn.sm{height:32px;padding:0 12px}
+  .btn[disabled]{opacity:.45}
+  .tb{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:24px}
+  .tb a{display:flex;align-items:center;gap:8px;height:48px;color:var(--ink2);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tb a.on{color:var(--op);border-color:var(--op);font-weight:600}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .kpis.five{grid-template-columns:repeat(5,1fr)}
+  .kpi{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+  .kpi .ic{width:40px;height:40px;border-radius:var(--rs);display:grid;place-items:center;background:var(--op-soft);color:var(--op)}
+  .kpi.w .ic{background:var(--warn-bg);color:var(--warn)}.kpi.b .ic{background:var(--bad-bg);color:var(--bad)}.kpi.g .ic{background:var(--ok-bg);color:var(--ok)}
+  .kpi b{display:block;font-size:24px;line-height:32px}.kpi small{color:var(--ink2)}
+
+  /* card + toolbar + tabela */
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+  .card.pad{padding:24px}.card h3{margin:0 0 16px;font-size:16px;line-height:24px}
+  .ctb{display:flex;align-items:center;gap:16px;padding:16px;border-bottom:1px solid var(--line)}
+  .seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:var(--rs);padding:2px}
+  .seg span{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:4px;color:var(--ink2);white-space:nowrap}
+  .seg span.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:var(--sh)}
+  .cnt{font-size:12px;color:var(--ink3);font-weight:500}
+  .inp{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--line2);border-radius:var(--rs);background:#fff;color:var(--ink3);min-width:0}
+  .inp.f{flex:1}.inp.ta{height:96px;align-items:flex-start;padding-top:10px}
+  table{width:100%;border-collapse:collapse}
+  th{height:40px;padding:0 16px;background:var(--bg);font-size:12px;font-weight:600;color:var(--ink3);text-align:left;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line)}
+  td{height:64px;padding:0 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tr:last-child td{border-bottom:0}tr.hl td{background:#fffaf0}
+  td .s{display:block;color:var(--ink3);font-size:12px;line-height:16px}
+  .who{display:flex;align-items:center;gap:8px}.who .av{width:24px;height:24px;font-size:10px}
+  .ico-btn{width:32px;height:32px;display:grid;place-items:center;border-radius:var(--rs);color:var(--ink3);border:1px solid transparent}
+
+  /* pills */
+  .pill{display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 8px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap;background:var(--bg);color:var(--ink2)}
+  .pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.wa{background:var(--warn-bg);color:var(--warn)}.pill.bd{background:var(--bad-bg);color:var(--bad)}.pill.in{background:var(--op-soft);color:var(--op)}
+  .pill.nd::before{display:none}.pill.nd{gap:4px}
+
+  /* formulário */
+  .fg{display:grid;grid-template-columns:repeat(2,1fr);gap:24px 16px}.fg .full{grid-column:1/-1}
+  .fl label{display:block;font-weight:600;margin-bottom:8px}.fl small{display:block;color:var(--ink3);margin-top:8px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 12px;background:var(--op-soft);color:var(--op);border-radius:16px;font-weight:500}
+  .opt{display:flex;gap:8px}.opt .btn{flex:1}.opt .btn.on{background:var(--op-soft);border-color:var(--op);color:var(--op)}
+  .drop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;border:1px dashed var(--line2);border-radius:var(--r);color:var(--ink2);background:var(--bg)}
+  .sec{display:flex;align-items:center;gap:16px}.sec h3{margin:0}
+  .hr{height:1px;background:var(--line);margin:24px 0}
+  .ro{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px;background:var(--bg);border-radius:var(--r)}
+  .ro span{display:block;font-size:12px;color:var(--ink3)}.ro b{font-weight:600}
+
+  /* detalhe */
+  .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px}
+  .meta span{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3);margin-bottom:4px}.meta b{font-weight:600}
+  .split{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+  .tl{padding:24px;display:flex;flex-direction:column;gap:24px;position:relative}
+  .ev{display:flex;gap:16px;position:relative}
+  .ev:not(:last-child)::after{content:"";position:absolute;left:15px;top:40px;bottom:-24px;width:1px;background:var(--line)}
+  .dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--op-soft);color:var(--op);flex:none;font-size:11px;font-weight:600}
+  .ev.sys .dot{background:var(--bg);color:var(--ink3);border:1px solid var(--line)}
+  .bub{flex:1;min-width:0}.bub .h{display:flex;gap:8px;align-items:center;margin-bottom:4px}.bub .h b{font-weight:600}.bub .h span{color:var(--ink3);font-size:12px}
+  .bub .m{padding:12px 16px;background:var(--bg);border-radius:var(--r)}
+  .ev.sys .bub .m{background:none;padding:6px 0;color:var(--ink2)}
+  .composer{display:flex;gap:8px;padding:16px;border-top:1px solid var(--line);align-items:center}
+  .side{display:flex;flex-direction:column;gap:16px}
+  .side .card.pad{padding:16px}.side h3{font-size:14px;margin-bottom:8px}
+  .side p{margin:0 0 16px;color:var(--ink2)}.side .btn{width:100%;margin-bottom:8px}.side .btn:last-child{margin-bottom:0}
+  .sla{display:flex;align-items:center;gap:8px;height:24px}
+
+  /* dashboard */
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .br{display:grid;grid-template-columns:96px 1fr 32px;align-items:center;gap:16px;height:32px}.br span:first-child{color:var(--ink2)}.br b{text-align:right;font-weight:600}
+  .trk{height:8px;background:var(--bg);border-radius:4px;overflow:hidden}.trk i{display:block;height:100%;background:var(--op);border-radius:4px}
+  .don{display:flex;align-items:center;gap:32px}.lg{display:grid;gap:8px}.lg div{display:flex;align-items:center;gap:8px;color:var(--ink2)}.lg i{width:8px;height:8px;border-radius:50%}.lg b{margin-left:auto;padding-left:24px;color:var(--ink)}
+
+  .empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 24px;gap:8px}
+  .empty .big{width:64px;height:64px;border-radius:50%;background:var(--bg);display:grid;place-items:center;color:var(--ink3);margin-bottom:8px}
+  .empty p{margin:0 0 16px;color:var(--ink2);max-width:420px}
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  .note{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}.note b{display:block;margin-bottom:8px}.note ul{margin:0;padding-left:16px;color:var(--ink2)}.note li{margin-bottom:4px}
+  @media(max-width:860px){.kpis,.kpis.five,.meta,.g2,.split,.fg,.ro{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6"/></symbol>
+  <symbol id="clip" viewBox="0 0 24 24"><path d="m21 11-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="m22 2-11 11M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></symbol>
+  <symbol id="tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.5 2.5-2.2-.5-.5-2.2z"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.7 7L4 20l1.1-4.9A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+</defs></svg>
+
+<div class="doc">
+  <h1>Conecta Tecnologia — Chamados (Suporte TI)</h1>
+  <p class="lede">Fase 0 · versão 2 · grade de 8px, ícones, estados e hierarquia definidos. Navegue pelas abas.</p>
+  <div class="tabs" id="tabs" role="tablist"></div>
+
+  <!-- 1 VISÃO GERAL (Supervisor) -->
+  <section class="panel" data-t="Visão geral (Supervisor)">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div>
+        <span class="ni">Início</span><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">MA</span></div>
+      <div class="page">
+        <div class="ph"><div class="t"><h2>Suporte TI</h2><p>Abra chamados e acompanhe o andamento da sua operação.</p></div>
+          <button class="btn pri"><svg class="i"><use href="#plus"/></svg>Novo chamado</button></div>
+        <div class="kpis">
+          <div class="kpi"><span class="ic"><svg class="i l"><use href="#inbox"/></svg></span><div><b>3</b><small>Abertos</small></div></div>
+          <div class="kpi"><span class="ic"><svg class="i l"><use href="#clock"/></svg></span><div><b>5</b><small>Em andamento</small></div></div>
+          <div class="kpi w"><span class="ic"><svg class="i l"><use href="#user"/></svg></span><div><b>2</b><small>Aguardando você</small></div></div>
+          <div class="kpi g"><span class="ic"><svg class="i l"><use href="#check"/></svg></span><div><b>18</b><small>Resolvidos no mês</small></div></div>
+        </div>
+        <div class="card">
+          <div class="ctb">
+            <div class="seg"><span class="on">Meus chamados</span><span>Da operação</span></div>
+            <div class="inp f"><svg class="i"><use href="#search"/></svg>Buscar por número ou assunto</div>
+            <div class="inp" style="width:176px"><svg class="i"><use href="#monitor"/></svg>Bradesco<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div>
+          </div>
+          <div class="ctb" style="padding:8px 16px">
+            <div class="seg"><span class="on">Em aberto <i class="cnt">10</i></span><span>Resolvidos <i class="cnt">18</i></span><span>Histórico <i class="cnt">126</i></span></div>
+          </div>
+          <table>
+            <tr><th style="width:36%">Chamado</th><th>Impactados</th><th>PA</th><th>Urgência</th><th>Status</th><th>Atualizado</th><th style="width:48px"></th></tr>
+            <tr class="hl"><td><b>#1254</b> Headset sem áudio<span class="s">Solicitado por você · Hardware</span></td><td><div class="who"><span class="av">AS</span>Ana Souza</div></td><td>PA 14</td><td><span class="pill bd">Alta</span></td><td><span class="pill ok">Resolvido</span></td><td>há 3 h</td><td><span class="ico-btn"><svg class="i"><use href="#more"/></svg></span></td></tr>
+            <tr><td><b>#1251</b> Discador fora do ar<span class="s">Solicitado por Pedro N. · Telefonia</span></td><td><div class="who"><span class="av"><svg class="i" style="width:12px;height:12px"><use href="#users"/></svg></span>Célula (12)</div></td><td>—</td><td><span class="pill bd">Crítica</span></td><td><span class="pill in">Em andamento</span></td><td>há 12 min</td><td><span class="ico-btn"><svg class="i"><use href="#more"/></svg></span></td></tr>
+            <tr><td><b>#1249</b> Acesso ao CRM bloqueado<span class="s">Solicitado por você · Acessos</span></td><td><div class="who"><span class="av">JL</span>João Lima</div></td><td>PA 07</td><td><span class="pill wa">Média</span></td><td><span class="pill wa">Aguardando você</span></td><td>ontem</td><td><span class="ico-btn"><svg class="i"><use href="#more"/></svg></span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="notes"><div class="note"><b>Decisões de UI</b><ul>
+      <li>Supervisor (só <code>abrir</code> + <code>ver_operacao</code>) vê <b>apenas esta página</b>: sem abas Fila, Dashboard ou Configurações. As abas aparecem só para quem tem a permissão correspondente.</li>
+      <li>Duas dimensões, nunca misturadas: <b>escopo</b> (Meus chamados / Da operação) e <b>fase</b> (Em aberto / Resolvidos / Histórico).</li>
+      <li>"Da operação" aparece só com <code>chamados.ver_operacao</code>; seletor de operação só se houver mais de uma.</li>
+      <li>Histórico = Encerrados e Cancelados. Resolvido aguardando validação fica destacado.</li>
+      <li>Linha com 64px, ícones de 16px, ação única "⋯" alinhada à direita.</li></ul></div>
+    <div class="note"><b>Estado vazio</b><ul><li>Ícone + frase curta + botão "Novo chamado". Ex.: "Nenhum chamado em aberto. Tudo certo por aqui."</li></ul></div></div>
+  </section>
+
+  <!-- 2 NOVO -->
+  <section class="panel" data-t="Novo chamado">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">MA</span></div>
+      <div class="page" style="max-width:800px">
+        <div class="ph"><button class="btn sm"><svg class="i"><use href="#back"/></svg>Voltar</button><div class="t"><h2>Novo chamado</h2></div></div>
+        <div class="card pad">
+          <div class="ro"><div><span>Solicitante</span><b>Maria Alves</b></div><div><span>E-mail</span><b>maria.alves@empresa.com.br</b></div><div><span>Cargo</span><b>Supervisora</b></div></div>
+          <div class="hr"></div>
+          <div class="sec" style="margin-bottom:16px"><h3>O que está acontecendo?</h3></div>
+          <div class="fg">
+            <div class="fl"><label>Operação</label><div class="inp">Bradesco<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div></div>
+            <div class="fl"><label>Categoria</label><div class="inp">Selecione<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div></div>
+            <div class="fl full"><label>Título</label><div class="inp">Resumo curto do problema</div></div>
+            <div class="fl full"><label>Descrição</label><div class="inp ta">O que aconteceu, desde quando e o que já foi tentado</div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="sec" style="margin-bottom:16px"><h3>Quem foi afetado?</h3></div>
+          <div class="fg">
+            <div class="fl full"><div class="opt"><button class="btn on"><svg class="i"><use href="#user"/></svg>Agente(s)</button><button class="btn"><svg class="i"><use href="#users"/></svg>Célula inteira</button></div></div>
+            <div class="fl full"><label>Agentes</label><div class="inp"><svg class="i"><use href="#search"/></svg>Buscar por nome ou e-mail</div>
+              <div class="chips"><span class="chip">Ana Souza<svg class="i"><use href="#x"/></svg></span><span class="chip">Bruno Reis<svg class="i"><use href="#x"/></svg></span></div></div>
+            <div class="fl"><label>PA / posto</label><div class="inp">Ex.: PA 14</div></div>
+            <div class="fl"><label>PA parada?</label><div class="opt"><button class="btn">Não</button><button class="btn on">Sim</button></div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="sec" style="margin-bottom:16px"><h3>Urgência e anexos</h3></div>
+          <div class="fg">
+            <div class="fl full"><label>Urgência</label><div class="opt"><button class="btn" disabled>Baixa</button><button class="btn" disabled>Média</button><button class="btn on">Alta</button><button class="btn">Crítica</button></div>
+              <small><svg class="i" style="vertical-align:-3px"><use href="#info"/></svg> Baixa e Média indisponíveis: PA parada exige urgência mínima Alta.</small></div>
+            <div class="fl full"><div class="drop"><svg class="i l"><use href="#clip"/></svg><b>Arraste arquivos aqui</b><span>ou clique para escolher · imagens, vídeos, PDF e documentos · até 25 MB</span></div></div>
+          </div>
+          <div class="hr"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn">Cancelar</button><button class="btn pri"><svg class="i"><use href="#send"/></svg>Abrir chamado</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes"><div class="note"><b>Decisões de UI</b><ul>
+      <li>Um único card, três blocos com títulos e divisórias de 24px; rodapé de ações à direita.</li>
+      <li>Dados do solicitante em faixa somente leitura (nunca editáveis).</li>
+      <li>Impacto "Célula inteira" esconde Agentes e PA e já fixa urgência mínima Alta.</li>
+      <li>Busca de agentes: debounce 300ms, 10 resultados, chips removíveis.</li></ul></div></div>
+  </section>
+
+  <!-- 2b CHAMADO ABERTO -->
+  <section class="panel" data-t="Chamado aberto + compartilhar">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">MA</span></div>
+      <div class="page" style="max-width:640px"><div class="card"><div class="empty">
+        <span class="big" style="background:var(--ok-bg);color:var(--ok)"><svg class="i l"><use href="#check"/></svg></span>
+        <h2 style="margin:0">Chamado #1255 aberto</h2>
+        <p>A equipe de TI foi avisada. Você acompanha o andamento pelo Conecta e recebe uma notificação a cada atualização.</p>
+        <div class="ro" style="grid-template-columns:1fr;width:100%;text-align:left;margin-bottom:16px"><div><span>Mensagem a compartilhar</span><b style="font-weight:500">Chamado #1255 aberto no Suporte TI: Headset sem áudio (Alta). Acompanhe: conecta.empresa.com.br/suporte/chamados/1255</b></div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-bottom:24px">
+          <button class="btn"><svg class="i"><use href="#chat"/></svg>WhatsApp</button><button class="btn"><svg class="i"><use href="#mail"/></svg>E-mail</button><button class="btn"><svg class="i"><use href="#copy"/></svg>Copiar link</button></div>
+        <div style="display:flex;gap:8px"><button class="btn">Abrir outro chamado</button><button class="btn pri">Ver chamado</button></div>
+      </div></div></div>
+    </div>
+    <div class="notes"><div class="note"><b>Compartilhar</b><ul>
+      <li>Aparece na confirmação de abertura e no botão "Compartilhar" do detalhe.</li>
+      <li>WhatsApp: abre o app/Web com a mensagem pronta (<code>wa.me</code>); você escolhe o contato. E-mail: abre o cliente de e-mail com assunto e texto prontos. Nada é enviado pelo servidor.</li>
+      <li>A mensagem leva só número, título, urgência e link. <b>Nunca descrição, nomes de agentes ou anexos.</b> Quem abrir o link precisa fazer login e ter acesso ao chamado.</li></ul></div></div>
+  </section>
+
+  <!-- 3 DETALHE -->
+  <section class="panel" data-t="Detalhe do chamado">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">MA</span></div>
+      <div class="page">
+        <div class="ph"><button class="btn sm"><svg class="i"><use href="#back"/></svg>Voltar</button>
+          <div class="t"><h2>#1254 · Headset sem áudio</h2></div><span class="pill bd">Alta</span><span class="pill ok">Resolvido</span><button class="btn sm"><svg class="i"><use href="#share"/></svg>Compartilhar<svg class="i"><use href="#down"/></svg></button></div>
+        <div class="split">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card"><div class="meta">
+              <div><span><svg class="i"><use href="#clock"/></svg>Prazo (SLA)</span><b>Hoje, 15:40</b></div>
+              <div><span><svg class="i"><use href="#monitor"/></svg>Operação · PA</span><b>Bradesco · PA 14</b></div>
+              <div><span><svg class="i"><use href="#tool"/></svg>Responsável</span><b>Carlos (TI)</b></div>
+              <div><span><svg class="i"><use href="#user"/></svg>Solicitante</span><b>Maria Alves</b></div></div></div>
+            <div class="card">
+              <div class="ctb" style="padding:0 16px"><div class="tb" style="margin:0;border:0"><a class="on">Timeline</a><a>Anexos <i class="cnt">2</i></a><a>Dados</a></div></div>
+              <div class="tl">
+                <div class="ev"><span class="dot">MA</span><div class="bub"><div class="h"><b>Maria Alves</b><span>09:12</span></div><div class="m">Sem áudio no PA 14 desde as 8h. Segue print.</div></div></div>
+                <div class="ev sys"><span class="dot"><svg class="i"><use href="#tool"/></svg></span><div class="bub"><div class="m">Carlos assumiu o chamado · status alterado para <b>Em andamento</b> <span style="color:var(--ink3)">· 09:20</span></div></div></div>
+                <div class="ev"><span class="dot">CA</span><div class="bub"><div class="h"><b>Carlos</b><span>Suporte TI · 10:05</span></div><div class="m">Troquei o headset. Pode testar?</div></div></div>
+                <div class="ev sys"><span class="dot"><svg class="i"><use href="#check"/></svg></span><div class="bub"><div class="m">Marcado como <b>Resolvido</b> · encerra sozinho em 48 h <span style="color:var(--ink3)">· 10:30</span></div></div></div>
+              </div>
+              <div class="composer"><div class="inp f">Escreva uma mensagem</div><span class="ico-btn" style="border-color:var(--line2)"><svg class="i"><use href="#clip"/></svg></span><button class="btn pri"><svg class="i"><use href="#send"/></svg>Enviar</button></div>
+            </div>
+          </div>
+          <div class="side">
+            <div class="card pad"><h3>Validação</h3><p>O suporte marcou como resolvido. Confirme se o problema foi solucionado.</p>
+              <button class="btn pri"><svg class="i"><use href="#check"/></svg>Confirmar encerramento</button><button class="btn dg">Reabrir chamado</button></div>
+            <div class="card pad"><h3>Prazo</h3><div class="sla"><svg class="i"><use href="#pause"/></svg><span class="pill wa nd">SLA pausado há 1 h 20</span></div></div>
+            <div class="card pad"><h3>Ações da TI</h3><button class="btn">Assumir</button><button class="btn">Atribuir</button><button class="btn">Mudar status</button><button class="btn">Alterar urgência</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes"><div class="note"><b>Decisões de UI</b><ul>
+      <li>Duas colunas: conteúdo (meta + timeline) e painel lateral de ações de 320px. Mesma altura de linha e espaçamento de 16px entre cards.</li>
+      <li>Timeline com linha vertical contínua: mensagens com balão, eventos do sistema discretos.</li>
+      <li>Painel lateral mostra só o que a pessoa pode fazer: Validação (solicitante, em Resolvido) ou Ações da TI (<code>atender</code>/<code>atribuir</code>).</li>
+      <li>Reabrir abre campo de motivo obrigatório em modal.</li></ul></div></div>
+  </section>
+
+  <!-- 4 FILA -->
+  <section class="panel" data-t="Fila do Suporte">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">CA</span></div>
+      <div class="page">
+        <div class="ph"><div class="t"><h2>Suporte TI</h2><p>Fila de atendimento ordenada por SLA e urgência.</p></div></div>
+        <div class="tb"><a><svg class="i"><use href="#inbox"/></svg>Chamados</a><a class="on"><svg class="i"><use href="#tool"/></svg>Fila</a><a><svg class="i"><use href="#filter"/></svg>Dashboard</a><a><svg class="i"><use href="#info"/></svg>Configurações</a></div>
+        <div class="card">
+          <div class="ctb">
+            <div class="inp f"><svg class="i"><use href="#search"/></svg>Buscar por número ou assunto</div>
+            <div class="inp" style="width:144px">Status<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div>
+            <div class="inp" style="width:144px">Urgência<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div>
+            <div class="inp" style="width:144px">Operação<svg class="i" style="margin-left:auto"><use href="#down"/></svg></div>
+            <div class="seg"><span class="on">Todos</span><span>Sem responsável <i class="cnt">3</i></span></div>
+          </div>
+          <table>
+            <tr><th style="width:34%">Chamado</th><th>Operação</th><th>Urgência</th><th>SLA</th><th>Responsável</th><th style="width:168px"></th></tr>
+            <tr><td><b>#1251</b> Discador fora do ar<span class="s">Telefonia · célula inteira</span></td><td>Vivo</td><td><span class="pill bd">Crítica</span></td><td><span class="pill bd">Vencido há 20 min</span></td><td class="s" style="color:var(--ink3)">Sem responsável</td><td><button class="btn pri sm">Assumir</button> <button class="btn sm">Abrir</button></td></tr>
+            <tr><td><b>#1254</b> Headset sem áudio<span class="s">Hardware · PA 14 parada</span></td><td>Bradesco</td><td><span class="pill bd">Alta</span></td><td><span class="pill wa">Vence em 40 min</span></td><td><div class="who"><span class="av">CA</span>Carlos</div></td><td><button class="btn sm">Abrir</button></td></tr>
+            <tr><td><b>#1249</b> Acesso ao CRM bloqueado<span class="s">Acessos · PA 07</span></td><td>Bradesco</td><td><span class="pill wa">Média</span></td><td><span class="pill in">Pausado</span></td><td><div class="who"><span class="av">PA</span>Paula</div></td><td><button class="btn sm">Abrir</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="notes"><div class="note"><b>Decisões de UI</b><ul>
+      <li>Todos os filtros numa única linha de 40px; "Sem responsável" como segmento com contador.</li>
+      <li>Ordem: SLA vencido, urgência, prazo mais próximo. Ação primária "Assumir" só onde cabe.</li></ul></div></div>
+  </section>
+
+  <!-- 5 DASHBOARD -->
+  <section class="panel" data-t="Dashboard">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#monitor"/></svg>Tecnologia<svg class="i"><use href="#down"/></svg></div><span class="ni on">Suporte TI</span><span class="grow"></span><span class="av">CA</span></div>
+      <div class="page">
+        <div class="ph"><div class="t"><h2>Suporte TI</h2><p>Indicadores do atendimento.</p></div><div class="seg"><span>7 dias</span><span class="on">30 dias</span><span>90 dias</span></div></div>
+        <div class="tb"><a><svg class="i"><use href="#inbox"/></svg>Chamados</a><a><svg class="i"><use href="#tool"/></svg>Fila</a><a class="on"><svg class="i"><use href="#filter"/></svg>Dashboard</a><a><svg class="i"><use href="#info"/></svg>Configurações</a></div>
+        <div class="kpis five">
+          <div class="kpi b"><span class="ic"><svg class="i l"><use href="#alert"/></svg></span><div><b>4</b><small>SLA vencido</small></div></div>
+          <div class="kpi w"><span class="ic"><svg class="i l"><use href="#clock"/></svg></span><div><b>7</b><small>Vencem hoje</small></div></div>
+          <div class="kpi"><span class="ic"><svg class="i l"><use href="#inbox"/></svg></span><div><b>12</b><small>Abertos</small></div></div>
+          <div class="kpi"><span class="ic"><svg class="i l"><use href="#user"/></svg></span><div><b>5</b><small>Aguardando</small></div></div>
+          <div class="kpi"><span class="ic"><svg class="i l"><use href="#tool"/></svg></span><div><b>3</b><small>Sem responsável</small></div></div>
+        </div>
+        <div class="g2">
+          <div class="card pad"><h3>Não encerrados por status</h3><div class="don">
+            <svg width="144" height="144" viewBox="0 0 36 36"><g fill="none" stroke-width="4" transform="rotate(-90 18 18)"><circle cx="18" cy="18" r="14" stroke="#e3e9f2"/><circle cx="18" cy="18" r="14" stroke="#086fca" stroke-dasharray="35 88"/><circle cx="18" cy="18" r="14" stroke="#13795b" stroke-dasharray="26 88" stroke-dashoffset="-35"/><circle cx="18" cy="18" r="14" stroke="#a86a0a" stroke-dasharray="15 88" stroke-dashoffset="-61"/></g></svg>
+            <div class="lg" style="flex:1"><div><i style="background:#086fca"></i>Aberto<b>12 · 40%</b></div><div><i style="background:#13795b"></i>Em andamento<b>9 · 30%</b></div><div><i style="background:#a86a0a"></i>Aguardando<b>5 · 17%</b></div><div><i style="background:#e3e9f2"></i>Resolvido<b>4 · 13%</b></div></div></div></div>
+          <div class="card pad"><h3>Por operação</h3><div class="br"><span>Bradesco</span><div class="trk"><i style="width:100%"></i></div><b>14</b></div><div class="br"><span>Vivo</span><div class="trk"><i style="width:72%"></i></div><b>10</b></div><div class="br"><span>TI</span><div class="trk"><i style="width:28%"></i></div><b>4</b></div></div>
+          <div class="card pad"><h3>Por urgência</h3><div class="br"><span>Crítica</span><div class="trk"><i style="width:22%"></i></div><b>2</b></div><div class="br"><span>Alta</span><div class="trk"><i style="width:66%"></i></div><b>6</b></div><div class="br"><span>Média</span><div class="trk"><i style="width:100%"></i></div><b>9</b></div><div class="br"><span>Baixa</span><div class="trk"><i style="width:78%"></i></div><b>7</b></div></div>
+          <div class="card pad"><h3>Por categoria</h3><div class="br"><span>Hardware</span><div class="trk"><i style="width:100%"></i></div><b>8</b></div><div class="br"><span>Software</span><div class="trk"><i style="width:75%"></i></div><b>6</b></div><div class="br"><span>Telefonia</span><div class="trk"><i style="width:50%"></i></div><b>4</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes"><div class="note"><b>Decisões de UI</b><ul>
+      <li>Gráficos 100% com tokens do Conecta (<code>ui/components/charts.js</code>), sem biblioteca nova.</li>
+      <li>Cards com mesma altura por linha, títulos de 16px, rótulos alinhados em coluna fixa.</li></ul></div></div>
+  </section>
+
+  <!-- 6 ACESSO RESTRITO -->
+  <section class="panel" data-t="Acesso restrito">
+    <div class="screen">
+      <div class="nav"><div class="logo"><i></i>Conecta</div><div class="mod"><svg class="i"><use href="#users"/></svg>Operação<svg class="i"><use href="#down"/></svg></div><span class="ni">Início</span><span class="grow"></span><span class="av">JO</span></div>
+      <div class="page"><div class="card"><div class="empty">
+        <span class="big"><svg class="i l"><use href="#lock"/></svg></span><h2 style="margin:0">Acesso restrito</h2>
+        <p>Você não tem permissão para acessar o Suporte TI. Se precisa reportar um problema, avise o seu supervisor.</p>
+        <button class="btn pri">Voltar ao início</button></div></div></div>
+    </div>
+    <div class="notes"><div class="note"><b>Regras</b><ul><li>Sem nenhuma permissão <code>chamados.*</code> o item de menu não aparece.</li><li>Acesso direto pela URL mostra esta tela; a API responde 403.</li></ul></div></div>
+  </section>
+</div>
+<script>
+  const P=[...document.querySelectorAll('.panel')],T=document.getElementById('tabs');
+  P.forEach((p,i)=>{const b=document.createElement('button');b.className='tab';b.textContent=p.dataset.t;b.setAttribute('role','tab');b.onclick=()=>s(i);T.appendChild(b)});
+  function s(i){P.forEach((p,j)=>p.classList.toggle('on',i===j));[...T.children].forEach((b,j)=>b.setAttribute('aria-selected',i===j))}
+  s(0);
+</script>
+</body>
+</html>
