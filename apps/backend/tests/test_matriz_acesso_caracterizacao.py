@@ -48,6 +48,9 @@ def test_permissoes_efetivas_nao_mudaram(atual, base):
         for perfil, dados in perfis.items():
             antes, depois = set(dados["permissoes"]), set(atual["estados"][estado][perfil]["permissoes"])
             esperado = _esperado_para_ti(antes) if perfil in PERFIS_APROVADOS else antes
+            # Mudança aprovada (Suporte TI / Chamados): permissões `chamados.*` são NOVAS e podem aparecer em qualquer perfil
+            # (seed: Supervisor, TI e Administrador). Só podem ser ADICIONADAS; o resto da matriz segue congelado.
+            depois = {p for p in depois if not p.startswith("chamados.")}
             if depois != esperado:
                 divergencias.append(f"{estado}/{perfil}: +{sorted(depois - esperado)} -{sorted(esperado - depois)}")
     assert not divergencias, "Regressão de permissões:\n" + "\n".join(divergencias)

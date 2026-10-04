@@ -82,6 +82,8 @@ def _grupos_de_seed() -> dict[tuple[str, int], list[str]]:
 
     grupos: dict[tuple[str, int], list[str]] = defaultdict(list)
     for chave, definicao in PERMISSION_DEFINITIONS.items():
+        if chave.startswith("chamados."):
+            continue  # V056 já está aplicada e é imutável: as permissões de Chamados são semeadas pela própria V059
         grupos[(modulo_dono_padrao(chave, definicao.module), 1 if abre_modulo_padrao(chave) else 0)].append(chave)
     return {k: sorted(v) for k, v in sorted(grupos.items())}
 

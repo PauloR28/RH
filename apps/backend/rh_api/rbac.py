@@ -28,7 +28,7 @@ ROLE_ANALISTA_TI = "analista_ti"  # Gestor de TI: monta, aprova, publica e admin
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-10-03-modularizacao"
+PERMISSIONS_VERSION = "2026-10-03-chamados"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -408,6 +408,13 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("wfm.troca.solicitar", "WFM", "Solicitar troca de plantão e responder pedidos de colegas (Operador).", critical=True),
         _permission("wfm.troca.aprovar", "WFM", "Aprovar ou reprovar trocas de plantão (Supervisor, Control Desk, Gestor/RH).", critical=True),
         _permission("wfm.troca.desfazer", "WFM", "Desfazer uma troca já aprovada, com justificativa.", critical=True),
+        # Chamados (Suporte TI), módulo Tecnologia. Nenhum perfil é fixo no código: estes são só os valores iniciais.
+        _permission("chamados.abrir", "Chamados", "Ver o menu Suporte TI, abrir chamados e acompanhar os próprios."),
+        _permission("chamados.ver_operacao", "Chamados", "Ver e comentar chamados de qualquer operação à qual o usuário pertence."),
+        _permission("chamados.atender", "Chamados", "Ver a fila do Suporte, assumir, responder, mudar status e alterar urgência.", critical=True),
+        _permission("chamados.atribuir", "Chamados", "Atribuir chamados a outros técnicos.", critical=True),
+        _permission("chamados.dashboard", "Chamados", "Ver o dashboard de chamados."),
+        _permission("chamados.configurar", "Chamados", "Gerenciar categorias, prazos de SLA, encerramento automático e limites de anexo.", critical=True),
     )
 }
 
@@ -786,9 +793,16 @@ PERMISSOES_ADMINISTRACAO_TI = frozenset(
     chave
     for chave in ROLE_PERMISSIONS[ROLE_ADMIN]
     if modulo_dono_padrao(chave, PERMISSION_DEFINITIONS[chave].module) in (MODULO_CORE, MODULO_TECNOLOGIA)
+    and not chave.startswith("chamados.")  # Chamados tem seed próprio (abaixo); a V057 já aplicada não pode mudar
 )
 for _papel in PERFIS_TI:
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(PERMISSOES_ADMINISTRACAO_TI)
+
+# Chamados (Suporte TI): valor inicial editável em Perfis e Permissões. Supervisor abre chamados e acompanha os da operação;
+# a TI (que já recebe tudo de Tecnologia acima) atende, atribui e vê o dashboard; Administrador recebe o catálogo inteiro.
+ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"chamados.abrir", "chamados.ver_operacao"})
+for _papel in PERFIS_TI:
+    ROLE_PERMISSIONS.setdefault(_papel, set()).update({"chamados.atender", "chamados.atribuir", "chamados.dashboard"})
 
 SCREEN_PERMISSIONS.update(
     {

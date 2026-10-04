@@ -37,6 +37,8 @@ def test_v056_semeia_todas_as_permissoes_so_onde_o_dono_esta_vazio():
     sql = ms.render_migration_modulo_dono_sql()
     assert sql.count("modulo_dono IS NULL") >= 4  # nunca sobrescreve reatribuição feita em Tecnologia
     for chave in PERMISSION_DEFINITIONS:
+        if chave.startswith("chamados."):
+            continue  # semeadas pela V059 (a V056 já aplicada não muda)
         assert f"''{chave}''" in sql, chave
 
 

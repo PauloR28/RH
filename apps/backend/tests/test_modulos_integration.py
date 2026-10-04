@@ -38,7 +38,7 @@ def test_seed_do_banco_bate_com_o_catalogo_em_codigo(banco):
         if est.donos[chave] != modulo_dono_padrao(chave, definicao.module):
             pytest.skip(f"{chave} foi reatribuída neste banco (esperado em ambiente já configurado).")
     abrem = sorted(c for c, a in est.abre.items() if a)
-    assert abrem == sorted(["sessao.curriculos.acessar", "sessao.processos.acessar", "sessao.provas.acessar", "sessao.monitoria.acessar", "sessao.wfm.acessar", "configuracoes.visualizar"])
+    assert abrem == sorted(["sessao.curriculos.acessar", "sessao.processos.acessar", "sessao.provas.acessar", "sessao.monitoria.acessar", "sessao.wfm.acessar", "configuracoes.visualizar", "chamados.abrir", "chamados.atender"])
 
 
 def test_desativar_e_reativar_modulo_no_banco(banco):

@@ -59,6 +59,7 @@ def test_so_as_chaves_previstas_abrem_modulo():
     assert set(ABRE_MODULO_PADRAO) == {
         "sessao.curriculos.acessar", "sessao.processos.acessar", "sessao.provas.acessar",
         "sessao.monitoria.acessar", "sessao.wfm.acessar", "configuracoes.visualizar",
+        "chamados.abrir", "chamados.atender",  # Suporte TI (Chamados): quem abre ou atende enxerga o módulo Tecnologia
     }
     assert "relatorios.visualizar" not in ABRE_MODULO_PADRAO  # D-8
 
@@ -70,7 +71,7 @@ ESPERADO_FECHADA = {
     "rh": ["rh"],
     "dp": ["rh"],
     "estagiario": ["rh"],
-    "supervisor": ["operacao"],
+    "supervisor": ["operacao", "tecnologia"],  # Suporte TI: chamados.abrir abre Tecnologia (menu filtrado: só "Suporte TI")
     "control_desk": ["operacao"],
     "qualidade": ["operacao"],  # Monitoria abre `operacao` (WFM só entra com a flag aberta)
     "operador": ["operacao"],
@@ -93,7 +94,7 @@ def test_matriz_perfil_x_modulo(flag, esperado_extra):
 
 def test_perfis_de_ti_nao_enxergam_rh_nem_perfis_de_rh_enxergam_tecnologia():
     efetivas = m._permissoes_efetivas_em_subprocesso("1")
-    for perfil in ("rh", "dp", "estagiario", "gestor", "supervisor", "operador", "funcionario"):
+    for perfil in ("rh", "dp", "estagiario", "gestor", "operador", "funcionario"):  # Supervisor vê Tecnologia só pelo Suporte TI
         assert MODULO_TECNOLOGIA not in acesso.modulos_visiveis(efetivas[perfil]), perfil
     for perfil in m.PERFIS_TI:
         assert MODULO_RH not in acesso.modulos_visiveis(efetivas[perfil]), perfil
@@ -101,7 +102,7 @@ def test_perfis_de_ti_nao_enxergam_rh_nem_perfis_de_rh_enxergam_tecnologia():
 
 def test_quem_tem_um_modulo_so_nao_precisa_de_seletor():
     efetivas = m._permissoes_efetivas_em_subprocesso("")
-    for perfil in ("rh", "dp", "estagiario", "supervisor", "control_desk", "operador"):
+    for perfil in ("rh", "dp", "estagiario", "control_desk", "operador"):
         assert len(acesso.modulos_visiveis(efetivas[perfil])) == 1, perfil
 
 

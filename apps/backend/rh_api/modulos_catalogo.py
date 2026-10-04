@@ -54,6 +54,7 @@ _DONO_POR_GRUPO = {
     "Central de Ajuda": MODULO_TECNOLOGIA,
     "Operações": MODULO_TECNOLOGIA,
     "LGPD": MODULO_TECNOLOGIA,
+    "Chamados": MODULO_TECNOLOGIA,
     "Relatórios": MODULO_TECNOLOGIA,  # decisão do RH (D-3); reatribuível, e não abre o módulo (D-8)
 }
 
@@ -88,6 +89,9 @@ ABRE_MODULO_PADRAO: dict[str, str] = {
     "sessao.monitoria.acessar": MODULO_OPERACAO,
     "sessao.wfm.acessar": MODULO_OPERACAO,
     "configuracoes.visualizar": MODULO_TECNOLOGIA,
+    # Chamados: quem abre ou atende enxerga o módulo Tecnologia (o menu é filtrado por permissão dentro dele).
+    "chamados.abrir": MODULO_TECNOLOGIA,
+    "chamados.atender": MODULO_TECNOLOGIA,
 }
 
 
