@@ -7,9 +7,9 @@ import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20260921-alertas';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
-import { useModulos } from '../../modulos/estado.js?v=20261003-modulos-c';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261003-modulos-c';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261003-modulos-c';
+import { useModulos } from '../../modulos/estado.js?v=20261004-chamados2';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261004-chamados2';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261004-chamados2';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -1128,6 +1128,14 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
     : `RH / ${perfilBase}`;
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
   const { itens: notificacoes, carregando: carregandoNotificacoes, marcarComoLida, excluirTodas } = useResumoNotificacoes(controlador);
+  // Notificações do Suporte TI levam direto ao chamado (o servidor decide se a pessoa pode vê-lo).
+  const abrirNotificacao = (item) => {
+    marcarComoLida(item);
+    if (item.caminho) {
+      window.history.pushState(null, '', item.caminho);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
   const coresPorCategoria = lerCoresNotificacao();
   const notificacoesNaoLidas = notificacoes.filter((item) => !item.lida);
 
@@ -1332,11 +1340,11 @@ export function CartaoUsuarioTopo({ controlador, onOpenHelp = null, mostrarAjuda
                             role="menuitem"
                             tabIndex="0"
                             title=${item.lida ? 'Notificação lida' : 'Marcar como lida'}
-                            onClick=${() => marcarComoLida(item)}
+                            onClick=${() => abrirNotificacao(item)}
                             onKeyDown=${(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    marcarComoLida(item);
+                    abrirNotificacao(item);
                   }
                 }}
                           >

@@ -4,7 +4,7 @@
 import { useEffect, useState } from '../infraestrutura-react.js';
 import { lerSessaoAutenticacao } from '../services/api/core.js';
 import { lerAcessoCore } from '../services/api/modulos.js';
-import { MODULO_CORE, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261003-modulos-c';
+import { MODULO_CORE, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261004-chamados2';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
 

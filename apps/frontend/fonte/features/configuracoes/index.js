@@ -27,7 +27,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261003-modulos-c';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261004-chamados2';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -84,6 +84,7 @@ const SESSOES_PERMISSAO = [
   { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
   { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
+  { id: 'chamados', modulo: 'tecnologia', label: 'Suporte TI (Chamados)', icon: 'support_agent', modulos: ['Chamados'] },
   {
     id: 'configuracoes',
     modulo: 'tecnologia',

@@ -1,7 +1,7 @@
 import { html, useEffect, useRef, useState } from '../infraestrutura-react.js';
 import { IconeSvg } from '../ui/icone.js';
-import { selecionarModulo } from './estado.js?v=20261003-modulos-c';
-import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261003-modulos-c';
+import { selecionarModulo } from './estado.js?v=20261004-chamados2';
+import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261004-chamados2';
 
 // Peças de interface dos módulos usadas pela navbar (ui/components/layout.js): seletor de módulo e menu da Tecnologia.
 
@@ -56,9 +56,9 @@ export function SeletorModulo({ controlador, modulos }) {
 /** Itens do menu superior do módulo Tecnologia (Início · Acessos ▾ · Sistema ▾ · Auditoria ▾ · Escalas e Plantões). */
 export function NavTecnologia({ controlador, navAtiva, grupoAberto, alternarGrupo, fecharGrupo }) {
   const menu = montarMenuTecnologia(controlador.podeAcessarTela, controlador.possuiPermissao);
-  const ativa = (tela) => navAtiva === tela || (tela.startsWith('screen-wfm') && navAtiva.startsWith('screen-wfm') && navAtiva !== 'screen-wfm-auditoria');
+  const ativa = (tela) => navAtiva === tela || (tela.startsWith('screen-chamados') && navAtiva.startsWith('screen-chamados')) || (tela.startsWith('screen-wfm') && navAtiva.startsWith('screen-wfm') && navAtiva !== 'screen-wfm-auditoria');
   return html`${menu.map((entrada) => {
-    if (entrada.tipo === 'item' || entrada.tipo === 'wfm') {
+    if (entrada.tipo === 'item' || entrada.tipo === 'wfm' || entrada.tipo === 'suporte') {
       const marcado = ativa(entrada.tela) || (entrada.tipo === 'item' && ['screen-tecnologia'].includes(navAtiva));
       return html`
         <button type="button" key=${entrada.id} class=${`rh-modern-nav-btn ${marcado ? 'is-active' : ''}`.trim()} title=${entrada.label}

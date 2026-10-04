@@ -231,6 +231,12 @@ export const PERMISSOES_TELAS = {
   'screen-wfm-jornadas': 'wfm.cadastros.visualizar',
   'screen-wfm-auditoria': 'wfm.auditoria',
   'screen-wfm-trocas': 'wfm.troca.visualizar',
+  // Suporte TI (Chamados): lista = basta uma. O detalhe não tem entrada: o servidor decide (quem abriu nunca fica órfão).
+  'screen-chamados': ['chamados.abrir', 'chamados.ver_operacao'],
+  'screen-chamados-novo': 'chamados.abrir',
+  'screen-chamados-fila': 'chamados.atender',
+  'screen-chamados-dashboard': 'chamados.dashboard',
+  'screen-chamados-config': 'chamados.configurar',
 };
 
 // Sessão (chave-mestra liga/desliga em Perfis e Permissões) a que cada tela pertence.
@@ -1165,7 +1171,8 @@ export function useControladorAplicacao() {
     const permissao = PERMISSOES_TELAS[tela];
     // "Minhas monitorias": o Supervisor acompanha as monitorias da sua equipe (com a etiqueta "Contestada").
     const supervisorMinhas = tela === 'screen-monitoria-minhas' && estado.perfilUsuario === 'supervisor' && possuiPermissao('monitoria.visualizar');
-    return (!permissao || possuiPermissao(permissao) || supervisorMinhas) && sessaoLiberada(SESSAO_DA_TELA[tela]);
+    const permitida = Array.isArray(permissao) ? permissao.some((p) => possuiPermissao(p)) : possuiPermissao(permissao);
+    return (!permissao || permitida || supervisorMinhas) && sessaoLiberada(SESSAO_DA_TELA[tela]);
   };
 
   const registrarAcessoNegado = (mensagem = MENSAGEM_ACESSO_NEGADO) => {

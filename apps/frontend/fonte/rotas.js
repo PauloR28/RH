@@ -78,6 +78,16 @@ export const ROTAS_POR_TELA = {
   'screen-wfm-jornadas': 'turnos-plantoes/jornadas',
   'screen-wfm-auditoria': 'turnos-plantoes/auditoria',
   'screen-wfm-trocas': 'turnos-plantoes/trocas',
+  'screen-chamados': 'suporte-ti',
+  'screen-chamados-novo': 'suporte-ti/novo',
+  'screen-chamados-fila': 'suporte-ti/fila',
+  'screen-chamados-dashboard': 'suporte-ti/dashboard',
+  'screen-chamados-config': 'suporte-ti/configuracoes',
+  'screen-chamados': 'suporte-ti',
+  'screen-chamados-novo': 'suporte-ti/novo',
+  'screen-chamados-fila': 'suporte-ti/fila',
+  'screen-chamados-dashboard': 'suporte-ti/dashboard',
+  'screen-chamados-config': 'suporte-ti/configuracoes',
   'screen-help': 'ajuda',
 };
 
@@ -147,6 +157,8 @@ export function obterTelaPorRota(rotaAtual = obterRotaAtual()) {
   if (rota.startsWith('disc-teste/')) return 'screen-disc-teste';
   if (rota.startsWith('fit-cultural-teste/')) return 'screen-fit-cultural-teste';
   if (rota.startsWith('raciocinio-teste/')) return 'screen-raciocinio-teste';
+  if (/^suporte-ti\/chamado\/\d+$/.test(rota)) return 'screen-chamados-detalhe';
+  if (/^suporte-ti\/chamado\/\d+$/.test(rota)) return 'screen-chamados-detalhe';
   if (/^processos\/.+\/resultados-analiticos$/.test(rota)) {
     return 'screen-process-analytical-results';
   }

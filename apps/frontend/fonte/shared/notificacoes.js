@@ -60,6 +60,12 @@ export const CATEGORIAS_NOTIFICACAO = [
     descricao: 'Contestações, réplicas, feedbacks e atualizações das monitorias do seu escopo.',
   },
   {
+    id: 'chamados',
+    label: 'Suporte TI',
+    cor: '#086fca',
+    descricao: 'Novos chamados, mensagens, mudanças de status, validação e alertas de SLA do Suporte TI.',
+  },
+  {
     id: 'critico',
     label: 'Configuração pendente',
     cor: '#c23b4d',
@@ -252,13 +258,17 @@ function montarItensPersistidos(notificacoes) {
     .slice(0, LIMITE_NOTIFICACOES_PERSISTIDAS)
     .map((item) => {
       const monitoria = ehCategoriaMonitoria(item.categoria);
+      const chamado = item.categoria === 'chamados';
       return {
         id: `${PREFIXO_ID_PERSISTIDA}${item.id_notificacao}`,
-        categoria: monitoria ? 'monitoria' : 'treinamentos',
+        categoria: monitoria ? 'monitoria' : chamado ? 'chamados' : 'treinamentos',
         persistida: true,
+        caminho: chamado && item.entidade_id ? `/suporte-ti/chamado/${encodeURIComponent(item.entidade_id)}` : '',
         texto: monitoria
           ? item.mensagem || item.titulo || 'Atualização de monitoria'
-          : item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Notificação da Central de Treinamentos',
+          : chamado
+            ? item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Atualização do Suporte TI'
+            : item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Notificação da Central de Treinamentos',
       };
     });
 }

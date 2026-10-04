@@ -9,8 +9,8 @@ import {
   lerWfmParticipantes,
   listarModulosTecnologia,
 } from '../../services/api/modulos.js';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261003-modulos-c';
-import { TELA_MODULOS_TECNOLOGIA, telaWfmParaTecnologia } from '../registro.js?v=20261003-modulos-c';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261004-chamados2';
+import { TELA_MODULOS_TECNOLOGIA, telaWfmParaTecnologia } from '../registro.js?v=20261004-chamados2';
 
 // Módulo Tecnologia — centro de administração do Conecta (wireframe aprovado, Etapa 6).
 // 100% administração: usuários, perfis e permissões, operações, módulos, WFM de participantes, parâmetros, auditoria e a

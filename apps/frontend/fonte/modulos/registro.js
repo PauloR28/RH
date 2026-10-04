@@ -55,6 +55,9 @@ export const OPERACAO_BASE_TI = 'TI';
 export const TELA_INICIO_TECNOLOGIA = 'screen-tecnologia';
 export const TELA_MODULOS_TECNOLOGIA = 'screen-tecnologia-modulos';
 export const TELAS_TECNOLOGIA = [TELA_INICIO_TECNOLOGIA, TELA_MODULOS_TECNOLOGIA];
+// Suporte TI (Chamados): item do menu de Tecnologia; quem só abre/acompanha chamados (ex.: Supervisor) cai aqui ao entrar no módulo.
+export const TELA_SUPORTE_TI = 'screen-chamados';
+export const TELAS_SUPORTE_TI = ['screen-chamados', 'screen-chamados-fila', 'screen-chamados-dashboard', 'screen-chamados-config'];
 
 // Telas do WFM, na ordem em que o módulo Tecnologia escolhe a primeira que o usuário pode abrir (mesma ordem do WFM).
 export const TELAS_WFM_DA_TI = ['screen-wfm', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca', 'screen-wfm-relatorios'];
@@ -62,6 +65,7 @@ export const TELAS_WFM_DA_TI = ['screen-wfm', 'screen-wfm-minha-escala', 'screen
 // Menu do módulo Tecnologia (wireframe aprovado): Início · Acessos ▾ · Sistema ▾ · Auditoria ▾ · Escalas e Plantões (do WFM).
 export const MENU_TECNOLOGIA = [
   { id: 'inicio', tipo: 'item', tela: TELA_INICIO_TECNOLOGIA, label: 'Início', icone: 'home' },
+  { id: 'suporte', tipo: 'suporte', label: 'Suporte TI', icone: 'support_agent' },
   {
     id: 'acessos',
     tipo: 'grupo',
@@ -126,6 +130,11 @@ export function montarMenuTecnologia(podeAcessarTela, possuiPermissao) {
   const itemVisivel = (item) => podeAcessarTela(item.tela) && (!item.permissao || possuiPermissao(item.permissao));
   return MENU_TECNOLOGIA.flatMap((entrada) => {
     if (entrada.tipo === 'item') return podeAcessarTela(entrada.tela) ? [entrada] : [];
+    if (entrada.tipo === 'suporte') {
+      // A porta de entrada é a primeira aba do Suporte TI que a pessoa pode abrir (Chamados, Fila, Dashboard ou Configurações).
+      const tela = TELAS_SUPORTE_TI.find((t) => podeAcessarTela(t));
+      return tela ? [{ ...entrada, tela }] : [];
+    }
     if (entrada.tipo === 'wfm') {
       const tela = telaWfmParaTecnologia(podeAcessarTela);
       return tela ? [{ ...entrada, tela }] : [];
@@ -137,7 +146,10 @@ export function montarMenuTecnologia(podeAcessarTela, possuiPermissao) {
 
 /** Tela inicial de cada módulo (o seletor leva para ela). */
 export function telaInicialDoModulo(modulo, podeAcessarTela) {
-  if (modulo === MODULO_TECNOLOGIA) return TELA_INICIO_TECNOLOGIA;
+  if (modulo === MODULO_TECNOLOGIA) {
+    if (podeAcessarTela(TELA_INICIO_TECNOLOGIA)) return TELA_INICIO_TECNOLOGIA;
+    return TELAS_SUPORTE_TI.find((t) => podeAcessarTela(t)) || TELA_INICIO_TECNOLOGIA;
+  }
   if (modulo === MODULO_OPERACAO) {
     const ordem = ['screen-monitoria-minhas', 'screen-monitoria-dashboard', 'screen-monitoria', 'screen-monitoria-nova', ...TELAS_WFM_DA_TI];
     return ordem.find((tela) => podeAcessarTela(tela)) || 'screen-menu';

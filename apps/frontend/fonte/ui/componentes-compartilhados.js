@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261003-modulos-c';
+} from './components/layout.js?v=20261004-chamados2';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
