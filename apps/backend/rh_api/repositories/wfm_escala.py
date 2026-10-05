@@ -78,6 +78,7 @@ def _contrato_de_linha(row: dict) -> ParametrosContrato:
         ),
         jornada_feriado_max_min=int(row["jornada_feriado_max_min"]) if row.get("jornada_feriado_max_min") is not None else None,
         jornada_bloqueio_duro=bool(row.get("jornada_bloqueio_duro")),
+        jornada_semanal_max_min=int(row["jornada_semanal_max_min"]) if row.get("jornada_semanal_max_min") is not None else None,
     )
 
 
@@ -104,7 +105,7 @@ class WfmEscalaRepositoryMixin:
         filtro, parametros = self._wfm_participantes_sql(operacao)
         cursor.execute(
             f"""
-            SELECT u.id_usuario, u.nome, u.sobrenome, u.id_equipe, e.nome FROM dbo.usuarios u
+            SELECT u.id_usuario, u.nome, u.sobrenome, u.id_equipe, e.nome, u.cargo FROM dbo.usuarios u
             JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
             LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
             WHERE {filtro} AND ISNULL(u.status, 'Ativo') = 'Ativo'
@@ -114,7 +115,7 @@ class WfmEscalaRepositoryMixin:
         )
         todos = [
             {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(),
-             "id_equipe": int(r[3]) if r[3] else None, "equipe": normalize_text(r[4])}
+             "id_equipe": int(r[3]) if r[3] else None, "equipe": normalize_text(r[4]), "cargo": normalize_text(r[5])}
             for r in cursor.fetchall()
         ]
         cursor.execute(
@@ -300,6 +301,10 @@ class WfmEscalaRepositoryMixin:
                 "nome_escala": self._wfm_nome_escala(cursor, operacao),
                 "operadores": operadores,
                 "itens": itens,
+                "personalizacoes": [
+                    {"id_turno": t, "id_operador": o, "entrada": h[0], "saida": h[1]}
+                    for (t, o), h in sorted(self._wfm_personalizacoes_mapa(cursor, operacao).items()) if o in set(ids)
+                ],
                 "turnos": [t for t in turnos if t["ativo"] or t["id_turno"] in {i["id_turno"] for i in itens}],  # inativo/excluído só se aparece no histórico
                 "eventos": eventos,
                 "pode_editar": pode_editar,
@@ -336,7 +341,7 @@ class WfmEscalaRepositoryMixin:
         cursor.execute(
             """
             SELECT c.codigo, c.jornada_diaria_max_min, c.interjornada_min_min, c.max_dias_consecutivos,
-                   c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json
+                   c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json, c.jornada_semanal_max_min
             FROM dbo.wfm_operacao_config oc JOIN dbo.wfm_contratos c ON c.id_contrato = oc.id_contrato
             WHERE oc.operacao = ? AND c.ativo = 1
             """,
@@ -376,6 +381,7 @@ class WfmEscalaRepositoryMixin:
             turnos = self._wfm_turnos_modelo(cursor, operacao)
             cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND ativo = 1", (operacao,))
             turnos_ativos = {int(r[0]) for r in cursor.fetchall()}
+            personalizados = self._wfm_personalizacoes_mapa(cursor, operacao)
             todos_operadores = self._wfm_todos_operadores(cursor, operacao)
             operadores = {op["id_usuario"] for op in todos_operadores}
             nomes_operadores = {op["id_usuario"]: op["nome"] for op in todos_operadores}
@@ -429,6 +435,9 @@ class WfmEscalaRepositoryMixin:
                 else:
                     # Trocou o turno do dia: o horário combinado deixa de valer. Mesmo turno: mantém.
                     ajuste = ajuste_atual if atual and id_turno == int(atual[1]) else None
+                # Turno personalizado do colaborador: sem horário combinado para o dia, vale o horário próprio dele neste turno.
+                if ajuste is None and id_turno is not None and turnos[id_turno].tipo == "TRABALHO":
+                    ajuste = personalizados.get((id_turno, id_operador))
                 antes = {"id_turno": int(atual[1]), "codigo": turnos[int(atual[1])].codigo, "horario": ajuste_atual} if atual and int(atual[1]) in turnos else None
                 depois = {"id_turno": id_turno, "codigo": turnos[id_turno].codigo, "horario": ajuste} if id_turno else None
                 if (antes or {}).get("id_turno") == (depois or {}).get("id_turno") and ajuste == ajuste_atual:
@@ -525,7 +534,7 @@ class WfmEscalaRepositoryMixin:
         cursor.execute(
             f"""
             SELECT oc.id_operador, oc.vigencia_ini, oc.vigencia_fim, c.codigo, c.jornada_diaria_max_min, c.interjornada_min_min,
-                   c.max_dias_consecutivos, c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json
+                   c.max_dias_consecutivos, c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json, c.jornada_semanal_max_min
             FROM dbo.wfm_operador_contratos oc JOIN dbo.wfm_contratos c ON c.id_contrato = oc.id_contrato
             WHERE oc.operacao = ? AND oc.id_operador IN ({marcadores})
             """,

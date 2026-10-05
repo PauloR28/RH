@@ -626,3 +626,22 @@ th.wfm-rel-num .wfm-rel-ordenar { justify-content: flex-end; }
 .wfm-g-empilhada { display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: var(--line); }
 .wfm-g-empilhada span { display: block; height: 100%; }
 @media (max-width: 640px) { .wfm-g-barras li { grid-template-columns: 1fr auto; } .wfm-g-barras-trilha { grid-column: 1 / -1; } }
+
+/* ---- Escala mensal: ajuste de um dia (menu da célula) e padrão semanal por turno + dias ---- */
+.wfm-celula-wrap { display: inline-block; }
+.wfm-celula-menu { position: fixed; z-index: 60; width: 208px; max-height: 288px; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 8px; box-shadow: var(--shadow-lg); }
+.wfm-celula-menu button { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
+.wfm-celula-menu button:hover, .wfm-celula-menu button.is-ativo { background: var(--color-surface-soft); }
+.wfm-regras { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.wfm-regra { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 16px; align-items: end; }
+.wfm-regra-rm { align-self: end; height: 36px; }
+.wfm-dias-dd { position: relative; }
+.wfm-dias-btn { width: 100%; height: 36px; text-align: left; cursor: pointer; display: flex; align-items: center; }
+.wfm-trunca { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wfm-dias-menu { position: absolute; z-index: 40; top: 40px; left: 0; min-width: 100%; width: max-content; padding: 8px; display: flex; flex-direction: column; gap: 4px; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 8px; box-shadow: var(--shadow-lg); }
+.wfm-dias-item { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 6px; cursor: pointer; }
+.wfm-dias-item:hover { background: var(--color-surface-soft); }
+.wfm-dias-todos { border-bottom: 1px solid var(--color-border); border-radius: 6px 6px 0 0; font-weight: 600; margin-bottom: 4px; }
+@media (max-width: 767.98px) { .wfm-regra { grid-template-columns: minmax(0, 1fr); } }
+.wfm-aplicar-todos { display: inline-flex; align-items: center; gap: 8px; }
+.wfm-aplicar-todos .form-select { width: 176px; height: 36px; }

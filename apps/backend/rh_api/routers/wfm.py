@@ -20,6 +20,7 @@ from ..schemas.wfm import (
     DuplicarEscalaRequest,
     DeclinarRequest,
     DistribuirPausasRequest,
+    PersonalizacaoTurnoRequest,
     PresencaLoteRequest,
     SalvarPausasRequest,
     ContratoOperadorRequest,
@@ -276,6 +277,23 @@ def desfazer_troca(id_troca: int, payload: TrocaDesfazerRequest, request: Reques
 
 
 # ---- Turnos: excluir; contrato do operador (leitura) ---------------------
+@router.get("/turnos/{id_turno}/personalizacoes", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar"))])
+def listar_personalizacoes(id_turno: int, operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_listar_personalizacoes(user, operacao, id_turno)}
+
+
+@router.put("/turnos/{id_turno}/personalizacoes/{id_operador}", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def salvar_personalizacao(id_turno: int, id_operador: int, payload: PersonalizacaoTurnoRequest, request: Request,
+                          user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_salvar_personalizacao(user, {**payload.model_dump(), "id_turno": id_turno, "id_operador": id_operador}, ip=client_ip(request))
+
+
+@router.delete("/turnos/{id_turno}/personalizacoes/{id_operador}", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def remover_personalizacao(id_turno: int, id_operador: int, operacao: str, request: Request, remover_lancados: bool = False,
+                           user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_remover_personalizacao(user, operacao, id_turno, id_operador, remover_lancados=remover_lancados, ip=client_ip(request))
+
+
 @router.delete("/turnos/{id_turno}", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
 def excluir_turno(id_turno: int, operacao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_excluir_turno(user, operacao, id_turno, ip=client_ip(request))

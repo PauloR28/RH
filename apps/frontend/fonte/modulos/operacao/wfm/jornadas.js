@@ -11,7 +11,10 @@ import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm, Secao } from './
 
 export const TIPOS_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', INTERVALO: 'Intervalo não remunerado', LANCHE: 'Lanche', OUTRA: 'Outra' };
 const TIPOS_JORNADA = { ESTAGIARIO: 'Estagiário', CLT: 'CLT', TERCEIRO: 'Terceiro', APRENDIZ: 'Jovem aprendiz' };
-const JORNADA_VAZIA = { codigo: '', nome: '', tipo: 'CLT', jornada_diaria_max_min: 480, interjornada_min_min: 660, max_dias_consecutivos: 6, jornada_feriado_max_min: '', jornada_bloqueio_duro: false, exigencias_pausa: [], ativo: true };
+const JORNADA_VAZIA = { codigo: '', nome: '', tipo: 'CLT', jornada_diaria_max_min: 480, interjornada_min_min: 660, max_dias_consecutivos: 6, jornada_semanal_max_min: 2640, jornada_feriado_max_min: '', jornada_bloqueio_duro: false, exigencias_pausa: [], ativo: true };
+// Horas no dia e na semana são digitadas em horas (aceita 7,5) e guardadas em minutos.
+const emHoras = (min) => (min === '' || min === null || min === undefined ? '' : Number((Number(min) / 60).toFixed(2)));
+const emMinutos = (h) => (h === '' ? '' : Math.round(Number(String(h).replace(',', '.')) * 60));
 const PAUSA_VAZIA = { nome: '', a_partir_de_min: 300, tipo: 'DESCANSO', quantidade: 1, duracao_min: 10 };
 
 function ModalJornada({ operacao, inicial, onClose, onSalvo, showToast }) {
@@ -21,15 +24,17 @@ function ModalJornada({ operacao, inicial, onClose, onSalvo, showToast }) {
   const set = (k, v) => setEdit((e) => ({ ...e, [k]: v }));
   const setPausa = (i, k, v) => setEdit((e) => ({ ...e, exigencias_pausa: e.exigencias_pausa.map((p, j) => (j === i ? { ...p, [k]: ['tipo', 'nome'].includes(k) ? v : Number(v) } : p)) }));
   const num = (k) => (e) => set(k, e.target.value === '' ? '' : Number(e.target.value));
+  const horas = (k) => (e) => set(k, emMinutos(e.target.value));
 
   const salvar = async (ev) => {
     ev.preventDefault();
     if (!edit.codigo.trim() || !edit.nome.trim()) return setErro('Informe o código e o nome da jornada.');
-    if (!(edit.jornada_diaria_max_min >= 30) || edit.interjornada_min_min === '' || !(edit.max_dias_consecutivos >= 1)) return setErro('Preencha jornada máxima (mín. 30), interjornada e dias seguidos.');
+    if (!(edit.jornada_diaria_max_min >= 30) || !(edit.max_dias_consecutivos >= 1)) return setErro('Preencha as horas no dia (mínimo 0,5) e os dias seguidos.');
+    if (edit.jornada_semanal_max_min !== '' && edit.jornada_semanal_max_min !== null && edit.jornada_semanal_max_min < edit.jornada_diaria_max_min) return setErro('As horas na semana não podem ser menores que as horas no dia.');
     setErro('');
     setSalvando(true);
     try {
-      await salvarContratoWfm({ ...edit, operacao, jornada_feriado_max_min: edit.jornada_feriado_max_min === '' ? null : Number(edit.jornada_feriado_max_min) }, edit.id_contrato);
+      await salvarContratoWfm({ ...edit, operacao, interjornada_min_min: edit.interjornada_min_min === '' ? 660 : edit.interjornada_min_min, jornada_semanal_max_min: edit.jornada_semanal_max_min === '' || edit.jornada_semanal_max_min === null ? null : Number(edit.jornada_semanal_max_min), jornada_feriado_max_min: edit.jornada_feriado_max_min === '' ? null : Number(edit.jornada_feriado_max_min) }, edit.id_contrato);
       showToast?.('Jornada salva.', 'success');
       onSalvo();
     } catch (err) { setErro(err?.message || 'Não foi possível salvar a jornada.'); } finally { setSalvando(false); }
@@ -40,8 +45,8 @@ function ModalJornada({ operacao, inicial, onClose, onSalvo, showToast }) {
       <${Campo} rotulo="Código" span=${3}><input class="form-control" maxlength="30" disabled=${!!edit.id_contrato} value=${edit.codigo} onInput=${(e) => set('codigo', e.target.value)} /></${Campo}>
       <${Campo} rotulo="Nome" span=${5}><input class="form-control" maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /></${Campo}>
       <${Campo} rotulo="Tipo" span=${4}><select class="form-select" value=${edit.tipo} onChange=${(e) => set('tipo', e.target.value)}>${Object.entries(TIPOS_JORNADA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></${Campo}>
-      <${Campo} rotulo="Jornada máx. (min)" span=${3}><input class="form-control" type="number" min="30" value=${edit.jornada_diaria_max_min} onInput=${num('jornada_diaria_max_min')} /></${Campo}>
-      <${Campo} rotulo="Interjornada (min)" span=${3}><input class="form-control" type="number" min="0" value=${edit.interjornada_min_min} onInput=${num('interjornada_min_min')} /></${Campo}>
+      <${Campo} rotulo="Horas no dia" span=${3} dica="Limite de horas trabalhadas em um dia"><input class="form-control" type="number" min="0.5" max="24" step="0.5" value=${emHoras(edit.jornada_diaria_max_min)} onInput=${horas('jornada_diaria_max_min')} /></${Campo}>
+      <${Campo} rotulo="Horas na semana" span=${3} dica="Limite de horas trabalhadas de segunda a domingo. Vazio = sem limite semanal"><input class="form-control" type="number" min="1" max="168" step="0.5" value=${emHoras(edit.jornada_semanal_max_min)} onInput=${horas('jornada_semanal_max_min')} /></${Campo}>
       <${Campo} rotulo="Dias seguidos" span=${3} dica="Máximo de dias de trabalho seguidos sem DSR"><input class="form-control" type="number" min="1" value=${edit.max_dias_consecutivos} onInput=${num('max_dias_consecutivos')} /></${Campo}>
       <${Campo} rotulo="Máx. em feriado (min)" span=${3} dica="Opcional"><input class="form-control" type="number" min="30" value=${edit.jornada_feriado_max_min} onInput=${(e) => set('jornada_feriado_max_min', e.target.value)} /></${Campo}>
       <${Marca} rotulo="Bloqueio duro" span=${4} checked=${edit.jornada_bloqueio_duro} onChange=${(v) => set('jornada_bloqueio_duro', v)} />
@@ -125,10 +130,10 @@ export function TelaJornadas({ controlador, operacao, showToast }) {
   return html`
     <${Secao} titulo="Jornadas"
       acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...JORNADA_VAZIA, exigencias_pausa: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Nova jornada</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Jornada máx.</th><th>Interjornada</th><th>Dias seguidos</th><th>Bloqueio duro</th><th>Pausas</th><th></th></tr></thead><tbody>
+      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horas no dia</th><th>Horas na semana</th><th>Dias seguidos</th><th>Bloqueio duro</th><th>Pausas</th><th></th></tr></thead><tbody>
         ${contratos.length ? contratos.map((c) => html`<tr key=${c.id_contrato}>
           <td><b>${c.codigo}</b></td><td>${c.nome}${c.ativo ? '' : html` <span class="mon-tag">Inativa</span>`}</td><td>${TIPOS_JORNADA[c.tipo] || c.tipo}</td>
-          <td>${minutosParaHoras(c.jornada_diaria_max_min)}</td><td>${minutosParaHoras(c.interjornada_min_min)}</td><td>${c.max_dias_consecutivos}</td><td>${c.jornada_bloqueio_duro ? 'Sim' : 'Não'}</td>
+          <td>${minutosParaHoras(c.jornada_diaria_max_min)}</td><td>${c.jornada_semanal_max_min ? minutosParaHoras(c.jornada_semanal_max_min) : '—'}</td><td>${c.max_dias_consecutivos}</td><td>${c.jornada_bloqueio_duro ? 'Sim' : 'Não'}</td>
           <td>${(c.exigencias_pausa || []).length ? (c.exigencias_pausa || []).map((p) => `${p.nome || TIPOS_PAUSA[p.tipo] || p.tipo} ${p.duracao_min} min`).join(' · ') : '—'}</td>
           <td class="wfm-acoes-linha"><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setVer(c)}>Ver jornada</button>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...c, jornada_feriado_max_min: c.jornada_feriado_max_min ?? '', exigencias_pausa: (c.exigencias_pausa || []).map((p) => ({ nome: '', ...p })) })}>Editar</button><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo(c)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}</td></tr>`)
           : html`<tr><td colspan="9" class="mon-muted">Nenhuma jornada cadastrada.</td></tr>`}

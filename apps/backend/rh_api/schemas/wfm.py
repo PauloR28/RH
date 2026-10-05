@@ -25,9 +25,17 @@ class ContratoRequest(BaseSchema):
     interjornada_min_min: int = Field(ge=0, le=1440)
     max_dias_consecutivos: int = Field(ge=1, le=31)
     jornada_feriado_max_min: int | None = Field(default=None, ge=30, le=1440)
+    jornada_semanal_max_min: int | None = Field(default=None, ge=60, le=10080)  # horas na semana; None = sem limite
     jornada_bloqueio_duro: bool = False
     exigencias_pausa: list[ExigenciaPausaRequest] = Field(default_factory=list, max_length=20)
     ativo: bool = True
+
+
+class PersonalizacaoTurnoRequest(BaseSchema):
+    operacao: str = Field(default="", max_length=60)
+    entrada: str = Field(default="", max_length=5)
+    saida: str = Field(default="", max_length=5)
+    aplicar_lancados: bool = False  # também ajusta os dias já lançados de hoje em diante
 
 
 class PausaTurnoRequest(BaseSchema):

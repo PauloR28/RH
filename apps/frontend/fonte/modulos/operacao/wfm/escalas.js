@@ -1,8 +1,9 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { criarEscalaWfm, gestaoEscalasWfm } from '../../../services/api/wfm.js';
 import { Campo, ModalForm } from './formulario.js';
+import { DataTable, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
 
 // Tela inicial da aba Escala: a lista de escalas do mês.
 //  - Quem cria escalas (Supervisor, Control Desk, Analista de TI): vê todas (ativas e inativas), abre a escala para montar,
@@ -51,10 +52,11 @@ function ModalCriarEscala({ operacoes, operacaoInicial, onClose, onCriada, showT
   </${ModalForm}>`;
 }
 
-export function ListaEscalas({ controlador, anoMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou }) {
+export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [criando, setCriando] = useState(false);
+  const [busca, setBusca] = useState('');
   useEffect(() => {
     let ativo = true;
     setErro('');
@@ -69,37 +71,38 @@ export function ListaEscalas({ controlador, anoMes, versao, showToast, aoAbrir, 
 
   const gere = dados.pode_criar;
   const ehGestor = controlador?.estado?.perfilUsuario === 'gestor';
-  const itens = dados.itens.filter((e) => (gere || e.ativa) && (!ehGestor || foraDeRascunho(e)));
+  const termo = busca.trim().toLowerCase();
+  const itens = dados.itens.filter((e) => (gere || e.ativa) && (!ehGestor || foraDeRascunho(e))
+    && (!termo || `${e.nome} ${e.operacao}`.toLowerCase().includes(termo)));
+
+  const colunas = [
+    { chave: 'nome', rotulo: 'Escala', prioridade: 1, fixa: true,
+      render: (e) => html`<span class="wfm-nome-dia" title=${e.nome}>${e.nome}</span> <small class="wfm-sub">${e.operacao}${e.principal ? ' · principal' : ''}${e.jornada ? ` · jornada ${e.jornada}` : ''}</small>` },
+    { chave: 'situacao', rotulo: 'Situação no mês', prioridade: 1, largura: '144px',
+      render: (e) => {
+        const [rotulo, classe] = e.declinada ? ['Declinada', 'mon-badge--critico'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
+        return html`<span class=${`mon-badge ${classe}`}>${e.fechada ? 'Fechada' : rotulo}</span>`;
+      } },
+    { chave: 'escalados', rotulo: 'Colaboradores', prioridade: 2, largura: '128px', alinhar: 'direita', render: (e) => e.escalados },
+    { chave: 'publicacao', rotulo: 'Publicação', prioridade: 2, largura: '144px', render: (e) => (e.versao_publicada ? `Versão ${e.versao_publicada}` : 'Não publicada') },
+    ...(gere ? [{ chave: 'status', rotulo: 'Status', prioridade: 2, largura: '96px',
+      render: (e) => html`<span class=${`mon-badge ${e.ativa ? 'mon-badge--ok' : 'mon-badge--nula'}`}>${e.ativa ? 'Ativa' : 'Inativa'}</span>` }] : []),
+    { chave: 'acoes', rotulo: 'Ações', prioridade: 1, largura: '320px', alinhar: 'direita',
+      render: (e) => html`<span class="wfm-linha-acoes">
+        ${gere ? html`<button type="button" class="btn btn-outline-primary btn-sm" disabled=${!e.ativa} onClick=${(ev) => { ev.stopPropagation(); aoAbrir(e.chave, 'dia'); }}>Abrir escala</button>` : null}
+        <button type="button" class="btn btn-outline-secondary btn-sm" title="Visualizar a escala do mês inteiro" onClick=${(ev) => { ev.stopPropagation(); aoAbrir(e.chave, 'mes'); }}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('calendar_month')}</span><span class="wfm-rotulo-btn">Visualizar escala</span></button>
+        ${gere ? html`<button type="button" class="wfm-btn-icone" aria-label=${`Configurações de ${e.nome}`} title="Configurações da escala" onClick=${(ev) => { ev.stopPropagation(); aoConfigurar(e); }}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('settings')}</span></button>` : null}
+      </span>` },
+  ];
+  const criar = gere ? html`<button type="button" class="btn btn-primary" onClick=${() => setCriando(true)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Criar escala</button>` : null;
+  const vazioTexto = gere ? 'Nenhuma escala criada. Use "Criar escala" para começar.' : ehGestor
+    ? 'Quando uma escala for enviada para aprovação ou publicada, ela aparece aqui.' : 'Não há escalas ativas neste mês.';
 
   return html`
-    <section class="mon-card wfm-lista-escalas">
-      <div class="wfm-cabecalho wfm-cabecalho--centro">
-        <div>
-          <h3>Escalas</h3>
-          <p class="mon-muted">${gere ? 'Crie, abra e configure as escalas. Cada escala tem seu próprio fluxo de aprovação e publicação.' : ehGestor ? 'Escalas ativas enviadas para aprovação ou já publicadas.' : 'Escalas ativas do mês.'}</p>
-        </div>
-        ${gere ? html`<div class="wfm-acoes-cab"><button type="button" class="btn btn-primary" onClick=${() => setCriando(true)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Criar escala</button></div>` : null}
-      </div>
-      ${itens.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela-escalas">
-        <thead><tr><th>Escala</th><th>Situação no mês</th><th>Colaboradores</th><th>Publicação</th>${gere ? html`<th>Status</th>` : null}<th class="wfm-col-acoes"><span class="visually-hidden">Ações</span></th></tr></thead>
-        <tbody>
-          ${itens.map((e) => {
-            const [rotulo, classe] = e.declinada ? ['Declinada', 'mon-badge--critico'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
-            return html`<tr key=${e.chave} class=${e.ativa ? '' : 'is-inativa'}>
-              <td class="wfm-col-nome-escala"><span class="wfm-nome-dia">${e.nome}</span><small class="wfm-sub">${e.operacao}${e.principal ? ' · escala principal' : ''}${e.jornada ? ` · jornada ${e.jornada}` : ''}</small></td>
-              <td><span class=${`mon-badge ${classe}`}>${e.fechada ? 'Fechada' : rotulo}</span></td>
-              <td>${e.escalados}</td>
-              <td>${e.versao_publicada ? `Versão ${e.versao_publicada}` : 'Não publicada'}</td>
-              ${gere ? html`<td><span class=${`mon-badge ${e.ativa ? 'mon-badge--ok' : 'mon-badge--nula'}`}>${e.ativa ? 'Ativa' : 'Inativa'}</span></td>` : null}
-              <td class="wfm-col-acoes"><span class="wfm-linha-acoes">
-                ${gere ? html`<button type="button" class="btn btn-outline-primary btn-sm" disabled=${!e.ativa} onClick=${() => aoAbrir(e.chave, 'dia')}>Abrir escala</button>` : null}
-                <button type="button" class="btn btn-outline-secondary btn-sm" title="Visualizar a escala do mês inteiro" onClick=${() => aoAbrir(e.chave, 'mes')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('calendar_month')}</span><span class="wfm-rotulo-btn">Visualizar escala</span></button>
-                ${gere ? html`<button type="button" class="wfm-btn-icone" aria-label=${`Configurações de ${e.nome}`} title="Configurações da escala" onClick=${() => aoConfigurar(e)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('settings')}</span></button>` : null}
-              </span></td>
-            </tr>`;
-          })}
-        </tbody>
-      </table></div>` : html`<${EmptyState} icon="calendar_month" title=${gere ? 'Nenhuma escala criada' : 'Nenhuma escala para mostrar'} text=${gere ? 'Clique em "Criar escala" para começar.' : ehGestor ? 'Quando uma escala for enviada para aprovação ou publicada, ela aparece aqui.' : 'Não há escalas ativas neste mês.'} />`}
-    </section>
+    <div class="lp-shell">
+      <${Toolbar} busca=${busca} aoBuscar=${setBusca} placeholder="Buscar escala"
+        filtros=${html`<input type="month" class="lp-mes" aria-label="Mês" value=${anoMes} onChange=${(e) => e.target.value && aoMudarMes?.(e.target.value)} />`} fim=${html`<span>${itens.length} escala${itens.length === 1 ? '' : 's'}</span>${criar}`} />
+      <${DataTable} colunas=${colunas} linhas=${itens} chaveLinha=${(e) => e.chave} vazio=${{ texto: termo ? 'Nenhuma escala encontrada.' : vazioTexto }} />
+    </div>
     ${criando ? html`<${ModalCriarEscala} operacoes=${dados.operacoes_criacao} showToast=${showToast} onClose=${() => setCriando(false)} onCriada=${(chave) => { setCriando(false); aoMudou?.(chave); }} />` : null}`;
 }

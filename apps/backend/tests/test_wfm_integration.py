@@ -25,6 +25,7 @@ from rh_api.rbac import (
 )
 
 MES = "2027-03"
+MES2 = "2027-04"  # mês livre de aprovação/fechamento dos demais testes
 
 
 def _user(perfil, id_usuario, operacoes=(), nome="Teste"):
@@ -51,6 +52,14 @@ def _aprovar(ctx, remetente, aprovador):
 @pytest.fixture(scope="module")
 def ctx():
     repo = repositorio_dev()
+    conn0 = repo._connect()
+    try:
+        from rh_api.repositories.wfm_schema_v061 import ensure_wfm_v061
+
+        ensure_wfm_v061(conn0.cursor())  # V061 (limite semanal e personalizações) no banco de DEV
+        conn0.commit()
+    finally:
+        conn0.close()
     c = Ctx()
     c.repo = repo
     c.op = f"WFMTESTE_{uuid.uuid4().hex[:4].upper()}"
@@ -98,7 +107,7 @@ def ctx():
         for chave in (c.op, c.outra):
             for tabela in (
                 "wfm_pausas", "wfm_operacao_config", "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos",
-                "wfm_usuario_skills", "wfm_skills", "wfm_calendario_especial", "wfm_turnos", "wfm_contratos",
+                "wfm_usuario_skills", "wfm_skills", "wfm_calendario_especial", "wfm_turno_personalizacoes", "wfm_turnos", "wfm_contratos",
             ):
                 cursor.execute(f"DELETE FROM dbo.{tabela} WHERE operacao = ?", (chave,))
         cursor.execute("SELECT id_usuario FROM dbo.usuarios WHERE email LIKE 'wfm_teste_%'")
@@ -401,3 +410,46 @@ def test_escala_de_pausas_capacidade_distribuicao_e_alerta(ctx):
     assert _erro(repo.wfm_distribuir_pausas, ctx.admin, ctx.op, dia).status_code == 403
     # Supervisor só vê/edita a própria equipe: Op C (equipe do outro) não aparece para ele
     assert {o["id_operador"] for o in repo.wfm_get_pausas_dia(ctx.sup, ctx.op, dia)["operadores"]} == {ctx.id_a, ctx.id_b}
+
+
+# ------------------------------------------------------------------ V061: turno personalizado e limite semanal
+def test_turno_personalizado_vale_so_para_o_colaborador_e_o_modelo_nao_muda(ctx):
+    r = ctx.repo
+    assert _erro(r.wfm_salvar_personalizacao, ctx.op_a, {"operacao": ctx.op, "id_turno": ctx.M, "id_operador": ctx.id_a, "entrada": "09:00", "saida": "17:00"}).status_code == 403
+    assert _erro(r.wfm_salvar_personalizacao, ctx.cd, {"operacao": ctx.op, "id_turno": ctx.M, "id_operador": ctx.id_a, "entrada": "08:00", "saida": "16:00"}).status_code == 400  # igual ao modelo
+    assert _erro(r.wfm_salvar_personalizacao, ctx.cd, {"operacao": ctx.op, "id_turno": ctx.FOLGA, "id_operador": ctx.id_a, "entrada": "09:00", "saida": "17:00"}).status_code == 409
+    assert r.wfm_salvar_personalizacao(ctx.cd, {"operacao": ctx.op, "id_turno": ctx.M, "id_operador": ctx.id_a, "entrada": "09:00", "saida": "17:00"})["success"]
+    try:
+        lista = r.wfm_listar_personalizacoes(ctx.cd, ctx.op, ctx.M)
+        assert [(x["id_operador"], x["entrada"], x["saida"]) for x in lista] == [(ctx.id_a, "09:00", "17:00")]
+        modelo = next(t for t in r.wfm_list_turnos(ctx.cd, ctx.op) if t["id_turno"] == ctx.M)
+        assert (modelo["entrada"], modelo["saida"]) == ("08:00", "16:00")  # o turno-modelo permanece igual
+        # lançar o turno M: o colaborador personalizado recebe o horário próprio; o outro, o do modelo
+        r.wfm_salvar_itens(ctx.sup, ctx.op, MES2, [{**_item(ctx.id_a, 20, ctx.M), 'data': f'{MES2}-20'}, {**_item(ctx.id_b, 20, ctx.M), 'data': f'{MES2}-20'}])
+        itens = {i["id_operador"]: i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["data"] == f"{MES2}-20"}
+        assert (itens[ctx.id_a]["entrada_ajuste"], itens[ctx.id_a]["saida_ajuste"]) == ("09:00", "17:00")
+        assert itens[ctx.id_b]["entrada_ajuste"] is None
+        assert [p["id_operador"] for p in r.wfm_get_escala(ctx.sup, ctx.op, MES)["personalizacoes"]] == [ctx.id_a]
+        # mudar a personalização e aplicar aos dias já lançados
+        res = r.wfm_salvar_personalizacao(ctx.cd, {"operacao": ctx.op, "id_turno": ctx.M, "id_operador": ctx.id_a, "entrada": "10:00", "saida": "18:00", "aplicar_lancados": True})
+        assert res["dias_ajustados"] >= 1
+        item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
+        assert (item["entrada_ajuste"], item["saida_ajuste"]) == ("10:00", "18:00")
+    finally:
+        r.wfm_remover_personalizacao(ctx.cd, ctx.op, ctx.M, ctx.id_a, remover_lancados=True)
+    assert r.wfm_listar_personalizacoes(ctx.cd, ctx.op, ctx.M) == []
+    item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
+    assert item["entrada_ajuste"] is None  # voltou ao horário do turno
+    assert _erro(r.wfm_remover_personalizacao, ctx.cd, ctx.op, ctx.M, ctx.id_a).status_code == 404
+
+
+def test_contrato_guarda_e_devolve_o_limite_semanal(ctx):
+    r = ctx.repo
+    base = {"operacao": ctx.op, "codigo": "SEM44", "nome": "Semanal 44", "tipo": "CLT", "jornada_diaria_max_min": 480, "interjornada_min_min": 660,
+            "max_dias_consecutivos": 6, "jornada_semanal_max_min": 44 * 60, "exigencias_pausa": []}
+    novo = r.wfm_save_contrato(ctx.cd, base)["id_contrato"]
+    item = next(c for c in r.wfm_list_contratos(ctx.cd, ctx.op) if c["id_contrato"] == novo)
+    assert item["jornada_semanal_max_min"] == 44 * 60
+    r.wfm_save_contrato(ctx.cd, {**base, "jornada_semanal_max_min": None}, novo)
+    item = next(c for c in r.wfm_list_contratos(ctx.cd, ctx.op) if c["id_contrato"] == novo)
+    assert item["jornada_semanal_max_min"] is None

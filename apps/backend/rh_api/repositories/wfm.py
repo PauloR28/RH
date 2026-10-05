@@ -288,7 +288,7 @@ class WfmRepositoryMixin:
                 """
                 SELECT id_contrato, codigo, nome, tipo, jornada_diaria_max_min, interjornada_min_min,
                        max_dias_consecutivos, jornada_feriado_max_min, jornada_bloqueio_duro,
-                       exigencias_pausa_json, ativo
+                       exigencias_pausa_json, ativo, jornada_semanal_max_min
                 FROM dbo.wfm_contratos WHERE operacao = ? ORDER BY tipo, codigo
                 """,
                 (operacao,),
@@ -340,6 +340,7 @@ class WfmRepositoryMixin:
             1 if data.get("jornada_bloqueio_duro") else 0,
             _json(exigencias),
             1 if data.get("ativo", True) else 0,
+            int(data["jornada_semanal_max_min"]) if data.get("jornada_semanal_max_min") not in (None, "") else None,
         )
         conn = self._connect()
         try:
@@ -363,7 +364,7 @@ class WfmRepositoryMixin:
                     """
                     UPDATE dbo.wfm_contratos SET nome = ?, tipo = ?, jornada_diaria_max_min = ?, interjornada_min_min = ?,
                         max_dias_consecutivos = ?, jornada_feriado_max_min = ?, jornada_bloqueio_duro = ?,
-                        exigencias_pausa_json = ?, ativo = ?, atualizado_por = ?, atualizado_em = GETDATE()
+                        exigencias_pausa_json = ?, ativo = ?, jornada_semanal_max_min = ?, atualizado_por = ?, atualizado_em = GETDATE()
                     WHERE id_contrato = ? AND operacao = ?
                     """,
                     (*valores, normalize_text(user.nome) or user.username, int(id_contrato), operacao),
@@ -376,15 +377,15 @@ class WfmRepositoryMixin:
                 cursor.execute(
                     """
                     INSERT INTO dbo.wfm_contratos (operacao, codigo, nome, tipo, jornada_diaria_max_min, interjornada_min_min,
-                        max_dias_consecutivos, jornada_feriado_max_min, jornada_bloqueio_duro, exigencias_pausa_json, ativo, atualizado_por)
-                    OUTPUT INSERTED.id_contrato VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        max_dias_consecutivos, jornada_feriado_max_min, jornada_bloqueio_duro, exigencias_pausa_json, ativo, jornada_semanal_max_min, atualizado_por)
+                    OUTPUT INSERTED.id_contrato VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (operacao, codigo, *valores, normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_contrato", entidade="contrato", entidade_id=resolved,
-                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "limites": list(valores[2:8])}, ip=ip,
+                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "limites": list(valores[2:8]), "semanal_max_min": valores[9]}, ip=ip,
             )
             conn.commit()
             return {"success": True, "id_contrato": resolved}

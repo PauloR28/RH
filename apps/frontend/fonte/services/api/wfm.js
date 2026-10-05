@@ -27,6 +27,9 @@ export const salvarContratoWfm = (dados, id) => enviar(id ? `/wfm/contratos/${id
 
 export const listarTurnosWfm = (operacao) => requisitar(`/wfm/turnos${consulta({ operacao })}`, { method: 'GET' });
 export const salvarTurnoWfm = (dados, id) => enviar(id ? `/wfm/turnos/${id}` : '/wfm/turnos', id ? 'PUT' : 'POST', dados);
+export const listarPersonalizacoesTurnoWfm = (operacao, idTurno) => requisitar(`/wfm/turnos/${idTurno}/personalizacoes${consulta({ operacao })}`, { method: 'GET' });
+export const salvarPersonalizacaoTurnoWfm = (idTurno, idOperador, dados) => enviar(`/wfm/turnos/${idTurno}/personalizacoes/${idOperador}`, 'PUT', dados);
+export const removerPersonalizacaoTurnoWfm = (operacao, idTurno, idOperador, removerLancados = false) => requisitar(`/wfm/turnos/${idTurno}/personalizacoes/${idOperador}${consulta({ operacao, remover_lancados: removerLancados ? true : '' })}`, { method: 'DELETE' });
 
 export const listarSkillsWfm = (operacao) => requisitar(`/wfm/skills${consulta({ operacao })}`, { method: 'GET' });
 export const salvarSkillWfm = (dados, id) => enviar(id ? `/wfm/skills/${id}` : '/wfm/skills', id ? 'PUT' : 'POST', dados);

@@ -12,6 +12,9 @@ import {
   listarSupervisoresWfm,
   listarTiposEscalaWfm,
   listarTurnosWfm,
+  listarPersonalizacoesTurnoWfm,
+  removerPersonalizacaoTurnoWfm,
+  salvarPersonalizacaoTurnoWfm,
   salvarEventoWfm,
   salvarSkillWfm,
   salvarTurnoWfm,
@@ -106,8 +109,53 @@ export const turnoParaEdicao = (t) => ({
   pausas: (t.pausas || []).map((p) => ({ inicio: t.entrada ? horaDe(paraMin(t.entrada) + p.offset_min) : '00:00', duracao_min: p.duracao_min, tipo: p.tipo })),
 });
 
-function Turnos({ operacao, turnos, contratos, supervisores, podeEditar, recarregar, showToast }) {
+// Personalização: horário próprio de um colaborador dentro de um turno. O turno e quem já está nele não mudam.
+function ModalPersonalizarTurno({ operacao, turno, operadores, onClose, onMudou, showToast }) {
+  const [lista, setLista] = useState(null);
+  const [form, setForm] = useState({ id_operador: '', entrada: turno.entrada || '', saida: turno.saida || '', aplicar_lancados: true });
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const carregar = useCallback(async () => {
+    try { setLista((await listarPersonalizacoesTurnoWfm(operacao, turno.id_turno)).itens); } catch (e) { setErro(e?.message || 'Não foi possível carregar as personalizações.'); }
+  }, [operacao, turno.id_turno]);
+  useEffect(() => { carregar(); }, [carregar]);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const salvar = async (ev) => {
+    ev.preventDefault();
+    if (!form.id_operador) return setErro('Escolha o colaborador.');
+    if (!form.entrada || !form.saida) return setErro('Informe entrada e saída.');
+    setErro(''); setSalvando(true);
+    try {
+      const r = await salvarPersonalizacaoTurnoWfm(turno.id_turno, Number(form.id_operador), { operacao, entrada: form.entrada, saida: form.saida, aplicar_lancados: form.aplicar_lancados });
+      showToast?.(r?.dias_ajustados ? `Horário personalizado. ${r.dias_ajustados} dia(s) já lançado(s) ajustado(s).` : 'Horário personalizado salvo.', 'success');
+      setForm((f) => ({ ...f, id_operador: '' }));
+      await carregar(); onMudou();
+    } catch (e) { setErro(e?.message || 'Não foi possível salvar.'); } finally { setSalvando(false); }
+  };
+  const remover = async (p) => {
+    if (!window.confirm(`Voltar ${p.operador} ao horário padrão do turno ${turno.codigo}? Os dias futuros já lançados também voltam ao padrão.`)) return;
+    try { await removerPersonalizacaoTurnoWfm(operacao, turno.id_turno, p.id_operador, true); showToast?.('Personalização removida.', 'success'); await carregar(); onMudou(); }
+    catch (e) { setErro(e?.message || 'Não foi possível remover.'); }
+  };
+  const livres = operadores.filter((o) => !(lista || []).some((p) => p.id_operador === o.id_usuario) || String(o.id_usuario) === form.id_operador);
+  return html`<${ModalForm} titulo=${`Personalizar turno ${turno.codigo}`} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo="Salvar horário">
+    <p class="mon-muted">Horário padrão do turno: <strong>${turno.entrada}–${turno.saida}</strong>. Quem já está no turno continua com o horário padrão; só o colaborador escolhido abaixo passa a ter horário próprio.</p>
+    <div class="wfm-grade-form">
+      <${Campo} rotulo="Colaborador" span=${6}><select class="form-select" value=${form.id_operador} onChange=${(e) => set('id_operador', e.target.value)}><option value="">Escolher colaborador</option>${livres.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}</select></${Campo}>
+      <${Campo} rotulo="Entrada" span=${3}><input class="form-control" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /></${Campo}>
+      <${Campo} rotulo="Saída" span=${3}><input class="form-control" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>
+      <${Marca} rotulo="Ajustar também os dias já lançados de hoje em diante" span=${12} checked=${form.aplicar_lancados} onChange=${(v) => set('aplicar_lancados', v)} />
+    </div>
+    <div class="wfm-sub-cab"><h4>Colaboradores com horário próprio</h4></div>
+    ${lista === null ? html`<${LoadingState} />` : lista.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Colaborador</th><th>Horário</th><th></th></tr></thead><tbody>
+      ${lista.map((p) => html`<tr key=${p.id_operador}><td>${p.operador}</td><td>${p.entrada}–${p.saida}</td><td class="wfm-acoes-linha"><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setForm((f) => ({ ...f, id_operador: String(p.id_operador), entrada: p.entrada, saida: p.saida }))}>Editar</button><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => remover(p)}>Remover</button></td></tr>`)}
+    </tbody></table></div>` : html`<p class="mon-muted wfm-vazio-txt">Ninguém com horário próprio neste turno.</p>`}
+  </${ModalForm}>`;
+}
+
+function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], podeEditar, recarregar, showToast }) {
   const [edit, setEdit] = useState(null);
+  const [personalizar, setPersonalizar] = useState(null);
   const abrirEdicao = (t) => setEdit(turnoParaEdicao(t));
   const excluir = async (t) => {
     if (!window.confirm(`Excluir o turno ${t.codigo} (${t.nome})? Só é possível se ele nunca foi usado em uma escala.`)) return;
@@ -119,10 +167,11 @@ function Turnos({ operacao, turnos, contratos, supervisores, podeEditar, recarre
       acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
       <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Jornada</th><th>Supervisor · Equipe</th><th>Pausas</th><th></th></tr></thead><tbody>
         ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}${t.id_contrato ? html`<small class="wfm-sub">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td><td>${t.supervisor ? html`${t.supervisor}${t.equipe ? html`<small class="wfm-sub">${t.equipe}</small>` : null}` : '—'}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
-          <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>${t.tipo === 'TRABALHO' ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluir(t)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}` : null}</td></tr>`)}
+          <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>${t.tipo === 'TRABALHO' && t.ativo ? html`<button type="button" class="btn btn-outline-primary btn-sm" title="Horário próprio para um colaborador, sem criar outro turno" onClick=${() => setPersonalizar(t)}>Personalizar</button>` : null}${t.tipo === 'TRABALHO' ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluir(t)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}` : null}</td></tr>`)}
       </tbody></table></div>
     </${Secao}>
-    ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}`;
+    ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}
+    ${personalizar ? html`<${ModalPersonalizarTurno} operacao=${operacao} turno=${personalizar} operadores=${operadores} showToast=${showToast} onClose=${() => setPersonalizar(null)} onMudou=${recarregar} />` : null}`;
 }
 
 function ModalEvento({ operacao, inicial, turnos, onClose, onSalvo, showToast }) {
@@ -277,7 +326,7 @@ export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToa
   return html`
     ${contexto?.pode_editar_tipos_escala ? html`<${TiposEscala} recarregarContexto=${recarregarContexto} showToast=${showToast} />` : null}
     ${!operacao ? html`<p class="mon-muted wfm-vazio-txt">Os turnos, o calendário especial e as skills pertencem a uma escala. Clique em "Nova escala" (ou ative uma existente) acima: assim que ela existir, escolha-a no seletor "Escala / operação" que aparece no topo e o cadastro de turnos é liberado.</p>` : html`
-    <${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} podeEditar=${podeCadastros} />
+    <${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />
     <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} podeEditar=${podeCadastros} />
     <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />`}`;
 }

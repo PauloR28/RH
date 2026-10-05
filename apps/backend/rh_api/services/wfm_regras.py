@@ -37,6 +37,7 @@ SEVERIDADE_ALERTA = "alerta"
 JORNADA_DIARIA = "JORNADA_DIARIA"
 JORNADA_LEI = "JORNADA_LEI"
 INTERJORNADA = "INTERJORNADA"
+JORNADA_SEMANAL = "JORNADA_SEMANAL"
 PAUSA_OBRIGATORIA = "PAUSA_OBRIGATORIA"
 DIAS_SEM_DSR = "DIAS_SEM_DSR"
 
@@ -68,6 +69,8 @@ class ParametrosContrato:
     jornada_feriado_max_min: int | None = None
     # Bloqueio duro por lei (ex.: estagiário): nem o Gestor publica com override.
     jornada_bloqueio_duro: bool = False
+    # Horas líquidas máximas na semana (segunda a domingo). None = sem limite semanal.
+    jornada_semanal_max_min: int | None = None
 
 
 @dataclass(frozen=True)
@@ -183,6 +186,33 @@ def validar_jornada_diaria(dias: list[DiaEscala]) -> list[Violacao]:
     return out
 
 
+def validar_jornada_semanal(dias: list[DiaEscala]) -> list[Violacao]:
+    """Soma das jornadas líquidas de cada semana (segunda a domingo) contra o limite semanal do contrato.
+    A violação é lançada no último dia trabalhado da semana, que é quando o total passa a ser conhecido."""
+    por_semana: dict[date, list[DiaEscala]] = {}
+    for dia in dias:
+        if dia.trabalha and dia.contrato.jornada_semanal_max_min is not None:
+            por_semana.setdefault(dia.data - timedelta(days=dia.data.weekday()), []).append(dia)
+    out: list[Violacao] = []
+    for segunda, da_semana in sorted(por_semana.items()):
+        ultimo = max(da_semana, key=lambda d: d.data)
+        limite = ultimo.contrato.jornada_semanal_max_min
+        total = sum(d.jornada_liquida_min() for d in da_semana)
+        if limite is not None and total > limite:
+            duro = ultimo.contrato.jornada_bloqueio_duro
+            out.append(
+                Violacao(
+                    codigo=JORNADA_LEI if duro else JORNADA_SEMANAL,
+                    severidade=SEVERIDADE_BLOQUEIO,
+                    data=ultimo.data,
+                    mensagem=f"Semana de {segunda.strftime('%d/%m')} com {_hhmm(total)} excede o limite semanal de {_hhmm(limite)} do contrato {ultimo.contrato.codigo}.",
+                    permite_override=not duro,
+                    detalhe={"semana_inicio": segunda.isoformat(), "total_min": total, "limite_min": limite, "contrato": ultimo.contrato.codigo},
+                )
+            )
+    return out
+
+
 def validar_interjornada(dias: list[DiaEscala]) -> list[Violacao]:
     """Intervalo entre o fim de um turno e o início do próximo trabalhado. A
     violação pertence ao dia do turno seguinte, que usa o seu contrato."""
@@ -291,6 +321,7 @@ def validar_escala(
     inicio, fim = periodo
     violacoes = (
         validar_jornada_diaria(dias)
+        + validar_jornada_semanal(dias)
         + validar_interjornada(dias)
         + validar_pausas(dias)
         + validar_dias_consecutivos(dias, contexto)

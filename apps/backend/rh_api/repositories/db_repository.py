@@ -46,6 +46,7 @@ from .wfm import WfmRepositoryMixin
 from .wfm_aprovacao import WfmAprovacaoRepositoryMixin
 from .wfm_escala import WfmEscalaRepositoryMixin
 from .wfm_gestao import WfmGestaoRepositoryMixin
+from .wfm_personalizacao import WfmPersonalizacaoRepositoryMixin
 from .wfm_relatorios import WfmRelatoriosRepositoryMixin
 from .usuarios_massa import UsuariosMassaRepositoryMixin
 from .wfm_trocas import WfmTrocasRepositoryMixin
@@ -91,6 +92,7 @@ class DatabaseRepository(
     ChamadosAdminRepositoryMixin,
     WfmRepositoryMixin,
     WfmEscalaRepositoryMixin,
+    WfmPersonalizacaoRepositoryMixin,
     WfmAprovacaoRepositoryMixin,
     WfmGestaoRepositoryMixin,
     WfmRelatoriosRepositoryMixin,
