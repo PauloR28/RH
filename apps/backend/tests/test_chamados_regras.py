@@ -43,6 +43,7 @@ def test_todo_par_fora_do_diagrama_e_rejeitado():
     validos = {
         (rg.ABERTO, rg.EM_ANDAMENTO), (rg.ABERTO, rg.CANCELADO), (rg.EM_ANDAMENTO, rg.AGUARDANDO), (rg.AGUARDANDO, rg.EM_ANDAMENTO),
         (rg.EM_ANDAMENTO, rg.RESOLVIDO), (rg.RESOLVIDO, rg.ENCERRADO), (rg.RESOLVIDO, rg.EM_ANDAMENTO),
+        (rg.ENCERRADO, rg.EM_ANDAMENTO),  # reabertura (V060), só o solicitante
     }
     for origem in rg.STATUS:
         for destino in rg.STATUS:
@@ -63,7 +64,8 @@ def test_atendente_nao_encerra_nem_reabre():
 
 
 def test_status_finais_nao_tem_saida():
-    for final in rg.STATUS_FINAIS:
+    # Encerrado só sai pela reabertura do solicitante (V060); Cancelado nunca sai.
+    for final in rg.STATUS_FINAIS - {rg.ENCERRADO}:
         for destino in rg.STATUS:
             assert not any(rg.transicao_valida(final, destino, a) for a in (rg.ATOR_ATENDENTE, rg.ATOR_SOLICITANTE, rg.ATOR_SISTEMA))
 

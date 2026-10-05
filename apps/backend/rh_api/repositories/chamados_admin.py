@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
@@ -20,7 +21,19 @@ LIMITES_CONFIG = {
     "anexo_max_mb": (1, 500),
     "anexo_max_mb_chamado": (1, 2000),
     "anexo_retencao_exclusao_dias": (1, 3650),
+    "reabertura_dias": (0, 365),  # 0 desliga a reabertura
+    "lembrete_email_ativo": (0, 1),
+    "lembrete_sla_horas_antes": (0.25, 72),
+    "lembrete_parado_horas": (1, 720),
 }
+ROTULO_TIPO_EMAIL = {
+    "novo": "Novo chamado",
+    "sla_proximo": "SLA perto de estourar",
+    "sla_vencido": "SLA estourado",
+    "parado": "Chamado parado há muito tempo",
+    "reaberto": "Chamado reaberto",
+}
+_EMAIL_VALIDO = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 UTC_BRASILIA = timedelta(hours=-3)  # sem horário de verão desde 2019
 
 
@@ -114,6 +127,77 @@ class ChamadosAdminRepositoryMixin:
         finally:
             conn.close()
 
+    # ------------------------------------------------------------------ destinatários de e-mail (alertas)
+    TIPOS_EMAIL = ("novo", "sla_proximo", "sla_vencido", "parado", "reaberto")
+
+    def ch_emails_listar(self) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_destinatario, email, nome, ativo, notif_novo, notif_sla_proximo, notif_sla_vencido, notif_parado, "
+                           "notif_reaberto FROM dbo.chamado_email_destinatarios ORDER BY email")
+            itens = [{"id": int(r[0]), "email": normalize_text(r[1]), "nome": normalize_text(r[2]), "ativo": bool(r[3]),
+                      "tipos": {t: bool(r[4 + i]) for i, t in enumerate(self.TIPOS_EMAIL)}} for r in cursor.fetchall()]
+            return {"itens": itens, "tipos": [{"chave": t, "rotulo": ROTULO_TIPO_EMAIL[t]} for t in self.TIPOS_EMAIL]}
+        finally:
+            conn.close()
+
+    def ch_email_salvar(self, user, dados: dict, id_destinatario: int | None = None) -> dict:
+        email = normalize_text(dados.get("email")).lower()
+        if id_destinatario is None and not _EMAIL_VALIDO.match(email):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe um e-mail válido.")
+        tipos = dados.get("tipos") or {}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            if id_destinatario is None:
+                cursor.execute("SELECT 1 FROM dbo.chamado_email_destinatarios WHERE email = ?", (email,))
+                if cursor.fetchone():
+                    raise _http(status.HTTP_409_CONFLICT, "Este e-mail já está na lista.")
+                padrao = {"novo": 0, "sla_proximo": 1, "sla_vencido": 1, "parado": 1, "reaberto": 0}
+                valores = [1 if tipos.get(t, bool(padrao[t])) else 0 for t in self.TIPOS_EMAIL]
+                cursor.execute(
+                    "INSERT INTO dbo.chamado_email_destinatarios (email, nome, ativo, notif_novo, notif_sla_proximo, notif_sla_vencido, notif_parado, "
+                    "notif_reaberto, criado_por) OUTPUT INSERTED.id_destinatario VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?)",
+                    (email[:180], normalize_text(dados.get("nome"))[:120] or None, *valores, user.username))
+                novo = int(cursor.fetchone()[0])
+            else:
+                sets, params = [], []
+                if dados.get("ativo") is not None:
+                    sets.append("ativo = ?")
+                    params.append(1 if dados["ativo"] else 0)
+                if dados.get("nome") is not None:
+                    sets.append("nome = ?")
+                    params.append(normalize_text(dados["nome"])[:120] or None)
+                for t in self.TIPOS_EMAIL:
+                    if t in tipos:
+                        sets.append(f"notif_{t} = ?")
+                        params.append(1 if tipos[t] else 0)
+                if sets:
+                    cursor.execute(f"UPDATE dbo.chamado_email_destinatarios SET {', '.join(sets)} WHERE id_destinatario = ?", (*params, int(id_destinatario)))
+                    if cursor.rowcount == 0:
+                        raise _http(status.HTTP_404_NOT_FOUND, "Destinatário não encontrado.")
+                novo = int(id_destinatario)
+            conn.commit()
+            return {"success": True, "id": novo}
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def ch_email_remover(self, id_destinatario: int) -> dict:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM dbo.chamado_email_destinatarios WHERE id_destinatario = ?", (int(id_destinatario),))
+            if cursor.rowcount == 0:
+                raise _http(status.HTTP_404_NOT_FOUND, "Destinatário não encontrado.")
+            conn.commit()
+            return {"success": True}
+        finally:
+            conn.close()
+
     # ------------------------------------------------------------------ dashboard
     def ch_dashboard(self, dias: int = 30) -> dict:
         dias = dias if dias in (7, 30, 90) else 30
@@ -156,7 +240,29 @@ class ChamadosAdminRepositoryMixin:
             por_categoria = agrupar(
                 "SELECT CAST(k.id_categoria AS NVARCHAR(20)), k.nome, COUNT(*) FROM dbo.chamados c JOIN dbo.chamado_categorias k ON k.id_categoria = c.id_categoria "
                 "WHERE c.status <> 'cancelado' AND c.criado_em >= ? GROUP BY k.id_categoria, k.nome ORDER BY 3 DESC", desde)
+            # Por solicitante (quem abriu): ranking do período, com quantos foram reabertos.
+            cursor.execute(
+                "SELECT TOP 15 c.id_solicitante, c.solicitante_nome, COUNT(*), SUM(CASE WHEN c.reaberto_vezes > 0 THEN 1 ELSE 0 END) "
+                "FROM dbo.chamados c WHERE c.status <> 'cancelado' AND c.criado_em >= ? GROUP BY c.id_solicitante, c.solicitante_nome ORDER BY 3 DESC, 2", desde)
+            por_solicitante = [{"chave": str(r[0]), "rotulo": normalize_text(r[1]), "total": int(r[2]), "reabertos": int(r[3] or 0)} for r in cursor.fetchall()]
+            # Reabertos: o chamado reaberto continua sendo UM chamado; aqui contamos chamados do período que tiveram ao menos uma reabertura.
+            cursor.execute("SELECT COUNT(*), SUM(CASE WHEN c.reaberto_vezes > 0 THEN 1 ELSE 0 END), ISNULL(SUM(c.reaberto_vezes), 0) "
+                           "FROM dbo.chamados c WHERE c.status <> 'cancelado' AND c.criado_em >= ?", desde)
+            total_periodo, reabertos_total, reaberturas = cursor.fetchone()
+            total_periodo, reabertos_total = int(total_periodo or 0), int(reabertos_total or 0)
+            reabertos = {
+                "total": reabertos_total,
+                "reaberturas": int(reaberturas or 0),
+                "taxa": round(100 * reabertos_total / total_periodo, 1) if total_periodo else 0.0,
+                "por_categoria": agrupar(
+                    "SELECT CAST(k.id_categoria AS NVARCHAR(20)), k.nome, COUNT(*) FROM dbo.chamados c JOIN dbo.chamado_categorias k ON k.id_categoria = c.id_categoria "
+                    "WHERE c.reaberto_vezes > 0 AND c.status <> 'cancelado' AND c.criado_em >= ? GROUP BY k.id_categoria, k.nome ORDER BY 3 DESC", desde),
+                "por_solicitante": agrupar(
+                    "SELECT TOP 10 CAST(c.id_solicitante AS NVARCHAR(20)), c.solicitante_nome, COUNT(*) FROM dbo.chamados c "
+                    "WHERE c.reaberto_vezes > 0 AND c.status <> 'cancelado' AND c.criado_em >= ? GROUP BY c.id_solicitante, c.solicitante_nome ORDER BY 3 DESC", desde),
+            }
+            kpis["reabertos"] = reabertos_total
             return {"dias": dias, "kpis": kpis, "por_status": por_status, "por_operacao": por_operacao,
-                    "por_urgencia": por_urgencia, "por_categoria": por_categoria}
+                    "por_urgencia": por_urgencia, "por_categoria": por_categoria, "por_solicitante": por_solicitante, "reabertos": reabertos}
         finally:
             conn.close()

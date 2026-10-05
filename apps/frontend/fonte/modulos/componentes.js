@@ -1,4 +1,5 @@
 import { html, useEffect, useRef, useState } from '../infraestrutura-react.js';
+import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261005-redesign15';
 import { IconeSvg } from '../ui/icone.js';
 import { selecionarModulo } from './estado.js?v=20261004-chamados2';
 import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261004-chamados2';
@@ -56,6 +57,7 @@ export function SeletorModulo({ controlador, modulos }) {
 /** Itens do menu superior do módulo Tecnologia (Início · Acessos ▾ · Sistema ▾ · Auditoria ▾ · Escalas e Plantões). */
 export function NavTecnologia({ controlador, navAtiva, grupoAberto, alternarGrupo, fecharGrupo }) {
   const menu = montarMenuTecnologia(controlador.podeAcessarTela, controlador.possuiPermissao);
+  const naoLidosChamados = useChamadosNaoLidos(controlador);
   const ativa = (tela) => navAtiva === tela || (tela.startsWith('screen-chamados') && navAtiva.startsWith('screen-chamados')) || (tela.startsWith('screen-wfm') && navAtiva.startsWith('screen-wfm') && navAtiva !== 'screen-wfm-auditoria');
   return html`${menu.map((entrada) => {
     if (entrada.tipo === 'item' || entrada.tipo === 'wfm' || entrada.tipo === 'suporte') {
@@ -65,6 +67,7 @@ export function NavTecnologia({ controlador, navAtiva, grupoAberto, alternarGrup
           aria-current=${marcado ? 'page' : null} onClick=${() => controlador.irParaTelaProtegida(entrada.tela)}>
           <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(entrada.icone)}</span>
           <span class="rh-modern-nav-label">${entrada.label}</span>
+          ${entrada.tipo === 'suporte' && naoLidosChamados > 0 ? html`<span class="tec-dot" role="status" aria-label=${`${naoLidosChamados} notificação(ões) de chamados`}></span>` : null}
         </button>`;
     }
     const grupoAtivo = entrada.itens.some((i) => i.tela === navAtiva);

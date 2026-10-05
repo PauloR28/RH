@@ -2379,17 +2379,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
     return html`
       <div class="settings-admin-shell settings-profiles-page">
-        <${StatGrid}
-          items=${[
-        { icon: 'badge', label: 'Total de perfis', value: perfis.length, helper: `${perfilMaisUsado} em destaque`, tone: 'blue' },
-        { icon: 'shield', label: 'Permissões cadastradas', value: permissoes.length, helper: `${contarPor(permissoes, (item) => item.critica)} críticas`, tone: 'yellow' },
-        { icon: 'groups', label: 'Usuários vinculados', value: usuarios.length, helper: 'Base real cadastrada', tone: 'green' },
-      ]}
-        />
-
         <div class="settings-profiles-toolbar">
           <p class="settings-profiles-toolbar-hint">
-            Desbloqueie para editar as permissões de qualquer perfil e sessão nesta página.
+            ${perfis.length} perfis · ${permissoes.length} permissões (${contarPor(permissoes, (item) => item.critica)} críticas). Desbloqueie para editar as permissões de qualquer perfil e sessão.
           </p>
           ${podeEditarPerfis
         ? html`
@@ -2405,7 +2397,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         : null}
         </div>
 
-        ${perfis.length > 1 ? renderComparacaoPerfis() : null}
+        ${perfis.length > 1 ? html`<details class="settings-compare-details"><summary>Comparar dois perfis</summary>${renderComparacaoPerfis()}</details>` : null}
 
         ${perfis.length
         ? html`

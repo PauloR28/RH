@@ -35,7 +35,8 @@ export function enviarMensagemChamado(id, conteudo, arquivos = []) {
 
 export const assumirChamado = (id) => enviar(`/chamados/${id}/assumir`, 'POST', {});
 export const atribuirChamado = (id, responsavelId) => enviar(`/chamados/${id}/atribuir`, 'POST', { responsavel_id: responsavelId });
-export const mudarStatusChamado = (id, status, justificativa = '') => enviar(`/chamados/${id}/status`, 'PUT', { status, justificativa });
+export const mudarStatusChamado = (id, status, justificativa = '', resolvidoRemotamente = false) =>
+  enviar(`/chamados/${id}/status`, 'PUT', { status, justificativa, resolvido_remotamente: Boolean(resolvidoRemotamente) });
 export const mudarUrgenciaChamado = (id, urgencia, justificativa = '') => enviar(`/chamados/${id}/urgencia`, 'PUT', { urgencia, justificativa });
 export const cancelarChamado = (id, motivo = '') => enviar(`/chamados/${id}/cancelar`, 'POST', { motivo });
 export const confirmarEncerramentoChamado = (id) => enviar(`/chamados/${id}/confirmar-encerramento`, 'POST', {});
@@ -52,3 +53,10 @@ export const lerConfigChamados = () => requisitar('/chamados/config', { method: 
 export const salvarConfigChamados = (valores) => enviar('/chamados/config', 'PUT', { valores });
 export const criarCategoriaChamado = (dados) => enviar('/chamados/config/categorias', 'POST', dados);
 export const atualizarCategoriaChamado = (id, dados) => enviar(`/chamados/config/categorias/${id}`, 'PUT', dados);
+
+// V060: histórico, destinatários de e-mail de alerta. Reabertura e "resolvido remotamente" reutilizam reabrirChamado / mudarStatusChamado.
+export const lerHistoricoChamado = (id) => requisitar(`/chamados/${id}/historico`, { method: 'GET' });
+export const listarEmailsChamados = () => requisitar('/chamados/config/emails', { method: 'GET' });
+export const criarEmailChamados = (dados) => enviar('/chamados/config/emails', 'POST', dados);
+export const atualizarEmailChamados = (id, dados) => enviar(`/chamados/config/emails/${id}`, 'PUT', dados);
+export const removerEmailChamados = (id) => requisitar(`/chamados/config/emails/${id}`, { method: 'DELETE' });

@@ -52,6 +52,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [programarPausas, setProgramarPausas] = useState(true);
   const [filtroSup, setFiltroSup] = useState('');
   const [filtroEquipe, setFiltroEquipe] = useState('');
+  const [filtroCargo, setFiltroCargo] = useState('');
+  const [turnoTodos, setTurnoTodos] = useState('');
   const [busca, setBusca] = useState('');
   const [justificativa, setJustificativa] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -174,7 +176,9 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
   const visiveis = dados.operadores.filter((o) => (!filtroEquipe || String(o.id_equipe || '') === filtroEquipe)
     && (!filtroSup || (o.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
+    && (!filtroCargo || (o.cargo || '') === filtroCargo)
     && (!busca || o.nome.toLowerCase().includes(busca.toLowerCase())));
+  const cargos = [...new Set(dados.operadores.map((o) => o.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
   const supervisores = [...new Map(dados.operadores.flatMap((o) => o.supervisores || []).map((s) => [s.id_usuario, s.nome])).entries()];
   const marcados = visiveis.filter((o) => sel[o.id_usuario]);
@@ -211,6 +215,13 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
       return novo;
     });
     showToast?.(`Aplicado a ${alvos.length} colaborador(es) em ${datasAlvo.length} dia(s). Revise e clique em "Salvar".`, 'success');
+  };
+
+  // Atalho do dia: um turno (ou DSR) para todos os colaboradores exibidos de uma vez; fica pendente até clicar em Salvar.
+  const aplicarTurnoTodos = () => {
+    if (turnoTodos === '') { showToast?.('Escolha o turno que será aplicado a todos.', 'info'); return; }
+    visiveis.forEach((o) => mudarTurno(o.id_usuario, dia, turnoTodos === 'dsr' ? '' : turnoTodos));
+    showToast?.(`Turno aplicado a ${visiveis.length} colaborador(es) em ${br(dia).slice(0, 5)}. Revise e clique em "Salvar".`, 'success');
   };
 
   const salvar = async () => {
@@ -295,6 +306,11 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           <strong class="wfm-dia-extenso">${SEMANA[d0.getDay()]}, ${br(dia)}</strong>
         </div>
         <div class="wfm-ferramentas">
+          ${editavel ? html`<span class="wfm-aplicar-todos">
+            <select class="form-select" aria-label="Turno para todos" value=${turnoTodos} onChange=${(e) => setTurnoTodos(e.target.value)}>
+              <option value="">Turno…</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
+            <button type="button" class="btn btn-primary btn-sm" disabled=${turnoTodos === ''} onClick=${aplicarTurnoTodos}>Aplicar turno para todos</button>
+          </span>` : null}
           ${editavel ? html`<button type="button" class=${`btn btn-sm ${verMassa ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verMassa} onClick=${() => setVerMassa(!verMassa)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit_calendar')}</span>Preencher em massa</button>` : null}
           <button type="button" class=${`btn btn-sm ${verTurnos ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('schedule')}</span>Turnos${podeCadastros ? ' e pausas' : ''}</button>
         </div>
@@ -325,6 +341,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
         <label class="mon-campo"><span>Buscar colaborador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
         <label class="mon-campo"><span>Supervisor</span><select class="form-select" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
         <label class="mon-campo"><span>Equipe</span><select class="form-select" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
+        <label class="mon-campo"><span>Cargo</span><select class="form-select" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select></label>
         <span class="wfm-contagem">${visiveis.length} de ${dados.operadores.length} colaborador(es)</span>
       </div>
 

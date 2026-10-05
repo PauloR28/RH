@@ -9,7 +9,7 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261004-chamados2';
 import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261004-chamados2';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261004-chamados2';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign15';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -20,7 +20,7 @@ const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
 // por cada tela dentro de `children`, fora do controle de PainelRh. Contexto
 // evita ter que tocar as ~16 telas que usam PainelRh: PainelRh publica a ação
 // principal, PageIntro lê e desenha no seu próprio slot de ações.
-const AcoesPaginaContext = createContext(null);
+export const AcoesPaginaContext = createContext(null);
 // A busca global saiu da faixa de navegação (para o menu caber em uma linha)
 // e fica centralizada na linha do PageIntro; PainelRh publica os dados dela.
 const BuscaPaginaContext = createContext(null);
@@ -1375,6 +1375,7 @@ export function PainelRh({
   acaoPrimaria,
   acoesTopo = null,
   mostrarAtalhos = true,
+  buscaGlobal = true, // false: a tela tem a própria Toolbar de pesquisa (primitivas de layout) e não mostra a busca global solta
   children,
 }) {
   const tour = obterTourDaTela(screenId, {
@@ -1410,7 +1411,7 @@ export function PainelRh({
     }
     : null;
   // Correções.txt (21/set/2026): o Operador não tem barra de pesquisa global.
-  const semBusca = controlador?.estado?.perfilUsuario === 'operador';
+  const semBusca = controlador?.estado?.perfilUsuario === 'operador' || buscaGlobal === false;
   const buscaPaginaContexto = useMemo(
     () => (semBusca ? null : { placeholderBusca, controlador }),
     [placeholderBusca, controlador, semBusca],

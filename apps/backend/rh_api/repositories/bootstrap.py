@@ -15,6 +15,7 @@ from ..passwords import hash_password
 from .monitoria_schema import ensure_monitoria_schema
 from .modulos_schema import ensure_modulos_schema
 from .chamados_schema import ensure_chamados_schema
+from .chamados_schema_v060 import ensure_chamados_v060
 from .wfm_schema_v061 import ensure_wfm_v061
 from .wfm_schema import ensure_wfm_schema
 from ..rbac import PERMISSION_DEFINITIONS, ROLE_ADMIN, ROLE_DEFINITIONS, ROLE_PERMISSIONS, SETTINGS_CATALOGS
@@ -3714,6 +3715,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_wfm_schema(cursor)
             ensure_wfm_v061(cursor)
             ensure_chamados_schema(cursor)
+            ensure_chamados_v060(cursor)
             from .monitoria_org import ensure_monitoria_seeds
 
             ensure_monitoria_seeds(cursor)

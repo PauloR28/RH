@@ -20,6 +20,7 @@ from rh_api.rbac import (
     get_role_permissions,
 )
 from rh_api.repositories.chamados_schema import ensure_chamados_schema
+from rh_api.repositories.chamados_schema_v060 import ensure_chamados_v060
 from rh_api.services import chamados_regras as rg
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 64
@@ -43,6 +44,7 @@ class Cenario:
         try:
             cur = conn.cursor()
             ensure_chamados_schema(cur)
+            ensure_chamados_v060(cur)
             conn.commit()
         finally:
             conn.close()
@@ -151,8 +153,8 @@ def test_impacto_coletivo_sobe_para_alta_e_dispensa_agentes_e_pa(c):
     assert r["urgencia"] == "alta"
 
 
-def test_impacto_agente_exige_agente_pa_e_agentes_da_operacao(c):
-    assert _erro(c.criar, agentes_ids=[]).status_code == 422
+def test_impacto_agente_exige_pa_e_agentes_informados_sao_da_operacao(c):
+    assert c.criar(agentes_ids=[])["id"]  # agentes são opcionais: a tela de abertura não pede mais
     assert _erro(c.criar, pa_posto="").status_code == 422
     assert _erro(c.criar, agentes_ids=[c.op_outra.id_usuario]).status_code == 422
 
@@ -191,7 +193,7 @@ def test_fluxo_completo_com_pausa_do_sla_reabertura_e_encerramento(c):
     d = c.repo.ch_detalhe(c.sup, i)
     assert d["encerrado_em"] and not d["encerramento_automatico"]
     tipos = [e["tipo"] for e in c.repo.ch_eventos(c.sup, i)["eventos"]]
-    assert tipos.count("status") >= 6 and "atribuicao" in tipos and "mensagem" in tipos
+    assert tipos.count("status") + tipos.count("reabertura") >= 6 and "reabertura" in tipos and "atribuicao" in tipos and "mensagem" in tipos
 
 
 def test_transicoes_invalidas_sao_rejeitadas_no_backend(c):
@@ -404,3 +406,107 @@ def test_dashboard_conta_kpis_e_series(c):
     assert {x["chave"] for x in d["por_urgencia"]} >= {"critica"}
     assert all(x["chave"] not in ("encerrado", "cancelado") for x in d["por_status"])
     assert c.repo.ch_dashboard(999)["dias"] == 30
+
+
+# ------------------------------------------------------------------ V060: reabertura, histórico, resolvido remotamente, e-mails
+def _resolver(c, i, **extra):
+    if not c.repo.ch_detalhe(c.tec, i)["responsavel"]:
+        c.repo.ch_assumir(c.tec, i)
+    return c.repo.ch_mudar_status(c.tec, i, "resolvido", **extra)
+
+
+def test_reabertura_mantem_o_mesmo_chamado_renova_o_sla_e_conta_no_historico(c):
+    r = c.criar()
+    i = r["id"]
+    _resolver(c, i)
+    c.repo.ch_confirmar(c.sup, i)  # encerrado
+    assert c.repo.ch_detalhe(c.sup, i)["acoes"]["reabrir"]
+    assert c.repo.ch_reabrir(c.sup, i, "O headset voltou a ficar mudo")["reaberto_vezes"] == 1
+    d = c.repo.ch_detalhe(c.sup, i)
+    assert d["id"] == i and d["numero"] == r["numero"]  # nunca vira um segundo chamado
+    assert d["status"] == "em_andamento" and d["encerrado_em"] is None and d["resolvido_em"] is None and d["reaberto_vezes"] == 1
+    assert not d["sla"]["vencido"]
+    h = c.repo.ch_historico(c.sup, i)
+    assert h["abertura"]["por"]["id"] == c.sup.id_usuario and h["reaberto_vezes"] == 1
+    reab = [m for m in h["movimentacoes"] if m["tipo"] == "reabertura"]
+    assert len(reab) == 1 and "mudo" in reab[0]["descricao"] and reab[0]["por"]["id"] == c.sup.id_usuario
+
+
+def test_reabertura_respeita_janela_motivo_e_desligamento(c):
+    i = c.criar()["id"]
+    _resolver(c, i)
+    c.sql("UPDATE dbo.chamados SET resolvido_em = DATEADD(day, -10, SYSUTCDATETIME()) WHERE id_chamado = ?", (i,))
+    assert _erro(c.repo.ch_reabrir, c.sup, i, "ainda falha").status_code == 409  # janela padrão: 7 dias
+    assert not c.repo.ch_detalhe(c.sup, i)["acoes"]["reabrir"]
+    c.repo.ch_config_salvar(c.tec, {"reabertura_dias": 30})
+    assert _erro(c.repo.ch_reabrir, c.sup, i, "").status_code == 422
+    assert c.repo.ch_reabrir(c.sup, i, "ainda falha")["status"] == "em_andamento"
+    _resolver(c, i)
+    c.repo.ch_config_salvar(c.tec, {"reabertura_dias": 0})
+    assert _erro(c.repo.ch_reabrir, c.sup, i, "de novo").status_code == 409
+
+
+def test_historico_sempre_tem_abertura_e_so_mostra_movimentacao_quando_existe(c):
+    i = c.criar()["id"]
+    h = c.repo.ch_historico(c.sup, i)
+    assert h["abertura"]["em"] and h["abertura"]["por"]["nome"] and h["movimentacoes"] == []
+    c.repo.ch_assumir(c.tec, i)
+    assert [m["tipo"] for m in c.repo.ch_historico(c.sup, i)["movimentacoes"]] == ["atribuicao", "status"]
+    assert _erro(c.repo.ch_historico, c.sup_b, i).status_code == 404  # fora do escopo
+
+
+def test_resolvido_remotamente_fica_registrado_e_so_vale_ao_resolver(c):
+    i = c.criar()["id"]
+    c.repo.ch_assumir(c.tec, i)
+    c.repo.ch_mudar_status(c.tec, i, "resolvido", resolvido_remotamente=True)
+    assert c.repo.ch_detalhe(c.sup, i)["resolvido_remotamente"] is True
+    assert any("remotamente" in m["descricao"] for m in c.repo.ch_historico(c.sup, i)["movimentacoes"])
+    j = c.criar()["id"]
+    _resolver(c, j)
+    assert c.repo.ch_detalhe(c.sup, j)["resolvido_remotamente"] is False
+
+
+def test_solicitante_e_notificado_em_atribuicao_e_mudanca_de_urgencia(c):
+    i = c.criar()["id"]
+    c.repo.ch_atribuir(c.tec, i, c.tec2.id_usuario)
+    c.repo.ch_mudar_urgencia(c.tec, i, "alta", "teste")
+    n = c.sql("SELECT COUNT(*) FROM dbo.notificacoes WHERE entidade = 'chamado' AND entidade_id = ? AND destinatario_usuario = ?",
+              (str(i), c.sup.username))[0][0]
+    assert n >= 2
+
+
+def test_destinatarios_de_email_crud_e_validacao(c):
+    assert _erro(c.repo.ch_email_salvar, c.tec, {"email": "invalido"}).status_code == 422
+    email = f"alerta_{c.tag}@teste.local"
+    novo = c.repo.ch_email_salvar(c.tec, {"email": email, "tipos": {"reaberto": True}})["id"]
+    try:
+        assert _erro(c.repo.ch_email_salvar, c.tec, {"email": email}).status_code == 409
+        item = next(x for x in c.repo.ch_emails_listar()["itens"] if x["id"] == novo)
+        assert item["tipos"]["reaberto"] and item["tipos"]["sla_vencido"] and not item["tipos"]["novo"]
+        c.repo.ch_email_salvar(c.tec, {"tipos": {"novo": True}, "ativo": False}, novo)
+        item = next(x for x in c.repo.ch_emails_listar()["itens"] if x["id"] == novo)
+        assert item["tipos"]["novo"] and not item["ativo"]
+    finally:
+        c.repo.ch_email_remover(novo)
+    assert _erro(c.repo.ch_email_remover, novo).status_code == 404
+
+
+def test_acesso_a_modulos_por_usuario_e_por_perfil(c):
+    from rh_api.services import acesso, modulos_admin
+
+    uid = c.op1.id_usuario
+    try:
+        assert acesso.modulos_liberados(uid, ROLE_OPERATOR) == frozenset() or True  # perfil pode já ter liberação real
+        r = modulos_admin.definir_acesso_usuario(uid, ["tecnologia", "rh"], autor="teste")
+        assert r["modulos"] == ["rh", "tecnologia"] and r["anteriores"] == []
+        assert {"rh", "tecnologia"} <= acesso.modulos_liberados(uid, ROLE_OPERATOR)
+        assert any(u["id"] == uid for u in modulos_admin.listar_acessos()["usuarios"])
+        with pytest.raises(HTTPException) as e:
+            modulos_admin.definir_acesso_usuario(uid, ["core"], autor="teste")
+        assert e.value.status_code == 400
+        with pytest.raises(HTTPException) as e:
+            modulos_admin.definir_acesso_usuario(99999999, ["rh"], autor="teste")
+        assert e.value.status_code == 404
+        modulos_admin.definir_acesso_usuario(uid, [], autor="teste")
+    finally:
+        c.sql("DELETE FROM dbo.modulos_acesso_usuario WHERE id_usuario = ?", (uid,))

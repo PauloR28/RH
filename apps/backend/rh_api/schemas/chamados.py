@@ -28,6 +28,7 @@ class AtribuirRequest(BaseSchema):
 class StatusRequest(BaseSchema):
     status: str = Field(max_length=30)
     justificativa: str = Field(default="", max_length=1000)
+    resolvido_remotamente: bool = False
 
 
 class UrgenciaRequest(BaseSchema):
@@ -41,6 +42,13 @@ class MotivoRequest(BaseSchema):
 
 class ConfigRequest(BaseSchema):
     valores: dict[str, float] = Field(default_factory=dict)
+
+
+class DestinatarioEmailRequest(BaseSchema):
+    email: str = Field(default="", max_length=180)
+    nome: str | None = Field(default=None, max_length=120)
+    ativo: bool | None = None
+    tipos: dict[str, bool] = Field(default_factory=dict)
 
 
 class CategoriaRequest(BaseSchema):

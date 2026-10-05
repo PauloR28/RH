@@ -1,17 +1,18 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../../ui/componentes-compartilhados.js';
+import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
 import { IconeSvg } from '../../../ui/icone.js';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { listarAuditoriaWfm } from '../../../services/api/wfm.js';
-import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js';
-import { TelaEscala } from './escala.js';
+import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign15';
+import { TelaEscala } from './escala.js?v=20261005-redesign15';
 import { TelaPresenca } from './presenca.js';
-import { TelaCadastros } from './cadastros.js';
-import { TelaJornadas } from './jornadas.js';
-import { TelaEscalaTabela } from './tabela.js';
+import { TelaCadastros } from './cadastros.js?v=20261005-redesign15';
+import { TelaJornadas } from './jornadas.js?v=20261005-redesign15';
+import { TelaEscalaTabela } from './tabela.js?v=20261005-redesign15';
 import { TelaMinhaEscala } from './minha.js';
-import { ListaEscalas } from './escalas.js';
-import { ModalConfigEscala } from './configuracao.js';
+import { ListaEscalas } from './escalas.js?v=20261005-redesign15';
+import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign15';
 import { TelaTrocas } from './trocas.js';
 import { TelaRelatorios } from './relatorios.js';
 
@@ -152,7 +153,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   else if (!contexto) corpo = html`<${LoadingState} titulo="Carregando Turnos e Plantões" />`;
   else if (dependeDeEscala && !operacoesComEscala.length) corpo = html`<${EmptyState} icon="calendar_month" title="Nenhuma escala ativa" text="Não há escalas ativas no momento. Quem gere as escalas pode criar ou ativar uma na aba Escala." />`;
   else if (telaAtual === 'screen-wfm' && visaoEscala === 'lista') corpo = html`
-    <${ListaEscalas} controlador=${controlador} anoMes=${anoMes} versao=${versaoLista} showToast=${showToast}
+    <${ListaEscalas} controlador=${controlador} anoMes=${anoMes} aoMudarMes=${setAnoMes} versao=${versaoLista} showToast=${showToast}
       aoAbrir=${(chave, modo) => { setOperacao(chave); setVisaoEscala(modo); }}
       aoConfigurar=${(item) => setConfigurandoItem(item)}
       aoMudou=${() => { recarregarContexto(); setVersaoLista((v) => v + 1); }} />`;
@@ -171,11 +172,12 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
 
   // A lista de escalas é a navegação da aba Escala; sem permissão de criar (ex.: Gestor) não há troca de escala pelo seletor.
   const semOperacao = telaAtual === 'screen-wfm' && (visaoEscala === 'lista' || !podeCriarEscala);
-  const semPeriodo = ['screen-wfm-auditoria', 'screen-wfm-relatorios', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca'].includes(telaAtual);
+  const semPeriodo = (telaAtual === 'screen-wfm' && visaoEscala === 'lista') || ['screen-wfm-auditoria', 'screen-wfm-relatorios', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca'].includes(telaAtual);
   return html`
-    <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca=${telaAtual === 'screen-wfm-auditoria' ? 'Auditoria de Plantões' : 'Turnos e Plantões'} placeholderBusca="Turnos e Plantões" controlador=${controlador}>
+    <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca=${telaAtual === 'screen-wfm-auditoria' ? 'Auditoria de Plantões' : 'Turnos e Plantões'} placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
       <div class="wfm-toast"><${ToastHost} /></div>
-      <${PageIntro} kicker=${telaAtual === 'screen-wfm-auditoria' ? 'Configurações' : 'Turnos e Plantões'} title=${titulo} description=${descricao} />
+      <${PageShell}>
+      <${PageHeader} titulo=${titulo} subtitulo=${descricao} />
       <div class="mon-shell">
         ${telaAtual === 'screen-wfm-auditoria' ? null : html`<nav class="mon-subnav" aria-label="Seções de Turnos e Plantões">
           ${abas.map((a) => html`
@@ -193,5 +195,6 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
           onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}
       </div>
+      <//>
     </${PainelRh}>`;
 }

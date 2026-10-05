@@ -17,6 +17,7 @@ from ..schemas.chamados import (
     CategoriaRequest,
     ChamadoCriarRequest,
     ConfigRequest,
+    DestinatarioEmailRequest,
     MensagemRequest,
     MotivoRequest,
     StatusRequest,
@@ -129,6 +130,38 @@ def config_salvar(payload: ConfigRequest, request: Request, user: AuthenticatedU
     return resultado
 
 
+@router.get("/config/emails", dependencies=[Depends(require_permissions("chamados.configurar"))])
+def emails_listar(repository: DatabaseRepository = Depends(get_repository)):
+    return repository.ch_emails_listar()
+
+
+@router.post("/config/emails", dependencies=[Depends(require_permissions("chamados.configurar"))])
+def emails_criar(payload: DestinatarioEmailRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                 repository: DatabaseRepository = Depends(get_repository)):
+    resultado = repository.ch_email_salvar(user, payload.model_dump())
+    audit_action(repository, user, modulo="Chamados", acao="email_alerta_criado", entidade="chamado_email_destinatario",
+                 entidade_id=str(resultado["id"]), valor_novo={"email": payload.email, "tipos": payload.tipos}, request=request)
+    return resultado
+
+
+@router.put("/config/emails/{id_destinatario}", dependencies=[Depends(require_permissions("chamados.configurar"))])
+def emails_atualizar(id_destinatario: int, payload: DestinatarioEmailRequest, request: Request,
+                     user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    resultado = repository.ch_email_salvar(user, payload.model_dump(exclude_unset=True), id_destinatario)
+    audit_action(repository, user, modulo="Chamados", acao="email_alerta_alterado", entidade="chamado_email_destinatario",
+                 entidade_id=str(id_destinatario), valor_novo=payload.model_dump(exclude_unset=True), request=request)
+    return resultado
+
+
+@router.delete("/config/emails/{id_destinatario}", dependencies=[Depends(require_permissions("chamados.configurar"))])
+def emails_remover(id_destinatario: int, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                   repository: DatabaseRepository = Depends(get_repository)):
+    resultado = repository.ch_email_remover(id_destinatario)
+    audit_action(repository, user, modulo="Chamados", acao="email_alerta_removido", entidade="chamado_email_destinatario",
+                 entidade_id=str(id_destinatario), request=request)
+    return resultado
+
+
 @router.post("/config/categorias", dependencies=[Depends(require_permissions("chamados.configurar"))])
 def categoria_criar(payload: CategoriaRequest, repository: DatabaseRepository = Depends(get_repository)):
     return repository.ch_categoria_salvar(payload.model_dump())
@@ -162,6 +195,11 @@ def excluir_anexo(id_anexo: int, request: Request, user: AuthenticatedUser = Dep
 @router.get("/{id_chamado}")
 def detalhe(id_chamado: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.ch_detalhe(user, id_chamado)
+
+
+@router.get("/{id_chamado}/historico")
+def historico(id_chamado: int, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.ch_historico(user, id_chamado)
 
 
 @router.get("/{id_chamado}/eventos")
@@ -201,7 +239,7 @@ def atribuir(id_chamado: int, payload: AtribuirRequest, request: Request, user: 
 @router.put("/{id_chamado}/status", dependencies=[Depends(require_permissions("chamados.atender"))])
 def mudar_status(id_chamado: int, payload: StatusRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user),
                  repository: DatabaseRepository = Depends(get_repository)):
-    resultado = repository.ch_mudar_status(user, id_chamado, payload.status, payload.justificativa)
+    resultado = repository.ch_mudar_status(user, id_chamado, payload.status, payload.justificativa, payload.resolvido_remotamente)
     audit_action(repository, user, modulo="Chamados", acao="chamado_status", entidade="chamado", entidade_id=str(id_chamado),
                  valor_novo={"status": resultado["status"]}, justificativa=payload.justificativa, request=request)
     return resultado

@@ -36,18 +36,29 @@
 .tec-toast { position: relative; }
 .tec-secao { margin: 0; font-size: var(--font-lg); font-weight: 700; }
 .tec-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.tec-kpi > * { min-width: 0; }
 .tec-kpi { display: flex; flex-direction: column; gap: 4px; padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-sm); }
 .tec-kpi span { color: var(--color-text-muted); font-size: var(--font-sm); }
 .tec-kpi strong { font-size: 24px; line-height: 32px; }
 .tec-kpi small { color: var(--color-text-muted); }
 .tec-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 16px; }
+.tec-tiles .tec-tile { position: relative; min-width: 0; }
 .tec-tile {
   display: flex; align-items: flex-start; gap: 16px; padding: 16px; text-align: left; font: inherit; color: var(--color-text);
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; box-shadow: var(--shadow-sm);
 }
 .tec-tile:hover { border-color: var(--mod-accent); }
 .tec-tile-icone { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 8px; background: var(--mod-accent-soft); color: var(--mod-accent); }
+.tec-tile-texto { min-width: 0; }
 .tec-tile-texto strong { display: block; margin-bottom: 4px; }
+/* bolinha de notificação (Suporte TI): vermelha, 8px, sempre no canto superior direito do tile/botão */
+.tec-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); box-shadow: 0 0 0 2px var(--color-surface); }
+.rh-modern-nav-btn { position: relative; }
+.rh-modern-nav-btn > .tec-dot { top: 4px; right: 4px; box-shadow: none; }
+/* acesso por módulo: caixas lado a lado, sem quebrar o texto */
+.tec-caixas { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.tec-caixa { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.tec-caixa.is-derivado { color: var(--color-text-muted); cursor: default; }
 .tec-tile-texto small { color: var(--color-text-muted); line-height: 1.4; }
 .tec-linha-cartoes { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
 .tec-card { flex: 1 1 320px; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-sm); }
@@ -70,6 +81,9 @@
 .tec-switch:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ---- Perfis e permissões: agrupado por módulo ---- */
+.settings-compare-details { border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); }
+.settings-compare-details > summary { display: flex; align-items: center; height: 40px; padding: 0 16px; cursor: pointer; font-weight: 600; }
+.settings-compare-details > .settings-compare-card { border: 0; border-top: 1px solid var(--color-border); border-radius: 0 0 8px 8px; }
 .settings-permission-modulo { margin: 16px 0 8px; padding: 0 8px; display: flex; align-items: center; gap: 8px; font-size: var(--font-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted); }
 .settings-permission-modulo small { font-weight: 500; text-transform: none; letter-spacing: 0; }
 .settings-permission-resumo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 12px 16px; background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-soft); }

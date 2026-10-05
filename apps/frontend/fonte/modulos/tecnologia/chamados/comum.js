@@ -1,6 +1,6 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerMetaChamados } from '../../../services/api/chamados.js';
+import { lerMetaChamados } from '../../../services/api/chamados.js?v=20261005-redesign15';
 
 // Chamados (Suporte TI) — peças comuns: ícone, pills, datas, SLA, navegação, compartilhamento.
 // Estados e cores usam os tokens do Conecta (success/warning/danger/info); sem tela de personalização de tags.
@@ -130,11 +130,27 @@ export function useDebounce(valor, atrasoMs = 300) {
 // ---- compartilhar (WhatsApp, e-mail, copiar link). Nada é enviado pelo servidor; a mensagem leva só número, título, urgência e link. ----
 export const linkDoChamado = (id) => `${window.location.origin}/suporte-ti/chamado/${id}`;
 
+// Mensagem padrão (WhatsApp, e-mail): título com número e status, descrição e o link para acompanhar.
 export function textoCompartilhar(chamado) {
-  const urgencia = ROTULO_URGENCIA[chamado.urgencia] || '';
-  return `Chamado #${chamado.numero} aberto no Suporte TI: ${chamado.titulo}${urgencia ? ` (${urgencia})` : ''}. Acompanhe: ${linkDoChamado(chamado.id)}`;
+  const status = chamado.status_rotulo || ROTULO_STATUS[chamado.status] || 'Aberto';
+  const descricao = String(chamado.descricao || chamado.titulo || '').trim();
+  const resumo = descricao.length > 400 ? `${descricao.slice(0, 397)}...` : descricao;
+  return `CHAMADO #${chamado.numero} - ${status}
+Descrição: ${resumo}
+
+Acompanhe: ${linkDoChamado(chamado.id)}`;
 }
-export const linkWhatsApp = (chamado) => `https://wa.me/?text=${encodeURIComponent(textoCompartilhar(chamado))}`;
+
+// Ícones de marca que não existem no conjunto do sistema (WhatsApp é o glifo oficial simplificado, preenchido com a cor do texto).
+export function IconeWhatsApp() {
+  return html`<svg class="chm-i-marca" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
+}
+// No computador usa o WhatsApp Web e a MESMA aba nomeada ("whatsapp-conecta"): o segundo compartilhamento reaproveita a aba aberta
+// pelo primeiro em vez de abrir outra. No celular, wa.me abre o aplicativo.
+export const ABA_WHATSAPP = 'whatsapp-conecta';
+const ehCelular = () => /Android|iPhone|iPad|iPod/i.test(window.navigator?.userAgent || '');
+export const linkWhatsApp = (chamado) =>
+  `${ehCelular() ? 'https://wa.me/' : 'https://web.whatsapp.com/send'}?text=${encodeURIComponent(textoCompartilhar(chamado))}`;
 export const linkEmail = (chamado) =>
   `mailto:?subject=${encodeURIComponent(`Chamado #${chamado.numero} — Suporte TI`)}&body=${encodeURIComponent(textoCompartilhar(chamado))}`;
 
@@ -164,13 +180,13 @@ export function AcoesCompartilhar({ chamado, showToast, aoEscolher = null }) {
   };
   return html`
     <div class="chm-compartilhar">
-      <a class="btn btn-outline-secondary" href=${linkWhatsApp(chamado)} target="_blank" rel="noopener noreferrer" onClick=${aoEscolher}>
-        <${Icone} nome="chat" />WhatsApp
+      <a class="chm-share chm-share--whatsapp" href=${linkWhatsApp(chamado)} target=${ABA_WHATSAPP} rel="noopener noreferrer" onClick=${aoEscolher}>
+        <${IconeWhatsApp} />WhatsApp
       </a>
-      <a class="btn btn-outline-secondary" href=${linkEmail(chamado)} onClick=${aoEscolher}>
+      <a class="chm-share chm-share--email" href=${linkEmail(chamado)} onClick=${aoEscolher}>
         <${Icone} nome="mail" />E-mail
       </a>
-      <button type="button" class="btn btn-outline-secondary" onClick=${copiar}><${Icone} nome="content_copy" />Copiar link</button>
+      <button type="button" class="chm-share chm-share--link" onClick=${copiar}><${Icone} nome="content_copy" />Copiar link</button>
     </div>`;
 }
 
@@ -188,7 +204,7 @@ export function MenuCompartilhar({ chamado, showToast }) {
   }, [aberto]);
   return html`
     <div class="chm-pop" ref=${raiz}>
-      <button type="button" class="btn btn-outline-secondary" aria-haspopup="menu" aria-expanded=${aberto} onClick=${() => setAberto((v) => !v)}>
+      <button type="button" class="btn chm-btn-share" aria-haspopup="menu" aria-expanded=${aberto} onClick=${() => setAberto((v) => !v)}>
         <${Icone} nome="share" />Compartilhar<${Icone} nome="expand_more" />
       </button>
       ${aberto ? html`<div class="chm-pop-menu" role="menu"><${AcoesCompartilhar} chamado=${chamado} showToast=${showToast} aoEscolher=${() => setAberto(false)} /></div>` : null}
@@ -211,6 +227,29 @@ export function AcessoRestrito({ controlador }) {
       <p>Você não tem permissão para acessar este chamado. Se precisa reportar um problema, avise o seu supervisor.</p>
       <button type="button" class="btn btn-primary" onClick=${() => controlador.irParaMenu()}>Voltar ao início</button>
     </section>`;
+}
+
+/** Indicador numérico em card (usado no Dashboard). */
+export function Indicador({ icone, valor, rotulo, tom = '' }) {
+  return html`
+    <div class=${`chm-kpi ${tom ? `chm-kpi--${tom}` : ''}`.trim()}>
+      <span class="chm-kpi-icone"><${Icone} nome=${icone} grande=${true} /></span>
+      <div><strong>${valor ?? '—'}</strong><small>${rotulo}</small></div>
+    </div>`;
+}
+
+/** Conteúdo do rodapé da DataTable: faixa "de–até de total" e os botões de página. */
+export function RodapePaginacao({ pagina, tamanho, total, aoMudar }) {
+  if (!total) return null;
+  const ultima = Math.max(1, Math.ceil(total / tamanho));
+  const de = (pagina - 1) * tamanho + 1;
+  const ate = Math.min(total, pagina * tamanho);
+  return html`
+    <span>${de}–${ate} de ${total}</span>
+    <div class="chm-paginacao-botoes">
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled=${pagina <= 1} onClick=${() => aoMudar(pagina - 1)}>Anterior</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled=${pagina >= ultima} onClick=${() => aoMudar(pagina + 1)}>Próxima</button>
+    </div>`;
 }
 
 export function Paginacao({ pagina, tamanho, total, aoMudar }) {

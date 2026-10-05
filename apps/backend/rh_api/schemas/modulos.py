@@ -16,6 +16,11 @@ class PermissaoModuloRequest(BaseSchema):
     justificativa: str = Field(default="", max_length=400)
 
 
+class ModulosAcessoRequest(BaseSchema):
+    modulos: list[str] = Field(default_factory=list, max_length=10)
+    justificativa: str = Field(default="", max_length=400)
+
+
 class WfmParticipantesRequest(BaseSchema):
     valor: bool
     confirmar: bool = False

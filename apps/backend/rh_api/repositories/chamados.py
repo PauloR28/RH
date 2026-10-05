@@ -69,6 +69,10 @@ class ChamadosRepositoryMixin:
             "anexo_max_mb": int(num("anexo_max_mb", 25)),
             "anexo_max_mb_chamado": int(num("anexo_max_mb_chamado", 100)),
             "anexo_retencao_exclusao_dias": int(num("anexo_retencao_exclusao_dias", 30)),
+            "reabertura_dias": num("reabertura_dias", 7),
+            "lembrete_email_ativo": num("lembrete_email_ativo", 1) > 0,
+            "lembrete_sla_horas_antes": num("lembrete_sla_horas_antes", 1),
+            "lembrete_parado_horas": num("lembrete_parado_horas", 72),
         }
 
     def _ch_operacoes_do_usuario(self, cursor, user) -> list[dict]:
@@ -106,7 +110,8 @@ class ChamadosRepositoryMixin:
             "c.id_solicitante, c.solicitante_nome, c.solicitante_email, c.solicitante_cargo, c.id_responsavel, "
             "(SELECT TOP 1 LTRIM(RTRIM(ISNULL(r.nome,'') + ' ' + ISNULL(r.sobrenome,''))) FROM dbo.usuarios r WHERE r.id_usuario = c.id_responsavel) AS responsavel_nome, "
             "c.tipo_impacto, c.pa_posto, c.pa_parada, c.urgencia, c.urgencia_solicitada, c.status, c.prazo_sla, c.sla_pausado_seg, "
-            "c.sla_pausa_inicio, c.resolvido_em, c.encerrado_em, c.encerramento_automatico, c.criado_em, c.atualizado_em "
+            "c.sla_pausa_inicio, c.resolvido_em, c.encerrado_em, c.encerramento_automatico, c.resolvido_remotamente, c.reaberto_vezes, "
+            "c.reaberto_ultimo_em, c.criado_em, c.atualizado_em "
             "FROM dbo.chamados c JOIN dbo.chamado_categorias k ON k.id_categoria = c.id_categoria WHERE c.id_chamado = ?",
             (int(id_chamado),),
         )
@@ -152,6 +157,9 @@ class ChamadosRepositoryMixin:
             "resolvido_em": iso(ch.get("resolvido_em")),
             "encerrado_em": iso(ch.get("encerrado_em")),
             "encerramento_automatico": bool(ch.get("encerramento_automatico")),
+            "resolvido_remotamente": bool(ch.get("resolvido_remotamente")),
+            "reaberto_vezes": int(ch.get("reaberto_vezes") or 0),
+            "reaberto_ultimo_em": iso(ch.get("reaberto_ultimo_em")),
             "criado_em": iso(ch["criado_em"]),
             "atualizado_em": iso(ch["atualizado_em"]),
         }
@@ -164,7 +172,7 @@ class ChamadosRepositoryMixin:
         )
         return [{"id": int(r[0]), "nome": normalize_text(r[1]), "email": normalize_text(r[2])} for r in cursor.fetchall()]
 
-    def _ch_acoes(self, user, ch: dict) -> dict:
+    def _ch_acoes(self, user, ch: dict, reabertura_dias: float | None = None) -> dict:
         """O que ESTE usuário pode fazer agora neste chamado (o frontend só desenha; o backend revalida cada ação)."""
         uid = int(user.id_usuario or 0)
         solicitante = bool(uid) and ch["id_solicitante"] == uid
@@ -180,7 +188,10 @@ class ChamadosRepositoryMixin:
             "alterar_urgencia": atende and not final,
             "cancelar": solicitante and s == rg.ABERTO,
             "confirmar_encerramento": solicitante and s == rg.RESOLVIDO,
-            "reabrir": solicitante and s == rg.RESOLVIDO,
+            "reabrir": solicitante and (
+                s == rg.RESOLVIDO if reabertura_dias is None else
+                rg.reabertura_permitida(status=s, resolvido_em=ch.get("resolvido_em"), encerrado_em=ch.get("encerrado_em"),
+                                        agora=agora_utc(), dias=reabertura_dias)),
             "excluir_anexo": not final or user.has_permission("chamados.configurar"),
         }
 
@@ -291,8 +302,13 @@ class ChamadosRepositoryMixin:
         if destino == rg.RESOLVIDO:
             sets.append("resolvido_em = ?")
             params.append(agora)
-        if origem == rg.RESOLVIDO and destino == rg.EM_ANDAMENTO:
-            sets.append("resolvido_em = NULL")
+        reabrindo = origem in (rg.RESOLVIDO, rg.ENCERRADO) and destino == rg.EM_ANDAMENTO
+        if reabrindo:
+            horas = self._ch_config(cursor)["sla_horas"][ch["urgencia"]]
+            sets += ["resolvido_em = NULL", "encerrado_em = NULL", "encerramento_automatico = 0", "prazo_sla = ?",
+                     "sla_aviso_notificado_em = NULL", "sla_vencido_notificado_em = NULL", "parado_notificado_em = NULL",
+                     "reaberto_vezes = reaberto_vezes + 1", "reaberto_ultimo_em = ?"]
+            params += [rg.calcular_prazo(agora, horas), agora]
         if destino == rg.ENCERRADO:
             sets += ["encerrado_em = ?", "encerramento_automatico = ?"]
             params += [agora, 1 if automatico else 0]
@@ -300,8 +316,8 @@ class ChamadosRepositoryMixin:
         cursor.execute(f"UPDATE dbo.chamados SET {', '.join(sets)} WHERE id_chamado = ? AND status = ?", tuple(params))
         if cursor.rowcount == 0:
             raise _http(status.HTTP_409_CONFLICT, "O chamado foi alterado por outra pessoa. Atualize a tela e tente novamente.")
-        self._ch_evento(cursor, ch["id_chamado"], "status", user=None if automatico else user, conteudo=conteudo,
-                        dados={"de": origem, "para": destino, "automatico": automatico})
+        self._ch_evento(cursor, ch["id_chamado"], "reabertura" if reabrindo else "status", user=None if automatico else user,
+                        conteudo=conteudo, dados={"de": origem, "para": destino, "automatico": automatico})
         return self._ch_carregar(cursor, ch["id_chamado"])
 
     def _ch_exigir_solicitante(self, user, ch: dict) -> None:
@@ -320,6 +336,7 @@ class ChamadosRepositoryMixin:
                 "categorias": categorias,
                 "urgencias": [{"valor": u, "rotulo": rg.ROTULO_URGENCIA[u], "horas": cfg["sla_horas"][u]} for u in rg.URGENCIAS],
                 "status": [{"valor": s, "rotulo": rg.ROTULO_STATUS[s]} for s in rg.STATUS],
+                "reabertura_dias": cfg["reabertura_dias"],
                 "anexo_max_mb": cfg["anexo_max_mb"],
                 "anexo_max_mb_chamado": cfg["anexo_max_mb_chamado"],
                 "anexo_tipos": sorted(st.TIPOS),
@@ -344,9 +361,8 @@ class ChamadosRepositoryMixin:
         pa_parada = bool(dados.get("pa_parada"))
         pa_posto = normalize_text(dados.get("pa_posto"))
         agentes_ids = sorted({int(a) for a in (dados.get("agentes_ids") or [])})
+        # Agentes impactados são opcionais (a tela de abertura não pede mais); o que importa é o PA/posto afetado.
         if impacto == rg.IMPACTO_AGENTE:
-            if not agentes_ids:
-                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selecione ao menos um agente impactado.")
             if not pa_posto:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe o PA/posto.")
         else:
@@ -413,6 +429,8 @@ class ChamadosRepositoryMixin:
                 mensagem=f"{titulo} ({ch['operacao']}), aberto por {sol_nome}.", para="ti_todos", ignorar_id=uid,
             )
             conn.commit()
+            self._ch_enviar_email("novo", f"Novo chamado #{ch['numero']}" + (f" · {' · '.join(destaque)}" if destaque else ""),
+                                  f"{titulo} ({ch['operacao']}), aberto por {sol_nome}.\nUrgência: {rg.ROTULO_URGENCIA[efetiva]}.")
             return {"id": id_chamado, "numero": int(ch["numero"]), "urgencia": efetiva, "urgencia_elevada": elevada,
                     "prazo_sla": iso(ch["prazo_sla"])}
         except Exception:
@@ -478,7 +496,7 @@ class ChamadosRepositoryMixin:
             "c.solicitante_cargo, c.id_responsavel, "
             "(SELECT TOP 1 LTRIM(RTRIM(ISNULL(r.nome,'') + ' ' + ISNULL(r.sobrenome,''))) FROM dbo.usuarios r WHERE r.id_usuario = c.id_responsavel) AS responsavel_nome, "
             "c.tipo_impacto, c.pa_posto, c.pa_parada, c.urgencia, c.status, c.prazo_sla, c.sla_pausa_inicio, c.resolvido_em, c.encerrado_em, "
-            "c.encerramento_automatico, c.criado_em, c.atualizado_em, "
+            "c.encerramento_automatico, c.resolvido_remotamente, c.reaberto_vezes, c.reaberto_ultimo_em, c.criado_em, c.atualizado_em, "
             "(SELECT COUNT(*) FROM dbo.chamado_agentes a WHERE a.id_chamado = c.id_chamado) AS agentes_total, "
             "(SELECT TOP 1 LTRIM(RTRIM(ISNULL(u.nome,'') + ' ' + ISNULL(u.sobrenome,''))) FROM dbo.chamado_agentes a JOIN dbo.usuarios u ON u.id_usuario = a.id_usuario "
             " WHERE a.id_chamado = c.id_chamado ORDER BY u.nome) AS agente_primeiro "
@@ -585,7 +603,7 @@ class ChamadosRepositoryMixin:
             item["descricao"] = ch["descricao"]
             item["urgencia_solicitada"] = ch["urgencia_solicitada"]
             item["sla_pausado_seg"] = int(ch["sla_pausado_seg"] or 0)
-            item["acoes"] = self._ch_acoes(user, ch)
+            item["acoes"] = self._ch_acoes(user, ch, self._ch_config(cursor)["reabertura_dias"])
             cursor.execute(
                 "SELECT id_anexo, nome_original, mime, tamanho, criado_em, enviado_por FROM dbo.chamado_anexos "
                 "WHERE id_chamado = ? AND excluido_em IS NULL ORDER BY id_anexo", (int(id_chamado),))
@@ -720,6 +738,8 @@ class ChamadosRepositoryMixin:
                             dados={"de": anterior, "para": int(id_responsavel)})
             ch = self._ch_carregar(cursor, id_chamado)
             self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} atribuído a você", mensagem=ch["titulo"], para="responsavel", ignorar_id=int(user.id_usuario))
+            self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} com novo responsável", mensagem=f"{normalize_text(alvo[0])} agora cuida do seu chamado.",
+                               para="solicitante", ignorar_id=int(user.id_usuario))
             conn.commit()
             return {"success": True}
         except Exception:
@@ -728,7 +748,7 @@ class ChamadosRepositoryMixin:
         finally:
             conn.close()
 
-    def ch_mudar_status(self, user, id_chamado: int, destino: str, justificativa: str = "") -> dict:
+    def ch_mudar_status(self, user, id_chamado: int, destino: str, justificativa: str = "", resolvido_remotamente: bool = False) -> dict:
         uid = self._ch_exigir_usuario(user)
         destino = normalize_text(destino).lower()
         if destino not in rg.STATUS:
@@ -741,6 +761,10 @@ class ChamadosRepositoryMixin:
                 cursor.execute("UPDATE dbo.chamados SET id_responsavel = ? WHERE id_chamado = ?", (uid, int(id_chamado)))
             ch = self._ch_aplicar_status(cursor, ch, destino, rg.ATOR_ATENDENTE, user, conteudo=normalize_text(justificativa))
             if destino == rg.RESOLVIDO:
+                remoto = bool(resolvido_remotamente)
+                cursor.execute("UPDATE dbo.chamados SET resolvido_remotamente = ? WHERE id_chamado = ?", (1 if remoto else 0, int(id_chamado)))
+                if remoto:
+                    self._ch_evento(cursor, id_chamado, "sistema", user=user, conteudo="Resolvido remotamente.", dados={"resolvido_remotamente": True})
                 self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} resolvido", mensagem="Confirme se o problema foi solucionado.", para="solicitante", ignorar_id=uid)
             elif destino == rg.AGUARDANDO:
                 self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} aguarda sua resposta", mensagem=normalize_text(justificativa) or "O suporte pediu mais informações.", para="solicitante", ignorar_id=uid)
@@ -779,6 +803,8 @@ class ChamadosRepositoryMixin:
                             conteudo=f"Urgência alterada de {rg.ROTULO_URGENCIA[ch['urgencia']]} para {rg.ROTULO_URGENCIA[urgencia]}."
                             + (f" Motivo: {normalize_text(justificativa)}" if normalize_text(justificativa) else ""),
                             dados={"de": ch["urgencia"], "para": urgencia})
+            self._ch_notificar(cursor, self._ch_carregar(cursor, id_chamado), titulo=f"Chamado #{ch['numero']}: urgência alterada",
+                               mensagem=f"Nova urgência: {rg.ROTULO_URGENCIA[urgencia]}.", para="solicitante", ignorar_id=int(user.id_usuario))
             conn.commit()
             return {"success": True, "urgencia": urgencia, "prazo_sla": iso(prazo)}
         except Exception:
@@ -794,7 +820,84 @@ class ChamadosRepositoryMixin:
         return self._ch_acao_solicitante(user, id_chamado, rg.ENCERRADO, "Solução confirmada pelo solicitante.", "encerrado")
 
     def ch_reabrir(self, user, id_chamado: int, motivo: str) -> dict:
-        return self._ch_acao_solicitante(user, id_chamado, rg.EM_ANDAMENTO, motivo, "reaberto", exigir_motivo=True)
+        """Reabre o MESMO chamado (mesmo id/número): só quem abriu, Resolvido ou Encerrado, dentro da janela `reabertura_dias`
+        e com um comentário dizendo o que continua errado. Fica no histórico como evento `reabertura`."""
+        uid = self._ch_exigir_usuario(user)
+        motivo = normalize_text(motivo)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ch, _ = self._ch_acesso(cursor, user, id_chamado)
+            self._ch_exigir_solicitante(user, ch)
+            if not motivo:
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe o que continua acontecendo para reabrir o chamado.")
+            dias = self._ch_config(cursor)["reabertura_dias"]
+            if ch["status"] not in (rg.RESOLVIDO, rg.ENCERRADO):
+                raise _http(status.HTTP_409_CONFLICT, "Só é possível reabrir um chamado resolvido ou encerrado.")
+            if not rg.reabertura_permitida(status=ch["status"], resolvido_em=ch.get("resolvido_em"), encerrado_em=ch.get("encerrado_em"),
+                                           agora=agora_utc(), dias=dias):
+                raise _http(status.HTTP_409_CONFLICT, f"O prazo de reabertura ({dias:g} dias) terminou. Abra um novo chamado.")
+            ch = self._ch_aplicar_status(cursor, ch, rg.EM_ANDAMENTO, rg.ATOR_SOLICITANTE, user, conteudo=motivo)
+            self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} reaberto", mensagem=motivo, para="ti_todos", ignorar_id=uid)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+        self._ch_enviar_email("reaberto", f"Chamado #{ch['numero']} reaberto",
+                              f"{ch['titulo']} ({ch['operacao']}) foi reaberto por {_nome_usuario(user)}.\n\nMotivo: {motivo}")
+        return {"success": True, "status": ch["status"], "reaberto_vezes": int(ch.get("reaberto_vezes") or 0)}
+
+    def ch_historico(self, user, id_chamado: int) -> dict:
+        """Histórico completo: a abertura aparece SEMPRE; as movimentações (status, atribuição, urgência, reabertura, sistema) só se
+        existirem. Mensagens e anexos ficam na conversa, não aqui."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ch, _ = self._ch_acesso(cursor, user, id_chamado)
+            cursor.execute(
+                "SELECT e.id_evento, e.tipo, e.id_autor, e.autor_nome, e.conteudo, e.dados_json, e.criado_em FROM dbo.chamado_eventos e "
+                "WHERE e.id_chamado = ? AND e.tipo IN ('status','atribuicao','urgencia','reabertura','sistema') "
+                "AND NOT (e.tipo = 'sistema' AND e.conteudo = 'Chamado aberto.') ORDER BY e.id_evento", (int(id_chamado),))
+            movimentacoes = [{
+                "id": int(r["id_evento"]), "tipo": r["tipo"], "por": {"id": r["id_autor"], "nome": r["autor_nome"] or "Sistema"},
+                "em": iso(r["criado_em"]), "descricao": r["conteudo"] or "", "dados": json.loads(r["dados_json"]) if r["dados_json"] else None,
+            } for r in rows_to_dicts(cursor, cursor.fetchall())]
+            return {
+                "abertura": {"em": iso(ch["criado_em"]), "por": {"id": ch["id_solicitante"], "nome": ch["solicitante_nome"]}, "operacao": ch["operacao"]},
+                "reaberto_vezes": int(ch.get("reaberto_vezes") or 0),
+                "movimentacoes": movimentacoes,
+            }
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------ e-mails de alerta (configuráveis em Configurações)
+    _EMAIL_COLUNAS = {"novo": "notif_novo", "sla_proximo": "notif_sla_proximo", "sla_vencido": "notif_sla_vencido",
+                      "parado": "notif_parado", "reaberto": "notif_reaberto"}
+
+    def _ch_enviar_email(self, tipo: str, assunto: str, corpo: str) -> int:
+        """Envia aos destinatários ativos que assinaram `tipo`. Nunca derruba a operação: SMTP ausente ou falha só é registrado no log."""
+        coluna = self._EMAIL_COLUNAS.get(tipo)
+        if not coluna:
+            return 0
+        try:
+            conn = self._connect()
+            try:
+                cursor = conn.cursor()
+                if not self._ch_config(cursor)["lembrete_email_ativo"]:
+                    return 0
+                cursor.execute(f"SELECT email FROM dbo.chamado_email_destinatarios WHERE ativo = 1 AND {coluna} = 1")
+                emails = [normalize_text(r[0]) for r in cursor.fetchall() if normalize_text(r[0])]
+            finally:
+                conn.close()
+            if not emails:
+                return 0
+            self.send_internal_alert_email(destinatarios=emails, assunto=f"[Suporte TI] {assunto}", mensagem=corpo)
+            return len(emails)
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning("E-mail de chamado (%s) não enviado: %s", tipo, exc)
+            return 0
 
     def _ch_acao_solicitante(self, user, id_chamado: int, destino: str, motivo: str, rotulo: str, exigir_motivo: bool = False) -> dict:
         self._ch_exigir_usuario(user)
@@ -899,7 +1002,8 @@ class ChamadosRepositoryMixin:
         """Roda a cada 15 min. Idempotente: encerra Resolvidos vencidos, avisa SLA estourado/vencendo e remove fisicamente anexos
         apagados há mais que a retenção. Chamados aguardando o solicitante (SLA pausado) não entram."""
         agora = agora_utc()
-        resultado = {"encerrados": 0, "sla_vencidos": 0, "sla_a_vencer": 0, "anexos_removidos": 0}
+        resultado = {"encerrados": 0, "sla_vencidos": 0, "sla_a_vencer": 0, "parados": 0, "anexos_removidos": 0}
+        emails: list[tuple[str, str, str]] = []  # (tipo, assunto, corpo): enviados depois do commit; falha de SMTP nunca desfaz o job
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -922,16 +1026,32 @@ class ChamadosRepositoryMixin:
                     ch = self._ch_carregar(cursor, int(idc))
                     self._ch_evento(cursor, ch["id_chamado"], "sistema", conteudo="SLA estourado.")
                     self._ch_notificar(cursor, ch, titulo=f"SLA estourado: chamado #{ch['numero']}", mensagem=ch["titulo"], para="ti_todos")
+                    emails.append(("sla_vencido", f"SLA estourado: chamado #{ch['numero']}", f"{ch['titulo']} ({ch['operacao']}) passou do prazo de SLA."))
                     resultado["sla_vencidos"] += 1
             conn.commit()
             cursor.execute("SELECT id_chamado FROM dbo.chamados WHERE status IN ('aberto','em_andamento') AND prazo_sla >= ? AND prazo_sla < ? "
-                           "AND sla_aviso_notificado_em IS NULL", (agora, agora + timedelta(hours=1)))
+                           "AND sla_aviso_notificado_em IS NULL", (agora, agora + timedelta(hours=cfg["lembrete_sla_horas_antes"])))
             for (idc,) in cursor.fetchall():
                 cursor.execute("UPDATE dbo.chamados SET sla_aviso_notificado_em = ? WHERE id_chamado = ? AND sla_aviso_notificado_em IS NULL", (agora, int(idc)))
                 if cursor.rowcount:
                     ch = self._ch_carregar(cursor, int(idc))
-                    self._ch_notificar(cursor, ch, titulo=f"SLA vence em menos de 1 h: chamado #{ch['numero']}", mensagem=ch["titulo"], para="ti_todos")
+                    horas = f"{cfg['lembrete_sla_horas_antes']:g}"
+                    self._ch_notificar(cursor, ch, titulo=f"SLA vence em menos de {horas} h: chamado #{ch['numero']}", mensagem=ch["titulo"], para="ti_todos")
+                    emails.append(("sla_proximo", f"SLA perto de estourar: chamado #{ch['numero']}",
+                                   f"{ch['titulo']} ({ch['operacao']}) vence em menos de {horas} h."))
                     resultado["sla_a_vencer"] += 1
+            conn.commit()
+            # Chamados abertos/em andamento sem nenhuma movimentação há `lembrete_parado_horas`: um aviso por período de inatividade.
+            parado_desde = agora - timedelta(hours=cfg["lembrete_parado_horas"])
+            cursor.execute("SELECT id_chamado FROM dbo.chamados WHERE status IN ('aberto','em_andamento') AND atualizado_em < ? "
+                           "AND (parado_notificado_em IS NULL OR parado_notificado_em < atualizado_em)", (parado_desde,))
+            for (idc,) in cursor.fetchall():
+                cursor.execute("UPDATE dbo.chamados SET parado_notificado_em = ? WHERE id_chamado = ?", (agora, int(idc)))
+                ch = self._ch_carregar(cursor, int(idc))
+                self._ch_notificar(cursor, ch, titulo=f"Chamado #{ch['numero']} parado há dias", mensagem=ch["titulo"], para="ti_todos")
+                emails.append(("parado", f"Chamado parado: #{ch['numero']}",
+                               f"{ch['titulo']} ({ch['operacao']}) está sem movimentação há mais de {cfg['lembrete_parado_horas']:g} h e continua em aberto."))
+                resultado["parados"] += 1
             conn.commit()
             retencao = agora - timedelta(days=cfg["anexo_retencao_exclusao_dias"])
             cursor.execute("SELECT TOP 200 id_anexo, chave_storage FROM dbo.chamado_anexos WHERE excluido_em IS NOT NULL AND excluido_em < ? AND chave_storage <> ''", (retencao,))
@@ -941,6 +1061,8 @@ class ChamadosRepositoryMixin:
                 cursor.execute("UPDATE dbo.chamado_anexos SET chave_storage = '' WHERE id_anexo = ?", (int(idx),))
                 resultado["anexos_removidos"] += 1
             conn.commit()
+            for tipo, assunto, corpo in emails:
+                self._ch_enviar_email(tipo, assunto, corpo)
             return resultado
         except Exception:
             conn.rollback()

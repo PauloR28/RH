@@ -151,11 +151,38 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos)
 
 
-def modulos_visiveis(permissoes: Iterable[str]) -> list[str]:
-    """Módulos (exceto core) que o conjunto de permissões abre, módulos ativos, na ordem de exibição."""
+def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> list[str]:
+    """Módulos (exceto core) que o conjunto de permissões abre MAIS os liberados para o perfil/usuário em Tecnologia
+    (`extras`, V060), apenas módulos ativos, na ordem de exibição. Liberar um módulo só o torna visível: as telas dentro dele
+    continuam dependendo das permissões do perfil."""
     est = estado()
     abertos = {m for p in permissoes if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m)}
+    abertos |= {m for m in extras if m in MODULOS_VALIDOS and m != MODULO_CORE and modulo_ativo(m)}
     return sorted(abertos, key=lambda m: (est.ordem.get(m, 99), m))
+
+
+def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
+    """Módulos liberados por perfil ou usuário (tabelas da V060). Falha de leitura ou migration ausente = nenhum extra."""
+    if not id_usuario and not perfil:
+        return frozenset()
+    from ..config import get_settings
+    from ..db import get_connection
+
+    try:
+        conn = get_connection(get_settings(), autocommit=True)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT modulo FROM dbo.modulos_acesso_perfil WHERE id_perfil = ? "
+                "UNION SELECT modulo FROM dbo.modulos_acesso_usuario WHERE id_usuario = ?",
+                (perfil or "", int(id_usuario or 0)),
+            )
+            return frozenset(str(r[0]) for r in cursor.fetchall() if str(r[0]) in MODULOS_VALIDOS)
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Acesso extra a módulos indisponível (%s); usando só as permissões.", exc)
+        return frozenset()
 
 
 def pode(permissoes: Iterable[str], permissao: str) -> bool:
@@ -163,11 +190,11 @@ def pode(permissoes: Iterable[str], permissao: str) -> bool:
     return permissao in permissoes and modulo_ativo(modulo_da_permissao(permissao))
 
 
-def descrever(permissoes: Iterable[str]) -> dict:
+def descrever(permissoes: Iterable[str], extras: Iterable[str] = ()) -> dict:
     """Payload de `GET /core/acesso`: módulos, padrão e permissões efetivas (já sem as de módulos desativados)."""
     efetivas = filtrar_permissoes(permissoes)
     est = estado()
-    visiveis = modulos_visiveis(efetivas)
+    visiveis = modulos_visiveis(efetivas, extras)
     modulos = [
         {
             "chave": chave,

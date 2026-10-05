@@ -49,6 +49,8 @@ _TRANSICOES: dict[tuple[str, str], frozenset[str]] = {
     (EM_ANDAMENTO, RESOLVIDO): frozenset({ATOR_ATENDENTE}),
     (RESOLVIDO, ENCERRADO): frozenset({ATOR_SOLICITANTE, ATOR_SISTEMA}),
     (RESOLVIDO, EM_ANDAMENTO): frozenset({ATOR_SOLICITANTE}),
+    # Reabertura de chamado já encerrado (V060): mesma regra e mesmo chamado; limitada pela janela `reabertura_dias`.
+    (ENCERRADO, EM_ANDAMENTO): frozenset({ATOR_SOLICITANTE}),
 }
 
 
@@ -62,6 +64,17 @@ def transicao_existe(origem: str, destino: str) -> bool:
 
 def destinos_do_atendente(origem: str) -> list[str]:
     return [d for (o, d), atores in _TRANSICOES.items() if o == origem and ATOR_ATENDENTE in atores]
+
+
+def reabertura_permitida(*, status: str, resolvido_em: datetime | None, encerrado_em: datetime | None, agora: datetime, dias: float) -> bool:
+    """Só chamados Resolvidos ou Encerrados podem ser reabertos, dentro de `dias` desde que foram resolvidos/encerrados.
+    `dias` <= 0 desliga a reabertura. Cancelado nunca reabre."""
+    if status not in (RESOLVIDO, ENCERRADO) or float(dias or 0) <= 0:
+        return False
+    referencia = (encerrado_em or resolvido_em) if status == ENCERRADO else resolvido_em
+    if referencia is None:
+        return False
+    return agora - referencia <= timedelta(days=float(dias))
 
 
 # ---------------------------------------------------------------- urgência
