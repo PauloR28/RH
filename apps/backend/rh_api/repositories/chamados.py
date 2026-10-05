@@ -7,6 +7,7 @@ Diferente de outros módulos, usuário SEM vínculo de operação não vê nada 
 
 from __future__ import annotations
 
+import html
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -431,6 +432,7 @@ class ChamadosRepositoryMixin:
             conn.commit()
             self._ch_enviar_email("novo", f"Novo chamado #{ch['numero']}" + (f" · {' · '.join(destaque)}" if destaque else ""),
                                   f"{titulo} ({ch['operacao']}), aberto por {sol_nome}.\nUrgência: {rg.ROTULO_URGENCIA[efetiva]}.")
+            self._ch_confirmar_abertura(ch, (normalize_text(u[2]) if u else "") or normalize_text(user.email), rg.ROTULO_URGENCIA[efetiva])
             return {"id": id_chamado, "numero": int(ch["numero"]), "urgencia": efetiva, "urgencia_elevada": elevada,
                     "prazo_sla": iso(ch["prazo_sla"])}
         except Exception:
@@ -893,11 +895,41 @@ class ChamadosRepositoryMixin:
                 conn.close()
             if not emails:
                 return 0
-            self.send_internal_alert_email(destinatarios=emails, assunto=f"[Suporte TI] {assunto}", mensagem=corpo)
+            self._ch_disparar_email(emails, f"[Suporte TI] {assunto}", corpo)
             return len(emails)
         except Exception as exc:  # noqa: BLE001
             self.logger.warning("E-mail de chamado (%s) não enviado: %s", tipo, exc)
             return 0
+
+    def _ch_disparar_email(self, emails: list[str], assunto: str, corpo: str) -> None:
+        """Envia pelo canal disponível: Microsoft Graph (caixa oficial, o mesmo da Monitoria) e, se não estiver configurado, SMTP.
+        Levanta exceção quando nenhum canal está pronto; quem chama decide se isso é só log."""
+        from ..services.email_send_service import EmailSendService
+
+        servico = EmailSendService(self.settings)
+        if servico.configured:
+            corpo_html = "".join(f"<p>{html.escape(linha)}</p>" for linha in corpo.split("\n") if linha.strip())
+            servico.send_mail(destinatarios=emails, assunto=assunto, corpo_html=corpo_html)
+            return
+        self.send_internal_alert_email(destinatarios=emails, assunto=assunto, mensagem=corpo)
+
+    def _ch_confirmar_abertura(self, ch: dict, email: str, urgencia_rotulo: str) -> bool:
+        """E-mail de confirmação para quem abriu o chamado (best-effort: falha só vai para o log)."""
+        email = normalize_text(email)
+        if not email:
+            self.logger.warning("Chamado #%s aberto sem e-mail do solicitante: confirmação não enviada.", ch.get("numero"))
+            return False
+        base = normalize_text(getattr(self.settings, "public_frontend_base_url", "")).rstrip("/")
+        corpo = (f"CHAMADO #{ch['numero']} - Aberto\nDescrição: {ch['titulo']}\nUrgência: {urgencia_rotulo}\n"
+                 "A equipe de TI foi avisada. Você recebe uma notificação a cada atualização.")
+        if base:
+            corpo += f"\nAcompanhe: {base}/suporte-ti/chamado/{ch['id']}"
+        try:
+            self._ch_disparar_email([email], f"[Suporte TI] Chamado #{ch['numero']} aberto", corpo)
+            return True
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning("Confirmação de abertura do chamado #%s não enviada a %s: %s", ch.get("numero"), email, exc)
+            return False
 
     def _ch_acao_solicitante(self, user, id_chamado: int, destino: str, motivo: str, rotulo: str, exigir_motivo: bool = False) -> dict:
         self._ch_exigir_usuario(user)
