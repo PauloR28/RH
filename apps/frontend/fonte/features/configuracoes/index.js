@@ -1412,12 +1412,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setErro('');
     setFeedback('');
     try {
-      await atualizarPermissoesPerfil(perfilSelecionado.id, {
+      const resultado = await atualizarPermissoesPerfil(perfilSelecionado.id, {
         permissoes: permissoesPerfilDraft,
         justificativa: justificativaPerfil,
       });
-      setFeedback('Permissões do perfil atualizadas.');
+      const ignoradasWfm = normalizarLista(resultado?.ignoradas_wfm);
       await carregarAba(abaRenderizada);
+      if (ignoradasWfm.length) {
+        // Gravadas, mas sem efeito: o WFM está fechado para este perfil na fase de teste (não é falha de gravação).
+        setErro(`Permissões salvas, mas ${ignoradasWfm.length} de Turnos e Plantões (WFM) não ficam ativas para ${perfilSelecionado.nome}: o WFM está fechado para participantes. Libere em Tecnologia > Módulos.`);
+      } else {
+        setFeedback('Permissões do perfil atualizadas.');
+      }
     } catch (error) {
       setErro(error?.message || 'Não foi possível salvar as permissões do perfil.');
     } finally {
@@ -2514,6 +2520,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                                                   </div>
                                                 `
                         : null}
+
+                                            ${sessaoAtiva.id === 'wfm' && perfilSelecionado.wfm_fechado
+                    ? html`<div class="alert alert-warning" role="status">Turnos e Plantões está fechado para ${perfilSelecionado.nome} (fase de teste): as permissões desta sessão são gravadas, mas não valem até o WFM ser liberado em Tecnologia > Módulos.</div>`
+                    : null}
 
                                             <div class="settings-permission-groups">
                                               ${permissoesDaSessao.length

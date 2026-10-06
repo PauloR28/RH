@@ -1280,6 +1280,8 @@ class SecurityRepositoryMixin:
                     "descricao": role.description,
                     "oculto": role.hidden,
                     "permissoes": self._get_role_permissions_from_db(cursor, role.id),
+                    # WFM fechado na fase de teste para este perfil: as permissões WFM marcadas não valem até liberar em Tecnologia.
+                    "wfm_fechado": bool(aplicar_restricao_wfm_em_teste(role.id, ["wfm.escala.visualizar"]) == []),
                 }
                 for role in ROLE_DEFINITIONS.values()
             ]
@@ -1364,7 +1366,14 @@ class SecurityRepositoryMixin:
                 sucesso=True,
             )
             conn.commit()
-            return {"success": True, "permissoes": sorted(requested_permissions)}
+            # Fase de teste do WFM: as permissões WFM de alguns perfis ficam gravadas mas NÃO valem (o filtro roda na leitura e no
+            # login). Informa quais foram pedidas e não estão ativas, para a tela não parecer que "salvou e voltou".
+            efetivas = set(aplicar_restricao_wfm_em_teste(safe_role, requested_permissions))
+            return {
+                "success": True,
+                "permissoes": sorted(requested_permissions),
+                "ignoradas_wfm": sorted(requested_permissions - efetivas),
+            }
         finally:
             conn.close()
 
