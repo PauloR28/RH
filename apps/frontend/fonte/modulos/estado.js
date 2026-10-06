@@ -4,6 +4,7 @@
 import { useEffect, useState } from '../infraestrutura-react.js';
 import { lerSessaoAutenticacao } from '../services/api/core.js';
 import { lerAcessoCore } from '../services/api/modulos.js';
+import { definirAreasInativas } from '../shared/areas.js';
 import { MODULO_CORE, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261004-chamados2';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
@@ -69,6 +70,7 @@ export async function carregarAcessoModulos() {
   try {
     const acesso = await lerAcessoCore();
     if (lerSessaoAutenticacao().token !== token) return; // trocou de usuário no meio do caminho
+    definirAreasInativas(acesso.areas_inativas);
     const visiveis = (acesso.modulos || []).filter((m) => m.visivel).map((m) => m.chave);
     publicar({
       carregado: true,

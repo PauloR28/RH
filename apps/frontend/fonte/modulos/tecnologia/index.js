@@ -3,7 +3,7 @@ import { PainelRh } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { PageHeader, PageShell, SettingsLayout } from '../../ui/components/layout-primitivas.js?v=20261005-redesign15';
 import { useToast } from '../../shared/hooks/use-toast.js';
-import { useChamadosNaoLidos } from '../../shared/chamados-nao-lidos.js?v=20261005-redesign15';
+import { useChamadosNaoLidos } from '../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign15';
 import { TELA_MODULOS_TECNOLOGIA, TELAS_SUPORTE_TI, telaWfmParaTecnologia } from '../registro.js?v=20261004-chamados2';
 import { SecaoAcesso, SecaoAtivacao, SecaoWfmParticipantes } from './modulos.js?v=20261005-redesign15';
