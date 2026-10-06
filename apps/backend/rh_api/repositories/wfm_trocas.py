@@ -431,6 +431,29 @@ class WfmTrocasRepositoryMixin:
     # ------------------------------------------------------------------
     # Aplicar a troca na escala (rascunho + nova versão publicada)
     # ------------------------------------------------------------------
+    def _tr_trocar_pausas(self, cursor, operacao: str, id_a: int, id_b: int, datas: tuple[date, ...]) -> int:
+        """A troca é 100%: em cada data da troca, A fica com o turno E as pausas que eram de B, e B com os de A (Operador A com
+        pausa às 9h troca com B às 11h: depois, B tira às 9h e A às 11h). Só vale nessas datas; os outros dias não mudam.
+        Trocar de novo (desfazer) devolve cada pausa ao dono original."""
+        movidas = 0
+        for d in datas:
+            cursor.execute(
+                "SELECT id_operador, ordem, tipo, inicio, duracao_min, atualizado_por FROM dbo.wfm_pausas "
+                "WHERE operacao = ? AND data = ? AND id_operador IN (?, ?)", (operacao, d, id_a, id_b),
+            )
+            linhas = cursor.fetchall()
+            if not linhas:
+                continue
+            cursor.execute("DELETE FROM dbo.wfm_pausas WHERE operacao = ? AND data = ? AND id_operador IN (?, ?)", (operacao, d, id_a, id_b))
+            for id_op, ordem, tipo, inicio, dur, por in linhas:
+                novo_dono = id_b if int(id_op) == id_a else id_a
+                cursor.execute(
+                    "INSERT INTO dbo.wfm_pausas (operacao, id_operador, data, ordem, tipo, inicio, duracao_min, atualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, novo_dono, d, ordem, tipo, inicio, dur, por),
+                )
+                movidas += 1
+        return movidas
+
     def _tr_aplicar(self, cursor, user, troca: dict, *, desfazer: bool, justificativa: str) -> int:
         operacao, id_a, id_b = troca["operacao"], troca["id_solicitante"], troca["id_alvo"]
         datas = regras.datas_envolvidas(troca["data_a"], troca["data_b"])
@@ -445,21 +468,24 @@ class WfmTrocasRepositoryMixin:
             celulas = self._tr_celulas(cursor, operacao, [id_a, id_b], (d,))
             ca, cb = celulas[(id_a, d)], celulas[(id_b, d)]
             novo_a, novo_b = (cb["id_turno"] if cb else None), (ca["id_turno"] if ca else None)
-            for id_op, atual, novo in ((id_a, ca, novo_a), (id_b, cb, novo_b)):
+            # A troca é 100%: o horário ajustado (entrada/saída) acompanha o turno, assim como as pausas (_tr_trocar_pausas).
+            aj_a, aj_b = ((cb or {}).get("ajuste") or (None, None)), ((ca or {}).get("ajuste") or (None, None))
+            for id_op, atual, novo, (aj_ent, aj_sai) in ((id_a, ca, novo_a, aj_a), (id_b, cb, novo_b, aj_b)):
                 if atual and novo is None:
                     cursor.execute("DELETE FROM dbo.wfm_escala_itens WHERE id_item = (SELECT id_item FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_operador = ? AND data = ?)", (operacao, id_op, d))
                 elif atual:
                     cursor.execute(
                         "UPDATE dbo.wfm_escala_itens SET id_turno = ?, versao_linha = versao_linha + 1, atualizado_por = ?, atualizado_em = GETDATE(), "
-                        "entrada_ajuste = NULL, saida_ajuste = NULL WHERE operacao = ? AND id_operador = ? AND data = ?", (novo, autor, operacao, id_op, d),
+                        "entrada_ajuste = ?, saida_ajuste = ? WHERE operacao = ? AND id_operador = ? AND data = ?", (novo, autor, aj_ent, aj_sai, operacao, id_op, d),
                     )
                 elif novo is not None:
                     cursor.execute(
-                        "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, atualizado_por) VALUES (?, ?, ?, ?, ?, ?)",
-                        (operacao, ano_mes, id_op, d, novo, autor),
+                        "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, entrada_ajuste, saida_ajuste, atualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (operacao, ano_mes, id_op, d, novo, aj_ent, aj_sai, autor),
                     )
                 meses.setdefault(ano_mes, []).append((id_op, d, novo))
                 self._wfm_invalidar_trocas(cursor, user, operacao, id_op, d, ignorar=troca["id_troca"])
+        self._tr_trocar_pausas(cursor, operacao, id_a, id_b, datas)
         # Nova versão publicada = última versão publicada com a troca aplicada (edições ainda não publicadas seguem fora).
         ultima = 0
         for ano_mes, mudancas in meses.items():

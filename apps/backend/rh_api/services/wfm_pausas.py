@@ -126,3 +126,63 @@ def distribuir(operadores: list[dict], capacidade: int, ocupado_inicial: dict[in
     for pausas in resultado.values():
         pausas.sort(key=lambda p: p.ordem)
     return resultado
+
+
+def replicar(
+    operadores: list[dict], capacidade: int, ocupado_inicial: dict[int, int] | None = None
+) -> tuple[dict[int, list[PausaProgramada]], int, int]:
+    """Aplica num dia os horários de pausa escolhidos pelo supervisor (o "modelo" de um dia de origem) respeitando o limite de
+    operadores em pausa ao mesmo tempo. `operadores`: [{"id", "entrada_min", "saida_min", "modelo": [(ordem, tipo, "HH:MM", duracao)]}].
+
+    Mantém o horário do modelo sempre que ele cabe no turno do dia, não bate com outra pausa do próprio operador e não passa
+    do limite. Só a pausa que estouraria o limite (ou não cabe no turno) é deslocada para o horário livre mais próximo dentro
+    do turno. Sem nenhum horário livre, mantém o horário (se couber no turno) ou o ideal, e conta como excedente (alerta).
+    Devolve (pausas por operador, quantas pausas foram deslocadas, quantas ficaram acima do limite)."""
+    capacidade = max(int(capacidade), 1)
+    resultado: dict[int, list[PausaProgramada]] = {o["id"]: [] for o in operadores}
+    ocupado: dict[int, int] = dict(ocupado_inicial or {})
+    deslocadas = acima_do_limite = 0
+
+    def livre(inicio: int, dur: int) -> bool:
+        return all(ocupado.get(m, 0) < capacidade for m in range(inicio, inicio + dur, PASSO_MIN))
+
+    for indice, ordem in enumerate(sorted({m[0] for o in operadores for m in o["modelo"]})):
+        for op in sorted(operadores, key=lambda o: (o["entrada_min"], o["id"])):
+            item = next((m for m in op["modelo"] if m[0] == ordem), None)
+            if item is None:
+                continue
+            _, tipo, hhmm, dur = item
+            ini_t, fim_t = op["entrada_min"], op["saida_min"]
+            proprias = resultado[op["id"]]
+
+            def cabe(inicio: int) -> bool:
+                return (inicio >= ini_t and inicio + dur <= fim_t
+                        and all(inicio >= p.fim_min or inicio + dur <= p.inicio_min for p in proprias))
+
+            preferido = desenrolar(hhmm, ini_t)
+            if preferido < ini_t or preferido + dur > fim_t:  # o horário do modelo não existe neste turno: parte do ideal do turno
+                preferido = horarios_ideais(ini_t, fim_t)[min(indice, 2)]
+            escolhido = None
+            if cabe(preferido) and livre(preferido, dur):
+                escolhido = preferido
+            else:
+                for passo in range(PASSO_MIN, (fim_t - ini_t) + PASSO_MIN, PASSO_MIN):  # procura em volta, dentro do turno
+                    for cand in (preferido + passo, preferido - passo):  # depois primeiro: o dia segue em frente
+                        if cabe(cand) and livre(cand, dur):
+                            escolhido = cand
+                            break
+                    if escolhido is not None:
+                        break
+                if escolhido is not None:
+                    deslocadas += 1
+            if escolhido is None:
+                # Sem horário livre: mantém o do modelo se couber no turno; senão o ideal (e o excesso vira alerta).
+                ideal = horarios_ideais(ini_t, fim_t)[min(indice, 2)]
+                escolhido = preferido if cabe(preferido) else min(max(ideal, ini_t), fim_t - dur)
+                acima_do_limite += 1
+            proprias.append(PausaProgramada(ordem, tipo, escolhido, dur))
+            for m in range(escolhido, escolhido + dur, PASSO_MIN):
+                ocupado[m] = ocupado.get(m, 0) + 1
+    for pausas in resultado.values():
+        pausas.sort(key=lambda p: p.ordem)
+    return resultado, deslocadas, acima_do_limite

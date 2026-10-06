@@ -13,6 +13,7 @@ import {
   listarPresencasWfm,
   listarSupervisoresWfm,
   publicarEscalaWfm,
+  replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
 } from '../../../services/api/wfm.js';
@@ -50,6 +51,9 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [sel, setSel] = useState({});
   const [lote, setLote] = useState({ turno: '', entrada: '', saida: '', escopo: 'dia', dias: [true, true, true, true, true, true, true] });
   const [programarPausas, setProgramarPausas] = useState(true);
+  // Replicar as pausas do dia: semana ou mês, só nos dias da semana marcados (0 = segunda).
+  const [lotePausas, setLotePausas] = useState({ escopo: 'mes', dias: [true, true, true, true, true, true, true], sobrescrever: true });
+  const [verPausasLote, setVerPausasLote] = useState(false);
   const [filtroSup, setFiltroSup] = useState('');
   const [filtroEquipe, setFiltroEquipe] = useState('');
   const [filtroCargo, setFiltroCargo] = useState('');
@@ -224,6 +228,35 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     showToast?.(`Turno aplicado a ${visiveis.length} colaborador(es) em ${br(dia).slice(0, 5)}. Revise e clique em "Salvar".`, 'success');
   };
 
+  // Replicar as pausas deste dia: período = semana (seg–dom) ou mês, sempre dentro do mês aberto; filtra pelos dias marcados.
+  const periodoPausas = (() => {
+    const primeiro = dados.dias[0]; const ultimo = dados.dias[dados.dias.length - 1];
+    if (lotePausas.escopo === 'mes') return [primeiro, ultimo];
+    const seg = new Date(d0); seg.setDate(seg.getDate() - diaSemanaSegunda(dia));
+    const dom = new Date(seg); dom.setDate(dom.getDate() + 6);
+    return [paraIso(seg) < primeiro ? primeiro : paraIso(seg), paraIso(dom) > ultimo ? ultimo : paraIso(dom)];
+  })();
+  const diasDasPausas = dados.dias.filter((x) => x >= periodoPausas[0] && x <= periodoPausas[1] && x !== dia && lotePausas.dias[diaSemanaSegunda(x)]);
+  const pausasDoDiaDefinidas = (pausasDia?.operadores || []).some((o) => o.pausas.length);
+  const replicarPausas = async () => {
+    if (!diasDasPausas.length) { showToast?.('Nenhum dia da semana marcado no período escolhido.', 'info'); return; }
+    setOcupado(true);
+    try {
+      const r = await replicarPausasWfm({
+        operacao, data_origem: dia, data_ini: periodoPausas[0], data_fim: periodoPausas[1],
+        dias_semana: lotePausas.dias.map((v, i) => (v ? i : -1)).filter((i) => i >= 0),
+        ids: marcados.length ? marcados.map((o) => o.id_usuario) : null, sobrescrever: lotePausas.sobrescrever,
+      });
+      const extras = [
+        r.deslocadas ? `${r.deslocadas} pausa(s) ajustada(s) de horário para respeitar o limite de ${r.capacidade} em pausa ao mesmo tempo` : '',
+        r.dias_com_excesso ? `${r.dias_com_excesso} dia(s) ainda acima do limite (sem horário livre)` : '',
+        r.periodos_fechados ? `${r.periodos_fechados} dia(s) em período fechado foram pulados` : '',
+      ].filter(Boolean).join('; ');
+      showToast?.(`Pausas aplicadas em ${r.dias_programados} dia(s)${extras ? ` — ${extras}` : ''}.`, r.dias_com_excesso ? 'info' : 'success');
+      await carregar();
+    } catch (err) { showToast?.(err?.message || 'Não foi possível aplicar as pausas.', 'error'); } finally { setOcupado(false); }
+  };
+
   const salvar = async () => {
     setOcupado(true);
     try {
@@ -312,6 +345,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
             <button type="button" class="btn btn-primary btn-sm" disabled=${turnoTodos === ''} onClick=${aplicarTurnoTodos}>Aplicar turno para todos</button>
           </span>` : null}
           ${editavel ? html`<button type="button" class=${`btn btn-sm ${verMassa ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verMassa} onClick=${() => setVerMassa(!verMassa)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit_calendar')}</span>Preencher em massa</button>` : null}
+          ${editavel ? html`<button type="button" class=${`btn btn-sm ${verPausasLote ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verPausasLote} onClick=${() => setVerPausasLote(!verPausasLote)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('timer')}</span>Replicar pausas</button>` : null}
           <button type="button" class=${`btn btn-sm ${verTurnos ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('schedule')}</span>Turnos${podeCadastros ? ' e pausas' : ''}</button>
         </div>
       </div>
@@ -322,6 +356,17 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
         ${podeCadastros ? html`<button type="button" class="wfm-turno-pill wfm-turno-pill--novo" onClick=${() => setModalTurno({ ...TURNO_VAZIO, pausas: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}
         ${podeCadastros && pausasDia ? html`<span class="wfm-capacidade"><label for="wfm-cap">Em pausa ao mesmo tempo</label><input id="wfm-cap" class="form-control" type="number" min="1" max="200" value=${capacidade} onInput=${(e) => setCapacidade(e.target.value)} />${Number(capacidade) !== pausasDia.capacidade ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${salvarCapacidade}>OK</button>` : null}</span>` : null}
+      </div>` : null}
+
+      ${editavel && verPausasLote ? html`<div class="wfm-lote-dia wfm-lote-pausas">
+        <div class="wfm-lote-dia-linha">
+          <strong>Replicar as pausas de ${br(dia).slice(0, 5)} (${SEMANA[d0.getDay()]})</strong>
+          <label class="wfm-campo"><span>Em</span><select class="form-select" value=${lotePausas.escopo} onChange=${(e) => setLotePausas({ ...lotePausas, escopo: e.target.value })}><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
+          <button type="button" class="btn btn-primary btn-sm" disabled=${ocupado || pendentes > 0 || !pausasDoDiaDefinidas || !diasDasPausas.length} onClick=${replicarPausas}>Aplicar pausas</button>
+          <span class="wfm-dias-chips" role="group" aria-label="Dias da semana em que as pausas se aplicam">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${lotePausas.dias[i] ? 'is-ativo' : ''}`} aria-pressed=${lotePausas.dias[i]} onClick=${() => setLotePausas({ ...lotePausas, dias: lotePausas.dias.map((v, j) => (j === i ? !v : v)) })}>${nome}</button>`)}<span class="wfm-contagem-dias">${diasDasPausas.length} dia(s)</span></span>
+          <label class="wfm-check"><input type="checkbox" checked=${lotePausas.sobrescrever} onChange=${(e) => setLotePausas({ ...lotePausas, sobrescrever: e.target.checked })} /> Substituir pausas já programadas</label>
+        </div>
+        <p class="mon-muted wfm-dica">${pendentes > 0 ? 'Salve as alterações do dia antes de replicar as pausas.' : !pausasDoDiaDefinidas ? 'Defina e salve as pausas deste dia primeiro: elas servem de modelo.' : `Copia os horários de pausa de ${marcados.length ? `${marcados.length} selecionado(s)` : 'todos os exibidos'} para os dias marcados em que o colaborador trabalha. Vários colaboradores podem pausar no mesmo horário até o limite${pausasDia ? ` de ${pausasDia.capacidade}` : ''}; só o que passar do limite é deslocado para o horário livre mais próximo.`}</p>
       </div>` : null}
 
       ${editavel && verMassa ? html`<div class="wfm-lote-dia">

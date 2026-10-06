@@ -426,19 +426,19 @@ def test_turno_personalizado_vale_so_para_o_colaborador_e_o_modelo_nao_muda(ctx)
         assert (modelo["entrada"], modelo["saida"]) == ("08:00", "16:00")  # o turno-modelo permanece igual
         # lançar o turno M: o colaborador personalizado recebe o horário próprio; o outro, o do modelo
         r.wfm_salvar_itens(ctx.sup, ctx.op, MES2, [{**_item(ctx.id_a, 20, ctx.M), 'data': f'{MES2}-20'}, {**_item(ctx.id_b, 20, ctx.M), 'data': f'{MES2}-20'}])
-        itens = {i["id_operador"]: i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["data"] == f"{MES2}-20"}
+        itens = {i["id_operador"]: i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES2)["itens"] if i["data"] == f"{MES2}-20"}
         assert (itens[ctx.id_a]["entrada_ajuste"], itens[ctx.id_a]["saida_ajuste"]) == ("09:00", "17:00")
         assert itens[ctx.id_b]["entrada_ajuste"] is None
-        assert [p["id_operador"] for p in r.wfm_get_escala(ctx.sup, ctx.op, MES)["personalizacoes"]] == [ctx.id_a]
+        assert [p["id_operador"] for p in r.wfm_get_escala(ctx.sup, ctx.op, MES2)["personalizacoes"]] == [ctx.id_a]
         # mudar a personalização e aplicar aos dias já lançados
         res = r.wfm_salvar_personalizacao(ctx.cd, {"operacao": ctx.op, "id_turno": ctx.M, "id_operador": ctx.id_a, "entrada": "10:00", "saida": "18:00", "aplicar_lancados": True})
         assert res["dias_ajustados"] >= 1
-        item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
+        item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES2)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
         assert (item["entrada_ajuste"], item["saida_ajuste"]) == ("10:00", "18:00")
     finally:
         r.wfm_remover_personalizacao(ctx.cd, ctx.op, ctx.M, ctx.id_a, remover_lancados=True)
     assert r.wfm_listar_personalizacoes(ctx.cd, ctx.op, ctx.M) == []
-    item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
+    item = next(i for i in r.wfm_get_escala(ctx.sup, ctx.op, MES2)["itens"] if i["id_operador"] == ctx.id_a and i["data"] == f"{MES2}-20")
     assert item["entrada_ajuste"] is None  # voltou ao horário do turno
     assert _erro(r.wfm_remover_personalizacao, ctx.cd, ctx.op, ctx.M, ctx.id_a).status_code == 404
 

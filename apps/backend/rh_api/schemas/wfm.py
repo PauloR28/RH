@@ -227,6 +227,16 @@ class SalvarPausasRequest(BaseSchema):
     itens: list[PausasOperadorRequest] = Field(default_factory=list, max_length=500)
 
 
+class ReplicarPausasRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    data_origem: str = Field(max_length=10)  # dia cujas pausas (já salvas) serão copiadas
+    data_ini: str = Field(max_length=10)
+    data_fim: str = Field(max_length=10)
+    ids: list[int] | None = None
+    dias_semana: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = todos
+    sobrescrever: bool = True
+
+
 class DistribuirPausasRequest(BaseSchema):
     operacao: str = Field(max_length=60)
     data: str = Field(max_length=10)
