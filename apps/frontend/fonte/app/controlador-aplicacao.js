@@ -149,6 +149,7 @@ import {
   getCandidateVisibleStatus,
 } from '../shared/process-flow.js';
 import { encontrarProcessoPorReferencia } from '../shared/process-reference.js';
+import { telaEmAreaInativa } from '../shared/areas.js';
 
 const CHAVE_ESTADO = 'rh_react_state_v1';
 const CHAVE_BARRA_LATERAL = 'rh_sidebar_collapsed_v1';
@@ -1168,6 +1169,7 @@ export function useControladorAplicacao() {
   };
 
   const podeAcessarTela = (tela) => {
+    if (telaEmAreaInativa(tela)) return false; // Suporte TI / Treinamentos inativos na fase de teste (shared/areas.js)
     const permissao = PERMISSOES_TELAS[tela];
     // "Minhas monitorias": o Supervisor acompanha as monitorias da sua equipe (com a etiqueta "Contestada").
     const supervisorMinhas = tela === 'screen-monitoria-minhas' && estado.perfilUsuario === 'supervisor' && possuiPermissao('monitoria.visualizar');

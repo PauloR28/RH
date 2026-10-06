@@ -16,6 +16,8 @@ import { listarOperacoes } from '../services/api/operations.js';
 import { listarUsuarios } from '../services/api/settings.js';
 import { lerSessaoAutenticacao } from '../services/api/core.js';
 
+import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js';
+
 export const CATEGORIAS_NOTIFICACAO = [
   {
     id: 'entrevistas',
@@ -251,10 +253,19 @@ const PREFIXO_ID_PERSISTIDA = 'notificacao-';
 
 export const ehCategoriaMonitoria = (categoria) => String(categoria || '').startsWith('monitoria');
 
+// Categoria de notificação pertence a uma área inativa (Suporte TI / Treinamentos na fase de teste)?
+// (o servidor grava as de treinamento como treinamento_aplicado, treinamento_pendente_chamada etc.; as de chamados como 'chamados')
+const categoriaDeAreaInativa = (categoria) =>
+  (categoria === 'chamados' && !areaAtiva(AREA_SUPORTE_TI)) || (String(categoria || '').startsWith('treinamento') && !areaAtiva(AREA_TREINAMENTOS));
+
+/** Categorias que o usuário pode configurar (esconde as de áreas inativas). */
+export const categoriasNotificacaoVisiveis = () => CATEGORIAS_NOTIFICACAO.filter((c) => !categoriaDeAreaInativa(c.id));
+
 // Notificações gravadas no servidor (dbo.notificacoes): Central de Treinamentos e Monitoria.
 // A de Monitoria mostra só o resumo ("Fulano abriu uma contestação na monitoria #X").
 function montarItensPersistidos(notificacoes) {
   return (Array.isArray(notificacoes) ? notificacoes : [])
+    .filter((item) => !categoriaDeAreaInativa(item.categoria))
     .slice(0, LIMITE_NOTIFICACOES_PERSISTIDAS)
     .map((item) => {
       const monitoria = ehCategoriaMonitoria(item.categoria);

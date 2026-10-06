@@ -20,6 +20,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Iterable
 
+from ..areas import SUPORTE_TI, area_ativa, areas_inativas
 from ..modulos_catalogo import (
     ABRE_MODULO_PADRAO,
     MODULO_CORE,
@@ -144,6 +145,9 @@ def modulo_aberto_por(chave: str) -> str | None:
 def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     """Remove as permissões de módulos desativados. Com todos ativos devolve exatamente o mesmo conjunto."""
     todas = frozenset(permissoes)
+    # Suporte TI inativo (fase de teste, ver rh_api/areas.py): as permissões chamados.* deixam de valer, inclusive para abrir o módulo.
+    if not area_ativa(SUPORTE_TI):
+        todas = frozenset(p for p in todas if not p.startswith("chamados."))
     est = estado()
     inativos = {chave for chave, *_ in MODULOS_PADRAO} - set(est.ativos) - MODULOS_PROTEGIDOS
     if not inativos:
@@ -211,6 +215,7 @@ def descrever(permissoes: Iterable[str], extras: Iterable[str] = ()) -> dict:
         "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
         "operacao_ti": OPERACAO_TI,
         "permissoes": sorted(efetivas),
+        "areas_inativas": sorted(areas_inativas()),
     }
 
 

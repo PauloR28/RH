@@ -1,12 +1,12 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
+import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js';
 import { minutosParaHoras } from './comum.js';
 
-// Visão do Operador: só a própria escala PUBLICADA. Semana (segunda a domingo) é a visão padrão; o mês
-// continua disponível. Clicar em um dia abre os detalhes (horário e pausas) e, quando a troca é possível,
-// o passo a passo para pedir a troca de plantão ali mesmo.
+// Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel
+// do dia selecionado (turno, jornada, pausas e o pedido de troca). Clicar num dia só seleciona: o modal de troca
+// abre pelo botão do painel. Estilos: bloco "Minhas escalas" (.mc-*) no fim de estilos/wfm.css.
 
 const SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -19,7 +19,13 @@ const somarDias = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n);
 const segundaDe = (d) => somarDias(d, -((d.getDay() + 6) % 7));
 const anoMesDe = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const doIso = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };
-const rotuloDia = (iso) => `${SEMANA[(doIso(iso).getDay() + 6) % 7].slice(0, 3)} ${brIso(iso).slice(0, 5)}`;
+const nomeSemana = (d) => SEMANA[(d.getDay() + 6) % 7];
+const rotuloDia = (iso) => `${nomeSemana(doIso(iso)).slice(0, 3)} ${brIso(iso).slice(0, 5)}`;
+const tituloDia = (d) => `${nomeSemana(d)}, ${br(d)}`;
+const faixa = (item) => `${item.entrada} – ${item.saida}`;
+const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const aMin = (hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+const iniciais = (nome) => { const p = String(nome || '').trim().split(/\s+/).filter(Boolean); return p.length > 1 ? `${p[0][0]}${p[p.length - 1][0]}`.toUpperCase() : (p[0] || '?').slice(0, 2).toUpperCase(); };
 
 // Dá para pedir troca deste dia? (o servidor valida de novo: aqui só evitamos oferecer o que vai falhar)
 function motivoSemTroca(data, item) {
@@ -32,53 +38,164 @@ function motivoSemTroca(data, item) {
   return '';
 }
 
-function Pausas({ pausas, compacto = false }) {
-  if (!(pausas || []).length) return null;
-  return html`<ul class=${`wfm-pausas-lista ${compacto ? 'is-compacto' : ''}`} aria-label="Pausas">
-    ${pausas.map((p, i) => html`<li key=${i}><span class="wfm-pausa-n">${i + 1}</span><b>${p.inicio}</b><span>${p.duracao_min} min</span>${compacto ? null : html`<span class="wfm-pausa-tipo">${ROTULO_PAUSA[p.tipo] || 'Pausa'}</span>`}</li>`)}
-  </ul>`;
+const temPausas = (item) => (item?.pausas || []).length > 0;
+const nomePausa = (p, i) => (p.tipo && p.tipo !== 'OUTRA' && ROTULO_PAUSA[p.tipo]) || `Pausa ${i + 1}`;
+
+function Chip({ item, comum }) {
+  const nome = String(item.nome_turno || item.codigo || '').toUpperCase();
+  const classe = item.cor ? 'mc-chip' : `mc-chip ${item.codigo === comum ? 'is-solido' : 'is-contorno'}`;
+  return html`<span class=${classe} title=${nome} style=${item.cor ? { '--mc-cor': item.cor } : undefined}>${nome}</span>`;
 }
 
-function CartaoDia({ data, itens = [], eventos, hoje, compacto, onAbrir }) {
+function PontoPausa({ programada }) {
+  const rotulo = programada ? 'Pausas programadas' : 'Pausas a programar';
+  return html`<span class=${`mc-ponto ${programada ? 'is-cheio' : 'is-anel'}`} role="img" aria-label=${rotulo} title=${rotulo}></span>`;
+}
+
+// ---------------------------------------------------------------- calendário
+
+function CelulaDia({ data, itens, hoje, selecionado, comum, onSelecionar }) {
   const trabalhando = itens.filter((i) => i.trabalha);
-  const item = trabalhando[0] || itens[0];
-  const fimDeSemana = data.getDay() === 0 || data.getDay() === 6;
-  const trabalha = !!item?.trabalha;
-  const classe = `wfm-dia ${trabalha ? 'is-escalado' : ''} ${fimDeSemana ? 'is-fds' : ''} ${paraIso(data) === hoje ? 'is-hoje' : ''} ${compacto ? 'is-compacto' : ''}`.trim();
-  return html`
-    <button type="button" class=${classe} onClick=${() => onAbrir(data)} aria-label=${`${SEMANA[(data.getDay() + 6) % 7]}, ${br(data)}${trabalha ? trabalhando.map((it) => `, ${it.entrada} às ${it.saida}`).join('') : ', DSR'}`}>
-      <span class="wfm-dia-topo"><strong>${String(data.getDate()).padStart(2, '0')}</strong><span>${SEMANA[(data.getDay() + 6) % 7].slice(0, 3)}</span></span>
-      ${trabalhando.length > 1 ? html`
-        ${trabalhando.map((it, i) => html`<span key=${i} class="wfm-dia-horas"><span class="wfm-chip" style=${{ '--wfm-cor': it.cor || 'var(--brand)' }}>${it.codigo}</span>${it.entrada}–${it.saida}</span>`)}`
-        : trabalha ? html`
-        <span class="wfm-dia-horario">${item.entrada} – ${item.saida}</span>
-        <span class="wfm-dia-horas"><span class="wfm-chip" style=${{ '--wfm-cor': item.cor || 'var(--brand)' }}>${item.codigo}</span>${minutosParaHoras(item.minutos)}</span>
-        ${compacto ? ((item.pausas || []).length ? html`<span class="wfm-dia-npausas">${item.pausas.length} pausas</span>` : null) : html`<${Pausas} pausas=${item.pausas} compacto=${true} />`}`
-        : html`<span class="wfm-dia-folga">${item && item.codigo !== 'DSR' ? 'Folga' : 'DSR'}</span>`}
-      ${eventos.length ? html`<span class="wfm-dia-evento" title=${eventos.map((e) => e.descricao).join(' · ')}>${eventos[0].descricao}</span>` : null}
-    </button>`;
+  const iso = paraIso(data);
+  const ehHoje = iso === hoje;
+  const numero = String(data.getDate()).padStart(2, '0');
+  if (!trabalhando.length) {
+    const folga = itens[0] && itens[0].codigo !== 'DSR';
+    return html`<div class="mc-dia is-dsr" aria-label=${`${tituloDia(data)}, ${folga ? 'folga' : 'DSR'}`}>
+      <span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>
+      <span class="mc-dsr">${folga ? 'FOLGA' : 'DSR'}</span></div>`;
+  }
+  const descricao = trabalhando.map((it) => `${it.entrada} às ${it.saida}, ${it.nome_turno || it.codigo}, pausas ${temPausas(it) ? 'programadas' : 'a programar'}`).join('; ');
+  const classe = `mc-dia ${ehHoje ? 'is-hoje' : ''} ${selecionado ? 'is-sel' : ''}`.trim();
+  return html`<button type="button" class=${classe} aria-pressed=${selecionado} aria-current=${ehHoje ? 'date' : undefined}
+    aria-label=${`${nomeSemana(data)}, ${data.getDate()} de ${MESES[data.getMonth()]}, ${descricao}`} onClick=${() => onSelecionar(iso)}>
+    <span class="mc-dia-topo"><span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>${ehHoje ? html`<span class="mc-hoje">HOJE</span>` : null}</span>
+    ${trabalhando.map((it, i) => html`<span key=${i} class="mc-dia-bloco">
+      <span class="mc-dia-horario">${it.entrada}–${it.saida}</span>
+      <span class="mc-dia-pe"><${Chip} item=${it} comum=${comum} /><${PontoPausa} programada=${temPausas(it)} /></span>
+    </span>`)}
+  </button>`;
 }
 
-// Passo a passo: o que trocar → com quem → confirmar.
-function PedirTroca({ operacao, iso, item, onFeito, showToast }) {
+function Legenda({ tipos, comum }) {
+  return html`<div class="mc-legenda" aria-label="Legenda">
+    ${tipos.map((t) => html`<span key=${t.codigo} class="mc-legenda-item"><${Chip} item=${t} comum=${comum} /></span>`)}
+    <span class="mc-legenda-item"><span class="mc-amostra-dsr" aria-hidden="true"></span>DSR</span>
+    <span class="mc-legenda-item"><span class="mc-ponto is-cheio" aria-hidden="true"></span>Pausas programadas</span>
+    <span class="mc-legenda-item"><span class="mc-ponto is-anel" aria-hidden="true"></span>Pausas a programar</span>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- painel do dia
+
+function LinhaTempo({ item }) {
+  const ini = aMin(item.entrada);
+  let total = aMin(item.saida) - ini;
+  if (total <= 0) total += 1440;
+  return html`<div class="mc-tl">
+    <div class="mc-tl-barra" aria-hidden="true">${item.pausas.map((p, i) => {
+      const off = ((aMin(p.inicio) - ini + 1440) % 1440) / total * 100;
+      const larg = Math.min(p.duracao_min / total * 100, 100 - off);
+      return html`<span key=${i} class="mc-tl-pausa" style=${{ left: `${off}%`, width: `${Math.max(larg, 1)}%` }}></span>`;
+    })}</div>
+    <div class="mc-tl-horas"><span>${item.entrada}</span><span>${item.saida}</span></div>
+  </div>`;
+}
+
+function BlocoTurno({ item, comum, mostrarEscala }) {
+  const pausas = item.pausas || [];
+  return html`<div class="mc-bloco">
+    ${mostrarEscala ? html`<p class="mc-escala">${item.nome_escala || item.operacao}</p>` : null}
+    <div class="mc-turno">
+      <div class="mc-turno-linha"><${Chip} item=${item} comum=${comum} /><span>${minutosParaHoras(item.minutos)} de jornada</span></div>
+      <div class="mc-turno-horario">${faixa(item)}</div>
+    </div>
+    <div class="mc-pausas">
+      <div class="mc-pausas-cab"><h4>Pausas</h4>${pausas.length ? html`<span>${pausas.length} programada${pausas.length > 1 ? 's' : ''}</span>` : null}</div>
+      ${pausas.length ? html`<${LinhaTempo} item=${item} />
+        <ul class="mc-pausas-lista">${pausas.map((p, i) => {
+          const fim = (aMin(p.inicio) + p.duracao_min) % 1440;
+          const fimTxt = `${String(Math.floor(fim / 60)).padStart(2, '0')}:${String(fim % 60).padStart(2, '0')}`;
+          return html`<li key=${i}><span class="mc-ponto is-cheio" aria-hidden="true"></span><span class="mc-pausa-nome">${nomePausa(p, i)}</span><span class="mc-pausa-int">${p.inicio} – ${fimTxt}</span><span class="mc-pausa-dur">${p.duracao_min} min</span></li>`;
+        })}</ul>`
+        : html`<p class="mc-pausas-vazio">Pausas ainda não programadas</p>`}
+    </div>
+  </div>`;
+}
+
+function PainelDia({ data, itens, eventos, comum, podeTrocar, onTrocar }) {
+  const trabalhando = itens.filter((i) => i.trabalha);
+  return html`<aside class="mc-painel" aria-label="Dia selecionado">
+    <div><p class="mc-eyebrow">DIA SELECIONADO</p><h3 class="mc-painel-titulo">${tituloDia(data)}</h3></div>
+    ${trabalhando.map((item) => {
+      const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
+      const idAjuda = `mc-ajuda-${item.operacao}`;
+      return html`<div key=${item.operacao} class="mc-painel-item">
+        <${BlocoTurno} item=${item} comum=${comum} mostrarEscala=${trabalhando.length > 1 || !!item.nome_escala} />
+        ${podeTrocar ? html`<hr class="mc-div" />
+          <button type="button" class="btn btn-primary mc-btn-troca" disabled=${!!motivo} aria-describedby=${idAjuda} onClick=${() => onTrocar(item)}>Pedir troca de plantão</button>
+          <p id=${idAjuda} class="mc-ajuda">${motivo || 'Troque só o turno ou o dia inteiro com um colega.'}</p>` : null}
+      </div>`;
+    })}
+    ${eventos.length ? html`<p class="mc-ajuda mc-eventos">${eventos.map((e) => e.descricao).join(' · ')}</p>` : null}
+  </aside>`;
+}
+
+// ---------------------------------------------------------------- modal de troca
+
+function Avatar({ nome, ativo }) {
+  return html`<span class=${`mc-avatar ${ativo ? 'is-ativo' : ''}`} aria-hidden="true">${iniciais(nome)}</span>`;
+}
+
+// Passo a passo: o que trocar → com quem → confirmar. Regras de negócio e payload iguais aos de antes.
+function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
+  const iso = paraIso(data);
   const [colegas, setColegas] = useState(null);
   const [modo, setModo] = useState('turno'); // 'turno' = mesmo dia | 'dia' = assumo outro dia do colega
   const [idColega, setIdColega] = useState(null);
   const [dataB, setDataB] = useState('');
   const [motivo, setMotivo] = useState('');
+  const [busca, setBusca] = useState('');
+  const [horario, setHorario] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const caixa = useRef(null);
+  const fechar = useRef(onClose);
+  fechar.current = onClose;
   useEffect(() => { listarColegasTrocaWfm(operacao).then((r) => setColegas(r.itens || [])).catch(() => setColegas([])); }, [operacao]);
+
+  // Foco: entra no diálogo, Tab circula dentro dele, Esc fecha e o foco volta para quem abriu.
+  useEffect(() => {
+    const anterior = document.activeElement;
+    const el = caixa.current;
+    el?.querySelector('input[type="radio"]:checked')?.focus();
+    const aoTeclar = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); fechar.current(); return; }
+      if (e.key !== 'Tab' || !el) return;
+      const foco = [...el.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [href]')].filter((n) => n.offsetParent !== null);
+      if (!foco.length) return;
+      const primeiro = foco[0]; const ultimo = foco[foco.length - 1];
+      if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+    };
+    document.addEventListener('keydown', aoTeclar);
+    return () => { document.removeEventListener('keydown', aoTeclar); anterior?.focus?.(); };
+  }, []);
 
   const limite = Date.now() + (item?.troca_antecedencia_dias ?? 3) * 24 * 3600 * 1000;
   const diasAssumiveis = (c) => Object.entries(c.dias || {}).filter(([d, h]) => d !== iso && doIso(d).setHours(Number(h.entrada.slice(0, 2)), Number(h.entrada.slice(3)), 0, 0) >= limite).sort(([a], [b]) => a.localeCompare(b));
   const compativeis = (colegas || []).filter((c) => c.compativel);
   const opcoes = compativeis.filter((c) => (modo === 'turno' ? c.dias?.[iso] : diasAssumiveis(c).length > 0));
+  const horarios = modo === 'turno' ? [...new Set(opcoes.map((c) => faixa(c.dias[iso])))].sort() : [];
+  const termo = semAcento(busca.trim());
+  const filtradas = opcoes.filter((c) => (!termo || semAcento(c.nome).includes(termo)) && (!horario || modo !== 'turno' || faixa(c.dias[iso]) === horario));
+  const filtrando = !!termo || !!horario;
   const colega = (colegas || []).find((c) => c.id_usuario === idColega);
   const dataFinalB = modo === 'turno' ? iso : dataB;
   const horarioB = colega?.dias?.[dataFinalB];
   const pronto = !!colega && !!horarioB;
 
-  const trocarModo = (m) => { setModo(m); setIdColega(null); setDataB(''); };
+  const trocarModo = (m) => { setModo(m); setIdColega(null); setDataB(''); setHorario(''); };
+  const limpar = () => { setBusca(''); setHorario(''); };
   const enviar = async () => {
     setEnviando(true);
     try {
@@ -88,63 +205,83 @@ function PedirTroca({ operacao, iso, item, onFeito, showToast }) {
     } catch (err) { showToast?.(err?.message || 'Não foi possível solicitar a troca.', 'error'); } finally { setEnviando(false); }
   };
 
-  return html`<div class="wfm-troca-passos">
-    <div class="wfm-passo"><h4><span>1</span>O que você quer trocar?</h4>
-      <div class="wfm-opcoes">
-        <button type="button" class=${`wfm-opcao ${modo === 'turno' ? 'is-ativa' : ''}`} onClick=${() => trocarModo('turno')}><strong>Só o turno</strong><small>Mesmo dia: você e o colega trocam de horário.</small></button>
-        <button type="button" class=${`wfm-opcao ${modo === 'dia' ? 'is-ativa' : ''}`} onClick=${() => trocarModo('dia')}><strong>O dia inteiro</strong><small>Você cede este dia e assume outro dia de trabalho do colega.</small></button>
-      </div></div>
+  const contagem = `${filtradas.length} operador${filtradas.length === 1 ? '' : 'es'} ${filtrando ? (filtradas.length === 1 ? 'encontrado' : 'encontrados') : (modo === 'turno' ? (filtradas.length === 1 ? 'trabalha neste dia' : 'trabalham neste dia') : (filtradas.length === 1 ? 'tem outro dia disponível' : 'têm outro dia disponível'))}`;
+  const resumo = pronto ? (modo === 'turno'
+    ? { voce: [faixa(item), faixa(horarioB)], colega: [faixa(horarioB), faixa(item)] }
+    : { voce: [`${rotuloDia(iso)} · ${faixa(item)}`, `${rotuloDia(dataFinalB)} · ${faixa(horarioB)}`], colega: [`${rotuloDia(dataFinalB)} · ${faixa(horarioB)}`, `${rotuloDia(iso)} · ${faixa(item)}`] }) : null;
 
-    <div class="wfm-passo"><h4><span>2</span>Com quem?</h4>
-      ${colegas === null ? html`<p class="mon-muted wfm-vazio-txt">Carregando colegas…</p>`
-        : opcoes.length ? html`<div class="wfm-colegas">${opcoes.map((c) => { const h = modo === 'turno' ? c.dias[iso] : null; const n = modo === 'dia' ? diasAssumiveis(c).length : 0;
-          return html`<button key=${c.id_usuario} type="button" class=${`wfm-colega ${idColega === c.id_usuario ? 'is-ativo' : ''}`} onClick=${() => { setIdColega(c.id_usuario); setDataB(''); }}>
-            <strong>${c.nome}</strong><small>${h ? `Trabalha ${h.entrada}–${h.saida}` : `${n} dia(s) disponível(is)`}</small></button>`; })}</div>`
-        : html`<p class="mon-muted wfm-vazio-txt">${modo === 'turno' ? 'Nenhum colega com as mesmas skills trabalha neste dia.' : 'Nenhum colega com as mesmas skills tem outro dia de trabalho disponível nesta semana.'}</p>`}
-      ${modo === 'dia' && colega ? html`<div class="wfm-dias-colega"><span class="mon-muted">Dia que você assume de ${colega.nome.split(' ')[0]}:</span>
-        ${diasAssumiveis(colega).map(([d, h]) => html`<button key=${d} type="button" class=${`wfm-dia-opcao ${dataB === d ? 'is-ativo' : ''}`} onClick=${() => setDataB(d)}><strong>${rotuloDia(d)}</strong><small>${h.entrada}–${h.saida}</small></button>`)}</div>` : null}
+  return html`<div class="rh-modal-overlay" onClick=${(e) => e.target === e.currentTarget && onClose()}>
+    <div class="mc-modal c24-fade-in" role="dialog" aria-modal="true" aria-labelledby="mc-modal-titulo" ref=${caixa}>
+      <header class="mc-modal-cab">
+        <div><h3 id="mc-modal-titulo">${tituloDia(data)}</h3><p>Pedir troca de plantão</p></div>
+        <button type="button" class="mc-fechar" aria-label="Fechar" onClick=${onClose}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span></button>
+      </header>
+
+      <div class="mc-meu-turno"><${Chip} item=${item} comum=${item.codigo} /><strong>${faixa(item)}</strong><span>${minutosParaHoras(item.minutos)} · seu turno neste dia</span></div>
+
+      <fieldset class="mc-passo"><legend><span class="mc-num">1</span>O QUE VOCÊ QUER TROCAR?</legend>
+        <div class="mc-opcoes" role="radiogroup">
+          ${[['turno', 'Só o turno', 'Mesmo dia: vocês trocam de horário.'], ['dia', 'O dia inteiro', 'Você cede este dia e assume outro dia do colega.']].map(([valor, titulo, desc]) => html`
+            <label key=${valor} class=${`mc-opcao ${modo === valor ? 'is-ativa' : ''}`}>
+              <input type="radio" name="mc-modo" class="mc-radio-oculto" checked=${modo === valor} onChange=${() => trocarModo(valor)} />
+              <strong>${titulo}</strong><small>${desc}</small></label>`)}
+        </div></fieldset>
+
+      <fieldset class="mc-passo"><legend><span class="mc-num">2</span>COM QUEM?</legend>
+        ${colegas === null ? html`<p class="mc-vazio-txt">Carregando colegas…</p>` : html`
+          <div class="mc-controles">
+            <label class="mc-busca"><span class="visually-hidden">Buscar operador por nome</span>
+              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('search')}</span>
+              <input type="search" class="form-control" placeholder="Buscar operador por nome" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></label>
+            ${modo === 'turno' && horarios.length > 1 ? html`<label class="mc-filtro-horario"><span class="visually-hidden">Filtrar por horário</span>
+              <select class="form-select" value=${horario} onChange=${(e) => setHorario(e.target.value)}>
+                <option value="">Todos os horários</option>${horarios.map((h) => html`<option key=${h} value=${h}>${h}</option>`)}
+              </select></label>` : null}
+          </div>
+          <p class="mc-contagem" aria-live="polite">${opcoes.length ? contagem : ''}</p>
+          ${filtradas.length ? html`<div class="mc-lista" role="radiogroup" aria-label="Operadores">${filtradas.map((c) => {
+            const ativo = idColega === c.id_usuario;
+            return html`<label key=${c.id_usuario} class=${`mc-linha ${ativo ? 'is-ativa' : ''}`}>
+              <input type="radio" name="mc-colega" class="mc-radio-oculto" checked=${ativo} onChange=${() => { setIdColega(c.id_usuario); setDataB(''); }} />
+              <${Avatar} nome=${c.nome} ativo=${ativo} />
+              <span class="mc-linha-nome">${c.nome}</span>
+              <span class="mc-linha-horario">${modo === 'turno' ? faixa(c.dias[iso]) : `${diasAssumiveis(c).length} dia(s)`}</span>
+              <span class="mc-indicador" aria-hidden="true"></span></label>`; })}</div>`
+            : html`<div class="mc-lista mc-lista-vazia">${opcoes.length
+              ? html`<p>Nenhum operador encontrado</p><button type="button" class="mc-link" onClick=${limpar}>Limpar busca e filtros</button>`
+              : html`<p>${modo === 'turno' ? 'Nenhum colega com as mesmas skills trabalha neste dia.' : 'Nenhum colega com as mesmas skills tem outro dia de trabalho disponível nesta semana.'}</p>`}</div>`}
+          ${modo === 'dia' && colega ? html`<div class="mc-dias-colega" role="radiogroup" aria-label=${`Dia que você assume de ${colega.nome.split(' ')[0]}`}>
+            <span>Dia que você assume de ${colega.nome.split(' ')[0]}:</span>
+            ${diasAssumiveis(colega).map(([d, h]) => html`<label key=${d} class=${`mc-dia-opcao ${dataB === d ? 'is-ativa' : ''}`}>
+              <input type="radio" name="mc-dia-b" class="mc-radio-oculto" checked=${dataB === d} onChange=${() => setDataB(d)} /><strong>${rotuloDia(d)}</strong><small>${h.entrada}–${h.saida}</small></label>`)}</div>` : null}`}
+      </fieldset>
+
+      ${resumo ? html`<section class="mc-resumo" aria-label="Resumo da troca">
+        <h4>RESUMO DA TROCA · ${brIso(iso).slice(0, 5)}</h4>
+        ${[['Você', resumo.voce], [colega.nome, resumo.colega]].map(([quem, [de, para]]) => html`<div key=${quem} class="mc-resumo-linha">
+          <span class="mc-resumo-nome">${quem}</span><span class="mc-resumo-de">${de}</span>
+          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_forward')}</span><b class="mc-resumo-para">${para}</b></div>`)}
+        <label class="mc-motivo"><span>Motivo (opcional)</span><input class="form-control" maxlength="300" value=${motivo} onInput=${(e) => setMotivo(e.target.value)} /></label>
+        <p class="mc-ajuda">Seu colega precisa aceitar e depois o supervisor (ou o RH) aprova.</p>
+      </section>` : null}
+
+      <footer class="mc-modal-rodape">
+        <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
+        <button type="button" class="btn btn-primary" disabled=${!pronto || enviando} onClick=${enviar}>${enviando ? 'Enviando…' : 'Enviar solicitação'}</button>
+      </footer>
     </div>
-
-    ${pronto ? html`<div class="wfm-passo"><h4><span>3</span>Confirme</h4>
-      <p class="wfm-resumo-troca">Você cede <b>${rotuloDia(iso)} · ${item.entrada}–${item.saida}</b> e assume <b>${rotuloDia(dataFinalB)} · ${horarioB.entrada}–${horarioB.saida}</b> de <b>${colega.nome}</b>.</p>
-      <label class="wfm-campo"><span>Motivo (opcional)</span><input class="form-control" maxlength="300" value=${motivo} onInput=${(e) => setMotivo(e.target.value)} /></label>
-      <p class="mon-muted wfm-vazio-txt">Seu colega precisa aceitar e depois o supervisor (ou o RH) aprova.</p></div>` : null}
-    <div class="wfm-modal-rodape"><span></span><button type="button" class="btn btn-primary" disabled=${!pronto || enviando} onClick=${enviar}>${enviando ? 'Enviando…' : 'Enviar solicitação'}</button></div>
   </div>`;
 }
 
-function ModalDia({ data, itens = [], eventos, onClose, onTrocaEnviada, showToast, podeTrocar }) {
-  const iso = paraIso(data);
-  const trabalhando = itens.filter((i) => i.trabalha);
-  const folga = itens[0];
-  const [trocando, setTrocando] = useState(null); // item (escala) em troca
-  return html`<${ModalPadrao} aberto=${true} titulo=${`${SEMANA[(data.getDay() + 6) % 7]}, ${br(data)}`} onClose=${onClose} className="wfm-modal">
-    <div class="wfm-form-modal">
-      ${trabalhando.length ? trabalhando.map((item) => {
-        const motivo = motivoSemTroca(data, item);
-        return html`<div key=${item.operacao} class="wfm-passo">
-          ${trabalhando.length > 1 || item.nome_escala ? html`<h4>${item.nome_escala || item.operacao}</h4>` : null}
-          <div class="wfm-dia-detalhe">
-            <span class="wfm-chip" style=${{ '--wfm-cor': item.cor || 'var(--brand)' }}>${item.codigo}</span>
-            <div><strong>${item.entrada} – ${item.saida}</strong><small>${minutosParaHoras(item.minutos)} de jornada</small></div>
-          </div>
-          ${(item.pausas || []).length ? html`<div class="wfm-passo"><h4>Suas pausas</h4><${Pausas} pausas=${item.pausas} /></div>` : html`<p class="mon-muted wfm-vazio-txt">Pausas ainda não programadas.</p>`}
-          ${podeTrocar && trocando?.operacao !== item.operacao ? (motivo ? html`<p class="mon-muted wfm-vazio-txt">${motivo}</p>`
-            : html`<div class="wfm-modal-rodape"><span></span><button type="button" class="btn btn-outline-primary" onClick=${() => setTrocando(item)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('compare_arrows')}</span>Trocar este plantão</button></div>`) : null}
-          ${trocando?.operacao === item.operacao ? html`<${PedirTroca} operacao=${item.operacao} iso=${iso} item=${item} showToast=${showToast} onFeito=${onTrocaEnviada} />` : null}
-        </div>`;
-      }) : html`<p class="wfm-vazio-txt"><strong>${folga && folga.codigo !== 'DSR' ? 'Folga' : 'DSR'}</strong> — descanso semanal. Nada para trocar neste dia.</p>`}
-      ${eventos.length ? html`<p class="mon-muted wfm-vazio-txt">${eventos.map((e) => e.descricao).join(' · ')}</p>` : null}
-    </div>
-  </${ModalPadrao}>`;
-}
+// ---------------------------------------------------------------- tela
 
 export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
   const [modo, setModo] = useState('semana');
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
-  const [aberto, setAberto] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [trocando, setTrocando] = useState(null); // item (escala) em troca
   const hoje = paraIso(new Date());
 
   const periodo = useMemo(() => {
@@ -173,8 +310,8 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
       if (!respostas.length) throw new Error('Não foi possível carregar a sua escala.');
       const itens = {};
       respostas.forEach((r) => {
-        const cores = Object.fromEntries((r.turnos || []).map((t) => [t.codigo, t.cor]));
-        (r.itens || []).forEach((i) => { (itens[i.data] = itens[i.data] || []).push({ ...i, cor: cores[i.codigo], operacao: r.chave, nome_escala: r.nome_escala, troca_antecedencia_dias: r.troca_antecedencia_dias }); });
+        const turnos = Object.fromEntries((r.turnos || []).map((t) => [t.codigo, t]));
+        (r.itens || []).forEach((i) => { (itens[i.data] = itens[i.data] || []).push({ ...i, cor: turnos[i.codigo]?.cor, nome_turno: turnos[i.codigo]?.nome, operacao: r.chave, nome_escala: r.nome_escala, troca_antecedencia_dias: r.troca_antecedencia_dias }); });
       });
       Object.values(itens).forEach((lista) => lista.sort((a, b) => (b.trabalha ? 1 : 0) - (a.trabalha ? 1 : 0) || String(a.entrada || '').localeCompare(String(b.entrada || ''))));
       setDados({
@@ -189,40 +326,73 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
   }, [contexto, periodo]);
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
 
-  const mover = (n) => setAncora((a) => (modo === 'semana' ? somarDias(a, 7 * n) : new Date(a.getFullYear(), a.getMonth() + n, 1)));
+  const trabalha = useCallback((iso) => (dados?.itens[iso] || []).some((i) => i.trabalha), [dados]);
 
-  const rotuloPeriodo = modo === 'semana'
-    ? `${br(periodo.ini)} a ${br(periodo.fim)}`
-    : `${MESES[periodo.ini.getMonth()]} de ${periodo.ini.getFullYear()}`;
-  const escalados = dados ? periodo.dias.map((d) => dados.itens[paraIso(d)] || []).flat().filter((i) => i?.trabalha) : [];
+  // Seleção: mantém o dia escolhido enquanto ele existir no período; senão hoje (se trabalha) ou o 1º dia de trabalho.
+  useEffect(() => {
+    if (!dados) return;
+    const noPeriodo = (iso) => periodo.dias.some((d) => paraIso(d) === iso) && trabalha(iso);
+    setSel((atual) => {
+      if (atual && noPeriodo(atual)) return atual;
+      if (noPeriodo(hoje)) return hoje;
+      const primeiro = periodo.dias.map(paraIso).find(trabalha);
+      return primeiro || null;
+    });
+  }, [dados, periodo, trabalha, hoje]);
+
+  const mover = (n) => setAncora((a) => (modo === 'semana' ? somarDias(a, 7 * n) : new Date(a.getFullYear(), a.getMonth() + n, 1)));
+  const irHoje = () => { setAncora(new Date()); setSel(hoje); };
+
+  const rotuloPeriodo = modo === 'semana' ? `${br(periodo.ini)} a ${br(periodo.fim)}` : `${MESES[periodo.ini.getMonth()]} de ${periodo.ini.getFullYear()}`;
+  const itensPeriodo = dados ? periodo.dias.flatMap((d) => dados.itens[paraIso(d)] || []) : [];
+  const escalados = itensPeriodo.filter((i) => i.trabalha);
+  const diasTrabalho = dados ? periodo.dias.filter((d) => trabalha(paraIso(d))).length : 0;
+  const diasDsr = dados ? periodo.dias.filter((d) => { const l = dados.itens[paraIso(d)] || []; return l.length && !l.some((i) => i.trabalha) && l[0].codigo === 'DSR'; }).length : 0;
   const totalMin = escalados.reduce((soma, i) => soma + (i.minutos || 0), 0);
   const eventosDoDia = (d) => (dados?.eventos || []).filter((e) => paraIso(d) >= e.data_ini && paraIso(d) <= e.data_fim);
-  const abrir = (d) => setAberto(d);
+
+  // Tipos de turno que aparecem no período (legenda) e o mais comum (preenchimento de quem não tem cor).
+  const tipos = []; const contagem = {};
+  escalados.forEach((i) => { contagem[i.codigo] = (contagem[i.codigo] || 0) + 1; if (!tipos.some((t) => t.codigo === i.codigo)) tipos.push(i); });
+  const comum = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
+
+  const dataSel = sel ? doIso(sel) : null;
+  const cabecalho = html`<div class="mc-dias-cab" aria-hidden="true">${SEMANA.map((s) => html`<span key=${s}>${s.slice(0, 3).toUpperCase()}</span>`)}</div>`;
+  const celula = (d) => html`<${CelulaDia} key=${paraIso(d)} data=${d} itens=${dados.itens[paraIso(d)] || []} hoje=${hoje} selecionado=${paraIso(d) === sel} comum=${comum} onSelecionar=${setSel} />`;
 
   return html`
-    <section class="mon-card wfm-minha">
-      <div class="wfm-cabecalho wfm-cabecalho--centro">
-        <div><h3>Minhas escalas</h3><p class="mon-muted">${rotuloPeriodo}${dados?.publicada ? ` · ${minutosParaHoras(totalMin)} em ${escalados.length} dia(s) de trabalho` : ''}</p></div>
-        <div class="wfm-acoes-cab">
-          <div class="wfm-alternador" role="group" aria-label="Visualização">
-            <button type="button" class=${modo === 'semana' ? 'is-ativo' : ''} onClick=${() => setModo('semana')}>Semana</button>
-            <button type="button" class=${modo === 'mes' ? 'is-ativo' : ''} onClick=${() => setModo('mes')}>Mês</button>
+    <section class="mon-card wfm-minha mc-card">
+      <div class="mc-barra">
+        <div class="mc-barra-esq">
+          <h3 class="mc-mes">${rotuloPeriodo}</h3>
+          <div class="mc-nav">
+            <button type="button" class="mc-btn mc-btn-icone" aria-label=${modo === 'semana' ? 'Semana anterior' : 'Mês anterior'} onClick=${() => mover(-1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
+            <button type="button" class="mc-btn" onClick=${irHoje}>Hoje</button>
+            <button type="button" class="mc-btn mc-btn-icone" aria-label=${modo === 'semana' ? 'Próxima semana' : 'Próximo mês'} onClick=${() => mover(1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
           </div>
-          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label=${modo === 'semana' ? 'Semana anterior' : 'Mês anterior'} onClick=${() => mover(-1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setAncora(new Date())}>Hoje</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label=${modo === 'semana' ? 'Próxima semana' : 'Próximo mês'} onClick=${() => mover(1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
+        </div>
+        ${dados?.publicada ? html`<dl class="mc-totais">
+          <div><dd>${diasTrabalho}</dd><dt>dias de trabalho</dt></div>
+          <div><dd>${minutosParaHoras(totalMin)}</dd><dt>${modo === 'semana' ? 'na semana' : 'no mês'}</dt></div>
+          <div><dd>${diasDsr}</dd><dt>DSR</dt></div>
+        </dl>` : html`<span></span>`}
+        <div class="mc-seg" role="group" aria-label="Visualização">
+          <button type="button" aria-pressed=${modo === 'semana'} class=${modo === 'semana' ? 'is-ativo' : ''} onClick=${() => setModo('semana')}>Semana</button>
+          <button type="button" aria-pressed=${modo === 'mes'} class=${modo === 'mes' ? 'is-ativo' : ''} onClick=${() => setModo('mes')}>Mês</button>
         </div>
       </div>
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
         : !dados ? html`<${LoadingState} titulo="Carregando a sua escala" />`
         : !dados.publicada ? html`<${EmptyState} icon="calendar_month" title="Escala ainda não publicada" text="Assim que a escala deste período for publicada, ela aparece aqui." />`
-        : html`
-          <p class="mon-muted wfm-dica">Clique em um dia para ver as pausas ou pedir uma troca de plantão.</p>
-          ${modo === 'semana' ? html`<div class="wfm-semana">${periodo.dias.map((d) => html`<${CartaoDia} key=${paraIso(d)} data=${d} itens=${dados.itens[paraIso(d)] || []} eventos=${eventosDoDia(d)} hoje=${hoje} compacto=${false} onAbrir=${abrir} />`)}</div>`
-            : html`<div class="wfm-mes-cab">${SEMANA.map((s) => html`<span key=${s}>${s.slice(0, 3)}</span>`)}</div>
-              <div class="wfm-mes">${periodo.grade.map((d) => (d.getMonth() === periodo.ini.getMonth()
-                ? html`<${CartaoDia} key=${paraIso(d)} data=${d} itens=${dados.itens[paraIso(d)] || []} eventos=${eventosDoDia(d)} hoje=${hoje} compacto=${true} onAbrir=${abrir} />`
-                : html`<div key=${paraIso(d)} class="wfm-dia is-fora"></div>`))}</div>`}`}
+        : html`<div class="mc-corpo">
+          <div class="mc-grade-col">
+            ${cabecalho}
+            <div class=${`mc-grade ${modo === 'semana' ? 'is-semana' : ''}`}>${modo === 'semana' ? periodo.dias.map(celula)
+              : periodo.grade.map((d) => (d.getMonth() === periodo.ini.getMonth() ? celula(d) : html`<div key=${paraIso(d)} class="mc-fora" aria-hidden="true"></div>`))}</div>
+            <${Legenda} tipos=${tipos} comum=${comum} />
+          </div>
+          ${dataSel ? html`<${PainelDia} data=${dataSel} itens=${dados.itens[sel] || []} eventos=${eventosDoDia(dataSel)} comum=${comum} podeTrocar=${podeTrocar} onTrocar=${setTrocando} />` : null}
+        </div>`}
     </section>
-    ${aberto ? html`<${ModalDia} podeTrocar=${podeTrocar} data=${aberto} itens=${dados?.itens[paraIso(aberto)] || []} eventos=${eventosDoDia(aberto)} showToast=${showToast} onClose=${() => setAberto(null)} onTrocaEnviada=${() => setAberto(null)} />` : null}`;
+    ${trocando && dataSel ? html`<${ModalTroca} operacao=${trocando.operacao} data=${dataSel} item=${trocando} showToast=${showToast} onClose=${() => setTrocando(null)} onFeito=${() => setTrocando(null)} />` : null}`;
 }

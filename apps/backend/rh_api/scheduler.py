@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from .areas import SUPORTE_TI, TREINAMENTOS, area_ativa
 from .config import Settings
 
 logger = logging.getLogger(__name__)
@@ -135,16 +136,17 @@ def start_scheduler(settings: Settings):
             coalesce=True,
             max_instances=1,
         )
-        scheduler.add_job(
-            _run_training_call_escalation_job,
-            trigger="interval",
-            hours=1,
-            args=(settings,),
-            id="escalonamento_chamada_treinamento",
-            replace_existing=True,
-            coalesce=True,
-            max_instances=1,
-        )
+        if area_ativa(TREINAMENTOS):
+            scheduler.add_job(
+                _run_training_call_escalation_job,
+                trigger="interval",
+                hours=1,
+                args=(settings,),
+                id="escalonamento_chamada_treinamento",
+                replace_existing=True,
+                coalesce=True,
+                max_instances=1,
+            )
         scheduler.add_job(
             _run_monitoria_sla_job,
             trigger="interval",
@@ -155,16 +157,17 @@ def start_scheduler(settings: Settings):
             coalesce=True,
             max_instances=1,
         )
-        scheduler.add_job(
-            _run_chamados_prazos_job,
-            trigger="interval",
-            minutes=15,
-            args=(settings,),
-            id="prazos_chamados",
-            replace_existing=True,
-            coalesce=True,
-            max_instances=1,
-        )
+        if area_ativa(SUPORTE_TI):
+            scheduler.add_job(
+                _run_chamados_prazos_job,
+                trigger="interval",
+                minutes=15,
+                args=(settings,),
+                id="prazos_chamados",
+                replace_existing=True,
+                coalesce=True,
+                max_instances=1,
+            )
         scheduler.add_job(
             _run_log_archive_job,
             trigger="cron",

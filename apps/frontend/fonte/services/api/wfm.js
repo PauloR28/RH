@@ -1,5 +1,5 @@
 import { requisitar, requisitarArquivo } from './core.js';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261004-chamados2';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261006-areas-inativas';
 import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261004-chamados2';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

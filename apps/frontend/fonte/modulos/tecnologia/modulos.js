@@ -11,7 +11,7 @@ import {
   lerWfmParticipantes,
   listarModulosTecnologia,
 } from '../../services/api/modulos.js?v=20261005-redesign15';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261004-chamados2';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261006-areas-inativas';
 
 // Tela Módulos (Tecnologia): ativação, WFM para participantes e acesso por perfil/usuário. Montada com as primitivas de layout.
 

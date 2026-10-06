@@ -37,11 +37,12 @@ import { definirOrientacoesAtivas, orientacoesAtivas } from '../../ui/tour-guiad
 import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
 import {
   CATEGORIAS_NOTIFICACAO,
+  categoriasNotificacaoVisiveis,
   lerCoresNotificacao,
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20260921-alertas';
+} from '../../shared/notificacoes.js?v=20261006-areas-inativas';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
 import {
@@ -4027,7 +4028,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   Escolha quais categorias aparecem no sino de notificações no topo do Conecta, e personalize a cor de cada uma.
                 </p>
                 <div class="settings-notif-list">
-                  ${CATEGORIAS_NOTIFICACAO.map(
+                  ${categoriasNotificacaoVisiveis().map(
         (categoria) => html`
                       <div class="settings-notif-row" key=${categoria.id}>
                         <label class="process-switch-row settings-notif-toggle">

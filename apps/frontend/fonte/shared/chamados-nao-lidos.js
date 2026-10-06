@@ -1,4 +1,5 @@
 import { useEffect, useState } from '../infraestrutura-react.js';
+import { areaAtiva, AREA_SUPORTE_TI } from './areas.js';
 import { listarNotificacoes } from '../services/api/notifications.js?v=20260927-estado-usuario';
 
 // Bolinha vermelha do Suporte TI: quantas notificações NÃO LIDAS da categoria `chamados` o usuário tem.
@@ -24,7 +25,8 @@ export const atualizarChamadosNaoLidos = () => atualizar();
 export function useChamadosNaoLidos(controlador) {
   const [total, setTotal] = useState(contagem);
   const autenticado = Boolean(controlador?.estado?.autenticado);
-  const permitido = Boolean(controlador?.possuiPermissao?.('notificacoes.visualizar'));
+  // Suporte TI inativo: sem consulta nem polling (a bolinha só existe com a área ligada).
+  const permitido = areaAtiva(AREA_SUPORTE_TI) && Boolean(controlador?.possuiPermissao?.('notificacoes.visualizar'));
   useEffect(() => {
     if (!autenticado || !permitido) return undefined;
     ouvintes.add(setTotal);

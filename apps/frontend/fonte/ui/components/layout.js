@@ -4,10 +4,11 @@ import { obterTourDaTela } from '../../shared/tour-config.js';
 import { TourGuiado, orientacoesAtivas } from '../tour-guiado.js';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20260921-alertas';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261006-areas-inativas';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
-import { useModulos } from '../../modulos/estado.js?v=20261004-chamados2';
+import { useModulos } from '../../modulos/estado.js?v=20261006-areas-inativas';
+import { telaEmAreaInativa } from '../../shared/areas.js';
 import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261004-chamados2';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign15';
 
@@ -360,7 +361,7 @@ export function BarraLateral({
   // "Minhas monitorias" também é do Supervisor (monitorias da equipe, com a etiqueta "Contestada").
   const supervisorMinhas = (subitem) =>
     subitem.tela === 'screen-monitoria-minhas' && controlador?.estado?.perfilUsuario === 'supervisor' && possuiPermissao('monitoria.visualizar');
-  const possuiSub = (subitem) => (possuiPermissao(subitem.permissao) || supervisorMinhas(subitem)) && sessaoOk(subitem.tela);
+  const possuiSub = (subitem) => !telaEmAreaInativa(subitem.tela) && (possuiPermissao(subitem.permissao) || supervisorMinhas(subitem)) && sessaoOk(subitem.tela);
   const itemAtivo = (item) =>
     navAtiva === item.tela || (item.telasRelacionadas || []).includes(navAtiva);
   const grupoProcessosAtivo = telasRelacionadasProcessos.includes(navAtiva);
