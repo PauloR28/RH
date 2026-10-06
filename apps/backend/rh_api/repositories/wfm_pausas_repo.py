@@ -272,3 +272,84 @@ class WfmPausasRepositoryMixin:
             return {"success": True, "operadores": len(resultado)}
         finally:
             conn.close()
+
+    def wfm_replicar_pausas(
+        self, user, operacao: str, data_origem: Any, data_ini: Any, data_fim: Any, ids: list[int] | None = None, *,
+        dias_semana: list[int] | None = None, sobrescrever: bool = True, ip: str = "",
+    ) -> dict:
+        """Copia os horários de pausa programados em `data_origem` para os demais dias do período (semana/mês), só nos dias da
+        semana escolhidos e só para quem trabalha no dia. O limite de operadores em pausa ao mesmo tempo é respeitado em cada
+        dia: o horário do modelo é mantido enquanto cabe no limite e no turno; só a pausa que estouraria é deslocada para o
+        horário livre mais próximo (quem não tem pausa no modelo e já tem pausas no dia continua ocupando as vagas)."""
+        origem, ini, fim = _data(data_origem), _data(data_ini), _data(data_fim)
+        if fim < ini or (fim - ini).days > 62:
+            raise _http(status.HTTP_400_BAD_REQUEST, "Período inválido (máximo de 2 meses).")
+        if user.perfil == ROLE_ADMIN:
+            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não programa pausas.")
+        if not user.has_permission("wfm.escala.editar"):
+            raise _http(status.HTTP_403_FORBIDDEN, "Você não pode programar as pausas desta escala.")
+        dias_ok = set(dias_semana) if dias_semana is not None else set(range(7))
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            capacidade = self._wfm_capacidade(cursor, operacao)
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            modelo = self._wfm_pausas_programadas(cursor, operacao, origem)
+            modelo = {
+                i: p for i, p in modelo.items()
+                if (ids is None or i in ids) and p and wfm_scope.pode_editar_escala_de(
+                    perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao,
+                    id_operador=i, equipe_supervisor=equipe)
+            }
+            if not modelo:
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Nenhum operador do escopo tem pausas programadas no dia de origem. Defina e salve as pausas primeiro.")
+            autor = normalize_text(user.nome) or user.username
+            dias_gravados = pausas_gravadas = deslocadas = acima_do_limite = dias_com_excesso = periodos_fechados = 0
+            dia = ini
+            while dia <= fim:
+                if dia != origem and dia.weekday() in dias_ok:
+                    try:
+                        self._wfm_exigir_periodo_editavel(cursor, user, operacao, dia)
+                    except HTTPException:
+                        periodos_fechados += 1
+                        dia = date.fromordinal(dia.toordinal() + 1)
+                        continue
+                    escalados = self._wfm_escalados_do_dia(cursor, operacao, dia)
+                    existentes = self._wfm_pausas_programadas(cursor, operacao, dia)
+                    alvos = []
+                    for id_op, pausas in modelo.items():
+                        turno = escalados.get(id_op)
+                        if not turno or (existentes.get(id_op) and not sobrescrever):
+                            continue
+                        janela_ini, janela_fim = regras.janela_do_turno(turno["entrada"], turno["saida"])
+                        alvos.append({"id": id_op, "entrada_min": janela_ini, "saida_min": janela_fim,
+                                      "modelo": [(p["ordem"], p["tipo"], p["inicio"], p["duracao_min"]) for p in pausas]})
+                    if alvos:
+                        ids_alvo = {a["id"] for a in alvos}
+                        ja = {k: v for k, v in self._wfm_programacao(escalados, existentes).items() if k not in ids_alvo}
+                        resultado, mexidas, estouro = regras.replicar(alvos, capacidade, regras.ocupacao(ja))
+                        deslocadas += mexidas
+                        acima_do_limite += estouro
+                        for id_op, pausas in resultado.items():
+                            cursor.execute("DELETE FROM dbo.wfm_pausas WHERE operacao = ? AND id_operador = ? AND data = ?", (operacao, id_op, dia))
+                            for p in pausas:
+                                cursor.execute(
+                                    "INSERT INTO dbo.wfm_pausas (operacao, id_operador, data, ordem, tipo, inicio, duracao_min, atualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                    (operacao, id_op, dia, p.ordem, p.tipo, regras.min_para_hhmm(p.inicio_min), p.duracao_min, autor),
+                                )
+                            pausas_gravadas += 1
+                        dias_gravados += 1
+                        prog_dia = self._wfm_programacao(escalados, self._wfm_pausas_programadas(cursor, operacao, dia))
+                        if regras.excedentes(prog_dia, capacidade):
+                            dias_com_excesso += 1
+                dia = date.fromordinal(dia.toordinal() + 1)
+            self.wfm_audit(cursor, user, operacao=operacao, acao="replicar_pausas", entidade="pausas", entidade_id=origem.isoformat(),
+                           depois={"periodo": f"{ini.isoformat()}..{fim.isoformat()}", "dias_semana": sorted(dias_ok), "dias": dias_gravados,
+                                   "operadores": len(modelo), "deslocadas": deslocadas}, ip=ip)
+            conn.commit()
+            return {"success": True, "dias_programados": dias_gravados, "pausas_gravadas": pausas_gravadas, "deslocadas": deslocadas,
+                    "acima_do_limite": acima_do_limite, "dias_com_excesso": dias_com_excesso, "periodos_fechados": periodos_fechados,
+                    "capacidade": capacidade}
+        finally:
+            conn.close()

@@ -30,6 +30,7 @@ from ..schemas.wfm import (
     HoraExtraRequest,
     PresencaRequest,
     PublicarRequest,
+    ReplicarPausasRequest,
     SalvarItensRequest,
     SkillRequest,
     SkillsOperadorRequest,
@@ -340,6 +341,14 @@ def distribuir_pausas(payload: DistribuirPausasRequest, request: Request, user: 
             dias_semana=payload.dias_semana, ip=client_ip(request),
         )
     return repository.wfm_distribuir_pausas(user, payload.operacao, payload.data, payload.ids, sobrescrever=payload.sobrescrever, ip=client_ip(request))
+
+
+@router.post("/pausas/replicar", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
+def replicar_pausas(payload: ReplicarPausasRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_replicar_pausas(
+        user, payload.operacao, payload.data_origem, payload.data_ini, payload.data_fim, payload.ids,
+        dias_semana=payload.dias_semana, sobrescrever=payload.sobrescrever, ip=client_ip(request),
+    )
 
 
 @router.put("/pausas/capacidade", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])

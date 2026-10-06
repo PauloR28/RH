@@ -80,6 +80,7 @@ export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'P
 export const lerPausasDiaWfm = (operacao, data) => requisitar(`/wfm/pausas${consulta({ operacao, data })}`, { method: 'GET' });
 export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);
 export const distribuirPausasWfm = (dados) => enviar('/wfm/pausas/distribuir', 'POST', dados);
+export const replicarPausasWfm = (dados) => enviar('/wfm/pausas/replicar', 'POST', dados);
 export const definirCapacidadePausasWfm = (dados) => enviar('/wfm/pausas/capacidade', 'PUT', dados);
 
 // Aprovação da escala antes da publicação e tipos de escala do setor de TI.

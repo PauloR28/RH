@@ -89,7 +89,7 @@ def ctx():
     try:
         cur = conn.cursor()
         cur.execute("DELETE FROM dbo.wfm_trocas WHERE operacao = ?", (c.op,))
-        for tabela in ("wfm_operacao_config", "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos", "wfm_usuario_skills",
+        for tabela in ("wfm_pausas", "wfm_operacao_config", "wfm_escala_itens", "wfm_escalas", "wfm_presencas", "wfm_atestados", "wfm_operador_contratos", "wfm_usuario_skills",
                        "wfm_skills", "wfm_calendario_especial", "wfm_turnos", "wfm_contratos"):
             cur.execute(f"DELETE FROM dbo.{tabela} WHERE operacao = ?", (c.op,))
         cur.execute("SELECT id_usuario FROM dbo.usuarios WHERE email LIKE 'wfm_teste_%'")
@@ -113,6 +113,17 @@ def _antecedencia(ctx, dias):
         conn.commit()
     finally:
         conn.close()
+
+
+def _pausas(horas):
+    return [{"ordem": o, "tipo": t, "inicio": h, "duracao_min": d} for (o, t, d), h in zip(((1, "DESCANSO", 10), (2, "REFEICAO", 20), (3, "DESCANSO", 10)), horas)]
+
+
+def _pausas_do_dia(ctx, id_op, dia):
+    """Horários de pausa (HH:MM) de um operador no dia, como a tela de pausas os lê."""
+    d = ctx.repo.wfm_get_pausas_dia(ctx.cd, ctx.op, f"{MES}-{dia:02d}")
+    item = next((i for i in d["operadores"] if i["id_operador"] == id_op), None)
+    return [p["inicio"] for p in (item["pausas"] if item else [])]
 
 
 def _solicitar(ctx, solicitante, id_alvo, da, db=None):
@@ -173,20 +184,58 @@ def test_fluxo_completo_solicitar_aceitar_aprovar_e_desfazer(ctx):
     assert _erro(ctx.repo.wfm_decidir_troca, ctx.sup_fora, id_troca, True).status_code == 403
     assert _erro(ctx.repo.wfm_decidir_troca, ctx.admin, id_troca, True).status_code == 403
     assert _erro(ctx.repo.wfm_decidir_troca, ctx.sup, id_troca, False).status_code == 422   # reprovar exige justificativa
+    # cada um tem as suas pausas no dia: A (manhã) 09:00/11:00/13:00 e B (tarde) 15:00/17:00/20:00; um terceiro dia fica de controle
+    ctx.repo.wfm_set_capacidade_pausas(ctx.cd, ctx.op, 2)
+    ctx.repo.wfm_salvar_pausas(ctx.cd, ctx.op, f"{MES}-06", [
+        {"id_operador": ctx.id_a, "pausas": _pausas(["09:00", "11:00", "13:00"])},
+        {"id_operador": ctx.id_b, "pausas": _pausas(["15:00", "17:00", "20:00"])},
+    ])
+    ctx.repo.wfm_salvar_pausas(ctx.cd, ctx.op, f"{MES}-04", [{"id_operador": ctx.id_a, "pausas": _pausas(["15:00", "17:00", "19:00"])}])
     v_antes = ctx.repo.wfm_get_escala(ctx.a, ctx.op, MES)["status"]["versao_publicada"]
     ap = ctx.repo.wfm_decidir_troca(ctx.sup, id_troca, True, "ok")
     assert ap["estado"] == "APROVADA" and ap["versao"] == v_antes + 1
     esc_a = {i["data"]: i for i in ctx.repo.wfm_get_escala(ctx.a, ctx.op, MES)["itens"]}["2027-03-06"]
     assert esc_a["id_turno"] == ctx.T and esc_a["entrada"] == "14:00" and esc_a["minutos"] == 480   # A agora faz a tarde
+    # a troca é 100%: A leva o turno E as pausas do B (e vice-versa), só neste dia; o outro dia de A não muda
+    assert _pausas_do_dia(ctx, ctx.id_a, 6) == ["15:00", "17:00", "20:00"]
+    assert _pausas_do_dia(ctx, ctx.id_b, 6) == ["09:00", "11:00", "13:00"]
+    assert _pausas_do_dia(ctx, ctx.id_a, 4) == ["15:00", "17:00", "19:00"]
     # desfazer: só decisor, com justificativa, e registra nova versão
     assert _erro(ctx.repo.wfm_desfazer_troca, ctx.sup, id_troca, "").status_code == 422
     assert _erro(ctx.repo.wfm_desfazer_troca, ctx.a, id_troca, "quero voltar").status_code == 403
     des = ctx.repo.wfm_desfazer_troca(ctx.sup, id_troca, "erro do pedido")
     assert des["estado"] == "DESFEITA" and des["versao"] == ap["versao"] + 1
+    assert _pausas_do_dia(ctx, ctx.id_a, 6) == ["09:00", "11:00", "13:00"]      # desfazer devolve cada pausa ao dono
+    assert _pausas_do_dia(ctx, ctx.id_b, 6) == ["15:00", "17:00", "20:00"]
     esc_a = {i["data"]: i for i in ctx.repo.wfm_get_escala(ctx.a, ctx.op, MES)["itens"]}["2027-03-06"]
     assert esc_a["id_turno"] == ctx.M
     aud = ctx.repo.wfm_list_auditoria(ctx.gestor, ctx.op, entidade="troca")
     assert {"solicitar_troca", "aceitar_troca", "aprovar_troca", "desfazer_troca"} <= {a["acao"] for a in aud}
+
+
+def test_troca_de_dias_diferentes_leva_turno_horario_e_pausas_e_so_nesses_dias(ctx):
+    # A cede o dia 02 (tarde) e assume o dia 03 (manhã do B): em cada dia o conteúdo inteiro muda de dono.
+    linha = next(i for i in ctx.repo.wfm_get_escala(ctx.cd, ctx.op, MES)["itens"] if i["id_operador"] == ctx.id_a and i["data"].endswith("-02"))
+    ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [{"id_operador": ctx.id_a, "data": f"{MES}-02", "id_turno": ctx.T, "versao_linha": linha["versao_linha"],
+                                                       "ajustar_horario": True, "entrada": "15:00", "saida": "23:00"}])   # A trabalha 15h-23h no dia 02
+    ctx.repo.wfm_salvar_pausas(ctx.cd, ctx.op, f"{MES}-02", [{"id_operador": ctx.id_a, "pausas": _pausas(["16:00", "18:00", "21:00"])}])
+    ctx.repo.wfm_salvar_pausas(ctx.cd, ctx.op, f"{MES}-03", [{"id_operador": ctx.id_b, "pausas": _pausas(["09:00", "11:00", "13:00"])}])
+    ctx.repo.wfm_salvar_pausas(ctx.cd, ctx.op, f"{MES}-05", [{"id_operador": ctx.id_b, "pausas": _pausas(["09:30", "11:30", "13:30"])}])  # dia fora da troca
+    r = _solicitar(ctx, ctx.a, ctx.id_b, 2, 3)
+    assert ctx.repo.wfm_responder_troca(ctx.b, r["id_troca"], True)["estado"] == "AGUARDANDO_APROVACAO"
+    assert ctx.repo.wfm_decidir_troca(ctx.sup, r["id_troca"], True, "ok")["estado"] == "APROVADA"
+    itens = {(i["id_operador"], i["data"]): i for i in ctx.repo.wfm_get_escala(ctx.cd, ctx.op, MES)["itens"]}
+    assert (ctx.id_a, f"{MES}-02") not in itens and (ctx.id_b, f"{MES}-03") not in itens           # quem cedeu o dia ficou sem ele
+    b2, a3 = itens[(ctx.id_b, f"{MES}-02")], itens[(ctx.id_a, f"{MES}-03")]
+    assert b2["id_turno"] == ctx.T and b2["entrada_ajuste"][:5] == "15:00" and b2["saida_ajuste"][:5] == "23:00"   # o horário ajustado foi junto com o turno
+    assert a3["id_turno"] == ctx.M
+    assert _pausas_do_dia(ctx, ctx.id_b, 2) == ["16:00", "18:00", "21:00"] and _pausas_do_dia(ctx, ctx.id_a, 2) == []
+    assert _pausas_do_dia(ctx, ctx.id_a, 3) == ["09:00", "11:00", "13:00"] and _pausas_do_dia(ctx, ctx.id_b, 3) == []
+    assert _pausas_do_dia(ctx, ctx.id_b, 5) == ["09:30", "11:30", "13:30"]                        # o resto do mês não foi tocado
+    ctx.repo.wfm_desfazer_troca(ctx.sup, r["id_troca"], "volta ao normal")
+    assert _pausas_do_dia(ctx, ctx.id_a, 2) == ["16:00", "18:00", "21:00"] and _pausas_do_dia(ctx, ctx.id_b, 3) == ["09:00", "11:00", "13:00"]
+    itens = {(i["id_operador"], i["data"]): i for i in ctx.repo.wfm_get_escala(ctx.cd, ctx.op, MES)["itens"]}
+    assert itens[(ctx.id_a, f"{MES}-02")]["entrada_ajuste"][:5] == "15:00" and (ctx.id_b, f"{MES}-02") not in itens
 
 
 def test_editar_a_escala_depois_do_pedido_invalida_a_troca(ctx):

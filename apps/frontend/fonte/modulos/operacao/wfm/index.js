@@ -9,7 +9,7 @@ import { TelaEscala } from './escala.js?v=20261005-redesign15';
 import { TelaPresenca } from './presenca.js';
 import { TelaCadastros } from './cadastros.js?v=20261005-redesign15';
 import { TelaJornadas } from './jornadas.js?v=20261005-redesign15';
-import { TelaEscalaTabela } from './tabela.js?v=20261005-redesign15';
+import { TelaEscalaTabela } from './tabela.js?v=20261006-pausas-mes2';
 import { TelaMinhaEscala } from './minha.js';
 import { ListaEscalas } from './escalas.js?v=20261005-redesign15';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign15';
