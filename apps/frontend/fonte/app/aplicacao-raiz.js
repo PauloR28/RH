@@ -114,7 +114,7 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261005-redesign15'),
+  () => import('../features/configuracoes/index.js?v=20261006-perfis-wfm'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261004-chamados2');
