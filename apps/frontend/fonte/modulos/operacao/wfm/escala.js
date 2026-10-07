@@ -11,10 +11,12 @@ import {
   validarEscalaWfm,
 } from '../../../services/api/wfm.js';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
-import { PainelAprovacao } from './aprovacao.js';
-import { MenuCompartilharEscala } from './compartilhar.js';
+import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
+import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { OutrasEscalas } from './outras.js';
+import { GavetaAjusteDia } from './ajuste.js';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, SeletorVisao, TituloEscala, doIso, paraIso, semAcento } from './escala-ui.js';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -22,6 +24,7 @@ import { OutrasEscalas } from './outras.js';
 
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa' };
 const DIAS_SEMANA_LONGO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const SEMANA_NOME = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 function horaMais(entrada, minutos) {
   const [h, m] = entrada.split(':').map(Number);
@@ -34,23 +37,6 @@ export function descreverTurno(t) {
   if (!t.entrada) return t.nome;
   const pausas = (t.pausas || []).map((p) => `${ROTULO_PAUSA[p.tipo] || 'Pausa'} ${horaMais(t.entrada, p.offset_min)} (${p.duracao_min} min)`);
   return [`${t.entrada}–${t.saida}`, ...pausas].join(' · ');
-}
-
-function Celula({ turno, editavel, aberto, pos, onAbrir, onFechar, turnos, onEscolher, titulo }) {
-  const dica = turno ? `${titulo}: ${turno.nome}${turno.entrada ? ` · ${descreverTurno(turno)}` : ''}` : titulo;
-  const conteudo = turno
-    ? html`<span class="wfm-chip" style=${{ '--wfm-cor': turno.cor }}>${turno.codigo}</span>`
-    : html`<span class="wfm-vazio wfm-dsr">DSR</span>`;
-  if (!editavel) return html`<span title=${dica}>${conteudo}</span>`;
-  // Ajuste pontual de um dia: o clique abre a lista de turnos desta célula (a atribuição em massa fica no "Padrão semanal").
-  return html`<span class="wfm-celula-wrap">
-    <button type="button" class="wfm-celula" aria-label=${dica} title=${dica} aria-haspopup="menu" aria-expanded=${aberto} onClick=${aberto ? onFechar : onAbrir}>${conteudo}</button>
-    ${aberto ? html`<div class="wfm-celula-menu" role="menu" style=${{ left: `${Math.min(pos?.x || 0, window.innerWidth - 220)}px`, top: `${Math.min(pos?.y || 0, window.innerHeight - 300)}px` }}>
-      ${turnos.map((t) => html`<button type="button" role="menuitem" key=${t.id_turno} class=${t.id_turno === turno?.id_turno ? 'is-ativo' : ''} onClick=${() => onEscolher(t.id_turno)}>
-        <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
-      <button type="button" role="menuitem" onClick=${() => onEscolher(null)}><span class="wfm-vazio wfm-dsr">DSR</span><span>Sem turno</span></button>
-    </div>` : null}
-  </span>`;
 }
 
 // Dropdown com caixinhas dos dias da semana + "Todos os dias".
@@ -83,7 +69,10 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [justificativa, setJustificativa] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [versoes, setVersoes] = useState([]);
-  const [menuCelula, setMenuCelula] = useState(null); // {id, data} da célula com a lista de turnos aberta
+  const [gaveta, setGaveta] = useState(null); // { id, nome, data } da célula com a gaveta "Ajustar dia" aberta
+  const [foco, setFoco] = useState({ r: 0, c: 0 }); // célula com tabindex 0 (navegação por setas)
+  const [limite, setLimite] = useState(50);
+  const [turnoMassa, setTurnoMassa] = useState('');
   const [padrao, setPadrao] = useState(null); // {regras: [{turno, dias: [7 x bool]}], sobrescrever}
   const [filtroEquipe, setFiltroEquipe] = useState('');
   const [filtroCargo, setFiltroCargo] = useState('');
@@ -112,15 +101,6 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   }, [operacao, anoMes, somentePropria]);
 
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
-  useEffect(() => {
-    if (!menuCelula) return undefined;
-    const fora = (e) => { if (!e.target.closest?.('.wfm-celula-wrap')) setMenuCelula(null); };
-    const esc = (e) => { if (e.key === 'Escape') setMenuCelula(null); };
-    document.addEventListener('mousedown', fora);
-    document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
-  }, [menuCelula]);
-
   const turnosPorId = useMemo(() => Object.fromEntries((dados?.turnos || []).map((t) => [t.id_turno, t])), [dados]);
   const itensPorChave = useMemo(() => Object.fromEntries((dados?.itens || []).map((i) => [`${i.id_operador}:${i.data}`, i])), [dados]);
   const eventosPorDia = useMemo(() => {
@@ -159,7 +139,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const visiveis = dados.operadores.filter((op) => (!filtroEquipe || String(op.id_equipe || '') === filtroEquipe)
     && (!filtroSup || (op.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
     && (!filtroCargo || (op.cargo || '') === filtroCargo)
-    && (!busca || op.nome.toLowerCase().includes(busca.toLowerCase())));
+    && (!busca || semAcento(op.nome).includes(semAcento(busca.trim()))));
   const cargos = [...new Set(dados.operadores.map((o) => o.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
   const supervisores = [...new Map(dados.operadores.flatMap((o) => o.supervisores || []).map((s) => [s.id_usuario, s.nome])).entries()];
@@ -250,44 +230,83 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     || ((bloqueio || exigeJustFechada) && !justificativa.trim())
     || (!fechada && dados.aprovacao?.estado !== 'APROVADA');
 
+  // ---- apresentação (administração da escala): totais, seleção, legenda e navegação da matriz ----
+  const selecionadosVis = visiveis.filter((o) => selecionados[o.id_usuario]);
+  const mostradas = visiveis.slice(0, limite);
+  const hojeIso = paraIso(new Date());
+  const nomeOperacao = dados.nome_escala || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
+  const operadoresEscalados = dados.operadores.filter((o) => dados.dias.some((d) => turnosPorId[idTurnoDe(o.id_usuario, d)]?.tipo === 'TRABALHO')).length;
+  const turnosOrdenados = dados.turnos.filter((t) => t.tipo !== 'DSR' && t.ativo !== false && t.tipo !== 'FOLGA');
+  const padraoDisponivel = editavel && dados.turnos.some((t) => t.ativo !== false && t.tipo !== 'FOLGA' && t.tipo !== 'DSR');
+  const idsUsados = new Set();
+  dados.operadores.forEach((o) => dados.dias.forEach((d) => { const id = idTurnoDe(o.id_usuario, d); if (id !== null && id !== undefined) idsUsados.add(id); }));
+  const turnosDoMes = dados.turnos.filter((t) => idsUsados.has(t.id_turno) && t.tipo !== 'DSR');
+  const alternarTodos = () => setSelecionados(selecionadosVis.length === visiveis.length ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
+  const focoR = Math.min(foco.r, Math.max(mostradas.length - 1, 0));
+  const abrirGaveta = (op, d) => setGaveta({ id: op.id_usuario, nome: op.nome, data: d });
+
+  // Aplicar turno (barra em massa): troca o turno dos dias de TRABALHO dos selecionados; DSR/folga ficam como estão. Fica pendente até salvar.
+  const aplicarTurnoMassa = () => {
+    if (turnoMassa === '') { showToast?.('Escolha o turno que será atribuído.', 'info'); return; }
+    let dias = 0;
+    selecionadosVis.forEach((op) => dados.dias.forEach((d) => {
+      if (turnosPorId[idTurnoDe(op.id_usuario, d)]?.tipo !== 'TRABALHO') return;
+      mudar(op.id_usuario, d, Number(turnoMassa));
+      dias += 1;
+    }));
+    showToast?.(`Turno aplicado a ${selecionadosVis.length} operador(es) em ${dias} dia(s) de trabalho (DSR preservado). Revise e clique em "Salvar alterações".`, 'success');
+  };
+  // Setas movem o foco entre as células (tabindex móvel); Enter/Espaço abrem a gaveta pelo próprio botão.
+  const aoTeclarGrade = (e) => {
+    const alvo = e.target.closest?.('[data-r]');
+    if (!alvo) return;
+    let r = Number(alvo.dataset.r); let c = Number(alvo.dataset.c);
+    if (e.key === 'ArrowRight') c += 1;
+    else if (e.key === 'ArrowLeft') c -= 1;
+    else if (e.key === 'ArrowDown') r += 1;
+    else if (e.key === 'ArrowUp') r -= 1;
+    else if (e.key === 'Home') c = 0;
+    else if (e.key === 'End') c = dados.dias.length - 1;
+    else return;
+    e.preventDefault();
+    r = Math.max(0, Math.min(mostradas.length - 1, r)); c = Math.max(0, Math.min(dados.dias.length - 1, c));
+    e.currentTarget.querySelector(`[data-r="${r}"][data-c="${c}"]`)?.focus();
+  };
+  const menuAcoes = !somentePropria && pode('wfm.escala.visualizar')
+    ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
+    : null;
+
   return html`
-    <section class="mon-card wfm-escala">
-      <div class="wfm-cabecalho">
-        <div>
-          <h3>${somentePropria ? 'Minha escala' : 'Escala mensal'}</h3>
-          <p class="mon-muted">
-            ${dados.status.versao_publicada ? `Versão publicada: ${dados.status.versao_publicada}` : 'Nenhuma versão publicada ainda'}
-            ${fechada ? ` · Período fechado por ${dados.status.fechada_por || '—'} em ${dataHora(dados.status.fechada_em)}` : ''}
-            ${somentePropria ? ' · Exibe sempre a última versão publicada.' : ''}
-          </p>
+    <section class="mon-card wfm-escala ea-raiz">
+      <${TituloEscala} nome=${nomeOperacao} escalados=${operadoresEscalados} emDsr=${dados.operadores.length - operadoresEscalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista} menu=${menuAcoes} />
+
+      <div class="ea-nav">
+        <div class="ea-nav-esq">
+          <${SeletorVisao} visao="mes" aoDia=${aoVoltarDia} />
+          ${!somentePropria ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${totalPend > 0} compacto />` : null}
         </div>
-        <div class="wfm-acoes-cab">
-          ${aoVoltarLista ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${aoVoltarLista}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_back')}</span>Escalas</button>` : null}
-          ${fechada ? html`<span class="mon-badge mon-badge--info">Período fechado</span>` : null}
-          ${!somentePropria && pode('wfm.escala.visualizar') ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${dados.nome_escala || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} />` : null}
-        </div>
+        ${padraoDisponivel ? html`<button type="button" class=${`btn btn-outline-primary ea-btn-44 ea-btn-padrao ${padrao ? 'is-ativo' : ''}`} aria-expanded=${!!padrao} onClick=${() => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false })}><${Icone} nome="calendar_month" />Padrão semanal</button>` : null}
       </div>
 
-      ${!somentePropria ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${totalPend > 0} />` : null}
-
       ${semItens ? html`<${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />` : html`
-        <div class="wfm-filtros-escala">
-          <label class="mon-campo"><span>Equipe</span><select class="form-select" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Todas as equipes</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
-          <label class="mon-campo"><span>Supervisor</span><select class="form-select" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Todos os supervisores</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
-          <label class="mon-campo"><span>Cargo</span><select class="form-select" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Todos os cargos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select></label>
-          <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
-          <span class="wfm-contagem">${visiveis.length} de ${dados.operadores.length} operador(es)</span>
-        </div>
-        ${editavel && dados.turnos.some((t) => t.ativo !== false && t.tipo !== 'FOLGA' && t.tipo !== 'DSR') ? html`
-          <div class="wfm-paleta" role="toolbar" aria-label="Atribuição de turnos">
-            <span class="wfm-paleta-rotulo">Marque os operadores na tabela (ou use os filtros) e atribua o turno pelo padrão semanal. Para ajustar um dia, clique na célula.</span>
-            <span class="wfm-paleta-espaco"></span>
-            <button type="button" class=${`btn btn-sm ${padrao ? 'btn-primary' : 'btn-outline-primary'}`} aria-expanded=${!!padrao} onClick=${() => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit_calendar')}</span>Padrão semanal</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${limparTabela}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Limpar tabela</button>
-          </div>` : null}
+        <${FiltrosCompactos} rotuloBusca="Buscar operador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} operador(es)`}
+          selects=${[
+            { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
+            { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
+            { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },
+          ]} />
+
+        ${editavel && padraoDisponivel ? html`<${BarraSelecao} n=${selecionadosVis.length} aoLimpar=${() => setSelecionados({})}>
+          <label class="visually-hidden" for="ea-turno-massa-mes">Turno a atribuir</label>
+          <select id="ea-turno-massa-mes" class="ea-campo ea-select ea-select--turno ea-campo--massa" value=${turnoMassa} onChange=${(e) => setTurnoMassa(e.target.value)}>
+            <option value="">Atribuir turno…</option>${turnosOrdenados.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select>
+          <button type="button" class="ea-btn-sol" disabled=${turnoMassa === ''} onClick=${aplicarTurnoMassa}>Aplicar turno</button>
+          <button type="button" class=${`ea-btn-ctn ${padrao ? 'is-ativo' : ''}`} aria-expanded=${!!padrao} onClick=${() => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false })}>Aplicar padrão semanal</button>
+        <//>` : null}
+
         ${padrao ? html`
-          <div class="wfm-form">
-            <h4>Padrão semanal — ${visiveis.filter((o) => selecionados[o.id_usuario]).length ? `${visiveis.filter((o) => selecionados[o.id_usuario]).length} operador(es) selecionado(s)` : `todos os ${visiveis.length} operador(es) exibidos`}</h4>
+          <div class="wfm-form ea-painel-massa">
+            <h4>Padrão semanal — ${selecionadosVis.length ? `${selecionadosVis.length} operador(es) selecionado(s)` : `todos os ${visiveis.length} operador(es) exibidos`}</h4>
             <p class="mon-muted">Escolha o turno e marque os dias da semana em que ele vale (ou "Atribuir a todos os dias"). Adicione outro turno para os demais dias. Depois você ainda ajusta dia a dia.</p>
             <div class="wfm-regras">
               ${padrao.regras.map((r, i) => html`<div class="wfm-regra" key=${i}>
@@ -304,46 +323,57 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
             <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
             <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
           </div>` : null}
-        <div class="wfm-grade-wrap" role="region" aria-label="Escala do mês" tabindex="0">
-          <table class=${`wfm-grade ${editavel ? '' : 'wfm-grade--sem-sel'}`}>
-            <thead>
-              <tr>
-                ${editavel ? html`<th class="wfm-col-sel"><input type="checkbox" aria-label="Selecionar todos os exibidos" checked=${todosSel} onChange=${() => setSelecionados(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])))} /></th>` : null}
-                <th class="wfm-col-nome">Operador</th>
-                <th class="wfm-col-horas" title="Horas de trabalho no mês (inclui o que você ainda não salvou)">Horas</th>
+
+        <${LegendaTurnos} turnos=${turnosDoMes} />
+
+        <div class="ea-mat">
+          <div class="ea-mat-rolagem" role="region" aria-label="Escala do mês" tabindex="0">
+            <div class="ea-grade" role="grid" aria-label="Escala do mês" aria-rowcount=${mostradas.length + 1} style=${{ '--ea-dias': dados.dias.length }} onKeyDown=${editavel ? aoTeclarGrade : undefined}>
+              <div class="ea-g-lin ea-g-cab" role="row">
+                <div class="ea-g-op" role="columnheader">
+                  ${editavel ? html`<${CheckTodos} rotulo="Selecionar todos os operadores" total=${visiveis.length} marcados=${selecionadosVis.length} aoAlternar=${alternarTodos} />` : null}
+                  <span class="ea-rotulo">OPERADOR</span>
+                </div>
+                <div class="ea-g-horas" role="columnheader"><span class="ea-rotulo" title="Horas de trabalho no mês (inclui o que você ainda não salvou)">HORAS</span></div>
                 ${dados.dias.map((d) => {
                   const inf = infoDia(d);
                   const evs = eventosPorDia[d] || [];
-                  return html`<th key=${d} class=${`wfm-col-dia ${inf.fimDeSemana ? 'is-fds' : ''} ${evs.length ? 'has-evento' : ''}`} title=${evs.map((e) => e.descricao).join(' · ')}>
-                    <span>${inf.dia}</span><small>${inf.semana}</small>${evs.length ? html`<i class="wfm-ponto" aria-hidden="true"></i>` : null}
-                  </th>`;
+                  return html`<div key=${d} role="columnheader" class=${`ea-g-dia ${inf.fimDeSemana ? 'is-fds' : ''} ${d === hojeIso ? 'is-hoje' : ''}`} title=${evs.map((e) => e.descricao).join(' · ') || undefined}>
+                    <span class="ea-dia-num">${inf.dia}</span><span class="ea-dia-let">${inf.semana}</span>${evs.length ? html`<i class="wfm-ponto" aria-hidden="true"></i>` : null}
+                  </div>`;
                 })}
-              </tr>
-            </thead>
-            <tbody>
-              ${visiveis.map((op) => { const tot = totalDe(op.id_usuario); return html`
-                <tr key=${op.id_usuario} class=${selecionados[op.id_usuario] ? 'is-selecionada' : ''}>
-                  ${editavel ? html`<th class="wfm-col-sel"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} /></th>` : null}
-                  <th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span>${op.contratos?.length ? html`<small>${op.contratos[op.contratos.length - 1].codigo}${op.equipe ? ` · ${op.equipe}` : ''}</small>` : html`<small class="wfm-alerta-txt">sem jornada</small>`}</th>
-                  <th class="wfm-col-horas" scope="row" title=${`${tot.dias} dia(s) de trabalho`}><strong>${minutosParaHoras(tot.min)}</strong><small>${tot.dias} dias</small></th>
-                  ${dados.dias.map((d) => {
+              </div>
+              ${mostradas.map((op, r) => { const tot = totalDe(op.id_usuario); return html`
+                <div key=${op.id_usuario} role="row" class=${`ea-g-lin ${selecionados[op.id_usuario] ? 'is-sel' : ''}`}>
+                  <div class="ea-g-op" role="rowheader">
+                    ${editavel ? html`<input type="checkbox" class="ea-check" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} />` : null}
+                    <span class="ea-nome" title=${op.nome}>${op.nome}</span>
+                  </div>
+                  <div class="ea-g-horas" role="gridcell" title=${`${tot.dias} dia(s) de trabalho`}><strong class="ea-num">${minutosParaHoras(tot.min)}</strong><small>${tot.dias} dias</small></div>
+                  ${dados.dias.map((d, c) => {
                     const chave = `${op.id_usuario}:${d}`;
                     const pend = chave in pendentes;
                     const viol = violacoesPorCelula[chave];
-                    return html`<td key=${d} class=${`${infoDia(d).fimDeSemana ? 'is-fds' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : ''}>
-                      <${Celula} turno=${turnosPorId[idTurnoDe(op.id_usuario, d)]} editavel=${editavel} titulo=${`${op.nome}, dia ${infoDia(d).dia}`}
-                        turnos=${dados.turnos.filter((x) => x.ativo !== false && x.tipo !== 'DSR' && x.tipo !== 'FOLGA')}
-                        aberto=${menuCelula?.id === op.id_usuario && menuCelula?.data === d} pos=${menuCelula} onAbrir=${(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenuCelula({ id: op.id_usuario, data: d, x: r.left, y: r.bottom + 4 }); }} onFechar=${() => setMenuCelula(null)}
-                        onEscolher=${(idTurno) => { mudar(op.id_usuario, d, idTurno); setMenuCelula(null); }} />
-                    </td>`;
+                    const t = turnosPorId[idTurnoDe(op.id_usuario, d)];
+                    const dsr = !t || t.tipo === 'DSR';
+                    const inf = infoDia(d);
+                    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${inf.dia}, ${dsr ? 'DSR' : t.nome}`;
+                    const aberta = gaveta?.id === op.id_usuario && gaveta?.data === d;
+                    const classe = `ea-cel ${dsr ? 'is-dsr' : ''} ${aberta ? 'is-aberta' : ''}`;
+                    const estilo = !dsr && t.cor ? { '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) } : undefined;
+                    return html`<div key=${d} role="gridcell" class=${`ea-g-cel ${inf.fimDeSemana ? 'is-fds' : ''} ${d === hojeIso ? 'is-hoje' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : undefined}>
+                      ${editavel
+                        ? html`<button type="button" class=${classe} style=${estilo} data-r=${r} data-c=${c} tabIndex=${r === focoR && c === Math.min(foco.c, dados.dias.length - 1) ? 0 : -1} aria-label=${rotulo} aria-haspopup="dialog" onFocus=${() => setFoco({ r, c })} onClick=${() => abrirGaveta(op, d)}>${dsr ? 'DSR' : t.codigo}</button>`
+                        : html`<span class=${classe} style=${estilo} title=${rotulo}>${dsr ? 'DSR' : t.codigo}</span>`}
+                    </div>`;
                   })}
-                </tr>`; })}
-            </tbody>
-          </table>
-        </div>
-        <div class="wfm-legenda-detalhe">
-          <h4>Legenda</h4>
-          <div class="wfm-legenda-grade">${dados.turnos.map((t) => html`<div key=${t.id_turno} class="wfm-legenda-item"><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span class="wfm-legenda-corpo"><strong>${t.nome}</strong><small>${t.entrada ? `${t.entrada}–${t.saida} · ${minutosParaHoras(t.minutos || 0)}` : 'Sem horário'}</small></span></div>`)}</div>
+                </div>`; })}
+            </div>
+          </div>
+          <div class="ea-rodape">
+            <span class="ea-muted" aria-live="polite">Mostrando ${mostradas.length} de ${visiveis.length} operadores${editavel ? ' · clique numa célula para ajustar o dia' : ''}</span>
+            ${mostradas.length < visiveis.length ? html`<button type="button" class="btn btn-outline-secondary ea-btn-40" onClick=${() => setLimite((l) => l + 50)}>Mostrar mais</button>` : null}
+          </div>
         </div>`}
 
       ${!somentePropria && validacao?.violacoes?.length ? html`
@@ -373,5 +403,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
         </details>` : null}
     </section>
     ${somenteLeitura && !somentePropria ? html`<${OutrasEscalas} anoMes=${anoMes} operacao=${operacao} versao=${`${dados.aprovacao?.estado}:${dados.status?.versao_publicada}`} onEscolher=${(chave) => aoTrocarEscala?.(chave)} />` : null}
+    ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
+      bloqueio=${totalPend > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}
+      aoFechar=${() => setGaveta(null)} aoSalvo=${(ok) => { if (ok) setGaveta(null); carregar(); }} />` : null}
     ${configurando ? html`<${ModalConfigEscala} operacao=${operacao} nomePadrao=${(contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao} showToast=${showToast} onClose=${() => setConfigurando(false)} onSalvo=${() => { setConfigurando(false); carregar(); }} onMudouLista=${() => { setConfigurando(false); aoVoltarLista?.(); }} />` : null}`;
 }

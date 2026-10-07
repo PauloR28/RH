@@ -1,18 +1,18 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { IconeSvg } from '../../../ui/icone.js';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { listarAuditoriaWfm } from '../../../services/api/wfm.js';
-import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign15';
-import { TelaEscala } from './escala.js?v=20261005-redesign15';
+import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
+import { TelaEscala } from './escala.js?v=20261007-admin-escala';
 import { TelaPresenca } from './presenca.js';
-import { TelaCadastros } from './cadastros.js?v=20261005-redesign15';
-import { TelaJornadas } from './jornadas.js?v=20261005-redesign15';
-import { TelaEscalaTabela } from './tabela.js?v=20261006-pausas-mes2';
-import { TelaMinhaEscala } from './minha.js';
-import { ListaEscalas } from './escalas.js?v=20261005-redesign15';
-import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign15';
+import { TelaCadastros } from './cadastros.js?v=20261005-redesign16';
+import { TelaJornadas } from './jornadas.js?v=20261005-redesign16';
+import { TelaEscalaTabela } from './tabela.js?v=20261007-admin-escala';
+import { TelaMinhaEscala } from './minha.js?v=20261007-admin-escala';
+import { ListaEscalas } from './escalas.js?v=20261005-redesign16';
+import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
 import { TelaTrocas } from './trocas.js';
 import { TelaRelatorios } from './relatorios.js';
 

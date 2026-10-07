@@ -59,6 +59,7 @@ import { vincularContratoOperadorWfm } from '../../services/api/wfm.js';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
+import { PerfisPermissoes } from './perfis-permissoes.js?v=20261007-perfis';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -716,8 +717,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
     if (perfilSelecionadoId && !perfis.some((perfil) => perfil.id === perfilSelecionadoId)) {
       setPerfilSelecionadoId('');
+      return;
     }
-  }, [perfis, perfilSelecionadoId]);
+    // Perfis e permissões abre já com um perfil selecionado (o primeiro da lista, ou o último aberto).
+    if (!perfilSelecionadoId && abaRenderizada === 'perfis' && perfisVisiveis.length) setPerfilSelecionadoId(perfisVisiveis[0].id);
+  }, [perfis, perfilSelecionadoId, abaRenderizada]);
 
   useEffect(() => {
     setPermissoesPerfilDraft(normalizarLista(perfilSelecionado?.permissoes));
@@ -2298,78 +2302,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     `;
   };
 
-  // Comparação lado a lado de dois perfis (sempre visível, sem precisar desbloquear a edição).
-  const renderComparacaoPerfis = () => {
-    const perfilA = perfis.find((perfil) => perfil.id === comparacaoPerfis.a) || null;
-    const perfilB = perfis.find((perfil) => perfil.id === comparacaoPerfis.b) || null;
-    const descricaoDe = (chave) => permissoes.find((permissao) => permissao.chave === chave)?.descricao || '';
-    const setA = new Set(normalizarLista(perfilA?.permissoes));
-    const setB = new Set(normalizarLista(perfilB?.permissoes));
-    const soA = [...setA].filter((chave) => !setB.has(chave)).sort();
-    const soB = [...setB].filter((chave) => !setA.has(chave)).sort();
-    const ambos = [...setA].filter((chave) => setB.has(chave)).length;
-    const lista = (chaves) => (chaves.length
-      ? html`<ul class="settings-compare-list">${chaves.map((chave) => html`<li key=${chave}><strong>${chave}</strong><small>${descricaoDe(chave) || '-'}</small></li>`)}</ul>`
-      : html`<p class="settings-compare-empty">Nenhuma diferença.</p>`);
-    return html`
-      <section class="c24-card settings-compare-card">
-        <header class="c24-card-header compact">
-          <div>
-            <span class="c24-eyebrow">Comparar perfis</span>
-            <h3>Diferenças de permissão entre dois perfis</h3>
-          </div>
-        </header>
-        <div class="settings-compare-selects">
-          <label>
-            <span>Perfil A</span>
-            <select class="form-select" value=${comparacaoPerfis.a} onChange=${(event) => setComparacaoPerfis({ ...comparacaoPerfis, a: event.target.value })}>
-              <option value="">Selecione</option>
-              ${perfis.filter((perfil) => perfil.id !== comparacaoPerfis.b).map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
-            </select>
-          </label>
-          <span class="material-symbols-outlined settings-compare-icon" aria-hidden="true">${IconeSvg('compare_arrows')}</span>
-          <label>
-            <span>Perfil B</span>
-            <select class="form-select" value=${comparacaoPerfis.b} onChange=${(event) => setComparacaoPerfis({ ...comparacaoPerfis, b: event.target.value })}>
-              <option value="">Selecione</option>
-              ${perfis.filter((perfil) => perfil.id !== comparacaoPerfis.a).map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
-            </select>
-          </label>
-        </div>
-        ${perfilA && perfilB
-      ? html`
-              <p class="settings-compare-summary">${ambos} permissão(ões) em comum · ${soA.length} só em ${perfilA.nome} · ${soB.length} só em ${perfilB.nome}</p>
-              <div class="settings-compare-grid">
-                <div>
-                  <h4>Só em ${perfilA.nome} <small>${soA.length}</small></h4>
-                  ${lista(soA)}
-                </div>
-                <div>
-                  <h4>Só em ${perfilB.nome} <small>${soB.length}</small></h4>
-                  ${lista(soB)}
-                </div>
-              </div>
-            `
-      : html`<p class="settings-compare-empty">Escolha dois perfis para ver o que um tem e o outro não.</p>`}
-      </section>
-    `;
-  };
-
   const renderPerfis = () => {
     const podeEditarPerfis = controlador.possuiPermissao('configuracoes.editar');
-    const sessaoAtiva = sessaoPermissaoAtiva ? SESSOES_PERMISSAO.find((sessao) => sessao.id === sessaoPermissaoAtiva) : null;
-    const contagemPorSessao = (sessao) =>
-      Object.entries(permissoesPorModulo)
-        .filter(([modulo]) => sessao.modulos.includes(modulo))
-        .reduce((total, [, itens]) => total + itens.length, 0);
-    const sessoesPorModulo = ORDEM_MODULOS_PERMISSAO.flatMap((modulo) => {
-      const sessoes = SESSOES_PERMISSAO.filter((sessao) => sessao.modulo === modulo);
-      return sessoes.length ? [{ cabecalho: modulo, total: sessoes.length }, ...sessoes.map((sessao) => ({ sessao }))] : [];
-    });
     // Módulos que o perfil abre: só as permissões marcadas como `abre_modulo` (regra do módulo visível), com o rascunho atual.
     const modulosQueOPerfilAbre = ORDEM_MODULOS_PERMISSAO.filter((modulo) =>
       modulo !== 'core' && permissoes.some((permissao) => permissao.abre_modulo && permissao.modulo_dono === modulo && permissoesPerfilDraft.includes(permissao.chave)));
-    const podeMoverModulo = perfisDesbloqueados && podeEditarPerfis;
     const moverPermissaoDeModulo = async (chave, modulo) => {
       setErro('');
       try {
@@ -2380,287 +2317,40 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         setErro(error?.message || 'Não foi possível mover a permissão de módulo.');
       }
     };
-    const permissoesDaSessao = sessaoAtiva
-      ? permissoesFiltradasPorModulo.filter(([modulo]) => sessaoAtiva.modulos.includes(modulo))
-      : [];
-
+    if (!perfis.length) return html`<${EmptyPanel} icon="groups" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`;
     return html`
-      <div class="settings-admin-shell settings-profiles-page">
-        <div class="settings-profiles-toolbar">
-          <p class="settings-profiles-toolbar-hint">
-            ${perfis.length} perfis · ${permissoes.length} permissões (${contarPor(permissoes, (item) => item.critica)} críticas). Desbloqueie para editar as permissões de qualquer perfil e sessão.
-          </p>
-          ${podeEditarPerfis
-        ? html`
-                <button
-                  type="button"
-                  class=${`btn btn-sm ${perfisDesbloqueados ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
-                  onClick=${() => setPerfisDesbloqueados((atual) => !atual)}
-                >
-                  <${Icone} name=${perfisDesbloqueados ? 'lock_open' : 'lock'} />
-                  ${perfisDesbloqueados ? 'Edição liberada' : 'Editar configurações padrão'}
-                </button>
-              `
-        : null}
-        </div>
-
-        ${perfis.length > 1 ? html`<details class="settings-compare-details"><summary>Comparar dois perfis</summary>${renderComparacaoPerfis()}</details>` : null}
-
-        ${perfis.length
-        ? html`
-              <nav class="settings-permission-tree">
-                ${perfisVisiveis.map((perfil) => {
-          const expandido = perfilSelecionado?.id === perfil.id;
-          return html`
-                    <div class=${`settings-permission-tree-node ${expandido ? 'is-expanded' : ''}`.trim()} key=${perfil.id}>
-                      <button
-                        type="button"
-                        class=${`settings-permission-tree-profile ${expandido ? 'is-active' : ''}`.trim()}
-                        aria-expanded=${expandido}
-                        onClick=${() => selecionarPerfilPermissoes(expandido ? '' : perfil.id)}
-                      >
-                        <span class="settings-permission-tree-profile-icon"><${Icone} name=${ICONE_POR_PERFIL[perfil.id] || 'badge'} /></span>
-                        <span class="settings-permission-tree-label">
-                          <strong>${perfil.nome}</strong>
-                        </span>
-                        <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
-                      </button>
-
-                      ${expandido
-              ? html`
-                            <div class="settings-permission-tree-children">
-                              ${expandido
-                ? html`<div class="settings-permission-resumo"><strong>Este perfil enxerga os módulos:</strong>
-                                    ${modulosQueOPerfilAbre.length
-                    ? modulosQueOPerfilAbre.map((modulo) => html`<${Badge} key=${modulo} label=${NOME_MODULO_PERMISSAO[modulo] || modulo} tone="success" />`)
-                    : html`<${Badge} label="Somente o essencial (Núcleo)" tone="muted" />`}</div>`
-                : null}
-                              ${sessoesPorModulo.map((entrada) => {
-                if (entrada.cabecalho) {
-                  return html`<div class="settings-permission-modulo" key=${`modulo-${entrada.cabecalho}`}>${NOME_MODULO_PERMISSAO[entrada.cabecalho] || entrada.cabecalho}<small>${entrada.total} sessão(ões)</small></div>`;
-                }
-                const sessao = entrada.sessao;
-                const sessaoExpandida = sessaoAtiva?.id === sessao.id;
-                const total = contagemPorSessao(sessao);
-                return html`
-                                  <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoExpandida ? 'is-expanded' : ''}`.trim()} key=${sessao.id}>
-                                    <button
-                                      type="button"
-                                      class=${`settings-permission-tree-session ${sessaoExpandida ? 'is-active' : ''}`.trim()}
-                                      aria-expanded=${sessaoExpandida}
-                                      onClick=${() => setSessaoPermissaoAtiva(sessaoExpandida ? '' : sessao.id)}
-                                    >
-                                      <span>${sessao.label}</span>
-                                      <small>${total}</small>
-                                      <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
-                                    </button>
-
-                                    ${sessaoExpandida
-                    ? html`
-                                          <div class="settings-permission-tree-content">
-                                            <header class="c24-card-header settings-permission-head">
-                                              <div>
-                                                <span class="c24-eyebrow">${sessaoAtiva.label}</span>
-                                                <h3>${perfilSelecionado.nome}</h3>
-                                              </div>
-                                              <div class="settings-card-actions">
-                                                <label class="settings-session-master" title="Liga ou desliga o acesso deste nível a toda a sessão (menu, tela inicial e telas)">
-                                                  <${ToggleSwitch}
-                                                    checked=${permissoesPerfilDraft.includes(`sessao.${sessaoAtiva.id}.acessar`)}
-                                                    disabled=${!perfisDesbloqueados}
-                                                    onChange=${() => alternarPermissao(`sessao.${sessaoAtiva.id}.acessar`)}
-                                                  />
-                                                  <span>Sessão liberada</span>
-                                                </label>
-                                                <${Badge} label=${`${usuariosPerfilSelecionado.length} usuário(s)`} tone="info" />
-                                                ${usuariosPerfilSelecionado.length
-                        ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirUsuariosDoPerfil}>Ver usuários</button>`
-                        : null}
-                                              </div>
-                                            </header>
-
-                                            ${perfisDesbloqueados
-                        ? html`
-                                                  <div class="c24-filter-bar settings-permission-filter">
-                                                    <${FilterField} label="Buscar permissão" icon="search">
-                                                      <input
-                                                        class="form-control"
-                                                        placeholder="Módulo, chave ou descrição"
-                                                        value=${buscaPermissao}
-                                                        onInput=${(event) => setBuscaPermissao(event.target.value)}
-                                                      />
-                                                    </${FilterField}>
-                                                    <${FilterField} label="Comparar com" icon="compare_arrows">
-                                                      <select
-                                                        class="form-select"
-                                                        value=${perfilComparadoId}
-                                                        onChange=${(event) => setPerfilComparadoId(event.target.value)}
-                                                      >
-                                                        <option value="">Não comparar</option>
-                                                        ${perfis
-                            .filter((perfil2) => perfil2.id !== perfilSelecionado.id)
-                            .map((perfil2) => html`<option key=${perfil2.id} value=${perfil2.id}>${perfil2.nome}</option>`)}
-                                                      </select>
-                                                    </${FilterField}>
-                                                    <label class="c24-check-filter settings-active-filter">
-                                                      <input
-                                                        type="checkbox"
-                                                        checked=${mostrarSomenteAtivas}
-                                                        onChange=${(event) => setMostrarSomenteAtivas(event.target.checked)}
-                                                      />
-                                                      Ver apenas ativas
-                                                    </label>
-                                                    <${FilterField} label="Justificativa da alteração" icon="edit_note">
-                                                      <input
-                                                        class="form-control"
-                                                        value=${justificativaPerfil}
-                                                        placeholder="Opcional, recomendado para alterações críticas"
-                                                        onInput=${(event) => setJustificativaPerfil(event.target.value)}
-                                                      />
-                                                    </${FilterField}>
-                                                  </div>
-                                                `
-                        : null}
-
-                                            ${sessaoAtiva.id === 'wfm' && perfilSelecionado.wfm_fechado
-                    ? html`<div class="alert alert-warning" role="status">Turnos e Plantões está fechado para ${perfilSelecionado.nome} (fase de teste): as permissões desta sessão são gravadas, mas não valem até o WFM ser liberado em Tecnologia > Módulos.</div>`
-                    : null}
-
-                                            <div class="settings-permission-groups">
-                                              ${permissoesDaSessao.length
-                        ? permissoesDaSessao.map(
-                          ([modulo, itens]) => {
-                            const ativos = contarPor(itens, (permissao) => permissoesPerfilDraft.includes(permissao.chave));
-                            return html`
-                                                          <div class="settings-permission-group" key=${modulo}>
-                                                            <div class="settings-permission-group-head">
-                                                              <span>
-                                                                <strong>${modulo}</strong>
-                                                                <small>${ativos}/${itens.length} ativas</small>
-                                                              </span>
-                                                              ${perfisDesbloqueados
-                                ? html`
-                                                                    <span class="settings-group-actions">
-                                                                      <button type="button" onClick=${() => alterarGrupoPermissoes(itens, true)}>Marcar grupo</button>
-                                                                      <button type="button" onClick=${() => alterarGrupoPermissoes(itens, false)}>Limpar grupo</button>
-                                                                    </span>
-                                                                  `
-                                : null}
-                                                            </div>
-                                                            <div class="settings-permission-list">
-                                                              ${itens.map((permissao) => {
-                                  const ativa = permissoesPerfilDraft.includes(permissao.chave);
-                                  const ativaComparado = perfilComparado ? permissaoEstaAtiva(perfilComparado, permissao.chave) : null;
-                                  return html`
-                                                                  <div class=${`settings-permission-row ${ativa ? 'is-active' : ''}`.trim()} key=${permissao.chave}>
-                                                                    <${ToggleSwitch}
-                                                                      checked=${ativa}
-                                                                      disabled=${!perfisDesbloqueados}
-                                                                      onChange=${() => alternarPermissao(permissao.chave)}
-                                                                    />
-                                                                    <span class="settings-permission-copy">
-                                                                      <strong>${permissao.chave}</strong>
-                                                                      <small>${permissao.descricao || '-'}</small>
-                                                                    </span>
-                                                                    <span class="settings-permission-badges">
-                                                                      ${permissao.modulo_dono
-                                      ? (podeMoverModulo
-                                        ? html`<select class="settings-permission-dono" aria-label=${`Módulo de ${permissao.chave}`} value=${permissao.modulo_dono}
-                                            onChange=${(event) => moverPermissaoDeModulo(permissao.chave, event.target.value)}>
-                                            ${ORDEM_MODULOS_PERMISSAO.map((modulo) => html`<option key=${modulo} value=${modulo}>${NOME_MODULO_PERMISSAO[modulo] || modulo}</option>`)}
-                                          </select>`
-                                        : html`<span class="settings-permission-dono" title="Módulo dono da permissão">${NOME_MODULO_PERMISSAO[permissao.modulo_dono] || permissao.modulo_dono}${permissao.abre_modulo ? ' · abre o módulo' : ''}</span>`)
-                                      : null}
-                                                                      <${Badge} label=${permissao.critica ? 'Crítica' : 'Operacional'} tone=${permissao.critica ? 'danger' : 'muted'} />
-                                                                      ${perfilComparado
-                                      ? html`<${Badge} label=${ativaComparado ? 'no comparado' : 'fora do comparado'} tone=${ativaComparado ? 'success' : 'muted'} />`
-                                      : null}
-                                                                    </span>
-                                                                  </div>
-                                                                `;
-                                })}
-                                                            </div>
-                                                          </div>
-                                                        `;
-                          },
-                        )
-                        : html`
-                                                    <${EmptyPanel}
-                                                      icon="shield"
-                                                      title="Sem permissões nesta sessão"
-                                                      text="Nenhuma permissão corresponde ao filtro atual."
-                                                    />
-                                                  `}
-                                            </div>
-
-                                            ${perfisDesbloqueados
-                        ? html`
-                                                  <footer class="rh-form-footer rh-form-footer--sticky">
-                                                    <span class="rh-form-footer-hint">
-                                                      ${alteracoesPendentesPerfil
-                            ? `${alteracoesPendentesPerfil} alteração(ões) pendente(s) de salvar.`
-                            : 'Nenhuma alteração pendente.'}
-                                                    </span>
-                                                    <div class="settings-card-actions">
-                                                      <button
-                                                        type="button"
-                                                        class="btn btn-outline-secondary btn-sm"
-                                                        disabled=${salvando}
-                                                        onClick=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
-                                                      >
-                                                        <${Icone} name="settings_backup_restore" /> Restaurar
-                                                      </button>
-                                                      <button
-                                                        type="button"
-                                                        class="btn btn-primary btn-sm"
-                                                        disabled=${salvando || !podeEditarPerfis}
-                                                        onClick=${salvarPermissoesPerfil}
-                                                      >
-                                                        <${Icone} name="save" /> ${salvando ? 'Salvando...' : 'Salvar matriz'}
-                                                      </button>
-                                                    </div>
-                                                  </footer>
-                                                `
-                        : null}
-                                          </div>
-                                        `
-                    : null}
-                                  </div>
-                                `;
-              })}
-                              <div class=${`settings-permission-tree-node settings-permission-tree-node--session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-expanded' : ''}`.trim()}>
-                                <button
-                                  type="button"
-                                  class=${`settings-permission-tree-session ${sessaoPermissaoAtiva === '__tela_inicial__' ? 'is-active' : ''}`.trim()}
-                                  aria-expanded=${sessaoPermissaoAtiva === '__tela_inicial__'}
-                                  onClick=${() => setSessaoPermissaoAtiva(sessaoPermissaoAtiva === '__tela_inicial__' ? '' : '__tela_inicial__')}
-                                >
-                                  <span>Tela inicial</span>
-                                  <small>blocos</small>
-                                  <span class="material-symbols-outlined settings-permission-tree-chevron">${IconeSvg('expand_more')}</span>
-                                </button>
-                                ${sessaoPermissaoAtiva === '__tela_inicial__'
-                  ? html`
-                                      <div class="settings-permission-tree-content">
-                                        <${PainelTelaInicialPerfil}
-                                          perfil=${perfilSelecionado}
-                                          permissoes=${permissoesPerfilDraft}
-                                          podeEditar=${podeEditarPerfis && perfisDesbloqueados}
-                                        />
-                                      </div>
-                                    `
-                  : null}
-                              </div>
-                            </div>
-                          `
-              : null}
-                    </div>
-                  `;
-        })}
-              </nav>
-            `
-        : html`<${EmptyPanel} icon="groups" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`}
-      </div>
+      <${PerfisPermissoes}
+        perfis=${perfisVisiveis}
+        permissoes=${permissoes}
+        grupos=${permissoesPorModulo}
+        sessoes=${SESSOES_PERMISSAO}
+        ordemModulos=${ORDEM_MODULOS_PERMISSAO}
+        nomesModulos=${NOME_MODULO_PERMISSAO}
+        iconePerfil=${(id) => ICONE_POR_PERFIL[id] || 'badge'}
+        perfilId=${perfilSelecionado?.id || ''}
+        aoSelecionarPerfil=${selecionarPerfilPermissoes}
+        sessaoId=${sessaoPermissaoAtiva}
+        aoSelecionarSessao=${setSessaoPermissaoAtiva}
+        draft=${permissoesPerfilDraft}
+        desbloqueado=${perfisDesbloqueados}
+        podeEditar=${podeEditarPerfis}
+        aoDesbloquear=${() => setPerfisDesbloqueados((atual) => !atual)}
+        aoAlternar=${alternarPermissao}
+        aoGrupo=${alterarGrupoPermissoes}
+        modulosVisiveis=${new Set([...modulosQueOPerfilAbre, 'core'])}
+        usuarios=${usuariosPerfilSelecionado.length}
+        aoVerUsuarios=${abrirUsuariosDoPerfil}
+        pendentes=${alteracoesPendentesPerfil}
+        salvando=${salvando}
+        aoSalvar=${salvarPermissoesPerfil}
+        aoRestaurar=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
+        justificativa=${justificativaPerfil}
+        aoJustificativa=${setJustificativaPerfil}
+        podeMover=${perfisDesbloqueados && podeEditarPerfis}
+        aoMover=${moverPermissaoDeModulo}
+        wfmFechado=${!!perfilSelecionado?.wfm_fechado}
+        telaInicial=${perfilSelecionado ? html`<${PainelTelaInicialPerfil} perfil=${perfilSelecionado} permissoes=${permissoesPerfilDraft} podeEditar=${podeEditarPerfis && perfisDesbloqueados} />` : null}
+      />
     `;
   };
 
@@ -4301,7 +3991,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       controlador=${controlador}
       mostrarAtalhos=${false}
     >
-      <${PageIntro}
+      ${abaRenderizada === 'perfis' ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4339,7 +4029,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               />
             `
       : null}
-      />
+      />`}
 
       ${erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
       ${feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}

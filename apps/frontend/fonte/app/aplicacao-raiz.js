@@ -1,4 +1,4 @@
-﻿import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
+import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
 import { usaInicioPorSessoes } from '../shared/tela-inicial.js';
 import {
   navegarParaTela,
@@ -114,16 +114,16 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261006-areas-inativas'),
+  () => import('../features/configuracoes/index.js?v=20261007-perfis'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261004-chamados2');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261006-minha-escala'), 'TelaWfm');
-const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign15'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261005-redesign15'), 'TelaTecnologia');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261007-admin-escala'), 'TelaWfm');
+const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261005-redesign16'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260929-excluir-bold'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
