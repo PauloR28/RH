@@ -6,7 +6,7 @@ import { useToast } from '../../../shared/hooks/use-toast.js';
 import { listarAuditoriaWfm } from '../../../services/api/wfm.js';
 import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
 import { TelaEscala } from './escala.js?v=20261007-admin-escala';
-import { TelaPresenca } from './presenca.js';
+import { TelaPresenca } from './presenca.js?v=20261010-presenca';
 import { TelaCadastros } from './cadastros.js?v=20261005-redesign16';
 import { TelaJornadas } from './jornadas.js?v=20261005-redesign16';
 import { TelaEscalaTabela } from './tabela.js?v=20261007-admin-escala';

@@ -68,6 +68,12 @@ export const CATEGORIAS_NOTIFICACAO = [
     descricao: 'Novos chamados, mensagens, mudanças de status, validação e alertas de SLA do Suporte TI.',
   },
   {
+    id: 'wfm',
+    label: 'Turnos e Plantões',
+    cor: '#0b6e4f',
+    descricao: 'Pedidos e decisões de troca de escala, escalas enviadas para aprovação, declinadas e publicadas.',
+  },
+  {
     id: 'critico',
     label: 'Configuração pendente',
     cor: '#c23b4d',
@@ -270,13 +276,18 @@ function montarItensPersistidos(notificacoes) {
     .map((item) => {
       const monitoria = ehCategoriaMonitoria(item.categoria);
       const chamado = item.categoria === 'chamados';
+      const wfm = item.categoria === 'wfm';
+      const treinamento = String(item.categoria || '').startsWith('treinamento');
       return {
         id: `${PREFIXO_ID_PERSISTIDA}${item.id_notificacao}`,
-        categoria: monitoria ? 'monitoria' : chamado ? 'chamados' : 'treinamentos',
+        // Categorias sem tela própria (LGPD, usuário criado...) caem em Administração, não mais em Treinamentos.
+        categoria: monitoria ? 'monitoria' : chamado ? 'chamados' : wfm ? 'wfm' : treinamento ? 'treinamentos' : 'administracao',
         persistida: true,
         caminho: chamado && item.entidade_id ? `/suporte-ti/chamado/${encodeURIComponent(item.entidade_id)}` : '',
         texto: monitoria
           ? item.mensagem || item.titulo || 'Atualização de monitoria'
+          : wfm
+            ? item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Atualização de Turnos e Plantões'
           : chamado
             ? item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Atualização do Suporte TI'
             : item.titulo && item.mensagem ? `${item.titulo}: ${item.mensagem}` : item.titulo || item.mensagem || 'Notificação da Central de Treinamentos',

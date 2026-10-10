@@ -33,7 +33,7 @@ import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
-import { definirOrientacoesAtivas, orientacoesAtivas } from '../../ui/tour-guiado.js';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261010-guia';
 import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
 import {
   CATEGORIAS_NOTIFICACAO,
@@ -42,7 +42,7 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261006-areas-inativas';
+} from '../../shared/notificacoes.js?v=20261010-guia';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
 import {
@@ -545,7 +545,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   });
   const [salvandoAutomacao, setSalvandoAutomacao] = useState(false);
   const [temaAmbiente, setTemaAmbiente] = useState(() => obterTemaSalvo());
-  const [orientacoesAmbiente, setOrientacoesAmbiente] = useState(() => orientacoesAtivas());
+  const orientacoesAmbiente = useOrientacoesGlobais();
   const [preferenciasNotificacaoAmbiente, setPreferenciasNotificacaoAmbiente] = useState(
     () => lerPreferenciasNotificacao(),
   );
@@ -3147,8 +3147,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setTemaAmbiente(definirTema(proximoTema(temaAmbiente)));
   };
 
-  const alternarOrientacoesAmbiente = (ativo) => {
-    setOrientacoesAmbiente(definirOrientacoesAtivas(ativo));
+  // Chave global: só o Administrador liga ou desliga o guia de ajuda, e vale para todos os perfis.
+  const alternarOrientacoesAmbiente = async (ativo) => {
+    try {
+      await definirOrientacoesAtivas(ativo);
+      setFeedback(ativo ? 'Guia de ajuda ativado para todos os perfis.' : 'Guia de ajuda desativado para todos os perfis.');
+    } catch (e) {
+      setErro(e?.message || 'Não foi possível alterar o guia de ajuda.');
+    }
   };
 
   const escolherAvatarAmbiente = async (avatarId) => {
@@ -3687,8 +3693,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 </div>
               </div>
 
-              <div class="settings-ambiente-section">
-                <h3>Orientações</h3>
+              ${ehAdministrador ? html`<div class="settings-ambiente-section">
+                <h3>Guia de ajuda</h3>
                 <div class="process-cutoff-panel">
                   <label class="process-switch-row">
                     <input
@@ -3698,15 +3704,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                     />
                     <span class="process-switch-visual"></span>
                     <span>
-                      <strong>Ativar orientações guiadas</strong>
+                      <strong>Ativar o guia de ajuda para todos os perfis</strong>
                       <small>
-                        Mostra dicas passo a passo na primeira visita a cada tela e o item "Ver orientações"
-                        no menu do seu perfil. Desative se preferir navegar sem os balões de ajuda.
+                        Mostra dicas passo a passo na primeira visita a cada tela e o item "Ver orientações" no menu.
+                        A configuração é única do Conecta: usuários dos demais perfis não podem alterá-la.
                       </small>
                     </span>
                   </label>
                 </div>
-              </div>
+              </div>` : null}
             `
       : null}
 

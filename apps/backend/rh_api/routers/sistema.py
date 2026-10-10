@@ -8,12 +8,34 @@ from ..rbac import ACCESS_DENIED_MESSAGE, ROLE_ADMIN
 from ..repositories import DatabaseRepository
 from ..schemas.sistema import (
     AmbienteSharePointRequest,
+    OrientacoesGuiadasRequest,
     ParametroSistemaRequest,
     ResetarDadosConectaRequest,
 )
 
 
 router = APIRouter(prefix="/sistema", tags=["sistema"])
+
+
+@router.get("/orientacoes")
+def get_orientacoes_guiadas(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Qualquer usuário autenticado lê se o guia de ajuda está ligado (chave global)."""
+    return {"ativo": repository.orientacoes_guiadas_ativas()}
+
+
+@router.put("/orientacoes")
+def put_orientacoes_guiadas(
+    payload: OrientacoesGuiadasRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Só o Administrador liga ou desliga o guia de ajuda para todos os perfis."""
+    if user.perfil != ROLE_ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)
+    return repository.definir_orientacoes_guiadas(payload.ativo, actor=user)
 
 
 @router.get("/parametros", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])

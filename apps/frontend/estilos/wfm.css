@@ -1029,3 +1029,8 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 12px; }
 .ea-radio input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
 @media (prefers-reduced-motion: no-preference) { .ea-gaveta { animation: ea-entra 160ms ease-out; } }
 @keyframes ea-entra { from { transform: translateX(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+
+/* Presença: pendentes de confirmação (quem não logou no dia) */
+.wfm-pendentes-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 192px; overflow-y: auto; }
+.wfm-pendentes-lista li { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.wfm-pendentes-lista li .lp-trunca { flex: 1 1 0; }

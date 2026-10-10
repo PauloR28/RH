@@ -156,6 +156,14 @@ def _redirect_microsoft_result(request: Request, message: str = "") -> RedirectR
     return RedirectResponse(MICROSOFT_LOGIN_RESULT_URL, status_code=status.HTTP_302_FOUND)
 
 
+def _presenca_automatica(repository: DatabaseRepository, user: AuthenticatedUser) -> None:
+    """1º login do dia lança a presença do WFM (ver wfm_presenca_automatica_login); nunca impede o login."""
+    try:
+        repository.wfm_presenca_automatica_login(user)
+    except Exception:  # noqa: BLE001
+        logger.warning("Presença automática ignorada no login.", exc_info=True)
+
+
 def _build_login_response(token: str, user: AuthenticatedUser) -> LoginResponse:
     return LoginResponse(
         access_token=token,
@@ -218,6 +226,7 @@ def login(
     )
     _bloquear_perfil_sem_acesso_web(user)
     login_limiter.reset(limiter_key)
+    _presenca_automatica(repository, user)
     return _build_login_response(token, user)
 
 
@@ -245,6 +254,7 @@ def login_app_email(
     record = repository.authenticate_app_email(payload.email, origem=origem)
     token, user = create_session_for_user_record(record)
     login_limiter.reset(limiter_key)
+    _presenca_automatica(repository, user)
     return _build_login_response(token, user)
 
 
@@ -570,6 +580,7 @@ def complete_microsoft_login(
     user_record = repository.get_system_user_for_session(int(id_usuario))
     token, user = create_session_for_user_record(user_record)
     _bloquear_perfil_sem_acesso_web(user)
+    _presenca_automatica(repository, user)
     return _build_login_response(token, user)
 
 

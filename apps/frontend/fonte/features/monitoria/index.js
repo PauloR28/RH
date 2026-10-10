@@ -1,9 +1,9 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261006-areas-inativas';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261010-guia';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
-import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261006-areas-inativas';
+import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20260921-alertas';

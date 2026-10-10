@@ -16,6 +16,7 @@ import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
 // tipo e quem validou — o arquivo do atestado NUNCA é armazenado (dado de saúde).
 
 const TIPOS_ATESTADO = { MEDICO: 'Médico', ACOMPANHAMENTO: 'Acompanhamento de familiar', DOACAO_SANGUE: 'Doação de sangue', OUTRO: 'Outro' };
+const ORIGEM_AUTOMATICA = 'Automática (1º login)'; // mesmo texto gravado pelo backend no primeiro login do dia
 const SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const paraIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const somar = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -26,6 +27,7 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [presencas, setPresencas] = useState({});
+  const [automaticas, setAutomaticas] = useState({});
   const [atestados, setAtestados] = useState([]);
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState('todos'); // todos | faltas | atestados
@@ -53,6 +55,7 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
         itens: Object.fromEntries(escalas.flatMap((e) => e.itens).map((i) => [`${i.id_operador}:${i.data}`, i])),
       });
       setPresencas(Object.fromEntries(pres.flatMap((p) => p.itens).map((p) => [`${p.id_operador}:${p.data}`, p.status])));
+      setAutomaticas(Object.fromEntries(pres.flatMap((p) => p.itens).filter((p) => p.lancado_por === ORIGEM_AUTOMATICA).map((p) => [`${p.id_operador}:${p.data}`, true])));
       if (pode) {
         const ats = await Promise.all(meses.map((m) => listarAtestadosWfm(operacao, m).catch(() => ({ itens: [] }))));
         setAtestados([...new Map(ats.flatMap((a) => a.itens).map((a) => [a.id_atestado, a])).values()]);
@@ -71,11 +74,14 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
   const operadores = dados.operadores.filter((o) => (!busca || o.nome.toLowerCase().includes(busca.toLowerCase()))
     && (filtro === 'todos' || dias.some((d) => statusDe(o.id_usuario, d) === (filtro === 'faltas' ? 'FALTA' : 'ATESTADO')
       || (filtro === 'faltas' && statusDe(o.id_usuario, d) === 'FALTA_JUSTIFICADA'))));
+  // Escalado até hoje e sem presença lançada = quem não logou no dia: pendente de confirmação por Supervisor/CD.
+  const hoje = paraIso(new Date());
+  const pendentes = dados.operadores.flatMap((o) => dias.filter((d) => d <= hoje && escalado(o.id_usuario, d) && !statusDe(o.id_usuario, d)).map((d) => ({ op: o, d })));
   const escaladosDoDia = dados.operadores.filter((o) => escalado(o.id_usuario, lote.data));
 
   const lancar = async (idOperador, data, status) => {
     if (!status) return;
-    try { await lancarPresencaWfm({ operacao, id_operador: idOperador, data, status }); setPresencas((p) => ({ ...p, [`${idOperador}:${data}`]: status })); }
+    try { await lancarPresencaWfm({ operacao, id_operador: idOperador, data, status }); setPresencas((p) => ({ ...p, [`${idOperador}:${data}`]: status })); setAutomaticas((a) => ({ ...a, [`${idOperador}:${data}`]: false })); }
     catch (e) { showToast?.(e?.message || 'Não foi possível lançar a presença.', 'error'); }
   };
   const aplicarLote = async () => {
@@ -133,6 +139,16 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
             </div>` : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
         </div>` : null}
 
+      ${pode && pendentes.length ? html`
+        <div class="wfm-form wfm-pendentes" role="region" aria-label="Presenças pendentes de confirmação">
+          <div class="wfm-lote-titulo"><h4>Pendentes de confirmação (${pendentes.length})</h4>
+            <p class="mon-muted">Escalados que não logaram no Conecta no dia. Dê a presença ou marque a falta.</p></div>
+          <ul class="wfm-pendentes-lista">${pendentes.map(({ op, d }) => html`<li key=${`${op.id_usuario}:${d}`}>
+            <span class="lp-trunca" title=${op.nome}>${op.nome}</span><small class="mon-muted">${br(d).slice(0, 5)}</small>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onClick=${() => lancar(op.id_usuario, d, 'PRESENTE')}>Dar presença</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onClick=${() => lancar(op.id_usuario, d, 'FALTA')}>Marcar falta</button></li>`)}</ul>
+        </div>` : null}
+
       <div class="wfm-filtros-escala">
         <label class="mon-campo"><span>Mostrar</span><select class="form-select" value=${filtro} onChange=${(e) => setFiltro(e.target.value)}><option value="todos">Todos os operadores</option><option value="faltas">Só quem faltou na semana</option><option value="atestados">Só quem está de atestado</option></select></label>
         <label class="mon-campo"><span>Buscar operador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
@@ -144,7 +160,7 @@ export function TelaPresenca({ controlador, operacao, showToast }) {
           <thead><tr><th class="wfm-col-nome">Operador</th>${dias.map((d, i) => html`<th key=${d} class=${`wfm-col-dia ${i > 4 ? 'is-fds' : ''}`}><span>${d.slice(8)}</span><small>${SEMANA[i]}</small></th>`)}</tr></thead>
           <tbody>${operadores.map((op) => html`<tr key=${op.id_usuario}><th class="wfm-col-nome" scope="row"><span class="wfm-nome">${op.nome}</span></th>
             ${dias.map((d, i) => { const valor = statusDe(op.id_usuario, d); const esc = escalado(op.id_usuario, d);
-              return html`<td key=${d} class=${`${i > 4 ? 'is-fds' : ''} ${esc ? 'is-escalada' : ''}`} title=${esc ? 'Escalado neste dia' : 'Sem escala de trabalho neste dia'}>
+              return html`<td key=${d} class=${`${i > 4 ? 'is-fds' : ''} ${esc ? 'is-escalada' : ''}`} title=${automaticas[`${op.id_usuario}:${d}`] ? 'Presença automática (primeiro login do dia)' : esc ? 'Escalado neste dia' : 'Sem escala de trabalho neste dia'}>
                 ${pode ? html`<select class=${`wfm-select wfm-pres-${valor.toLowerCase()}`} aria-label=${`${op.nome}, ${br(d)}`} value=${valor} onChange=${(e) => lancar(op.id_usuario, d, e.target.value)}><option value="">${esc ? '·' : '—'}</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s}</option>`)}</select>`
                   : html`<span class=${`wfm-pres wfm-pres-${valor.toLowerCase()}`}>${SIGLA_PRESENCA[valor] || '·'}</span>`}</td>`; })}</tr>`)}</tbody>
         </table>
