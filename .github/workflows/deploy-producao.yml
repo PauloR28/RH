@@ -42,10 +42,10 @@ jobs:
         shell: powershell
         run: |
           # Stop-ScheduledTask nao encerra o python filho da aplicacao: ele segura .pyd do .venv e o
-          # Remove-Item falha com "Access denied" (deploy de 10/out). Encerra so quem roda de dentro do .venv.
+          # Remove-Item falha com "Access denied" (deploy de 10/out). Encerra quem roda de dentro do .venv (caminho do exe ou linha de comando).
           Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.ExecutablePath -and $_.ExecutablePath -like "C:\Conecta\.venv\*" } |
-            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+            Where-Object { $_.ProcessId -ne $PID -and (($_.ExecutablePath -like "C:\Conecta\.venv\*") -or ($_.CommandLine -like "*C:\Conecta\.venv*")) } |
+            ForEach-Object { Write-Host "Encerrando $($_.Name) (PID $($_.ProcessId))"; Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
           Start-Sleep -Seconds 3
           if (Test-Path "C:\Conecta\.venv") { Remove-Item "C:\Conecta\.venv" -Recurse -Force }
           python -m venv "C:\Conecta\.venv"
