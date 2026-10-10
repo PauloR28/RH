@@ -198,6 +198,26 @@ class WfmTrocasRepositoryMixin:
             valores.append(valor)
         cursor.execute(f"UPDATE dbo.wfm_trocas SET {', '.join(campos)} WHERE id_troca = ?", (*valores, int(troca["id_troca"])))
         self._tr_evento(cursor, user, troca["operacao"], troca["id_troca"], novo, detalhe)
+        self._tr_notificar(cursor, user, troca, novo)
+
+    def _tr_notificar(self, cursor, user, troca: dict, novo: str) -> None:
+        """Toda mudança de estado da troca vira notificação (bolinha vermelha) para quem precisa agir ou saber."""
+        envolvidos = (troca["id_solicitante"], troca["id_alvo"])
+        id_troca = str(troca["id_troca"])
+        if novo == regras.AGUARDANDO_APROVACAO:
+            cursor.execute("SELECT DISTINCT id_supervisor FROM dbo.usuarios_supervisores WHERE id_operador IN (?, ?)", envolvidos)
+            supervisores = [int(r[0]) for r in cursor.fetchall()]
+            self._wfm_notificar(cursor, usuarios=supervisores, titulo="Troca de escala aguardando aprovação",
+                                mensagem="Os dois operadores aceitaram. Decida em WFM > Trocas.", entidade="troca", entidade_id=id_troca, ignorar=[user.id_usuario])
+            return
+        rotulos = {
+            regras.APROVADA: "Troca de escala aprovada", regras.REPROVADA: "Troca de escala reprovada",
+            regras.RECUSADA: "Troca de escala recusada pelo colega", regras.INVALIDADA: "Troca de escala invalidada",
+            regras.BLOQUEADA: "Troca de escala bloqueada pelas regras",
+        }
+        if novo in rotulos:
+            self._wfm_notificar(cursor, usuarios=envolvidos, titulo=rotulos[novo], mensagem="Veja o histórico em WFM > Trocas.",
+                                entidade="troca", entidade_id=id_troca, ignorar=[user.id_usuario])
 
     def _tr_base_igual(self, cursor, troca: dict) -> bool:
         """As células da troca continuam como estavam quando o pedido foi feito?"""
@@ -352,6 +372,9 @@ class WfmTrocasRepositoryMixin:
             self._tr_evento(cursor, user, operacao, id_troca, "SOLICITADA", f"Aguardando resposta do colega até {prazo:%d/%m %H:%M}.")
             self.wfm_audit(cursor, user, operacao=operacao, acao="solicitar_troca", entidade="troca", entidade_id=id_troca,
                            depois={"alvo": id_b, "data_a": data_a.isoformat(), "data_b": data_b.isoformat()}, ip=ip)
+            self._wfm_notificar(cursor, usuarios=[id_b], titulo="Pedido de troca de escala",
+                                mensagem=f"{normalize_text(user.nome) or user.username} quer trocar a escala com você. Responda em WFM > Trocas.",
+                                entidade="troca", entidade_id=str(id_troca), ignorar=[user.id_usuario])
             conn.commit()
             return {"success": True, "id_troca": id_troca, "prazo_resposta": prazo.isoformat()}
         finally:

@@ -17,6 +17,7 @@ Regras de negócio deste módulo:
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import date, timedelta
 from typing import Any
@@ -43,7 +44,10 @@ from ..services.wfm_regras import (
     validar_escala,
 )
 
+logger = logging.getLogger(__name__)
+
 STATUS_PRESENCA = ("PRESENTE", "FALTA", "FALTA_JUSTIFICADA", "ATESTADO")
+PRESENCA_AUTOMATICA = "Automática (1º login)"
 TIPOS_ATESTADO = ("MEDICO", "ACOMPANHAMENTO", "DOACAO_SANGUE", "OUTRO")
 _RE_ANO_MES = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 CONTEXTO_DIAS = 7  # dias de contexto antes/depois do mês para interjornada e sequência
@@ -720,6 +724,9 @@ class WfmEscalaRepositoryMixin:
                 depois={"versao": versao, "itens": len(snapshot["itens"]), "violacoes": len(violacoes)},
                 justificativa=justificativa, ip=ip,
             )
+            self._wfm_notificar(cursor, usuarios=[i["id_operador"] for i in snapshot["itens"]], titulo="Escala publicada",
+                                mensagem=f"A escala de {ano_mes} ({operacao}) foi publicada (versão {versao}). Confira em WFM > Minhas escalas.",
+                                entidade="escala", entidade_id=f"{operacao}:{ano_mes}", ignorar=[user.id_usuario])
             conn.commit()
             return {"success": True, "versao": versao, "com_violacao": com_violacao}
         finally:
@@ -882,6 +889,55 @@ class WfmEscalaRepositoryMixin:
             return {"success": True}
         finally:
             conn.close()
+
+    def wfm_presenca_automatica_login(self, user) -> int:
+        """Primeiro login do dia = presença do dia (regra do RH).
+
+        Para cada operação em que o usuário está escalado hoje num turno de TRABALHO e ainda não tem presença lançada,
+        grava PRESENTE com origem identificável (`lancado_por`). Nunca sobrescreve lançamento existente (de Supervisor/CD
+        ou do próprio login anterior) e nunca derruba o login: qualquer falha é engolida e registrada no log.
+        Quem não loga fica SEM linha em wfm_presencas = "pendente de confirmação" para Supervisor/CD.
+        """
+        if not getattr(user, "id_usuario", None):
+            return 0
+        try:
+            conn = self._connect()
+        except Exception:  # noqa: BLE001
+            return 0
+        gravadas = 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT i.operacao FROM dbo.wfm_escala_itens i
+                JOIN dbo.wfm_turnos t ON t.id_turno = i.id_turno AND t.tipo = 'TRABALHO'
+                WHERE i.id_operador = ? AND i.data = CAST(GETDATE() AS DATE)
+                  AND NOT EXISTS (SELECT 1 FROM dbo.wfm_presencas p WHERE p.operacao = i.operacao AND p.id_operador = i.id_operador AND p.data = i.data)
+                """,
+                (int(user.id_usuario),),
+            )
+            for (operacao,) in cursor.fetchall():
+                cursor.execute(
+                    "INSERT INTO dbo.wfm_presencas (operacao, id_operador, data, status, observacao, lancado_por) "
+                    "VALUES (?, ?, CAST(GETDATE() AS DATE), 'PRESENTE', ?, ?)",
+                    (operacao, int(user.id_usuario), "Presença automática no primeiro login do dia.", PRESENCA_AUTOMATICA),
+                )
+                self.wfm_audit(
+                    cursor, user, operacao=operacao, acao="presenca_automatica", entidade="presenca",
+                    entidade_id=f"{user.id_usuario}:hoje", depois={"status": "PRESENTE", "origem": "primeiro_login"},
+                )
+                gravadas += 1
+            conn.commit()
+        except Exception:  # noqa: BLE001 - presença automática jamais pode impedir o login
+            logger.warning("Falha na presença automática do usuário %s.", getattr(user, "id_usuario", None), exc_info=True)
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            return 0
+        finally:
+            conn.close()
+        return gravadas
 
     # ------------------------------------------------------------------
     # Hora extra (lançamento simples: minutos por operador/dia; sem aprovação)

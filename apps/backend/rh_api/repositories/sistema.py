@@ -188,6 +188,48 @@ def _nome_ator(actor: AuthenticatedUser | dict | None) -> str:
 
 
 class SistemaRepositoryMixin:
+    # Guia de ajuda (orientações guiadas): chave global, só o Administrador liga/desliga; vale para todos os perfis.
+    # Fica em 'sistema_interno' para não aparecer na lista de parâmetros editáveis. Ausente = ligado.
+    def orientacoes_guiadas_ativas(self) -> bool:
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_parametros_sistema_table(cursor)
+            cursor.execute("SELECT valor FROM dbo.parametros_sistema WHERE chave = ?", ("orientacoes_guiadas_ativas",))
+            row = cursor.fetchone()
+            conn.commit()
+            return not row or normalize_text(row[0]) != "0"
+        finally:
+            conn.close()
+
+    def definir_orientacoes_guiadas(self, ativo: bool, *, actor: AuthenticatedUser | dict | None = None) -> dict:
+        valor = "1" if ativo else "0"
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_parametros_sistema_table(cursor)
+            cursor.execute("SELECT 1 FROM dbo.parametros_sistema WHERE chave = ?", ("orientacoes_guiadas_ativas",))
+            if cursor.fetchone():
+                cursor.execute(
+                    "UPDATE dbo.parametros_sistema SET valor = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE chave = ?",
+                    (valor, _nome_ator(actor), "orientacoes_guiadas_ativas"),
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO dbo.parametros_sistema (chave, valor, categoria, descricao, mascarado, atualizado_por, criado_em, atualizado_em) "
+                    "VALUES (?, ?, 'sistema_interno', 'Guia de ajuda ativo para todos os perfis (1/0).', 0, ?, GETDATE(), GETDATE())",
+                    ("orientacoes_guiadas_ativas", valor, _nome_ator(actor)),
+                )
+            self._insert_audit_log(
+                cursor, user=actor, modulo="Configurações", acao="definir_orientacoes_guiadas", entidade="parametros_sistema",
+                entidade_id="orientacoes_guiadas_ativas", valor_anterior=None, valor_novo={"ativo": bool(ativo)},
+                justificativa="", sucesso=True,
+            )
+            conn.commit()
+            return {"ativo": bool(ativo)}
+        finally:
+            conn.close()
+
     def list_parametros_sistema(self) -> dict:
         conn = self._connect()
         try:

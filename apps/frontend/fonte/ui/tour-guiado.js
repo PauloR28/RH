@@ -5,27 +5,59 @@ import {
   useState,
 } from '../infraestrutura-react.js';
 import { IconeSvg } from './icone.js';
+import { requisitar } from '../services/api/core.js';
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT_ESTIMATE = 220;
 const VIEWPORT_PADDING = 16;
-const CHAVE_ORIENTACOES_ATIVAS = 'c24_orientacoes_ativas';
+
+// Guia de ajuda: chave GLOBAL definida pelo Administrador (backend /sistema/orientacoes). Vale para todos os perfis;
+// não existe mais preferência individual. Padrão ligado até a resposta do servidor (ou se ela falhar).
+let orientacoesGlobais = true;
+let orientacoesCarregadas = false;
+const ouvintesOrientacoes = new Set();
+
+const notificarOrientacoes = () => ouvintesOrientacoes.forEach((fn) => fn());
 
 export function orientacoesAtivas() {
-  try {
-    return window.localStorage.getItem(CHAVE_ORIENTACOES_ATIVAS) !== '0';
-  } catch (error) {
-    return true;
-  }
+  return orientacoesGlobais;
 }
 
-export function definirOrientacoesAtivas(ativo) {
+export async function carregarOrientacoesGlobais(forcar = false) {
+  if (orientacoesCarregadas && !forcar) return orientacoesGlobais;
   try {
-    window.localStorage.setItem(CHAVE_ORIENTACOES_ATIVAS, ativo ? '1' : '0');
+    const resposta = await requisitar('/sistema/orientacoes', { method: 'GET' });
+    orientacoesGlobais = resposta?.ativo !== false;
+    orientacoesCarregadas = true;
+    notificarOrientacoes();
   } catch (error) {
-    // Preferência é best-effort; se o storage falhar, mantemos o padrão (ativado).
+    // Sem resposta (ex.: sessão ainda não aberta): mantém o padrão ligado e tenta de novo na próxima montagem.
   }
-  return Boolean(ativo);
+  return orientacoesGlobais;
+}
+
+export async function definirOrientacoesAtivas(ativo) {
+  const resposta = await requisitar('/sistema/orientacoes', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ativo: Boolean(ativo) }),
+  });
+  orientacoesGlobais = resposta?.ativo !== false;
+  orientacoesCarregadas = true;
+  notificarOrientacoes();
+  return orientacoesGlobais;
+}
+
+// Faz o componente reagir quando o valor global chega do servidor ou o Administrador o altera.
+export function useOrientacoesGlobais() {
+  const [, setVersao] = useState(0);
+  useEffect(() => {
+    const ouvinte = () => setVersao((v) => v + 1);
+    ouvintesOrientacoes.add(ouvinte);
+    carregarOrientacoesGlobais();
+    return () => ouvintesOrientacoes.delete(ouvinte);
+  }, []);
+  return orientacoesGlobais;
 }
 
 function montarChaveTour(screenId, userId) {

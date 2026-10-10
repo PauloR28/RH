@@ -88,6 +88,21 @@ class WfmRepositoryMixin:
     # ------------------------------------------------------------------
     # Auditoria (append-only) e escopo
     # ------------------------------------------------------------------
+    def _wfm_notificar(self, cursor, *, usuarios=(), perfis=(), titulo: str, mensagem: str = "", entidade: str = "wfm",
+                       entidade_id: str = "", ignorar=()) -> None:
+        """Notificação in-app (bolinha vermelha) do WFM, categoria `wfm`, na mesma transação do evento; nunca notifica quem agiu."""
+        ignorados = {int(i) for i in ignorar if i}
+        for id_usuario in sorted({int(i) for i in usuarios if i} - ignorados):
+            cursor.execute("SELECT login FROM dbo.usuarios WHERE id_usuario = ?", (id_usuario,))
+            row = cursor.fetchone()
+            login = normalize_text(row[0]) if row else ""
+            if login:
+                self._criar_notificacao(cursor, destinatario_usuario=login, titulo=titulo, mensagem=mensagem,
+                                        categoria="wfm", entidade=entidade, entidade_id=entidade_id)
+        for papel in sorted({normalize_text(p) for p in perfis if p}):
+            self._criar_notificacao(cursor, destinatario_papel=papel, titulo=titulo, mensagem=mensagem,
+                                    categoria="wfm", entidade=entidade, entidade_id=entidade_id)
+
     def wfm_audit(
         self,
         cursor,

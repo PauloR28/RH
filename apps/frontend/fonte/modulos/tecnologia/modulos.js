@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { DataTable, PageShell, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign15';
+import { DataTable, PageShell, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { listarUsuarios } from '../../services/api/settings.js';
 import {
   definirAcessoModulosPerfil,
@@ -10,7 +10,7 @@ import {
   lerAcessosModulos,
   lerWfmParticipantes,
   listarModulosTecnologia,
-} from '../../services/api/modulos.js?v=20261005-redesign15';
+} from '../../services/api/modulos.js?v=20261005-redesign16';
 import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261006-areas-inativas';
 
 // Tela Módulos (Tecnologia): ativação, WFM para participantes e acesso por perfil/usuário. Montada com as primitivas de layout.

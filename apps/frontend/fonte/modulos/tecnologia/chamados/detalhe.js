@@ -3,16 +3,16 @@ import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhado
 import { obterRotaAtual } from '../../../rotas.js';
 import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20260927-estado-usuario';
 import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import {
   assumirChamado, atribuirChamado, baixarAnexoChamado, buscarAtendentesChamado, cancelarChamado, confirmarEncerramentoChamado,
   enviarMensagemChamado, excluirAnexoChamado, lerChamado, lerHistoricoChamado, listarEventosChamado, mudarStatusChamado,
   mudarUrgenciaChamado, reabrirChamado,
-} from '../../../services/api/chamados.js?v=20261005-redesign15';
+} from '../../../services/api/chamados.js?v=20261005-redesign16';
 import {
   AcessoRestrito, Avatar, EstadoErro, Icone, MenuCompartilhar, ORDEM_URGENCIA, Pill, PillSla, PillStatus, PillUrgencia, ROTULO_STATUS,
   ROTULO_URGENCIA, TELA_LISTA, formatarDataCompleta, formatarDataHora, tamanhoLegivel, useDebounce,
-} from './comum.js?v=20261005-redesign15';
+} from './comum.js?v=20261005-redesign16';
 
 // Detalhe do chamado. Vive em dois lugares com o mesmo componente: painel ao lado da lista (`embutido`) e a rota própria
 // /suporte-ti/chamado/:id (links de notificação). Descrição sempre à vista; Conversa, Histórico e Anexos em abas; ações numa barra só.

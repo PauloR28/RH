@@ -21,7 +21,7 @@ function nomeArquivo(nomeOperacao, anoMes, ext) {
   return `escala_${base}_${anoMes}.${ext}`;
 }
 
-function textoLegivel(cor) {
+export function textoLegivel(cor) {
   const hex = String(cor || '#1f5fbf').replace('#', '');
   const cheio = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex.slice(0, 6);
   const r = parseInt(cheio.slice(0, 2), 16), g = parseInt(cheio.slice(2, 4), 16), b = parseInt(cheio.slice(4, 6), 16);
@@ -159,8 +159,8 @@ export async function canvasParaPdf(canvas) {
 
 // Menu da escala. Com `aoVerMes`/`aoConfigurar` vira o botão "Ações" (Ver mês, Compartilhar, Configurações); sem eles,
 // só Compartilhar/exportar (visão do mês).
-export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, showToast, aoVerMes, aoConfigurar, rotuloVer = 'Visualizar escala (mês)', iconeVer = 'calendar_month' }) {
-  const comAcoes = !!(aoVerMes || aoConfigurar);
+export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, showToast, aoVerMes, aoConfigurar, aoLimpar, rotuloVer = 'Visualizar escala (mês)', iconeVer = 'calendar_month' }) {
+  const comAcoes = !!(aoVerMes || aoConfigurar || aoLimpar);
   const [aberto, setAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const raiz = useRef(null);
@@ -221,6 +221,7 @@ export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, 
           <button type="button" role="menuitem" onClick=${() => baixarLocal('pdf')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('picture_as_pdf')}</span>Exportar PDF</button>
           <button type="button" role="menuitem" onClick=${() => baixarLocal('png')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('image')}</span>Exportar imagem (PNG)</button>
           ${aoConfigurar ? html`<hr /><button type="button" role="menuitem" onClick=${() => { setAberto(false); aoConfigurar(); }}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('settings')}</span>Configurações</button>` : null}
+          ${aoLimpar ? html`<hr /><button type="button" role="menuitem" class="is-destrutivo" onClick=${() => { setAberto(false); aoLimpar(); }}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Limpar tabela</button>` : null}
         </div>` : null}
     </div>`;
 }

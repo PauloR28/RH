@@ -1,16 +1,16 @@
 import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
 import { BuscaGlobalTopbar } from '../busca-global.js';
 import { obterTourDaTela } from '../../shared/tour-config.js';
-import { TourGuiado, orientacoesAtivas } from '../tour-guiado.js';
+import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261010-guia';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261006-areas-inativas';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261010-guia';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261006-areas-inativas';
 import { telaEmAreaInativa } from '../../shared/areas.js';
 import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261004-chamados2';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign15';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign16';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -1382,6 +1382,7 @@ export function PainelRh({
   const tour = obterTourDaTela(screenId, {
     hasPrimaryAction: Boolean(acaoPrimaria),
   });
+  useOrientacoesGlobais();
   const [tourReopenSignal, setTourReopenSignal] = useState(0);
   const usuarioTour = controlador?.estado?.usuarioAutenticado || '';
   const permissaoAcaoPrimaria = acaoPrimaria?.permissao;

@@ -15,7 +15,8 @@ import { dataHora } from './comum.js';
 const ROTULO = { RASCUNHO: 'Rascunho', EM_APROVACAO: 'Em aprovação', APROVADA: 'Aprovada' };
 const TOM = { RASCUNHO: 'mon-badge--nula', EM_APROVACAO: 'mon-badge--pendente', APROVADA: 'mon-badge--ok' };
 
-export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado = false }) {
+// `compacto`: linha única (pílula + mensagem + ações) usada na administração da escala; fica sempre visível.
+export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado = false, compacto = false }) {
   const [declinando, setDeclinando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -24,12 +25,12 @@ export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToas
   // O aviso "Aprovada" é temporário: some sozinho; volta a ser visível se o estado mudar.
   useEffect(() => {
     setAprovadaVisivel(true);
-    if (estadoAtual !== 'APROVADA') return undefined;
+    if (estadoAtual !== 'APROVADA' || compacto) return undefined;
     const t = setTimeout(() => setAprovadaVisivel(false), 6000);
     return () => clearTimeout(t);
   }, [estadoAtual, operacao, anoMes]);
   if (!aprovacao || !aprovacao.exige) return null;
-  if (aprovacao.estado === 'APROVADA' && !aprovadaVisivel) return null;
+  if (aprovacao.estado === 'APROVADA' && !aprovadaVisivel && !compacto) return null;
   const corpo = { operacao, ano_mes: anoMes };
 
   const executar = async (fn, sucesso) => {
@@ -65,7 +66,7 @@ export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToas
   }
 
   return html`
-    <div class=${`wfm-aprovacao is-${aprovacao.estado.toLowerCase()} ${aprovacao.declinada ? 'is-declinada' : ''}`} role="status">
+    <div class=${`wfm-aprovacao is-${aprovacao.estado.toLowerCase()} ${aprovacao.declinada ? 'is-declinada' : ''} ${compacto ? 'wfm-aprovacao--compacto' : ''}`} role="status">
       <div class="wfm-aprovacao-topo">
         <span class=${`mon-badge ${aprovacao.declinada ? 'mon-badge--critico' : TOM[aprovacao.estado]}`}>${aprovacao.declinada ? 'Declinada' : ROTULO[aprovacao.estado]}</span>
         ${mensagem ? html`<span class="wfm-aprovacao-texto">${mensagem}</span>` : html`<span class="wfm-aprovacao-texto"></span>`}

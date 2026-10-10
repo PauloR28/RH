@@ -208,12 +208,11 @@ class ChamadosRepositoryMixin:
         return int(cursor.fetchone()[0])
 
     def _ch_perfis_da_ti(self, cursor) -> list[str]:
-        """Perfis que atendem chamados (têm `chamados.atender`). O Administrador fica fora para não receber todo alerta."""
-        cursor.execute(
-            "SELECT id_perfil FROM dbo.perfil_permissoes WHERE chave_permissao = 'chamados.atender' AND permitido = 1 AND id_perfil <> ?",
-            (ROLE_ADMIN,),
-        )
-        return [normalize_text(r[0]) for r in cursor.fetchall()]
+        """Perfis que atendem chamados (têm `chamados.atender`), mais o Administrador (que acompanha todos os chamados)."""
+        cursor.execute("SELECT id_perfil FROM dbo.perfil_permissoes WHERE chave_permissao = 'chamados.atender' AND permitido = 1")
+        perfis = {normalize_text(r[0]) for r in cursor.fetchall()}
+        perfis.add(ROLE_ADMIN)
+        return sorted(p for p in perfis if p)
 
     def _ch_login_de(self, cursor, id_usuario: int | None) -> str:
         if not id_usuario:
@@ -363,11 +362,8 @@ class ChamadosRepositoryMixin:
         pa_posto = normalize_text(dados.get("pa_posto"))
         agentes_ids = sorted({int(a) for a in (dados.get("agentes_ids") or [])})
         # Agentes impactados são opcionais (a tela de abertura não pede mais); o que importa é o PA/posto afetado.
-        if impacto == rg.IMPACTO_AGENTE:
-            if not pa_posto:
-                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe o PA/posto.")
-        else:
-            agentes_ids = []  # célula inteira dispensa agentes; o PA é opcional
+        if impacto != rg.IMPACTO_AGENTE:
+            agentes_ids = []  # célula inteira dispensa agentes; o PA/posto é sempre opcional
         gravados: list[str] = []
         conn = self._connect()
         try:
@@ -427,7 +423,7 @@ class ChamadosRepositoryMixin:
             self._ch_notificar(
                 cursor, ch,
                 titulo=f"Novo chamado #{ch['numero']}" + (f" · {' · '.join(destaque)}" if destaque else ""),
-                mensagem=f"{titulo} ({ch['operacao']}), aberto por {sol_nome}.", para="ti_todos", ignorar_id=uid,
+                mensagem=f"{titulo} ({ch['operacao']}), aberto por {sol_nome}.", para="ti_todos",
             )
             conn.commit()
             self._ch_enviar_email("novo", f"Novo chamado #{ch['numero']}" + (f" · {' · '.join(destaque)}" if destaque else ""),
@@ -891,15 +887,31 @@ class ChamadosRepositoryMixin:
                     return 0
                 cursor.execute(f"SELECT email FROM dbo.chamado_email_destinatarios WHERE ativo = 1 AND {coluna} = 1")
                 emails = [normalize_text(r[0]) for r in cursor.fetchall() if normalize_text(r[0])]
+                if not emails:
+                    cursor.execute("SELECT COUNT(*) FROM dbo.chamado_email_destinatarios WHERE ativo = 1")
+                    if int(cursor.fetchone()[0]) == 0:  # ninguém cadastrado: usa a TI; destinatário que desmarcou o tipo não cai aqui
+                        emails = self._ch_emails_da_ti(cursor)
             finally:
                 conn.close()
             if not emails:
+                self.logger.warning("E-mail de chamado (%s) sem destinatário: cadastre em Suporte TI > Configurações ou vincule e-mail aos usuários da TI.", tipo)
                 return 0
             self._ch_disparar_email(emails, f"[Suporte TI] {assunto}", corpo)
             return len(emails)
         except Exception as exc:  # noqa: BLE001
             self.logger.warning("E-mail de chamado (%s) não enviado: %s", tipo, exc)
             return 0
+
+    def _ch_emails_da_ti(self, cursor) -> list[str]:
+        """Fallback quando nenhum destinatário foi cadastrado: e-mail dos usuários ativos dos perfis que atendem chamados."""
+        perfis = self._ch_perfis_da_ti(cursor)
+        if not perfis:
+            return []
+        cursor.execute(
+            f"SELECT DISTINCT email FROM dbo.usuarios WHERE status = 'Ativo' AND ISNULL(email,'') <> '' AND perfil_id IN ({','.join('?' * len(perfis))})",
+            tuple(perfis),
+        )
+        return [normalize_text(r[0]) for r in cursor.fetchall() if normalize_text(r[0])]
 
     def _ch_disparar_email(self, emails: list[str], assunto: str, corpo: str) -> None:
         """Envia pelo canal disponível: Microsoft Graph (caixa oficial, o mesmo da Monitoria) e, se não estiver configurado, SMTP.
@@ -923,7 +935,7 @@ class ChamadosRepositoryMixin:
         corpo = (f"CHAMADO #{ch['numero']} - Aberto\nDescrição: {ch['titulo']}\nUrgência: {urgencia_rotulo}\n"
                  "A equipe de TI foi avisada. Você recebe uma notificação a cada atualização.")
         if base:
-            corpo += f"\nAcompanhe: {base}/suporte-ti/chamado/{ch['id']}"
+            corpo += f"\nAcompanhe: {base}/suporte-ti/chamado/{ch['id_chamado']}"
         try:
             self._ch_disparar_email([email], f"[Suporte TI] Chamado #{ch['numero']} aberto", corpo)
             return True

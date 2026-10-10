@@ -137,7 +137,7 @@ import {
   WizardStepper,
   WizardSummaryStrip,
 } from '../../ui/componentes-compartilhados.js';
-import { BotaoAjudaTour, TourGuiado } from '../../ui/tour-guiado.js';
+import { BotaoAjudaTour, TourGuiado } from '../../ui/tour-guiado.js?v=20261010-guia';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';

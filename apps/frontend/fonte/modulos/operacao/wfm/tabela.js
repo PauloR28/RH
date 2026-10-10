@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import {
@@ -19,9 +19,12 @@ import {
 } from '../../../services/api/wfm.js';
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
-import { PainelAprovacao } from './aprovacao.js';
-import { MenuCompartilharEscala } from './compartilhar.js';
+import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
+import { GavetaAjusteDia } from './ajuste.js';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, SeletorTurnoLinha, SeletorVisao, TituloEscala, Quadrado, faixaTurno, semAcento } from './escala-ui.js';
+import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser
@@ -68,6 +71,10 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [versaoLista, setVersaoLista] = useState(0);
   const [verMassa, setVerMassa] = useState(false);
   const [verTurnos, setVerTurnos] = useState(false);
+  const [filtroTurno, setFiltroTurno] = useState(''); // '' = todos | 'dsr' | id do turno
+  const [limite, setLimite] = useState(50);
+  const [gaveta, setGaveta] = useState(null); // { id, nome, data, secao }
+  const [editHor, setEditHor] = useState(null); // id do colaborador com o horário em edição inline
   const podePublicar = controlador.possuiPermissao('wfm.escala.publicar');
   const podePresenca = controlador.possuiPermissao('wfm.presenca.lancar');
   const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar');
@@ -171,17 +178,12 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     return { ...p, [chave(id, data)]: { ...resto, id_turno: valor === '' ? null : Number(valor) } };
   });
   const mudarHorario = (id, data, campo, valor) => mudar(id, data, { entrada: campo === 'entrada' ? valor : entradaDe(id, data), saida: campo === 'saida' ? valor : saidaDe(id, data) });
-  const mudarPausa = (id, data, ordem, inicio) => {
-    const base = (pausasDe(id, data).length ? pausasDe(id, data) : (pausasDia?.pausas_padrao || []).map((p) => ({ ...p, inicio: entradaDe(id, data) })))
-      .map((p) => (p.ordem === ordem ? { ...p, inicio } : p));
-    mudar(id, data, { pausas: base });
-  };
-  const definirPausas = (id, data) => mudar(id, data, { pausas: (pausasDia?.pausas_padrao || []).map((p) => ({ ordem: p.ordem, tipo: p.tipo, duracao_min: p.duracao_min, inicio: entradaDe(id, data) })) });
 
   const visiveis = dados.operadores.filter((o) => (!filtroEquipe || String(o.id_equipe || '') === filtroEquipe)
     && (!filtroSup || (o.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
     && (!filtroCargo || (o.cargo || '') === filtroCargo)
-    && (!busca || o.nome.toLowerCase().includes(busca.toLowerCase())));
+    && (!filtroTurno || (filtroTurno === 'dsr' ? turnoIdDe(o.id_usuario, dia) == null : String(turnoIdDe(o.id_usuario, dia)) === filtroTurno))
+    && (!busca || semAcento(o.nome).includes(semAcento(busca.trim()))));
   const cargos = [...new Set(dados.operadores.map((o) => o.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
   const supervisores = [...new Map(dados.operadores.flatMap((o) => o.supervisores || []).map((s) => [s.id_usuario, s.nome])).entries()];
@@ -221,11 +223,11 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     showToast?.(`Aplicado a ${alvos.length} colaborador(es) em ${datasAlvo.length} dia(s). Revise e clique em "Salvar".`, 'success');
   };
 
-  // Atalho do dia: um turno (ou DSR) para todos os colaboradores exibidos de uma vez; fica pendente até clicar em Salvar.
+  // Barra de ações em massa: o turno (ou DSR) vai só para os colaboradores marcados; fica pendente até clicar em Salvar.
   const aplicarTurnoTodos = () => {
-    if (turnoTodos === '') { showToast?.('Escolha o turno que será aplicado a todos.', 'info'); return; }
-    visiveis.forEach((o) => mudarTurno(o.id_usuario, dia, turnoTodos === 'dsr' ? '' : turnoTodos));
-    showToast?.(`Turno aplicado a ${visiveis.length} colaborador(es) em ${br(dia).slice(0, 5)}. Revise e clique em "Salvar".`, 'success');
+    if (turnoTodos === '') { showToast?.('Escolha o turno que será aplicado.', 'info'); return; }
+    marcados.forEach((o) => mudarTurno(o.id_usuario, dia, turnoTodos === 'dsr' ? '' : turnoTodos));
+    showToast?.(`Turno aplicado a ${marcados.length} colaborador(es) em ${br(dia).slice(0, 5)}. Revise e clique em "Salvar".`, 'success');
   };
 
   // Replicar as pausas deste dia: período = semana (seg–dom) ou mês, sempre dentro do mês aberto; filtra pelos dias marcados.
@@ -318,36 +320,30 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
   const pendentes = celulasAlteradas.length;
   const bloqueioPublicar = pendentes > 0 ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : '';
+  const abrirGaveta = (o, secao) => setGaveta({ id: o.id_usuario, nome: o.nome, data: dia, secao });
+  const mostradas = visiveis.slice(0, limite);
+  const hojeIso = paraIso(new Date());
+  const alternarTodos = () => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
+  const menuAcoes = html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} />`;
+
   return html`
-    <section class="mon-card wfm-escala">
-      <div class="wfm-cabecalho wfm-cabecalho--centro">
-        <div><h3>${nomeEscala}</h3>
-          <p class="wfm-resumo-linha"><span class="mon-badge mon-badge--ok">${escalados} escalado(s)</span><span class="mon-badge mon-badge--nula">${dados.operadores.length - escalados} em DSR/folga</span>${dados.status.versao_publicada ? html`<span class="mon-badge mon-badge--pendente">Publicada v${dados.status.versao_publicada}</span>` : null}</p></div>
-        <div class="wfm-acoes-cab">
-          ${aoVoltarLista ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${aoVoltarLista}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_back')}</span>Escalas</button>` : null}
-          <span class="wfm-acoes-direita"><${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} /></span>
-        </div>
-      </div>
+    <section class="mon-card wfm-escala ea-raiz">
+      <${TituloEscala} nome=${nomeEscala} escalados=${escalados} emDsr=${dados.operadores.length - escalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista} menu=${menuAcoes} />
 
-      <${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} />
+      <${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} compacto />
 
-      <div class="wfm-barra-dia">
-        <div class="wfm-navdia" role="group" aria-label="Escolher o dia">
-          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
-          <input class="form-control wfm-data" type="date" aria-label="Dia" value=${dia} min=${`${anoMes}-01`} max=${dados.dias[dados.dias.length - 1]} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} />
-          <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Próximo dia" onClick=${() => mover(1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
-          <strong class="wfm-dia-extenso">${SEMANA[d0.getDay()]}, ${br(dia)}</strong>
+      <div class="ea-nav">
+        <div class="ea-nav-esq">
+          <${SeletorVisao} visao="dia" aoMes=${aoVerMes} />
+          <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
+            <button type="button" class="ea-icone-btn" aria-label="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
+            <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA[d0.getDay()]}, ${br(dia)}</span>
+              <input class="ea-data-input" type="date" aria-label="Escolher data" onClick=${(e) => e.target.showPicker?.()} value=${dia} min=${`${anoMes}-01`} max=${dados.dias[dados.dias.length - 1]} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} /></label>
+            <button type="button" class="ea-icone-btn" aria-label="Próximo dia" disabled=${dia >= dados.dias[dados.dias.length - 1]} onClick=${() => mover(1)}><${Icone} nome="chevron_right" /></button>
+            <button type="button" class="btn btn-outline-secondary ea-btn-44" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso} onClick=${() => setDia(hojeIso)}>Hoje</button>
+          </div>
         </div>
-        <div class="wfm-ferramentas">
-          ${editavel ? html`<span class="wfm-aplicar-todos">
-            <select class="form-select" aria-label="Turno para todos" value=${turnoTodos} onChange=${(e) => setTurnoTodos(e.target.value)}>
-              <option value="">Turno…</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
-            <button type="button" class="btn btn-primary btn-sm" disabled=${turnoTodos === ''} onClick=${aplicarTurnoTodos}>Aplicar turno para todos</button>
-          </span>` : null}
-          ${editavel ? html`<button type="button" class=${`btn btn-sm ${verMassa ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verMassa} onClick=${() => setVerMassa(!verMassa)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit_calendar')}</span>Preencher em massa</button>` : null}
-          ${editavel ? html`<button type="button" class=${`btn btn-sm ${verPausasLote ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verPausasLote} onClick=${() => setVerPausasLote(!verPausasLote)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('timer')}</span>Replicar pausas</button>` : null}
-          <button type="button" class=${`btn btn-sm ${verTurnos ? 'btn-primary' : 'btn-outline-secondary'}`} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('schedule')}</span>Turnos${podeCadastros ? ' e pausas' : ''}</button>
-        </div>
+        <button type="button" class=${`btn btn-outline-secondary ea-btn-44 ${verTurnos ? 'is-ativo' : ''}`} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><${Icone} nome="schedule" />Turnos e pausas</button>
       </div>
 
       ${verTurnos ? html`<div class="wfm-turnos-faixa">
@@ -358,7 +354,31 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
         ${podeCadastros && pausasDia ? html`<span class="wfm-capacidade"><label for="wfm-cap">Em pausa ao mesmo tempo</label><input id="wfm-cap" class="form-control" type="number" min="1" max="200" value=${capacidade} onInput=${(e) => setCapacidade(e.target.value)} />${Number(capacidade) !== pausasDia.capacidade ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${salvarCapacidade}>OK</button>` : null}</span>` : null}
       </div>` : null}
 
-      ${editavel && verPausasLote ? html`<div class="wfm-lote-dia wfm-lote-pausas">
+      <${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)`}
+        selects=${[
+          { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
+          { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
+          { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },
+        ]} />
+
+      <div class="ea-chips" role="group" aria-label="Filtrar por turno">
+        <span class="ea-rotulo">TURNO</span>
+        <button type="button" class=${`ea-chip ${filtroTurno === '' ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === ''} onClick=${() => setFiltroTurno('')}>Todos</button>
+        ${turnosSelecionaveis.map((t) => html`<button key=${t.id_turno} type="button" class=${`ea-chip ${filtroTurno === String(t.id_turno) ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === String(t.id_turno)} onClick=${() => setFiltroTurno(filtroTurno === String(t.id_turno) ? '' : String(t.id_turno))}>
+          <${Quadrado} cor=${t.cor} />${t.nome}${t.entrada ? html`<span class="ea-muted ea-num">${faixaTurno(t)}</span>` : null}</button>`)}
+        <button type="button" class=${`ea-chip ${filtroTurno === 'dsr' ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === 'dsr'} onClick=${() => setFiltroTurno(filtroTurno === 'dsr' ? '' : 'dsr')}><${Quadrado} dsr=${true} />DSR</button>
+      </div>
+
+      ${editavel ? html`<${BarraSelecao} n=${marcados.length} aoLimpar=${() => setSel({})}>
+        <label class="visually-hidden" for="ea-turno-massa">Turno a aplicar</label>
+        <select id="ea-turno-massa" class="ea-campo ea-select ea-select--turno ea-campo--massa" value=${turnoTodos} onChange=${(e) => setTurnoTodos(e.target.value)}>
+          <option value="">Turno…</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${faixaTurno(t)}` : ''}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
+        <button type="button" class="ea-btn-sol" disabled=${turnoTodos === ''} onClick=${aplicarTurnoTodos}>Aplicar turno</button>
+        <button type="button" class=${`ea-btn-ctn ${verMassa ? 'is-ativo' : ''}`} aria-expanded=${verMassa} onClick=${() => setVerMassa(!verMassa)}>Preencher em massa</button>
+        <button type="button" class=${`ea-btn-ctn ${verPausasLote ? 'is-ativo' : ''}`} aria-expanded=${verPausasLote} onClick=${() => setVerPausasLote(!verPausasLote)}>Replicar pausas</button>
+      <//>` : null}
+
+      ${editavel && marcados.length && verPausasLote ? html`<div class="wfm-lote-dia wfm-lote-pausas ea-painel-massa">
         <div class="wfm-lote-dia-linha">
           <strong>Replicar as pausas de ${br(dia).slice(0, 5)} (${SEMANA[d0.getDay()]})</strong>
           <label class="wfm-campo"><span>Em</span><select class="form-select" value=${lotePausas.escopo} onChange=${(e) => setLotePausas({ ...lotePausas, escopo: e.target.value })}><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
@@ -366,12 +386,12 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           <span class="wfm-dias-chips" role="group" aria-label="Dias da semana em que as pausas se aplicam">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${lotePausas.dias[i] ? 'is-ativo' : ''}`} aria-pressed=${lotePausas.dias[i]} onClick=${() => setLotePausas({ ...lotePausas, dias: lotePausas.dias.map((v, j) => (j === i ? !v : v)) })}>${nome}</button>`)}<span class="wfm-contagem-dias">${diasDasPausas.length} dia(s)</span></span>
           <label class="wfm-check"><input type="checkbox" checked=${lotePausas.sobrescrever} onChange=${(e) => setLotePausas({ ...lotePausas, sobrescrever: e.target.checked })} /> Substituir pausas já programadas</label>
         </div>
-        <p class="mon-muted wfm-dica">${pendentes > 0 ? 'Salve as alterações do dia antes de replicar as pausas.' : !pausasDoDiaDefinidas ? 'Defina e salve as pausas deste dia primeiro: elas servem de modelo.' : `Copia os horários de pausa de ${marcados.length ? `${marcados.length} selecionado(s)` : 'todos os exibidos'} para os dias marcados em que o colaborador trabalha. Vários colaboradores podem pausar no mesmo horário até o limite${pausasDia ? ` de ${pausasDia.capacidade}` : ''}; só o que passar do limite é deslocado para o horário livre mais próximo.`}</p>
+        <p class="mon-muted wfm-dica">${pendentes > 0 ? 'Salve as alterações do dia antes de replicar as pausas.' : !pausasDoDiaDefinidas ? 'Defina e salve as pausas deste dia primeiro: elas servem de modelo.' : `Copia os horários de pausa de ${marcados.length} selecionado(s) para os dias marcados em que o colaborador trabalha. Vários colaboradores podem pausar no mesmo horário até o limite${pausasDia ? ` de ${pausasDia.capacidade}` : ''}; só o que passar do limite é deslocado para o horário livre mais próximo.`}</p>
       </div>` : null}
 
-      ${editavel && verMassa ? html`<div class="wfm-lote-dia">
+      ${editavel && marcados.length && verMassa ? html`<div class="wfm-lote-dia ea-painel-massa">
         <div class="wfm-lote-dia-linha">
-          <strong>Aplicar a ${marcados.length ? `${marcados.length} selecionado(s)` : `todos os ${visiveis.length} exibidos`}</strong>
+          <strong>Aplicar a ${marcados.length} selecionado(s)</strong>
           <label class="wfm-campo"><span>Turno</span><select class="form-select" value=${lote.turno} onChange=${(e) => setLote({ ...lote, turno: e.target.value })}><option value="">Manter</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}<option value="dsr">DSR (sem turno)</option></select></label>
           <label class="wfm-campo"><span>Entrada</span><input class="form-control" type="time" value=${lote.entrada} onInput=${(e) => setLote({ ...lote, entrada: e.target.value })} /></label>
           <label class="wfm-campo"><span>Saída</span><input class="form-control" type="time" value=${lote.saida} onInput=${(e) => setLote({ ...lote, saida: e.target.value })} /></label>
@@ -379,46 +399,52 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           <button type="button" class="btn btn-primary btn-sm" onClick=${aplicarLote}>Aplicar em ${rotuloEscopo}</button>
           ${lote.escopo !== 'dia' ? html`<span class="wfm-dias-chips" role="group" aria-label="Dias da semana atingidos">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${lote.dias[i] ? 'is-ativo' : ''}`} aria-pressed=${lote.dias[i]} onClick=${() => setLote({ ...lote, dias: lote.dias.map((v, j) => (j === i ? !v : v)) })}>${nome}</button>`)}<span class="wfm-contagem-dias">${datasAlvo.length} dia(s)</span></span>` : null}
         </div>
-        <p class="mon-muted wfm-dica">Marque colaboradores na tabela para aplicar só a eles; sem seleção, vale para todos os exibidos.</p>
       </div>` : null}
 
-      <div class="wfm-filtros-escala wfm-filtros-escala--compacto">
-        <label class="mon-campo"><span>Buscar colaborador</span><input class="form-control" value=${busca} onInput=${(e) => setBusca(e.target.value)} placeholder="Nome" /></label>
-        <label class="mon-campo"><span>Supervisor</span><select class="form-select" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
-        <label class="mon-campo"><span>Equipe</span><select class="form-select" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select></label>
-        <label class="mon-campo"><span>Cargo</span><select class="form-select" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select></label>
-        <span class="wfm-contagem">${visiveis.length} de ${dados.operadores.length} colaborador(es)</span>
-      </div>
-
-      ${excedentes.length ? html`<div class="wfm-validacao is-alerta" role="status"><strong>Mais operadores em pausa do que o limite</strong>
+      ${excedentes.length ? html`<div class="wfm-validacao is-alerta ea-alerta" role="status"><strong>Mais operadores em pausa do que o limite</strong>
         <ul>${excedentes.slice(0, 6).map((x, i) => html`<li key=${i}>${x.inicio}–${x.fim}: ${x.qtd} em pausa (limite ${x.capacidade})</li>`)}</ul></div>` : null}
 
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela wfm-tabela-dia">
-        <thead><tr>
-          ${editavel ? html`<th class="wfm-col-sel-dia"><input type="checkbox" aria-label="Selecionar todos os exibidos" checked=${todosSel} onChange=${() => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])))} /></th>` : null}
-          <th>Colaborador</th><th>Turno</th><th>Horário</th><th>Pausas</th><th>Presença</th><th title="Hora extra do dia (minutos) e total no mês">Hora extra</th>
-        </tr></thead>
-        <tbody>
-          ${visiveis.map((o) => { const id = o.id_usuario; const t = turnoDe(id, dia); const trab = trabalha(id, dia); const m = mudou(id, dia);
-            const pausas = pausasDe(id, dia); const salvaTrab = escalaSalva(id, dia) && !m.escala; const pres = presencaDe(id, dia);
-            return html`<tr key=${id} class=${m.escala || m.extra || m.pres || m.pausas ? 'is-pendente' : ''}>
-              ${editavel ? html`<td class="wfm-col-sel-dia"><input type="checkbox" aria-label=${`Selecionar ${o.nome}`} checked=${!!sel[id]} onChange=${() => setSel({ ...sel, [id]: !sel[id] })} /></td>` : null}
-              <td><span class="wfm-nome-dia">${o.nome}</span><small class="wfm-sup-dia">${(o.supervisores || []).map((s) => s.nome.split(' ')[0]).join(', ')}</small></td>
-              <td>${editavel ? html`<select class="form-select wfm-turno-in" aria-label=${`Turno de ${o.nome}`} value=${turnoIdDe(id, dia) ?? ''} onChange=${(e) => mudarTurno(id, dia, e.target.value)}><option value="">DSR</option>${turnosSelecionaveis.map((x) => html`<option key=${x.id_turno} value=${x.id_turno}>${x.codigo}</option>`)}</select>` : (t ? html`<span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span>` : html`<span class="wfm-dsr">DSR</span>`)}</td>
-              <td>${trab ? html`<span class="wfm-horario">
-                <input class=${`form-control wfm-hora-in ${ajustado(id, dia) ? 'is-ajustado' : ''}`} type="time" aria-label=${`Entrada de ${o.nome}`} disabled=${!editavel} value=${entradaDe(id, dia)} onInput=${(e) => mudarHorario(id, dia, 'entrada', e.target.value)} />
-                <span class="wfm-ate" aria-hidden="true">–</span>
-                <input class=${`form-control wfm-hora-in ${ajustado(id, dia) ? 'is-ajustado' : ''}`} type="time" aria-label=${`Saída de ${o.nome}`} disabled=${!editavel} value=${saidaDe(id, dia)} onInput=${(e) => mudarHorario(id, dia, 'saida', e.target.value)} />
-                <small class="wfm-duracao" title="Duração da jornada">${minutosParaHoras(duracao(entradaDe(id, dia), saidaDe(id, dia)))}</small></span>` : html`<span class="mon-muted">—</span>`}</td>
-              <td class="wfm-col-pausas">${trab ? (salvaTrab || m.pausas) ? (pausas.length
-                ? html`<span class="wfm-pausas-in">${ordensPausa.map((ord) => { const p = pausas.find((x) => x.ordem === ord); return p ? html`<input key=${ord} class="form-control wfm-pausa-in" type="time" disabled=${!editavel} title=${`Pausa ${ord} · ${ROTULO_PAUSA[p.tipo] || 'Pausa'} ${p.duracao_min} min`} aria-label=${`Pausa ${ord} de ${o.nome}`} value=${p.inicio} onInput=${(e) => mudarPausa(id, dia, ord, e.target.value)} />` : null; })}</span>`
-                : (editavel ? html`<button type="button" class="wfm-link" onClick=${() => definirPausas(id, dia)}>Definir</button>` : html`<span class="mon-muted">—</span>`))
-                : html`<span class="mon-muted" title="As pausas são programadas ao salvar">ao salvar</span>` : html`<span class="mon-muted">—</span>`}</td>
-              <td>${trab ? html`<select class=${`wfm-select wfm-pres-sel wfm-pres-${pres.toLowerCase()}`} aria-label=${`Presença de ${o.nome}`} disabled=${!podePresenca} value=${pres} onChange=${(e) => mudar(id, dia, { pres: e.target.value })}><option value="">·</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k} title=${ROTULO_STATUS_PRESENCA[k]}>${s}</option>`)}</select>` : '—'}</td>
-              <td>${trab ? html`<span class="wfm-extra">${podePresenca ? html`<input class="form-control wfm-min-in" type="number" min="0" max="720" step="5" aria-label=${`Hora extra de ${o.nome} (minutos)`} title="Minutos de hora extra neste dia" value=${extraDe(id, dia) || ''} placeholder="min" onInput=${(e) => mudar(id, dia, { he: Number(e.target.value) || 0 })} />` : html`<span>${extraDe(id, dia) || '—'}</span>`}${extraMes(id) ? html`<small class="wfm-duracao" title="Total de hora extra no mês">mês ${minutosParaHoras(extraMes(id))}</small>` : null}</span>` : '—'}</td>
-            </tr>`; })}
-        </tbody>
-      </table></div>
+      <div class="ea-tabela">
+        <div class="ea-rolagem" role="region" aria-label="Escala do dia" tabindex="0">
+          <table class=${`ea-tab ${editavel ? 'ea-tab--sel' : ''}`}>
+            <colgroup>${editavel ? html`<col style=${{ width: '44px' }} />` : null}<col /><col style=${{ width: '170px' }} /><col style=${{ width: '200px' }} /><col style=${{ width: '230px' }} /><col style=${{ width: '100px' }} /><col style=${{ width: '120px' }} /></colgroup>
+            <thead><tr>
+              ${editavel ? html`<th scope="col" class="ea-c-sel"><${CheckTodos} rotulo="Selecionar todos os colaboradores" total=${visiveis.length} marcados=${marcados.length} aoAlternar=${alternarTodos} /></th>` : null}
+              <th scope="col" class="ea-c-nome">Colaborador</th><th scope="col">Turno</th><th scope="col">Horário</th><th scope="col">Pausas</th><th scope="col">Presença</th><th scope="col">Hora extra</th>
+            </tr></thead>
+            <tbody>
+              ${mostradas.length ? mostradas.map((o) => { const id = o.id_usuario; const t = turnoDe(id, dia); const trab = trabalha(id, dia); const m = mudou(id, dia);
+                const pausas = pausasDe(id, dia); const salvaTrab = escalaSalva(id, dia) && !m.escala; const pres = presencaDe(id, dia);
+                const turnoLinha = t && t.tipo !== 'DSR' ? t : null;
+                const pausasItem = { entrada: entradaDe(id, dia), saida: saidaDe(id, dia), pausas };
+                return html`<tr key=${id} class=${`${sel[id] ? 'is-sel' : ''} ${m.escala || m.extra || m.pres || m.pausas ? 'is-pendente' : ''}`.trim()}>
+                  ${editavel ? html`<td class="ea-c-sel"><input type="checkbox" class="ea-check" aria-label=${`Selecionar ${o.nome}`} checked=${!!sel[id]} onChange=${() => setSel({ ...sel, [id]: !sel[id] })} /></td>` : null}
+                  <td class="ea-c-nome"><span class="ea-nome" title=${o.nome}>${o.nome}</span><span class="ea-sup">${(o.supervisores || []).map((s) => s.nome.split(' ')[0]).join(', ')}</span></td>
+                  <td>${editavel
+                    ? html`<${SeletorTurnoLinha} turno=${turnoLinha} turnos=${turnosSelecionaveis} rotuloAria=${`Alterar turno de ${o.nome}`} aoEscolher=${(v) => mudarTurno(id, dia, v)} />`
+                    : html`<span class="ea-turno-ro"><${Quadrado} cor=${turnoLinha?.cor} dsr=${!turnoLinha} />${turnoLinha ? turnoLinha.nome : 'DSR'}</span>`}</td>
+                  <td><${CelulaHorario} nome=${o.nome} trab=${trab} editavel=${editavel} entrada=${entradaDe(id, dia)} saida=${saidaDe(id, dia)} ajustado=${ajustado(id, dia)}
+                    editando=${editHor === id} aoEditar=${(v) => setEditHor(v ? id : null)} aoMudar=${(campo, valor) => mudarHorario(id, dia, campo, valor)} /></td>
+                  <td>${!trab ? html`<span class="ea-muted">—</span>`
+                    : !(salvaTrab || m.pausas) ? html`<span class="ea-muted" title="As pausas são programadas ao salvar">ao salvar</span>`
+                    : pausas.length ? (editavel
+                      ? html`<button type="button" class="ea-pausas-btn" aria-label=${`Editar pausas de ${o.nome}`} onClick=${() => abrirGaveta(o, 'pausas')}>${pausasItem.entrada && pausasItem.saida ? html`<${LinhaTempo} item=${pausasItem} mini />` : null}<span>${pausas.length} pausa${pausas.length > 1 ? 's' : ''}</span></button>`
+                      : html`<span class="ea-pausas-ro">${pausasItem.entrada && pausasItem.saida ? html`<${LinhaTempo} item=${pausasItem} mini />` : null}<span>${pausas.length} pausa${pausas.length > 1 ? 's' : ''}</span></span>`)
+                    : (editavel ? html`<button type="button" class="ea-definir" aria-label=${`Definir pausas de ${o.nome}`} onClick=${() => abrirGaveta(o, 'pausas')}><${Icone} nome="add" />Definir</button>` : html`<span class="ea-muted">—</span>`)}</td>
+                  <td>${trab ? html`<select class=${`ea-campo ea-select ea-select--pres wfm-pres-${pres.toLowerCase()}`} aria-label=${`Presença de ${o.nome}`} disabled=${!podePresenca} value=${pres} onChange=${(e) => mudar(id, dia, { pres: e.target.value })}><option value="">·</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k} title=${ROTULO_STATUS_PRESENCA[k]}>${s}</option>`)}</select>` : html`<span class="ea-muted">—</span>`}</td>
+                  <td>${trab ? (podePresenca
+                    ? html`<input class="ea-campo ea-in-min" type="number" min="0" max="720" step="5" inputmode="numeric" aria-label=${`Hora extra de ${o.nome} (minutos)`} title=${extraMes(id) ? `Minutos de hora extra neste dia. Total no mês: ${minutosParaHoras(extraMes(id))}` : 'Minutos de hora extra neste dia'} value=${extraDe(id, dia) || ''} placeholder="min" onInput=${(e) => mudar(id, dia, { he: Number(e.target.value) || 0 })} />`
+                    : html`<span class="ea-num">${extraDe(id, dia) || '—'}</span>`) : html`<span class="ea-muted">—</span>`}</td>
+                </tr>`; })
+                : html`<tr><td class="ea-vazio" colspan=${editavel ? 7 : 6}>Nenhum colaborador encontrado com estes filtros.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div class="ea-rodape">
+          <span class="ea-muted" aria-live="polite">Mostrando ${mostradas.length} de ${visiveis.length} colaboradores</span>
+          ${mostradas.length < visiveis.length ? html`<button type="button" class="btn btn-outline-secondary ea-btn-40" onClick=${() => setLimite((l) => l + 50)}>Mostrar mais</button>` : null}
+        </div>
+      </div>
       <div class="wfm-legenda-pres">${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k}><span class=${`wfm-pres wfm-pres-${k.toLowerCase()}`}>${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}<span><span class="wfm-dsr">DSR</span>Dia sem turno</span></div>
 
       ${(fechada && editavel && pendentes) || pedirJust ? html`<label class="wfm-campo wfm-just"><span>${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado)'}</span><input class="form-control" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} /></label>` : null}
@@ -430,6 +456,28 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
         ${podePublicar ? html`<button type="button" class="btn btn-outline-primary wfm-publicar" disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA')} title=${bloqueioPublicar} onClick=${publicar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('event_available')}</span>Publicar</button>` : null}
       </div>
     </section>
+    ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
+      bloqueio=${pendentes > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}
+      aoFechar=${() => setGaveta(null)} aoSalvo=${(ok) => { if (ok) setGaveta(null); carregar(); }} />` : null}
     ${configurando ? html`<${ModalConfigEscala} operacao=${operacao} nomePadrao=${nomeOperacao} showToast=${showToast} onClose=${() => setConfigurando(false)} onSalvo=${() => { setConfigurando(false); setVersaoLista((v) => v + 1); carregar(); }} onMudouLista=${() => { setConfigurando(false); aoVoltarLista?.(); }} />` : null}
     ${modalTurno ? html`<${ModalTurno} operacao=${operacao} inicial=${modalTurno} contratos=${contratos} supervisores=${supervisoresOp} showToast=${showToast} onClose=${() => setModalTurno(null)} onSalvo=${() => { setModalTurno(null); carregar(); }} />` : null}`;
+}
+
+// Horário da linha: texto clicável (36px) que vira dois campos de hora com a duração recalculada. Edita o mesmo estado pendente de antes.
+function CelulaHorario({ nome, trab, editavel, entrada, saida, ajustado, editando, aoEditar, aoMudar }) {
+  const raiz = useRef(null);
+  if (!trab) return html`<span class="ea-muted">—</span>`;
+  const dur = minutosParaHoras(duracao(entrada, saida));
+  if (!editavel) return html`<span class="ea-hor-ro"><span class="ea-hor-txt ea-num">${entrada} – ${saida}</span><span class="ea-muted">${dur}</span></span>`;
+  if (!editando) {
+    return html`<button type="button" class=${`ea-hor-btn ${ajustado ? 'is-ajustado' : ''}`} aria-label=${`Editar horário de ${nome}`} title=${ajustado ? 'Horário diferente do padrão do turno' : 'Editar horário'} onClick=${() => aoEditar(true)}>
+      <span class="ea-hor-txt ea-num">${entrada} – ${saida}</span><span class="ea-muted">${dur}</span></button>`;
+  }
+  const sair = (e) => { if (!raiz.current?.contains(e.relatedTarget)) aoEditar(false); };
+  return html`<span class="ea-hor-edit" ref=${raiz} onKeyDown=${(e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); aoEditar(false); } }}>
+    <input type="time" class="ea-campo ea-in-hora" autoFocus aria-label=${`Entrada de ${nome}`} value=${entrada} onInput=${(e) => aoMudar('entrada', e.target.value)} onBlur=${sair} />
+    <span aria-hidden="true">–</span>
+    <input type="time" class="ea-campo ea-in-hora" aria-label=${`Saída de ${nome}`} value=${saida} onInput=${(e) => aoMudar('saida', e.target.value)} onBlur=${sair} />
+    <span class="ea-muted" aria-live="polite">${dur}</span>
+  </span>`;
 }

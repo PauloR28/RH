@@ -13,6 +13,10 @@ class ParametroSistemaRequest(BaseSchema):
     justificativa: str = Field(default="")
 
 
+class OrientacoesGuiadasRequest(BaseSchema):
+    ativo: bool
+
+
 class ResetarDadosConectaRequest(BaseSchema):
     confirmacao: str = Field(default="")
     senha: str = Field(default="")

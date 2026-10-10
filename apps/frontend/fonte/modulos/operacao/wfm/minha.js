@@ -88,16 +88,19 @@ function Legenda({ tipos, comum }) {
 
 // ---------------------------------------------------------------- painel do dia
 
-function LinhaTempo({ item }) {
+// Reaproveitada pela administração da escala (Escala do dia e gaveta "Ajustar dia"): `mini` = só a barra de 96x8.
+export function LinhaTempo({ item, mini = false }) {
   const ini = aMin(item.entrada);
   let total = aMin(item.saida) - ini;
   if (total <= 0) total += 1440;
+  const barra = html`<div class=${`mc-tl-barra ${mini ? 'mc-tl-barra--mini' : ''}`} aria-hidden="true">${item.pausas.map((p, i) => {
+    const off = ((aMin(p.inicio) - ini + 1440) % 1440) / total * 100;
+    const larg = Math.min(p.duracao_min / total * 100, 100 - off);
+    return html`<span key=${i} class="mc-tl-pausa" style=${{ left: `${off}%`, width: `${Math.max(larg, 1)}%` }}></span>`;
+  })}</div>`;
+  if (mini) return barra;
   return html`<div class="mc-tl">
-    <div class="mc-tl-barra" aria-hidden="true">${item.pausas.map((p, i) => {
-      const off = ((aMin(p.inicio) - ini + 1440) % 1440) / total * 100;
-      const larg = Math.min(p.duracao_min / total * 100, 100 - off);
-      return html`<span key=${i} class="mc-tl-pausa" style=${{ left: `${off}%`, width: `${Math.max(larg, 1)}%` }}></span>`;
-    })}</div>
+    ${barra}
     <div class="mc-tl-horas"><span>${item.entrada}</span><span>${item.saida}</span></div>
   </div>`;
 }

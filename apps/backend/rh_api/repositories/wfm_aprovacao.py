@@ -307,6 +307,10 @@ class WfmAprovacaoRepositoryMixin:
             )
             self.wfm_audit(cursor, user, operacao=operacao, acao="enviar_aprovacao", entidade="escala", entidade_id=ano_mes,
                            antes={"estado": ap["estado"]}, depois={"estado": EM_APROVACAO, "itens": len(snapshot["itens"])}, ip=ip)
+            aprovadores = self._wfm_aprovadores(cursor, operacao)
+            self._wfm_notificar(cursor, usuarios=aprovadores["usuarios"], perfis=aprovadores["perfis"], titulo="Escala aguardando aprovação",
+                                mensagem=f"{autor} enviou a escala {ano_mes} ({operacao}) para aprovação.", entidade="escala", entidade_id=f"{operacao}:{ano_mes}",
+                                ignorar=[user.id_usuario])
             conn.commit()
             return {"success": True, "estado": EM_APROVACAO}
         finally:
@@ -379,6 +383,9 @@ class WfmAprovacaoRepositoryMixin:
             self.wfm_audit(cursor, user, operacao=operacao, acao="declinar_escala", entidade="escala", entidade_id=ano_mes,
                            antes={"estado": EM_APROVACAO}, depois={"estado": RASCUNHO, "enviado_por": cab["aprovacao"].get("enviado_por_nome")},
                            justificativa=justificativa, ip=ip)
+            self._wfm_notificar(cursor, usuarios=[cab["aprovacao"].get("enviado_por")], titulo="Escala declinada",
+                                mensagem=f"A escala {ano_mes} ({operacao}) foi declinada: {justificativa[:200]}", entidade="escala",
+                                entidade_id=f"{operacao}:{ano_mes}", ignorar=[user.id_usuario])
             conn.commit()
             return {"success": True, "estado": RASCUNHO}
         finally:
