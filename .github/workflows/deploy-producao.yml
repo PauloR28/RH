@@ -30,6 +30,9 @@ jobs:
           # para o log mostrar qual arquivo falhou.
           robocopy "$env:GITHUB_WORKSPACE" "C:\Conecta" /MIR /XD ".venv" ".git" "C:\Conecta\data\private" "C:\Conecta\logs" "$env:GITHUB_WORKSPACE\data\private" "$env:GITHUB_WORKSPACE\logs" /XF ".env" /R:3 /W:5 /NDL /NJH /NP
           if ($LASTEXITCODE -ge 8) { throw "robocopy falhou com codigo $LASTEXITCODE" }
+          # Codigos 1-7 do robocopy sao sucesso (arquivos copiados/removidos), mas o PowerShell
+          # repassaria o codigo como saida do passo e o Actions marcaria falha.
+          exit 0
 
       - name: Conferir pastas de dados fora da aplicacao (apenas aviso)
         shell: powershell
