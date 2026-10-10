@@ -1,9 +1,9 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
-import { criarChamado } from '../../../services/api/chamados.js?v=20261005-redesign15';
-import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
+import { criarChamado } from '../../../services/api/chamados.js?v=20261005-redesign16';
+import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import {
   AcoesCompartilhar, EstadoErro, Icone, ORDEM_URGENCIA, ROTULO_URGENCIA, TELA_LISTA, irParaChamado, tamanhoLegivel, textoCompartilhar, useMetaChamados,
-} from './comum.js?v=20261005-redesign15';
+} from './comum.js?v=20261005-redesign16';
 
 // Novo chamado: uma linha de solicitante (somente leitura), grade de 3 colunas e as ações no cabeçalho (sempre visíveis).
 // O piso de urgência (PA parada / célula inteira) é reforçado no backend.
@@ -70,7 +70,7 @@ export function NovoChamado({ controlador, showToast }) {
   const desabilitada = (u) => ORDEM_URGENCIA.indexOf(u) < ORDEM_URGENCIA.indexOf(piso);
   useEffect(() => { if (desabilitada(form.urgencia)) mudar({ urgencia: piso }); }, [piso]);
 
-  const valido = form.operacao && form.categoriaId && form.titulo.trim() && form.descricao.trim() && (form.impacto === 'celula' || form.pa.trim());
+  const valido = form.operacao && form.categoriaId && form.titulo.trim() && form.descricao.trim();
 
   const enviar = async (e) => {
     e.preventDefault();
@@ -139,7 +139,7 @@ export function NovoChamado({ controlador, showToast }) {
             <select value=${form.categoriaId} onChange=${(e) => mudar({ categoriaId: e.target.value })} disabled=${!meta}>
               <option value="">Selecione</option>${(meta?.categorias || []).map((c) => html`<option key=${c.id} value=${c.id}>${c.nome}</option>`)}</select>
           <//>
-          <${Campo} rotulo=${`PA / posto${form.impacto === 'celula' ? ' (opcional)' : ''}`}>
+          <${Campo} rotulo="PA / posto (opcional)">
             <input maxlength="40" value=${form.pa} placeholder="Ex.: PA 14" onInput=${(e) => mudar({ pa: e.target.value })} />
           <//>
           <div class="lp-campo"><span class="lp-campo-rotulo">Quem foi afetado?</span>

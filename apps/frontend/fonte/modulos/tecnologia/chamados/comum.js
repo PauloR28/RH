@@ -1,6 +1,6 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerMetaChamados } from '../../../services/api/chamados.js?v=20261005-redesign15';
+import { lerMetaChamados } from '../../../services/api/chamados.js?v=20261005-redesign16';
 
 // Chamados (Suporte TI) — peças comuns: ícone, pills, datas, SLA, navegação, compartilhamento.
 // Estados e cores usam os tokens do Conecta (success/warning/danger/info); sem tela de personalização de tags.

@@ -295,3 +295,10 @@
   .chm-kpis--seis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chm-hist li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
+
+/* Fila: busca em uma linha; abaixo, os quatro filtros alinhados em colunas iguais e o seletor de responsável à direita */
+.chm-fila { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.chm-fila-filtros { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.chm-fila-selects { flex: 1 1 480px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+.chm-fila-selects select { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 14px; min-width: 0; }
+@media (max-width: 767.98px) { .chm-fila-selects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

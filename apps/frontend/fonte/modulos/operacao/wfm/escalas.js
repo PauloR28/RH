@@ -3,7 +3,7 @@ import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { criarEscalaWfm, gestaoEscalasWfm } from '../../../services/api/wfm.js';
 import { Campo, ModalForm } from './formulario.js';
-import { DataTable, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign15';
+import { DataTable, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 
 // Tela inicial da aba Escala: a lista de escalas do mês.
 //  - Quem cria escalas (Supervisor, Control Desk, Analista de TI): vê todas (ativas e inativas), abre a escala para montar,
