@@ -46,6 +46,7 @@ jobs:
           # requirements.txt muda (hash guardado em logs\, pasta que o robocopy preserva). Se mudar, a falha aparece
           # aqui, com a aplicacao ainda de pe, em vez de deixar o .venv pela metade.
           $req = "C:\Conecta\requirements.txt"
+          New-Item -ItemType Directory -Force "C:\Conecta\logs" | Out-Null
           $marca = "C:\Conecta\logs\requirements.sha256"
           $hash = (Get-FileHash $req -Algorithm SHA256).Hash
           $anterior = if (Test-Path $marca) { (Get-Content $marca -Raw).Trim() } else { "" }
