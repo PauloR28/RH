@@ -244,3 +244,18 @@ class DistribuirPausasRequest(BaseSchema):
     sobrescrever: bool = False
     data_fim: str = Field(default="", max_length=10)  # preenchido: distribui de `data` até `data_fim` (semana/mês)
     dias_semana: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = todos os dias do período
+
+
+class ExportarHistoricoRequest(BaseSchema):
+    """Exportação do Histórico: mesmos filtros da tela + formato e escopo (tudo do filtro ou só os ids selecionados)."""
+
+    formato: str = Field(default="xlsx", max_length=8)
+    escopo: str = Field(default="filtro", max_length=16)
+    ids: list[int] = Field(default_factory=list, max_length=1000)
+    texto: str = Field(default="", max_length=120)
+    operacao: str = Field(default="", max_length=60)
+    entidade: str = Field(default="", max_length=40)
+    operador: str = Field(default="", max_length=180)
+    supervisor: str = Field(default="", max_length=180)
+    data_ini: date | None = None
+    data_fim: date | None = None

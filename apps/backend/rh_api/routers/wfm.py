@@ -6,12 +6,15 @@ notificações, aderência e sugestão automática de escala."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response, StreamingResponse
 
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
+from ..services import wfm_historico as historico
 from ..schemas.wfm import (
     AtestadoRequest,
     CapacidadePausasRequest,
@@ -20,6 +23,7 @@ from ..schemas.wfm import (
     DuplicarEscalaRequest,
     DeclinarRequest,
     DistribuirPausasRequest,
+    ExportarHistoricoRequest,
     PersonalizacaoTurnoRequest,
     PresencaLoteRequest,
     SalvarPausasRequest,
@@ -239,6 +243,40 @@ def auditoria(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return {"itens": repository.wfm_list_auditoria(user, operacao, limite, entidade, acao)}
+
+
+# ---- Histórico (antiga Auditoria): cursor, opções de filtro e exportação ----
+def _filtro_historico(texto: str = "", operacao: str = "", entidade: str = "", operador: str = "", supervisor: str = "", data_ini=None, data_fim=None):
+    if data_ini and data_fim and data_fim < data_ini:
+        raise HTTPException(status_code=400, detail="A data final não pode ser anterior à inicial.")
+    return historico.FiltroHistorico(texto=texto, operacao=operacao.strip(), entidade=entidade.strip(), operador=operador.strip(),
+                                     supervisor=supervisor.strip(), data_ini=data_ini, data_fim=data_fim)
+
+
+@router.get("/historico", dependencies=[Depends(require_permissions("wfm.auditoria"))])
+def historico_listar(
+    texto: str = "", operacao: str = "", entidade: str = "", operador: str = "", supervisor: str = "",
+    data_ini: date | None = None, data_fim: date | None = None, cursor: str = "", limite: int | None = None,
+    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
+):
+    filtro = _filtro_historico(texto, operacao, entidade, operador, supervisor, data_ini, data_fim)
+    return repository.wfm_hist_listar(user, filtro, cursor or None, limite)
+
+
+@router.get("/historico/opcoes", dependencies=[Depends(require_permissions("wfm.auditoria"))])
+def historico_opcoes(operacao: str = "", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_hist_opcoes(user, operacao.strip())
+
+
+@router.post("/historico/exportar", dependencies=[Depends(require_permissions("wfm.auditoria"))])
+def historico_exportar(payload: ExportarHistoricoRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    filtro = _filtro_historico(payload.texto, payload.operacao, payload.entidade, payload.operador, payload.supervisor, payload.data_ini, payload.data_fim)
+    plano = repository.wfm_hist_preparar_exportacao(user, filtro, payload.formato, payload.escopo, payload.ids, ip=client_ip(request))
+    cabecalhos = {"Content-Disposition": f'attachment; filename="{plano["nome"]}"', "X-Total-Registros": str(plano["total"]), "Access-Control-Expose-Headers": "Content-Disposition, X-Total-Registros"}
+    if plano["formato"] == "csv":
+        return StreamingResponse(historico.gerar_csv_fluxo(plano["linhas"]()), media_type=plano["mime"], headers=cabecalhos)
+    conteudo = historico.gerar_xlsx_fluxo(plano["linhas"]()) if plano["formato"] == "xlsx" else historico.gerar_pdf(plano["linhas"]())
+    return Response(content=conteudo, media_type=plano["mime"], headers=cabecalhos)
 
 
 # ---- Trocas de plantão ---------------------------------------------------
