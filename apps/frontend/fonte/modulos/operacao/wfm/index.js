@@ -11,7 +11,7 @@ import { TelaCadastros } from './cadastros.js?v=20261005-redesign16';
 import { TelaJornadas } from './jornadas.js?v=20261005-redesign16';
 import { TelaEscalaTabela } from './tabela.js?v=20261007-admin-escala';
 import { TelaMinhaEscala } from './minha.js?v=20261007-admin-escala';
-import { ListaEscalas } from './escalas.js?v=20261005-redesign16';
+import { ListaEscalas } from './escalas.js?v=20261014-escala';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
 import { TelaTrocas } from './trocas.js';
 import { TelaRelatorios } from './relatorios.js';
@@ -147,6 +147,23 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   const dependeDeEscala = ['screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual);
   const operacoesComEscala = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false);
   const props = { controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala: setOperacao };
+
+  // Lista de escalas: layout novo (cabeçalho, abas, resumo e lista numa tela só); as demais telas do WFM seguem como estão.
+  if (telaAtual === 'screen-wfm' && visaoEscala === 'lista' && contexto && !erro) {
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        <${ListaEscalas} controlador=${controlador} anoMes=${anoMes} aoMudarMes=${setAnoMes} versao=${versaoLista} showToast=${showToast}
+          titulo=${titulo} descricao=${descricao}
+          abas=${abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone }))} abaAtiva=${abaAtiva} aoMudarAba=${(tela) => controlador.irParaTelaProtegida(tela)}
+          aoAbrir=${(chave, modo) => { setOperacao(chave); setVisaoEscala(modo); }}
+          aoConfigurar=${(item) => setConfigurandoItem(item)}
+          aoMudou=${() => { recarregarContexto(); setVersaoLista((v) => v + 1); }} />
+        ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
+          onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
+          onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}
+      </${PainelRh}>`;
+  }
 
   let corpo;
   if (erro) corpo = html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
