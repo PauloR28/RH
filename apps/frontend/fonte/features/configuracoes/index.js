@@ -12,7 +12,6 @@ import {
   criarUsuario,
   criarUsuarioRapido,
   desativarItemConfiguracao,
-  excluirItemConfiguracao,
   excluirUsuario,
   lerAutomacaoNotificacoes,
   lerCandidatosProcessos,
@@ -28,7 +27,7 @@ import {
 import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
 import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
-import { redefinirMfaUsuario } from '../../services/api/settings.js';
+import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
 import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261004-chamados2';
 import { listarOperacoes } from '../../services/api/operations.js';
