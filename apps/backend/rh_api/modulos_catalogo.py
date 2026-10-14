@@ -106,3 +106,36 @@ def modulo_dono_padrao(chave: str, grupo: str = "") -> str:
 
 def abre_modulo_padrao(chave: str) -> bool:
     return chave in ABRE_MODULO_PADRAO
+
+
+# ---------------------------------------------------------------- funções por módulo (V062)
+# "Função" = grupo do menu superior (o mesmo `id` de `MODULO_DO_GRUPO` no frontend). Cada módulo escolhe quais funções
+# EXIBE no menu. É só visibilidade: as permissões do perfil continuam decidindo o que cada pessoa pode abrir/usar, e as
+# telas seguem existindo (quem tem permissão abre pelo módulo onde a função estiver ligada). `inicio` e `treinamentos`
+# (core) aparecem sempre e não entram aqui.
+FUNCOES: dict[str, tuple[str, str]] = {
+    "cx-curriculos": ("CX de Currículos", "Caixa de currículos e candidatos."),
+    "processos": ("Processos", "Processos seletivos, vagas e entrevistas."),
+    "provas": ("Conecta Provas", "Provas, testes comportamentais e resultados."),
+    "gestao": ("Gestão", "Indicadores e acompanhamento do RH."),
+    "drive": ("Drive", "Documentos e arquivos do Conecta."),
+    "monitoria": ("Monitoria", "Central de Monitoria: avaliações, equipes e indicadores."),
+    "wfm": ("Turnos e Plantões", "Escalas, presença, trocas e relatórios (WFM)."),
+    "suporte": ("Suporte TI", "Chamados, fila, indicadores e configurações de TI."),
+}
+_FUNCOES_MENU_LEGADO = ("cx-curriculos", "processos", "provas", "gestao", "drive", "monitoria", "wfm")
+FUNCOES_POR_MODULO: dict[str, tuple[str, ...]] = {
+    MODULO_RH: _FUNCOES_MENU_LEGADO,
+    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO,
+    MODULO_TECNOLOGIA: ("suporte", "wfm"),
+}
+# Padrão = o menu de hoje (nada muda até alguém mexer): RH mostra as funções de RH; Operação, Monitoria e WFM; Tecnologia, Suporte e Escalas.
+FUNCOES_PADRAO_ATIVAS: dict[str, frozenset[str]] = {
+    MODULO_RH: frozenset({"cx-curriculos", "processos", "provas", "gestao", "drive"}),
+    MODULO_OPERACAO: frozenset({"monitoria", "wfm"}),
+    MODULO_TECNOLOGIA: frozenset({"suporte", "wfm"}),
+}
+
+
+def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
+    return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())

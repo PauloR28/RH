@@ -23,6 +23,8 @@ from typing import Callable, Iterable
 from ..areas import SUPORTE_TI, area_ativa, areas_inativas
 from ..modulos_catalogo import (
     ABRE_MODULO_PADRAO,
+    FUNCOES_PADRAO_ATIVAS,
+    FUNCOES_POR_MODULO,
     MODULO_CORE,
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
@@ -46,6 +48,8 @@ class EstadoModulos:
     ordem: dict[str, int] = field(default_factory=lambda: {c: o for c, _n, o, _p in MODULOS_PADRAO})
     donos: dict[str, str] = field(default_factory=dict)  # permissão -> módulo (só as que o banco definiu)
     abre: dict[str, bool] = field(default_factory=dict)  # permissão -> abre o módulo dono (só as que o banco definiu)
+    # módulo -> funções (grupos do menu) que ele exibe. Só visibilidade: as permissões continuam valendo como antes.
+    funcoes: dict[str, frozenset[str]] = field(default_factory=lambda: dict(FUNCOES_PADRAO_ATIVAS))
     de_banco: bool = False
 
 
@@ -79,7 +83,33 @@ def _carregar_do_banco() -> EstadoModulos:
             ativos.discard(chave)
     donos = {str(c): str(d) for c, d, _a in permissoes if str(d) in MODULOS_VALIDOS}
     abre = {str(c): bool(a) for c, d, a in permissoes if str(d) in MODULOS_VALIDOS}
-    return EstadoModulos(ativos=frozenset(ativos | MODULOS_PROTEGIDOS), nomes=nomes, ordem=ordem, donos=donos, abre=abre, de_banco=True)
+    return EstadoModulos(ativos=frozenset(ativos | MODULOS_PROTEGIDOS), nomes=nomes, ordem=ordem, donos=donos, abre=abre,
+                         funcoes=_carregar_funcoes(), de_banco=True)
+
+
+def _carregar_funcoes() -> dict[str, frozenset[str]]:
+    """Funções que cada módulo exibe (V062). Tabela ausente/ilegível = padrão do catálogo (o menu de antes)."""
+    from ..config import get_settings
+    from ..db import get_connection
+
+    ativas = {modulo: set(funcoes) for modulo, funcoes in FUNCOES_PADRAO_ATIVAS.items()}
+    try:
+        conn = get_connection(get_settings(), autocommit=True)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT modulo, funcao, ativo FROM dbo.modulos_funcoes")
+            linhas = cursor.fetchall()
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 - V062 ainda não aplicada
+        logger.info("Funções por módulo indisponíveis (%s); usando o padrão do catálogo.", exc)
+        return {modulo: frozenset(funcoes) for modulo, funcoes in ativas.items()}
+    for modulo, funcao, ativo in linhas:
+        modulo, funcao = str(modulo), str(funcao)
+        if funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
+            continue
+        (ativas.setdefault(modulo, set()).add if ativo else ativas.setdefault(modulo, set()).discard)(funcao)
+    return {modulo: frozenset(funcoes) for modulo, funcoes in ativas.items()}
 
 
 def estado() -> EstadoModulos:
@@ -119,6 +149,12 @@ def definir_carregador(carregador: Callable[[], EstadoModulos] | None) -> None:
 # ---------------------------------------------------------------- consultas
 def modulo_ativo(modulo: str) -> bool:
     return modulo in MODULOS_PROTEGIDOS or modulo in estado().ativos
+
+
+def funcoes_ativas(modulo: str) -> list[str]:
+    """Funções (grupos do menu) que o módulo exibe, na ordem do catálogo."""
+    ligadas = estado().funcoes.get(modulo, frozenset())
+    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas]
 
 
 def modulo_da_permissao(chave: str, grupo: str = "") -> str:
@@ -215,6 +251,7 @@ def descrever(permissoes: Iterable[str], extras: Iterable[str] = ()) -> dict:
         "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
         "operacao_ti": OPERACAO_TI,
         "permissoes": sorted(efetivas),
+        "funcoes": {modulo: funcoes_ativas(modulo) for modulo in FUNCOES_POR_MODULO},
         "areas_inativas": sorted(areas_inativas()),
     }
 

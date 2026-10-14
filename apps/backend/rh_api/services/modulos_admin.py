@@ -6,7 +6,15 @@ from fastapi import HTTPException, status
 
 from ..config import get_settings
 from ..db import get_connection
-from ..modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, MODULOS_PADRAO, MODULOS_PROTEGIDOS, MODULOS_VALIDOS
+from ..modulos_catalogo import (
+    FUNCOES,
+    FUNCOES_POR_MODULO,
+    MODULO_CORE,
+    MODULO_TECNOLOGIA,
+    MODULOS_PADRAO,
+    MODULOS_PROTEGIDOS,
+    MODULOS_VALIDOS,
+)
 from . import acesso
 
 
@@ -48,6 +56,51 @@ def definir_ativo(chave: str, ativo: bool, *, autor: str) -> dict:
         conn.close()
     acesso.invalidar_cache()
     return {"chave": chave, "ativo_anterior": anterior, "ativo": ativo}
+
+
+def listar_funcoes() -> list[dict]:
+    """Por módulo: as funções (grupos do menu) que ele pode exibir e quais estão ligadas."""
+    ligadas = acesso.estado().funcoes
+    nomes = {m["chave"]: m for m in listar_modulos()}
+    return [
+        {
+            "modulo": modulo,
+            "nome": nomes[modulo]["nome"],
+            "ativo": nomes[modulo]["ativo"],
+            "protegido": nomes[modulo]["protegido"],
+            "funcoes": [
+                {"chave": f, "nome": FUNCOES[f][0], "descricao": FUNCOES[f][1], "ativo": f in ligadas.get(modulo, frozenset())}
+                for f in funcoes
+            ],
+        }
+        for modulo, funcoes in FUNCOES_POR_MODULO.items()
+    ]
+
+
+def definir_funcao(modulo: str, funcao: str, ativo: bool, *, autor: str) -> dict:
+    """Liga/desliga uma função no menu de um módulo. Só visibilidade; não apaga nada nem muda permissões."""
+    if funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
+        raise _erro(status.HTTP_404_NOT_FOUND, "Função não encontrada neste módulo.")
+    anterior = funcao in acesso.estado().funcoes.get(modulo, frozenset())
+    conn = get_connection(get_settings(), autocommit=True)
+    try:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE dbo.modulos_funcoes SET ativo = ?, atualizado_em = GETDATE(), atualizado_por = ? WHERE modulo = ? AND funcao = ?",
+                (1 if ativo else 0, autor[:180], modulo, funcao),
+            )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    "INSERT INTO dbo.modulos_funcoes (modulo, funcao, ativo, atualizado_por) VALUES (?, ?, ?, ?)",
+                    (modulo, funcao, 1 if ativo else 0, autor[:180]),
+                )
+        except Exception as exc:  # noqa: BLE001
+            raise _erro(status.HTTP_409_CONFLICT, "Funções por módulo indisponíveis: aplique a migration V062.") from exc
+    finally:
+        conn.close()
+    acesso.invalidar_cache()
+    return {"modulo": modulo, "funcao": funcao, "nome": FUNCOES[funcao][0], "ativo_anterior": anterior, "ativo": ativo}
 
 
 def resumo_inicio() -> dict:

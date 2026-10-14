@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..schemas.modulos import ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
+from ..schemas.modulos import FuncaoModuloRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
 from ..services import acesso, modulos_admin
 
 router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depends(get_current_user)])
@@ -45,6 +45,30 @@ def definir_acesso_usuario(id_usuario: int, payload: ModulosAcessoRequest, reque
     audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_usuario_alterado", entidade="usuario", entidade_id=str(id_usuario),
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)
+    return resultado
+
+
+@router.get("/modulos/funcoes", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def listar_funcoes() -> list[dict]:
+    """Funções (grupos do menu) que cada módulo exibe e quais estão ligadas."""
+    return modulos_admin.listar_funcoes()
+
+
+@router.put("/modulos/{modulo}/funcoes/{funcao}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def definir_funcao_modulo(
+    modulo: str,
+    funcao: str,
+    payload: FuncaoModuloRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+) -> dict:
+    resultado = modulos_admin.definir_funcao(modulo, funcao, payload.ativo, autor=user.username)
+    audit_action(
+        repository, user, modulo="Sistema", acao="modulo_funcao_alterada", entidade="modulo_funcao", entidade_id=f"{modulo}:{funcao}",
+        valor_anterior={"ativo": resultado["ativo_anterior"]}, valor_novo={"ativo": resultado["ativo"]},
+        justificativa=payload.justificativa, request=request,
+    )
     return resultado
 
 
