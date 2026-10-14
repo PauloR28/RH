@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, IconeCx, InterruptorCx, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-ambiente';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-operacoes';
 import { BuscaGlobalTopbar } from '../../ui/busca-global.js';
 import {
   alterarStatusUsuario,
@@ -575,6 +575,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [formUsuario, setFormUsuario] = useState(FORM_USUARIO_INICIAL);
   const [vinculosMon, setVinculosMon] = useState(VINCULOS_INICIAIS);
   const [abaOperacao, setAbaOperacao] = useState('cadastro');
+  const [secaoOperacao, setSecaoOperacao] = useState('identificacao');
+  const [secoesComErro, setSecoesComErro] = useState([]);
   const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
   const [transferindoOperacao, setTransferindoOperacao] = useState(false);
@@ -3046,6 +3048,215 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     </div>
   `;
 
+
+  const SECOES_OPERACAO = [
+    { id: 'identificacao', rotulo: 'Identificação' },
+    { id: 'cliente', rotulo: 'Cliente e escopo' },
+    { id: 'sistemas', rotulo: 'Sistemas e acesso' },
+    { id: 'localizacao', rotulo: 'Localização e jornada' },
+    { id: 'descricao', rotulo: 'Descrição detalhada' },
+  ];
+
+  const textoEnderecoPrincipal = enderecoPrincipalItem
+    ? `${formEndereco.rua}${formEndereco.numero ? `, ${formEndereco.numero}` : ''} — ${formEndereco.bairro || ''} ${formEndereco.cidade || ''}${formEndereco.uf ? `/${formEndereco.uf}` : ''}${formEndereco.cep ? ` — CEP ${formEndereco.cep}` : ''}`
+    : 'Nenhum endereço cadastrado ainda.';
+
+  const salvarOperacaoNova = (event) => {
+    // Erro de validação leva para a primeira aba com problema e marca essa aba com um ponto vermelho.
+    if (!String(formItem.nome || '').trim()) {
+      event.preventDefault();
+      setAbaOperacao('cadastro');
+      setSecaoOperacao('identificacao');
+      setSecoesComErro(['identificacao']);
+      setFeedback('');
+      setErro('Informe o nome da operação antes de salvar.');
+      return;
+    }
+    setSecoesComErro([]);
+    salvarItem(event);
+  };
+
+  const renderOperacoes = () => {
+    const podeEditarOperacao = controlador.possuiPermissao('configuracoes.editar') || controlador.possuiPermissao('operacoes.editar');
+    const mensagem = erro || feedback;
+    const ativos = itensCatalogo.filter((item) => item.ativo).length;
+    const ultima = metricasOperacoes[2]?.value || '—';
+    const campo = (rotulo, colunas, controle, extra = {}) => html`<${CampoConsole} rotulo=${rotulo} colunas=${colunas} ...${extra}>${controle}</${CampoConsole}>`;
+    const painelSecao = () => {
+      if (secaoOperacao === 'identificacao') {
+        return html`
+          ${campo('Nome', 3, (p) => html`<input ...${p} value=${formItem.nome} placeholder="Nome da operação" required onInput=${(e) => { setFormItem({ ...formItem, nome: e.target.value }); setSecoesComErro([]); }} />`, { erro: secoesComErro.includes('identificacao') && !String(formItem.nome || '').trim() ? 'Informe o nome.' : undefined })}
+          ${campo('Chave/Tag (automática)', 3, (p) => html`<input ...${p} readOnly value=${String(formItem.nome || '').toUpperCase() || '—'} />`)}
+          ${campo('Tipo de operação', 2, (p) => html`<select ...${p} value=${formItem.categoria} onChange=${(e) => setFormItem({ ...formItem, categoria: e.target.value })}>
+            <option value="">Selecione</option>
+            ${TIPOS_OPERACAO.map((tipo) => html`<option key=${tipo} value=${tipo}>${tipo}</option>`)}
+            ${formItem.categoria && !TIPOS_OPERACAO.includes(formItem.categoria) ? html`<option value=${formItem.categoria}>${formItem.categoria} (legado)</option>` : null}
+          </select>`)}
+          ${campo('Criticidade', 2, (p) => html`<select ...${p} value=${formItem.criticidade} onChange=${(e) => setFormItem({ ...formItem, criticidade: e.target.value })}>
+            <option value="operacional">Operacional</option><option value="atencao">Atenção</option><option value="critica">Crítica</option></select>`)}
+          ${campo('Cor da tag', 2, (p) => html`<input ...${p} type="color" class="cx-cor" value=${formItem.corTag || '#2563eb'} onInput=${(e) => setFormItem({ ...formItem, corTag: e.target.value })} />`)}
+          ${campo('Visão geral e como funciona', 6, (p) => html`<textarea ...${p} rows="3" placeholder="O que é essa operação, para qual cliente, e como funciona no dia a dia — use este espaço como o formulário completo da operação." value=${formItem.descricao} onInput=${(e) => setFormItem({ ...formItem, descricao: e.target.value })}></textarea>`)}
+          ${campo('Tags', 2, (p) => html`<input ...${p} placeholder="Separadas por vírgula" value=${formItem.tags} onInput=${(e) => setFormItem({ ...formItem, tags: e.target.value })} />`)}
+          ${campo('Aplicável a', 2, (p) => html`<select ...${p} value=${formItem.aplicavel} onChange=${(e) => setFormItem({ ...formItem, aplicavel: e.target.value })}>
+            <option value="todos">Todos os fluxos</option><option value="fluxos_especificos">Fluxos específicos</option><option value="somente_rh">Somente RH</option></select>`)}
+          ${campo('Permissões relacionadas', 2, (p) => html`<input ...${p} placeholder="Ex.: configuracoes.editar, lgpd.configurar" value=${formItem.permissoes} onInput=${(e) => setFormItem({ ...formItem, permissoes: e.target.value })} />`)}
+          <div class="cx-campo cx-campo--caixa"><label class="cx-caixa"><input type="checkbox" checked=${formItem.ativo} onChange=${(e) => setFormItem({ ...formItem, ativo: e.target.checked })} /><span>Item ativo nos fluxos operacionais</span></label></div>`;
+      }
+      if (secaoOperacao === 'cliente') {
+        const areas = normalizarLista(AREAS_POR_SEGMENTO[formItem.segmentoMercado]);
+        return html`
+          ${campo('Cliente', 3, (p) => html`<input ...${p} placeholder="Nome do cliente atendido por esta operação" value=${formItem.cliente} onInput=${(e) => setFormItem({ ...formItem, cliente: e.target.value })} />`)}
+          ${campo('Modalidade', 3, (p) => html`<select ...${p} value=${formItem.modalidadeOperacao} onChange=${(e) => setFormItem({ ...formItem, modalidadeOperacao: e.target.value })}>
+            <option value="">Não informado</option><option value="presencial">Presencial</option><option value="hibrido">Híbrido</option><option value="remoto">Remoto</option></select>`)}
+          ${campo('Previsão de colaboradores', 2, (p) => html`<input ...${p} type="number" min="0" value=${formItem.headcountPrevisto} onInput=${(e) => setFormItem({ ...formItem, headcountPrevisto: e.target.value })} />`)}
+          ${campo('SLA de atendimento', 4, (p) => html`<input ...${p} placeholder="Ex.: 90% das chamadas em até 20s" value=${formItem.slaAtendimento} onInput=${(e) => setFormItem({ ...formItem, slaAtendimento: e.target.value })} />`)}
+          ${campo('Programas e softwares utilizados', 6, (p) => html`<input ...${p} placeholder="Separados por vírgula. Ex.: Excel, CRM Interno, Discador" value=${formItem.softwaresUtilizados} onInput=${(e) => setFormItem({ ...formItem, softwaresUtilizados: e.target.value })} />`)}
+          ${campo('Finalidade da operação', 2, (p) => html`<select ...${p} value=${formItem.finalidadeOperacao} onChange=${(e) => setFormItem({ ...formItem, finalidadeOperacao: e.target.value })}>
+            <option value="">Selecione</option>${FINALIDADES_OPERACAO.map((item) => html`<option key=${item} value=${item}>${item}</option>`)}</select>`)}
+          ${campo('Segmento de mercado', 2, (p) => html`<select ...${p} value=${formItem.segmentoMercado} onChange=${(e) => setFormItem({ ...formItem, segmentoMercado: e.target.value, areaSegmento: '' })}>
+            <option value="">Selecione</option>${SEGMENTOS_MERCADO.map((item) => html`<option key=${item} value=${item}>${item}</option>`)}</select>`)}
+          ${campo('Área específica do segmento', 2, (p) => (areas.length
+      ? html`<select ...${p} value=${formItem.areaSegmento} onChange=${(e) => setFormItem({ ...formItem, areaSegmento: e.target.value })}>
+              <option value="">Selecione</option>${AREAS_POR_SEGMENTO[formItem.segmentoMercado].map((area) => html`<option key=${area} value=${area}>${area}</option>`)}</select>`
+      : html`<input ...${p} placeholder="Detalhe a área específica" disabled=${!formItem.segmentoMercado} value=${formItem.areaSegmento} onInput=${(e) => setFormItem({ ...formItem, areaSegmento: e.target.value })} />`),
+    { dica: 'Usado para personalizar automaticamente provas e a análise de currículo desta operação.' })}`;
+      }
+      if (secaoOperacao === 'sistemas') {
+        const sistemas = normalizarLista(formItem.sistemasAcesso);
+        return html`<div class="cx-op-lista">
+          <div class="cx-op-lista-cab"><span class="cx-campo-rotulo">Sistemas e portais de acesso necessários</span>
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${adicionarSistemaAcesso}><${IconeCx} nome="add" />Adicionar sistema</button></div>
+          ${sistemas.length ? sistemas.map((sistema, indice) => html`<div key=${indice} class="cx-op-linha">
+            <input aria-label="Nome do sistema/portal" placeholder="Nome do sistema/portal" value=${sistema.nome} onInput=${(e) => atualizarSistemaAcesso(indice, 'nome', e.target.value)} />
+            <input aria-label="Observação" placeholder="Observação (opcional)" value=${sistema.descricao} onInput=${(e) => atualizarSistemaAcesso(indice, 'descricao', e.target.value)} />
+            <button type="button" class="cx-icone-btn cx-icone-btn--borda" aria-label="Remover sistema" onClick=${() => removerSistemaAcesso(indice)}><${IconeCx} nome="close" /></button>
+          </div>`) : html`<p class="cx-legenda">Nenhum sistema adicionado ainda.</p>`}
+        </div>`;
+      }
+      if (secaoOperacao === 'localizacao') {
+        const hibridos = normalizarLista(formItem.unidadeEnderecosHibrido);
+        return html`
+          ${campo('Unidade', 3, (p) => html`<select ...${p} value=${formItem.unidadeTipo} onChange=${(e) => setFormItem({ ...formItem, unidadeTipo: e.target.value })}>
+            <option value="">Selecione</option>${UNIDADE_TIPOS_OPERACAO.map((item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`)}</select>`)}
+          ${campo('Horário da escala (turno)', 3, (p) => html`<input ...${p} placeholder="Ex.: Manhã, Tarde, Madrugada/Noite ou 14:00 às 20:20" value=${formItem.turnoEscala} onInput=${(e) => setFormItem({ ...formItem, turnoEscala: e.target.value })} />`)}
+          ${formItem.unidadeTipo === 'em_loco' ? html`<p class="cx-legenda cx-op-total">Usa o endereço principal da empresa, cadastrado no topo desta tela (acesso restrito a quem edita Configurações).</p>` : null}
+          ${formItem.unidadeTipo === 'alocado_cliente' ? campo('Endereço alocado ao cliente', 6, (p) => html`<input ...${p} placeholder="Endereço completo do cliente" value=${formItem.unidadeEnderecoCliente} onInput=${(e) => setFormItem({ ...formItem, unidadeEnderecoCliente: e.target.value })} />`) : null}
+          ${formItem.unidadeTipo === 'hibrido' ? html`<div class="cx-op-lista cx-op-total">
+            <div class="cx-op-lista-cab"><span class="cx-campo-rotulo">Endereços do modelo híbrido</span>
+              <button type="button" class="cx-btn cx-btn--sm" onClick=${adicionarEnderecoHibrido}><${IconeCx} nome="add" />Adicionar endereço</button></div>
+            ${hibridos.length ? hibridos.map((endereco, indice) => html`<div key=${indice} class="cx-op-linha cx-op-linha--uma">
+              <input aria-label="Endereço" placeholder="Endereço" value=${endereco} onInput=${(e) => atualizarEnderecoHibrido(indice, e.target.value)} />
+              <button type="button" class="cx-icone-btn cx-icone-btn--borda" aria-label="Remover endereço" onClick=${() => removerEnderecoHibrido(indice)}><${IconeCx} nome="close" /></button>
+            </div>`) : html`<p class="cx-legenda">Nenhum endereço adicionado ainda.</p>`}</div>` : null}
+          <div class="cx-campo" style=${{ '--cx-cols': 6 }}>
+            <span class="cx-campo-rotulo" id="cx-jornada-rotulo">Jornada de trabalho</span>
+            <span class="cx-campo-dica">Pode marcar mais de uma — supervisores e outras funções costumam ter escalas diferentes da operação.</span>
+            <div class="cx-op-caixas" role="group" aria-labelledby="cx-jornada-rotulo">${JORNADAS_OPERACAO.map((item) => html`<label key=${item.value} class="cx-caixa"><input type="checkbox" checked=${normalizarLista(formItem.jornadasTrabalho).includes(item.value)} onChange=${() => alternarJornadaOperacao(item.value)} /><span>${item.label}</span></label>`)}</div>
+          </div>
+          <div class="cx-campo cx-campo--caixa"><label class="cx-caixa"><input type="checkbox" checked=${formItem.necessitaDisponibilidade} onChange=${(e) => setFormItem({ ...formItem, necessitaDisponibilidade: e.target.checked })} /><span>Necessita disponibilidade de horário</span></label></div>`;
+      }
+      return html`
+        ${campo('Descrição do cliente', 6, (p) => html`<textarea ...${p} rows="4" value=${formItem.descricaoCliente} onInput=${(e) => setFormItem({ ...formItem, descricaoCliente: e.target.value })}></textarea>`)}
+        ${campo('Descrição das atividades', 6, (p) => html`<textarea ...${p} rows="4" placeholder="Como funciona a operação no dia a dia" value=${formItem.descricaoAtividades} onInput=${(e) => setFormItem({ ...formItem, descricaoAtividades: e.target.value })}></textarea>`)}`;
+    };
+
+    return html`
+    <${PaginaConsole}>
+      <${CabecalhoConsole}
+        sobretitulo="Console - Administração"
+        titulo="Operações"
+        busca=${controlador?.estado?.perfilUsuario === 'operador'
+      ? null
+      : html`<${BuscaGlobalTopbar} placeholderBusca="Configurações, usuários, permissões e logs" controlador=${controlador} />`}
+      />
+      <div class="cx-resumos">
+        <${CardResumo} icone="check_circle" tom="sucesso" rotulo="Itens ativos" valor=${`${ativos}`} complemento=${ativos === 1 ? 'operação' : 'operações'} />
+        <${CardResumo} icone="archive" rotulo="Itens arquivados" valor=${`${itensCatalogo.length - ativos}`} complemento=${`· ${itensCatalogo.length} no total`} />
+        <${CardResumo} icone="history" rotulo="Última atualização" valor=${String(ultima)} texto=${true} />
+        <${CardResumo} icone="apartment" rotulo="Endereço principal" valor=${textoEnderecoPrincipal} texto=${true}
+          acao=${podeEditarOperacao ? html`<button type="button" class="cx-btn cx-btn--sm" onClick=${() => setEditandoEndereco(true)}>${enderecoPrincipalItem ? 'Editar' : 'Cadastrar'}</button>` : null} />
+      </div>
+
+      <div class="cx-op-corpo cx-cresce">
+        <${CardDados}
+          sobretitulo="Operações"
+          titulo="Itens cadastrados"
+          legenda="Desative itens usados nos fluxos; não remova fisicamente."
+          acoes=${html`<button type="button" class="cx-icone-btn cx-icone-btn--quadrado" aria-label="Nova operação" title="Nova operação" onClick=${() => { setFormItem(FORM_ITEM_INICIAL); setErro(''); setFeedback(''); setSecoesComErro([]); }}><${IconeCx} nome="add" /></button>`}
+          rodape=${html`<span>${itensCatalogoFiltrados.length} exibidos de ${itensCatalogo.length}</span><span class="cx-rodape-espaco"></span>
+            <button type="button" class="cx-btn cx-btn--texto cx-btn--sm" onClick=${() => setFiltrosCatalogo({ busca: '', status: 'todos' })}>Ver todos</button>`}
+        >
+          <div class="cx-op-filtros">
+            <label class="cx-busca"><${IconeCx} nome="search" /><input type="search" value=${filtrosCatalogo.busca} placeholder="Nome, chave ou categoria" aria-label="Buscar por nome, chave ou categoria" onInput=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: e.target.value })} /></label>
+            <select class="cx-select" aria-label="Status" value=${filtrosCatalogo.status} onChange=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, status: e.target.value })}>
+              ${STATUS_ITEM.map((item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`)}
+            </select>
+          </div>
+          ${itensCatalogoFiltrados.length ? html`<ul class="cx-op-itens">
+            ${itensCatalogoFiltrados.map((item) => html`<li key=${item.id_item} class=${`cx-op-item ${String(item.id_item) === String(formItem.id_item) ? 'is-ativo' : ''}`.trim()}>
+              <button type="button" class="cx-op-item-main" onClick=${() => { editarItem(item); setSecoesComErro([]); }}>
+                <span class=${`cx-op-icone ${item.ativo ? '' : 'is-inativo'}`.trim()} style=${item.ativo && item.payload?.cor_tag ? { color: item.payload.cor_tag } : undefined}><${IconeCx} nome="apartment" /></span>
+                <span class="cx-op-item-texto"><strong class="cx-trunca" title=${item.nome || '-'}>${item.nome || '-'}</strong><small class="cx-trunca" title=${item.categoria || item.descricao || ''}>${item.categoria || item.descricao || item.chave || 'Sem descrição'}</small></span>
+              </button>
+              <${PilulaStatus} variante=${item.ativo ? 'ativo' : 'inativo'} />
+              <${MenuAcoesProcesso} ariaLabel=${`Ações de ${item.nome || 'item'}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
+                acoes=${[
+        { key: 'editar', label: 'Editar', icon: 'edit', onClick: () => editarItem(item) },
+        { key: 'duplicar', label: 'Duplicar', icon: 'content_copy', onClick: () => duplicarItem(item) },
+        { key: 'arquivar', label: 'Arquivar', icon: 'archive', danger: true, disabled: !item.ativo, onClick: () => desativarItem(item) },
+      ]} />
+            </li>`)}
+          </ul>` : html`<${EstadoConsole} mensagem=${itensCatalogo.length ? 'Nenhum item para este filtro.' : 'Cadastre o primeiro item reutilizável deste catálogo.'} rotuloAcao=${itensCatalogo.length ? 'Limpar filtros' : 'Novo item'} aoAcao=${() => (itensCatalogo.length ? setFiltrosCatalogo({ busca: '', status: 'todos' }) : setFormItem(FORM_ITEM_INICIAL))} />`}
+        </${CardDados}>
+
+        <form class="cx-op-form-wrap" noValidate onSubmit=${salvarOperacaoNova}>
+        <${CardDados}
+          formulario=${true}
+          sobretitulo="Operações"
+          titulo=${formItem.id_item ? 'Editar operação' : 'Nova operação'}
+          legenda="Preencha os dados desta operação — eles passam a valer em Processos, Provas e Treinamentos."
+          acoes=${itemEmEdicao ? html`<div class="cx-cab-acoes">
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => duplicarItem(itemEmEdicao)}><${IconeCx} nome="content_copy" />Duplicar</button>
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => desativarItem(itemEmEdicao)}><${IconeCx} nome="archive" />Arquivar</button></div>` : null}
+          rodape=${abaOperacao === 'cadastro' ? html`
+            <label class="cx-op-just"><span class="cx-campo-rotulo">Justificativa</span>
+              <input aria-label="Justificativa" value=${formItem.justificativa} onInput=${(e) => setFormItem({ ...formItem, justificativa: e.target.value })} /></label>
+            <button type="button" class="cx-btn" onClick=${() => { setFormItem(FORM_ITEM_INICIAL); setErro(''); setFeedback(''); setSecoesComErro([]); }}>Limpar</button>
+            <button type="submit" class="cx-btn cx-btn--primario" disabled=${salvando || !secaoCatalogoAtiva || !podeEditarOperacao}>
+              ${salvando ? html`<span class="cx-spinner" aria-hidden="true"></span>` : html`<${IconeCx} nome="check" />`}${salvando ? 'Salvando...' : 'Salvar'}</button>` : null}
+        >
+          <div class="cx-op-abas">
+            <${AbasConsole} prefixo="op-modo" rotulo="Seções da operação" itens=${[{ id: 'cadastro', rotulo: 'Cadastro' }, { id: 'ambiente', rotulo: 'Configurar ambiente' }]} ativa=${abaOperacao} aoMudar=${setAbaOperacao} />
+            ${abaOperacao === 'cadastro' ? html`<${AbasConsole} variante="sublinhada" prefixo="op-secao" rotulo="Dados da operação"
+              itens=${SECOES_OPERACAO.map((s, i) => ({ id: s.id, rotulo: s.rotulo, numero: String(i + 1), erro: secoesComErro.includes(s.id) }))} ativa=${secaoOperacao} aoMudar=${setSecaoOperacao} />` : null}
+          </div>
+          ${mensagem ? html`<div class=${`alert ${erro ? 'alert-danger' : 'alert-success'} c24-feedback cx-op-msg`} role=${erro ? 'alert' : 'status'}>${mensagem}</div>` : null}
+          ${abaOperacao === 'ambiente'
+      ? html`<div class="cx-op-painel" role="tabpanel"><${AbaAmbienteOperacao}
+              chave=${formItem.id_item ? (formItem.chave || String(formItem.nome || '').toUpperCase()) : ''}
+              nome=${formItem.nome}
+              podeEditar=${controlador.possuiPermissao('configuracoes.editar')}
+              podeEditarOrganizacao=${controlador.possuiPermissao('monitoria.equipes')}
+              onFeedback=${(m) => { setErro(''); setFeedback(m); }}
+              onErro=${(m) => { setFeedback(''); setErro(m); }} /></div>`
+      : html`<div class="cx-op-painel" role="tabpanel" id=${idPainel('op-secao', secaoOperacao)} aria-labelledby=${idAba('op-secao', secaoOperacao)}><div class="cx-form-grade">${painelSecao()}</div></div>`}
+        </${CardDados}>
+        </form>
+      </div>
+    </${PaginaConsole}>
+    <${ModalPadrao} aberto=${editandoEndereco} titulo="Endereço principal da empresa" onClose=${() => setEditandoEndereco(false)}>
+      <form class="settings-endereco-form" onSubmit=${salvarEnderecoPrincipal}>
+        ${[['rua', 'Rua/Avenida', 'is-wide'], ['numero', 'Número', 'endereco-numero'], ['complemento', 'Complemento', ''], ['bairro', 'Bairro', ''], ['cidade', 'Cidade', ''], ['uf', 'UF', 'endereco-uf'], ['cep', 'CEP', 'endereco-cep']].map(([chave, rotulo, classe]) => html`
+          <label key=${chave} class=${classe}><span>${rotulo}</span>
+            <input class="form-control" maxlength=${chave === 'uf' ? 2 : undefined} value=${formEndereco[chave]} onInput=${(e) => setFormEndereco({ ...formEndereco, [chave]: chave === 'uf' ? e.target.value.toUpperCase() : e.target.value })} /></label>`)}
+        <footer class="settings-form-footer">
+          <button type="button" class="btn btn-outline-secondary" onClick=${() => setEditandoEndereco(false)}>Cancelar</button>
+          <button type="submit" class="btn btn-primary" disabled=${salvandoEndereco}>${salvandoEndereco ? 'Salvando...' : 'Salvar endereço'}</button>
+        </footer>
+      </form>
+    </${ModalPadrao}>`;
+  };
+
   const alternarAutomacaoEmail = async (ativo) => {
     setSalvandoAutomacao(true);
     setErro('');
@@ -3944,7 +4155,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       controlador=${controlador}
       mostrarAtalhos=${false}
     >
-      ${abaRenderizada === 'perfis' || abaRenderizada === 'ambiente' ? null : html`<${PageIntro}
+      ${['perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -3984,8 +4195,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
       />`}
 
-      ${abaRenderizada !== 'ambiente' && erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
-      ${abaRenderizada !== 'ambiente' && feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
+      ${!['ambiente', 'operacoes'].includes(abaRenderizada) && erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
+      ${!['ambiente', 'operacoes'].includes(abaRenderizada) && feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
       <${ModalCadastroEmMassa}
         aberto=${cadastrandoEmMassa}
         onClose=${() => setCadastrandoEmMassa(false)}
@@ -4027,7 +4238,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           : abaRenderizada === 'perfis'
             ? renderPerfis()
             : abaRenderizada === 'operacoes'
-              ? renderCatalogos()
+              ? renderOperacoes()
               : abaRenderizada === 'catalogos'
                 ? renderCatalogos()
                 : abaRenderizada === 'notificacoes'
