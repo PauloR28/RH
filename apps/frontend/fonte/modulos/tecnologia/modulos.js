@@ -13,7 +13,7 @@ import {
   lerWfmParticipantes,
   listarFuncoesModulos,
 } from '../../services/api/modulos.js?v=20261014-funcoes';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261006-areas-inativas';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261014-funcoes2';
 
 // Tela Módulos (Tecnologia): por módulo, as funções que ele exibe (ligar/desligar), a ativação do módulo, o WFM para participantes
 // (fase de teste) e a atribuição de módulos a perfis e pessoas. Toda mudança pede confirmação explícita com as consequências.
