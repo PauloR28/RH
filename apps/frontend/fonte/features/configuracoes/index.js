@@ -12,6 +12,7 @@ import {
   criarUsuario,
   criarUsuarioRapido,
   desativarItemConfiguracao,
+  excluirItemConfiguracao,
   excluirUsuario,
   lerAutomacaoNotificacoes,
   lerCandidatosProcessos,
@@ -32,7 +33,7 @@ import { definirModuloDaPermissao } from '../../services/api/modulos.js';
 import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261004-chamados2';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
-import { PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261010-guia';
@@ -576,6 +577,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [vinculosMon, setVinculosMon] = useState(VINCULOS_INICIAIS);
   const [abaOperacao, setAbaOperacao] = useState('cadastro');
   const [secaoOperacao, setSecaoOperacao] = useState('identificacao');
+  const [operacaoExcluir, setOperacaoExcluir] = useState(null);
+  const [excluindoOperacao, setExcluindoOperacao] = useState(false);
   const [secoesComErro, setSecoesComErro] = useState([]);
   const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
@@ -1411,6 +1414,26 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       await carregarAba(abaRenderizada);
     } catch (error) {
       setErro(error?.message || 'Não foi possível arquivar a configuração.');
+    }
+  };
+
+  // Exclusão definitiva: só de operação já inativa; o servidor recusa (409) se ela tem monitorias.
+  const confirmarExclusaoOperacao = async ({ justificativa } = {}) => {
+    if (!operacaoExcluir) return;
+    setExcluindoOperacao(true);
+    setErro('');
+    setFeedback('');
+    try {
+      await excluirItemConfiguracao('operacoes', operacaoExcluir.id_item, justificativa || 'Exclusão de operação inativa em Configurações > Operações.');
+      if (String(formItem.id_item) === String(operacaoExcluir.id_item)) setFormItem(FORM_ITEM_INICIAL);
+      setFeedback(`Operação "${operacaoExcluir.nome}" excluída.`);
+      setOperacaoExcluir(null);
+      await carregarAba(abaRenderizada);
+    } catch (error) {
+      setOperacaoExcluir(null);
+      setErro(error?.message || 'Não foi possível excluir a operação.');
+    } finally {
+      setExcluindoOperacao(false);
     }
   };
 
@@ -3204,6 +3227,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         { key: 'editar', label: 'Editar', icon: 'edit', onClick: () => editarItem(item) },
         { key: 'duplicar', label: 'Duplicar', icon: 'content_copy', onClick: () => duplicarItem(item) },
         { key: 'arquivar', label: 'Arquivar', icon: 'archive', danger: true, disabled: !item.ativo, onClick: () => desativarItem(item) },
+        { key: 'excluir', label: 'Excluir', icon: 'delete', danger: true, disabled: item.ativo || !podeEditarOperacao, title: item.ativo ? 'Arquive a operação antes de excluir' : 'Excluir definitivamente', onClick: () => setOperacaoExcluir(item) },
       ]} />
             </li>`)}
           </ul>` : html`<${EstadoConsole} mensagem=${itensCatalogo.length ? 'Nenhum item para este filtro.' : 'Cadastre o primeiro item reutilizável deste catálogo.'} rotuloAcao=${itensCatalogo.length ? 'Limpar filtros' : 'Novo item'} aoAcao=${() => (itensCatalogo.length ? setFiltrosCatalogo({ busca: '', status: 'todos' }) : setFormItem(FORM_ITEM_INICIAL))} />`}
@@ -3244,6 +3268,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         </form>
       </div>
     </${PaginaConsole}>
+    <${ModalConfirmacaoAcao}
+      aberto=${Boolean(operacaoExcluir)}
+      titulo="Excluir operação"
+      descricao=${`Deseja excluir "${operacaoExcluir?.nome || ''}" definitivamente?`}
+      consequencia="A operação é removida do catálogo e deixa de existir como opção em Processos, Provas e Treinamentos. Operações com monitorias não podem ser excluídas."
+      reversibilidade="Esta ação não pode ser desfeita."
+      textoConfirmar="Excluir"
+      tipo="destrutivo"
+      carregando=${excluindoOperacao}
+      onClose=${() => setOperacaoExcluir(null)}
+      onConfirm=${confirmarExclusaoOperacao}
+    />
     <${ModalPadrao} aberto=${editandoEndereco} titulo="Endereço principal da empresa" onClose=${() => setEditandoEndereco(false)}>
       <form class="settings-endereco-form" onSubmit=${salvarEnderecoPrincipal}>
         ${[['rua', 'Rua/Avenida', 'is-wide'], ['numero', 'Número', 'endereco-numero'], ['complemento', 'Complemento', ''], ['bairro', 'Bairro', ''], ['cidade', 'Cidade', ''], ['uf', 'UF', 'endereco-uf'], ['cep', 'CEP', 'endereco-cep']].map(([chave, rotulo, classe]) => html`
