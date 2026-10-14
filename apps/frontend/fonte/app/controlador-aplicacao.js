@@ -472,7 +472,12 @@ export function limparEstadoPersistido() {
   }
 }
 
+// Guarda de navegação opcional: uma tela com alterações não salvas registra `window.__conectaGuardaNavegacao(tela)`; se ela
+// devolver false a navegação é cancelada (a tela decide se pergunta e depois navega com `{ ignorarGuarda: true }`).
+// Fica no `window` para valer mesmo que o módulo seja carregado com outra versão (?v=).
 export function navegarParaTela(tela, opcoes = {}) {
+  const guarda = typeof window !== 'undefined' ? window.__conectaGuardaNavegacao : null;
+  if (typeof guarda === 'function' && !opcoes?.ignorarGuarda && guarda(tela) === false) return;
   const caminho = montarHashDaTela(tela);
   const eventoNavegacao =
     typeof PopStateEvent === 'function'

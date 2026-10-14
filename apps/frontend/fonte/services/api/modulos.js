@@ -27,6 +27,8 @@ export async function definirModuloDaPermissao(chave, modulo, abreModulo = null,
 export const listarFuncoesModulos = () => requisitar('/tecnologia/modulos/funcoes', { method: 'GET' });
 export const definirFuncaoModulo = (modulo, funcao, ativo, justificativa = '') =>
   enviar(`/tecnologia/modulos/${encodeURIComponent(modulo)}/funcoes/${encodeURIComponent(funcao)}`, 'PUT', { ativo, justificativa });
+// Salvar em lote da tela Módulos: atômico no servidor (tudo ou nada), uma linha de auditoria por mudança com o mesmo id_lote.
+export const aplicarLoteModulos = (alteracoes, justificativa = '') => enviar('/tecnologia/modulos/lote', 'PUT', { alteracoes, justificativa });
 export const lerWfmParticipantes = () => requisitar('/tecnologia/parametros/wfm-participantes', { method: 'GET' });
 export const definirWfmParticipantes = (valor, justificativa = '') =>
   enviar('/tecnologia/parametros/wfm-participantes', 'PUT', { valor, confirmar: true, justificativa });

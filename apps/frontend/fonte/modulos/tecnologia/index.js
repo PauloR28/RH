@@ -1,12 +1,12 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
-import { PageHeader, PageShell, SettingsLayout } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { AtalhoLinha, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { montarHashDaTela } from '../../rotas.js';
 import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261014-funcoes';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-funcoes3';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-modulos2';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.
@@ -90,33 +90,68 @@ function Inicio({ controlador }) {
     </${PaginaConsole}>`;
 }
 
-const SECOES_MODULOS = [
-  { chave: 'funcoes', rotulo: 'Módulos e funções', icone: 'grid_view' },
-  { chave: 'atribuicao', rotulo: 'Atribuição', icone: 'group' },
+const ABAS_MODULOS = [
+  { id: 'funcoes', rotulo: 'Módulos e funções', icone: 'grid_view' },
+  { id: 'atribuicao', rotulo: 'Atribuição', icone: 'group' },
 ];
+const AVISO_MODULOS = 'Cada módulo mostra no menu só as funções ligadas aqui. Desligar uma função não apaga dados nem muda permissões: só esconde o atalho naquele módulo. Toda mudança pede confirmação e fica registrada em auditoria.';
 
-function TelaModulos({ podeEditar, showToast }) {
+function TelaModulos({ podeEditar, showToast, controlador }) {
   const [secao, setSecao] = useState('funcoes');
-  const props = { podeEditar, showToast, aoMudar: () => {} };
+  const [pendentes, setPendentes] = useState(0);
+  const [saida, setSaida] = useState(null); // { tipo: 'aba', destino } | { tipo: 'rota', tela }
+
+  // Com alterações não salvas: avisa ao trocar de aba, ao navegar pelo menu e ao fechar/recarregar a página.
+  useEffect(() => {
+    if (!pendentes) return undefined;
+    const avisar = (ev) => { ev.preventDefault(); ev.returnValue = ''; };
+    window.addEventListener('beforeunload', avisar);
+    window.__conectaGuardaNavegacao = (tela) => { setSaida({ tipo: 'rota', tela }); return false; };
+    return () => { window.removeEventListener('beforeunload', avisar); window.__conectaGuardaNavegacao = null; };
+  }, [pendentes]);
+
+  const pedirAba = (destino) => {
+    if (destino === secao) return;
+    if (pendentes > 0) setSaida({ tipo: 'aba', destino });
+    else setSecao(destino);
+  };
+  const sairSemSalvar = () => {
+    const alvo = saida;
+    setSaida(null);
+    setPendentes(0);
+    window.__conectaGuardaNavegacao = null;
+    if (alvo?.tipo === 'aba') setSecao(alvo.destino);
+    else if (alvo?.tela) controlador.irParaTelaProtegida(alvo.tela);
+  };
+
+  const propsSecao = { podeEditar, showToast, aoMudar: () => {} };
   return html`
-    <${SettingsLayout} itens=${SECOES_MODULOS} ativo=${secao} aoMudar=${setSecao}>
-      ${secao === 'funcoes' ? html`<${SecaoFuncoes} ...${props} />` : null}
-      ${secao === 'atribuicao' ? html`<${SecaoAtribuicao} ...${props} />` : null}
+    <${PaginaConsole} className="cx-modulos">
+      <${CabecalhoConsole} titulo=${TITULOS[TELA_MODULOS_TECNOLOGIA][0]} subtitulo=${TITULOS[TELA_MODULOS_TECNOLOGIA][1]}
+        acoes=${html`<${AbasConsole} variante="segmentada" prefixo="modulos" rotulo="Seções de Módulos" itens=${ABAS_MODULOS} ativa=${secao} aoMudar=${pedirAba} />`} />
+      ${secao === 'funcoes' ? html`<${AvisoConsole} suave=${true}>${AVISO_MODULOS}</${AvisoConsole}>` : null}
+      <div class="cx-mod2-painel cx-cresce" role="tabpanel" id=${idPainel('modulos', secao)} aria-labelledby=${idAba('modulos', secao)}>
+        ${secao === 'funcoes'
+    ? html`<${SecaoFuncoes} ...${propsSecao} aoMudarPendentes=${setPendentes} aoIrParaAtribuicao=${() => pedirAba('atribuicao')} />`
+    : html`<section class="cx-card cx-atrib"><div class="cx-card-corpo cx-atrib-corpo"><${SecaoAtribuicao} ...${propsSecao} /></div></section>`}
+      </div>
+    </${PaginaConsole}>
+    <${ModalPadrao} aberto=${Boolean(saida)} titulo="Você tem alterações não salvas" subtitulo="Se sair agora, as alterações pendentes serão perdidas." onClose=${() => setSaida(null)}>
+      <footer class="rh-modal-footer"><div class="rh-modal-footer-actions">
+        <button type="button" class="btn btn-outline-secondary" onClick=${sairSemSalvar}>Sair sem salvar</button>
+        <button type="button" class="btn btn-primary" onClick=${() => setSaida(null)}>Continuar editando</button>
+      </div></footer>
     <//>`;
 }
 
 export function TelaTecnologia({ controlador, telaAtual = 'screen-tecnologia' }) {
   const { showToast, ToastHost } = useToast();
-  const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-tecnologia'];
   const podeEditar = controlador.possuiPermissao('configuracoes.editar');
   return html`
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Tecnologia" placeholderBusca="Buscar" controlador=${controlador} buscaGlobal=${false}>
       <div class="tec-toast"><${ToastHost} /></div>
       ${telaAtual === TELA_MODULOS_TECNOLOGIA
-    ? html`<${PageShell}>
-          <${PageHeader} titulo=${titulo} subtitulo=${descricao} />
-          <${TelaModulos} podeEditar=${podeEditar} showToast=${showToast} />
-        <//>`
+    ? html`<${TelaModulos} podeEditar=${podeEditar} showToast=${showToast} controlador=${controlador} />`
     : html`<${Inicio} controlador=${controlador} />`}
     </${PainelRh}>`;
 }

@@ -1,22 +1,25 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { InterruptorCx } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261014-historico';
 import { listarUsuarios } from '../../services/api/settings.js';
 import {
+  aplicarLoteModulos,
   definirAcessoModulosPerfil,
   definirAcessoModulosUsuario,
-  definirFuncaoModulo,
-  definirModuloAtivo,
-  definirWfmParticipantes,
   lerAcessosModulos,
   lerWfmParticipantes,
   listarFuncoesModulos,
 } from '../../services/api/modulos.js?v=20261014-funcoes';
 import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261014-funcoes2';
+import {
+  CHAVE_WFM_PARTICIPANTES, alternarRascunho, chaveFuncao, chaveModulo, consequenciasDoLote, contarLigadas, descreverLote,
+  listarPendencias, paraPayloadLote, pendenciasDoModulo, valorExibido,
+} from './pendencias.js';
 
-// Tela Módulos (Tecnologia): por módulo, as funções que ele exibe (ligar/desligar), a ativação do módulo, o WFM para participantes
-// (fase de teste) e a atribuição de módulos a perfis e pessoas. Toda mudança pede confirmação explícita com as consequências.
+// Tela Módulos (Tecnologia): lista de módulos à esquerda e, à direita, as funções do módulo escolhido (ligar/desligar), a ativação do
+// módulo e o WFM para participantes (fase de teste). As mudanças ficam em RASCUNHO e são salvas de uma vez (PUT /tecnologia/modulos/lote,
+// atômico, com auditoria). A aba "Atribuição" libera módulos a perfis e pessoas (conteúdo inalterado).
 
 const DESCRICAO_MODULO = {
   rh: 'Currículos, Processos, Provas e gestão de Treinamentos.',
@@ -25,63 +28,9 @@ const DESCRICAO_MODULO = {
 };
 const NOME_MODULO = { rh: 'RH', operacao: 'Operação', tecnologia: 'Tecnologia' };
 const MODULOS_LIBERAVEIS = ['rh', 'operacao', 'tecnologia'];
-const AVISO_VIGENCIA = 'A mudança vale para todos os usuários e aparece para cada pessoa ao recarregar a página ou entrar de novo.';
 
-// Texto de cada confirmação: o que muda, quem é afetado e se dá para desfazer.
+// Confirmação da aba Atribuição (libera/retira um módulo de um perfil ou pessoa): cada clique pede confirmação.
 function montarConfirmacao(p) {
-  if (!p) return null;
-  if (p.tipo === 'funcao') {
-    return p.ativo
-      ? {
-        titulo: `Mostrar ${p.nome} no módulo ${p.nomeModulo}?`,
-        descricao: `"${p.nome}" passará a aparecer no menu do módulo ${p.nomeModulo}.`,
-        consequencia: `Todos os usuários que usam o módulo ${p.nomeModulo} e têm permissão para ${p.nome} passam a ver esse atalho. Nenhuma permissão muda e nada é criado ou apagado. ${AVISO_VIGENCIA}`,
-        reversibilidade: 'Pode ser desfeito a qualquer momento desligando a função de novo.',
-        textoConfirmar: 'Mostrar no módulo', tipoModal: 'aviso',
-      }
-      : {
-        titulo: `Esconder ${p.nome} do módulo ${p.nomeModulo}?`,
-        descricao: `"${p.nome}" deixará de aparecer no menu do módulo ${p.nomeModulo}.`,
-        consequencia: `Quem usa o módulo ${p.nomeModulo} perde o atalho para ${p.nome} nesse menu agora. As telas e os dados continuam existindo e as permissões não mudam: a função segue acessível pelos outros módulos onde estiver ligada. Se estiver desligada em todos, ninguém a verá no menu. ${AVISO_VIGENCIA}`,
-        reversibilidade: 'Pode ser desfeito a qualquer momento ligando a função de novo.',
-        textoConfirmar: 'Esconder do módulo', tipoModal: 'destrutivo',
-      };
-  }
-  if (p.tipo === 'modulo') {
-    return p.ativo
-      ? {
-        titulo: `Ativar o módulo ${p.nome}?`,
-        descricao: `O módulo ${p.nome} voltará a funcionar para todos.`,
-        consequencia: `As telas e rotas do módulo voltam a abrir para quem tem permissão que o libera. ${AVISO_VIGENCIA}`,
-        reversibilidade: 'Pode ser desfeito a qualquer momento.',
-        textoConfirmar: 'Ativar módulo', tipoModal: 'aviso',
-      }
-      : {
-        titulo: `Desativar o módulo ${p.nome}?`,
-        descricao: `Todo o módulo ${p.nome} será desligado para todos os usuários.`,
-        consequencia: `As telas e as rotas do módulo ${p.nome} deixam de funcionar imediatamente e quem só usa este módulo perde o acesso ao sistema de trabalho dele. Os dados não são apagados. O app de treinamento (autoatendimento) continua funcionando.`,
-        reversibilidade: 'Pode ser desfeito ativando o módulo de novo.',
-        textoConfirmar: 'Desativar módulo', tipoModal: 'destrutivo',
-      };
-  }
-  if (p.tipo === 'wfm') {
-    return p.ativo
-      ? {
-        titulo: 'Liberar Turnos e Plantões para participantes?',
-        descricao: 'Operador, Técnico de TI e Qualidade passam a acessar o WFM (fase de teste).',
-        consequencia: 'Esses perfis precisarão entrar de novo no sistema para ver Turnos e Plantões. A mudança fica registrada em auditoria (quem, quando, de → para).',
-        reversibilidade: 'Pode ser desfeito fechando para participantes.',
-        textoConfirmar: 'Liberar', tipoModal: 'aviso',
-      }
-      : {
-        titulo: 'Fechar Turnos e Plantões para participantes?',
-        descricao: 'Operador, Técnico de TI e Qualidade perdem o acesso ao WFM.',
-        consequencia: 'O acesso desses perfis ao WFM é cortado imediatamente. Escalas e dados já cadastrados não são apagados. A mudança fica registrada em auditoria.',
-        reversibilidade: 'Pode ser desfeito liberando de novo.',
-        textoConfirmar: 'Fechar', tipoModal: 'destrutivo',
-      };
-  }
-  // atribuição de módulo a perfil ou pessoa
   const alvo = p.alvoTipo === 'perfil' ? `ao perfil ${p.alvoNome}` : `a ${p.alvoNome}`;
   const quem = p.alvoTipo === 'perfil' ? `Todos os usuários do perfil ${p.alvoNome}` : p.alvoNome;
   return p.ativo
@@ -102,7 +51,7 @@ function montarConfirmacao(p) {
 }
 
 function ConfirmarMudanca({ pendente, salvando, aoCancelar, aoConfirmar }) {
-  const c = montarConfirmacao(pendente);
+  const c = pendente ? montarConfirmacao(pendente) : null;
   return html`
     <${ModalConfirmacaoAcao}
       aberto=${Boolean(pendente)}
@@ -124,142 +73,182 @@ function recarregarMenu() {
   carregarAcessoModulos();
 }
 
-function LinhaFuncao({ nome, descricao, ligado, travado, rotulo, aoMudar, extra = null, alterado = false }) {
-  return html`
-    <li class=${`cx-mod-funcao ${alterado ? 'is-alterado' : ''}`.trim()}>
-      <div class="cx-mod-funcao-texto"><strong>${nome}${alterado ? html` <span class="cx-mod-tag">alterado</span>` : null}</strong><small>${descricao}</small>${extra}</div>
-      <${InterruptorCx} ativo=${ligado} desabilitado=${travado} rotulo=${rotulo} aoMudar=${aoMudar} />
-    </li>`;
-}
-
-// Alterações ficam em rascunho na tela e só valem ao clicar em "Aplicar alterações" (uma confirmação para o conjunto, com as consequências).
-function ModalAplicar({ aberto, itens, salvando, aoCancelar, aoConfirmar }) {
+// ---- Confirmação do lote: mudanças agrupadas por módulo + consequências ----
+function ModalSalvarLote({ aberto, pendencias, salvando, erro, aoCancelar, aoConfirmar }) {
   const [justificativa, setJustificativa] = useState('');
   useEffect(() => { if (aberto) setJustificativa(''); }, [aberto]);
-  const temRisco = itens.some((i) => montarConfirmacao(i).tipoModal === 'destrutivo');
+  const linhas = descreverLote(pendencias, NOME_MODULO);
   return html`
-    <${ModalPadrao} aberto=${aberto} titulo=${`Aplicar ${itens.length} ${itens.length === 1 ? 'alteração' : 'alterações'}?`}
-      subtitulo="Leia as consequências antes de continuar. Tudo fica registrado em auditoria." onClose=${salvando ? () => null : aoCancelar}>
+    <${ModalPadrao} aberto=${aberto} titulo="Confirmar alterações?"
+      subtitulo="Tudo é salvo de uma vez e fica registrado em auditoria." onClose=${salvando ? () => null : aoCancelar}>
       <div class="rh-details-body">
-        ${temRisco ? html`<div class="alert alert-warning" role="alert">Há alterações que escondem funções ou desligam acesso. Elas valem para todos os usuários dos módulos afetados.</div>` : null}
         <ul class="cx-mod-resumo">
-          ${itens.map((i) => {
-    const c = montarConfirmacao(i);
-    return html`<li key=${i.chave}><strong>${c.titulo.replace(/\?$/, '')}</strong><span>${c.consequencia}</span></li>`;
-  })}
+          ${linhas.map((l) => html`<li key=${l.modulo}><strong>${l.nomeModulo}</strong><span>${l.texto}</span></li>`)}
         </ul>
+        <ul class="cx-mod-consequencias">${consequenciasDoLote(pendencias).map((f) => html`<li key=${f}>${f}</li>`)}</ul>
         <label class="tec-campo"><span>Justificativa (opcional, vale para todas)</span>
           <input class="form-control" value=${justificativa} maxlength="400" disabled=${salvando} onInput=${(e) => setJustificativa(e.target.value)} />
         </label>
+        ${erro ? html`<div class="alert alert-danger mt-3 mb-0" role="alert">${erro}</div>` : null}
       </div>
       <footer class="rh-modal-footer"><div class="rh-modal-footer-actions">
         <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${aoCancelar}>Cancelar</button>
-        <button type="button" class=${`btn ${temRisco ? 'btn-danger' : 'btn-primary'}`} disabled=${salvando} onClick=${() => aoConfirmar(justificativa.trim())}>${salvando ? 'Aplicando…' : 'Aplicar alterações'}</button>
+        <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${() => aoConfirmar(justificativa.trim())}>${salvando ? 'Salvando…' : 'Confirmar'}</button>
       </div></footer>
     <//>`;
 }
 
-export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
-  const [modulos, setModulos] = useState(null);
+function LinhaFuncao({ nome, descricao, ligado, travado, rotulo, aoMudar, nota = null, alterado = false, larga = false }) {
+  return html`
+    <li class=${`cx-mod2-funcao ${larga ? 'is-larga' : ''} ${alterado ? 'is-alterado' : ''}`.trim()}>
+      <div class="cx-mod2-funcao-texto"><strong>${nome}${alterado ? html` <span class="cx-mod-tag">alterado</span>` : null}</strong><small>${descricao}</small>${nota}</div>
+      <${InterruptorCx} ativo=${ligado} desabilitado=${travado} rotulo=${rotulo} aoMudar=${aoMudar} />
+    </li>`;
+}
+
+export function SecaoFuncoes({ podeEditar, showToast, aoMudar, aoMudarPendentes, aoIrParaAtribuicao }) {
+  const [dados, setDados] = useState(null);
   const [wfm, setWfm] = useState(null);
   const [erro, setErro] = useState('');
+  const [selecionado, setSelecionado] = useState('');
   const [rascunho, setRascunho] = useState({});
   const [confirmando, setConfirmando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState('');
 
   const carregar = useCallback(() => {
     setErro('');
-    listarFuncoesModulos().then(setModulos).catch((e) => setErro(e?.message || 'Não foi possível carregar os módulos.'));
-    lerWfmParticipantes().then(setWfm).catch(() => setWfm(null));
+    setDados(null);
+    Promise.all([listarFuncoesModulos(), lerWfmParticipantes().catch(() => null)])
+      .then(([lista, situacao]) => { setDados(lista); setWfm(situacao); })
+      .catch((e) => setErro(e?.message || 'Não foi possível carregar os módulos.'));
   }, []);
   useEffect(carregar, [carregar]);
 
-  // Liga/desliga em rascunho: voltar ao valor original desfaz a alteração pendente.
-  const alternar = (item, original) => setRascunho((atual) => {
-    const novo = { ...atual };
-    const valorAtual = item.chave in novo ? novo[item.chave].ativo : original;
-    const proximo = !valorAtual;
-    if (proximo === original) delete novo[item.chave];
-    else novo[item.chave] = { ...item, ativo: proximo };
-    return novo;
-  });
-  const ligado = (chave, original) => (chave in rascunho ? rascunho[chave].ativo : original);
-  const pendentes = Object.values(rascunho);
+  // Abre no primeiro módulo ativo (ou no primeiro, se nenhum estiver ativo).
+  useEffect(() => {
+    if (!dados || selecionado) return;
+    setSelecionado((dados.find((m) => m.ativo) || dados[0])?.modulo || '');
+  }, [dados, selecionado]);
 
-  const aplicar = async (justificativa) => {
+  const pendencias = useMemo(() => listarPendencias(rascunho), [rascunho]);
+  useEffect(() => { aoMudarPendentes?.(pendencias.length); }, [pendencias.length]);
+
+  const alternar = (item, salvo) => setRascunho((atual) => alternarRascunho(atual, item, salvo));
+
+  const salvar = async (justificativa) => {
     setSalvando(true);
-    const falhas = [];
-    for (const p of pendentes) {
-      try {
-        if (p.tipo === 'funcao') await definirFuncaoModulo(p.modulo, p.funcao, p.ativo, justificativa);
-        else if (p.tipo === 'modulo') await definirModuloAtivo(p.modulo, p.ativo, justificativa);
-        else setWfm(await definirWfmParticipantes(p.ativo, justificativa));
-        setRascunho((atual) => { const novo = { ...atual }; delete novo[p.chave]; return novo; });
-      } catch (e) {
-        falhas.push(`${p.nome}: ${e?.message || 'não foi possível salvar'}`);
-      }
+    setErroSalvar('');
+    try {
+      const resposta = await aplicarLoteModulos(paraPayloadLote(pendencias), justificativa);
+      setDados(resposta.funcoes);
+      if (resposta.wfm) setWfm(resposta.wfm);
+      setRascunho({});
+      setConfirmando(false);
+      recarregarMenu();
+      aoMudar?.();
+      showToast(`${pendencias.length} ${pendencias.length === 1 ? 'alteração salva' : 'alterações salvas'}. O menu atualiza para cada pessoa ao recarregar a página ou entrar de novo.`, 'success');
+    } catch (e) {
+      // Falha: nada é perdido. O rascunho continua na tela e dá para tentar de novo.
+      setErroSalvar(e?.message || 'Não foi possível salvar. Nenhuma alteração foi aplicada.');
+    } finally {
+      setSalvando(false);
     }
-    setSalvando(false);
-    setConfirmando(false);
-    recarregarMenu();
-    carregar();
-    aoMudar?.();
-    if (falhas.length) showToast(`Algumas alterações não foram aplicadas — ${falhas.join('; ')}`, 'error');
-    else showToast(`${pendentes.length} ${pendentes.length === 1 ? 'alteração aplicada' : 'alterações aplicadas'}. O menu atualiza para cada pessoa ao recarregar a página ou entrar de novo.`, 'success');
   };
 
-  if (erro) return html`<div class="alert alert-danger" role="alert">${erro} <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${carregar}>Tentar de novo</button></div>`;
-  if (!modulos) return html`<p class="tec-ajuda tec-ajuda--topo">Carregando…</p>`;
+  if (erro) {
+    const falha = html`<div class="cx-estado" role="alert"><span>${erro}</span><button type="button" class="cx-btn cx-btn--sm" onClick=${carregar}>Tentar de novo</button></div>`;
+    return html`<div class="cx-mod2 cx-cresce"><section class="cx-card">${falha}</section><section class="cx-card">${falha}</section></div>`;
+  }
+  if (!dados) {
+    const linhas = (n, altura) => Array.from({ length: n }, (_, i) => html`<div key=${i} class="cx-esqueleto" style=${{ height: `${altura}px` }}></div>`);
+    return html`<div class="cx-mod2 cx-cresce" aria-busy="true"><section class="cx-card cx-mod2-lista">${linhas(3, 92)}</section><section class="cx-card cx-mod2-detalhe"><div class="cx-mod2-funcoes-area">${linhas(6, 60)}</div></section></div>`;
+  }
 
+  const atual = dados.find((m) => m.modulo === selecionado) || dados[0];
+  const nomeMod = (m) => m.nome || NOME_MODULO[m.modulo] || m.modulo;
+  const modLigado = (m) => valorExibido(rascunho, chaveModulo(m.modulo), m.ativo);
+  const { ligadas, total } = contarLigadas(atual, rascunho, wfm);
+  const disponiveis = atual.funcoes.filter((f) => !f.indisponivel);
+  const indisponiveis = atual.funcoes.filter((f) => f.indisponivel);
   const doAmbiente = wfm?.origem === 'ambiente';
+  const n = pendencias.length;
+
   return html`
-    <div class="cx-mod-lista">
-      <div class="cx-aviso cx-aviso--suave" role="note">
-        <span>Cada módulo mostra no menu só as funções ligadas aqui. Desligar uma função não apaga dados nem muda permissões: só esconde o atalho naquele módulo. As mudanças ficam em rascunho até você clicar em <strong>Aplicar alterações</strong>; aí aparece uma confirmação com as consequências e tudo fica registrado em auditoria. ${podeEditar ? '' : 'Você não tem permissão para alterar.'}</span>
-      </div>
-      ${modulos.map((m) => {
-    const chaveModulo = `m:${m.modulo}`;
-    return html`
-        <section class="cx-card cx-mod-card" key=${m.modulo}>
-          <header class="cx-mod-cab">
-            <div class="cx-mod-cab-texto">
-              <h2 class="cx-h2">${m.nome}</h2>
-              <p class="cx-legenda">${DESCRICAO_MODULO[m.modulo] || ''}</p>
-            </div>
-            ${m.protegido
-      ? html`<span class="tec-pill" title="Nunca pode ser desativado, para ninguém ficar sem acesso">módulo protegido</span>`
-      : html`<span class="cx-mod-ativacao"><span class=${`tec-pill ${ligado(chaveModulo, m.ativo) ? 'is-ok' : 'is-aviso'}`}>${ligado(chaveModulo, m.ativo) ? 'ativo' : 'desativado'}</span>
-                <${InterruptorCx} ativo=${ligado(chaveModulo, m.ativo)} desabilitado=${!podeEditar || salvando} rotulo=${`Módulo ${m.nome}`}
-                  aoMudar=${() => alternar({ chave: chaveModulo, tipo: 'modulo', modulo: m.modulo, nome: m.nome }, m.ativo)} /></span>`}
-          </header>
-          <p class="cx-mod-sub">Funções exibidas no menu de ${m.nome}</p>
-          <ul class="cx-mod-funcoes">
-            ${m.funcoes.map((f) => {
-      const chave = `f:${m.modulo}:${f.chave}`;
-      // Função de área desativada por decisão da empresa: aparece aqui, mas não pode ser ligada.
-      const indisponivel = Boolean(f.indisponivel);
-      return html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${indisponivel ? false : ligado(chave, f.ativo)} travado=${!podeEditar || salvando || indisponivel}
-              rotulo=${`${f.nome} no módulo ${m.nome}`} alterado=${!indisponivel && chave in rascunho}
-              extra=${indisponivel ? html`<span class="cx-mod-participantes">Desativada no Conecta por decisão da empresa. Não pode ser ativada por aqui.</span>` : null}
-              aoMudar=${() => alternar({ chave, tipo: 'funcao', modulo: m.modulo, funcao: f.chave, nome: f.nome, nomeModulo: m.nome }, f.ativo)} />`;
-    })}
-            ${m.modulo === 'operacao' && wfm ? html`<${LinhaFuncao} nome="Turnos e Plantões para participantes" descricao="Libera o WFM para Operador, Técnico de TI e Qualidade (fase de teste). Quem é liberado entra de novo no sistema."
-              ligado=${ligado('w', Boolean(wfm.liberado))} travado=${!podeEditar || !wfm.editavel || salvando} rotulo="Turnos e Plantões para participantes" alterado=${'w' in rascunho}
-              aoMudar=${() => alternar({ chave: 'w', tipo: 'wfm', nome: 'Turnos e Plantões para participantes' }, Boolean(wfm.liberado))}
-              extra=${doAmbiente ? html`<span class="cx-mod-participantes">A variável RH_WFM_LIBERAR_PARTICIPANTES está definida e prevalece. Remova-a do ambiente para usar este interruptor.</span>` : null} />` : null}
-          </ul>
-        </section>`;
+    <div class="cx-mod2 cx-cresce">
+      <section class="cx-card cx-mod2-lista" aria-label="Módulos">
+        <h2 class="cx-mod2-rotulo">MÓDULOS</h2>
+        <ul class="cx-mod2-linhas">
+          ${dados.map((m) => {
+    const c = contarLigadas(m, rascunho, wfm);
+    const pend = pendenciasDoModulo(rascunho, m.modulo);
+    return html`<li key=${m.modulo}>
+              <button type="button" class=${`cx-mod2-linha ${m.modulo === atual.modulo ? 'is-ativa' : ''}`.trim()} aria-pressed=${m.modulo === atual.modulo} onClick=${() => setSelecionado(m.modulo)}>
+                <span class="cx-mod2-linha-texto">
+                  <span class="cx-mod2-linha-nome"><span class="cx-trunca">${nomeMod(m)}</span>${pend ? html`<span class="cx-mod2-ponto" aria-hidden="true"></span><span class="cx-sr">alteração pendente</span>` : null}</span>
+                  <span class="cx-mod2-linha-desc cx-trunca" title=${DESCRICAO_MODULO[m.modulo] || ''}>${DESCRICAO_MODULO[m.modulo] || ''}</span>
+                  <span class="cx-mod2-linha-meta">${c.ligadas} de ${c.total} funções ligadas</span>
+                </span>
+                ${m.protegido ? html`<${PilulaStatus} variante="protegido">módulo protegido<//>` : html`<${PilulaStatus} variante=${modLigado(m) ? 'ativo' : 'desativado'}>${modLigado(m) ? 'ativo' : 'desativado'}<//>`}
+              </button>
+            </li>`;
   })}
-      ${pendentes.length ? html`
-        <div class="cx-mod-barra" role="region" aria-label="Alterações pendentes">
-          <span><strong>${pendentes.length}</strong> ${pendentes.length === 1 ? 'alteração pendente' : 'alterações pendentes'} — ainda não aplicada${pendentes.length === 1 ? '' : 's'}</span>
-          <span class="cx-mod-barra-acoes">
-            <button type="button" class="cx-btn" disabled=${salvando} onClick=${() => setRascunho({})}>Descartar</button>
-            <button type="button" class="cx-btn cx-btn--primario" disabled=${salvando} onClick=${() => setConfirmando(true)}>Aplicar alterações</button>
-          </span>
-        </div>` : null}
+        </ul>
+        <div class="cx-mod2-lista-rodape">
+          <strong>Quem enxerga cada módulo?</strong>
+          <span>Libere módulos para perfis ou pessoas na aba Atribuição.</span>
+          <button type="button" class="cx-btn cx-btn--sm" onClick=${aoIrParaAtribuicao}>Ir para Atribuição</button>
+        </div>
+      </section>
+
+      <section class="cx-card cx-mod2-detalhe" aria-label=${`Funções do módulo ${nomeMod(atual)}`}>
+        <header class="cx-mod2-cab">
+          <div class="cx-mod2-cab-texto"><h2 class="cx-mod2-titulo">${nomeMod(atual)}</h2><p>${DESCRICAO_MODULO[atual.modulo] || ''}</p></div>
+          <div class="cx-mod2-cab-acoes">
+            ${atual.protegido
+      ? html`<${PilulaStatus} variante="protegido">módulo protegido<//><span class="cx-mod2-cadeado" role="img" aria-label="Sempre ativo" title="Sempre ativo"><${IconeCx} nome="lock" /></span>`
+      : html`<${PilulaStatus} variante=${modLigado(atual) ? 'ativo' : 'desativado'}>${modLigado(atual) ? 'ativo' : 'desativado'}<//>
+                <${InterruptorCx} ativo=${modLigado(atual)} desabilitado=${!podeEditar || salvando} rotulo=${`Ativar ou desativar o módulo ${nomeMod(atual)}`}
+                  aoMudar=${() => alternar({ chave: chaveModulo(atual.modulo), tipo: 'modulo', modulo: atual.modulo, nome: nomeMod(atual), nomeModulo: nomeMod(atual) }, atual.ativo)} />`}
+          </div>
+        </header>
+        <div class="cx-mod2-faixa"><span>FUNÇÕES EXIBIDAS NO MENU DE ${nomeMod(atual).toLocaleUpperCase('pt-BR')}</span><span>${ligadas} de ${total} ligadas</span></div>
+
+        <div class="cx-mod2-funcoes-area">
+          ${erroSalvar ? html`<div class="alert alert-danger" role="alert">${erroSalvar}</div>` : null}
+          ${atual.funcoes.length || (atual.modulo === 'operacao' && wfm) ? html`<ul class="cx-mod2-funcoes">
+            ${disponiveis.map((f) => {
+      const chave = chaveFuncao(atual.modulo, f.chave);
+      return html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${valorExibido(rascunho, chave, f.ativo)} travado=${!podeEditar || salvando}
+              rotulo=${f.nome} alterado=${chave in rascunho}
+              aoMudar=${() => alternar({ chave, tipo: 'funcao', modulo: atual.modulo, funcao: f.chave, nome: f.nome, nomeModulo: nomeMod(atual) }, f.ativo)} />`;
+    })}
+            ${indisponiveis.map((f) => html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${false} travado=${true} rotulo=${f.nome}
+              nota=${html`<span class="cx-mod-participantes">Desativada no Conecta por decisão da empresa. Não pode ser ativada por aqui.</span>`} />`)}
+            ${atual.modulo === 'operacao' && wfm ? html`<${LinhaFuncao} larga=${true} nome="Turnos e Plantões para participantes"
+              descricao="Libera o WFM para Operador, Técnico de TI e Qualidade (fase de teste). Quem é liberado entra de novo no sistema."
+              ligado=${valorExibido(rascunho, CHAVE_WFM_PARTICIPANTES, Boolean(wfm.liberado))} travado=${!podeEditar || !wfm.editavel || salvando}
+              rotulo="Turnos e Plantões para participantes" alterado=${CHAVE_WFM_PARTICIPANTES in rascunho}
+              aoMudar=${() => alternar({ chave: CHAVE_WFM_PARTICIPANTES, tipo: 'wfm_participantes', nome: 'Turnos e Plantões para participantes', nomeModulo: 'Operação' }, Boolean(wfm.liberado))}
+              nota=${doAmbiente ? html`<span class="cx-mod-participantes">A variável RH_WFM_LIBERAR_PARTICIPANTES está definida e prevalece. Remova-a do ambiente para usar este interruptor.</span>` : null} />` : null}
+          </ul>` : html`<p class="cx-mod2-vazio">Este módulo não tem funções configuráveis.</p>`}
+        </div>
+
+        <footer class="cx-mod2-rodape">
+          <div class="cx-mod2-rodape-texto">
+            <span role="status" class=${n ? 'cx-mod2-pendente' : 'cx-mod2-sem-pendencia'}>${n ? `${n} ${n === 1 ? 'alteração pendente' : 'alterações pendentes'}` : 'Nenhuma alteração pendente'}</span>
+            <span class="cx-mod2-rodape-nota">Ao salvar, você confirma tudo de uma vez. Fica registrado em auditoria.</span>
+          </div>
+          <div class="cx-mod2-rodape-acoes">
+            <button type="button" class="cx-btn" disabled=${!n || salvando} onClick=${() => { setRascunho({}); setErroSalvar(''); }}>Descartar</button>
+            <button type="button" class="cx-btn cx-btn--primario" disabled=${!n || salvando || !podeEditar} onClick=${() => { setErroSalvar(''); setConfirmando(true); }}>
+              <${IconeCx} nome="check" />Salvar alterações</button>
+          </div>
+        </footer>
+      </section>
     </div>
-    <${ModalAplicar} aberto=${confirmando} itens=${pendentes} salvando=${salvando} aoCancelar=${() => setConfirmando(false)} aoConfirmar=${aplicar} />`;
+    <${ModalSalvarLote} aberto=${confirmando} pendencias=${pendencias} salvando=${salvando} erro=${erroSalvar}
+      aoCancelar=${() => setConfirmando(false)} aoConfirmar=${salvar} />`;
 }
 
 // Uma caixa por módulo: marcada e travada = o perfil já abre o módulo pelas permissões; marcada e livre = liberada à parte aqui.
