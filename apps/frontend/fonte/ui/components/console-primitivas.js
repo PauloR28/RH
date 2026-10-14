@@ -175,3 +175,8 @@ export function MenuExportar({ totalFiltro, totalSelecionados, aoExportar, carre
         </div>` : null}
     </div>`;
 }
+
+// Interruptor (role="switch"), equivalente ao Switch do shadcn.
+export function InterruptorCx({ ativo, aoMudar, rotulo, desabilitado = false }) {
+  return html`<button type="button" role="switch" class="cx-switch" aria-checked=${ativo} aria-label=${rotulo} title=${rotulo} disabled=${desabilitado} onClick=${() => aoMudar(!ativo)}><span class="cx-switch-bolinha"></span></button>`;
+}

@@ -1,4 +1,6 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, IconeCx, InterruptorCx, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-ambiente';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -552,11 +554,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [salvandoAvatar, setSalvandoAvatar] = useState(false);
   const [avatarExpandido, setAvatarExpandido] = useState(false);
   const [nomeDraft, setNomeDraft] = useState(() => controlador?.estado?.nomeUsuarioAutenticado || '');
-  const [salvandoNome, setSalvandoNome] = useState(false);
   const [sobrenomeDraft, setSobrenomeDraft] = useState(() => controlador?.estado?.sobrenomeUsuarioAutenticado || '');
-  const [salvandoSobrenome, setSalvandoSobrenome] = useState(false);
   const [cargoDraft, setCargoDraft] = useState(() => controlador?.estado?.cargoUsuarioAutenticado || '');
-  const [salvandoCargo, setSalvandoCargo] = useState(false);
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
+  const [errosPerfil, setErrosPerfil] = useState({});
   const [emailDraft, setEmailDraft] = useState('');
   const [salvandoEmail, setSalvandoEmail] = useState(false);
   const [formLoginLocalAmbiente, setFormLoginLocalAmbiente] = useState({ novaSenha: '', confirmarSenha: '' });
@@ -3181,22 +3182,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setCoresNotificacaoAmbiente(salvarCorNotificacao(categoriaId, cor));
   };
 
-  const salvarNomeAmbiente = async () => {
-    const nomeLimpo = nomeDraft.trim();
-    if (!nomeLimpo) return;
-    setSalvandoNome(true);
-    setErro('');
-    try {
-      await controlador.atualizarNomeUsuario(nomeLimpo);
-      setNomeDraft(nomeLimpo);
-      setFeedback('Nome atualizado.');
-    } catch (error) {
-      setErro(error?.message || 'Não foi possível atualizar o nome.');
-    } finally {
-      setSalvandoNome(false);
-    }
-  };
-
   const salvarSenhaAmbiente = async () => {
     setErroSenhaAmbiente('');
     if (!formSenhaAmbiente.senhaAtual) {
@@ -3223,29 +3208,54 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
   };
 
-  const salvarSobrenomeAmbiente = async () => {
-    setSalvandoSobrenome(true);
-    setErro('');
-    try {
-      await controlador.atualizarSobrenomeUsuario(sobrenomeDraft.trim());
-      setFeedback('Sobrenome atualizado.');
-    } catch (error) {
-      setErro(error?.message || 'Não foi possível atualizar o sobrenome.');
-    } finally {
-      setSalvandoSobrenome(false);
-    }
+  const salvosPerfil = {
+    nome: (controlador?.estado?.nomeUsuarioAutenticado || '').trim(),
+    sobrenome: (controlador?.estado?.sobrenomeUsuarioAutenticado || '').trim(),
+    cargo: (controlador?.estado?.cargoUsuarioAutenticado || '').trim(),
+  };
+  const perfilSujo = nomeDraft.trim() !== salvosPerfil.nome
+    || sobrenomeDraft.trim() !== salvosPerfil.sobrenome
+    || cargoDraft.trim() !== salvosPerfil.cargo;
+
+  const descartarPerfilAmbiente = () => {
+    setNomeDraft(salvosPerfil.nome);
+    setSobrenomeDraft(salvosPerfil.sobrenome);
+    setCargoDraft(salvosPerfil.cargo);
+    setErrosPerfil({});
   };
 
-  const salvarCargoAmbiente = async () => {
-    setSalvandoCargo(true);
+  // Um único "Salvar alterações": chama só o endpoint de cada campo que mudou e trata o erro de cada um.
+  const salvarPerfilAmbiente = async () => {
+    const novos = { nome: nomeDraft.trim(), sobrenome: sobrenomeDraft.trim(), cargo: cargoDraft.trim() };
+    if (!novos.nome) {
+      setErrosPerfil({ nome: 'Informe o nome.' });
+      return;
+    }
+    const alteracoes = [
+      ['nome', 'atualizarNomeUsuario', 'Nome', setNomeDraft],
+      ['sobrenome', 'atualizarSobrenomeUsuario', 'Sobrenome', setSobrenomeDraft],
+      ['cargo', 'atualizarCargoUsuario', 'Cargo', setCargoDraft],
+    ].filter(([campo]) => novos[campo] !== salvosPerfil[campo]);
+    setSalvandoPerfil(true);
     setErro('');
-    try {
-      await controlador.atualizarCargoUsuario(cargoDraft.trim());
-      setFeedback('Cargo atualizado.');
-    } catch (error) {
-      setErro(error?.message || 'Não foi possível atualizar o cargo.');
-    } finally {
-      setSalvandoCargo(false);
+    setFeedback('');
+    setErrosPerfil({});
+    const falhas = {};
+    for (const [campo, metodo, , definirDraft] of alteracoes) {
+      try {
+        await controlador[metodo](novos[campo]);
+        definirDraft(novos[campo]);
+      } catch (error) {
+        falhas[campo] = error?.message || 'Não foi possível salvar.';
+      }
+    }
+    setSalvandoPerfil(false);
+    const campos = alteracoes.filter(([campo]) => falhas[campo]).map(([, , rotulo]) => rotulo);
+    if (campos.length) {
+      setErrosPerfil(falhas);
+      setErro(`Não foi possível salvar: ${campos.join(', ')}.`);
+    } else {
+      setFeedback('Perfil atualizado.');
     }
   };
 
@@ -3350,172 +3360,108 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     { id: 'notificacoes', label: 'Notificações', icon: 'notifications_active' },
   ];
 
-  const renderAmbiente = () => html`
-    <div class="settings-ambiente-shell">
-      <div class="settings-ambiente-tabs">
-        ${ABAS_AMBIENTE.map(
-    (aba) => html`
-            <${BotaoAba} key=${aba.id} aba=${aba} ativa=${abaAmbiente === aba.id} onClick=${() => setAbaAmbiente(aba.id)} />
-          `,
-  )}
+  const renderAmbiente = () => {
+    const estadoUsuario = controlador?.estado || {};
+    const avatarAtual = estadoUsuario.avatarUsuario || '';
+    const avatarLigado = Boolean(avatarAtual) || avatarExpandido;
+    const iniciais = `${(nomeDraft || '').trim().charAt(0)}${(sobrenomeDraft || '').trim().charAt(0)}`.toUpperCase() || '?';
+    const fotoPerfil = resolverAvatarUrl(avatarAtual);
+    const alternarAvatar = (ativo) => {
+      if (ativo) setAvatarExpandido(true);
+      else {
+        setAvatarExpandido(false);
+        if (avatarAtual) escolherAvatarAmbiente(avatarAtual);
+      }
+    };
+    const mensagem = erro || feedback;
+    return html`
+    <${PaginaConsole} espaco14=${true}>
+      <${CabecalhoConsole}
+        sobretitulo="Console - Administração"
+        titulo="Ambiente"
+        busca=${estadoUsuario.perfilUsuario === 'operador'
+      ? null
+      : html`<${BuscaGlobalTopbar} placeholderBusca="Configurações, usuários, permissões e logs" controlador=${controlador} />`}
+      />
+      <div class="cx-fixo">
+        <${AbasConsole}
+          variante="sublinhada"
+          prefixo="ambiente"
+          rotulo="Ambiente"
+          itens=${ABAS_AMBIENTE.map((aba) => ({ id: aba.id, rotulo: aba.label, icone: aba.icon }))}
+          ativa=${abaAmbiente}
+          aoMudar=${setAbaAmbiente}
+        />
       </div>
-
-      <section class="c24-card settings-ambiente-panel">
-        ${abaAmbiente === 'perfil'
-      ? html`
-              <div class="settings-ambiente-section">
-                <h3>Nome</h3>
-                <label class="settings-name-field">
-                  <div class="settings-name-row">
-                    <input
-                      class="form-control"
-                      value=${nomeDraft}
-                      maxlength="120"
-                      disabled=${salvandoNome}
-                      onInput=${(event) => setNomeDraft(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      disabled=${salvandoNome || !nomeDraft.trim() || nomeDraft.trim() === (controlador?.estado?.nomeUsuarioAutenticado || '').trim()}
-                      onClick=${salvarNomeAmbiente}
-                    >
-                      ${salvandoNome ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                </label>
-              </div>
-
-              <div class="settings-ambiente-section">
-                <h3>Sobrenome</h3>
-                <label class="settings-name-field">
-                  <div class="settings-name-row">
-                    <input
-                      class="form-control"
-                      value=${sobrenomeDraft}
-                      maxlength="180"
-                      disabled=${salvandoSobrenome}
-                      onInput=${(event) => setSobrenomeDraft(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      disabled=${salvandoSobrenome || sobrenomeDraft.trim() === (controlador?.estado?.sobrenomeUsuarioAutenticado || '').trim()}
-                      onClick=${salvarSobrenomeAmbiente}
-                    >
-                      ${salvandoSobrenome ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                </label>
-              </div>
-
-              <div class="settings-ambiente-section">
-                <h3>Cargo</h3>
-                <label class="settings-name-field">
-                  <div class="settings-name-row">
-                    <input
-                      class="form-control"
-                      value=${cargoDraft}
-                      maxlength="180"
-                      disabled=${salvandoCargo}
-                      onInput=${(event) => setCargoDraft(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      disabled=${salvandoCargo || cargoDraft.trim() === (controlador?.estado?.cargoUsuarioAutenticado || '').trim()}
-                      onClick=${salvarCargoAmbiente}
-                    >
-                      ${salvandoCargo ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                </label>
-              </div>
-
-              <div class="settings-ambiente-section">
-                <h3>E-mail</h3>
-                <p class="settings-notifications-hint">
-                  Alterações passam por aprovação do administrador antes de serem aplicadas.
-                </p>
-                <label class="settings-name-field">
-                  <div class="settings-name-row">
-                    <input
-                      class="form-control"
-                      type="email"
-                      placeholder="novo-email@exemplo.com"
-                      value=${emailDraft}
-                      disabled=${salvandoEmail}
-                      onInput=${(event) => setEmailDraft(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      disabled=${salvandoEmail || !emailDraft.trim()}
-                      onClick=${enviarSolicitacaoEmailAmbiente}
-                    >
-                      ${salvandoEmail ? 'Enviando...' : 'Solicitar alteração'}
-                    </button>
-                  </div>
-                </label>
-              </div>
-
-              <div class="settings-ambiente-section">
-                <div class="settings-ambiente-section-header">
-                  <div>
-                    <h3>Avatar</h3>
-                    <p class="settings-notifications-hint">
-                      Ative para escolher um avatar ilustrado para o seu perfil.
-                    </p>
-                  </div>
-                  <div class="settings-ambiente-section-actions">
-                    <label class="process-switch-row" title=${controlador?.estado?.avatarUsuario ? 'Desativar avatar' : 'Ativar avatar'}>
-                      <input
-                        type="checkbox"
-                        checked=${Boolean(controlador?.estado?.avatarUsuario)}
-                        disabled=${salvandoAvatar}
-                        onChange=${(event) => {
-          if (event.target.checked) {
-            setAvatarExpandido(true);
-          } else {
-            escolherAvatarAmbiente(controlador?.estado?.avatarUsuario);
-          }
-        }}
-                      />
-                      <span class="process-switch-visual"></span>
-                    </label>
-                    <button
-                      type="button"
-                      class="settings-avatar-fold-btn"
-                      aria-label=${avatarExpandido ? 'Recolher avatares' : 'Expandir avatares'}
-                      onClick=${() => setAvatarExpandido((valor) => !valor)}
-                    >
-                      <${Icone} name=${avatarExpandido ? 'expand_less' : 'expand_more'} />
-                    </button>
-                  </div>
-                </div>
-                ${avatarExpandido
-          ? html`
-                      <div class="settings-avatar-grid">
-                        ${AVATARES_ILUSTRADOS.map(
-            (avatar) => html`
-                            <button
-                              key=${avatar.id}
-                              type="button"
-                              class=${`settings-avatar-option ${controlador?.estado?.avatarUsuario === avatar.id ? 'is-selected' : ''}`}
-                              disabled=${salvandoAvatar}
-                              title=${avatar.id}
-                              onClick=${() => escolherAvatarAmbiente(avatar.id)}
-                            >
-                              <img src=${avatar.url} alt="" loading="lazy" />
-                            </button>
-                          `,
-          )}
-                      </div>
-                    `
-          : null}
-              </div>
-            `
+      ${mensagem
+      ? html`<div class=${`alert ${erro ? 'alert-danger' : 'alert-success'} c24-feedback cx-fixo`} role=${erro ? 'alert' : 'status'}>${mensagem}</div>`
       : null}
+
+      ${abaAmbiente === 'perfil'
+      ? html`
+        <div class="cx-ambiente-perfil cx-cresce" role="tabpanel" id=${idPainel('ambiente', 'perfil')} aria-labelledby=${idAba('ambiente', 'perfil')}>
+          <${CardDados}
+            titulo="Dados pessoais"
+            legenda="Tudo em um lugar só: edite os campos e salve uma vez."
+            formulario=${true}
+            rodape=${html`
+              <span class="cx-rodape-espaco"></span>
+              <button type="button" class="cx-btn" disabled=${!perfilSujo || salvandoPerfil} onClick=${descartarPerfilAmbiente}>Descartar</button>
+              <button type="button" class="cx-btn cx-btn--primario" disabled=${!perfilSujo || salvandoPerfil} onClick=${salvarPerfilAmbiente}>
+                ${salvandoPerfil ? html`<span class="cx-spinner" aria-hidden="true"></span>` : html`<${IconeCx} nome="check" />`}${salvandoPerfil ? 'Salvando...' : 'Salvar alterações'}
+              </button>`}
+          >
+            <div class="cx-ambiente-grade">
+              <${CampoConsole} rotulo="Nome" erro=${errosPerfil.nome}>
+                ${(p) => html`<input ...${p} value=${nomeDraft} maxlength="120" disabled=${salvandoPerfil} onInput=${(e) => setNomeDraft(e.target.value)} />`}
+              </${CampoConsole}>
+              <${CampoConsole} rotulo="Sobrenome" erro=${errosPerfil.sobrenome}>
+                ${(p) => html`<input ...${p} value=${sobrenomeDraft} maxlength="180" disabled=${salvandoPerfil} onInput=${(e) => setSobrenomeDraft(e.target.value)} />`}
+              </${CampoConsole}>
+              <${CampoConsole} rotulo="Cargo" erro=${errosPerfil.cargo}>
+                ${(p) => html`<input ...${p} value=${cargoDraft} maxlength="180" placeholder="Seu cargo" disabled=${salvandoPerfil} onInput=${(e) => setCargoDraft(e.target.value)} />`}
+              </${CampoConsole}>
+              <${CampoConsole} rotulo="E-mail">
+                ${(p) => html`<div class="cx-ambiente-email">
+                  <input ...${p} type="email" placeholder="novo-email@exemplo.com" value=${emailDraft} disabled=${salvandoEmail} title=${emailDraft} onInput=${(e) => setEmailDraft(e.target.value)} />
+                  <button type="button" class="cx-btn" disabled=${salvandoEmail || !emailDraft.trim()} onClick=${enviarSolicitacaoEmailAmbiente}>
+                    ${salvandoEmail ? 'Enviando...' : 'Solicitar alteração'}
+                  </button>
+                </div>`}
+              </${CampoConsole}>
+              <div class="cx-ambiente-aviso">
+                <${AvisoConsole}>Alterações passam por aprovação do administrador antes de serem aplicadas.</${AvisoConsole}>
+              </div>
+            </div>
+          </${CardDados}>
+
+          <${CardDados}
+            titulo="Avatar"
+            legenda="Ative para escolher um avatar ilustrado para o seu perfil."
+            formulario=${true}
+            acoes=${html`<${InterruptorCx} ativo=${avatarLigado} desabilitado=${salvandoAvatar} rotulo="Usar avatar ilustrado" aoMudar=${alternarAvatar} />`}
+          >
+            <div class="cx-avatar">
+              <div class="cx-avatar-previa" aria-hidden="true">
+                ${fotoPerfil ? html`<img src=${fotoPerfil} alt="" />` : html`<span>${iniciais}</span>`}
+              </div>
+              ${avatarLigado
+      ? html`
+                <p class="cx-avatar-rotulo" id="cx-avatar-rotulo">Escolha um avatar</p>
+                <div class="cx-avatar-grade" role="group" aria-labelledby="cx-avatar-rotulo">
+                  ${AVATARES_ILUSTRADOS.map((avatar, indice) => html`
+                    <button key=${avatar.id} type="button" class="cx-avatar-opcao" aria-label=${`Avatar ${indice + 1}`}
+                      aria-pressed=${avatarAtual === avatar.id} disabled=${salvandoAvatar} onClick=${() => escolherAvatarAmbiente(avatar.id)}>
+                      <img src=${avatar.url} alt="" loading="lazy" />
+                    </button>`)}
+                </div>`
+      : html`<p class="cx-legenda">Avatar desativado: seu perfil mostra a foto ou as iniciais.</p>`}
+            </div>
+          </${CardDados}>
+        </div>`
+      : null}
+
+      <section class=${`c24-card settings-ambiente-panel cx-cresce cx-painel-rolagem ${abaAmbiente === 'perfil' ? 'cx-oculto' : ''}`} role="tabpanel" id=${idPainel('ambiente', abaAmbiente)} aria-labelledby=${idAba('ambiente', abaAmbiente)}>
 
         ${abaAmbiente === 'seguranca'
       ? html`
@@ -3754,8 +3700,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             `
       : null}
       </section>
-    </div>
+    </${PaginaConsole}>
   `;
+  };
 
   // Logs do sistema e Logs da Monitoria (só Administrador) numa única tela, separados por abas.
   const renderLogsComAbas = () => {
@@ -3997,7 +3944,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       controlador=${controlador}
       mostrarAtalhos=${false}
     >
-      ${abaRenderizada === 'perfis' ? null : html`<${PageIntro}
+      ${abaRenderizada === 'perfis' || abaRenderizada === 'ambiente' ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4037,8 +3984,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
       />`}
 
-      ${erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
-      ${feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
+      ${abaRenderizada !== 'ambiente' && erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
+      ${abaRenderizada !== 'ambiente' && feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
       <${ModalCadastroEmMassa}
         aberto=${cadastrandoEmMassa}
         onClose=${() => setCadastrandoEmMassa(false)}
