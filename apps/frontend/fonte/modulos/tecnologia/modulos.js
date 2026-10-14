@@ -1,168 +1,210 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { DataTable, PageShell, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
+import { ModalConfirmacaoAcao } from '../../ui/componentes-compartilhados.js';
+import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
+import { InterruptorCx } from '../../ui/components/console-primitivas.js?v=20261014-historico';
 import { listarUsuarios } from '../../services/api/settings.js';
 import {
   definirAcessoModulosPerfil,
   definirAcessoModulosUsuario,
+  definirFuncaoModulo,
   definirModuloAtivo,
   definirWfmParticipantes,
   lerAcessosModulos,
   lerWfmParticipantes,
-  listarModulosTecnologia,
-} from '../../services/api/modulos.js?v=20261005-redesign16';
+  listarFuncoesModulos,
+} from '../../services/api/modulos.js?v=20261014-funcoes';
 import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261006-areas-inativas';
 
-// Tela Módulos (Tecnologia): ativação, WFM para participantes e acesso por perfil/usuário. Montada com as primitivas de layout.
+// Tela Módulos (Tecnologia): por módulo, as funções que ele exibe (ligar/desligar), a ativação do módulo, o WFM para participantes
+// (fase de teste) e a atribuição de módulos a perfis e pessoas. Toda mudança pede confirmação explícita com as consequências.
 
 const DESCRICAO_MODULO = {
-  core: 'Login, usuários, perfis, operações, notificações e autoatendimento.',
   rh: 'Currículos, Processos, Provas e gestão de Treinamentos.',
   operacao: 'Monitoria e Turnos e Plantões.',
   tecnologia: 'Administração do Conecta e Suporte TI.',
 };
 const NOME_MODULO = { rh: 'RH', operacao: 'Operação', tecnologia: 'Tecnologia' };
 const MODULOS_LIBERAVEIS = ['rh', 'operacao', 'tecnologia'];
+const AVISO_VIGENCIA = 'A mudança vale para todos os usuários e aparece para cada pessoa ao recarregar a página ou entrar de novo.';
 
-function Interruptor({ ligado, travado, rotulo, onChange }) {
+// Texto de cada confirmação: o que muda, quem é afetado e se dá para desfazer.
+function montarConfirmacao(p) {
+  if (!p) return null;
+  if (p.tipo === 'funcao') {
+    return p.ativo
+      ? {
+        titulo: `Mostrar ${p.nome} no módulo ${p.nomeModulo}?`,
+        descricao: `"${p.nome}" passará a aparecer no menu do módulo ${p.nomeModulo}.`,
+        consequencia: `Todos os usuários que usam o módulo ${p.nomeModulo} e têm permissão para ${p.nome} passam a ver esse atalho. Nenhuma permissão muda e nada é criado ou apagado. ${AVISO_VIGENCIA}`,
+        reversibilidade: 'Pode ser desfeito a qualquer momento desligando a função de novo.',
+        textoConfirmar: 'Mostrar no módulo', tipoModal: 'aviso',
+      }
+      : {
+        titulo: `Esconder ${p.nome} do módulo ${p.nomeModulo}?`,
+        descricao: `"${p.nome}" deixará de aparecer no menu do módulo ${p.nomeModulo}.`,
+        consequencia: `Quem usa o módulo ${p.nomeModulo} perde o atalho para ${p.nome} nesse menu agora. As telas e os dados continuam existindo e as permissões não mudam: a função segue acessível pelos outros módulos onde estiver ligada. Se estiver desligada em todos, ninguém a verá no menu. ${AVISO_VIGENCIA}`,
+        reversibilidade: 'Pode ser desfeito a qualquer momento ligando a função de novo.',
+        textoConfirmar: 'Esconder do módulo', tipoModal: 'destrutivo',
+      };
+  }
+  if (p.tipo === 'modulo') {
+    return p.ativo
+      ? {
+        titulo: `Ativar o módulo ${p.nome}?`,
+        descricao: `O módulo ${p.nome} voltará a funcionar para todos.`,
+        consequencia: `As telas e rotas do módulo voltam a abrir para quem tem permissão que o libera. ${AVISO_VIGENCIA}`,
+        reversibilidade: 'Pode ser desfeito a qualquer momento.',
+        textoConfirmar: 'Ativar módulo', tipoModal: 'aviso',
+      }
+      : {
+        titulo: `Desativar o módulo ${p.nome}?`,
+        descricao: `Todo o módulo ${p.nome} será desligado para todos os usuários.`,
+        consequencia: `As telas e as rotas do módulo ${p.nome} deixam de funcionar imediatamente e quem só usa este módulo perde o acesso ao sistema de trabalho dele. Os dados não são apagados. O app de treinamento (autoatendimento) continua funcionando.`,
+        reversibilidade: 'Pode ser desfeito ativando o módulo de novo.',
+        textoConfirmar: 'Desativar módulo', tipoModal: 'destrutivo',
+      };
+  }
+  if (p.tipo === 'wfm') {
+    return p.ativo
+      ? {
+        titulo: 'Liberar Turnos e Plantões para participantes?',
+        descricao: 'Operador, Técnico de TI e Qualidade passam a acessar o WFM (fase de teste).',
+        consequencia: 'Esses perfis precisarão entrar de novo no sistema para ver Turnos e Plantões. A mudança fica registrada em auditoria (quem, quando, de → para).',
+        reversibilidade: 'Pode ser desfeito fechando para participantes.',
+        textoConfirmar: 'Liberar', tipoModal: 'aviso',
+      }
+      : {
+        titulo: 'Fechar Turnos e Plantões para participantes?',
+        descricao: 'Operador, Técnico de TI e Qualidade perdem o acesso ao WFM.',
+        consequencia: 'O acesso desses perfis ao WFM é cortado imediatamente. Escalas e dados já cadastrados não são apagados. A mudança fica registrada em auditoria.',
+        reversibilidade: 'Pode ser desfeito liberando de novo.',
+        textoConfirmar: 'Fechar', tipoModal: 'destrutivo',
+      };
+  }
+  // atribuição de módulo a perfil ou pessoa
+  const alvo = p.alvoTipo === 'perfil' ? `ao perfil ${p.alvoNome}` : `a ${p.alvoNome}`;
+  const quem = p.alvoTipo === 'perfil' ? `Todos os usuários do perfil ${p.alvoNome}` : p.alvoNome;
+  return p.ativo
+    ? {
+      titulo: `Liberar o módulo ${p.nomeModulo} ${alvo}?`,
+      descricao: `${quem} passará a enxergar o módulo ${p.nomeModulo}.`,
+      consequencia: `${quem} verá o módulo ${p.nomeModulo} no seletor no próximo login. As telas dentro dele continuam seguindo as permissões do perfil: liberar o módulo não concede permissões. A mudança fica registrada em auditoria.`,
+      reversibilidade: 'Pode ser desfeito retirando a liberação.',
+      textoConfirmar: 'Liberar módulo', tipoModal: 'aviso',
+    }
+    : {
+      titulo: `Retirar o módulo ${p.nomeModulo} ${alvo}?`,
+      descricao: `${quem} deixará de enxergar o módulo ${p.nomeModulo} por esta liberação.`,
+      consequencia: `${quem} perde o acesso a ${p.nomeModulo} no próximo login, a não ser que as permissões do perfil já abram o módulo. Quem ficar com um único módulo deixa de ver o seletor. A mudança fica registrada em auditoria.`,
+      reversibilidade: 'Pode ser desfeito liberando o módulo de novo.',
+      textoConfirmar: 'Retirar liberação', tipoModal: 'destrutivo',
+    };
+}
+
+function ConfirmarMudanca({ pendente, salvando, aoCancelar, aoConfirmar }) {
+  const c = montarConfirmacao(pendente);
   return html`
-    <button type="button" role="switch" aria-checked=${ligado} aria-label=${rotulo} disabled=${travado}
-      class=${`tec-switch ${ligado ? 'is-on' : ''}`.trim()} onClick=${onChange}></button>`;
+    <${ModalConfirmacaoAcao}
+      aberto=${Boolean(pendente)}
+      titulo=${c?.titulo || ''}
+      descricao=${c?.descricao || ''}
+      consequencia=${c?.consequencia || ''}
+      reversibilidade=${c?.reversibilidade || ''}
+      labelJustificativa="Justificativa (opcional)"
+      textoConfirmar=${c?.textoConfirmar || 'Confirmar'}
+      tipo=${c?.tipoModal || 'aviso'}
+      carregando=${salvando}
+      onClose=${aoCancelar}
+      onConfirm=${aoConfirmar}
+    />`;
 }
 
-function Aviso({ children }) {
-  return html`<div class="alert alert-warning" role="alert">${children}</div>`;
+function recarregarMenu() {
+  limparEstadoModulos();
+  carregarAcessoModulos();
 }
 
-function RodapeConfirmar({ onCancelar, onConfirmar, salvando }) {
+function LinhaFuncao({ nome, descricao, ligado, travado, rotulo, aoMudar, extra = null }) {
   return html`
-    <footer class="rh-modal-footer"><div class="rh-modal-footer-actions">
-      <button type="button" class="btn btn-outline-secondary" onClick=${onCancelar}>Cancelar</button>
-      <button type="button" class="btn btn-primary" disabled=${salvando} onClick=${onConfirmar}>${salvando ? 'Salvando…' : 'Confirmar'}</button>
-    </div></footer>`;
+    <li class="cx-mod-funcao">
+      <div class="cx-mod-funcao-texto"><strong>${nome}</strong><small>${descricao}</small>${extra}</div>
+      <${InterruptorCx} ativo=${ligado} desabilitado=${travado} rotulo=${rotulo} aoMudar=${aoMudar} />
+    </li>`;
 }
 
-export function SecaoAtivacao({ podeEditar, showToast, aoMudar }) {
+export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
   const [modulos, setModulos] = useState(null);
+  const [wfm, setWfm] = useState(null);
   const [erro, setErro] = useState('');
   const [pendente, setPendente] = useState(null);
-  const [justificativa, setJustificativa] = useState('');
   const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(() => {
     setErro('');
-    listarModulosTecnologia().then(setModulos).catch((e) => setErro(e?.message || 'Não foi possível carregar os módulos.'));
+    listarFuncoesModulos().then(setModulos).catch((e) => setErro(e?.message || 'Não foi possível carregar os módulos.'));
+    lerWfmParticipantes().then(setWfm).catch(() => setWfm(null));
   }, []);
   useEffect(carregar, [carregar]);
 
-  const confirmar = async () => {
+  const confirmar = async ({ justificativa } = {}) => {
     setSalvando(true);
     try {
-      await definirModuloAtivo(pendente.chave, pendente.ativo, justificativa);
-      showToast(`Módulo ${pendente.nome} ${pendente.ativo ? 'ativado' : 'desativado'}.`, 'success');
+      if (pendente.tipo === 'funcao') {
+        await definirFuncaoModulo(pendente.modulo, pendente.funcao, pendente.ativo, justificativa);
+        showToast(`${pendente.nome} ${pendente.ativo ? 'agora aparece' : 'deixou de aparecer'} no módulo ${pendente.nomeModulo}.`, 'success');
+      } else if (pendente.tipo === 'modulo') {
+        await definirModuloAtivo(pendente.modulo, pendente.ativo, justificativa);
+        showToast(`Módulo ${pendente.nome} ${pendente.ativo ? 'ativado' : 'desativado'}.`, 'success');
+      } else {
+        setWfm(await definirWfmParticipantes(pendente.ativo, justificativa));
+        showToast(pendente.ativo ? 'Turnos e Plantões liberado para os participantes.' : 'Turnos e Plantões fechado para os participantes.', 'success');
+      }
       setPendente(null);
-      setJustificativa('');
-      limparEstadoModulos();
-      carregarAcessoModulos();
+      recarregarMenu();
       carregar();
       aoMudar?.();
     } catch (e) {
-      showToast(e?.message || 'Não foi possível alterar o módulo.', 'error');
+      setPendente(null);
+      showToast(e?.message || 'Não foi possível salvar a mudança.', 'error');
     } finally {
       setSalvando(false);
     }
   };
 
-  const colunas = [
-    { chave: 'nome', rotulo: 'Módulo', prioridade: 1, largura: '20%', render: (m) => html`<strong>${m.nome}</strong>` },
-    { chave: 'desc', rotulo: 'O que contém', prioridade: 2, render: (m) => DESCRICAO_MODULO[m.chave] || '' },
-    { chave: 'situacao', rotulo: 'Situação', prioridade: 1, largura: '144px',
-      render: (m) => (m.protegido ? html`<span class="tec-pill">protegido</span>` : html`<span class=${`tec-pill ${m.ativo ? 'is-ok' : 'is-aviso'}`}>${m.ativo ? 'ativo' : 'desativado'}</span>`) },
-    { chave: 'acao', rotulo: 'Ativo', prioridade: 1, largura: '80px', alinhar: 'direita',
-      render: (m) => html`<${Interruptor} ligado=${m.ativo} travado=${m.protegido || !podeEditar} rotulo=${`Módulo ${m.nome}`}
-        onChange=${() => setPendente({ chave: m.chave, nome: m.nome, ativo: !m.ativo })} />` },
-  ];
+  if (erro) return html`<div class="alert alert-danger" role="alert">${erro} <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${carregar}>Tentar de novo</button></div>`;
+  if (!modulos) return html`<p class="tec-ajuda tec-ajuda--topo">Carregando…</p>`;
 
+  const doAmbiente = wfm?.origem === 'ambiente';
   return html`
-    <${PageShell}>
-    <${Section} solta=${true} titulo="Ativação de módulos" descricao="Desligar um módulo esconde as telas e bloqueia as rotas dele. O app de treinamento (autoatendimento) continua funcionando.">
-      ${podeEditar ? null : html`<p class="tec-ajuda tec-ajuda--topo">Você não tem permissão para alterar.</p>`}
-      <${DataTable} colunas=${colunas} linhas=${modulos || []} chaveLinha=${(m) => m.chave} carregando=${!modulos && !erro} erro=${erro} aoTentar=${carregar}
-        vazio=${{ texto: 'Nenhum módulo cadastrado.' }} />
-    <//>
-    <${ModalPadrao} aberto=${Boolean(pendente)} titulo=${pendente ? `${pendente.ativo ? 'Ativar' : 'Desativar'} o módulo ${pendente.nome}?` : ''}
-      subtitulo="A mudança vale para todos os usuários e fica registrada em auditoria." onClose=${() => setPendente(null)}>
-      <div class="rh-details-body">
-        ${pendente && !pendente.ativo ? html`<${Aviso}>Quem só usa este módulo perde o acesso às telas dele agora.<//>` : null}
-        <label class="tec-campo"><span>Justificativa (opcional)</span>
-          <input class="form-control" value=${justificativa} maxlength="400" onInput=${(e) => setJustificativa(e.target.value)} />
-        </label>
+    <div class="cx-mod-lista">
+      <div class="cx-aviso cx-aviso--suave" role="note">
+        <span>Cada módulo mostra no menu só as funções ligadas aqui. Desligar uma função não apaga dados nem muda permissões: só esconde o atalho naquele módulo. Toda mudança pede confirmação e fica registrada em auditoria. ${podeEditar ? '' : 'Você não tem permissão para alterar.'}</span>
       </div>
-      <${RodapeConfirmar} onCancelar=${() => setPendente(null)} onConfirmar=${confirmar} salvando=${salvando} />
-    <//>
-    <//>`;
-}
-
-export function SecaoWfmParticipantes({ podeEditar, showToast, aoMudar }) {
-  const [situacao, setSituacao] = useState(null);
-  const [erro, setErro] = useState('');
-  const [confirmando, setConfirmando] = useState(false);
-  const [justificativa, setJustificativa] = useState('');
-  const [salvando, setSalvando] = useState(false);
-
-  const carregar = useCallback(() => {
-    setErro('');
-    lerWfmParticipantes().then(setSituacao).catch((e) => setErro(e?.message || 'Não foi possível ler a configuração do WFM.'));
-  }, []);
-  useEffect(carregar, [carregar]);
-
-  const alvo = situacao ? !situacao.liberado : true;
-  const doAmbiente = situacao?.origem === 'ambiente';
-  const confirmar = async () => {
-    setSalvando(true);
-    try {
-      const nova = await definirWfmParticipantes(alvo, justificativa);
-      setSituacao(nova);
-      setConfirmando(false);
-      setJustificativa('');
-      showToast(alvo ? 'Turnos e Plantões liberado para os participantes.' : 'Turnos e Plantões fechado para os participantes.', 'success');
-      aoMudar?.();
-    } catch (e) {
-      showToast(e?.message || 'Não foi possível alterar a liberação.', 'error');
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  const botao = situacao ? html`
-    <button type="button" class="btn btn-primary" disabled=${!podeEditar || !situacao.editavel} onClick=${() => setConfirmando(true)}>
-      ${doAmbiente ? 'Controlado pelo ambiente' : situacao.liberado ? 'Fechar para participantes…' : 'Liberar para participantes…'}
-    </button>` : null;
-
-  return html`
-    <${PageShell}>
-    <${Section} titulo="WFM para participantes" descricao="Libera Turnos e Plantões para Operador, Técnico de TI e Qualidade (fase de teste)." acoes=${botao}>
-      ${erro ? html`<${Aviso}>${erro}<//>` : null}
-      ${situacao ? html`
-        <div class="tec-linha">
-          <div class="tec-linha-texto"><strong>${situacao.liberado ? 'Liberado' : 'Fechado'}</strong>
-            <small>Ao liberar, só esses perfis refazem o login. A alteração fica em auditoria (quem, quando, de → para).</small></div>
-          <span class=${`tec-pill ${doAmbiente ? 'is-aviso' : ''}`.trim()}>${doAmbiente ? 'origem: variável de ambiente' : 'origem: banco'}</span>
-        </div>
-        ${doAmbiente ? html`<p class="tec-ajuda">A variável RH_WFM_LIBERAR_PARTICIPANTES está definida e prevalece. Remova-a do ambiente para usar este botão.</p>` : null}`
-        : (!erro ? html`<p class="tec-ajuda tec-ajuda--topo">Carregando…</p>` : null)}
-    <//>
-    <${ModalPadrao} aberto=${confirmando} titulo=${alvo ? 'Liberar Turnos e Plantões?' : 'Fechar Turnos e Plantões?'}
-      subtitulo="Esta ação é registrada em auditoria." onClose=${() => setConfirmando(false)}>
-      <div class="rh-details-body">
-        <p>${alvo ? 'Operador, Técnico de TI e Qualidade passam a acessar o WFM e precisarão entrar de novo.' : 'Operador, Técnico de TI e Qualidade perdem o acesso ao WFM imediatamente.'}</p>
-        <label class="tec-campo"><span>Justificativa (opcional)</span>
-          <input class="form-control" value=${justificativa} maxlength="400" placeholder="ex.: início do piloto com a equipe de atendimento" onInput=${(e) => setJustificativa(e.target.value)} />
-        </label>
-      </div>
-      <${RodapeConfirmar} onCancelar=${() => setConfirmando(false)} onConfirmar=${confirmar} salvando=${salvando} />
-    <//>
-    <//>`;
+      ${modulos.map((m) => html`
+        <section class="cx-card cx-mod-card" key=${m.modulo}>
+          <header class="cx-mod-cab">
+            <div class="cx-mod-cab-texto">
+              <h2 class="cx-h2">${m.nome}</h2>
+              <p class="cx-legenda">${DESCRICAO_MODULO[m.modulo] || ''}</p>
+            </div>
+            ${m.protegido
+    ? html`<span class="tec-pill" title="Nunca pode ser desativado, para ninguém ficar sem acesso">módulo protegido</span>`
+    : html`<span class="cx-mod-ativacao"><span class=${`tec-pill ${m.ativo ? 'is-ok' : 'is-aviso'}`}>${m.ativo ? 'ativo' : 'desativado'}</span>
+                <${InterruptorCx} ativo=${m.ativo} desabilitado=${!podeEditar} rotulo=${`Módulo ${m.nome}`} aoMudar=${(ativo) => setPendente({ tipo: 'modulo', modulo: m.modulo, nome: m.nome, ativo })} /></span>`}
+          </header>
+          <p class="cx-mod-sub">Funções exibidas no menu de ${m.nome}</p>
+          <ul class="cx-mod-funcoes">
+            ${m.funcoes.map((f) => html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${f.ativo} travado=${!podeEditar}
+              rotulo=${`${f.nome} no módulo ${m.nome}`}
+              aoMudar=${(ativo) => setPendente({ tipo: 'funcao', modulo: m.modulo, funcao: f.chave, nome: f.nome, nomeModulo: m.nome, ativo })} />`)}
+            ${m.modulo === 'operacao' && wfm ? html`<${LinhaFuncao} nome="Turnos e Plantões para participantes" descricao="Libera o WFM para Operador, Técnico de TI e Qualidade (fase de teste). Quem é liberado entra de novo no sistema."
+              ligado=${Boolean(wfm.liberado)} travado=${!podeEditar || !wfm.editavel} rotulo="Turnos e Plantões para participantes"
+              aoMudar=${(ativo) => setPendente({ tipo: 'wfm', ativo })}
+              extra=${doAmbiente ? html`<span class="cx-mod-participantes">A variável RH_WFM_LIBERAR_PARTICIPANTES está definida e prevalece. Remova-a do ambiente para usar este interruptor.</span>` : null} />` : null}
+          </ul>
+        </section>`)}
+    </div>
+    <${ConfirmarMudanca} pendente=${pendente} salvando=${salvando} aoCancelar=${() => setPendente(null)} aoConfirmar=${confirmar} />`;
 }
 
 // Uma caixa por módulo: marcada e travada = o perfil já abre o módulo pelas permissões; marcada e livre = liberada à parte aqui.
@@ -170,23 +212,25 @@ function CaixasModulos({ derivados = [], liberados = [], desabilitado, aoAlterna
   return html`
     <div class="tec-caixas">
       ${MODULOS_LIBERAVEIS.map((m) => {
-        const porPermissao = derivados.includes(m);
-        const marcado = porPermissao || liberados.includes(m);
-        return html`
+    const porPermissao = derivados.includes(m);
+    const marcado = porPermissao || liberados.includes(m);
+    return html`
           <label key=${m} class=${`tec-caixa ${porPermissao ? 'is-derivado' : ''}`.trim()} title=${porPermissao ? 'Já aberto pelas permissões do perfil' : `Liberar ${NOME_MODULO[m]}`}>
             <input type="checkbox" checked=${marcado} disabled=${desabilitado || porPermissao} aria-label=${`${rotulo}: ${NOME_MODULO[m]}`} onChange=${() => aoAlternar(m)} />
             <span>${NOME_MODULO[m]}</span>
           </label>`;
-      })}
+  })}
     </div>`;
 }
 
-export function SecaoAcesso({ podeEditar, showToast, aoMudar }) {
-  const [aba, setAba] = useState('perfil');
+export function SecaoAtribuicao({ podeEditar, showToast, aoMudar }) {
+  const [aba, setAba] = useState('usuario');
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [encontrados, setEncontrados] = useState([]);
+  const [pendente, setPendente] = useState(null);
+  const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(() => {
     setErro('');
@@ -194,7 +238,7 @@ export function SecaoAcesso({ podeEditar, showToast, aoMudar }) {
   }, []);
   useEffect(carregar, [carregar]);
 
-  // Busca de usuários só roda na aba "usuário", no servidor e com pelo menos 2 letras (nada de baixar todos).
+  // Busca de usuários só roda na aba "pessoa", no servidor e com pelo menos 2 letras (nada de baixar todos).
   useEffect(() => {
     if (aba !== 'usuario' || busca.trim().length < 2) { setEncontrados([]); return undefined; }
     let ativo = true;
@@ -206,18 +250,27 @@ export function SecaoAcesso({ podeEditar, showToast, aoMudar }) {
     return () => { ativo = false; clearTimeout(espera); };
   }, [aba, busca]);
 
-  const salvar = async (tipo, id, atuais, modulo) => {
-    const novos = atuais.includes(modulo) ? atuais.filter((m) => m !== modulo) : [...atuais, modulo];
+  const pedir = (alvoTipo, id, alvoNome, atuais, modulo) => setPendente({
+    tipo: 'atribuicao', alvoTipo, id, alvoNome, atuais, modulo, nomeModulo: NOME_MODULO[modulo], ativo: !atuais.includes(modulo),
+  });
+
+  const confirmar = async ({ justificativa } = {}) => {
+    const p = pendente;
+    const novos = p.ativo ? [...p.atuais, p.modulo] : p.atuais.filter((m) => m !== p.modulo);
+    setSalvando(true);
     try {
-      if (tipo === 'perfil') await definirAcessoModulosPerfil(id, novos);
-      else await definirAcessoModulosUsuario(id, novos);
-      limparEstadoModulos();
-      carregarAcessoModulos();
+      if (p.alvoTipo === 'perfil') await definirAcessoModulosPerfil(p.id, novos, justificativa);
+      else await definirAcessoModulosUsuario(p.id, novos, justificativa);
+      setPendente(null);
+      recarregarMenu();
       carregar();
       aoMudar?.();
-      showToast('Acesso atualizado. Vale no próximo login da pessoa.', 'success');
+      showToast('Atribuição atualizada. Vale no próximo login da pessoa.', 'success');
     } catch (e) {
-      showToast(e?.message || 'Não foi possível salvar o acesso.', 'error');
+      setPendente(null);
+      showToast(e?.message || 'Não foi possível salvar a atribuição.', 'error');
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -226,10 +279,10 @@ export function SecaoAcesso({ podeEditar, showToast, aoMudar }) {
     { chave: 'nome', rotulo: 'Perfil', prioridade: 1, fixa: true, render: (p) => html`<strong>${p.nome}</strong>` },
     { chave: 'modulos', rotulo: 'Módulos que o perfil acessa', prioridade: 1,
       render: (p) => html`<${CaixasModulos} derivados=${p.derivados} liberados=${p.liberados} desabilitado=${!podeEditar} rotulo=${p.nome}
-        aoAlternar=${(m) => salvar('perfil', p.id, p.liberados, m)} />` },
+        aoAlternar=${(m) => pedir('perfil', p.id, p.nome, p.liberados, m)} />` },
   ];
 
-  // Usuários com liberação individual + resultado da busca (sem repetir).
+  // Pessoas com liberação individual + resultado da busca (sem repetir).
   const linhasUsuario = useMemo(() => {
     const porId = new Map((dados?.usuarios || []).map((u) => [u.id, { ...u }]));
     encontrados.forEach((u) => {
@@ -241,25 +294,26 @@ export function SecaoAcesso({ podeEditar, showToast, aoMudar }) {
     return [...porId.values()].filter((u) => !termo || `${u.nome} ${u.email}`.toLowerCase().includes(termo));
   }, [dados, encontrados, busca]);
   const colunasUsuario = [
-    { chave: 'nome', rotulo: 'Usuário', prioridade: 1, fixa: true, render: (u) => html`<strong>${u.nome}</strong>` },
+    { chave: 'nome', rotulo: 'Pessoa', prioridade: 1, fixa: true, render: (u) => html`<strong>${u.nome}</strong>` },
     { chave: 'email', rotulo: 'E-mail', prioridade: 2, render: (u) => u.email },
     { chave: 'modulos', rotulo: 'Módulos que a pessoa acessa', prioridade: 1,
       render: (u) => html`<${CaixasModulos} derivados=${derivadosDoPerfil[u.perfil] || []} liberados=${u.liberados} desabilitado=${!podeEditar} rotulo=${u.nome}
-        aoAlternar=${(m) => salvar('usuario', u.id, u.liberados, m)} />` },
+        aoAlternar=${(m) => pedir('usuario', u.id, u.nome, u.liberados, m)} />` },
   ];
 
   return html`
-    <${Section} solta=${true} titulo="Acesso por perfil e por usuário"
-      descricao="Libere um módulo para um perfil inteiro ou para uma pessoa. Quem tiver só um módulo não vê o seletor de módulos. As telas dentro do módulo continuam seguindo as permissões do perfil."
-      acoes=${html`<div class="chm-seg" role="tablist" aria-label="Tipo de acesso">
+    <${Section} solta=${true} titulo="Atribuição de módulos"
+      descricao="Libere um módulo para uma pessoa específica ou para um perfil inteiro. Liberar o módulo não concede permissões: as telas dentro dele continuam seguindo as permissões do perfil. Quem tiver só um módulo não vê o seletor."
+      acoes=${html`<div class="chm-seg" role="tablist" aria-label="Atribuir a">
+        <button type="button" role="tab" aria-selected=${aba === 'usuario'} class=${aba === 'usuario' ? 'is-on' : ''} onClick=${() => setAba('usuario')}>Por pessoa</button>
         <button type="button" role="tab" aria-selected=${aba === 'perfil'} class=${aba === 'perfil' ? 'is-on' : ''} onClick=${() => setAba('perfil')}>Por perfil</button>
-        <button type="button" role="tab" aria-selected=${aba === 'usuario'} class=${aba === 'usuario' ? 'is-on' : ''} onClick=${() => setAba('usuario')}>Por usuário</button>
       </div>`}>
-      ${aba === 'usuario' ? html`<${Toolbar} busca=${busca} aoBuscar=${setBusca} placeholder="Buscar usuário por nome ou e-mail (mín. 2 letras)" />` : null}
+      ${aba === 'usuario' ? html`<${Toolbar} busca=${busca} aoBuscar=${setBusca} placeholder="Buscar pessoa por nome ou e-mail (mín. 2 letras)" />` : null}
       ${aba === 'perfil'
-        ? html`<${DataTable} colunas=${colunasPerfil} linhas=${dados?.perfis || []} chaveLinha=${(p) => p.id} carregando=${!dados && !erro} erro=${erro} aoTentar=${carregar}
+    ? html`<${DataTable} colunas=${colunasPerfil} linhas=${dados?.perfis || []} chaveLinha=${(p) => p.id} carregando=${!dados && !erro} erro=${erro} aoTentar=${carregar}
             vazio=${{ texto: 'Nenhum perfil cadastrado.' }} />`
-        : html`<${DataTable} colunas=${colunasUsuario} linhas=${linhasUsuario} chaveLinha=${(u) => u.id} carregando=${!dados && !erro} erro=${erro} aoTentar=${carregar}
-            vazio=${{ texto: busca.trim().length >= 2 ? 'Nenhum usuário encontrado.' : 'Nenhum usuário com liberação individual. Busque pelo nome para liberar um módulo.' }} />`}
-    <//>`;
+    : html`<${DataTable} colunas=${colunasUsuario} linhas=${linhasUsuario} chaveLinha=${(u) => u.id} carregando=${!dados && !erro} erro=${erro} aoTentar=${carregar}
+            vazio=${{ texto: busca.trim().length >= 2 ? 'Nenhuma pessoa encontrada.' : 'Nenhuma pessoa com liberação individual. Busque pelo nome para liberar um módulo.' }} />`}
+    <//>
+    <${ConfirmarMudanca} pendente=${pendente} salvando=${salvando} aoCancelar=${() => setPendente(null)} aoConfirmar=${confirmar} />`;
 }

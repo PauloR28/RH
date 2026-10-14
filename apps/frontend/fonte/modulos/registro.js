@@ -105,10 +105,26 @@ export const MENU_TECNOLOGIA = [
   { id: 'escalas', tipo: 'wfm', label: 'Escalas e Plantões', icone: 'calendar_month' },
 ];
 
+// Funções (grupos do menu) que cada módulo exibe, vindas de GET /core/acesso (`funcoes`, tela Módulos em Tecnologia).
+// Só visibilidade: as permissões continuam valendo. Sem o dado (backend antigo/falha), vale o mapa fixo de antes.
+export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm']);
+let funcoesPorModulo = null;
+
+export function definirFuncoesModulos(funcoes) {
+  funcoesPorModulo = funcoes && typeof funcoes === 'object' ? funcoes : null;
+}
+
+/** A função (`suporte`, `wfm`...) está ligada no menu do módulo? Sem o dado carregado: sim (comportamento de antes). */
+export function funcaoLigada(modulo, funcao) {
+  const ligadas = funcoesPorModulo?.[modulo];
+  return !Array.isArray(ligadas) || ligadas.includes(funcao);
+}
+
 /** O grupo legado do menu (processos, monitoria...) aparece no módulo atual? Sem módulo carregado: sim (comportamento de antes). */
 export function grupoNoModulo(grupo, moduloAtual, carregado) {
   if (!carregado || !moduloAtual) return true;
   if (moduloAtual === MODULO_TECNOLOGIA) return false;
+  if (FUNCOES_CONFIGURAVEIS.has(grupo) && Array.isArray(funcoesPorModulo?.[moduloAtual])) return funcoesPorModulo[moduloAtual].includes(grupo);
   const dono = MODULO_DO_GRUPO[grupo];
   return !dono || dono === MODULO_CORE || dono === moduloAtual;
 }
@@ -131,11 +147,13 @@ export function montarMenuTecnologia(podeAcessarTela, possuiPermissao) {
   return MENU_TECNOLOGIA.flatMap((entrada) => {
     if (entrada.tipo === 'item') return podeAcessarTela(entrada.tela) ? [entrada] : [];
     if (entrada.tipo === 'suporte') {
+      if (!funcaoLigada(MODULO_TECNOLOGIA, 'suporte')) return [];
       // A porta de entrada é a primeira aba do Suporte TI que a pessoa pode abrir (Chamados, Fila, Dashboard ou Configurações).
       const tela = TELAS_SUPORTE_TI.find((t) => podeAcessarTela(t));
       return tela ? [{ ...entrada, tela }] : [];
     }
     if (entrada.tipo === 'wfm') {
+      if (!funcaoLigada(MODULO_TECNOLOGIA, 'wfm')) return [];
       const tela = telaWfmParaTecnologia(podeAcessarTela);
       return tela ? [{ ...entrada, tela }] : [];
     }

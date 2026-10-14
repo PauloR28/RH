@@ -23,6 +23,10 @@ export async function definirModuloDaPermissao(chave, modulo, abreModulo = null,
   invalidarCacheApi('settings:permissions');
   return resposta;
 }
+// Funções (grupos do menu) de cada módulo: o que ele exibe. Só visibilidade; as permissões continuam valendo.
+export const listarFuncoesModulos = () => requisitar('/tecnologia/modulos/funcoes', { method: 'GET' });
+export const definirFuncaoModulo = (modulo, funcao, ativo, justificativa = '') =>
+  enviar(`/tecnologia/modulos/${encodeURIComponent(modulo)}/funcoes/${encodeURIComponent(funcao)}`, 'PUT', { ativo, justificativa });
 export const lerWfmParticipantes = () => requisitar('/tecnologia/parametros/wfm-participantes', { method: 'GET' });
 export const definirWfmParticipantes = (valor, justificativa = '') =>
   enviar('/tecnologia/parametros/wfm-participantes', 'PUT', { valor, confirmar: true, justificativa });

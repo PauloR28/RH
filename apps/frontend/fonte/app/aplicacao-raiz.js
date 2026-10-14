@@ -8,7 +8,7 @@ import {
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
 import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261010-guia';
 import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261006-areas-inativas';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261004-chamados2';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261014-funcoes';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -123,7 +123,7 @@ const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralM
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261014-historico'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261005-redesign16'), 'TelaTecnologia');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260929-excluir-bold'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');

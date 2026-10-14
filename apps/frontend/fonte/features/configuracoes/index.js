@@ -29,7 +29,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261004-chamados2';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261014-funcoes';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';

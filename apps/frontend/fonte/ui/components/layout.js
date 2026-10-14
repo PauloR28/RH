@@ -9,7 +9,7 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261006-areas-inativas';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261004-chamados2';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261014-funcoes';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign16';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };

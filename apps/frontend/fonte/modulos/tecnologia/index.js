@@ -5,15 +5,15 @@ import { PageHeader, PageShell, SettingsLayout } from '../../ui/components/layou
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useChamadosNaoLidos } from '../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
-import { TELA_MODULOS_TECNOLOGIA, TELAS_SUPORTE_TI, telaWfmParaTecnologia } from '../registro.js?v=20261004-chamados2';
-import { SecaoAcesso, SecaoAtivacao, SecaoWfmParticipantes } from './modulos.js?v=20261005-redesign16';
+import { TELA_MODULOS_TECNOLOGIA, TELAS_SUPORTE_TI, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261014-funcoes';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-funcoes';
 
-// Módulo Tecnologia: centro de administração do Conecta. Início = indicadores + atalhos (tiles); Módulos = ativação, acesso e WFM.
+// Módulo Tecnologia: centro de administração do Conecta. Início = indicadores + atalhos (tiles); Módulos = funções por módulo e atribuição.
 // 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria, Suporte TI e a tela "Escalas e Plantões" do WFM.
 
 const TITULOS = {
   'screen-tecnologia': ['Administração do Conecta', 'Tudo o que governa o sistema, em um só lugar.'],
-  [TELA_MODULOS_TECNOLOGIA]: ['Módulos', 'Ative módulos, libere o acesso por perfil ou usuário e decida a liberação do WFM.'],
+  [TELA_MODULOS_TECNOLOGIA]: ['Módulos', 'Configure as funções de cada módulo, ative ou desative módulos e atribua módulos a perfis ou pessoas.'],
 };
 
 const ATALHOS = [
@@ -21,7 +21,7 @@ const ATALHOS = [
   { tela: 'screen-settings-users', icone: 'group', titulo: 'Usuários', texto: 'Criar, editar, bloquear e redefinir senha.' },
   { tela: 'screen-settings-profiles', icone: 'admin_panel_settings', titulo: 'Perfis e permissões', texto: 'Permissões de todos os módulos.' },
   { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operações', texto: 'Cadastro, tema, logo e vínculos.' },
-  { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Ativação, acesso por perfil e WFM.' },
+  { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Funções de cada módulo e atribuição de acesso.' },
   { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
   { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
   { tela: 'screen-settings-lgpd', icone: 'shield_lock', titulo: 'LGPD e retenção', texto: 'Aviso de privacidade e anonimização.' },
@@ -53,6 +53,7 @@ function Inicio({ controlador }) {
   const telaSuporte = TELAS_SUPORTE_TI.find((t) => controlador.podeAcessarTela(t)) || '';
   const resolver = (tela) => (tela === 'wfm' ? telaWfmParaTecnologia(controlador.podeAcessarTela) : tela === 'suporte' ? telaSuporte : tela);
   const atalhos = ATALHOS.filter((a) => {
+    if ((a.tela === 'suporte' || a.tela === 'wfm') && !funcaoLigada('tecnologia', a.tela)) return false;
     const destino = resolver(a.tela);
     return destino && controlador.podeAcessarTela(destino);
   });
@@ -70,19 +71,17 @@ function Inicio({ controlador }) {
 }
 
 const SECOES_MODULOS = [
-  { chave: 'ativacao', rotulo: 'Ativação', icone: 'grid_view' },
-  { chave: 'acesso', rotulo: 'Acesso', icone: 'group' },
-  { chave: 'wfm', rotulo: 'WFM', icone: 'calendar_month' },
+  { chave: 'funcoes', rotulo: 'Módulos e funções', icone: 'grid_view' },
+  { chave: 'atribuicao', rotulo: 'Atribuição', icone: 'group' },
 ];
 
 function TelaModulos({ podeEditar, showToast }) {
-  const [secao, setSecao] = useState('ativacao');
+  const [secao, setSecao] = useState('funcoes');
   const props = { podeEditar, showToast, aoMudar: () => {} };
   return html`
     <${SettingsLayout} itens=${SECOES_MODULOS} ativo=${secao} aoMudar=${setSecao}>
-      ${secao === 'ativacao' ? html`<${SecaoAtivacao} ...${props} />` : null}
-      ${secao === 'acesso' ? html`<${SecaoAcesso} ...${props} />` : null}
-      ${secao === 'wfm' ? html`<${SecaoWfmParticipantes} ...${props} />` : null}
+      ${secao === 'funcoes' ? html`<${SecaoFuncoes} ...${props} />` : null}
+      ${secao === 'atribuicao' ? html`<${SecaoAtribuicao} ...${props} />` : null}
     <//>`;
 }
 

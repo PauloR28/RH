@@ -294,3 +294,18 @@
 .cx-hist-tabela td { padding: 0 6px; }
 .cx-hist-tabela th:first-child, .cx-hist-tabela td:first-child { padding-left: 16px; }
 .cx-hist-tabela th:last-child, .cx-hist-tabela td:last-child { padding-right: 16px; }
+
+/* ---- Módulos: funções por módulo ---- */
+.cx-mod-lista { display: flex; flex-direction: column; gap: 16px; max-width: 960px; }
+.cx-mod-card { overflow: visible; }
+.cx-mod-cab { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--color-border); }
+.cx-mod-cab-texto { min-width: 0; }
+.cx-mod-ativacao { display: inline-flex; align-items: center; gap: 12px; flex: none; }
+.cx-mod-sub { margin: 0; padding: 16px 24px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--color-text-soft); }
+.cx-mod-funcoes { list-style: none; margin: 0; padding: 0 0 8px; }
+.cx-mod-funcao { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 24px; border-top: 1px solid var(--color-border); }
+.cx-mod-funcao:first-child { border-top: 0; }
+.cx-mod-funcao-texto { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.cx-mod-funcao-texto strong { font-size: 13px; font-weight: 600; color: var(--color-text); }
+.cx-mod-funcao-texto small { font-size: 12px; color: var(--color-text-soft); }
+.cx-mod-participantes { font-size: 11.5px; color: var(--color-warning); }
