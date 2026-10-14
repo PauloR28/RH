@@ -16,6 +16,7 @@ import {
   CHAVE_PROCESSO_DETALHE,
 } from '../features/processos-estado.js';
 import { IconeSvg } from './icone.js';
+import { AREA_PROCESSOS, AREA_PROVAS, areaAtiva, telaEmAreaInativa } from '../shared/areas.js';
 
 export const CHAVE_REQUISITO_BUSCA = 'rh_requisito_busca_atual';
 export const CHAVE_COMANDO_NOVO_PROCESSO = 'rh_comando_novo_processo';
@@ -23,6 +24,7 @@ export const CHAVE_COMANDO_NOVO_PROCESSO = 'rh_comando_novo_processo';
 const PREFIXOS_COMANDO_NOVO_PROCESSO = ['novo processo', 'criar processo', 'abrir processo'];
 
 function interpretarComando(query) {
+  if (!areaAtiva(AREA_PROCESSOS)) return null;
   const termo = normalizarBusca(query);
   const prefixo = PREFIXOS_COMANDO_NOVO_PROCESSO.find((item) => termo.startsWith(item));
   if (!prefixo) return null;
@@ -126,12 +128,12 @@ function montarTextoBusca(item) {
 }
 
 async function carregarIndiceBuscaGlobal() {
-  const [processos, candidatos] = await Promise.all([
-    lerProcessos().catch(() => []),
-    lerCandidatosProcessos().catch(() => []),
-  ]);
+  // Área inativa = nenhuma requisição (antes eram 2 chamadas pesadas, com todos os processos e candidatos, na primeira busca).
+  const [processos, candidatos] = areaAtiva(AREA_PROCESSOS)
+    ? await Promise.all([lerProcessos().catch(() => []), lerCandidatosProcessos().catch(() => [])])
+    : [[], []];
 
-  const requisitos = montarIndiceRequisitosBusca().map((item) => ({
+  const requisitos = (areaAtiva(AREA_PROVAS) ? montarIndiceRequisitosBusca() : []).map((item) => ({
     id: `requisito-${item.id}`,
     tipo: 'requisito',
     titulo: item.title,
@@ -143,7 +145,7 @@ async function carregarIndiceBuscaGlobal() {
   }));
 
   return {
-    paginas: PAGINAS_BUSCA.map((item) => ({
+    paginas: PAGINAS_BUSCA.filter((item) => !telaEmAreaInativa(item.tela)).map((item) => ({
       id: item.id,
       tipo: 'pagina',
       titulo: item.titulo,

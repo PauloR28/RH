@@ -149,7 +149,7 @@ import {
   getCandidateVisibleStatus,
 } from '../shared/process-flow.js';
 import { encontrarProcessoPorReferencia } from '../shared/process-reference.js';
-import { telaEmAreaInativa } from '../shared/areas.js';
+import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js';
 
 const CHAVE_ESTADO = 'rh_react_state_v1';
 const CHAVE_BARRA_LATERAL = 'rh_sidebar_collapsed_v1';
@@ -1154,6 +1154,8 @@ export function useControladorAplicacao() {
 
   const possuiPermissao = (permissao) => {
     if (!permissao) return true;
+    // Áreas inativas (Suporte TI, Treinamentos, Processos, Provas, CX de Currículos): suas permissões não valem (shared/areas.js).
+    if (permissaoEmAreaInativa(permissao)) return false;
     return (estado.permissoesUsuario || []).includes(permissao);
   };
 

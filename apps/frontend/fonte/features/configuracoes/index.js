@@ -35,6 +35,7 @@ import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
 import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261010-guia';
 import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
 import {
@@ -4224,7 +4225,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                   ehAdministrador ? { label: 'Transferir supervisão', icon: 'swap_horiz', title: 'Passa os operadores de um supervisor para outro (ex.: férias)', onClick: () => setTransferindoSupervisao(true) } : null,
                   ehAdministrador ? { label: 'Transferir de operação', icon: 'move_up', title: 'Move um Operador ou Supervisor para outra operação', onClick: () => setTransferindoOperacao(true) } : null,
                   { label: 'Cadastro em massa', icon: 'upload_file', title: 'Baixa uma planilha modelo e cadastra vários usuários de uma vez a partir dela', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: () => setCadastrandoEmMassa(true) },
-                  { label: 'Criar usuário rápido', icon: 'person_add', title: 'Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: abrirCriacaoUsuarioRapido },
+                  areaAtiva(AREA_PROCESSOS) ? { label: 'Criar usuário rápido', icon: 'person_add', title: 'Criar login (nome, e-mail e senha) para um candidato aprovado fazer treinamento', disabled: !controlador.possuiPermissao('usuarios.criar'), onClick: abrirCriacaoUsuarioRapido } : null,
                 ]}
               />
             `

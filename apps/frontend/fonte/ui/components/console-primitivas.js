@@ -222,3 +222,46 @@ export function SeletorPeriodoCx({ ini, fim, aoMudar }) {
         </div>` : null}
     </div>`;
 }
+
+// ---- Administração do Conecta: cartão de resumo que é link inteiro e linhas de atalho agrupadas ----
+// Links reais (<a href>): clique normal usa o controlador (mesmas regras de acesso de hoje); abrir em nova aba também funciona.
+function abrirTela(ev, aoAbrir) {
+  if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+  ev.preventDefault();
+  aoAbrir();
+}
+
+export function CardResumoLink({ icone, tom = 'azul', rotulo, valor, nota, notaTom = '', acao, href, aoAbrir, carregando = false, falhou = false }) {
+  const nomeAcessivel = `${rotulo}: ${falhou ? 'não foi possível carregar' : carregando ? 'carregando' : valor}. ${acao}`;
+  return html`
+    <a class=${cx('cx-resumo-link', `cx-resumo-link--${tom}`)} href=${href} aria-label=${nomeAcessivel} onClick=${(ev) => abrirTela(ev, aoAbrir)}>
+      <span class="cx-resumo-link-icone" aria-hidden="true"><${IconeCx} nome=${icone} /></span>
+      <span class="cx-resumo-link-texto">
+        <span class="cx-resumo-link-rotulo">${rotulo}</span>
+        ${carregando ? html`<span class="cx-esqueleto-bloco" aria-hidden="true"></span>` : html`
+          <span class="cx-resumo-link-valor">${falhou ? '—' : valor}</span>
+          <span class=${cx('cx-resumo-link-nota', notaTom && `cx-resumo-link-nota--${notaTom}`)}>${falhou ? 'não foi possível carregar' : nota}</span>`}
+      </span>
+      <span class="cx-resumo-link-acao" aria-hidden="true">${acao}<${IconeCx} nome="arrow_forward" /></span>
+    </a>`;
+}
+
+export function AtalhoLinha({ icone, nome, descricao, href, aoAbrir }) {
+  return html`
+    <li class="cx-atalho-item">
+      <a class="cx-atalho" href=${href} onClick=${(ev) => abrirTela(ev, aoAbrir)}>
+        <span class="cx-atalho-icone" aria-hidden="true"><${IconeCx} nome=${icone} /></span>
+        <span class="cx-atalho-texto"><strong>${nome}</strong><small>${descricao}</small></span>
+        <span class="cx-atalho-seta" aria-hidden="true"><${IconeCx} nome="chevron_right" /></span>
+      </a>
+    </li>`;
+}
+
+export function GrupoAtalhos({ rotulo, children }) {
+  const id = useId();
+  return html`
+    <section class="cx-card cx-grupo" aria-labelledby=${id}>
+      <h2 class="cx-grupo-rotulo" id=${id}>${rotulo}</h2>
+      <ul class="cx-atalhos">${children}</ul>
+    </section>`;
+}

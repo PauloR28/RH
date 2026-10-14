@@ -236,8 +236,11 @@ export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
           <ul class="cx-mod-funcoes">
             ${m.funcoes.map((f) => {
       const chave = `f:${m.modulo}:${f.chave}`;
-      return html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${ligado(chave, f.ativo)} travado=${!podeEditar || salvando}
-              rotulo=${`${f.nome} no módulo ${m.nome}`} alterado=${chave in rascunho}
+      // Função de área desativada por decisão da empresa: aparece aqui, mas não pode ser ligada.
+      const indisponivel = Boolean(f.indisponivel);
+      return html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${indisponivel ? false : ligado(chave, f.ativo)} travado=${!podeEditar || salvando || indisponivel}
+              rotulo=${`${f.nome} no módulo ${m.nome}`} alterado=${!indisponivel && chave in rascunho}
+              extra=${indisponivel ? html`<span class="cx-mod-participantes">Desativada no Conecta por decisão da empresa. Não pode ser ativada por aqui.</span>` : null}
               aoMudar=${() => alternar({ chave, tipo: 'funcao', modulo: m.modulo, funcao: f.chave, nome: f.nome, nomeModulo: m.nome }, f.ativo)} />`;
     })}
             ${m.modulo === 'operacao' && wfm ? html`<${LinhaFuncao} nome="Turnos e Plantões para participantes" descricao="Libera o WFM para Operador, Técnico de TI e Qualidade (fase de teste). Quem é liberado entra de novo no sistema."

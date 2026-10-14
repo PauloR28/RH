@@ -6,6 +6,8 @@
 //  * Telas existentes de RH e Monitoria NÃO mudam de lugar: este registro só diz a que módulo cada grupo do menu pertence.
 //  * Se o acesso por módulo ainda não carregou (ou falhou), o menu se comporta exatamente como antes (sem filtro).
 
+import { AREA_CURRICULOS, AREA_PROCESSOS, AREA_PROVAS, areaAtiva } from '../shared/areas.js';
+
 export const MODULO_CORE = 'core';
 export const MODULO_RH = 'rh';
 export const MODULO_OPERACAO = 'operacao';
@@ -107,6 +109,9 @@ export const MENU_TECNOLOGIA = [
 
 // Funções (grupos do menu) que cada módulo exibe, vindas de GET /core/acesso (`funcoes`, tela Módulos em Tecnologia).
 // Só visibilidade: as permissões continuam valendo. Sem o dado (backend antigo/falha), vale o mapa fixo de antes.
+// Grupo do menu cuja área pode estar inativa (shared/areas.js). Treinamentos/Suporte têm tratamento próprio.
+const AREA_DA_FUNCAO_DO_GRUPO = { 'cx-curriculos': AREA_CURRICULOS, processos: AREA_PROCESSOS, provas: AREA_PROVAS };
+
 export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm']);
 let funcoesPorModulo = null;
 
@@ -122,6 +127,7 @@ export function funcaoLigada(modulo, funcao) {
 
 /** O grupo legado do menu (processos, monitoria...) aparece no módulo atual? Sem módulo carregado: sim (comportamento de antes). */
 export function grupoNoModulo(grupo, moduloAtual, carregado) {
+  if (!areaAtiva(AREA_DA_FUNCAO_DO_GRUPO[grupo]) && AREA_DA_FUNCAO_DO_GRUPO[grupo]) return false; // área inativa: some em qualquer módulo
   if (!carregado || !moduloAtual) return true;
   if (moduloAtual === MODULO_TECNOLOGIA) return false;
   if (FUNCOES_CONFIGURAVEIS.has(grupo) && Array.isArray(funcoesPorModulo?.[moduloAtual])) return funcoesPorModulo[moduloAtual].includes(grupo);

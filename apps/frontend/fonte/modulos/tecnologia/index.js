@@ -1,73 +1,93 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
 import { PageHeader, PageShell, SettingsLayout } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
+import { AtalhoLinha, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole } from '../../ui/components/console-primitivas.js?v=20261014-historico';
 import { useToast } from '../../shared/hooks/use-toast.js';
-import { useChamadosNaoLidos } from '../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
-import { TELA_MODULOS_TECNOLOGIA, TELAS_SUPORTE_TI, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261014-funcoes';
+import { montarHashDaTela } from '../../rotas.js';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261014-funcoes';
 import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-funcoes3';
 
-// Módulo Tecnologia: centro de administração do Conecta. Início = indicadores + atalhos (tiles); Módulos = funções por módulo e atribuição.
-// 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria, Suporte TI e a tela "Escalas e Plantões" do WFM.
+// Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
+// módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.
+// Suporte TI está desativado no Conecta (rh_api/areas.py): não há card de chamados nem atalho para ele.
 
 const TITULOS = {
   'screen-tecnologia': ['Administração do Conecta', 'Tudo o que governa o sistema, em um só lugar.'],
   [TELA_MODULOS_TECNOLOGIA]: ['Módulos', 'Configure as funções de cada módulo, ative ou desative módulos e atribua módulos a perfis ou pessoas.'],
 };
 
-const ATALHOS = [
-  { tela: 'suporte', icone: 'support_agent', titulo: 'Suporte TI', texto: 'Chamados, fila, indicadores e configurações.' },
-  { tela: 'screen-settings-users', icone: 'group', titulo: 'Usuários', texto: 'Criar, editar, bloquear e redefinir senha.' },
-  { tela: 'screen-settings-profiles', icone: 'admin_panel_settings', titulo: 'Perfis e permissões', texto: 'Permissões de todos os módulos.' },
-  { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operações', texto: 'Cadastro, tema, logo e vínculos.' },
-  { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Funções de cada módulo e atribuição de acesso.' },
-  { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
-  { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
-  { tela: 'screen-settings-lgpd', icone: 'shield_lock', titulo: 'LGPD e retenção', texto: 'Aviso de privacidade e anonimização.' },
-  { tela: 'screen-settings-logs', icone: 'history_edu', titulo: 'Auditoria', texto: 'Logs de acesso e de alterações.' },
-  { tela: 'wfm', icone: 'calendar_month', titulo: 'Escalas e Plantões (TI)', texto: 'WFM filtrado pela operação TI.' },
+// Atalhos agrupados por assunto. O destino de cada um é o mesmo de sempre; `wfm` resolve para a primeira tela de WFM que a pessoa pode abrir.
+const GRUPOS_ATALHOS = [
+  {
+    rotulo: 'PESSOAS E ACESSO',
+    itens: [
+      { tela: 'screen-settings-users', icone: 'group', titulo: 'Usuários', texto: 'Criar, editar, bloquear e redefinir senha.' },
+      { tela: 'screen-settings-profiles', icone: 'admin_panel_settings', titulo: 'Perfis e permissões', texto: 'Permissões de todos os módulos.' },
+      { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operações', texto: 'Cadastro, tema, logo e vínculos.' },
+    ],
+  },
+  {
+    rotulo: 'SISTEMA',
+    itens: [
+      { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Funções de cada módulo e atribuição de acesso.' },
+      { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
+      { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
+    ],
+  },
+  {
+    rotulo: 'GOVERNANÇA E OPERAÇÃO',
+    itens: [
+      { tela: 'screen-settings-lgpd', icone: 'shield_lock', titulo: 'LGPD e retenção', texto: 'Aviso de privacidade e anonimização.' },
+      { tela: 'screen-settings-logs', icone: 'history_edu', titulo: 'Auditoria', texto: 'Logs de acesso e de alterações.' },
+      { tela: 'wfm', icone: 'calendar_month', titulo: 'Escalas e Plantões (TI)', texto: 'WFM filtrado pela operação TI.' },
+    ],
+  },
 ];
-
-function Indicadores({ resumo }) {
-  const n = (valor) => (valor === null || valor === undefined ? '—' : valor);
-  return html`
-    <div class="tec-kpis">
-      <div class="tec-kpi"><span>Módulos ativos</span><strong>${resumo ? `${resumo.modulos_ativos} de ${resumo.modulos_total}` : '—'}</strong></div>
-      <div class="tec-kpi"><span>Usuários ativos</span><strong>${n(resumo?.usuarios_ativos)}</strong><small>${resumo ? `${resumo.usuarios_bloqueados} bloqueado(s)` : ''}</small></div>
-      <div class="tec-kpi"><span>Chamados abertos</span><strong>${n(resumo?.chamados_abertos)}</strong></div>
-    </div>`;
-}
 
 function Inicio({ controlador }) {
   const [resumo, setResumo] = useState(null);
-  const naoLidos = useChamadosNaoLidos(controlador);
+  const [falhou, setFalhou] = useState(false);
 
   // Uma única chamada leve (contagens no servidor); os atalhos aparecem na hora, sem esperar os números.
   useEffect(() => {
     let ativo = true;
-    lerResumoTecnologia().then((r) => ativo && setResumo(r)).catch(() => {});
+    lerResumoTecnologia().then((r) => ativo && setResumo(r)).catch(() => ativo && setFalhou(true));
     return () => { ativo = false; };
   }, []);
 
-  const telaSuporte = TELAS_SUPORTE_TI.find((t) => controlador.podeAcessarTela(t)) || '';
-  const resolver = (tela) => (tela === 'wfm' ? telaWfmParaTecnologia(controlador.podeAcessarTela) : tela === 'suporte' ? telaSuporte : tela);
-  const atalhos = ATALHOS.filter((a) => {
-    if ((a.tela === 'suporte' || a.tela === 'wfm') && !funcaoLigada('tecnologia', a.tela)) return false;
-    const destino = resolver(a.tela);
-    return destino && controlador.podeAcessarTela(destino);
-  });
+  const resolver = (tela) => (tela === 'wfm' ? (funcaoLigada('tecnologia', 'wfm') ? telaWfmParaTecnologia(controlador.podeAcessarTela) : '') : tela);
+  const abrir = (tela) => () => controlador.irParaTelaProtegida(tela);
+  const grupos = GRUPOS_ATALHOS
+    .map((g) => ({ ...g, itens: g.itens.map((i) => ({ ...i, destino: resolver(i.tela) })).filter((i) => i.destino && controlador.podeAcessarTela(i.destino)) }))
+    .filter((g) => g.itens.length);
+
+  const total = resumo?.modulos_total;
+  const ativos = resumo?.modulos_ativos;
+  const todosAtivos = ativos === total;
+  const carregando = !resumo && !falhou;
+  const podeModulos = controlador.podeAcessarTela(TELA_MODULOS_TECNOLOGIA);
+  const podeUsuarios = controlador.podeAcessarTela('screen-settings-users');
 
   return html`
-    <${Indicadores} resumo=${resumo} />
-    <div class="tec-tiles">
-      ${atalhos.map((a) => html`
-        <button type="button" class="tec-tile" key=${a.titulo} onClick=${() => controlador.irParaTelaProtegida(resolver(a.tela))}>
-          <span class="tec-tile-icone material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>
-          <span class="tec-tile-texto"><strong>${a.titulo}</strong><small>${a.texto}</small></span>
-          ${a.tela === 'suporte' && naoLidos > 0 ? html`<span class="tec-dot" role="status" aria-label=${`${naoLidos} notificação(ões) de chamados não lida(s)`}></span>` : null}
-        </button>`)}
-    </div>`;
+    <${PaginaConsole} className="cx-adm">
+      <${CabecalhoConsole} titulo=${TITULOS['screen-tecnologia'][0]} subtitulo=${TITULOS['screen-tecnologia'][1]} />
+      <div class="cx-resumos cx-resumos--duas">
+        ${podeModulos ? html`<${CardResumoLink} icone="grid_view" tom="verde" rotulo="Módulos ativos" valor=${`${ativos} de ${total}`}
+          nota=${todosAtivos ? 'todos ativos' : `${total - ativos} desativado(s)`} notaTom=${todosAtivos ? 'sucesso' : 'atencao'} acao="Ver módulos"
+          href=${montarHashDaTela(TELA_MODULOS_TECNOLOGIA)} aoAbrir=${abrir(TELA_MODULOS_TECNOLOGIA)} carregando=${carregando} falhou=${falhou} />` : null}
+        ${podeUsuarios ? html`<${CardResumoLink} icone="group" tom="azul" rotulo="Usuários ativos" valor=${`${resumo?.usuarios_ativos}`}
+          nota=${`${resumo?.usuarios_bloqueados} bloqueado(s)`} acao="Ver usuários"
+          href=${montarHashDaTela('screen-settings-users')} aoAbrir=${abrir('screen-settings-users')} carregando=${carregando} falhou=${falhou} />` : null}
+      </div>
+      <div class="cx-grupos" style=${{ '--cx-colunas': Math.max(1, grupos.length) }}>
+        ${grupos.map((g) => html`
+          <${GrupoAtalhos} key=${g.rotulo} rotulo=${g.rotulo}>
+            ${g.itens.map((i) => html`<${AtalhoLinha} key=${i.titulo} icone=${i.icone} nome=${i.titulo} descricao=${i.texto}
+              href=${montarHashDaTela(i.destino)} aoAbrir=${abrir(i.destino)} />`)}
+          </${GrupoAtalhos}>`)}
+      </div>
+    </${PaginaConsole}>`;
 }
 
 const SECOES_MODULOS = [
@@ -92,11 +112,11 @@ export function TelaTecnologia({ controlador, telaAtual = 'screen-tecnologia' })
   return html`
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Tecnologia" placeholderBusca="Buscar" controlador=${controlador} buscaGlobal=${false}>
       <div class="tec-toast"><${ToastHost} /></div>
-      <${PageShell}>
-        <${PageHeader} titulo=${titulo} subtitulo=${descricao} />
-        ${telaAtual === TELA_MODULOS_TECNOLOGIA
-          ? html`<${TelaModulos} podeEditar=${podeEditar} showToast=${showToast} />`
-          : html`<${Inicio} controlador=${controlador} />`}
-      <//>
+      ${telaAtual === TELA_MODULOS_TECNOLOGIA
+    ? html`<${PageShell}>
+          <${PageHeader} titulo=${titulo} subtitulo=${descricao} />
+          <${TelaModulos} podeEditar=${podeEditar} showToast=${showToast} />
+        <//>`
+    : html`<${Inicio} controlador=${controlador} />`}
     </${PainelRh}>`;
 }
