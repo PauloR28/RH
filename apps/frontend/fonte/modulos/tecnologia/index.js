@@ -6,7 +6,7 @@ import { useToast } from '../../shared/hooks/use-toast.js';
 import { useChamadosNaoLidos } from '../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { TELA_MODULOS_TECNOLOGIA, TELAS_SUPORTE_TI, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261014-funcoes';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-funcoes';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-funcoes3';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = indicadores + atalhos (tiles); Módulos = funções por módulo e atribuição.
 // 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria, Suporte TI e a tela "Escalas e Plantões" do WFM.

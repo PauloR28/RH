@@ -1,5 +1,5 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { ModalConfirmacaoAcao } from '../../ui/componentes-compartilhados.js';
+import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { InterruptorCx } from '../../ui/components/console-primitivas.js?v=20261014-historico';
 import { listarUsuarios } from '../../services/api/settings.js';
@@ -124,19 +124,47 @@ function recarregarMenu() {
   carregarAcessoModulos();
 }
 
-function LinhaFuncao({ nome, descricao, ligado, travado, rotulo, aoMudar, extra = null }) {
+function LinhaFuncao({ nome, descricao, ligado, travado, rotulo, aoMudar, extra = null, alterado = false }) {
   return html`
-    <li class="cx-mod-funcao">
-      <div class="cx-mod-funcao-texto"><strong>${nome}</strong><small>${descricao}</small>${extra}</div>
+    <li class=${`cx-mod-funcao ${alterado ? 'is-alterado' : ''}`.trim()}>
+      <div class="cx-mod-funcao-texto"><strong>${nome}${alterado ? html` <span class="cx-mod-tag">alterado</span>` : null}</strong><small>${descricao}</small>${extra}</div>
       <${InterruptorCx} ativo=${ligado} desabilitado=${travado} rotulo=${rotulo} aoMudar=${aoMudar} />
     </li>`;
+}
+
+// Alterações ficam em rascunho na tela e só valem ao clicar em "Aplicar alterações" (uma confirmação para o conjunto, com as consequências).
+function ModalAplicar({ aberto, itens, salvando, aoCancelar, aoConfirmar }) {
+  const [justificativa, setJustificativa] = useState('');
+  useEffect(() => { if (aberto) setJustificativa(''); }, [aberto]);
+  const temRisco = itens.some((i) => montarConfirmacao(i).tipoModal === 'destrutivo');
+  return html`
+    <${ModalPadrao} aberto=${aberto} titulo=${`Aplicar ${itens.length} ${itens.length === 1 ? 'alteração' : 'alterações'}?`}
+      subtitulo="Leia as consequências antes de continuar. Tudo fica registrado em auditoria." onClose=${salvando ? () => null : aoCancelar}>
+      <div class="rh-details-body">
+        ${temRisco ? html`<div class="alert alert-warning" role="alert">Há alterações que escondem funções ou desligam acesso. Elas valem para todos os usuários dos módulos afetados.</div>` : null}
+        <ul class="cx-mod-resumo">
+          ${itens.map((i) => {
+    const c = montarConfirmacao(i);
+    return html`<li key=${i.chave}><strong>${c.titulo.replace(/\?$/, '')}</strong><span>${c.consequencia}</span></li>`;
+  })}
+        </ul>
+        <label class="tec-campo"><span>Justificativa (opcional, vale para todas)</span>
+          <input class="form-control" value=${justificativa} maxlength="400" disabled=${salvando} onInput=${(e) => setJustificativa(e.target.value)} />
+        </label>
+      </div>
+      <footer class="rh-modal-footer"><div class="rh-modal-footer-actions">
+        <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${aoCancelar}>Cancelar</button>
+        <button type="button" class=${`btn ${temRisco ? 'btn-danger' : 'btn-primary'}`} disabled=${salvando} onClick=${() => aoConfirmar(justificativa.trim())}>${salvando ? 'Aplicando…' : 'Aplicar alterações'}</button>
+      </div></footer>
+    <//>`;
 }
 
 export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
   const [modulos, setModulos] = useState(null);
   const [wfm, setWfm] = useState(null);
   const [erro, setErro] = useState('');
-  const [pendente, setPendente] = useState(null);
+  const [rascunho, setRascunho] = useState({});
+  const [confirmando, setConfirmando] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(() => {
@@ -146,29 +174,38 @@ export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
   }, []);
   useEffect(carregar, [carregar]);
 
-  const confirmar = async ({ justificativa } = {}) => {
+  // Liga/desliga em rascunho: voltar ao valor original desfaz a alteração pendente.
+  const alternar = (item, original) => setRascunho((atual) => {
+    const novo = { ...atual };
+    const valorAtual = item.chave in novo ? novo[item.chave].ativo : original;
+    const proximo = !valorAtual;
+    if (proximo === original) delete novo[item.chave];
+    else novo[item.chave] = { ...item, ativo: proximo };
+    return novo;
+  });
+  const ligado = (chave, original) => (chave in rascunho ? rascunho[chave].ativo : original);
+  const pendentes = Object.values(rascunho);
+
+  const aplicar = async (justificativa) => {
     setSalvando(true);
-    try {
-      if (pendente.tipo === 'funcao') {
-        await definirFuncaoModulo(pendente.modulo, pendente.funcao, pendente.ativo, justificativa);
-        showToast(`${pendente.nome} ${pendente.ativo ? 'agora aparece' : 'deixou de aparecer'} no módulo ${pendente.nomeModulo}.`, 'success');
-      } else if (pendente.tipo === 'modulo') {
-        await definirModuloAtivo(pendente.modulo, pendente.ativo, justificativa);
-        showToast(`Módulo ${pendente.nome} ${pendente.ativo ? 'ativado' : 'desativado'}.`, 'success');
-      } else {
-        setWfm(await definirWfmParticipantes(pendente.ativo, justificativa));
-        showToast(pendente.ativo ? 'Turnos e Plantões liberado para os participantes.' : 'Turnos e Plantões fechado para os participantes.', 'success');
+    const falhas = [];
+    for (const p of pendentes) {
+      try {
+        if (p.tipo === 'funcao') await definirFuncaoModulo(p.modulo, p.funcao, p.ativo, justificativa);
+        else if (p.tipo === 'modulo') await definirModuloAtivo(p.modulo, p.ativo, justificativa);
+        else setWfm(await definirWfmParticipantes(p.ativo, justificativa));
+        setRascunho((atual) => { const novo = { ...atual }; delete novo[p.chave]; return novo; });
+      } catch (e) {
+        falhas.push(`${p.nome}: ${e?.message || 'não foi possível salvar'}`);
       }
-      setPendente(null);
-      recarregarMenu();
-      carregar();
-      aoMudar?.();
-    } catch (e) {
-      setPendente(null);
-      showToast(e?.message || 'Não foi possível salvar a mudança.', 'error');
-    } finally {
-      setSalvando(false);
     }
+    setSalvando(false);
+    setConfirmando(false);
+    recarregarMenu();
+    carregar();
+    aoMudar?.();
+    if (falhas.length) showToast(`Algumas alterações não foram aplicadas — ${falhas.join('; ')}`, 'error');
+    else showToast(`${pendentes.length} ${pendentes.length === 1 ? 'alteração aplicada' : 'alterações aplicadas'}. O menu atualiza para cada pessoa ao recarregar a página ou entrar de novo.`, 'success');
   };
 
   if (erro) return html`<div class="alert alert-danger" role="alert">${erro} <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${carregar}>Tentar de novo</button></div>`;
@@ -178,9 +215,11 @@ export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
   return html`
     <div class="cx-mod-lista">
       <div class="cx-aviso cx-aviso--suave" role="note">
-        <span>Cada módulo mostra no menu só as funções ligadas aqui. Desligar uma função não apaga dados nem muda permissões: só esconde o atalho naquele módulo. Toda mudança pede confirmação e fica registrada em auditoria. ${podeEditar ? '' : 'Você não tem permissão para alterar.'}</span>
+        <span>Cada módulo mostra no menu só as funções ligadas aqui. Desligar uma função não apaga dados nem muda permissões: só esconde o atalho naquele módulo. As mudanças ficam em rascunho até você clicar em <strong>Aplicar alterações</strong>; aí aparece uma confirmação com as consequências e tudo fica registrado em auditoria. ${podeEditar ? '' : 'Você não tem permissão para alterar.'}</span>
       </div>
-      ${modulos.map((m) => html`
+      ${modulos.map((m) => {
+    const chaveModulo = `m:${m.modulo}`;
+    return html`
         <section class="cx-card cx-mod-card" key=${m.modulo}>
           <header class="cx-mod-cab">
             <div class="cx-mod-cab-texto">
@@ -188,23 +227,36 @@ export function SecaoFuncoes({ podeEditar, showToast, aoMudar }) {
               <p class="cx-legenda">${DESCRICAO_MODULO[m.modulo] || ''}</p>
             </div>
             ${m.protegido
-    ? html`<span class="tec-pill" title="Nunca pode ser desativado, para ninguém ficar sem acesso">módulo protegido</span>`
-    : html`<span class="cx-mod-ativacao"><span class=${`tec-pill ${m.ativo ? 'is-ok' : 'is-aviso'}`}>${m.ativo ? 'ativo' : 'desativado'}</span>
-                <${InterruptorCx} ativo=${m.ativo} desabilitado=${!podeEditar} rotulo=${`Módulo ${m.nome}`} aoMudar=${(ativo) => setPendente({ tipo: 'modulo', modulo: m.modulo, nome: m.nome, ativo })} /></span>`}
+      ? html`<span class="tec-pill" title="Nunca pode ser desativado, para ninguém ficar sem acesso">módulo protegido</span>`
+      : html`<span class="cx-mod-ativacao"><span class=${`tec-pill ${ligado(chaveModulo, m.ativo) ? 'is-ok' : 'is-aviso'}`}>${ligado(chaveModulo, m.ativo) ? 'ativo' : 'desativado'}</span>
+                <${InterruptorCx} ativo=${ligado(chaveModulo, m.ativo)} desabilitado=${!podeEditar || salvando} rotulo=${`Módulo ${m.nome}`}
+                  aoMudar=${() => alternar({ chave: chaveModulo, tipo: 'modulo', modulo: m.modulo, nome: m.nome }, m.ativo)} /></span>`}
           </header>
           <p class="cx-mod-sub">Funções exibidas no menu de ${m.nome}</p>
           <ul class="cx-mod-funcoes">
-            ${m.funcoes.map((f) => html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${f.ativo} travado=${!podeEditar}
-              rotulo=${`${f.nome} no módulo ${m.nome}`}
-              aoMudar=${(ativo) => setPendente({ tipo: 'funcao', modulo: m.modulo, funcao: f.chave, nome: f.nome, nomeModulo: m.nome, ativo })} />`)}
+            ${m.funcoes.map((f) => {
+      const chave = `f:${m.modulo}:${f.chave}`;
+      return html`<${LinhaFuncao} key=${f.chave} nome=${f.nome} descricao=${f.descricao} ligado=${ligado(chave, f.ativo)} travado=${!podeEditar || salvando}
+              rotulo=${`${f.nome} no módulo ${m.nome}`} alterado=${chave in rascunho}
+              aoMudar=${() => alternar({ chave, tipo: 'funcao', modulo: m.modulo, funcao: f.chave, nome: f.nome, nomeModulo: m.nome }, f.ativo)} />`;
+    })}
             ${m.modulo === 'operacao' && wfm ? html`<${LinhaFuncao} nome="Turnos e Plantões para participantes" descricao="Libera o WFM para Operador, Técnico de TI e Qualidade (fase de teste). Quem é liberado entra de novo no sistema."
-              ligado=${Boolean(wfm.liberado)} travado=${!podeEditar || !wfm.editavel} rotulo="Turnos e Plantões para participantes"
-              aoMudar=${(ativo) => setPendente({ tipo: 'wfm', ativo })}
+              ligado=${ligado('w', Boolean(wfm.liberado))} travado=${!podeEditar || !wfm.editavel || salvando} rotulo="Turnos e Plantões para participantes" alterado=${'w' in rascunho}
+              aoMudar=${() => alternar({ chave: 'w', tipo: 'wfm', nome: 'Turnos e Plantões para participantes' }, Boolean(wfm.liberado))}
               extra=${doAmbiente ? html`<span class="cx-mod-participantes">A variável RH_WFM_LIBERAR_PARTICIPANTES está definida e prevalece. Remova-a do ambiente para usar este interruptor.</span>` : null} />` : null}
           </ul>
-        </section>`)}
+        </section>`;
+  })}
+      ${pendentes.length ? html`
+        <div class="cx-mod-barra" role="region" aria-label="Alterações pendentes">
+          <span><strong>${pendentes.length}</strong> ${pendentes.length === 1 ? 'alteração pendente' : 'alterações pendentes'} — ainda não aplicada${pendentes.length === 1 ? '' : 's'}</span>
+          <span class="cx-mod-barra-acoes">
+            <button type="button" class="cx-btn" disabled=${salvando} onClick=${() => setRascunho({})}>Descartar</button>
+            <button type="button" class="cx-btn cx-btn--primario" disabled=${salvando} onClick=${() => setConfirmando(true)}>Aplicar alterações</button>
+          </span>
+        </div>` : null}
     </div>
-    <${ConfirmarMudanca} pendente=${pendente} salvando=${salvando} aoCancelar=${() => setPendente(null)} aoConfirmar=${confirmar} />`;
+    <${ModalAplicar} aberto=${confirmando} itens=${pendentes} salvando=${salvando} aoCancelar=${() => setConfirmando(false)} aoConfirmar=${aplicar} />`;
 }
 
 // Uma caixa por módulo: marcada e travada = o perfil já abre o módulo pelas permissões; marcada e livre = liberada à parte aqui.
