@@ -21,46 +21,27 @@ from .repositories import (
     describe_database_error,
     is_deadlock_error,
 )
-from .routers.analytics import router as analytics_router
 from .routers.auth import router as auth_router
 from .routers.calendar import (
     events_router as calendar_events_router,
     public_router as calendar_public_router,
     router as calendar_router,
 )
-from .areas import SUPORTE_TI, area_ativa
+from .areas import CURRICULOS, PROCESSOS, PROVAS, SUPORTE_TI, area_ativa, onboarding_ativo
 from .routers.chamados import router as chamados_router
 from .routers.core import router as core_router
-from .routers.curriculos_ia import router as curriculos_ia_router
-from .routers.disc import public_router as disc_public_router
-from .routers.disc import router as disc_router
 from .routers.document_templates import router as document_templates_router
 from .routers.documentos_biblioteca import router as documentos_biblioteca_router
-from .routers.email_inbox import router as email_inbox_router
 from .routers.email_send import router as email_send_router
-from .routers.exam_analytics import router as exam_analytics_router
-from .routers.fit_cultural import public_router as fit_cultural_public_router
-from .routers.fit_cultural import router as fit_cultural_router
-from .routers.generated_exams import public_router as generated_exams_public_router
-from .routers.generated_exams import router as generated_exams_router
-from .routers.history import router as history_router
-from .routers.interviews import router as interviews_router
 from .routers.monitoria import public_router as monitoria_public_router
 from .routers.monitoria import router as monitoria_router
 from .routers.wfm import router as wfm_router
 from .routers.mural import public_router as mural_public_router
 from .routers.mural import router as mural_router
-from .routers.onboarding import router as onboarding_router
 from .routers.onedrive_files import router as onedrive_files_router
 from .routers.notifications import router as notifications_router
 from .routers.operations import router as operations_router
-from .routers.pipeline import router as pipeline_router
 from .routers.policies import router as policies_router
-from .routers.processes import router as processes_router
-from .routers.public_candidacy import router as public_candidacy_router
-from .routers.raciocinio_logico import public_router as raciocinio_logico_public_router
-from .routers.raciocinio_logico import router as raciocinio_logico_router
-from .routers.scorecards import router as scorecards_router
 from .routers.settings import router as settings_router
 from .routers.sistema import router as sistema_router
 from .routers.system import build_system_status, router as system_router
@@ -377,23 +358,48 @@ def create_app() -> FastAPI:
     app.include_router(tecnologia_router)
     if area_ativa(SUPORTE_TI):
         app.include_router(chamados_router)
-    app.include_router(curriculos_ia_router)
-    app.include_router(history_router)
-    app.include_router(email_inbox_router)
-    app.include_router(generated_exams_router)
-    app.include_router(generated_exams_public_router)
-    app.include_router(exam_analytics_router)
-    app.include_router(processes_router)
-    app.include_router(scorecards_router)
-    app.include_router(public_candidacy_router)
-    app.include_router(interviews_router)
-    app.include_router(analytics_router)
-    app.include_router(pipeline_router)
+    # Áreas desligáveis (rh_api/areas.py): inativa = o módulo do router nem é importado, as rotas não existem (404) e o
+    # frontend não pede nada delas. Os dados continuam no banco. Reativar = ajustar RH_AREAS_INATIVAS e reiniciar.
+    if area_ativa(CURRICULOS):
+        from .routers.curriculos_ia import router as curriculos_ia_router
+        from .routers.email_inbox import router as email_inbox_router
+
+        app.include_router(curriculos_ia_router)
+        app.include_router(email_inbox_router)
+    if area_ativa(PROVAS):
+        from .routers.disc import public_router as disc_public_router
+        from .routers.disc import router as disc_router
+        from .routers.exam_analytics import router as exam_analytics_router
+        from .routers.fit_cultural import public_router as fit_cultural_public_router
+        from .routers.fit_cultural import router as fit_cultural_router
+        from .routers.generated_exams import public_router as generated_exams_public_router
+        from .routers.generated_exams import router as generated_exams_router
+        from .routers.history import router as history_router
+        from .routers.raciocinio_logico import public_router as raciocinio_logico_public_router
+        from .routers.raciocinio_logico import router as raciocinio_logico_router
+
+        for roteador in (history_router, generated_exams_router, generated_exams_public_router, exam_analytics_router, disc_router,
+                         disc_public_router, fit_cultural_router, fit_cultural_public_router, raciocinio_logico_router,
+                         raciocinio_logico_public_router):
+            app.include_router(roteador)
+    if area_ativa(PROCESSOS):
+        from .routers.analytics import router as analytics_router
+        from .routers.interviews import router as interviews_router
+        from .routers.pipeline import router as pipeline_router
+        from .routers.processes import router as processes_router
+        from .routers.public_candidacy import router as public_candidacy_router
+        from .routers.scorecards import router as scorecards_router
+
+        for roteador in (processes_router, scorecards_router, public_candidacy_router, interviews_router, analytics_router, pipeline_router):
+            app.include_router(roteador)
     app.include_router(policies_router)
     app.include_router(calendar_router)
     app.include_router(calendar_events_router)
     app.include_router(calendar_public_router)
-    app.include_router(onboarding_router)
+    if onboarding_ativo():
+        from .routers.onboarding import router as onboarding_router
+
+        app.include_router(onboarding_router)
     app.include_router(notifications_router)
     app.include_router(document_templates_router)
     app.include_router(documentos_biblioteca_router)
@@ -402,12 +408,6 @@ def create_app() -> FastAPI:
     app.include_router(wfm_router)
     app.include_router(monitoria_public_router)
     app.include_router(mural_public_router)
-    app.include_router(disc_router)
-    app.include_router(disc_public_router)
-    app.include_router(fit_cultural_router)
-    app.include_router(fit_cultural_public_router)
-    app.include_router(raciocinio_logico_router)
-    app.include_router(raciocinio_logico_public_router)
     app.include_router(settings_router)
     app.include_router(sistema_router)
     app.include_router(operations_router)

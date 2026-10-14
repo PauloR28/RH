@@ -10,9 +10,6 @@ import csv
 import io
 from typing import Any, Iterable
 
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
 
 _PERIGOSOS = ("=", "+", "-", "@", "\t", "\r")
 
@@ -42,6 +39,11 @@ def gerar_csv(colunas: list[str], linhas: Iterable[list[Any]]) -> bytes:
 
 def gerar_xlsx(abas: list[dict[str, Any]]) -> bytes:
     """`abas` = [{"nome": str, "colunas": [...], "linhas": [[...]]}]."""
+    # openpyxl (e o numpy/PIL/lxml que ele puxa) só é carregado quando alguém realmente exporta: mantém o backend leve na subida.
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
     wb = Workbook()
     wb.remove(wb.active)
     for aba in abas:

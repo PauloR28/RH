@@ -20,7 +20,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Iterable
 
-from ..areas import SUPORTE_TI, area_ativa, areas_inativas
+from ..areas import CURRICULOS, PROCESSOS, PROVAS, SUPORTE_TI, area_ativa, areas_inativas, funcao_disponivel
 from ..modulos_catalogo import (
     ABRE_MODULO_PADRAO,
     FUNCOES_PADRAO_ATIVAS,
@@ -154,7 +154,8 @@ def modulo_ativo(modulo: str) -> bool:
 def funcoes_ativas(modulo: str) -> list[str]:
     """Funções (grupos do menu) que o módulo exibe, na ordem do catálogo."""
     ligadas = estado().funcoes.get(modulo, frozenset())
-    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas]
+    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa.
+    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f)]
 
 
 def modulo_da_permissao(chave: str, grupo: str = "") -> str:
@@ -178,12 +179,33 @@ def modulo_aberto_por(chave: str) -> str | None:
     return ABRE_MODULO_PADRAO.get(chave)
 
 
+# Permissões exclusivas de cada área de RH (por prefixo). `candidatos.` é compartilhada por Processos e CX de Currículos
+# (banco de talentos): só deixa de valer quando as DUAS estão inativas.
+_PREFIXOS_POR_AREA = {
+    PROCESSOS: ("sessao.processos.", "vagas.", "processos.", "entrevistas."),
+    PROVAS: ("sessao.provas.", "provas.", "fit_cultural."),
+    CURRICULOS: ("sessao.curriculos.",),
+}
+_PREFIXOS_COMPARTILHADOS = ("candidatos.",)
+
+
+def _PREFIXOS_DE_AREAS_INATIVAS() -> tuple[str, ...]:
+    inativas = areas_inativas()
+    prefixos = [p for area, lista in _PREFIXOS_POR_AREA.items() if area in inativas for p in lista]
+    if PROCESSOS in inativas and CURRICULOS in inativas:
+        prefixos.extend(_PREFIXOS_COMPARTILHADOS)
+    return tuple(prefixos)
+
+
 def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     """Remove as permissões de módulos desativados. Com todos ativos devolve exatamente o mesmo conjunto."""
     todas = frozenset(permissoes)
     # Suporte TI inativo (fase de teste, ver rh_api/areas.py): as permissões chamados.* deixam de valer, inclusive para abrir o módulo.
     if not area_ativa(SUPORTE_TI):
         todas = frozenset(p for p in todas if not p.startswith("chamados."))
+    # Áreas de RH inativas: as permissões exclusivas delas deixam de valer (o RH que sobra é Gestão/Drive/Calendário/Mural).
+    for prefixo in _PREFIXOS_DE_AREAS_INATIVAS():
+        todas = frozenset(p for p in todas if not p.startswith(prefixo))
     est = estado()
     inativos = {chave for chave, *_ in MODULOS_PADRAO} - set(est.ativos) - MODULOS_PROTEGIDOS
     if not inativos:

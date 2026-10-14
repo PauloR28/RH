@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from .areas import SUPORTE_TI, TREINAMENTOS, area_ativa
+from .areas import PROCESSOS, SUPORTE_TI, TREINAMENTOS, area_ativa
 from .config import Settings
 
 logger = logging.getLogger(__name__)
@@ -126,16 +126,17 @@ def start_scheduler(settings: Settings):
     try:
         interval_hours = max(1, int(getattr(settings, "scheduler_inactivity_interval_hours", 1) or 1))
         scheduler = BackgroundScheduler(timezone="UTC")
-        scheduler.add_job(
-            _run_inactivity_reminder_job,
-            trigger="interval",
-            hours=interval_hours,
-            args=(settings,),
-            id="lembretes_inatividade_processos",
-            replace_existing=True,
-            coalesce=True,
-            max_instances=1,
-        )
+        if area_ativa(PROCESSOS):
+            scheduler.add_job(
+                _run_inactivity_reminder_job,
+                trigger="interval",
+                hours=interval_hours,
+                args=(settings,),
+                id="lembretes_inatividade_processos",
+                replace_existing=True,
+                coalesce=True,
+                max_instances=1,
+            )
         if area_ativa(TREINAMENTOS):
             scheduler.add_job(
                 _run_training_call_escalation_job,

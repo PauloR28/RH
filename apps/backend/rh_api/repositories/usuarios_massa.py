@@ -18,10 +18,6 @@ import unicodedata
 from typing import Any
 
 from fastapi import HTTPException, status
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.datavalidation import DataValidation
 
 from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_DEFINITIONS, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
 from ..services.helpers import normalize_text
@@ -87,6 +83,12 @@ class UsuariosMassaRepositoryMixin:
             conn.close()
         turnos = [t["valor"] for t in self.mon_list_catalogo("turno")]
         perfis = [r.name for r in _perfis_visiveis() if r.id != ROLE_ADMIN or actor.perfil == ROLE_ADMIN]
+
+        # carregamento tardio: openpyxl só entra na memória quando a planilha é realmente gerada
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.utils import get_column_letter
+        from openpyxl.worksheet.datavalidation import DataValidation
 
         wb = Workbook()
         ws = wb.active
@@ -158,6 +160,8 @@ class UsuariosMassaRepositoryMixin:
                                 detail="Envie uma planilha .xlsx de até 2 MB.")
         if conteudo[:2] != b"PK":
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Arquivo inválido: envie a planilha .xlsx baixada do Conecta.")
+        from openpyxl import load_workbook
+
         try:
             wb = load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
             ws = wb[ABA_DADOS] if ABA_DADOS in wb.sheetnames else wb.worksheets[0]

@@ -15,6 +15,7 @@ from ..modulos_catalogo import (
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
 )
+from ..areas import AREA_DA_FUNCAO, funcao_disponivel
 from . import acesso
 
 
@@ -69,7 +70,12 @@ def listar_funcoes() -> list[dict]:
             "ativo": nomes[modulo]["ativo"],
             "protegido": nomes[modulo]["protegido"],
             "funcoes": [
-                {"chave": f, "nome": FUNCOES[f][0], "descricao": FUNCOES[f][1], "ativo": f in ligadas.get(modulo, frozenset())}
+                {
+                    "chave": f, "nome": FUNCOES[f][0], "descricao": FUNCOES[f][1],
+                    "ativo": f in ligadas.get(modulo, frozenset()) and funcao_disponivel(f),
+                    # área desativada por decisão da empresa (rh_api/areas.py): aparece, mas não pode ser ligada
+                    "indisponivel": not funcao_disponivel(f), "area": AREA_DA_FUNCAO.get(f),
+                }
                 for f in funcoes
             ],
         }
@@ -81,6 +87,8 @@ def definir_funcao(modulo: str, funcao: str, ativo: bool, *, autor: str) -> dict
     """Liga/desliga uma função no menu de um módulo. Só visibilidade; não apaga nada nem muda permissões."""
     if funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
         raise _erro(status.HTTP_404_NOT_FOUND, "Função não encontrada neste módulo.")
+    if ativo and not funcao_disponivel(funcao):
+        raise _erro(status.HTTP_409_CONFLICT, "Esta função está desativada no Conecta e não pode ser ativada por aqui.")
     anterior = funcao in acesso.estado().funcoes.get(modulo, frozenset())
     conn = get_connection(get_settings(), autocommit=True)
     try:

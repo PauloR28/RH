@@ -83,7 +83,11 @@ def test_um_unico_especificador_para_estado_registro_e_componentes():
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node não disponível")
 def test_regras_puras_do_registro_em_node():
     uri = json.dumps((FRONT / "modulos" / "registro.js").as_uri())
+    uri_areas = json.dumps((FRONT / "shared" / "areas.js").as_uri())
     codigo = (
+        # As regras de módulo valem com as áreas de RH ativas; o padrão (todas inativas) é testado no fim do script.
+        "import { definirAreasInativas } from " + uri_areas + ";\n"
+        "definirAreasInativas([]);\n"
         "import { grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaWfmParaTecnologia, filtrarPorOperacaoBase,"
         " operacaoBaseDoModulo, escolherModuloAtual, telaInicialDoModulo } from " + uri + ";\n"
         "const r = {};\n"
@@ -100,6 +104,11 @@ def test_regras_puras_do_registro_em_node():
         "r.base = [operacaoBaseDoModulo('tecnologia'), operacaoBaseDoModulo('rh'), operacaoBaseDoModulo('tecnologia', false)];\n"
         "r.escolha = [escolherModuloAtual(['rh','operacao'], 'operacao', 'rh'), escolherModuloAtual(['rh'], 'tecnologia', 'rh'), escolherModuloAtual([], '', 'core')];\n"
         "r.inicio = [telaInicialDoModulo('tecnologia', () => true), telaInicialDoModulo('rh', () => true)];\n"
+        # Padrão da empresa: Processos, Provas e CX de Currículos inativos somem do menu em qualquer módulo; Gestão/Drive/Monitoria/WFM ficam.
+        "definirAreasInativas(['suporte_ti','treinamentos','processos','provas','curriculos']);\n"
+        "r.areas = [grupoNoModulo('processos','rh',true), grupoNoModulo('provas','rh',true), grupoNoModulo('cx-curriculos','rh',true),"
+        " grupoNoModulo('processos','',false), grupoNoModulo('gestao','rh',true), grupoNoModulo('drive','rh',true),"
+        " grupoNoModulo('monitoria','operacao',true), grupoNoModulo('wfm','operacao',true)];\n"
         "console.log(JSON.stringify(r));\n"
     )
     saida = subprocess.run(["node", "--input-type=module", "-e", codigo], capture_output=True, text=True, check=True)
@@ -113,3 +122,4 @@ def test_regras_puras_do_registro_em_node():
     assert r["base"] == ["TI", "", ""]
     assert r["escolha"] == ["operacao", "rh", "core"]
     assert r["inicio"] == ["screen-tecnologia", "screen-menu"]
+    assert r["areas"] == [False, False, False, False, True, True, True, True]
