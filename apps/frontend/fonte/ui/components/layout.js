@@ -457,6 +457,7 @@ export function BarraLateral({
       data-tour-id="layout-sidebar"
       ref=${referenciaNav}
     >
+      <div class="rh-modern-topnav-esquerda">
       <div class="rh-modern-topnav-brand">
         <button
           type="button"
@@ -483,6 +484,7 @@ export function BarraLateral({
       </div>
 
       <${SeletorModulo} controlador=${controlador} modulos=${modulos} />
+      </div>
 
       <nav class="rh-modern-nav">
         ${emTecnologia

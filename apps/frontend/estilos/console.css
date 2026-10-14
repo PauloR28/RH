@@ -322,11 +322,12 @@
 .cx-mod-resumo li { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 12.5px; }
 .cx-mod-resumo span { color: var(--color-text-soft); }
 
-/* Menu superior centralizado na página: marca | menu | usuário em 3 colunas (1fr auto 1fr). As duas laterais têm sempre a mesma
-   largura, então remover ou ocultar itens do menu não o desloca. */
+/* Menu superior centralizado na página: [marca + seletor de módulo] | menu | usuário em 3 colunas (1fr auto 1fr). As duas laterais
+   têm sempre a mesma largura, então remover ou ocultar itens do menu não o desloca. Abaixo de 1200px segue o layout flex de antes. */
+.rh-modern-topnav-esquerda { display: flex; align-items: center; gap: inherit; flex: 0 0 auto; min-width: 0; }
 @media (min-width: 1200px) {
   .rh-modern-topnav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
-  .rh-modern-topnav-brand { justify-self: start; }
+  .rh-modern-topnav-esquerda { justify-self: start; }
   .rh-modern-topnav-user { justify-self: end; margin-left: 0; }
   .rh-modern-topnav .rh-modern-nav { justify-self: center; flex: none; justify-content: center; }
 }
