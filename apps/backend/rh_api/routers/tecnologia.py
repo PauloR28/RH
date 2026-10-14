@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..schemas.modulos import FuncaoModuloRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
+from ..schemas.modulos import FuncaoModuloRequest, LoteModulosRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
 from ..services import acesso, modulos_admin
 
 router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depends(get_current_user)])
@@ -46,6 +46,31 @@ def definir_acesso_usuario(id_usuario: int, payload: ModulosAcessoRequest, reque
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)
     return resultado
+
+
+_ACAO_LOTE = {"modulo": ("modulo_ativacao_alterada", "modulo"), "funcao": ("modulo_funcao_alterada", "modulo_funcao"),
+              "wfm_participantes": ("wfm_participantes_alterado", "parametro")}
+
+
+@router.put("/modulos/lote", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def aplicar_lote_modulos(
+    payload: LoteModulosRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+) -> dict:
+    """Salvar em lote da tela Módulos: atômico (tudo ou nada). Uma linha de auditoria por mudança, todas com o mesmo `id_lote`."""
+    resultado = modulos_admin.aplicar_lote([a.model_dump() for a in payload.alteracoes], autor=user.username)
+    for p in resultado["aplicadas"]:
+        acao, entidade = _ACAO_LOTE[p["tipo"]]
+        entidade_id = {"modulo": p["modulo"], "funcao": f"{p['modulo']}:{p['funcao']}"}.get(p["tipo"], acesso.PARAM_WFM_PARTICIPANTES)
+        audit_action(
+            repository, user, modulo="Sistema", acao=acao, entidade=entidade, entidade_id=entidade_id,
+            valor_anterior={"ativo": p["ativo_anterior"], "id_lote": resultado["id_lote"]},
+            valor_novo={"ativo": p["ativo"], "id_lote": resultado["id_lote"]},
+            justificativa=payload.justificativa, request=request,
+        )
+    return {**resultado, "funcoes": modulos_admin.listar_funcoes(), "wfm": acesso.situacao_wfm_participantes()}
 
 
 @router.get("/modulos/funcoes", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])

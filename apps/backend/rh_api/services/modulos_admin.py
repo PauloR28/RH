@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 from fastapi import HTTPException, status
 
 from ..config import get_settings
@@ -109,6 +111,85 @@ def definir_funcao(modulo: str, funcao: str, ativo: bool, *, autor: str) -> dict
         conn.close()
     acesso.invalidar_cache()
     return {"modulo": modulo, "funcao": funcao, "nome": FUNCOES[funcao][0], "ativo_anterior": anterior, "ativo": ativo}
+
+
+def aplicar_lote(alteracoes: list[dict], *, autor: str) -> dict:
+    """Aplica de uma vez as mudanças da tela Módulos: TUDO ou NADA (uma transação). Valida tudo antes de escrever.
+
+    Cada item: {"tipo": "modulo"|"funcao"|"wfm_participantes", "modulo", "funcao", "ativo"}. Recusas (nada é gravado):
+    módulo protegido desligado, função de área desativada ligada, função/módulo inexistente, item repetido, WFM controlado
+    pela variável de ambiente. Itens que já estão no valor pedido são ignorados. Devolve o id do lote e o que mudou (de → para)."""
+    if not alteracoes:
+        raise _erro(status.HTTP_400_BAD_REQUEST, "Nenhuma alteração para aplicar.")
+    estado = acesso.estado()
+    modulos = {m["chave"]: m for m in listar_modulos()}
+    vistos: set[tuple] = set()
+    plano: list[dict] = []
+    wfm_situacao = None
+    for item in alteracoes:
+        tipo, modulo, funcao, ativo = item["tipo"], item.get("modulo", ""), item.get("funcao", ""), bool(item["ativo"])
+        chave = (tipo, modulo, funcao)
+        if chave in vistos:
+            raise _erro(status.HTTP_400_BAD_REQUEST, "Há alterações repetidas para o mesmo item.")
+        vistos.add(chave)
+        if tipo == "modulo":
+            if modulo not in MODULOS_VALIDOS or modulo not in modulos:
+                raise _erro(status.HTTP_404_NOT_FOUND, "Módulo não encontrado.")
+            if modulo in MODULOS_PROTEGIDOS and not ativo:
+                raise _erro(status.HTTP_409_CONFLICT, f"O módulo {modulos[modulo]['nome']} é protegido e não pode ser desativado.")
+            anterior = bool(modulos[modulo]["ativo"])
+            nome = modulos[modulo]["nome"]
+        elif tipo == "funcao":
+            if funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
+                raise _erro(status.HTTP_404_NOT_FOUND, "Função não encontrada neste módulo.")
+            if ativo and not funcao_disponivel(funcao):
+                raise _erro(status.HTTP_409_CONFLICT, f"{FUNCOES[funcao][0]} está desativada no Conecta e não pode ser ativada por aqui.")
+            anterior = funcao in estado.funcoes.get(modulo, frozenset())
+            nome = FUNCOES[funcao][0]
+        else:
+            wfm_situacao = wfm_situacao or acesso.situacao_wfm_participantes()
+            if not wfm_situacao["editavel"]:
+                raise _erro(status.HTTP_409_CONFLICT, "A liberação do WFM está controlada pela variável de ambiente e não pode ser alterada por aqui.")
+            anterior = bool(wfm_situacao["liberado"])
+            nome = "Turnos e Plantões para participantes"
+        if anterior != ativo:
+            plano.append({"tipo": tipo, "modulo": modulo, "funcao": funcao, "nome": nome, "ativo_anterior": anterior, "ativo": ativo})
+    id_lote = uuid.uuid4().hex[:12]
+    if not plano:
+        return {"id_lote": id_lote, "aplicadas": []}
+    conn = get_connection(get_settings(), autocommit=False)
+    try:
+        cursor = conn.cursor()
+        for p in plano:
+            valor = 1 if p["ativo"] else 0
+            if p["tipo"] == "modulo":
+                cursor.execute("UPDATE dbo.modulos_sistema SET ativo = ?, atualizado_em = GETDATE(), atualizado_por = ? WHERE chave = ?",
+                               (valor, autor[:180], p["modulo"]))
+                if cursor.rowcount == 0:
+                    raise _erro(status.HTTP_409_CONFLICT, "Registro de módulos indisponível: aplique a migration V055.")
+            elif p["tipo"] == "funcao":
+                cursor.execute("UPDATE dbo.modulos_funcoes SET ativo = ?, atualizado_em = GETDATE(), atualizado_por = ? WHERE modulo = ? AND funcao = ?",
+                               (valor, autor[:180], p["modulo"], p["funcao"]))
+                if cursor.rowcount == 0:
+                    cursor.execute("INSERT INTO dbo.modulos_funcoes (modulo, funcao, ativo, atualizado_por) VALUES (?, ?, ?, ?)",
+                                   (p["modulo"], p["funcao"], valor, autor[:180]))
+            else:
+                cursor.execute("UPDATE dbo.parametros_sistema SET valor = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE chave = ?",
+                               ("1" if p["ativo"] else "0", autor[:180], acesso.PARAM_WFM_PARTICIPANTES))
+                if cursor.rowcount == 0:
+                    raise _erro(status.HTTP_409_CONFLICT, "Configuração do WFM indisponível.")
+        conn.commit()
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:  # noqa: BLE001 - qualquer falha desfaz o lote inteiro
+        conn.rollback()
+        raise _erro(status.HTTP_500_INTERNAL_SERVER_ERROR, "Não foi possível salvar as alterações. Nada foi aplicado.") from exc
+    finally:
+        conn.close()
+    acesso.invalidar_cache()
+    acesso.invalidar_cache_wfm()
+    return {"id_lote": id_lote, "aplicadas": plano}
 
 
 def resumo_inicio() -> dict:
