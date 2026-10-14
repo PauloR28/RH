@@ -4154,6 +4154,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       placeholderBusca="Configurações, usuários, permissões e logs"
       controlador=${controlador}
       mostrarAtalhos=${false}
+      buscaGlobal=${abaRenderizada !== 'perfis'}
     >
       ${['perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
