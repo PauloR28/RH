@@ -3,8 +3,8 @@ import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-comp
 import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { IconeSvg } from '../../../ui/icone.js';
 import { useToast } from '../../../shared/hooks/use-toast.js';
-import { listarAuditoriaWfm } from '../../../services/api/wfm.js';
-import { SeletorPeriodo, dataHora, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
+import { TelaHistorico } from './historico.js?v=20261014-historico';
+import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
 import { TelaEscala } from './escala.js?v=20261007-admin-escala';
 import { TelaPresenca } from './presenca.js?v=20261010-presenca';
 import { TelaCadastros } from './cadastros.js?v=20261005-redesign16';
@@ -38,78 +38,12 @@ const TITULOS = {
   'screen-wfm-relatorios': ['Relatórios', 'Histórico de escalas, presenças e faltas, trocas, aprovações e total de horas. Filtre e exporte.'],
   'screen-wfm-jornadas': ['Jornadas', 'Limites de jornada, interjornada e pausas obrigatórias.'],
   'screen-wfm-cadastros': ['Cadastros', 'Turnos, calendário especial, skills e jornadas.'],
-  'screen-wfm-auditoria': ['Auditoria de Plantões', 'Quem fez o quê, quando, e o valor antes e depois.'],
+  'screen-wfm-auditoria': ['Histórico', 'Quem fez o quê, quando, e o valor antes e depois.'],
 };
 
 export function abaInicialWfm(controlador) {
   const ordem = ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-trocas', 'screen-wfm-presenca', 'screen-wfm-relatorios', 'screen-wfm-jornadas', 'screen-wfm-cadastros', 'screen-wfm-auditoria'];
   return ordem.find((t) => controlador.podeAcessarTela(t)) || 'screen-wfm';
-}
-
-const ROTULO_CAMPO = {
-  id_contrato: 'Jornada (id)', codigo: 'Código', vigencia_ini: 'Vigência a partir de', nome: 'Nome', tipo: 'Tipo', ativo: 'Ativo',
-  entrada: 'Entrada', saida: 'Saída', versao: 'Versão', itens: 'Itens', violacoes: 'Violações', fechada: 'Fechada', skills: 'Skills',
-  status: 'Status', observacao: 'Observação', categoria: 'Categoria', data_ini: 'Início', data_fim: 'Fim', descricao: 'Descrição',
-  id_operador: 'Operador (id)', id_turno: 'Turno (id)', limites: 'Limites', pausas_json: 'Pausas', cor: 'Cor',
-};
-const ROTULO_ACAO = {
-  editar_escala: 'Editou a escala', corrigir_escala_fechada: 'Corrigiu escala fechada', publicar_escala: 'Publicou a escala',
-  publicar_com_violacao: 'Publicou com violação', fechar_periodo: 'Fechou o período', lancar_presenca: 'Lançou presença',
-  registrar_atestado: 'Registrou atestado', salvar_contrato: 'Salvou jornada', excluir_contrato: 'Excluiu jornada', excluir_turno: 'Excluiu turno', lancar_hora_extra: 'Lançou hora extra', salvar_turno: 'Salvou turno', salvar_skill: 'Salvou skill',
-  salvar_calendario_especial: 'Salvou calendário especial', enviar_aprovacao: 'Enviou para aprovação', aprovar_escala: 'Aprovou a escala', declinar_escala: 'Declinou a escala', cancelar_envio_aprovacao: 'Cancelou o envio para aprovação', criar_tipo_escala: 'Criou tipo de escala', salvar_tipo_escala: 'Salvou tipo de escala', excluir_tipo_escala: 'Excluiu tipo de escala', solicitar_troca: 'Solicitou troca', aceitar_troca: 'Colega aceitou a troca',
-  aprovar_troca: 'Aprovou troca', reprovar_troca: 'Reprovou troca', cancelar_troca: 'Cancelou troca', desfazer_troca: 'Desfez troca', exportar_escala: 'Exportou a escala', duplicar_escala: 'Duplicou a escala', configurar_escala: 'Configurou a escala', vincular_contrato: 'Vinculou jornada', definir_skills: 'Definiu skills',
-};
-
-function formatarValor(valor) {
-  if (valor === null || valor === undefined || valor === '') return '—';
-  if (typeof valor === 'boolean') return valor ? 'Sim' : 'Não';
-  if (Array.isArray(valor)) return valor.length ? valor.map(formatarValor).join(', ') : '—';
-  if (typeof valor === 'object') return Object.entries(valor).map(([k, v]) => `${ROTULO_CAMPO[k] || k}: ${formatarValor(v)}`).join(' · ');
-  const texto = String(valor);
-  return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto.split('-').reverse().join('/') : texto;
-}
-
-// Converte o JSON gravado na auditoria em linhas "Campo: valor" legíveis.
-function ValorAuditoria({ json }) {
-  if (!json) return html`<span class="mon-muted">—</span>`;
-  let dados;
-  try { dados = JSON.parse(json); } catch { return html`<span>${json}</span>`; }
-  if (dados === null || typeof dados !== 'object' || Array.isArray(dados)) return html`<span>${formatarValor(dados)}</span>`;
-  return html`<ul class="wfm-auditoria-valor">${Object.entries(dados).map(([k, v]) => html`<li key=${k}><span>${ROTULO_CAMPO[k] || k}</span> ${formatarValor(v)}</li>`)}</ul>`;
-}
-
-export function TelaAuditoria({ contexto }) {
-  const [itens, setItens] = useState(null);
-  const [erro, setErro] = useState('');
-  const [operacao, setOperacao] = useState('');
-  const [entidade, setEntidade] = useState('');
-  useEffect(() => {
-    let ativo = true;
-    setItens(null);
-    setErro('');
-    listarAuditoriaWfm({ operacao, entidade, limite: 200 })
-      .then((r) => { if (ativo) setItens(r.itens || []); })
-      .catch((e) => { if (ativo) setErro(e?.message || 'Não foi possível carregar a auditoria.'); });
-    return () => { ativo = false; };
-  }, [operacao, entidade]);
-  return html`
-    <section class="mon-card">
-      <div class="wfm-cabecalho wfm-cabecalho--centro">
-        <h3>Trilha de auditoria</h3>
-        <div class="wfm-filtros-direita">
-          <label class="mon-campo"><span>Operação</span><select class="form-select" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>
-            <option value="">Todas</option>${(contexto?.operacoes || []).map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select></label>
-          <label class="mon-campo"><span>Entidade</span><select class="form-select" value=${entidade} onChange=${(e) => setEntidade(e.target.value)}>
-            <option value="">Todas</option>${['escala', 'escala_item', 'presenca', 'atestado', 'contrato', 'turno', 'skill', 'calendario_especial', 'operador', 'tipo_escala'].map((e) => html`<option key=${e} value=${e}>${e}</option>`)}</select></label>
-        </div>
-      </div>
-      ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
-        : !itens ? html`<${LoadingState} titulo="Carregando a auditoria" />`
-        : itens.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Entidade</th><th>Antes</th><th>Depois</th><th>Justificativa</th></tr></thead><tbody>
-        ${itens.map((a) => html`<tr key=${a.id_auditoria}><td>${dataHora(a.criado_em)}</td><td>${a.usuario_nome}<small class="wfm-sub">${a.perfil}</small></td><td>${ROTULO_ACAO[a.acao] || a.acao}</td><td>${a.entidade}${a.entidade_id ? html`<small class="wfm-sub">${a.entidade_id}</small>` : null}</td>
-          <td><${ValorAuditoria} json=${a.antes_json} /></td><td><${ValorAuditoria} json=${a.depois_json} /></td><td>${a.justificativa || '—'}</td></tr>`)}
-      </tbody></table></div>` : html`<${EmptyState} icon="history" title="Sem registros" text="Nada foi registrado para este filtro." />`}
-    </section>`;
 }
 
 export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
@@ -165,6 +99,15 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
       </${PainelRh}>`;
   }
 
+  // Histórico (antiga Auditoria de Plantões): layout novo, cabe numa tela só.
+  if (telaAtual === 'screen-wfm-auditoria' && contexto && !erro) {
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Auditoria de Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        <${TelaHistorico} contexto=${contexto} showToast=${showToast} />
+      </${PainelRh}>`;
+  }
+
   let corpo;
   if (erro) corpo = html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
   else if (!contexto) corpo = html`<${LoadingState} titulo="Carregando Turnos e Plantões" />`;
@@ -182,7 +125,6 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   else if (telaAtual === 'screen-wfm-presenca') corpo = html`<${TelaPresenca} ...${props} />`;
   else if (telaAtual === 'screen-wfm-jornadas') corpo = html`<${TelaJornadas} ...${props} />`;
   else if (telaAtual === 'screen-wfm-cadastros') corpo = html`<${TelaCadastros} ...${props} />`;
-  else if (telaAtual === 'screen-wfm-auditoria') corpo = html`<${TelaAuditoria} contexto=${contexto} />`;
   else if (visaoEscala === 'mes') corpo = html`
     <${TelaEscala} ...${props} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeCriarEscala ? () => setVisaoEscala('dia') : undefined} />`;
   else corpo = html`<${TelaEscalaTabela} ...${props} aoVerMes=${() => setVisaoEscala('mes')} aoVoltarLista=${voltarParaLista} />`;

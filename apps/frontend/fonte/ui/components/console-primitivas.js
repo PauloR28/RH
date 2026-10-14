@@ -90,9 +90,10 @@ export function CampoConsole({ rotulo, colunas = 6, dica, erro, children, idCont
 }
 
 // Card de dados: cabeçalho, corpo com rolagem interna e rodapé fixo.
-export function CardDados({ sobretitulo, titulo, legenda, acoes = null, rodape = null, formulario = false, children, className = '' }) {
+export function CardDados({ sobretitulo, titulo, legenda, acoes = null, rodape = null, formulario = false, children, className = '', rotulo = '' }) {
   return html`
-    <section class=${cx('cx-card', className)}>
+    <section class=${cx('cx-card', className)} aria-label=${!titulo && rotulo ? rotulo : undefined}>
+      ${!titulo && rotulo ? html`<h2 class="cx-sr">${rotulo}</h2>` : null}
       ${titulo ? html`
         <div class=${cx('cx-card-cab', formulario && 'cx-card-cab--form')}>
           <div class="cx-card-titulo">
@@ -179,4 +180,45 @@ export function MenuExportar({ totalFiltro, totalSelecionados, aoExportar, carre
 // Interruptor (role="switch"), equivalente ao Switch do shadcn.
 export function InterruptorCx({ ativo, aoMudar, rotulo, desabilitado = false }) {
   return html`<button type="button" role="switch" class="cx-switch" aria-checked=${ativo} aria-label=${rotulo} title=${rotulo} disabled=${desabilitado} onClick=${() => aoMudar(!ativo)}><span class="cx-switch-bolinha"></span></button>`;
+}
+
+// Seletor de período: botão com o intervalo e um popover com duas datas e atalhos. Esc fecha; aplica na hora.
+const doisDig = (n) => String(n).padStart(2, '0');
+const isoData = (d) => `${d.getFullYear()}-${doisDig(d.getMonth() + 1)}-${doisDig(d.getDate())}`;
+const dm = (iso) => iso.split('-').reverse().slice(0, 2).join('/');
+const dmy = (iso) => iso.split('-').reverse().join('/');
+export function SeletorPeriodoCx({ ini, fim, aoMudar }) {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (ev) => { if (raiz.current && !raiz.current.contains(ev.target)) setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    return () => document.removeEventListener('mousedown', fora);
+  }, [aberto]);
+  const rotulo = ini && fim ? (ini.slice(0, 4) === fim.slice(0, 4) ? `${dm(ini)} – ${dmy(fim)}` : `${dmy(ini)} – ${dmy(fim)}`) : ini ? `a partir de ${dmy(ini)}` : fim ? `até ${dmy(fim)}` : 'Todo o período';
+  const mudarIni = (v) => { if (v) aoMudar(v, fim && fim < v ? v : fim); };
+  const mudarFim = (v) => { if (v) aoMudar(ini && ini > v ? v : ini, v); };
+  const mesDe = (deslocamento) => {
+    const hoje = new Date();
+    return [isoData(new Date(hoje.getFullYear(), hoje.getMonth() + deslocamento, 1)), isoData(new Date(hoje.getFullYear(), hoje.getMonth() + deslocamento + 1, 0))];
+  };
+  return html`
+    <div class="cx-menu-wrap" ref=${raiz} onKeyDown=${(ev) => { if (ev.key === 'Escape') setAberto(false); }}>
+      <button type="button" class="cx-select cx-periodo-btn" aria-haspopup="dialog" aria-expanded=${aberto} aria-label=${`Período: ${rotulo}`} onClick=${() => setAberto(!aberto)}>
+        <${IconeCx} nome="calendar_month" /><span>${rotulo}</span>
+      </button>
+      ${aberto ? html`
+        <div class="cx-menu cx-menu--periodo" role="dialog" aria-label="Período">
+          <label class="cx-campo-rotulo" for="cx-periodo-ini">De</label>
+          <input id="cx-periodo-ini" type="date" class="cx-select" value=${ini || ''} onChange=${(e) => mudarIni(e.target.value)} />
+          <label class="cx-campo-rotulo" for="cx-periodo-fim">Até</label>
+          <input id="cx-periodo-fim" type="date" class="cx-select" value=${fim || ''} onChange=${(e) => mudarFim(e.target.value)} />
+          <div class="cx-menu-sep"></div>
+          <div class="cx-periodo-atalhos">
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => { aoMudar(...mesDe(0)); setAberto(false); }}>Este mês</button>
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => { aoMudar(...mesDe(-1)); setAberto(false); }}>Mês anterior</button>
+          </div>
+        </div>` : null}
+    </div>`;
 }

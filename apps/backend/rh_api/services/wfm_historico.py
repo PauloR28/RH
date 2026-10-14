@@ -211,29 +211,39 @@ def limites_periodo(ini: date | None, fim: date | None, fuso_servidor: tzinfo | 
 # ---------------------------------------------------------------------------
 # Cursor (paginação sem repetir nem pular linhas)
 # ---------------------------------------------------------------------------
-def codificar_cursor(criado_em: datetime, id_auditoria: int) -> str:
-    bruto = json.dumps({"c": criado_em.isoformat(), "i": int(id_auditoria)}, separators=(",", ":")).encode()
+# `criado_em` é DATETIME (precisão de ~3,33 ms): um datetime do driver NÃO volta idêntico na comparação e repetiria/pularia
+# linhas. O cursor leva o texto exato que o SQL devolveu (`CONVERT(varchar(23), criado_em, 121)`) e a comparação converte
+# esse texto de volta (ida e volta sem perda no tipo DATETIME).
+_FORMATO_TEXTO = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{1,3}")
+
+
+def codificar_cursor(criado_em_txt: str, id_auditoria: int) -> str:
+    bruto = json.dumps({"c": criado_em_txt, "i": int(id_auditoria)}, separators=(",", ":")).encode()
     return base64.urlsafe_b64encode(bruto).decode().rstrip("=")
 
 
-def decodificar_cursor(token: str | None) -> tuple[datetime, int] | None:
+def decodificar_cursor(token: str | None) -> tuple[str, int] | None:
     if not token:
         return None
     try:
         bruto = base64.urlsafe_b64decode(token + "=" * (-len(token) % 4))
         dados = json.loads(bruto)
-        return datetime.fromisoformat(dados["c"]), int(dados["i"])
+        texto = str(dados["c"])
+        if not _FORMATO_TEXTO.fullmatch(texto):
+            raise ValueError("formato")
+        return texto, int(dados["i"])
     except (ValueError, KeyError, TypeError):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cursor inválido.") from None
 
 
-PREDICADO_CURSOR = "(a.criado_em < ? OR (a.criado_em = ? AND a.id_auditoria < ?))"
+CONVERTE_CURSOR = "CONVERT(datetime, ?, 121)"
+PREDICADO_CURSOR = f"(a.criado_em < {CONVERTE_CURSOR} OR (a.criado_em = {CONVERTE_CURSOR} AND a.id_auditoria < ?))"
 ORDEM = "a.criado_em DESC, a.id_auditoria DESC"
 
 
-def parametros_cursor(cursor: tuple[datetime, int]) -> list[Any]:
-    criado_em, id_auditoria = cursor
-    return [criado_em, criado_em, id_auditoria]
+def parametros_cursor(cursor: tuple[str, int]) -> list[Any]:
+    criado_em_txt, id_auditoria = cursor
+    return [criado_em_txt, criado_em_txt, id_auditoria]
 
 
 # ---------------------------------------------------------------------------

@@ -31,7 +31,7 @@ LEFT JOIN dbo.usuarios s ON s.id_usuario = t.id_supervisor
 """
 
 _COLUNAS = """a.id_auditoria, a.operacao, a.usuario_nome, a.perfil, a.acao, a.entidade, a.entidade_id,
-    a.antes_json, a.depois_json, a.justificativa, a.criado_em,
+    a.antes_json, a.depois_json, a.justificativa, a.criado_em, CONVERT(varchar(23), a.criado_em, 121) AS criado_em_txt,
     COALESCE(k.dia, tr.data_a) AS dia_plantao,
     CASE WHEN t.tipo = 'TRABALHO' THEN COALESCE(it.entrada_ajuste, t.entrada) END AS hora_inicio,
     CASE WHEN t.tipo = 'TRABALHO' THEN COALESCE(it.saida_ajuste, t.saida) END AS hora_fim,
@@ -100,7 +100,7 @@ class WfmHistoricoRepositoryMixin:
             tem_mais = len(linhas) > tamanho
             linhas = linhas[:tamanho]
             itens = self._hist_itens(cursor, linhas)
-            proximo = hist.codificar_cursor(linhas[-1]["criado_em"], linhas[-1]["id_auditoria"]) if tem_mais and linhas else None
+            proximo = hist.codificar_cursor(linhas[-1]["criado_em_txt"], linhas[-1]["id_auditoria"]) if tem_mais and linhas else None
             return {"itens": itens, "total": total, "tem_mais": tem_mais, "proximo_cursor": proximo}
         finally:
             conn.close()

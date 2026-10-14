@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js';
 import { Campo, ModalForm } from './formulario.js';
-import { AbasConsole, AvisoConsole, BotaoTracejado, CabecalhoConsole, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-escala';
+import { AbasConsole, AvisoConsole, BotaoTracejado, CabecalhoConsole, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
 import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
 
 // Tela inicial da aba Escala: a lista de escalas do mês.

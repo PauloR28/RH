@@ -53,6 +53,11 @@ export const registrarAtestadoWfm = (dados) => enviar('/wfm/atestados', 'POST', 
 
 export const listarAuditoriaWfm = (filtros = {}) => requisitar(`/wfm/auditoria${consulta(filtros)}`, { method: 'GET' });
 
+// Histórico (antiga Auditoria): lista com cursor, opções de filtro e exportação gerada no servidor.
+export const listarHistoricoWfm = (filtros = {}) => requisitar(`/wfm/historico${consulta(filtros)}`, { method: 'GET' });
+export const opcoesHistoricoWfm = (operacao = '') => requisitar(`/wfm/historico/opcoes${consulta({ operacao })}`, { method: 'GET' });
+export const exportarHistoricoWfm = (corpo) => requisitarArquivo('/wfm/historico/exportar', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(corpo || {}) });
+
 export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx') =>
   requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato })}`, { method: 'GET' });
 

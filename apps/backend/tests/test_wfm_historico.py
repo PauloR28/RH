@@ -119,9 +119,9 @@ def _banco_com(n: int) -> sqlite3.Connection:
     con = sqlite3.connect(":memory:")
     con.execute("CREATE TABLE wfm_auditoria (id_auditoria INTEGER PRIMARY KEY AUTOINCREMENT, criado_em TEXT)")
     base = datetime(2026, 10, 10, 10, 0, 0)
-    # vários registros no MESMO instante (desempate pelo id) e outros em instantes distintos
+    # vários registros no MESMO instante (desempate pelo id) e outros em instantes distintos (texto no formato do SQL, estilo 121)
     for i in range(n):
-        con.execute("INSERT INTO wfm_auditoria (criado_em) VALUES (?)", ((base + timedelta(seconds=i // 3)).isoformat(),))
+        con.execute("INSERT INTO wfm_auditoria (criado_em) VALUES (?)", ((base + timedelta(seconds=i // 3, milliseconds=7)).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],))
     return con
 
 
@@ -129,9 +129,8 @@ def _pagina(con, cursor_pos, tamanho):
     sql = "SELECT a.id_auditoria, a.criado_em FROM wfm_auditoria a WHERE 1 = 1"
     params: list = []
     if cursor_pos:
-        sql += f" AND {h.PREDICADO_CURSOR}"
-        c, i = cursor_pos
-        params += [c.isoformat(), c.isoformat(), i]
+        sql += " AND " + h.PREDICADO_CURSOR.replace(h.CONVERTE_CURSOR, "?")  # sqlite não tem CONVERT: o resto do predicado é o real
+        params += h.parametros_cursor(cursor_pos)
     sql += f" ORDER BY {h.ORDEM} LIMIT {tamanho + 1}"
     return con.execute(sql, params).fetchall()
 
@@ -145,8 +144,8 @@ def test_cursor_percorre_tudo_sem_repetir_nem_pular_mesmo_com_registros_novos_no
         vistos += [r[0] for r in pagina]
         if passo == 0:  # entram registros novos (mais recentes) entre a 1ª e a 2ª página
             for _ in range(5):
-                con.execute("INSERT INTO wfm_auditoria (criado_em) VALUES (?)", (datetime(2026, 10, 11).isoformat(),))
-        token = h.codificar_cursor(datetime.fromisoformat(pagina[-1][1]), pagina[-1][0]) if tem_mais else None
+                con.execute("INSERT INTO wfm_auditoria (criado_em) VALUES (?)", ("2026-10-11 00:00:00.000",))
+        token = h.codificar_cursor(pagina[-1][1], pagina[-1][0]) if tem_mais else None
         if not tem_mais:
             break
     assert len(vistos) == len(set(vistos)) == 50          # sem repetir
@@ -159,8 +158,10 @@ def test_cursor_invalido_responde_400():
         h.decodificar_cursor("isto-nao-e-cursor")
     assert erro.value.status_code == 400
     assert h.decodificar_cursor("") is None and h.decodificar_cursor(None) is None
-    quando = datetime(2026, 10, 10, 10, 25, 41, 123000)
-    assert h.decodificar_cursor(h.codificar_cursor(quando, 42)) == (quando, 42)
+    assert h.decodificar_cursor(h.codificar_cursor("2026-10-10 10:25:41.123", 42)) == ("2026-10-10 10:25:41.123", 42)
+    with pytest.raises(HTTPException):  # texto fora do formato do SQL nunca chega ao banco
+        h.decodificar_cursor(h.codificar_cursor("2026-10-10'; DROP TABLE x;--", 1))
+    assert h.parametros_cursor(("2026-10-10 10:25:41.123", 42)) == ["2026-10-10 10:25:41.123", "2026-10-10 10:25:41.123", 42]
 
 
 # ---------------------------------------------------------------------------

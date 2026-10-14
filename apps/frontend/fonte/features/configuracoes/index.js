@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-operacoes';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-historico';
 import { BuscaGlobalTopbar } from '../../ui/busca-global.js';
 import {
   alterarStatusUsuario,
