@@ -55,6 +55,7 @@ from conecta.interfaces.http.middlewares.request_context import (
 configure_logging()
 logger = logging.getLogger(__name__)
 FRONTEND_ASSET_DIRS = ("estilos", "fonte", "Exames")
+_STATIC_BINARY_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".woff", ".woff2")
 
 
 def validate_web_session_configuration(settings) -> None:
@@ -277,7 +278,16 @@ def create_app() -> FastAPI:
             request.url.path == f"/{asset_dir}" or request.url.path.startswith(f"/{asset_dir}/")
             for asset_dir in (*FRONTEND_ASSET_DIRS, "Front")
         ):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            if response.status_code in (200, 304) and request.url.path.lower().endswith(
+                _STATIC_BINARY_EXTENSIONS
+            ):
+                # Imagens/fontes quase nunca mudam: sem isso o navegador rebaixava
+                # megabytes a cada visita (no-store tambem impede o cache da Cloudflare).
+                response.headers["Cache-Control"] = "public, max-age=86400"
+            else:
+                # JS/CSS: guarda a copia, mas revalida (ETag/Last-Modified do StaticFiles
+                # -> 304 sem corpo), entao deploy novo continua valendo na hora.
+                response.headers["Cache-Control"] = "no-cache"
         return response
 
     app.add_middleware(RequestContextMiddleware)

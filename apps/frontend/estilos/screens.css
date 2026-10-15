@@ -827,7 +827,7 @@
   color: #fff;
   background:
     linear-gradient(145deg, rgba(18, 42, 79, 0.95), rgba(21, 61, 138, 0.92)),
-    url('./Fundo-azul_login.png') center/cover;
+    url('./Fundo-azul_login.jpg') center/cover;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
