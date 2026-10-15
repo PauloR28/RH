@@ -54,12 +54,6 @@ function TelaCarregandoComShell({ controlador, navAtiva }) {
           controlador=${controlador}
         />
         <div class="rh-modern-main">
-          <header class="rh-modern-topbar">
-            <div class="rh-modern-topbar-left"></div>
-            <div class="rh-modern-topbar-actions">
-              <${CartaoUsuarioTopo} controlador=${controlador} />
-            </div>
-          </header>
           <main class="rh-modern-page">
             <${LoadingState}
               titulo="Carregando tela"
@@ -121,7 +115,7 @@ const importarMonitoria = () => import('../features/monitoria/index.js?v=2026100
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261014-historico'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261015-modulo9'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes3'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');

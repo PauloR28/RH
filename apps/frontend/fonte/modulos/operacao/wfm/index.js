@@ -86,7 +86,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   const props = { controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala: setOperacao };
   // Selo da aba Presença: total de pendências de confirmação da semana, vindo do servidor.
   const [totalSemanaPresenca, setTotalSemanaPresenca] = useState(null); // na tela Presença, o total da semana mostrada
-  const { total: pendenciasServidor } = usePendenciasPresenca(operacao, Boolean(contexto) && controlador.possuiPermissao('wfm.presenca.lancar'), telaAtual);
+  const { total: pendenciasServidor } = usePendenciasPresenca(operacao, Boolean(contexto) && controlador.possuiPermissao('wfm.presenca.lancar') && operacoesComEscala.some((o) => o.chave === operacao), telaAtual);
   const pendenciasPresenca = telaAtual === 'screen-wfm-presenca' && totalSemanaPresenca !== null ? totalSemanaPresenca : pendenciasServidor;
   const itensAbas = abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone, selo: a.tela === 'screen-wfm-presenca' ? pendenciasPresenca : 0 }));
 
