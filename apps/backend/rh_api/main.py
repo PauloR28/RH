@@ -55,6 +55,7 @@ from conecta.interfaces.http.middlewares.request_context import (
 configure_logging()
 logger = logging.getLogger(__name__)
 FRONTEND_ASSET_DIRS = ("estilos", "fonte", "Exames")
+FRONTEND_BUNDLE_DIR = "bundle"  # saida do Vite (assetsDir em apps/frontend/vite.config.js)
 _STATIC_BINARY_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".woff", ".woff2")
 
 
@@ -186,6 +187,25 @@ def _register_frontend_routes(app: FastAPI, settings) -> None:
 
     index_file = frontend_root / "index.html"
 
+    # Bundle opcional (npm run build em apps/frontend -> dist/): troca ~120 modulos revalidados um a um por poucos
+    # arquivos com hash no nome e cache longo. Desligado por padrao: sem RH_FRONTEND_BUNDLE=1 (ou sem dist/) tudo
+    # continua servido do codigo-fonte, como antes.
+    bundle_root = frontend_root / "dist"
+    if settings.frontend_bundle:
+        if (bundle_root / "index.html").is_file() and (bundle_root / FRONTEND_BUNDLE_DIR).is_dir():
+            index_file = bundle_root / "index.html"
+            app.mount(
+                f"/{FRONTEND_BUNDLE_DIR}",
+                StaticFiles(directory=str(bundle_root / FRONTEND_BUNDLE_DIR)),
+                name="frontend_bundle",
+            )
+            logger.info("Frontend servido pelo bundle em '%s'.", bundle_root)
+        else:
+            logger.warning(
+                "RH_FRONTEND_BUNDLE ativo, mas '%s' nao tem build (rode 'npm run build' em apps/frontend). Usando o codigo-fonte.",
+                bundle_root,
+            )
+
     for asset_dir in FRONTEND_ASSET_DIRS:
         directory = frontend_root / asset_dir
         if directory.is_dir():
@@ -274,6 +294,14 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def disable_frontend_cache(request: Request, call_next):
         response = await call_next(request)
+        if (
+            request.method == "GET"
+            and request.url.path.startswith(f"/{FRONTEND_BUNDLE_DIR}/")
+            and response.status_code in (200, 304)
+        ):
+            # Nome com hash do conteudo: nunca muda, pode ficar em cache por um ano.
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            return response
         if request.method == "GET" and any(
             request.url.path == f"/{asset_dir}" or request.url.path.startswith(f"/{asset_dir}/")
             for asset_dir in (*FRONTEND_ASSET_DIRS, "Front")

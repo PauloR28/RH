@@ -75,7 +75,31 @@ const API_PATH_PREFIXES = [
 // `new RegExp(key)`), então uma única entrada cobre todos os prefixos acima.
 const API_PROXY_PATTERN = `^/(${API_PATH_PREFIXES.join('|')})(/|$)`;
 
+/**
+ * O CSS do Conecta continua servido como está (estilos/estilos.css + @imports com ?v=): empacotá-lo aqui descartava os
+ * @import com query string e mudaria a ordem da cascata. Estes dois plugins tiram o <link> do CSS do processamento do
+ * Vite e o devolvem intacto no index.html gerado.
+ */
+const guardados = [];
+const CSS_LINK = /<link\s[^>]*href="\/estilos\/estilos\.css[^"]*"[^>]*>/;
+const separarCssFonte = {
+  name: 'conecta-separar-css-fonte',
+  transformIndexHtml: {
+    order: 'pre',
+    handler: (html) => html.replace(CSS_LINK, (m) => { guardados.push(m); return `<!--CONECTA_CSS_${guardados.length - 1}-->`; }),
+  },
+};
+const devolverCssFonte = {
+  name: 'conecta-devolver-css-fonte',
+  transformIndexHtml: {
+    order: 'post',
+    handler: (html) => html.replace(/<!--CONECTA_CSS_(\d+)-->/g, (_, i) => guardados[Number(i)]),
+  },
+};
+
 export default defineConfig({
+  plugins: [separarCssFonte, devolverCssFonte],
+
   // Raiz do projeto Vite = pasta onde fica o index.html atual do frontend.
   root: __dirname,
   publicDir: false, // 'data' e outros diretórios já são servidos pelo backend; evita duplicar cópias.
@@ -85,6 +109,9 @@ export default defineConfig({
     // arquivos-fonte servidos hoje (fonte/, estilos/, index.html na raiz).
     // O backend não lê nada de dist/; é só um artefato opcional.
     outDir: 'dist',
+    // /bundle (e não /assets) para não colidir com nenhuma rota do backend; os arquivos têm hash no nome e
+    // saem com cache longo quando o backend roda com RH_FRONTEND_BUNDLE=1 (ver apps/backend/rh_api/main.py).
+    assetsDir: 'bundle',
     emptyOutDir: true,
     // O código-fonte usa top-level await (ex.: fonte/banco-questoes.js, ao
     // carregar o JSON do banco de questões). O target padrão do esbuild

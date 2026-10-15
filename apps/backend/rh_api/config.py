@@ -141,6 +141,7 @@ class Settings:
     schema_bootstrap_enabled: bool
     serve_frontend: bool
     frontend_dir: str
+    frontend_bundle: bool
     frontend_api_base_url: str
     process_dossier_ai_endpoint: str
     sql_server: str
@@ -307,6 +308,7 @@ def get_settings() -> Settings:
             "RH_FRONT_SERVE_STATIC", "RH_SERVE_FRONTEND", default=True
         ),
         frontend_dir=_resolve_project_path(_env("RH_FRONTEND_DIR"), "apps/frontend"),
+        frontend_bundle=_read_bool_env("RH_FRONTEND_BUNDLE", default=False),
         frontend_api_base_url=_env("RH_FRONTEND_API_BASE_URL"),
         process_dossier_ai_endpoint=_env("RH_PROCESS_DOSSIER_AI_ENDPOINT"),
         sql_server=_env("RH_SQL_SERVER"),
