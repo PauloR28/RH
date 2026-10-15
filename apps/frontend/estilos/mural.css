@@ -209,7 +209,7 @@ input.mural-filtro-select {
 }
 
 .mural-pin-pill .material-symbols-outlined {
-  font-size: 14px;
+  font-size: 0.933rem;
 }
 
 .mural-post-title {
@@ -378,7 +378,7 @@ input.mural-filtro-select {
 }
 
 .mural-tipo-opcao .material-symbols-outlined {
-  font-size: 32px;
+  font-size: 2.133rem;
   color: var(--brand);
 }
 
@@ -437,7 +437,7 @@ input.mural-filtro-select {
 }
 
 .mural-uploader-remove .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 1.067rem;
 }
 
 .mural-uploader-btn {

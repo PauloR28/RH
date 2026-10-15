@@ -34,7 +34,7 @@
 }
 
 .rh-global-back-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .rh-global-back-btn:hover,
@@ -630,7 +630,7 @@
 }
 
 .c24-user-dropdown-item .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 1.133rem;
   line-height: 1;
 }
 
@@ -910,7 +910,7 @@
 }
 
 .rh-page-intro-actions .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 1.067rem;
   line-height: 1;
 }
 
@@ -985,7 +985,7 @@
 }
 
 .rh-section-card-toggle .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
   display: block;
 }
 
@@ -1276,7 +1276,7 @@
 }
 
 .rh-onedrive-card-select .material-symbols-outlined {
-  font-size: 14px;
+  font-size: 0.933rem;
   line-height: 1;
 }
 
@@ -1591,7 +1591,7 @@
 }
 
 .rh-filter-bar-search .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
   color: var(--color-text-tertiary);
 }
 

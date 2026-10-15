@@ -134,13 +134,13 @@
   --status-neutral-bg: #f1f2f4;
 
   /* Escala tipográfica nomeada (px fixo, base do sistema = 14px). */
-  --text-xs: 12px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 20px;
-  --text-xl: 24px;
-  --text-2xl: 32px;
+  --text-xs: 0.8rem;
+  --text-sm: 0.867rem;
+  --text-base: 0.933rem;
+  --text-md: 1.067rem;
+  --text-lg: 1.333rem;
+  --text-xl: 1.6rem;
+  --text-2xl: 2.133rem;
 
   /* Radius do novo sistema (badges usam --radius-sm; o resto, --radius). */
   --radius: var(--radius-subtle);

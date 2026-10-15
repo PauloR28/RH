@@ -13,7 +13,7 @@
   color: var(--color-text); font: inherit; font-weight: 600; cursor: pointer;
 }
 .mod-seletor-btn:hover { border-color: var(--mod-accent); }
-.mod-seletor-btn .material-symbols-outlined { font-size: 20px; }
+.mod-seletor-btn .material-symbols-outlined { font-size: 1.333rem; }
 .mod-seletor-menu {
   position: absolute; top: 48px; left: 0; z-index: 60; min-width: 280px; padding: 8px;
   background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 8px; box-shadow: var(--shadow-lg);
@@ -39,7 +39,7 @@
 .tec-kpi > * { min-width: 0; }
 .tec-kpi { display: flex; flex-direction: column; gap: 4px; padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-sm); }
 .tec-kpi span { color: var(--color-text-muted); font-size: var(--font-sm); }
-.tec-kpi strong { font-size: 24px; line-height: 32px; }
+.tec-kpi strong { font-size: 1.6rem; line-height: 32px; }
 .tec-kpi small { color: var(--color-text-muted); }
 .tec-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 16px; }
 .tec-tiles .tec-tile { position: relative; min-width: 0; }

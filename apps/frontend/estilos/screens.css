@@ -23,7 +23,7 @@
 
 .conecta-provas-section-list h2 {
   margin: 0 0 16px;
-  font-size: 18px;
+  font-size: 1.2rem;
   /*font-weight: 700;*/
 }
 
@@ -1560,7 +1560,7 @@
 }
 
 .rh-editor-toolbar-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .rh-editor-toolbar-divider {
@@ -2076,7 +2076,7 @@
 }
 
 .rh-pipeline-collapse-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .rh-pipeline-card-meta,
@@ -4413,7 +4413,7 @@
 
 .email-action-btn .material-symbols-outlined,
 .email-toolbar-btn .material-symbols-outlined {
-  font-size: 14px;
+  font-size: 0.933rem;
 }
 
 .email-process-select {
@@ -5100,7 +5100,7 @@
 }
 
 .c24-pill-tab .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .c24-pill-tab.is-active {
@@ -5193,7 +5193,7 @@
 }
 
 .c24-stat-icon .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 1.333rem;
 }
 
 .c24-stat-label,
@@ -5301,7 +5301,7 @@
 
 .c24-filter-field .material-symbols-outlined {
   color: var(--color-primary);
-  font-size: 16px;
+  font-size: 1.067rem;
 }
 
 .c24-filter-field .form-control,
@@ -5426,7 +5426,7 @@
 .settings-form-footer .material-symbols-outlined,
 .settings-card-actions .material-symbols-outlined,
 .c24-filter-bar .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 1.133rem;
 }
 
 .c24-link-btn {
@@ -5450,7 +5450,7 @@
 }
 
 .c24-icon-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .c24-icon-btn.is-danger {
@@ -5860,7 +5860,7 @@
 }
 
 .settings-profile-card .btn .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 1.133rem;
 }
 
 .settings-profile-card-top {
@@ -6087,7 +6087,7 @@
 
 .settings-permission-tree-chevron {
   flex: none;
-  font-size: 20px;
+  font-size: 1.333rem;
   color: var(--color-text-soft);
   transition: transform var(--transition-xs);
 }
@@ -6781,7 +6781,7 @@ display: grid;
 }
 
 .c24-page-btn .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 1.133rem;
 }
 
 .c24-page-btn.is-active {
@@ -6872,7 +6872,7 @@ display: grid;
 
 #screen-settings-users .users-refresh-link .material-symbols-outlined,
 #screen-settings .users-refresh-link .material-symbols-outlined {
-  font-size: 15px;
+  font-size: 1rem;
 }
 
 #screen-settings-users .users-modern-actions,
@@ -6919,7 +6919,7 @@ display: grid;
   position: absolute;
   left: 0.64rem;
   color: var(--color-text-muted);
-  font-size: 17px;
+  font-size: 1.133rem;
 }
 
 #screen-settings-users .users-search-field .form-control,
@@ -7497,7 +7497,7 @@ display: grid;
 }
 
 #screen-analysis-candidates .reports-refresh-link .material-symbols-outlined {
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -7559,7 +7559,7 @@ display: grid;
 }
 
 #screen-analysis-candidates .reports-export-option .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 #screen-analysis-candidates .reports-count-line {
@@ -7619,7 +7619,7 @@ display: grid;
   position: absolute;
   left: 0.62rem;
   color: var(--color-text-muted);
-  font-size: 17px;
+  font-size: 1.133rem;
   pointer-events: none;
 }
 
@@ -7645,7 +7645,7 @@ display: grid;
 }
 
 #screen-analysis-candidates .reports-filter-btn .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 1.067rem;
 }
 
 #screen-analysis-candidates .reports-filter-count {
@@ -8060,7 +8060,7 @@ display: grid;
   border-radius: 8px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 30px;
+  font-size: 2rem;
 }
 
 .c24-empty-state h3 {
@@ -9153,7 +9153,7 @@ display: grid;
   border-radius: 8px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 18px;
+  font-size: 1.2rem;
   line-height: 1;
   overflow: hidden;
 }
@@ -9228,7 +9228,7 @@ display: grid;
   border-radius: 8px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 17px;
+  font-size: 1.133rem;
   line-height: 1;
   overflow: hidden;
   font-variation-settings:
@@ -9356,7 +9356,7 @@ display: grid;
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  font-size: 16px;
+  font-size: 1.067rem;
   line-height: 1;
   overflow: hidden;
 }
@@ -9515,7 +9515,7 @@ display: grid;
   height: 18px;
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: 1.2rem;
   line-height: 1;
   overflow: hidden;
 }
@@ -9732,7 +9732,7 @@ display: grid;
   border-radius: 8px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 19px;
+  font-size: 1.267rem;
 }
 
 .process-preanalysis-empty strong {
@@ -10151,7 +10151,7 @@ display: grid;
   top: 50%;
   z-index: 1;
   color: var(--color-primary);
-  font-size: 20px;
+  font-size: 1.333rem;
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -10596,7 +10596,7 @@ display: grid;
 }
 
 .process-row-action-trigger .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
   line-height: 1;
   font-variation-settings:
     'FILL' 0,
@@ -10615,7 +10615,7 @@ display: grid;
 }
 
 .process-actions-trigger .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
@@ -10680,7 +10680,7 @@ display: grid;
 
 .process-row-actions-item .material-symbols-outlined {
   flex: 0 0 auto;
-  font-size: 16px;
+  font-size: 1.067rem;
   line-height: 1;
   font-variation-settings:
     'FILL' 0,
@@ -10830,7 +10830,7 @@ display: grid;
   border-radius: 8px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: 19px;
+  font-size: 1.267rem;
 }
 
 .c24-pagination-bar {
@@ -10886,7 +10886,7 @@ display: grid;
 }
 
 .candidate-actions-menu-toggle .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .candidate-actions-menu-list {
@@ -10941,7 +10941,7 @@ display: grid;
 
 .candidate-actions-menu-item .material-symbols-outlined {
   flex: 0 0 auto;
-  font-size: 18px;
+  font-size: 1.2rem;
 }
 
 .process-calendar-day {
@@ -11145,7 +11145,7 @@ display: grid;
   width: 17px;
   height: 17px;
   overflow: hidden;
-  font-size: 17px;
+  font-size: 1.133rem;
   line-height: 1;
 }
 
@@ -11346,7 +11346,7 @@ display: grid;
   display: inline-grid;
   place-items: center;
   overflow: hidden;
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -11364,7 +11364,7 @@ display: grid;
 #screen-process-details
   .candidate-actions-menu-item
   .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 1.067rem;
 }
 
 #screen-process-details .c24-pagination-bar {
@@ -11531,7 +11531,7 @@ display: grid;
 }
 
 #screen-process-details .unqualified-cv-actions .process-text-action .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 1.067rem;
 }
 
 #screen-process-details .unqualified-cv-row > .process-indication-panel {
@@ -11562,7 +11562,7 @@ display: grid;
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  font-size: 21px;
+  font-size: 1.4rem;
 }
 
 #screen-process-details .process-empty-compact h3 {
@@ -11878,7 +11878,7 @@ display: grid;
 #screen-candidates .rh-metric-card {
   min-height: auto;
   text-align: unset;
-  /* font-size: 12px; */
+  /* font-size: 0.8rem; */
 }
 
 #screen-candidates .rh-modern-history-table {
@@ -12131,7 +12131,7 @@ display: grid;
 }
 
 #screen-calendario .calendar-date-meta .material-symbols-outlined {
-  font-size: 15px;
+  font-size: 1rem;
 }
 
 #screen-calendario .calendar-date-chips {
@@ -12356,7 +12356,7 @@ display: grid;
 #screen-interviews .interview-slot-card strong,
 #screen-interviews .interview-operation-row strong,
 #screen-interviews .interview-day-row strong {
-  font-size: 11px;
+  font-size: 0.733rem;
   line-height: 1.2;
 }
 
@@ -12648,7 +12648,7 @@ display: grid;
 }
 
 #screen-interviews .interview-icon-btn .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 1.133rem;
 }
 
 #screen-interviews .interview-day-more-btn {
@@ -14880,7 +14880,7 @@ display: grid;
 
 .c24-doc-library-topic-chevron {
   flex: none;
-  font-size: 20px;
+  font-size: 1.333rem;
   color: var(--color-text-soft);
   transition: transform var(--transition-xs);
 }
@@ -16236,7 +16236,7 @@ display: grid;
 
 .rh-admin-module-icon {
   flex: 0 0 auto;
-  font-size: 20px;
+  font-size: 1.333rem;
   color: var(--color-text-muted);
 }
 
@@ -16260,7 +16260,7 @@ display: grid;
 
 .rh-admin-module-arrow {
   flex: 0 0 auto;
-  font-size: 18px;
+  font-size: 1.2rem;
   color: var(--color-text-muted);
 }
 
@@ -16311,7 +16311,7 @@ display: grid;
 
 .rh-admin-accordion-header .material-symbols-outlined {
   flex: 0 0 auto;
-  font-size: 20px;
+  font-size: 1.333rem;
   color: var(--color-text-muted);
 }
 
@@ -16371,7 +16371,7 @@ display: grid;
 }
 
 .rh-def-row > strong .material-symbols-outlined {
-  font-size: 15px;
+  font-size: 1rem;
   color: var(--color-text-muted);
 }
 
@@ -16446,7 +16446,7 @@ display: grid;
   display: inline-flex;
   align-items: center;
   color: var(--color-text-soft);
-  font-size: 24px;
+  font-size: 1.6rem;
 }
 
 .settings-compare-summary {
@@ -16526,7 +16526,7 @@ display: grid;
   border-radius: var(--radius-sm);
   background: var(--color-danger-soft);
   color: var(--color-danger);
-  font-size: 10px;
+  font-size: 0.667rem;
   line-height: 1.6;
   text-transform: uppercase;
 }
