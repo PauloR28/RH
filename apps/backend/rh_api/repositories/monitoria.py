@@ -16,7 +16,11 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA, schema_formularios_exclusao_statements
+from .monitoria_schema import (
+    SQL_MONITORIA_NAO_EXCLUIDA,
+    schema_formularios_exclusao_statements,
+    schema_situacao_formularios_statements,
+)
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -100,9 +104,21 @@ class MonitoriaRepositoryMixin:
     # ------------------------------------------------------------------
     # Matriz de qualidade versionada (por operação)
     # ------------------------------------------------------------------
+    def _mon_garantir_coluna_arquivado(self, cursor) -> None:
+        """Se o bootstrap/V063 ainda não rodou neste ambiente, cria (idempotente) a coluna
+        `arquivado` na primeira necessidade, em vez de quebrar as telas de Formulários."""
+        if getattr(type(self), "_mon_arquivado_ok", False):
+            return
+        cursor.execute("SELECT COL_LENGTH('dbo.monitoria_matrizes', 'arquivado')")
+        if cursor.fetchone()[0] is None:
+            cursor.execute(schema_situacao_formularios_statements()[0])
+            cursor.connection.commit()
+        type(self)._mon_arquivado_ok = True
+
     def _mon_garantir_matriz(self, cursor, operacao: str) -> int:
         """Devolve o id da matriz da operação, criando a versão 1.0 padrão se
         a operação foi cadastrada depois do último bootstrap."""
+        self._mon_garantir_coluna_arquivado(cursor)
         # Uma operação pode ter vários formulários (cópias); o ativo é o usado nas monitorias.
         cursor.execute(
             "SELECT TOP 1 id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ? ORDER BY ativo DESC, id_matriz ASC",
@@ -133,8 +149,19 @@ class MonitoriaRepositoryMixin:
         )
         return id_matriz
 
-    def _mon_versao_ativa(self, cursor, operacao: str) -> dict:
+    def _mon_versao_ativa(self, cursor, operacao: str, *, em_uso: bool = False) -> dict:
         id_matriz = self._mon_garantir_matriz(cursor, operacao)
+        if em_uso:
+            # Nova monitoria só usa formulário LIGADO e não arquivado (Desativado/Arquivado ficam de fora).
+            cursor.execute(
+                "SELECT TOP 1 id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ? AND ativo = 1 AND ISNULL(arquivado, 0) = 0 "
+                "ORDER BY id_matriz ASC",
+                (operacao,),
+            )
+            em_uso_row = cursor.fetchone()
+            if not em_uso_row:
+                raise _http(status.HTTP_409_CONFLICT, "Esta operação não possui formulário ativo.")
+            id_matriz = int(em_uso_row[0])
         cursor.execute(
             """
             SELECT m.id_matriz, m.nome, v.id_versao, v.numero, v.config_json, v.observacao, v.criado_por, v.criado_em
@@ -176,13 +203,13 @@ class MonitoriaRepositoryMixin:
             raise _http(status.HTTP_404_NOT_FOUND, "O formulário não possui versão ativa.")
         return int(row[0]), _load(row[1], {})
 
-    def mon_get_matriz(self, user, operacao: str) -> dict:
+    def mon_get_matriz(self, user, operacao: str, em_uso: bool = False) -> dict:
         operacao = normalize_text(operacao)
         self._mon_exigir_permissao_operacao(user, operacao)
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            versao = self._mon_versao_ativa(cursor, operacao)
+            versao = self._mon_versao_ativa(cursor, operacao, em_uso=em_uso)
             conn.commit()
             return {"operacao": operacao, "versao_ativa": versao}
         finally:
@@ -264,6 +291,7 @@ class MonitoriaRepositoryMixin:
             self._mon_exigir_operacao_ativa(cursor, operacao)
             self._mon_garantir_matriz(cursor, operacao)
             id_matriz = self._mon_matriz_alvo(cursor, operacao, id_matriz)
+            self._mon_exigir_nao_arquivado(cursor, id_matriz)
             numero_atual, config_atual = self._mon_config_versao_ativa_da_matriz(cursor, id_matriz)
             atual = {"numero": numero_atual, "config": config_atual}
             if atual["config"] == config:
@@ -301,7 +329,7 @@ class MonitoriaRepositoryMixin:
                        va.numero AS versao_ativa,
                        (SELECT COUNT(*) FROM dbo.monitoria_matriz_versoes v WHERE v.id_matriz = m.id_matriz) AS versoes,
                        (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_matriz = m.id_matriz AND {_NAO_EXCLUIDA_X}) AS monitorias,
-                       o.nome AS origem_nome, vo.numero AS origem_numero
+                       o.nome AS origem_nome, vo.numero AS origem_numero, ISNULL(m.arquivado, 0) AS arquivado
                 FROM dbo.monitoria_matrizes m
                 LEFT JOIN dbo.monitoria_matriz_versoes va ON va.id_versao = m.id_versao_ativa
                 LEFT JOIN dbo.monitoria_matrizes o ON o.id_matriz = m.origem_id_matriz
@@ -315,11 +343,135 @@ class MonitoriaRepositoryMixin:
                 {"id_matriz": r[0], "nome": normalize_text(r[1]), "ativo": bool(r[2]), "criado_por": normalize_text(r[3]),
                  "criado_em": _iso(r[4]), "origem_id_matriz": r[5], "origem_id_versao": r[6], "versao_ativa": r[7],
                  "versoes": int(r[8] or 0), "monitorias": int(r[9] or 0),
-                 "origem": (f"{normalize_text(r[10])} v{r[11]}" if r[10] else "")}
+                 "origem": (f"{normalize_text(r[10])} v{r[11]}" if r[10] else ""), "arquivado": bool(r[12]), "operacao": operacao}
                 for r in cursor.fetchall()
             ]
             conn.commit()
             return itens
+        finally:
+            conn.close()
+
+    def _mon_exigir_nao_arquivado(self, cursor, id_matriz: int, mensagem: str = "Formulário arquivado: restaure-o antes de alterá-lo.") -> None:
+        self._mon_garantir_coluna_arquivado(cursor)
+        cursor.execute("SELECT ISNULL(arquivado, 0) FROM dbo.monitoria_matrizes WHERE id_matriz = ?", (int(id_matriz),))
+        row = cursor.fetchone()
+        if row and bool(row[0]):
+            raise _http(status.HTTP_409_CONFLICT, mensagem)
+
+    @staticmethod
+    def _mon_situacao_formulario(ativo: bool, arquivado: bool) -> str:
+        if arquivado:
+            return "arquivado"
+        return "ativo" if ativo else "desativado"
+
+    def mon_listar_formularios_geral(self, user, filtros: dict | None = None, *, pagina: int = 1, por_pagina: int = 50) -> dict:
+        """Lista geral de formulários (todas as operações do escopo) com situação, versão, última
+        mudança, monitorias e nota média, mais os contadores de cada situação. Contadores respeitam
+        operação e busca; só a lista respeita também a situação."""
+        filtros = filtros or {}
+        operacao = normalize_text(filtros.get("operacao"))
+        busca = normalize_text(filtros.get("busca")).lower()
+        situacao = normalize_text(filtros.get("situacao")).lower()
+        permitidas = operacoes_permitidas(user.perfil, user.operacoes)
+        if operacao:
+            self._mon_exigir_permissao_operacao(user, operacao)
+        vazio = {"itens": [], "total": 0, "pagina": 1, "por_pagina": por_pagina,
+                 "contadores": {"todos": 0, "ativo": 0, "desativado": 0, "arquivado": 0}}
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_garantir_coluna_arquivado(cursor)
+            condicoes, params = [], []
+            if operacao:
+                condicoes.append("m.operacao = ?")
+                params.append(operacao)
+            elif permitidas is not None:
+                if not permitidas:
+                    return vazio
+                condicoes.append(f"m.operacao IN ({','.join('?' for _ in permitidas)})")
+                params.extend(sorted(permitidas))
+            where = ("WHERE " + " AND ".join(condicoes)) if condicoes else ""
+            cursor.execute(
+                f"""
+                SELECT m.id_matriz, m.nome, m.operacao, o.nome, m.ativo, ISNULL(m.arquivado, 0), va.numero,
+                       (SELECT COUNT(*) FROM dbo.monitoria_matriz_versoes v WHERE v.id_matriz = m.id_matriz),
+                       (SELECT TOP 1 v.criado_em FROM dbo.monitoria_matriz_versoes v WHERE v.id_matriz = m.id_matriz ORDER BY v.numero DESC),
+                       (SELECT TOP 1 v.criado_por FROM dbo.monitoria_matriz_versoes v WHERE v.id_matriz = m.id_matriz ORDER BY v.numero DESC),
+                       (SELECT COUNT(*) FROM dbo.monitorias x WHERE x.id_matriz = m.id_matriz AND {_NAO_EXCLUIDA_X}),
+                       (SELECT AVG(CAST(x.nota AS FLOAT)) FROM dbo.monitorias x WHERE x.id_matriz = m.id_matriz AND x.anulada = 0 AND {_NAO_EXCLUIDA_X}),
+                       oo.nome, vo.numero, m.id_versao_ativa
+                FROM dbo.monitoria_matrizes m
+                LEFT JOIN dbo.operacoes o ON o.chave = m.operacao
+                LEFT JOIN dbo.monitoria_matriz_versoes va ON va.id_versao = m.id_versao_ativa
+                LEFT JOIN dbo.monitoria_matrizes oo ON oo.id_matriz = m.origem_id_matriz
+                LEFT JOIN dbo.monitoria_matriz_versoes vo ON vo.id_versao = m.origem_id_versao
+                {where}
+                ORDER BY m.operacao, m.ativo DESC, m.id_matriz
+                """,
+                tuple(params),
+            )
+            todos = []
+            for r in cursor.fetchall():
+                item = {
+                    "id_matriz": r[0], "nome": normalize_text(r[1]), "operacao": normalize_text(r[2]),
+                    "operacao_nome": normalize_text(r[3]) or normalize_text(r[2]), "ativo": bool(r[4]), "arquivado": bool(r[5]),
+                    "situacao": self._mon_situacao_formulario(bool(r[4]), bool(r[5])), "versao_ativa": r[6], "versoes": int(r[7] or 0),
+                    "atualizado_em": _iso(r[8]), "atualizado_por": normalize_text(r[9]), "monitorias": int(r[10] or 0),
+                    "nota_media": None if r[11] is None else round(float(r[11]), 2),
+                    "origem": (f"{normalize_text(r[12])} v{r[13]}" if r[12] else ""), "id_versao_ativa": r[14],
+                }
+                if busca and busca not in f"{item['nome']} {item['operacao_nome']} {item['operacao']}".lower():
+                    continue
+                todos.append(item)
+            conn.commit()
+        finally:
+            conn.close()
+        contadores = {"todos": len(todos), "ativo": 0, "desativado": 0, "arquivado": 0}
+        for item in todos:
+            contadores[item["situacao"]] += 1
+        itens = [i for i in todos if not situacao or situacao == "todos" or i["situacao"] == situacao]
+        pagina = max(1, int(pagina))
+        inicio = (pagina - 1) * por_pagina
+        return {"itens": itens[inicio:inicio + por_pagina], "total": len(itens), "pagina": pagina,
+                "por_pagina": por_pagina, "contadores": contadores}
+
+    def mon_alterar_situacao_formulario(self, user, id_matriz: int, acao: str, *, ip: str = "") -> dict:
+        """Desativar (desliga, mantém versões), Arquivar (tira de uso, só consulta) e
+        Restaurar (volta de Arquivado para Desativado, sem ligar). Nada em monitorias muda."""
+        if acao not in ("desativar", "arquivar", "restaurar"):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ação inválida.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            self._mon_garantir_coluna_arquivado(cursor)
+            cursor.execute(
+                "SELECT operacao, nome, ativo, ISNULL(arquivado, 0) FROM dbo.monitoria_matrizes WHERE id_matriz = ?",
+                (int(id_matriz),),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise _http(status.HTTP_404_NOT_FOUND, "Formulário não encontrado.")
+            operacao, ativo, arquivado = normalize_text(row[0]), bool(row[2]), bool(row[3])
+            self._mon_exigir_permissao_operacao(user, operacao)
+            self._mon_exigir_operacao_ativa(cursor, operacao)
+            antes = self._mon_situacao_formulario(ativo, arquivado)
+            if acao == "desativar":
+                if arquivado or not ativo:
+                    raise _http(status.HTTP_409_CONFLICT, "Só um formulário ativo pode ser desativado.")
+                cursor.execute("UPDATE dbo.monitoria_matrizes SET ativo = 0 WHERE id_matriz = ?", (int(id_matriz),))
+            elif acao == "arquivar":
+                if arquivado:
+                    raise _http(status.HTTP_409_CONFLICT, "O formulário já está arquivado.")
+                cursor.execute("UPDATE dbo.monitoria_matrizes SET ativo = 0, arquivado = 1 WHERE id_matriz = ?", (int(id_matriz),))
+            else:
+                if not arquivado:
+                    raise _http(status.HTTP_409_CONFLICT, "O formulário não está arquivado.")
+                cursor.execute("UPDATE dbo.monitoria_matrizes SET arquivado = 0 WHERE id_matriz = ?", (int(id_matriz),))
+            depois = "arquivado" if acao == "arquivar" else "desativado"
+            self.mon_log(cursor, user, acao=f"{acao}_formulario", operacao=operacao, entidade="matriz", entidade_id=id_matriz,
+                         anterior={"situacao": antes}, posterior={"situacao": depois}, ip=ip)
+            conn.commit()
+            return {"success": True, "id_matriz": int(id_matriz), "situacao": depois}
         finally:
             conn.close()
 
@@ -380,6 +532,7 @@ class MonitoriaRepositoryMixin:
             cursor = conn.cursor()
             self._mon_exigir_operacao_ativa(cursor, operacao)
             id_matriz = self._mon_matriz_alvo(cursor, operacao, int(id_matriz))
+            self._mon_exigir_nao_arquivado(cursor, id_matriz, "Restaure o formulário arquivado antes de ativá-lo.")
             cursor.execute("SELECT id_matriz FROM dbo.monitoria_matrizes WHERE operacao = ? AND ativo = 1", (operacao,))
             anteriores = [int(r[0]) for r in cursor.fetchall()]
             cursor.execute("UPDATE dbo.monitoria_matrizes SET ativo = CASE WHEN id_matriz = ? THEN 1 ELSE 0 END WHERE operacao = ?",
@@ -418,7 +571,7 @@ class MonitoriaRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            versao = self._mon_versao_ativa(cursor, operacao)
+            versao = self._mon_versao_ativa(cursor, operacao, em_uso=True)
             conn.commit()
         finally:
             conn.close()
@@ -656,7 +809,7 @@ class MonitoriaRepositoryMixin:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "A data do contato não pode ser futura.")
 
             # Matriz/versão ativa => snapshot
-            versao = self._mon_versao_ativa(cursor, operacao)
+            versao = self._mon_versao_ativa(cursor, operacao, em_uso=True)
             config = versao["config"]
             respostas = {str(k): normalizar_resposta(v) for k, v in (dados.get("respostas") or {}).items()}
             faltando = criterios_sem_resposta(config, respostas)

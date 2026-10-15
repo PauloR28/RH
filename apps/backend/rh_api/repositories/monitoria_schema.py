@@ -427,6 +427,7 @@ def ensure_monitoria_schema(cursor) -> None:
         + schema_ambiente_statements()
         + schema_tipos_atendimento_statements()
         + schema_formularios_exclusao_statements()
+        + schema_situacao_formularios_statements()
     ):
         cursor.execute(instrucao)
 
@@ -546,6 +547,36 @@ def render_migration_formularios_exclusao_sql() -> str:
         "-- (um teste garante que coincide com o bootstrap).\n\n"
     )
     return cabecalho + "\n\n".join(schema_formularios_exclusao_statements()) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Situação do formulário (redesign da Monitoria, out/2026): gera a V063.
+# `arquivado` (NULL = 0) tira o formulário de uso e o guarda só para consulta.
+# Situação derivada: arquivado -> Arquivado; ativo = 1 -> Ativo; senão Desativado.
+# ---------------------------------------------------------------------------
+_COLUNAS_SITUACAO_FORMULARIOS: list[tuple[str, str, str]] = [
+    ("monitoria_matrizes", "arquivado", "BIT"),
+]
+
+
+def schema_situacao_formularios_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_SITUACAO_FORMULARIOS]
+
+
+def render_migration_situacao_formularios_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: situacao do formulario (arquivado). Aditiva e idempotente.\n"
+        "-- Gerada a partir de rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_situacao_formularios_statements()) + "\n"
+
+
+def render_rollback_situacao_formularios_sql() -> str:
+    return (
+        "-- Rollback da V063: remove a coluna arquivado. Seguro: formularios arquivados voltam a aparecer como desativados.\n"
+        "IF COL_LENGTH('dbo.monitoria_matrizes', 'arquivado') IS NOT NULL\n"
+        "    ALTER TABLE dbo.monitoria_matrizes DROP COLUMN arquivado;\n"
+    )
 
 
 # Filtro SQL (alias "m" = dbo.monitorias): esconde monitorias excluídas logicamente.

@@ -6,11 +6,11 @@ import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
 import { useContextoMonitoria } from './comum.js';
-import { TelaNovaMonitoria } from './formulario.js?v=20260921-alertas';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20260929-qa-lucas';
-import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20260930-monitoria-excluir';
+import { TelaNovaMonitoria } from './formulario.js?v=20261014-nova';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20261015-detalhe2';
+import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20261015-detalhe2';
 import { TelaDashboard } from './painel.js?v=20260929-qa-lucas';
-import { TelaFormularios } from './admin.js?v=20260929-qa-lucas';
+import { TelaFormularios } from './admin.js?v=20261014-formularios';
 import { TelaCentralMonitoria } from './central.js';
 
 // Vertente Monitoria: um único módulo de telas, cada uma com sua rota (screen-monitoria*).
@@ -69,6 +69,15 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   };
   const props = { controlador, contexto, showToast };
 
+  const subnav = html`
+        <nav class="mon-subnav" aria-label="Seções da Monitoria">
+          ${abas.map((a) => html`
+            <button key=${a.tela} type="button" class=${`mon-subnav-btn ${a.tela === telaAtual ? 'is-active' : ''}`} onClick=${() => controlador.irParaTelaProtegida(a.tela)}>
+              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>${a.rotulo}
+              ${alertaDaAba[a.tela] > 0 ? html`<i class="mon-alerta-bolinha" role="img" aria-label=${`${alertaDaAba[a.tela]} novidade(s)`}></i>` : null}
+            </button>`)}
+        </nav>`;
+  const ehFormularios = telaAtual === 'screen-monitoria-formularios';
   let corpo;
   if (erro) corpo = html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
   else if (!contexto) corpo = html`<${LoadingState} titulo="Carregando a Monitoria" />`;
@@ -77,7 +86,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   } else if (telaAtual === 'screen-monitoria-dashboard') corpo = html`<${TelaDashboard} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-planos') corpo = html`<${TelaPlanos} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-relatorios') corpo = html`<${TelaRelatorios} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} />`;
+  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} subnav=${subnav} />`;
   else {
     const modo = { 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas' }[telaAtual] || 'historico';
     corpo = html`<${ListaMonitorias} ...${props} modo=${modo} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} />`;
@@ -86,17 +95,12 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   return html`
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Monitoria" placeholderBusca="Monitoria" controlador=${controlador}>
       <${ToastHost} />
+      ${ehFormularios && contexto && !erro ? corpo : html`
       <${PageIntro} kicker="Monitoria" title=${titulo} description=${descricao} />
       <div class="mon-shell">
-        <nav class="mon-subnav" aria-label="Seções da Monitoria">
-          ${abas.map((a) => html`
-            <button key=${a.tela} type="button" class=${`mon-subnav-btn ${a.tela === telaAtual ? 'is-active' : ''}`} onClick=${() => controlador.irParaTelaProtegida(a.tela)}>
-              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>${a.rotulo}
-              ${alertaDaAba[a.tela] > 0 ? html`<i class="mon-alerta-bolinha" role="img" aria-label=${`${alertaDaAba[a.tela]} novidade(s)`}></i>` : null}
-            </button>`)}
-        </nav>
+        ${subnav}
         ${corpo}
-      </div>
+      </div>`}
       <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
         onClose=${() => setDetalhe(null)} onAlterou=${() => setAtualizacao((n) => n + 1)} onLida=${() => setAlertasTick((n) => n + 1)} />
       <${ModalCompartilhar} ids=${compartilhar} onClose=${() => setCompartilhar(null)} showToast=${showToast} />

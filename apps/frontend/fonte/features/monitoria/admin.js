@@ -1,20 +1,31 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
+import { EmptyState, PageIntro } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
   ativarFormularioMatriz,
-  duplicarFormularioMatriz,
   lerVersaoMatriz,
   listarFormulariosMatriz,
   listarVersoesMatriz,
   restaurarVersaoMatriz,
   salvarMatriz,
 } from '../../services/api/monitoria.js';
-import { SelectOperacao, formatarDataHoraCurta, formatarNota } from './comum.js';
+import { SelectOperacao, formatarNota } from './comum.js';
+import {
+  ChipSituacao,
+  DialogoConfirmar,
+  ModalComparacao,
+  VersionRow,
+  alternarMarcadas,
+  compararConfigs,
+} from './formularios-comum.js?v=20261014-formularios';
+import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261014-formularios';
 
-// Formulários (matriz de qualidade versionada por operação).
+// Formulários (matriz de qualidade versionada por operação): a aba abre a LISTA de formulários
+// e, a partir dela, a tela do formulário (perguntas, pesos, escala, faixas e versões).
 // Usuários, equipes/catálogos e logs de auditoria da Monitoria são administrados em
 // Configurações (features/configuracoes/monitoria-config.js).
+
+export { compararConfigs };
 
 function somaPesos(bloco) {
   return (bloco.criterios || []).reduce((t, c) => t + (Number(c.peso) || 0), 0);
@@ -22,79 +33,76 @@ function somaPesos(bloco) {
 
 const clonar = (valor) => JSON.parse(JSON.stringify(valor));
 const BLOCO_VAZIO = () => ({ nome: '', valor: 0, criterios: [{ texto: '', peso: 0 }] });
-
-// Diferenças entre duas versões do formulário (Correções 27/set/2026): blocos e
-// perguntas incluídos/removidos, pesos e textos alterados, escala e faixas.
-export function compararConfigs(antes, depois) {
-  const mudancas = [];
-  const chave = (item, i) => String(item?.id || item?.nome || item?.texto || i);
-  const blocosA = new Map((antes?.blocos || []).map((b, i) => [chave(b, i), b]));
-  const blocosB = new Map((depois?.blocos || []).map((b, i) => [chave(b, i), b]));
-  blocosB.forEach((b, k) => { if (!blocosA.has(k)) mudancas.push({ tipo: 'incluido', texto: `Bloco "${b.nome}" (valor ${formatarNota(b.valor)})` }); });
-  blocosA.forEach((a, k) => { if (!blocosB.has(k)) mudancas.push({ tipo: 'removido', texto: `Bloco "${a.nome}"` }); });
-  blocosA.forEach((a, k) => {
-    const b = blocosB.get(k);
-    if (!b) return;
-    if (a.nome !== b.nome) mudancas.push({ tipo: 'alterado', texto: `Bloco renomeado: "${a.nome}" → "${b.nome}"` });
-    if (Number(a.valor) !== Number(b.valor)) mudancas.push({ tipo: 'alterado', texto: `"${b.nome}": valor ${formatarNota(a.valor)} → ${formatarNota(b.valor)}` });
-    const critA = new Map((a.criterios || []).map((c, i) => [chave(c, i), c]));
-    const critB = new Map((b.criterios || []).map((c, i) => [chave(c, i), c]));
-    critB.forEach((c, kc) => { if (!critA.has(kc)) mudancas.push({ tipo: 'incluido', texto: `"${b.nome}": pergunta "${c.texto}" (peso ${formatarNota(c.peso)})` }); });
-    critA.forEach((c, kc) => { if (!critB.has(kc)) mudancas.push({ tipo: 'removido', texto: `"${b.nome}": pergunta "${c.texto}"` }); });
-    critA.forEach((c, kc) => {
-      const d = critB.get(kc);
-      if (!d) return;
-      if (c.texto !== d.texto) mudancas.push({ tipo: 'alterado', texto: `"${b.nome}": pergunta "${c.texto}" → "${d.texto}"` });
-      if (Number(c.peso) !== Number(d.peso)) mudancas.push({ tipo: 'alterado', texto: `"${b.nome}" / "${d.texto}": peso ${formatarNota(c.peso)} → ${formatarNota(d.peso)}` });
-    });
-  });
-  if (JSON.stringify(antes?.escala) !== JSON.stringify(depois?.escala)) {
-    mudancas.push({ tipo: 'alterado', texto: `Escala ${antes?.escala?.min}–${antes?.escala?.max} → ${depois?.escala?.min}–${depois?.escala?.max}` });
-  }
-  if (Number(antes?.min_blocos) !== Number(depois?.min_blocos)) {
-    mudancas.push({ tipo: 'alterado', texto: `Mínimo de blocos avaliados: ${antes?.min_blocos} → ${depois?.min_blocos}` });
-  }
-  if (JSON.stringify(antes?.faixas) !== JSON.stringify(depois?.faixas)) {
-    const faixas = (lista) => (lista || []).map((f) => `${f.label} ≥ ${f.min}`).join(', ');
-    mudancas.push({ tipo: 'alterado', texto: `Faixas de nota: ${faixas(antes?.faixas)} → ${faixas(depois?.faixas)}` });
-  }
-  return mudancas;
-}
-
-const ROTULO_MUDANCA = { incluido: 'Incluído', removido: 'Removido', alterado: 'Alterado' };
+const Icone = ({ nome }) => html`<span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(nome)}</span>`;
+const VERSOES_NO_CARD = 3;
 
 function BotaoIcone({ icone, titulo, onClick, perigo = false, desabilitado = false }) {
   return html`
     <button type="button" class=${`mon-icone-btn ${perigo ? 'mon-icone-btn--perigo' : ''}`} title=${titulo} aria-label=${titulo} disabled=${desabilitado} onClick=${onClick}>
-      <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(icone)}</span>
+      <${Icone} nome=${icone} />
     </button>`;
 }
+
+const mover = (lista, i, passo) => {
+  const j = i + passo;
+  if (j < 0 || j >= lista.length) return lista;
+  const copia = [...lista];
+  [copia[i], copia[j]] = [copia[j], copia[i]];
+  return copia;
+};
 
 // Cache em memória (por sessão da página): voltar à aba mostra o último resultado na hora e
 // revalida em segundo plano, em vez de esperar 2 requisições em sequência de novo.
 const cacheVersoes = new Map();
 const cacheVersao = new Map();
 
-export function TelaFormularios({ controlador, contexto, showToast }) {
+export function TelaFormularios({ controlador, contexto, showToast, subnav }) {
+  const podeEditar = controlador.possuiPermissao('monitoria.matriz');
+  const [alvo, setAlvo] = useState(null); // null = lista; { id_matriz, operacao, id_versao?, criar? } = tela do formulário
+  const [estadoLista, setEstadoLista] = useState(ESTADO_LISTA_INICIAL);
+  const [recargaLista, setRecargaLista] = useState(0);
+
+  if (!(contexto?.operacoes || []).some((o) => o.ativo)) {
+    return html`${subnav}<${EmptyState} icon="rule" title="Sem operações" text="Você não está vinculado a nenhuma operação ativa." />`;
+  }
+  if (alvo) {
+    return html`<${TelaFormulario} key=${`${alvo.id_matriz}`} controlador=${controlador} contexto=${contexto} showToast=${showToast} subnav=${subnav} alvo=${alvo}
+      aoVoltar=${() => { setAlvo(null); setRecargaLista((x) => x + 1); }} />`;
+  }
+  return html`
+    <div class="mon-shell mon-fm-pagina">
+      <${PageIntro} kicker="Monitoria" title="Formulários de monitoria" description="Matriz de qualidade versionada por operação." />
+      ${subnav}
+      <${TelaListaFormularios} contexto=${contexto} podeEditar=${podeEditar} showToast=${showToast} estado=${estadoLista} setEstado=${setEstadoLista}
+        recarga=${recargaLista} aoReload=${() => setRecargaLista((x) => x + 1)}
+        aoAbrir=${(f, idVersao) => setAlvo({ id_matriz: f.id_matriz, operacao: f.operacao, id_versao: idVersao || null })}
+        aoCriar=${(f) => f && setAlvo({ id_matriz: f.id_matriz, operacao: f.operacao, criar: true })} />
+    </div>`;
+}
+
+function TelaFormulario({ controlador, contexto, showToast, subnav, alvo, aoVoltar }) {
   const podeEditar = controlador.possuiPermissao('monitoria.matriz');
   const ativas = (contexto?.operacoes || []).filter((o) => o.ativo);
-  const [operacao, setOperacao] = useState(ativas[0]?.chave || '');
+  const [operacao, setOperacao] = useState(alvo.operacao);
   const [formularios, setFormularios] = useState([]);
-  const [idMatriz, setIdMatriz] = useState('');
-  const [duplicando, setDuplicando] = useState(null); // { nome, destino }
+  const [idMatriz, setIdMatriz] = useState(String(alvo.id_matriz));
+  const [duplicando, setDuplicando] = useState(null);
   const [comparar, setComparar] = useState([]); // ids de versão marcados (até 2)
-  const [comparacao, setComparacao] = useState(null); // { antes, depois, mudancas }
+  const [comparacao, setComparacao] = useState(null);
   const [versoes, setVersoes] = useState(null);
-  const [idVersao, setIdVersao] = useState('');
+  const [idVersao, setIdVersao] = useState(alvo.id_versao ? String(alvo.id_versao) : '');
   const [versao, setVersao] = useState(null);
   const [config, setConfig] = useState(null);
   const [editando, setEditando] = useState(false);
   const [criando, setCriando] = useState(false);
-  const [visualizando, setVisualizando] = useState(null);
   const [observacao, setObservacao] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [recarga, setRecarga] = useState(0);
   const [fechados, setFechados] = useState({});
+  const [todasVersoes, setTodasVersoes] = useState(false);
+  const [confirmando, setConfirmando] = useState(null); // { tipo: 'sair' | 'ativar' | 'restaurar', ... }
+  const [erroCarga, setErroCarga] = useState('');
+  const criarDisparado = useRef(false);
 
   const cancelarEdicao = () => {
     setEditando(false);
@@ -103,7 +111,7 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
     if (versao) setConfig(clonar(versao.config));
   };
 
-  // Formulários da operação (o ativo vem selecionado).
+  // Formulários da operação (o escolhido vem selecionado).
   useEffect(() => {
     if (!operacao) return undefined;
     let ativo = true;
@@ -120,7 +128,7 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
 
   // Lista as versões do formulário escolhido (a ativa vem selecionada).
   useEffect(() => {
-    if (!operacao || !idMatriz) return;
+    if (!operacao || !idMatriz) return undefined;
     let ativo = true;
     const chaveCache = `${operacao}:${idMatriz}`;
     const aplicarVersoes = (itens) => {
@@ -128,6 +136,7 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
       setIdVersao((atual) => (itens.some((v) => String(v.id_versao) === String(atual)) ? atual : String(itens.find((v) => v.ativa)?.id_versao || itens[0]?.id_versao || '')));
     };
     setComparar([]);
+    setErroCarga('');
     const emCache = recarga ? null : cacheVersoes.get(chaveCache);
     if (emCache) aplicarVersoes(emCache);
     else {
@@ -142,13 +151,13 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
         cacheVersoes.set(chaveCache, itens);
         aplicarVersoes(itens);
       })
-      .catch((e) => { if (ativo) { setVersoes([]); showToast(e?.message || 'Erro ao carregar os formulários.', 'danger'); } });
+      .catch((e) => { if (ativo) { setVersoes([]); setErroCarga(e?.message || 'Erro ao carregar os formulários.'); } });
     return () => { ativo = false; };
   }, [operacao, idMatriz, recarga]);
 
-  // Carrega a versão escolhida no segundo select.
+  // Carrega a versão escolhida no terceiro select.
   useEffect(() => {
-    if (!idVersao) return;
+    if (!idVersao) return undefined;
     let ativo = true;
     const emCache = cacheVersao.get(String(idVersao));
     if (emCache) { setVersao(emCache); setConfig(clonar(emCache.config)); }
@@ -160,7 +169,7 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
         setVersao(v);
         if (!emCache) setConfig(clonar(v.config));
       })
-      .catch((e) => { if (ativo) showToast(e?.message || 'Erro ao carregar o formulário.', 'danger'); });
+      .catch((e) => { if (ativo) { setErroCarga(e?.message || 'Erro ao carregar o formulário.'); showToast(e?.message || 'Erro ao carregar o formulário.', 'danger'); } });
     return () => { ativo = false; };
   }, [idVersao]);
 
@@ -173,14 +182,27 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
   });
   const alterou = Boolean(config && versao && (criando || JSON.stringify(config) !== JSON.stringify(versao.config)));
   const versaoAtiva = (versoes || []).find((v) => v.ativa);
+  const formulario = formularios.find((f) => String(f.id_matriz) === String(idMatriz)) || null;
+  const situacao = formulario ? (formulario.arquivado ? 'arquivado' : formulario.ativo ? 'ativo' : 'desativado') : null;
+  const arquivada = Boolean(versao && versaoAtiva && versaoAtiva.id_versao !== versao.id_versao);
+  const nova = versaoAtiva ? versaoAtiva.numero + 1 : (versao?.numero || 0) + 1;
 
   const setBloco = (i, campo, valor) => setConfig({ ...config, blocos: config.blocos.map((b, j) => (j === i ? { ...b, [campo]: valor } : b)) });
   const setCriterio = (i, k, campo, valor) => setConfig({ ...config, blocos: config.blocos.map((b, j) => (j === i ? { ...b, criterios: b.criterios.map((c, l) => (l === k ? { ...c, [campo]: valor } : c)) } : b)) });
+  const setFaixa = (i, campo, valor) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)) });
   const criar = () => {
     setConfig({ ...clonar(config), blocos: [BLOCO_VAZIO()] });
     setCriando(true);
     setEditando(true);
   };
+  // "Criar formulário" na lista abre esta tela já no fluxo de hoje (formulário em branco).
+  useEffect(() => {
+    if (alvo.criar && config && !criarDisparado.current) {
+      criarDisparado.current = true;
+      criar();
+    }
+  }, [config]);
+
   const salvar = async () => {
     setSalvando(true);
     try {
@@ -194,39 +216,38 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
     } catch (e) { showToast(e?.message || 'Não foi possível salvar.', 'danger'); } finally { setSalvando(false); }
   };
 
-  const formulario = formularios.find((f) => String(f.id_matriz) === String(idMatriz)) || null;
-  const abrirDuplicar = () => setDuplicando({
-    nome: `Cópia de ${formulario?.nome || 'formulário'} (v${versao?.numero || ''})`,
-    destino: operacao,
-  });
-  const confirmarDuplicar = async () => {
-    try {
-      const r = await duplicarFormularioMatriz({ operacao, id_versao: Number(idVersao), nome: duplicando.nome, operacao_destino: duplicando.destino });
-      showToast(`Cópia "${r.nome}" criada (inativa). Edite-a e use "Tornar ativo" quando quiser usá-la nas monitorias.`, 'success');
-      setDuplicando(null);
-      if (r.operacao === operacao) setIdMatriz(String(r.id_matriz));
-      setIdVersao('');
-      setRecarga((x) => x + 1);
-    } catch (e) { showToast(e?.message || 'Não foi possível duplicar.', 'danger'); }
+  const pedirTornarAtivo = async () => {
+    if (!formulario) return;
+    let aviso = '';
+    const outro = formularios.find((f) => f.ativo && f.id_matriz !== formulario.id_matriz);
+    if (outro) aviso = ` "${outro.nome}" deixa de ser o formulário ativo da operação.`;
+    setConfirmando({ tipo: 'ativar', descricao: `Usar "${formulario.nome}" nas NOVAS monitorias de ${operacao}? As já realizadas continuam com o formulário da época.${aviso}` });
   };
-  const tornarAtivo = async () => {
-    if (!formulario || !window.confirm(`Usar "${formulario.nome}" nas NOVAS monitorias de ${operacao}? As já realizadas continuam com o formulário da época.`)) return;
-    try {
-      await ativarFormularioMatriz(operacao, formulario.id_matriz);
-      showToast(`"${formulario.nome}" agora é o formulário ativo da operação.`, 'success');
-      setRecarga((x) => x + 1);
-    } catch (e) { showToast(e?.message || 'Não foi possível ativar.', 'danger'); }
+  const pedirRestaurar = (v) => setConfirmando({ tipo: 'restaurar', versao: v, descricao: `Criar uma nova versão com o conteúdo da v${v.numero}? O histórico continua intacto.` });
+  const pedirSair = (aoConfirmar) => {
+    if (editando && alterou) setConfirmando({ tipo: 'sair', descricao: 'As alterações ainda não foram salvas e serão perdidas.', aoConfirmar });
+    else aoConfirmar();
   };
-  const restaurar = async (v) => {
-    if (!window.confirm(`Criar uma nova versão com o conteúdo da v${v.numero}? O histórico continua intacto.`)) return;
+  const executarConfirmacao = async () => {
+    const c = confirmando;
+    if (c.tipo === 'sair') { setConfirmando(null); c.aoConfirmar(); return; }
     try {
-      const r = await restaurarVersaoMatriz(v.id_versao);
-      showToast(`Versão v${r.numero} criada a partir da v${v.numero}.`, 'success');
-      setIdVersao('');
+      if (c.tipo === 'ativar') {
+        await ativarFormularioMatriz(operacao, formulario.id_matriz);
+        showToast(`"${formulario.nome}" agora é o formulário ativo da operação.`, 'success');
+      } else {
+        const r = await restaurarVersaoMatriz(c.versao.id_versao);
+        showToast(`Versão v${r.numero} criada a partir da v${c.versao.numero}.`, 'success');
+        setIdVersao('');
+      }
+      setConfirmando(null);
       setRecarga((x) => x + 1);
-    } catch (e) { showToast(e?.message || 'Não foi possível restaurar a versão.', 'danger'); }
+    } catch (e) {
+      setConfirmando(null);
+      showToast(e?.message || 'Não foi possível concluir a ação.', 'danger');
+    }
   };
-  const alternarComparar = (id) => setComparar((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id].slice(-2)));
+
   const compararSelecionadas = async () => {
     try {
       const [a, b] = await Promise.all(comparar.map((id) => lerVersaoMatriz(id)));
@@ -235,130 +256,158 @@ export function TelaFormularios({ controlador, contexto, showToast }) {
     } catch (e) { showToast(e?.message || 'Não foi possível comparar.', 'danger'); }
   };
 
-  if (!ativas.length) return html`<${EmptyState} icon="rule" title="Sem operações" text="Você não está vinculado a nenhuma operação ativa." />`;
   const nota = versao
-    ? `${formulario ? `${formulario.nome}${formulario.ativo ? ' (formulário ativo da operação)' : ' (inativo — não é usado nas novas monitorias)'} · ` : ''}${criando ? 'Novo formulário' : `Versão v${versao.numero}${versaoAtiva?.id_versao === versao.id_versao ? ' (atual)' : ' (arquivada)'}`} · Salvar cria uma nova versão; as anteriores ficam arquivadas.`
+    ? (editando && !criando
+      ? `Editando a partir da v${versao.numero}. Ao salvar, nasce a v${nova} e a v${versaoAtiva?.numero || versao.numero} fica arquivada. As monitorias já feitas continuam com a v${versaoAtiva?.numero || versao.numero}.`
+      : `${formulario ? `${formulario.nome}${formulario.ativo ? ' (formulário ativo da operação)' : ' (inativo — não é usado nas novas monitorias)'} · ` : ''}${criando ? 'Novo formulário' : `Versão v${versao.numero}${versaoAtiva?.id_versao === versao.id_versao ? ' (atual)' : ' (arquivada)'}`} · Salvar cria uma nova versão; as anteriores ficam arquivadas.`)
     : '';
 
+  const blocos = config?.blocos || [];
+  const meio = Math.ceil(blocos.length / 2);
+  const colunasBlocos = [blocos.slice(0, meio).map((b, i) => [b, i]), blocos.slice(meio).map((b, i) => [b, i + meio])];
+  const versoesVisiveis = todasVersoes ? versoes : (versoes || []).slice(0, VERSOES_NO_CARD);
+  const marcarCheio = comparar.length >= 2;
+  const ro = !editando;
+
+  const renderBloco = ([b, i]) => {
+    const chaveBloco = b.id || i;
+    const fechado = Boolean(fechados[chaveBloco]);
+    const soma = somaPesos(b);
+    const fecha = Math.abs(soma - Number(b.valor || 0)) <= 0.0001;
+    const toggle = html`<button type="button" class=${`mon-bloco-toggle ${fechado ? 'is-fechado' : ''}`} aria-expanded=${!fechado} aria-label=${`${fechado ? 'Expandir' : 'Recolher'} bloco ${b.nome || ''}`.trim()}
+      onClick=${() => setFechados((f) => ({ ...f, [chaveBloco]: !fechado }))}><${Icone} nome="expand_more" /></button>`;
+    return html`
+      <section class=${`mon-fm-bloco ${fechado ? 'is-fechado' : ''}`} key=${chaveBloco}>
+        <div class="mon-fm-bloco-cab">
+          ${toggle}
+          ${editando ? html`
+            <input class="form-control mon-fm-in" aria-label="Nome do bloco" placeholder="Nome do bloco" value=${b.nome} onInput=${(e) => setBloco(i, 'nome', e.target.value)} />
+            <input class="form-control mon-fm-in mon-fm-num" type="number" step="0.5" aria-label="Valor do bloco" value=${b.valor} onInput=${(e) => setBloco(i, 'valor', e.target.value)} />
+            <${BotaoIcone} icone="arrow_upward" titulo="Mover bloco para cima" desabilitado=${i === 0} onClick=${() => setConfig({ ...config, blocos: mover(config.blocos, i, -1) })} />
+            <${BotaoIcone} icone="arrow_downward" titulo="Mover bloco para baixo" desabilitado=${i === blocos.length - 1} onClick=${() => setConfig({ ...config, blocos: mover(config.blocos, i, 1) })} />
+            <${BotaoIcone} icone="delete" titulo="Remover bloco" perigo=${true} onClick=${() => setConfig({ ...config, blocos: config.blocos.filter((_, j) => j !== i) })} />
+          ` : html`
+            <strong class="mon-fm-bloco-nome" title=${b.nome}>${b.nome}</strong>
+            <span class=${`mon-fm-soma ${fecha ? '' : 'is-erro'}`}>${fechado ? `${b.criterios.length} pergunta(s)` : `Soma dos pesos: ${formatarNota(soma)} / ${formatarNota(b.valor)}`}</span>
+            <strong class="mon-fm-bloco-valor">${formatarNota(b.valor)}</strong>`}
+        </div>
+        ${fechado ? null : html`
+          <div class="mon-fm-perguntas">
+            ${b.criterios.map((c, k) => html`
+              <div class="mon-fm-pergunta" key=${c.id || k}>
+                ${editando ? html`
+                  <input class="form-control mon-fm-in" aria-label="Pergunta" placeholder="Texto da pergunta" value=${c.texto} onInput=${(e) => setCriterio(i, k, 'texto', e.target.value)} />
+                  <input class="form-control mon-fm-in mon-fm-num" type="number" step="0.5" aria-label="Peso" value=${c.peso} onInput=${(e) => setCriterio(i, k, 'peso', e.target.value)} />
+                  <${BotaoIcone} icone="arrow_upward" titulo="Mover pergunta para cima" desabilitado=${k === 0} onClick=${() => setBloco(i, 'criterios', mover(b.criterios, k, -1))} />
+                  <${BotaoIcone} icone="arrow_downward" titulo="Mover pergunta para baixo" desabilitado=${k === b.criterios.length - 1} onClick=${() => setBloco(i, 'criterios', mover(b.criterios, k, 1))} />
+                  <${BotaoIcone} icone="delete" titulo="Remover pergunta" perigo=${true} onClick=${() => setBloco(i, 'criterios', b.criterios.filter((_, l) => l !== k))} />
+                ` : html`<span class="mon-fm-pergunta-txt" title=${c.texto}>${c.texto}</span><strong class="mon-fm-pergunta-peso">${formatarNota(c.peso)}</strong>`}
+              </div>`)}
+            ${editando ? html`
+              <div class="mon-fm-bloco-rodape">
+                <span class=${`mon-fm-soma ${fecha ? '' : 'is-erro'}`}>Soma dos pesos: ${formatarNota(soma)} / ${formatarNota(b.valor)}</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setBloco(i, 'criterios', [...b.criterios, { texto: '', peso: 0 }])}><${Icone} nome="add" />Adicionar pergunta</button>
+              </div>` : null}
+          </div>`}
+      </section>`;
+  };
+
   return html`
-    <div class="mon-shell">
-      <div class="mon-filtros mon-filtros--linha">
-        <label class="mon-filtro mon-filtro--select">Operação<${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${operacao} todas=${false} desabilitado=${editando} onChange=${(v) => { setOperacao(v); setIdMatriz(''); setIdVersao(''); }} /></label>
-        <label class="mon-filtro mon-filtro--select">Formulário
-          <select class="form-select" value=${idMatriz} disabled=${editando || !formularios.length} onChange=${(e) => { setIdMatriz(e.target.value); setIdVersao(''); }}>
-            ${formularios.map((f) => html`<option key=${f.id_matriz} value=${String(f.id_matriz)}>${f.nome}${f.ativo ? ' · ativo' : ''}</option>`)}
-          </select>
-        </label>
-        <label class="mon-filtro mon-filtro--select">Versão
-          <select class="form-select" value=${idVersao} disabled=${editando || !versoes?.length} onChange=${(e) => setIdVersao(e.target.value)}>
-            ${(versoes || []).map((v) => html`<option key=${v.id_versao} value=${String(v.id_versao)}>v${v.numero}${v.ativa ? ' · atual' : ''}${v.observacao ? ` · ${v.observacao}` : ''}</option>`)}
-          </select>
-        </label>
+    <div class="mon-shell mon-fm-pagina">
+      <${PageIntro}
+        kicker=${html`Monitoria<button type="button" class="mon-fm-voltar" onClick=${() => pedirSair(aoVoltar)}><${Icone} nome="chevron_left" />Todos os formulários</button>`}
+        title=${html`<span class="mon-fm-titulo" title=${formulario?.nome || ''}>${formulario?.nome || 'Formulário'}</span>${situacao ? html`<${ChipSituacao} situacao=${situacao} />` : null}${versao ? html`<strong class="mon-fm-versao">v${versao.numero}${versaoAtiva?.id_versao === versao.id_versao ? ' · atual' : ' · arquivada'}</strong>` : null}`}
+        description="Matriz de qualidade versionada por operação." />
+      ${subnav}
+
+      <div class="mon-fm-faixa">
+        <div class="mon-fm-selecao">
+          <label class="mon-fm-sel mon-fm-sel--op">Operação<${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${operacao} todas=${false} desabilitado=${editando} onChange=${(v) => { setOperacao(v); setIdMatriz(''); setIdVersao(''); }} /></label>
+          <label class="mon-fm-sel mon-fm-sel--form">Formulário
+            <select class="form-select" value=${idMatriz} disabled=${editando || !formularios.length} onChange=${(e) => { setIdMatriz(e.target.value); setIdVersao(''); }}>
+              ${formularios.map((f) => html`<option key=${f.id_matriz} value=${String(f.id_matriz)}>${f.nome}${f.ativo ? ' · ativo' : ''}</option>`)}
+            </select>
+          </label>
+          <label class="mon-fm-sel mon-fm-sel--ver">Versão
+            <select class="form-select" value=${idVersao} disabled=${editando || !versoes?.length} onChange=${(e) => setIdVersao(e.target.value)}>
+              ${(versoes || []).map((v) => html`<option key=${v.id_versao} value=${String(v.id_versao)}>v${v.numero}${v.ativa ? ' · atual' : ''}${v.observacao ? ` · ${v.observacao}` : ''}</option>`)}
+            </select>
+          </label>
+          ${editando ? html`<label class="mon-fm-sel mon-fm-sel--obs">Observação da nova versão (opcional)<input class="form-control" placeholder="O que mudou?" value=${observacao} onInput=${(e) => setObservacao(e.target.value)} /></label>` : null}
+        </div>
         ${podeEditar ? html`
-          <div class="mon-filtros-acoes">
-            ${editando ? html`<button type="button" class="btn btn-outline-secondary" onClick=${cancelarEdicao}>Cancelar edição</button>` : html`
-              <button type="button" class="btn btn-outline-secondary" disabled=${!config} onClick=${abrirDuplicar} title="Cria uma cópia inativa desta versão (para editar ou guardar como backup)"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('content_copy')}</span>Duplicar</button>
-              ${formulario && !formulario.ativo ? html`<button type="button" class="btn btn-outline-secondary" onClick=${tornarAtivo}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check_circle')}</span>Tornar ativo</button>` : null}
-              <button type="button" class="btn btn-outline-primary" disabled=${!config} onClick=${criar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Criar formulário</button>
-              <button type="button" class="btn btn-primary" disabled=${!config} onClick=${() => setEditando(true)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('edit')}</span>Editar formulário</button>`}
+          <div class="mon-fm-acoes">
+            ${editando ? html`
+              <button type="button" class="btn btn-outline-secondary" onClick=${() => pedirSair(cancelarEdicao)}>Cancelar</button>
+              <button type="button" class="btn btn-primary" disabled=${!alterou || erros.length > 0 || salvando} onClick=${salvar}>${salvando ? 'Salvando…' : 'Salvar como nova versão'}</button>` : html`
+              <button type="button" class="btn btn-outline-secondary mon-btn-icone" disabled=${!config} title="Cria uma cópia inativa desta versão (para editar ou guardar como backup)"
+                onClick=${() => setDuplicando({ ...formulario, operacao, id_versao_ativa: versaoAtiva?.id_versao })}><${Icone} nome="content_copy" />Duplicar</button>
+              ${formulario && situacao === 'desativado' ? html`<button type="button" class="btn btn-outline-secondary mon-btn-icone" onClick=${pedirTornarAtivo}><${Icone} nome="check_circle" />Tornar ativo</button>` : null}
+              ${arquivada
+                ? html`<button type="button" class="btn btn-primary mon-btn-icone" disabled=${!config || situacao === 'arquivado'} onClick=${() => pedirRestaurar(versao)}><${Icone} nome="history" />Restaurar</button>`
+                : html`<button type="button" class="btn btn-primary mon-btn-icone" disabled=${!config || situacao === 'arquivado'} onClick=${() => setEditando(true)}><${Icone} nome="edit" />Editar formulário</button>`}`}
           </div>` : null}
       </div>
-      ${nota ? html`<p class="mon-alerta mon-alerta--info mon-alerta--linha" title=${nota}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('info')}</span><span>${nota}</span></p>` : null}
+      ${nota ? html`<p class="mon-alerta mon-alerta--info mon-alerta--linha" title=${nota}><${Icone} nome="info" /><span>${nota}</span></p>` : null}
 
-      ${!config ? html`<${LoadingState} titulo="Carregando formulário" />` : html`
-      <div class="mon-formularios-layout">
-        <div class="mon-formularios-esq">
-        <div class="mon-matriz">
-          <div class="mon-matriz-colunas" aria-hidden="true"><span>Pergunta</span><span>Valor / peso</span><span>${editando ? 'Ações' : ''}</span></div>
-          ${config.blocos.map((b, i) => {
-            const chaveBloco = b.id || i;
-            const fechado = Boolean(fechados[chaveBloco]);
-            const botaoDobrar = html`<button type="button" class=${`mon-bloco-toggle ${fechado ? 'is-fechado' : ''}`} aria-expanded=${!fechado} aria-label=${`${fechado ? 'Expandir' : 'Recolher'} bloco ${b.nome || ''}`.trim()}
-              onClick=${() => setFechados((f) => ({ ...f, [chaveBloco]: !fechado }))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('expand_more')}</span></button>`;
-            return html`
-            <section class=${`mon-matriz-bloco ${fechado ? 'is-fechado' : ''}`} key=${chaveBloco}>
-              <div class="mon-matriz-linha is-bloco">
-                ${editando ? html`
-                  <div class="mon-bloco-nome">${botaoDobrar}<input class="form-control" aria-label="Nome do bloco" placeholder="Nome do bloco" value=${b.nome} onInput=${(e) => setBloco(i, 'nome', e.target.value)} /></div>
-                  <input class="form-control" type="number" step="0.5" aria-label="Valor do bloco" value=${b.valor} onInput=${(e) => setBloco(i, 'valor', e.target.value)} />
-                  <${BotaoIcone} icone="delete" titulo="Remover bloco" perigo=${true} onClick=${() => setConfig({ ...config, blocos: config.blocos.filter((_, j) => j !== i) })} />
-                ` : html`<div class="mon-bloco-nome">${botaoDobrar}<strong>${b.nome}</strong>${fechado ? html`<small class="mon-muted">${b.criterios.length} pergunta(s)</small>` : null}</div><span class="mon-valor">${formatarNota(b.valor)}</span><span></span>`}
-              </div>
-              ${fechado ? null : html`<div class="mon-bloco-corpo">
-              ${b.criterios.map((c, k) => html`
-                <div class="mon-matriz-linha" key=${c.id || k}>
-                  ${editando ? html`
-                    <input class="form-control" aria-label="Pergunta" placeholder="Texto da pergunta" value=${c.texto} onInput=${(e) => setCriterio(i, k, 'texto', e.target.value)} />
-                    <input class="form-control" type="number" step="0.5" aria-label="Peso" value=${c.peso} onInput=${(e) => setCriterio(i, k, 'peso', e.target.value)} />
-                    <${BotaoIcone} icone="delete" titulo="Remover pergunta" perigo=${true} onClick=${() => setBloco(i, 'criterios', b.criterios.filter((_, l) => l !== k))} />
-                  ` : html`<span>${c.texto}</span><span class="mon-valor">${formatarNota(c.peso)}</span><span></span>`}
-                </div>`)}
-              <div class="mon-matriz-rodape">
-                <span class=${`mon-muted ${Math.abs(somaPesos(b) - Number(b.valor || 0)) > 0.0001 ? 'mon-sla--vencido' : ''}`}>Soma dos pesos: ${formatarNota(somaPesos(b))} / ${formatarNota(b.valor)}</span>
-                ${editando ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setBloco(i, 'criterios', [...b.criterios, { texto: '', peso: 0 }])}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar pergunta</button>` : null}
-              </div></div>`}
-            </section>`;
-          })}
-          ${editando ? html`<button type="button" class="btn btn-outline-secondary mon-matriz-novo-bloco" onClick=${() => setConfig({ ...config, blocos: [...config.blocos, BLOCO_VAZIO()] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar bloco</button>` : null}
-        </div>
-        ${editando && erros.length ? html`<ul class="mon-erros">${erros.map((e) => html`<li key=${e}>${e}</li>`)}</ul>` : null}
-        ${editando ? html`<div class="mon-acoes-fixas"><input class="form-control mon-obs-versao" placeholder="O que mudou nesta versão? (opcional)" value=${observacao} onInput=${(e) => setObservacao(e.target.value)} />
-          <button type="button" class="btn btn-primary" disabled=${!alterou || erros.length > 0 || salvando} onClick=${salvar}>${salvando ? 'Salvando…' : 'Salvar como nova versão'}</button></div>` : null}
-        </div>
-        <aside class="mon-formularios-dir">
-        <${SectionCard} title="Escala e faixas de nota">
-          <div class="mon-form-grid">
-            <label class="mon-campo">Escala mínima<input class="form-control" type="number" disabled=${!editando} value=${config.escala.min} onInput=${(e) => setConfig({ ...config, escala: { ...config.escala, min: Number(e.target.value) } })} /></label>
-            <label class="mon-campo">Escala máxima<input class="form-control" type="number" disabled=${!editando} value=${config.escala.max} onInput=${(e) => setConfig({ ...config, escala: { ...config.escala, max: Number(e.target.value) } })} /></label>
-            <label class="mon-campo">Mínimo de blocos avaliados<input class="form-control" type="number" disabled=${!editando} value=${config.min_blocos} onInput=${(e) => setConfig({ ...config, min_blocos: Number(e.target.value) })} /></label>
+      ${erroCarga ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erroCarga} <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onClick=${() => { setErroCarga(''); setRecarga((x) => x + 1); }}>Tentar de novo</button></div>`
+        : versoes && !versoes.length ? html`<${EmptyState} icon="rule" title="Formulário sem versões" text="Este formulário ainda não tem nenhuma versão." />`
+        : !config ? html`<div class="mon-fm-grade" aria-busy="true" aria-label="Carregando formulário"><div class="mon-lf-esqueleto"><div></div><div></div><div></div></div><div class="mon-lf-esqueleto"><div></div><div></div></div></div>` : html`
+      <div class="mon-fm-grade">
+        <section class="mon-fm-card mon-fm-perguntas-card" aria-label="Perguntas e pesos">
+          <header class="mon-fm-card-cab"><h2>Perguntas e pesos</h2><span class="mon-fm-colunas">Pergunta · Valor / Peso</span></header>
+          <div class="mon-fm-card-corpo">
+            <div class="mon-fm-blocos">
+              ${colunasBlocos.map((col, n) => html`<div class="mon-fm-blocos-col" key=${n}>${col.map(renderBloco)}</div>`)}
+            </div>
+            ${editando ? html`<button type="button" class="btn btn-outline-secondary mon-fm-novo-bloco" onClick=${() => setConfig({ ...config, blocos: [...config.blocos, BLOCO_VAZIO()] })}><${Icone} nome="add" />Adicionar bloco</button>` : null}
           </div>
-          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Faixa</th><th>De</th><th>Cor</th><th>Ação recomendada</th></tr></thead><tbody>
-            ${config.faixas.map((f, i) => html`<tr key=${i}><td><input class="form-control" disabled=${!editando} value=${f.label} onInput=${(e) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} /></td>
-              <td><input class="form-control" type="number" disabled=${!editando} value=${f.min} onInput=${(e) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, min: Number(e.target.value) } : x)) })} /></td>
-              <td><input type="color" disabled=${!editando} value=${f.cor || '#0a4b8c'} onInput=${(e) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, cor: e.target.value } : x)) })} /></td>
-              <td><input class="form-control" disabled=${!editando} value=${f.acao || ''} onInput=${(e) => setConfig({ ...config, faixas: config.faixas.map((x, j) => (j === i ? { ...x, acao: e.target.value } : x)) })} /></td></tr>`)}
-          </tbody></table></div>
-        </${SectionCard}>
-        <${SectionCard} title="Histórico de versões"
-          actions=${html`<button type="button" class="btn btn-outline-secondary btn-sm" disabled=${comparar.length !== 2} onClick=${compararSelecionadas}
-            title="Marque duas versões para comparar"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('compare_arrows')}</span>Comparar (${comparar.length}/2)</button>`}>
-          <div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th></th><th>Versão</th><th>Criada em</th><th>Por</th><th>Observação</th><th class="num">Monitorias</th><th class="num">Nota média</th><th class="num">Anuladas</th><th></th></tr></thead><tbody>
-            ${(versoes || []).map((v) => html`<tr key=${v.id_versao}>
-              <td><input type="checkbox" aria-label=${`Comparar v${v.numero}`} checked=${comparar.includes(v.id_versao)} onChange=${() => alternarComparar(v.id_versao)} /></td>
-              <td><strong>v${v.numero}</strong> ${v.ativa ? html`<span class="mon-badge mon-badge--ok">Atual</span>` : html`<span class="mon-badge">Arquivada</span>`}</td><td>${formatarDataHoraCurta(v.criado_em)}</td><td>${v.criado_por}</td><td>${v.observacao || '—'}</td>
-              <td class="num">${v.monitorias}</td><td class="num">${v.nota_media == null ? '—' : formatarNota(v.nota_media)}</td><td class="num">${v.anuladas || 0}</td>
-              <td class="mon-acoes-linha">
-                <button type="button" class="btn btn-link btn-sm" onClick=${async () => setVisualizando(await lerVersaoMatriz(v.id_versao))}>Ver</button>
-                ${podeEditar && !v.ativa && !editando ? html`<button type="button" class="btn btn-link btn-sm" onClick=${() => restaurar(v)} title="Cria uma nova versão com este conteúdo">Tornar atual</button>` : null}
-              </td></tr>`)}
-          </tbody></table></div>
-          ${formulario ? html`<p class="mon-muted mt-2 mb-0">${formulario.monitorias} monitoria(s) feitas com este formulário${formulario.origem ? ` · copiado de ${formulario.origem}` : ''}.</p>` : null}
-        </${SectionCard}>
+          ${editando && erros.length ? html`<ul class="mon-erros mon-fm-erros" role="alert">${erros.map((e) => html`<li key=${e}>${e}</li>`)}</ul>` : null}
+        </section>
+
+        <aside class="mon-fm-direita">
+          <section class="mon-fm-card" aria-label="Escala e faixas de nota">
+            <header class="mon-fm-card-cab"><h2>Escala e faixas de nota</h2></header>
+            <div class="mon-fm-card-corpo">
+              <div class="mon-fm-escala">
+                <label class="mon-campo">Escala mínima<input class=${`form-control ${ro ? 'is-ro' : ''}`} type="number" readOnly=${ro} value=${config.escala.min} onInput=${(e) => setConfig({ ...config, escala: { ...config.escala, min: Number(e.target.value) } })} /></label>
+                <label class="mon-campo">Escala máxima<input class=${`form-control ${ro ? 'is-ro' : ''}`} type="number" readOnly=${ro} value=${config.escala.max} onInput=${(e) => setConfig({ ...config, escala: { ...config.escala, max: Number(e.target.value) } })} /></label>
+                <label class="mon-campo">Mínimo de blocos avaliados<input class=${`form-control ${ro ? 'is-ro' : ''}`} type="number" readOnly=${ro} value=${config.min_blocos} onInput=${(e) => setConfig({ ...config, min_blocos: Number(e.target.value) })} /></label>
+              </div>
+              <table class="mon-fm-faixas"><thead><tr><th scope="col">Faixa</th><th scope="col">De</th><th scope="col">Cor</th><th scope="col">Ação recomendada</th></tr></thead><tbody>
+                ${config.faixas.map((f, i) => html`<tr key=${i}>
+                  <td><input class=${`form-control ${ro ? 'is-ro' : ''}`} aria-label=${`Nome da faixa ${i + 1}`} readOnly=${ro} value=${f.label} onInput=${(e) => setFaixa(i, 'label', e.target.value)} /></td>
+                  <td><input class=${`form-control ${ro ? 'is-ro' : ''}`} type="number" aria-label=${`Nota mínima de ${f.label}`} readOnly=${ro} value=${f.min} onInput=${(e) => setFaixa(i, 'min', Number(e.target.value))} /></td>
+                  <td>${ro ? html`<span class="mon-fm-cor" style=${{ '--faixa': f.cor || 'var(--brand)' }} role="img" aria-label=${`Cor de ${f.label}`}></span>` : html`<input type="color" class="mon-fm-cor-in" aria-label=${`Cor de ${f.label}`} value=${f.cor || '#0a4b8c'} onInput=${(e) => setFaixa(i, 'cor', e.target.value)} />`}</td>
+                  <td><input class=${`form-control ${ro ? 'is-ro' : ''}`} aria-label=${`Ação recomendada de ${f.label}`} title=${f.acao || ''} readOnly=${ro} value=${f.acao || ''} onInput=${(e) => setFaixa(i, 'acao', e.target.value)} /></td></tr>`)}
+              </tbody></table>
+            </div>
+          </section>
+
+          <section class="mon-fm-card mon-fm-versoes-card" aria-label="Histórico de versões">
+            <header class="mon-fm-card-cab"><h2>Histórico de versões</h2>
+              <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${comparar.length !== 2} onClick=${compararSelecionadas} title="Marque duas versões para comparar">Comparar (${comparar.length}/2)</button>
+            </header>
+            ${editando && !criando ? html`<div class="mon-fm-nova"><strong>v${nova} · Nova</strong> · Será criada quando você salvar.</div>` : null}
+            <ul class="mon-ver-lista">
+              ${versoesVisiveis.map((v) => html`<${VersionRow} key=${v.id_versao} versao=${v} marcada=${comparar.includes(v.id_versao)} desabilitada=${marcarCheio}
+                motivoDesabilitada="Já há 2 versões marcadas. Desmarque uma para escolher outra."
+                aoMarcar=${(id) => setComparar((m) => alternarMarcadas(m, id))}
+                aoVer=${(ver) => { if (!editando) setIdVersao(String(ver.id_versao)); }}
+                aoRestaurar=${podeEditar && !editando && situacao !== 'arquivado' ? pedirRestaurar : null} />`)}
+            </ul>
+            ${versoes && versoes.length > VERSOES_NO_CARD ? html`<button type="button" class="btn btn-link btn-sm mon-lf-ver-todas" onClick=${() => setTodasVersoes((x) => !x)}>${todasVersoes ? 'Mostrar menos' : `Ver todas as ${versoes.length} versões`}</button>` : null}
+            ${formulario ? html`<p class="mon-muted mon-fm-versoes-rodape">${formulario.monitorias} monitoria(s) feitas com este formulário${formulario.origem ? ` · copiado de ${formulario.origem}` : ''}.</p>` : null}
+          </section>
         </aside>
       </div>`}
-      <${ModalPadrao} aberto=${Boolean(visualizando)} titulo=${`Formulário v${visualizando?.numero || ''} (somente leitura)`} onClose=${() => setVisualizando(null)}>
-        ${visualizando ? html`<div class="mon-shell">
-          ${visualizando.config.blocos.map((b) => html`<div key=${b.id}><strong>${b.nome}</strong> <span class="mon-muted">(peso ${formatarNota(b.valor)})</span><ul>${b.criterios.map((c) => html`<li key=${c.id}>${c.texto} — ${formatarNota(c.peso)}</li>`)}</ul></div>`)}
-          <div><strong>Regras aplicadas</strong><ul>
-            <li>Escala: ${visualizando.config.escala?.min} a ${visualizando.config.escala?.max}</li>
-            <li>Mínimo de blocos avaliados: ${visualizando.config.min_blocos}</li>
-            ${(visualizando.config.faixas || []).map((f) => html`<li key=${f.label}>${f.label}: a partir de ${f.min}${f.acao ? ` — ${f.acao}` : ''}</li>`)}
-          </ul></div>
-        </div>` : null}
-      </${ModalPadrao}>
-      <${ModalPadrao} aberto=${Boolean(duplicando)} titulo="Duplicar formulário" subtitulo=${`A cópia nasce inativa, a partir da v${versao?.numero || ''}. O original não muda.`} onClose=${() => setDuplicando(null)}>
-        ${duplicando ? html`<div class="mon-form-grid">
-          <label class="mon-campo">Nome da cópia<input class="form-control" maxlength="180" value=${duplicando.nome} onInput=${(e) => setDuplicando({ ...duplicando, nome: e.target.value })} /></label>
-          <label class="mon-campo">Operação de destino<${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${duplicando.destino} todas=${false} onChange=${(v) => setDuplicando({ ...duplicando, destino: v })} /></label>
-        </div>
-        <div class="mon-acoes-fixas"><button type="button" class="btn btn-primary" disabled=${!duplicando.nome.trim()} onClick=${confirmarDuplicar}>Duplicar</button></div>` : null}
-      </${ModalPadrao}>
-      <${ModalPadrao} aberto=${Boolean(comparacao)} titulo=${comparacao ? `O que mudou da v${comparacao.antes.numero} para a v${comparacao.depois.numero}` : ''} onClose=${() => setComparacao(null)}>
-        ${comparacao ? (comparacao.mudancas.length
-          ? html`<div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th>Mudança</th><th>Detalhe</th></tr></thead><tbody>
-              ${comparacao.mudancas.map((m, i) => html`<tr key=${i}><td><span class=${`mon-badge ${m.tipo === 'incluido' ? 'mon-badge--ok' : ''}`}>${ROTULO_MUDANCA[m.tipo]}</span></td><td>${m.texto}</td></tr>`)}
-            </tbody></table></div>`
-          : html`<p class="mon-muted">As duas versões têm o mesmo conteúdo.</p>`) : null}
-      </${ModalPadrao}>
+
+      <${DialogoDuplicar} formulario=${duplicando} operacoes=${ativas} showToast=${showToast} aoFechar=${() => setDuplicando(null)}
+        aoConcluir=${(r) => { setDuplicando(null); if (r.operacao === operacao) setIdMatriz(String(r.id_matriz)); setIdVersao(''); setRecarga((x) => x + 1); }} />
+      <${DialogoConfirmar} aberto=${Boolean(confirmando)}
+        titulo=${confirmando ? ({ sair: 'Descartar alterações?', ativar: 'Tornar ativo', restaurar: `Restaurar a v${confirmando.versao?.numero}?` }[confirmando.tipo]) : ''}
+        descricao=${confirmando?.descricao} textoConfirmar=${confirmando ? ({ sair: 'Descartar', ativar: 'Tornar ativo', restaurar: 'Restaurar' }[confirmando.tipo]) : ''}
+        perigo=${confirmando?.tipo === 'sair'} aoCancelar=${() => setConfirmando(null)} aoConfirmar=${executarConfirmacao} />
+      <${ModalComparacao} comparacao=${comparacao} aoFechar=${() => setComparacao(null)} />
     </div>`;
 }

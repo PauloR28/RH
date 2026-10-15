@@ -73,7 +73,8 @@ export const liberarTrocaDesign = (id) => enviar(`/monitoria/usuarios/${id}/libe
 export const trocarSenhaInicial = (payload) => enviar('/auth/me/senha-inicial', 'POST', payload);
 
 // --- matriz ----------------------------------------------------------------
-export const lerMatriz = (operacao) => requisitar(`/monitoria/matriz${consulta({ operacao })}`, { method: 'GET' });
+export const lerMatriz = (operacao, emUso = false) =>
+  requisitar(`/monitoria/matriz${consulta({ operacao, em_uso: emUso })}`, { method: 'GET' });
 export const listarVersoesMatriz = (operacao, idMatriz = '') =>
   requisitar(`/monitoria/matriz/versoes${consulta({ operacao, id_matriz: idMatriz })}`, { method: 'GET' });
 export const lerVersaoMatriz = (idVersao) => requisitar(`/monitoria/matriz/versoes/${idVersao}`, { method: 'GET' });
@@ -82,6 +83,10 @@ export const salvarMatriz = (operacao, config, observacao = '', idMatriz = null)
 // Formulários (vários por operação, um ativo) — Correções 27/set/2026.
 export const listarFormulariosMatriz = (operacao) =>
   requisitar(`/monitoria/matriz/formularios${consulta({ operacao })}`, { method: 'GET' });
+export const listarFormulariosGeral = (filtros = {}) =>
+  requisitar(`/monitoria/matriz/formularios-lista${consulta(filtros)}`, { method: 'GET' });
+export const alterarSituacaoFormulario = (idMatriz, acao) =>
+  enviar(`/monitoria/matriz/formularios/${idMatriz}/situacao/${acao}`, 'POST', {});
 export const duplicarFormularioMatriz = (payload) => enviar('/monitoria/matriz/formularios/duplicar', 'POST', payload);
 export const ativarFormularioMatriz = (operacao, idMatriz) =>
   enviar(`/monitoria/matriz/formularios/${idMatriz}/ativar${consulta({ operacao })}`, 'POST', {});

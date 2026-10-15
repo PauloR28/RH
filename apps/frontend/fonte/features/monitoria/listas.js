@@ -200,7 +200,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
             </tr></thead>
             <tbody>
               ${dados.itens.map((m) => html`
-                <tr key=${m.id_monitoria} class="is-clicavel" onClick=${() => abrirDetalhe(String(m.id_monitoria))}>
+                <tr key=${m.id_monitoria} class="is-clicavel" tabIndex="0" data-mon-id=${m.id_monitoria} onClick=${() => abrirDetalhe(String(m.id_monitoria))} onKeyDown=${(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirDetalhe(String(m.id_monitoria)); } }}>
                   <td><span class="mon-th-id">
                     ${podeSelecionar ? html`<input type="checkbox" aria-label=${`Selecionar ${m.codigo}`} checked=${selecionadas.includes(m.id_monitoria)}
                       onClick=${(e) => e.stopPropagation()} onChange=${() => alternar(m.id_monitoria)} />` : null}

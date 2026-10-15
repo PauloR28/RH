@@ -308,8 +308,9 @@ _LER_MATRIZ = require_permissions("monitoria.criar", "monitoria.matriz")
 
 
 @router.get("/matriz", dependencies=[Depends(_LER_MATRIZ)])
-def obter_matriz(operacao: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return repository.mon_get_matriz(user, operacao)
+def obter_matriz(operacao: str, em_uso: bool = False, user: AuthenticatedUser = Depends(get_current_user),
+                 repository: DatabaseRepository = Depends(get_repository)):
+    return repository.mon_get_matriz(user, operacao, em_uso=em_uso)
 
 
 @router.get("/matriz/versoes", dependencies=[Depends(_LER_MATRIZ)])
@@ -323,6 +324,22 @@ def listar_formularios(operacao: str, user: AuthenticatedUser = Depends(get_curr
                        repository: DatabaseRepository = Depends(get_repository)):
     """Formulários da operação (o ativo e as cópias), com totais de versões e monitorias."""
     return {"itens": repository.mon_list_formularios(user, operacao)}
+
+
+@router.get("/matriz/formularios-lista", dependencies=[Depends(_LER_MATRIZ)])
+def listar_formularios_geral(operacao: str = "", situacao: str = "", busca: str = "", pagina: int = 1, por_pagina: int = 50,
+                             user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    """Lista geral de formulários (todas as operações do escopo) com contadores por situação."""
+    return repository.mon_listar_formularios_geral(
+        user, {"operacao": operacao, "situacao": situacao, "busca": busca}, pagina=pagina, por_pagina=min(max(por_pagina, 1), 200),
+    )
+
+
+@router.post("/matriz/formularios/{id_matriz}/situacao/{acao}", dependencies=[Depends(require_permissions("monitoria.matriz"))])
+def alterar_situacao_formulario(id_matriz: int, acao: str, request: Request, user: AuthenticatedUser = Depends(get_current_user),
+                                repository: DatabaseRepository = Depends(get_repository)):
+    """Desativar, arquivar ou restaurar (de arquivado) um formulário; grava auditoria."""
+    return repository.mon_alterar_situacao_formulario(user, id_matriz, acao, ip=client_ip(request))
 
 
 @router.post("/matriz/formularios/duplicar", dependencies=[Depends(require_permissions("monitoria.matriz"))])
