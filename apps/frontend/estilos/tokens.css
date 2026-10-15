@@ -132,6 +132,20 @@
   --status-info-bg: #e8f0f9;
   --status-neutral: #6b7280;
   --status-neutral-bg: #f1f2f4;
+  /* Módulo Turnos e Plantões: bordas semânticas, texto de atenção legível, índigo (skills), trilho das abas e destaques do quadro. */
+  --status-success-line: #9bd4b6;
+  --status-warning-ink: #8a5a00;
+  --status-warning-line: #e0b15c;
+  --status-danger-line: #e6a9a1;
+  --status-neutral-line: #d5d9e0;
+  --status-info-line: #a9c8ea;
+  --status-indigo: #3b5bb5;
+  --status-indigo-bg: #e8eefb;
+  --status-indigo-line: #b4c3ec;
+  --wfm-trilho: #e9eef5;
+  --wfm-trilho-borda: #dde4ee;
+  --wfm-hoje-bg: #e3effb;
+  --wfm-fds-bg: #f3f5f8;
 
   /* Escala tipográfica nomeada (px fixo, base do sistema = 14px). */
   --text-xs: 0.8rem;
@@ -257,4 +271,17 @@
   --status-info-bg: #12303d;
   --status-neutral: #9aa4b2;
   --status-neutral-bg: #232e42;
+  --status-success-line: #2a6a50;
+  --status-warning-ink: #f0ac4f;
+  --status-warning-line: #7a5a22;
+  --status-danger-line: #7a3340;
+  --status-neutral-line: #3a4a67;
+  --status-info-line: #2b5f85;
+  --status-indigo: #9db4f2;
+  --status-indigo-bg: #1d2848;
+  --status-indigo-line: #3d4f86;
+  --wfm-trilho: #1c2536;
+  --wfm-trilho-borda: #2c3a52;
+  --wfm-hoje-bg: #17304f;
+  --wfm-fds-bg: #1a2333;
 }

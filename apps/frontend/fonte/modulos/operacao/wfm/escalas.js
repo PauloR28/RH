@@ -1,7 +1,8 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js';
 import { Campo, ModalForm } from './formulario.js';
-import { AbasConsole, AvisoConsole, BotaoTracejado, CabecalhoConsole, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
 
 // Tela inicial da aba Escala: a lista de escalas do mês.
@@ -145,7 +146,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
               ${podePublicar ? html`<span title=${motivo || undefined}><button type="button" class="cx-btn cx-btn--sm" disabled=${Boolean(motivo) || publicando === e.chave} onClick=${() => publicar(e)}>${publicando === e.chave ? 'Publicando...' : 'Publicar'}</button></span>` : null}
               ${gere ? html`<${MenuAcoesProcesso} ariaLabel=${`Mais ações de ${e.nome}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
                 acoes=${[
-        { label: 'Abrir escala', icon: 'edit_note', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'dia') },
+        { label: 'Abrir escala', icon: 'edit_note', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'mes') },
         { label: 'Configurações da escala', icon: 'settings', onClick: () => aoConfigurar(e) },
       ]} />` : null}
             </span></td>
@@ -156,16 +157,16 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
 
   const chips = [['todas', 'Todas', totais.todas], ['rascunho', 'Rascunho', totais.rascunho], ['publicadas', 'Publicadas', totais.publicadas]];
   return html`
-    <${PaginaConsole} espaco14=${true} className="cx-escala">
-      <${CabecalhoConsole} titulo=${titulo} subtitulo=${descricao} acoes=${botaoNova} />
-      ${abas?.length ? html`<div class="cx-fixo"><${AbasConsole} prefixo="wfm" rotulo="Seções de Turnos e Plantões" itens=${abas} ativa=${abaAtiva} aoMudar=${aoMudarAba} /></div>` : null}
+    <${PaginaConsole} className="cx-escala cx-pagina--modulo">
+      <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
+        abas=${abas?.length ? html`<${ModuleTabs} itens=${abas} ativa=${abaAtiva} aoMudar=${aoMudarAba} />` : null} />
       <div class="cx-resumos" aria-busy=${!dados && !erro}>
         <${CardResumo} icone="calendar_month" rotulo=${`Escalas em ${mes}`} valor=${dados ? totais.todas : '—'} />
         <${CardResumo} icone="edit_note" rotulo="Em rascunho" valor=${dados ? totais.rascunho : '—'} />
         <${CardResumo} icone="event_available" tom="sucesso" rotulo="Publicadas" valor=${dados ? totais.publicadas : '—'} />
         <${CardResumo} icone="groups" rotulo="Colaboradores escalados" valor=${dados ? totais.colaboradores : '—'} />
       </div>
-      <div class="cx-escala-corpo cx-cresce" role="tabpanel" id=${idPainel('wfm', abaAtiva)} aria-labelledby=${idAba('wfm', abaAtiva)}>
+      <div class="cx-escala-corpo cx-cresce">
         <section class="cx-card">
           <div class="cx-toolbar" role="search">
             <label class="cx-busca"><${IconeCx} nome="search" /><input type="search" value=${busca} placeholder="Buscar escala" aria-label="Buscar escala" onInput=${(ev) => setBusca(ev.target.value)} /></label>
@@ -177,6 +178,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
             <div class="cx-chips" role="group" aria-label="Filtrar por situação">
               ${chips.map(([id, rotulo, n]) => html`<button key=${id} type="button" class="cx-chip" aria-pressed=${filtro === id} onClick=${() => setFiltro(id)}>${rotulo} <span class="cx-chip-n">${n}</span></button>`)}
             </div>
+            ${botaoNova ? html`<span class="cx-toolbar-fim">${botaoNova}</span>` : null}
           </div>
           <div class="cx-card-corpo">${corpoTabela()}</div>
           ${gere && dados ? html`<div class="cx-card-rodape cx-card-rodape--solto"><${BotaoTracejado} onClick=${() => setCriando(true)}>Criar outra escala para ${mes}</${BotaoTracejado}></div>` : null}
@@ -188,7 +190,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
               ${!dados ? html`<${EsqueletoLinhas} linhas=${3} altura=${40} />` : base.length && totais.publicadas === base.length
       ? html`<p class="cx-legenda">Todas as escalas de ${mes} já estão publicadas.</p>`
       : html`<ol class="cx-passos">
-                ${semColaboradores.map((e) => html`<li key=${e.chave}><button type="button" class="cx-passo-link" onClick=${() => aoAbrir(e.chave, gere && e.ativa ? 'dia' : 'mes')}><strong title=${e.nome}>${e.nome}</strong> está sem colaboradores.</button></li>`)}
+                ${semColaboradores.map((e) => html`<li key=${e.chave}><button type="button" class="cx-passo-link" onClick=${() => aoAbrir(e.chave, 'mes')}><strong title=${e.nome}>${e.nome}</strong> está sem colaboradores.</button></li>`)}
                 <li><span>Depois, use Publicar em cada escala.</span></li>
               </ol>`}
             </div>

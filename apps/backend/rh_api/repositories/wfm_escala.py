@@ -849,6 +849,34 @@ class WfmEscalaRepositoryMixin:
         finally:
             conn.close()
 
+    def wfm_pendencias_presenca(self, user, operacao: str, data_ini: Any, data_fim: Any) -> dict:
+        """Escalados (turno de trabalho) até hoje, no período, sem presença lançada. Só leitura; mesmo escopo de wfm_list_presencas."""
+        ini, fim = _parse_data(data_ini), min(_parse_data(data_fim), date.today())
+        if (_parse_data(data_fim) - ini).days > 62:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Período máximo de 62 dias.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            operadores = {op["id_usuario"]: op["nome"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)}
+            if not operadores or ini > fim:
+                return {"total": 0, "itens": []}
+            ids = list(operadores)
+            marcadores = ",".join("?" for _ in ids)
+            cursor.execute(
+                f"SELECT i.id_operador, i.data FROM dbo.wfm_escala_itens i "
+                f"JOIN dbo.wfm_turnos t ON t.id_turno = i.id_turno AND t.tipo = 'TRABALHO' "
+                f"WHERE i.operacao = ? AND i.data BETWEEN ? AND ? AND i.id_operador IN ({marcadores}) "
+                f"AND NOT EXISTS (SELECT 1 FROM dbo.wfm_presencas p WHERE p.operacao = i.operacao AND p.id_operador = i.id_operador AND p.data = i.data) "
+                f"ORDER BY i.data, i.id_operador",
+                (operacao, ini, fim, *ids),
+            )
+            itens = [{"id_operador": int(r[0]), "nome": operadores[int(r[0])], "data": r[1].isoformat()} for r in cursor.fetchall()]
+            return {"total": len(itens), "itens": itens}
+        finally:
+            conn.close()
+
     def wfm_lancar_presenca(
         self, user, operacao: str, id_operador: int, data: Any, status_presenca: str, observacao: str = "", *, ip: str = ""
     ) -> dict:

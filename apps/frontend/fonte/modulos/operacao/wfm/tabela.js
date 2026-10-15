@@ -1,5 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
+import { EmptyState } from '../../../ui/componentes-compartilhados.js';
+import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
 import { IconeSvg } from '../../../ui/icone.js';
 import {
   definirCapacidadePausasWfm,
@@ -17,13 +18,13 @@ import {
   salvarItensEscalaWfm,
   salvarPausasWfm,
 } from '../../../services/api/wfm.js';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, minutosParaHoras } from './comum.js';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, SeletorTurnoLinha, SeletorVisao, TituloEscala, Quadrado, faixaTurno, semAcento } from './escala-ui.js';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261015-modulo8';
 import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -41,7 +42,7 @@ const diaSemanaSegunda = (iso) => (doIso(iso).getDay() + 6) % 7; // 0 = segunda
 const chave = (id, data) => `${id}:${data}`;
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa', INTERVALO: 'Intervalo' };
 
-export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoVoltarLista }) {
+export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
   const [dados, setDados] = useState(null);
   const [extras, setExtras] = useState([]);
@@ -115,8 +116,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const pausasDeOp = useMemo(() => Object.fromEntries((pausasDia?.operadores || []).map((o) => [o.id_operador, o])), [pausasDia]);
 
   if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<${LoadingState} titulo="Carregando a escala" />`;
-  if (!dados.operadores.length) return html`<${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />`;
+  if (!dados) return html`<section class="mo-card-escala" aria-busy="true" aria-label="Carregando a escala"><${EsqueletoLinhas} linhas=${10} altura=${40} /></section>`;
+  if (!dados.operadores.length) return html`<section class="mo-card-escala cx-cresce"><div class="mo-corpo-vazio cx-cresce"><${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." /></div></section>`;
 
   const editavel = dados.pode_editar;
   const fechada = dados.status.fechada;
@@ -326,24 +327,27 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const alternarTodos = () => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
   const menuAcoes = html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} />`;
 
+  const aprov = dados.aprovacao;
+  const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
+  const algumaAcaoAprov = !!(aprov && (aprov.pode_enviar || aprov.pode_aprovar || aprov.pode_declinar || aprov.pode_cancelar));
+  const mostrarFaixaAprov = !!aprov?.exige && (!aprovada || algumaAcaoAprov);
+  const mostrarJust = (fechada && editavel && pendentes) || pedirJust;
+
   return html`
-    <section class="mon-card wfm-escala ea-raiz">
-      <${TituloEscala} nome=${nomeEscala} escalados=${escalados} emDsr=${dados.operadores.length - escalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista} menu=${menuAcoes} />
+    <${LinhaContexto} nome=${nomeEscala} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes}
+      escalados=${escalados} emDsr=${dados.operadores.length - escalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista} menu=${menuAcoes} />
 
-      <${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} compacto />
-
-      <div class="ea-nav">
-        <div class="ea-nav-esq">
-          <${SeletorVisao} visao="dia" aoMes=${aoVerMes} />
-          <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
-            <button type="button" class="ea-icone-btn" aria-label="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
-            <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA[d0.getDay()]}, ${br(dia)}</span>
-              <input class="ea-data-input" type="date" aria-label="Escolher data" onClick=${(e) => e.target.showPicker?.()} value=${dia} min=${`${anoMes}-01`} max=${dados.dias[dados.dias.length - 1]} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} /></label>
-            <button type="button" class="ea-icone-btn" aria-label="Próximo dia" disabled=${dia >= dados.dias[dados.dias.length - 1]} onClick=${() => mover(1)}><${Icone} nome="chevron_right" /></button>
-            <button type="button" class="btn btn-outline-secondary ea-btn-44" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso} onClick=${() => setDia(hojeIso)}>Hoje</button>
-          </div>
+    <section class="mo-card-escala cx-cresce" aria-label="Escala do dia">
+      <div class="mo-barra cx-fixo">
+        <${SeletorVisao} visao="dia" aoMes=${aoVerMes} />
+        <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
+          <button type="button" class="ea-icone-btn" aria-label="Dia anterior" title="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
+          <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA[d0.getDay()]}, ${br(dia)}</span>
+            <input class="ea-data-input" type="date" aria-label="Escolher data" onClick=${(e) => e.target.showPicker?.()} value=${dia} min=${`${anoMes}-01`} max=${dados.dias[dados.dias.length - 1]} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} /></label>
+          <button type="button" class="ea-icone-btn" aria-label="Próximo dia" title="Próximo dia" disabled=${dia >= dados.dias[dados.dias.length - 1]} onClick=${() => mover(1)}><${Icone} nome="chevron_right" /></button>
+          <button type="button" class="mo-btn mo-btn--neutro mo-btn--34" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso} onClick=${() => setDia(hojeIso)}>Hoje</button>
         </div>
-        <button type="button" class=${`btn btn-outline-secondary ea-btn-44 ${verTurnos ? 'is-ativo' : ''}`} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><${Icone} nome="schedule" />Turnos e pausas</button>
+        <button type="button" class=${`mo-btn mo-btn--sec mo-btn--34 ${verTurnos ? 'is-ativo' : ''}`} style=${{ marginLeft: 'auto' }} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><${Icone} nome="schedule" />Turnos e pausas</button>
       </div>
 
       ${verTurnos ? html`<div class="wfm-turnos-faixa">
@@ -354,12 +358,12 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
         ${podeCadastros && pausasDia ? html`<span class="wfm-capacidade"><label for="wfm-cap">Em pausa ao mesmo tempo</label><input id="wfm-cap" class="form-control" type="number" min="1" max="200" value=${capacidade} onInput=${(e) => setCapacidade(e.target.value)} />${Number(capacidade) !== pausasDia.capacidade ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${salvarCapacidade}>OK</button>` : null}</span>` : null}
       </div>` : null}
 
-      <${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)`}
+      <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)`}
         selects=${[
           { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
           { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
           { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },
-        ]} />
+        ]} /></div>
 
       <div class="ea-chips" role="group" aria-label="Filtrar por turno">
         <span class="ea-rotulo">TURNO</span>
@@ -404,8 +408,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
       ${excedentes.length ? html`<div class="wfm-validacao is-alerta ea-alerta" role="status"><strong>Mais operadores em pausa do que o limite</strong>
         <ul>${excedentes.slice(0, 6).map((x, i) => html`<li key=${i}>${x.inicio}–${x.fim}: ${x.qtd} em pausa (limite ${x.capacidade})</li>`)}</ul></div>` : null}
 
-      <div class="ea-tabela">
-        <div class="ea-rolagem" role="region" aria-label="Escala do dia" tabindex="0">
+      <div class="mo-mat ea-tabela cx-cresce">
+        <div class="ea-rolagem mo-rolagem" role="region" aria-label="Escala do dia" tabindex="0">
           <table class=${`ea-tab ${editavel ? 'ea-tab--sel' : ''}`}>
             <colgroup>${editavel ? html`<col style=${{ width: '44px' }} />` : null}<col /><col style=${{ width: '170px' }} /><col style=${{ width: '200px' }} /><col style=${{ width: '230px' }} /><col style=${{ width: '100px' }} /><col style=${{ width: '120px' }} /></colgroup>
             <thead><tr>
@@ -445,16 +449,25 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           ${mostradas.length < visiveis.length ? html`<button type="button" class="btn btn-outline-secondary ea-btn-40" onClick=${() => setLimite((l) => l + 50)}>Mostrar mais</button>` : null}
         </div>
       </div>
-      <div class="wfm-legenda-pres">${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k}><span class=${`wfm-pres wfm-pres-${k.toLowerCase()}`}>${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}<span><span class="wfm-dsr">DSR</span>Dia sem turno</span></div>
+      <div class="wfm-legenda-pres cx-fixo">${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k}><span class=${`wfm-pres wfm-pres-${k.toLowerCase()}`}>${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}<span><span class="wfm-dsr">DSR</span>Dia sem turno</span></div>
 
-      ${(fechada && editavel && pendentes) || pedirJust ? html`<label class="wfm-campo wfm-just"><span>${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado)'}</span><input class="form-control" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} /></label>` : null}
-      <div class="wfm-acoes wfm-acoes--rodape wfm-barra-salvar">
-        <span class="wfm-barra-status">${pendentes ? `${pendentes} alteração(ões) não salva(s)` : 'Tudo salvo'}</span>
-        ${editavel ? html`<label class="wfm-check"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /> Programar pausas de quem ficar sem</label>` : null}
-        ${pendentes ? html`<button type="button" class="btn btn-outline-secondary" onClick=${() => setPend({})}>Descartar</button>` : null}
-        <button type="button" class="btn btn-primary" disabled=${ocupado || !pendentes || (fechada && !justificativa.trim())} onClick=${salvar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Salvar${pendentes ? ` (${pendentes})` : ''}</button>
-        ${podePublicar ? html`<button type="button" class="btn btn-outline-primary wfm-publicar" disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA')} title=${bloqueioPublicar} onClick=${publicar}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('event_available')}</span>Publicar</button>` : null}
-      </div>
+      ${mostrarFaixaAprov || mostrarJust ? html`<div class="mo-faixa cx-fixo">
+        ${mostrarFaixaAprov ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} semTexto=${aprovada} compacto />` : null}
+        ${mostrarJust ? html`<label class="mo-just"><span>${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado)'}</span><input class="form-control" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} /></label>` : null}
+      </div>` : null}
+
+      <footer class="mo-rodape cx-fixo">
+        <div class="mo-rodape-esq">
+          ${aprovada ? html`<span class="mo-aprovada"><${Icone} nome="check_circle" />Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}. A aprovação publica a escala.</span>` : null}
+          <span class="mo-rodape-txt">${pendentes ? `${pendentes} alteração(ões) não salva(s)` : 'Tudo salvo'}</span>
+          ${editavel ? html`<label class="wfm-check"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /> Programar pausas de quem ficar sem</label>` : null}
+        </div>
+        <div class="mo-rodape-dir">
+          ${pendentes ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" onClick=${() => setPend({})}>Descartar</button>` : null}
+          ${podePublicar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--38" disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA')} title=${bloqueioPublicar} onClick=${publicar}><${Icone} nome="send" />Publicar</button>` : null}
+          <button type="button" class="mo-btn mo-btn--prim mo-btn--38" disabled=${ocupado || !pendentes || (fechada && !justificativa.trim())} onClick=${salvar}>Salvar${pendentes ? ` (${pendentes})` : ''}</button>
+        </div>
+      </footer>
     </section>
     ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
       bloqueio=${pendentes > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}

@@ -47,7 +47,8 @@ export const fecharPeriodoWfm = (dados) => enviar('/wfm/escala/fechar', 'POST', 
 export const listarVersoesEscalaWfm = (operacao, anoMes) => requisitar(`/wfm/escala/versoes${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 
 export const listarPresencasWfm = (operacao, anoMes) => requisitar(`/wfm/presencas${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
-export const lancarPresencaWfm = (dados) => enviar('/wfm/presencas', 'PUT', dados);
+export const pendenciasPresencaWfm = (operacao, dataIni, dataFim) => requisitar(`/wfm/presencas/pendencias${consulta({ operacao, data_ini: dataIni, data_fim: dataFim })}`, { method: 'GET' });
+export const lancarPresencaWfm =(dados) => enviar('/wfm/presencas', 'PUT', dados);
 export const listarAtestadosWfm = (operacao, anoMes) => requisitar(`/wfm/atestados${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 export const registrarAtestadoWfm = (dados) => enviar('/wfm/atestados', 'POST', dados);
 

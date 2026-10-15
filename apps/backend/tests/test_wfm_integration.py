@@ -453,3 +453,19 @@ def test_contrato_guarda_e_devolve_o_limite_semanal(ctx):
     r.wfm_save_contrato(ctx.cd, {**base, "jornada_semanal_max_min": None}, novo)
     item = next(c for c in r.wfm_list_contratos(ctx.cd, ctx.op) if c["id_contrato"] == novo)
     assert item["jornada_semanal_max_min"] is None
+
+
+def test_pendencias_de_presenca_so_escalados_ate_hoje_sem_lancamento(ctx):
+    repo = ctx.repo
+    passado = "2026-02"  # mês já encerrado: tudo que tem turno de trabalho e nenhuma presença é pendência
+    itens = [{"id_operador": ctx.id_a, "data": f"{passado}-{d:02d}", "id_turno": ctx.M, "versao_linha": None} for d in (3, 4)]
+    repo.wfm_salvar_itens(ctx.sup, ctx.op, passado, itens, justificativa="teste")
+    r = repo.wfm_pendencias_presenca(ctx.sup, ctx.op, f"{passado}-01", f"{passado}-28")
+    assert r["total"] == 2 and {i["data"] for i in r["itens"]} == {f"{passado}-03", f"{passado}-04"}
+    assert set(r["itens"][0]) == {"id_operador", "nome", "data"}
+    repo.wfm_lancar_presenca(ctx.sup, ctx.op, ctx.id_a, f"{passado}-03", "PRESENTE")
+    assert repo.wfm_pendencias_presenca(ctx.sup, ctx.op, f"{passado}-01", f"{passado}-28")["total"] == 1
+    # Dia futuro nunca é pendência, e quem está fora da equipe do supervisor não aparece.
+    assert repo.wfm_pendencias_presenca(ctx.sup, ctx.op, "2099-01-01", "2099-01-07")["total"] == 0
+    assert all(i["id_operador"] != ctx.id_c for i in repo.wfm_pendencias_presenca(ctx.sup, ctx.op, f"{passado}-01", f"{passado}-28")["itens"])
+    assert _erro(repo.wfm_pendencias_presenca, ctx.sup, ctx.op, "2026-01-01", "2026-12-31").status_code == 400

@@ -1,5 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { PaginaConsole, CabecalhoConsole, CardDados, EsqueletoLinhas, EstadoConsole, IconeCx, MenuExportar, SeletorPeriodoCx } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { PaginaConsole, CardDados, EsqueletoLinhas, EstadoConsole, IconeCx, MenuExportar, SeletorPeriodoCx } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { ModuleHeader } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 
@@ -142,11 +143,11 @@ export function TelaHistorico({ contexto, showToast }) {
     if (!itens.length) return html`<${EstadoConsole} mensagem="Nenhum registro para este filtro" rotuloAcao="Limpar filtros" aoAcao=${limparFiltros} />`;
     return html`
       <table class="cx-tabela cx-hist-tabela">
-        <colgroup><col style=${{ width: '36px' }} /><col style=${{ width: '92px' }} /><col style=${{ width: '80px' }} /><col style=${{ width: '80px' }} /><col style=${{ width: '128px' }} /><col style=${{ width: '128px' }} /><col style=${{ width: '140px' }} /><col style=${{ width: '140px' }} /><col /><col /><col style=${{ width: '104px' }} /></colgroup>
+        <colgroup><col style=${{ width: '36px' }} /><col style=${{ width: '92px' }} /><col style=${{ width: '80px' }} /><col style=${{ width: '80px' }} /><col style=${{ width: '128px' }} /><col style=${{ width: '128px' }} /><col style=${{ width: '140px' }} /><col style=${{ width: '140px' }} /><col class="cx-hist-ad" /><col class="cx-hist-ad" /><col style=${{ width: '104px' }} /></colgroup>
         <thead><tr>
           <th scope="col" class="cx-col-check"><input ref=${cabecalhoCheck} type="checkbox" aria-label="Selecionar todas as linhas carregadas" checked=${todosMarcados} onChange=${alternarTodos} /></th>
           <th scope="col">Data</th><th scope="col">Hora início</th><th scope="col">Hora final</th><th scope="col">Operador</th><th scope="col">Supervisor</th>
-          <th scope="col">Ação</th><th scope="col">Entidade</th><th scope="col">Antes</th><th scope="col">Depois</th><th scope="col"><span class="cx-sr">Detalhes</span></th>
+          <th scope="col">Ação</th><th scope="col">Entidade</th><th scope="col" class="cx-hist-ad">Antes</th><th scope="col" class="cx-hist-ad">Depois</th><th scope="col"><span class="cx-sr">Detalhes</span></th>
         </tr></thead>
         <tbody>${itens.map((i) => {
     const aberto = abertos.has(i.id);
@@ -159,11 +160,11 @@ export function TelaHistorico({ contexto, showToast }) {
             <td>${i.hora_fim || '—'}</td>
             <td><div class="cx-linha-nome cx-trunca" title=${i.operador}>${i.operador || '—'}</div><div class="cx-linha-sub cx-trunca" title=${i.perfil}>${i.perfil}</div></td>
             <td><div class="cx-trunca" title=${i.supervisor}>${i.supervisor || '—'}</div></td>
-            <td><span class="cx-hist-acao"><span class=${`cx-ponto cx-ponto--${i.acao_tom}`} aria-hidden="true"></span><span class="cx-trunca" title=${i.acao_nome}>${i.acao_nome}</span></span></td>
+            <td><span class="cx-hist-acao"><span class=${`cx-ponto cx-ponto--${['presente', 'troca'].includes(i.acao_tom) ? i.acao_tom : 'neutro'}`} aria-hidden="true"></span><span class="cx-trunca" title=${i.acao_nome}>${i.acao_nome}</span></span></td>
             <td><div class="cx-trunca" title=${i.entidade}>${i.entidade}</div><div class="cx-linha-sub cx-trunca" title=${i.entidade_id}>${i.entidade_id}</div></td>
-            <td class="cx-hist-valor"><${ListaPares} pares=${i.antes} limite=${2} /></td>
-            <td class="cx-hist-valor"><${ListaPares} pares=${i.depois} limite=${2} /></td>
-            <td class="cx-col-num"><button type="button" class="cx-btn cx-btn--texto cx-btn--sm" aria-expanded=${aberto} aria-controls=${idPainel} onClick=${() => alternarAberto(i.id)}>${aberto ? 'Ver menos' : 'Ver mais'}<${IconeCx} nome=${aberto ? 'expand_less' : 'expand_more'} /></button></td>
+            <td class="cx-hist-valor cx-hist-ad"><${ListaPares} pares=${i.antes} limite=${2} /></td>
+            <td class="cx-hist-valor cx-hist-ad"><${ListaPares} pares=${i.depois} limite=${2} /></td>
+            <td class="cx-col-num"><button type="button" class="cx-btn cx-btn--texto cx-btn--sm" aria-expanded=${aberto} aria-controls=${idPainel} onClick=${() => alternarAberto(i.id)}>${aberto ? 'Ver menos' : 'Ver mais'}<span class=${`cx-seta ${aberto ? 'is-aberta' : ''}`}><${IconeCx} nome="expand_more" /></span></button></td>
           </tr>
           ${aberto ? html`<tr key=${`d${i.id}`} class="cx-hist-linha-detalhe"><td colSpan="11"><${Detalhes} item=${i} id=${idPainel} /></td></tr>` : null}`;
   })}</tbody>
@@ -174,13 +175,12 @@ export function TelaHistorico({ contexto, showToast }) {
     <span>Mostrando ${itens.length} de ${total} registros</span>
     <span class="cx-rodape-espaco"></span>
     ${temMais ? html`<button type="button" class="cx-btn cx-btn--suave cx-btn--sm" disabled=${carregandoMais} onClick=${verMais}>${carregandoMais ? 'Carregando...' : `Ver mais ${PROXIMAS_PAGINAS} registros`}<${IconeCx} nome="expand_more" /></button>` : null}
-    <span class="cx-rodape-espaco"></span>
-    <span>Ordem: mais recentes primeiro</span>` : null;
+    <span class="cx-rodape-espaco"></span>` : null;
 
   return html`
-    <${PaginaConsole}>
-      <${CabecalhoConsole} titulo="Histórico" subtitulo="Quem fez o quê, quando, e o valor antes e depois."
-        acoes=${html`<${MenuExportar} totalFiltro=${total} totalSelecionados=${nSel} aoExportar=${exportar} carregando=${exportando} />`} />
+    <${PaginaConsole} className="cx-pagina--modulo">
+      <${ModuleHeader} titulo="Histórico" subtitulo="Quem fez o quê, quando, e o valor antes e depois."
+        abas=${html`<${MenuExportar} totalFiltro=${total} totalSelecionados=${nSel} aoExportar=${exportar} carregando=${exportando} />`} />
       <div class="cx-hist-filtros cx-fixo" role="search">
         <label class="cx-busca"><${IconeCx} nome="search" /><input type="search" value=${textoDigitado} placeholder="Buscar por operador, supervisor ou entidade" aria-label="Buscar por operador, supervisor ou entidade" onInput=${(e) => setTextoDigitado(e.target.value)} /></label>
         <select class="cx-select" aria-label="Operação" value=${filtros.operacao} onChange=${mudar('operacao')}>
@@ -198,6 +198,7 @@ export function TelaHistorico({ contexto, showToast }) {
         ${nSel ? html`<button type="button" class="cx-btn cx-btn--texto cx-btn--sm" onClick=${() => setSelecionados(new Set())}>Limpar seleção</button>` : null}
         <span class="cx-rodape-espaco"></span>
         <span>${total} registros no filtro atual</span>
+        <span class="cx-hist-ordem">Ordem: mais recentes primeiro</span>
       </div>
       ${erroExportacao ? html`<div class="alert alert-danger c24-feedback cx-fixo" role="alert">${erroExportacao.mensagem} <button type="button" class="cx-btn cx-btn--sm" onClick=${erroExportacao.repetir}>Tentar de novo</button></div>` : null}
       <${CardDados} className="cx-cresce cx-hist-card" rotulo="Histórico" rodape=${rodape}>${corpo()}</${CardDados}>

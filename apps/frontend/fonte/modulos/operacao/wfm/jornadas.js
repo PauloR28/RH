@@ -4,7 +4,9 @@ import { IconeSvg } from '../../../ui/icone.js';
 import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js';
 import { ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { minutosParaHoras } from './comum.js';
-import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm, Secao } from './formulario.js';
+import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
+import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { Icone } from './escala-ui.js?v=20261015-modulo8';
 
 // Jornadas: limites do motor de regras (jornada diária, interjornada, dias seguidos) e pausas obrigatórias.
 // Administrador e Control Desk editam; os demais perfis só consultam.
@@ -128,17 +130,17 @@ export function TelaJornadas({ controlador, operacao, showToast }) {
   if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
   if (!contratos) return html`<${LoadingState} titulo="Carregando as jornadas" />`;
   return html`
-    <${Secao} titulo="Jornadas"
-      acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...JORNADA_VAZIA, exigencias_pausa: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Nova jornada</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horas no dia</th><th>Horas na semana</th><th>Dias seguidos</th><th>Bloqueio duro</th><th>Pausas</th><th></th></tr></thead><tbody>
+    <${CardRecolhivel} titulo="Jornadas e limites" recolhivel=${false} className="mo-cartao-jornadas"
+      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setEdit({ ...JORNADA_VAZIA, exigencias_pausa: [] })}><${Icone} nome="add" />Nova jornada</button>` : null}>
+      <table class="mo-tabela mo-tabela--jornadas"><thead><tr><th scope="col">Código</th><th scope="col">Nome</th><th scope="col">Tipo</th><th scope="col">Horas no dia</th><th scope="col">Horas na semana</th><th scope="col">Dias seguidos</th><th scope="col">Bloqueio duro</th><th scope="col">Pausas</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
         ${contratos.length ? contratos.map((c) => html`<tr key=${c.id_contrato}>
           <td><b>${c.codigo}</b></td><td>${c.nome}${c.ativo ? '' : html` <span class="mon-tag">Inativa</span>`}</td><td>${TIPOS_JORNADA[c.tipo] || c.tipo}</td>
           <td>${minutosParaHoras(c.jornada_diaria_max_min)}</td><td>${c.jornada_semanal_max_min ? minutosParaHoras(c.jornada_semanal_max_min) : '—'}</td><td>${c.max_dias_consecutivos}</td><td>${c.jornada_bloqueio_duro ? 'Sim' : 'Não'}</td>
           <td>${(c.exigencias_pausa || []).length ? (c.exigencias_pausa || []).map((p) => `${p.nome || TIPOS_PAUSA[p.tipo] || p.tipo} ${p.duracao_min} min`).join(' · ') : '—'}</td>
           <td class="wfm-acoes-linha"><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setVer(c)}>Ver jornada</button>${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...c, jornada_feriado_max_min: c.jornada_feriado_max_min ?? '', exigencias_pausa: (c.exigencias_pausa || []).map((p) => ({ nome: '', ...p })) })}>Editar</button><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo(c)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}</td></tr>`)
-          : html`<tr><td colspan="9" class="mon-muted">Nenhuma jornada cadastrada.</td></tr>`}
-      </tbody></table></div>
-    </${Secao}>
+          : html`<tr><td colspan="9" class="mo-vazio">Nenhuma jornada cadastrada.</td></tr>`}
+      </tbody></table>
+    </${CardRecolhivel}>
     ${ver ? html`<${ModalVerJornada} operacao=${operacao} jornada=${ver} podeEditar=${podeEditar} showToast=${showToast} onClose=${() => setVer(null)} onMudou=${carregar} />` : null}
     ${excluindo ? html`<${ModalExcluirJornada} operacao=${operacao} jornada=${excluindo} showToast=${showToast} onClose=${() => setExcluindo(null)} onExcluida=${() => { setExcluindo(null); carregar(); }} />` : null}
     ${edit ? html`<${ModalJornada} operacao=${operacao} inicial=${edit} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); carregar(); }} />` : null}`;

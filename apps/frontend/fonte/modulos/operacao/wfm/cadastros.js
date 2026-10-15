@@ -25,7 +25,10 @@ import {
 } from '../../../services/api/wfm.js';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
 import { descreverTurno } from './escala.js';
-import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm, Secao } from './formulario.js';
+import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
+import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { Icone } from './escala-ui.js?v=20261015-modulo8';
+import { textoLegivel } from './compartilhar.js?v=20261015-modulo8';
 import { TIPOS_PAUSA } from './jornadas.js';
 
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
@@ -164,18 +167,30 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
     catch (err) { showToast?.(err?.message || 'Não foi possível excluir o turno.', 'error'); }
   };
   return html`
-    <${Secao} titulo="Turnos"
-      acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Jornada</th><th>Supervisor · Equipe</th><th>Pausas</th><th></th></tr></thead><tbody>
-        ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}${t.id_contrato ? html`<small class="wfm-sub">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td><td>${t.supervisor ? html`${t.supervisor}${t.equipe ? html`<small class="wfm-sub">${t.equipe}</small>` : null}` : '—'}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
-          <td class="wfm-acoes-linha">${podeEditar ? html`<${MenuAcoesProcesso} ariaLabel=${`Ações do turno ${t.codigo}`} label="Ações" mostrarLabel=${true} icon="expand_more" triggerClassName="btn btn-outline-secondary btn-sm"
-            acoes=${[
-              { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
-              t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
-              t.tipo === 'TRABALHO' ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
-            ]} />` : null}</td></tr>`)}
-      </tbody></table></div>
-    </${Secao}>
+    <${CardRecolhivel} titulo="Turnos" contador=${turnos.length} className="mo-cartao-turnos"
+      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}>
+      <table class="mo-tabela mo-tabela--turnos">
+        <colgroup><col style=${{ width: '148px' }} /><col /><col style=${{ width: '84px' }} /><col style=${{ width: '104px' }} /><col style=${{ width: '64px' }} /><col style=${{ width: '150px' }} /><col style=${{ width: '54px' }} /><col style=${{ width: '92px' }} /></colgroup>
+        <thead><tr><th scope="col">Código</th><th scope="col">Nome</th><th scope="col">Tipo</th><th scope="col">Horário</th><th scope="col">Jornada</th><th scope="col">Supervisor · Equipe</th><th scope="col">Pausas</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead>
+        <tbody>
+          ${turnos.length ? turnos.map((t) => html`<tr key=${t.id_turno}>
+            <td><span class="mo-chip mo-chip--lg" style=${{ '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) }} title=${t.nome}>${t.codigo}</span></td>
+            <td><span class="mo-trunca" title=${t.nome}>${t.nome}</span>${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td>
+            <td><span class="mo-tipo">${t.tipo}</span></td>
+            <td class="mo-num">${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td>
+            <td><span class="mo-num">${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}</span>${t.id_contrato ? html`<small class="mo-sub2">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td>
+            <td>${t.supervisor ? html`<span class="mo-trunca" title=${t.supervisor}>${t.supervisor}</span>${t.equipe ? html`<small class="mo-sub2 mo-trunca" title=${`Equipe ${t.equipe}`}>Equipe ${t.equipe}</small>` : html`<small class="mo-sub2">—</small>`}` : '—'}</td>
+            <td class="mo-num">${t.pausas.length ? html`<span title=${descreverTurno(t).split(' · ').slice(1).join(' · ')}>${t.pausas.length}</span>` : '—'}</td>
+            <td class="mo-acoes-celula">${podeEditar ? html`<${MenuAcoesProcesso} ariaLabel=${`Ações do turno ${t.codigo}`} label="Ações" mostrarLabel=${true} icon="expand_more" triggerClassName="mo-btn mo-btn--neutro mo-btn--30"
+              acoes=${[
+                { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
+                t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
+                t.tipo === 'TRABALHO' ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
+              ]} />` : null}</td></tr>`)
+          : html`<tr><td colspan="8" class="mo-vazio">Nenhum turno cadastrado.${podeEditar ? html` <button type="button" class="mo-btn mo-btn--sec mo-btn--30" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}</td></tr>`}
+        </tbody>
+      </table>
+    </${CardRecolhivel}>
     ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}
     ${personalizar ? html`<${ModalPersonalizarTurno} operacao=${operacao} turno=${personalizar} operadores=${operadores} showToast=${showToast} onClose=${() => setPersonalizar(null)} onMudou=${recarregar} />` : null}`;
 }
@@ -218,21 +233,29 @@ function Calendario({ operacao, eventos, turnos, podeEditar, recarregar, showToa
     try { await salvarEventoWfm({ ...ev, operacao, ativo: false }, ev.id_item); recarregar(); } catch (err) { showToast?.(err?.message || 'Não foi possível remover.', 'error'); }
   };
   return html`
-    <${Secao} titulo="Calendário especial" descricao="Feriado · Data especial (informativa) · Dia especial (o dia todo usa um turno) · Horário especial (muda entrada e saída de um turno)."
-      acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...EVENTO_VAZIO })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo item</button>` : null}>
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Tipo</th><th>Período</th><th>Descrição</th><th>Turno</th><th></th></tr></thead><tbody>
-        ${eventos.length ? eventos.map((ev) => html`<tr key=${ev.id_item}><td>${ROTULO_TIPO_EVENTO[ev.tipo] || ev.tipo}</td><td>${ev.data_ini.split('-').reverse().join('/')}${ev.data_fim !== ev.data_ini ? ` a ${ev.data_fim.split('-').reverse().join('/')}` : ''}</td><td>${ev.descricao}</td>
-          <td>${ev.id_turno ? (turnos.find((t) => t.id_turno === ev.id_turno)?.codigo || '') : ''}${ev.entrada ? ` ${ev.entrada}–${ev.saida}` : ''}</td>
-          <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEdit({ ...ev, id_turno: ev.id_turno || '', entrada: ev.entrada || '', saida: ev.saida || '' })}>Editar</button><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => remover(ev)}>Remover</button>` : null}</td></tr>`)
-          : html`<tr><td colspan="5" class="mon-muted">Nenhum item neste mês.</td></tr>`}
-      </tbody></table></div>
-    </${Secao}>
+    <${CardRecolhivel} titulo="Calendário especial" contador=${eventos.length} descricao="Feriado · Data especial (informativa) · Dia especial (o dia todo usa um turno) · Horário especial (muda entrada e saída de um turno)."
+      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setEdit({ ...EVENTO_VAZIO })}><${Icone} nome="add" />Novo item</button>` : null}>
+      <ul class="mo-cal-lista">
+        ${eventos.length ? eventos.map((ev) => {
+          const curta = (iso) => iso.split('-').reverse().slice(0, 2).join('/');
+          const turno = ev.id_turno ? (turnos.find((t) => t.id_turno === ev.id_turno)?.codigo || '') : '';
+          const extra = [turno, ev.entrada ? `${ev.entrada}–${ev.saida}` : ''].filter(Boolean).join(' ');
+          return html`<li key=${ev.id_item} class="mo-cal-lin">
+            <span class="mo-cal-data">${curta(ev.data_ini)}${ev.data_fim !== ev.data_ini ? ` a ${curta(ev.data_fim)}` : ''}</span>
+            <span class="mo-cal-meio"><span class="mo-trunca mo-cal-nome" title=${`${ev.descricao}${extra ? ` · ${extra}` : ''}`}>${ev.descricao}${extra ? html` <small class="mo-sub2">${extra}</small>` : null}</span>
+              <span class="mo-pilula mo-pilula--info">${ROTULO_TIPO_EVENTO[ev.tipo] || ev.tipo}</span></span>
+            ${podeEditar ? html`<span class="mo-cal-acoes"><button type="button" class="mo-btn mo-btn--neutro mo-btn--30" onClick=${() => setEdit({ ...ev, id_turno: ev.id_turno || '', entrada: ev.entrada || '', saida: ev.saida || '' })}>Editar</button><button type="button" class="mo-btn mo-btn--erro mo-btn--30" onClick=${() => remover(ev)}>Remover</button></span>` : null}
+          </li>`; })
+        : html`<li class="mo-vazio">Nenhum item neste mês.</li>`}
+      </ul>
+    </${CardRecolhivel}>
     ${edit ? html`<${ModalEvento} operacao=${operacao} inicial=${edit} turnos=${turnos} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}`;
 }
 
 function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToast }) {
   const [form, setForm] = useState({ categoria: 'IDIOMA', nome: '' });
   const [editandoOp, setEditandoOp] = useState(null);
+  const [verForm, setVerForm] = useState(false);
   const adicionar = async (e) => {
     e.preventDefault();
     try { await salvarSkillWfm({ ...form, operacao }); setForm({ ...form, nome: '' }); recarregar(); showToast?.('Skill adicionada.', 'success'); } catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); }
@@ -243,23 +266,26 @@ function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToas
   const alternar = (id) => setEditandoOp({ ...editandoOp, skills: editandoOp.skills.includes(id) ? editandoOp.skills.filter((s) => s !== id) : [...editandoOp.skills, id] });
   const ativas = skills.filter((s) => s.ativo);
   return html`
-    <${Secao} aberta=${false} titulo="Skills">
-      <div class="wfm-chips">${skills.length ? skills.map((s) => html`<span key=${s.id_skill} class="mon-tag">${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</span>`) : html`<span class="mon-muted">Nenhuma skill cadastrada.</span>`}</div>
-      ${podeEditar ? html`<form class="wfm-linha-form" onSubmit=${adicionar}>
-        <label class="wfm-campo"><span>Categoria</span><select class="form-select" value=${form.categoria} onChange=${(e) => setForm({ ...form, categoria: e.target.value })}>${Object.entries(CATEGORIAS_SKILL).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
-        <label class="wfm-campo"><span>Nome</span><input class="form-control" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /></label>
-        <button type="submit" class="btn btn-primary btn-sm">Adicionar</button></form>` : null}
-      <h4 class="wfm-sub-titulo">Skills por operador</h4>
-      <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Operador</th><th>Skills</th><th></th></tr></thead><tbody>
-        ${operadores.map((o) => html`<${Fragment} key=${o.id_usuario}>
-          <tr><td>${o.nome}</td><td>${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
-            <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(editandoOp?.id_usuario === o.id_usuario ? null : { id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>${editandoOp?.id_usuario === o.id_usuario ? 'Fechar' : 'Editar'}</button>` : null}</td></tr>
-          ${editandoOp?.id_usuario === o.id_usuario ? html`<tr class="wfm-linha-edicao"><td colspan="3">
-            ${ativas.length ? html`<div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>` : html`<span class="mon-muted">Cadastre ao menos uma skill acima para atribuir ao operador.</span>`}
-            <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${salvarOp}>Salvar skills</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></td></tr>` : null}
-        </${Fragment}>`)}
-      </tbody></table></div>
-    </${Secao}>`;
+    <${CardRecolhivel} titulo="Skills" contador=${skills.length} className="mo-cartao-skills"
+      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" aria-expanded=${verForm} onClick=${() => setVerForm(!verForm)}><${Icone} nome="add" />Adicionar</button>` : null}>
+      <div class="mo-skills">
+        <div class="wfm-chips">${skills.length ? skills.map((s) => html`<span key=${s.id_skill} class="mo-skill">${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</span>`) : html`<span class="mon-muted">Nenhuma skill cadastrada.</span>`}</div>
+        ${podeEditar && verForm ? html`<form class="wfm-linha-form" onSubmit=${adicionar}>
+          <label class="wfm-campo"><span>Categoria</span><select class="form-select" value=${form.categoria} onChange=${(e) => setForm({ ...form, categoria: e.target.value })}>${Object.entries(CATEGORIAS_SKILL).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
+          <label class="wfm-campo"><span>Nome</span><input class="form-control" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /></label>
+          <button type="submit" class="btn btn-primary btn-sm">Adicionar</button></form>` : null}
+        <h3 class="mo-skills-sub">Skills por operador</h3>
+        <table class="mo-tabela"><thead><tr><th scope="col">Operador</th><th scope="col">Skills</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
+          ${operadores.map((o) => html`<${Fragment} key=${o.id_usuario}>
+            <tr><td><span class="mo-trunca" title=${o.nome}>${o.nome}</span></td><td>${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
+              <td class="mo-acoes-celula">${podeEditar ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--30" onClick=${() => setEditandoOp(editandoOp?.id_usuario === o.id_usuario ? null : { id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>${editandoOp?.id_usuario === o.id_usuario ? 'Fechar' : 'Editar'}</button>` : null}</td></tr>
+            ${editandoOp?.id_usuario === o.id_usuario ? html`<tr class="wfm-linha-edicao"><td colspan="3">
+              ${ativas.length ? html`<div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>` : html`<span class="mon-muted">Cadastre ao menos uma skill acima para atribuir ao operador.</span>`}
+              <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${salvarOp}>Salvar skills</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></td></tr>` : null}
+          </${Fragment}>`)}
+        </tbody></table>
+      </div>
+    </${CardRecolhivel}>`;
 }
 
 function TiposEscala({ recarregarContexto, showToast }) {
@@ -287,8 +313,8 @@ function TiposEscala({ recarregarContexto, showToast }) {
     catch (err) { showToast?.(err?.message || 'Não foi possível excluir.', 'error'); await carregar(); recarregarContexto?.(); }
   };
   return html`
-    <${Secao} titulo="Tipos de escala (setor de TI)" descricao="Cada tipo é uma escala própria do setor de Tecnologia (ex.: Plantão de sábado, Sobreaviso), com turnos, calendário e aprovação independentes."
-      acoes=${html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setForm({ nome: '', descricao: '', ativo: true })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Nova escala</button>`}>
+    <${CardRecolhivel} titulo="Tipos de escala (setor de TI)" descricao="Cada tipo é uma escala própria do setor de Tecnologia (ex.: Plantão de sábado, Sobreaviso), com turnos, calendário e aprovação independentes." className="mo-cartao-tipos" aberta=${false}
+      acoes=${html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setForm({ nome: '', descricao: '', ativo: true })}><${Icone} nome="add" />Nova escala</button>`}>
       <div class="wfm-tipos">
         ${form ? html`<form class="wfm-tipo-form" onSubmit=${salvar}>
           <label class="mon-campo"><span>Nome da escala</span><input class="form-control" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /></label>
@@ -307,7 +333,7 @@ function TiposEscala({ recarregarContexto, showToast }) {
             </span></div>`) : html`<div class="wfm-tipo-linha mon-muted">Nenhuma escala cadastrada.</div>`}
         </div>
       </div>
-    </${Secao}>`;
+    </${CardRecolhivel}>`;
 }
 
 export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToast, recarregarContexto }) {
@@ -330,9 +356,15 @@ export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToa
   const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar');
   const comum = { operacao, showToast, recarregar: carregar };
   return html`
-    ${contexto?.pode_editar_tipos_escala ? html`<${TiposEscala} recarregarContexto=${recarregarContexto} showToast=${showToast} />` : null}
-    ${!operacao ? html`<p class="mon-muted wfm-vazio-txt">Os turnos, o calendário especial e as skills pertencem a uma escala. Clique em "Nova escala" (ou ative uma existente) acima: assim que ela existir, escolha-a no seletor "Escala / operação" que aparece no topo e o cadastro de turnos é liberado.</p>` : html`
-    <${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />
-    <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} podeEditar=${podeCadastros} />
-    <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />`}`;
+    ${!operacao ? html`<p class="mon-muted wfm-vazio-txt">Os turnos, o calendário especial e as skills pertencem a uma escala. Clique em "Nova escala" (ou ative uma existente) acima: assim que ela existir, escolha-a no seletor "Escala / operação" que aparece no topo e o cadastro de turnos é liberado.</p>` : null}
+    <div class="mo-cad">
+      <div class="mo-cad-esq">
+        ${contexto?.pode_editar_tipos_escala ? html`<${TiposEscala} recarregarContexto=${recarregarContexto} showToast=${showToast} />` : null}
+        ${operacao ? html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />` : null}
+      </div>
+      ${operacao ? html`<div class="mo-cad-dir">
+        <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} podeEditar=${podeCadastros} />
+        <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />
+      </div>` : null}
+    </div>`;
 }

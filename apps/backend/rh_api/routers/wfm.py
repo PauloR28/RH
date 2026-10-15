@@ -213,6 +213,11 @@ def listar_presencas(operacao: str, ano_mes: str, user: AuthenticatedUser = Depe
     return {"itens": repository.wfm_list_presencas(user, operacao, ano_mes)}
 
 
+@router.get("/presencas/pendencias", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def pendencias_presenca(operacao: str, data_ini: str, data_fim: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_pendencias_presenca(user, operacao, data_ini, data_fim)
+
+
 @router.put("/presencas", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
 def lancar_presenca(payload: PresencaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_lancar_presenca(

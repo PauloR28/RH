@@ -16,7 +16,7 @@ const ROTULO = { RASCUNHO: 'Rascunho', EM_APROVACAO: 'Em aprovação', APROVADA:
 const TOM = { RASCUNHO: 'mon-badge--nula', EM_APROVACAO: 'mon-badge--pendente', APROVADA: 'mon-badge--ok' };
 
 // `compacto`: linha única (pílula + mensagem + ações) usada na administração da escala; fica sempre visível.
-export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado = false, compacto = false }) {
+export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado = false, compacto = false, semTexto = false }) {
   const [declinando, setDeclinando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -65,6 +65,7 @@ export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToas
     mensagem = '';
   }
 
+  if (semTexto) mensagem = '';
   return html`
     <div class=${`wfm-aprovacao is-${aprovacao.estado.toLowerCase()} ${aprovacao.declinada ? 'is-declinada' : ''} ${compacto ? 'wfm-aprovacao--compacto' : ''}`} role="status">
       <div class="wfm-aprovacao-topo">

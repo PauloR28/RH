@@ -1,6 +1,7 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
+import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 
 // Peças compartilhadas da administração de escala (Escala do dia, Escala mensal e gaveta "Ajustar dia").
 // Só apresentação e estado local de interface; regras, API e permissões continuam nas telas. Estilos: bloco `.ea-*` em estilos/wfm.css.
@@ -33,14 +34,20 @@ export function SeletorVisao({ visao, aoDia, aoMes }) {
   </div>`;
 }
 
-export function TituloEscala({ nome, escalados, emDsr, versao, aoVoltarLista, menu }) {
-  return html`<div class="ea-titulo">
-    <div class="ea-titulo-txt">
-      <h3>${nome}</h3>
-      <p class="ea-badges"><span class="mon-badge mon-badge--ok">${escalados} escalado(s)</span><span class="mon-badge mon-badge--nula">${emDsr} em DSR/folga</span>${versao ? html`<span class="mon-badge mon-badge--pendente">Publicada v${versao}</span>` : null}</p>
-    </div>
-    <div class="ea-titulo-acoes">
-      ${aoVoltarLista ? html`<button type="button" class="btn btn-outline-secondary" onClick=${aoVoltarLista}><${Icone} nome="arrow_back" />Escalas</button>` : null}
+const nomeMes = (anoMes) => { const [a, m] = anoMes.split('-').map(Number); return new Date(a, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long' }); };
+export const rotuloMesAno = (anoMes) => `${nomeMes(anoMes)} de ${anoMes.split('-')[0]}`;
+export const somarMes = (anoMes, delta) => { const [a, m] = anoMes.split('-').map(Number); const d = new Date(a, m - 1 + delta, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+
+// Linha de contexto da escala aberta (46 px): voltar, escala / operação, mês, selos de situação e, à direita, "Padrão semanal" e "Ações".
+// `operacoes`: [[chave, nome]] para quem pode trocar de escala; sem ela o campo só mostra o nome.
+export function LinhaContexto({ nome, operacao, operacoes = null, aoTrocarEscala, anoMes, aoMudarMes, escalados, emDsr, versao, aoVoltarLista, aoPadrao, padraoAtivo = false, menu }) {
+  return html`<div class="mo-contexto cx-fixo">
+    ${aoVoltarLista ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--46" onClick=${aoVoltarLista}><${Icone} nome="arrow_back" />Escalas</button>` : null}
+    <${ContextField} rotulo="Escala / operação" valor=${operacoes ? operacao : nome} opcoes=${operacoes} aoMudar=${aoTrocarEscala} />
+    ${aoMudarMes ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes(somarMes(anoMes, 1))} />` : null}
+    <p class="mo-selos"><span class="mo-pilula mo-pilula--ok">${escalados} escalado(s)</span><span class="mo-pilula mo-pilula--neutro">${emDsr} em DSR/folga</span>${versao ? html`<span class="mo-pilula mo-pilula--atencao">Publicada v${versao}</span>` : null}</p>
+    <div class="mo-contexto-fim">
+      ${aoPadrao ? html`<button type="button" class=${`mo-btn mo-btn--sec mo-btn--46 ${padraoAtivo ? 'is-ativo' : ''}`} aria-expanded=${padraoAtivo} onClick=${aoPadrao}><${Icone} nome="calendar_month" />Padrão semanal</button>` : null}
       ${menu}
     </div>
   </div>`;
