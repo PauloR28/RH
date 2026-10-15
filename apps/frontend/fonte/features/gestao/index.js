@@ -1705,15 +1705,15 @@ export function TelaLogin({ controlador }) {
       <div class="rh-login-page">
         <div class="rh-login-hero" data-tour-id="login-hero">
           <div class="rh-login-hero-badge">Conecta</div>
-          <h1 class="rh-login-hero-title">Uma plataforma para RH e operação.</h1>
+          <h1 class="rh-login-hero-title">Uma plataforma para todos.</h1>
           <p class="rh-login-hero-text">
-            Provas, processos seletivos, treinamentos e monitoria de qualidade em um fluxo
-            único — do recrutamento ao dia a dia operacional.
+            Monitorias, escalas e controles históricos conectados num só lugar, para a
+            rotina de toda a empresa.
           </p>
           <div class="rh-login-hero-points">
-            <span>Processos seletivos</span>
-            <span>Treinamentos</span>
-            <span>Monitoria de qualidade</span>
+            <span>Monitorias</span>
+            <span>Escalas</span>
+            <span>Controles históricos</span>
           </div>
         </div>
 

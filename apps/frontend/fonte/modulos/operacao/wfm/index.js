@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { IconeSvg } from '../../../ui/icone.js';
+import { AbasConsole } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261014-historico';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
@@ -138,12 +138,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
       <${PageShell}>
       <${PageHeader} titulo=${titulo} subtitulo=${descricao} />
       <div class="mon-shell">
-        ${telaAtual === 'screen-wfm-auditoria' ? null : html`<nav class="mon-subnav" aria-label="Seções de Turnos e Plantões">
-          ${abas.map((a) => html`
-            <button key=${a.tela} type="button" class=${`mon-subnav-btn ${a.tela === abaAtiva ? 'is-active' : ''}`} onClick=${() => controlador.irParaTelaProtegida(a.tela)}>
-              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>${a.rotulo}
-            </button>`)}
-        </nav>`}
+        ${telaAtual === 'screen-wfm-auditoria' ? null : html`<${AbasConsole} prefixo="wfm" rotulo="Seções de Turnos e Plantões" itens=${abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone }))} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`}
         ${contexto && (contexto.operacoes.length || telaAtual === 'screen-wfm') && !semPeriodo ? html`<${SeletorPeriodo} contexto=${contexto} operacao=${operacao} setOperacao=${setOperacao} anoMes=${anoMes} setAnoMes=${setAnoMes} semMes=${telaAtual === 'screen-wfm-jornadas'} semOperacao=${semOperacao} soEscalasAtivas=${telaAtual === 'screen-wfm'} />` : null}
         ${emConfig && contexto ? html`<div class="wfm-segmento" role="tablist" aria-label="Cadastros e jornadas">
           <button type="button" role="tab" aria-selected=${telaAtual === 'screen-wfm-cadastros'} class=${telaAtual === 'screen-wfm-cadastros' ? 'is-ativo' : ''} onClick=${() => controlador.irParaTelaProtegida('screen-wfm-cadastros')}>Turnos, calendário e skills</button>

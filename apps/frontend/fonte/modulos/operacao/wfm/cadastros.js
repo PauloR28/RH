@@ -3,6 +3,7 @@ import { html, useCallback, useEffect, useState, React } from '../../../infraest
 const Fragment = React.Fragment;
 import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
+import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
 import {
   definirSkillsOperadorWfm,
   lerEscalaWfm,
@@ -167,7 +168,12 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
       acoes=${podeEditar ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}>
       <div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Horário</th><th>Jornada</th><th>Supervisor · Equipe</th><th>Pausas</th><th></th></tr></thead><tbody>
         ${turnos.map((t) => html`<tr key=${t.id_turno}><td><span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span></td><td>${t.nome}${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td><td>${t.tipo}</td><td>${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td><td>${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}${t.id_contrato ? html`<small class="wfm-sub">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td><td>${t.supervisor ? html`${t.supervisor}${t.equipe ? html`<small class="wfm-sub">${t.equipe}</small>` : null}` : '—'}</td><td>${t.pausas.length ? descreverTurno(t).split(' · ').slice(1).join(' · ') : '—'}</td>
-          <td class="wfm-acoes-linha">${podeEditar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirEdicao(t)}>Editar</button>${t.tipo === 'TRABALHO' && t.ativo ? html`<button type="button" class="btn btn-outline-primary btn-sm" title="Horário próprio para um colaborador, sem criar outro turno" onClick=${() => setPersonalizar(t)}>Personalizar</button>` : null}${t.tipo === 'TRABALHO' ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluir(t)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir</button>` : null}` : null}</td></tr>`)}
+          <td class="wfm-acoes-linha">${podeEditar ? html`<${MenuAcoesProcesso} ariaLabel=${`Ações do turno ${t.codigo}`} label="Ações" mostrarLabel=${true} icon="expand_more" triggerClassName="btn btn-outline-secondary btn-sm"
+            acoes=${[
+              { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
+              t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
+              t.tipo === 'TRABALHO' ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
+            ]} />` : null}</td></tr>`)}
       </tbody></table></div>
     </${Secao}>
     ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}
