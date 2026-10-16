@@ -5,7 +5,7 @@ import {
   cancelarEnvioEscalaWfm,
   declinarEscalaWfm,
   enviarAprovacaoEscalaWfm,
-} from '../../../services/api/wfm.js';
+} from '../../../services/api/wfm.js?v=20261016-pend';
 import { dataHora } from './comum.js';
 
 // Aprovação da escala antes de publicar: Rascunho -> Em aprovação -> Aprovada -> (publicar).

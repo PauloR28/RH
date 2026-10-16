@@ -1,5 +1,5 @@
 import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
-import { lerContextoWfm } from '../../../services/api/wfm.js';
+import { lerContextoWfm } from '../../../services/api/wfm.js?v=20261016-pend';
 
 // WFM — peças compartilhadas: contexto do usuário, seletor de operação/mês e formatação.
 

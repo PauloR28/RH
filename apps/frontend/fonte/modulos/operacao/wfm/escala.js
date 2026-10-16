@@ -11,7 +11,7 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js';
+} from '../../../services/api/wfm.js?v=20261016-pend';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';

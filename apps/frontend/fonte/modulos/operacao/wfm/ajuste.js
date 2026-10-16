@@ -5,7 +5,7 @@ import {
   listarHorasExtrasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js';
+} from '../../../services/api/wfm.js?v=20261016-pend';
 import { minutosParaHoras } from './comum.js';
 import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js';
 import { LinhaTempo } from './minha.js?v=20261007-admin-escala';

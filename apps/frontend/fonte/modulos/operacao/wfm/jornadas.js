@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
 import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js';
+import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261016-pend';
 import { ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { minutosParaHoras } from './comum.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';

@@ -17,7 +17,7 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js';
+} from '../../../services/api/wfm.js?v=20261016-pend';
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
