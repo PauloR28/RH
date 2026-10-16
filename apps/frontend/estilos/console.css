@@ -542,7 +542,7 @@
 /* quadro do mês */
 .mo-mat { display: flex; flex-direction: column; min-height: 0; margin: 0; }
 .mo-card-escala .ea-mat-rolagem { flex: 1 1 auto; min-height: 0; max-height: none; overflow: auto; scrollbar-gutter: stable; scrollbar-width: thin; }
-.mo-card-escala .ea-grade { min-width: calc(262px + var(--ea-dias) * 28px); }
+.mo-card-escala .ea-grade { min-width: calc(262px + var(--ea-dias) * 48px); }
 .mo-card-escala .ea-g-lin { grid-template-columns: 200px 62px repeat(var(--ea-dias), minmax(0, 1fr)); min-height: 34px; height: 34px; }
 .mo-card-escala .ea-g-cab { height: auto; min-height: 40px; }
 .mo-card-escala .ea-g-op { padding: 0 8px 0 12px; gap: 8px; }
@@ -605,7 +605,9 @@
 @media (max-width: 1023.98px) { .mo-card-escala .ea-grade { min-width: calc(262px + var(--ea-dias) * 36px); } .mo-barra { flex-wrap: wrap; padding: 8px 16px; } .mo-barra .ea-filtros { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { .mo-aba, .mo-btn { transition: none; } }
 
-.mo-card-escala .ea-cel { display: block; line-height: 22px; text-align: center; text-overflow: ellipsis; padding: 0 2px; }
+.mo-card-escala .ea-cel { display: block; line-height: 22px; text-align: center; text-overflow: ellipsis; padding: 0 4px; overflow: hidden; white-space: nowrap; max-width: 100%; letter-spacing: 0; }
+.mo-card-escala .ea-g-cel { padding: 0 2px; }
+.ea-legenda .ea-amostra { width: auto; min-width: 40px; height: 24px; padding: 0 8px; box-sizing: border-box; line-height: 24px; white-space: nowrap; font-size: 0.6875rem; }
 .mo-rodape-esq { flex-wrap: nowrap; }
 .mo-aprovada { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mo-rodape-txt { white-space: nowrap; }
