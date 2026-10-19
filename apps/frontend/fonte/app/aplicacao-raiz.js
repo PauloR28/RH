@@ -111,7 +111,7 @@ const TelaConfiguracoesSistema = carregarTela(
   () => import('../features/configuracoes/index.js?v=20261014-excluir-op2'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261004-chamados2');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261019-trocas');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');

@@ -5,6 +5,7 @@ import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
+import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261020-dias';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261014-nova';
 import { ModalDetalheMonitoria } from './detalhe.js?v=20261015-detalhe2';
@@ -147,11 +148,31 @@ export function sessoesDoUsuario(controlador, { ocultarTreinamentosSemAgenda = f
   }).filter(Boolean);
 }
 
+// Trocas de plantão à espera do usuário (responder como colega ou aprovar): alimenta a bolinha de "Turnos e Plantões".
+function useTrocasParaMim(habilitado) {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    if (!habilitado) return undefined;
+    let ativo = true;
+    (async () => {
+      try {
+        const ctx = await lerContextoWfm();
+        const chaves = (ctx?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => o.chave);
+        const listas = await Promise.all(chaves.map((c) => listarTrocasWfm(c).then((r) => r.itens || [], () => [])));
+        if (ativo) setTotal(listas.flat().filter((t) => t.pode_responder || t.pode_decidir).length);
+      } catch { if (ativo) setTotal(0); }
+    })();
+    return () => { ativo = false; };
+  }, [habilitado]);
+  return total;
+}
+
 export function TelaInicioPorSessoes({ controlador }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
   const avatar = estado.avatarUsuario || '';
   const alertas = useAlertasMonitoria(controlador);
+  const trocasPendentes = useTrocasParaMim(controlador.possuiPermissao('wfm.troca.visualizar'));
 
   // O Operador só usa a Central de Treinamento como autoatendimento dos
   // próprios treinamentos atribuídos (sem onboarding.criar/editar/gerenciar) —
@@ -186,6 +207,7 @@ export function TelaInicioPorSessoes({ controlador }) {
                 <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(s.icone)}</span>
                 <strong>${s.titulo}</strong><span class="desc">${s.desc}</span>
                 ${s.id === 'monitoria' && alertas.total > 0 ? html`<i class="mon-alerta-bolinha mon-alerta-bolinha--canto" role="img" aria-label=${`${alertas.total} novidade(s) em monitorias`}></i>` : null}
+                ${s.id === 'wfm' && trocasPendentes > 0 ? html`<i class="mon-alerta-bolinha mon-alerta-bolinha--canto" role="img" aria-label=${`${trocasPendentes} troca(s) de plantão aguardando você`}></i>` : null}
               </button>`)}
           </div>` : html`<${EmptyState} icon="lock" title="Nenhuma sessão liberada" text="Seu perfil ainda não tem acesso a nenhuma sessão. Fale com o Administrador." />`}
       </div>
