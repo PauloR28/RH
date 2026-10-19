@@ -7,12 +7,13 @@ import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
-import { TelaEscala } from './escala.js?v=20261015-modulo8';
+import { TelaEscala } from './escala.js?v=20261019-pausas';
 import { TelaPresenca } from './presenca.js?v=20261015-modulo8';
 import { TelaCadastros } from './cadastros.js?v=20261015-modulo8';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261015-modulo8';
+import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261019-pausas';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
-import { TelaEscalaTabela } from './tabela.js?v=20261015-modulo8';
+import { TelaEscalaPausas } from './pausas.js?v=20261019-pausas';
+import { TelaEscalaTabela } from './tabela.js?v=20261019-pausas';
 import { TelaMinhaEscala } from './minha.js?v=20261007-admin-escala';
 import { ListaEscalas } from './escalas.js?v=20261015-modulo8';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
@@ -54,7 +55,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   const { contexto, erro, recarregar: recarregarContexto } = useContextoWfm();
   const [operacao, setOperacao] = useState('');
   const [anoMes, setAnoMes] = useState(mesAtual());
-  // Aba Escala: 'lista' (padrão, lista de escalas) | 'dia' (montar) | 'mes' (visualizar o mês inteiro)
+  // Aba Escala: 'lista' (padrão, lista de escalas) | 'dia' (montar) | 'mes' (visualizar o mês inteiro) | 'pausas'
   const [visaoEscala, setVisaoEscala] = useState('lista');
   const [configurandoItem, setConfigurandoItem] = useState(null);
   const [versaoLista, setVersaoLista] = useState(0);
@@ -79,6 +80,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
   const emConfig = ['screen-wfm-cadastros', 'screen-wfm-jornadas'].includes(telaAtual);
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-wfm'];
   const podeCriarEscala = controlador.possuiPermissao('wfm.escala.criar');
+  const aoVerPausas = controlador.possuiPermissao('wfm.escala.visualizar') ? () => setVisaoEscala('pausas') : undefined;
   const voltarParaLista = () => { setVisaoEscala('lista'); setVersaoLista((v) => v + 1); recarregarContexto(); };
   // Presença, Trocas e Minha escala só fazem sentido com escala ativa; Cadastros e Jornadas seguem a operação.
   const dependeDeEscala = ['screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual);
@@ -116,9 +118,11 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
         <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
           <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
             abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
-          ${visaoEscala === 'mes'
-            ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeCriarEscala ? () => setVisaoEscala('dia') : undefined} />`
-            : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVerMes=${() => setVisaoEscala('mes')} aoVoltarLista=${voltarParaLista} />`}
+          ${visaoEscala === 'pausas'
+            ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeCriarEscala ? () => setVisaoEscala('dia') : undefined} aoMes=${() => setVisaoEscala('mes')} />`
+            : visaoEscala === 'mes'
+              ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeCriarEscala ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
+              : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVerMes=${() => setVisaoEscala('mes')} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
         <//>
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}

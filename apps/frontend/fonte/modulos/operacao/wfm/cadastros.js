@@ -22,12 +22,12 @@ import {
   excluirTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261016-pend';
+} from '../../../services/api/wfm.js?v=20261019-pausas';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
 import { descreverTurno } from './escala.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
-import { Icone } from './escala-ui.js?v=20261015-modulo8';
+import { Icone } from './escala-ui.js?v=20261019-pausas';
 import { textoLegivel } from './compartilhar.js?v=20261015-modulo8';
 import { TIPOS_PAUSA } from './jornadas.js';
 

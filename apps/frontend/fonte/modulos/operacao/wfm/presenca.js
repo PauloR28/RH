@@ -10,9 +10,9 @@ import {
   listarPresencasWfm,
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
-} from '../../../services/api/wfm.js?v=20261016-pend';
+} from '../../../services/api/wfm.js?v=20261019-pausas';
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
-import { Icone } from './escala-ui.js?v=20261015-modulo8';
+import { Icone } from './escala-ui.js?v=20261019-pausas';
 
 // Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.
 // Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria. Atestado guarda só período,

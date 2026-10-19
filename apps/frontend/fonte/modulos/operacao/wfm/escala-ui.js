@@ -26,11 +26,11 @@ export function Quadrado({ cor, dsr = false }) {
 // Faixa horária de um turno ("08:00–14:20"), vazia se o turno não tem horário.
 export const faixaTurno = (t) => (t?.entrada ? `${t.entrada}–${t.saida}` : '');
 
-// Controle segmentado "Escala do dia | Escala mensal": só navegação entre as telas (escala e mês seguem nas props da página).
-export function SeletorVisao({ visao, aoDia, aoMes }) {
+// Controle segmentado "Escala do dia | Escala mensal | Pausas": só navegação entre as telas (escala e mês seguem nas props da página).
+export function SeletorVisao({ visao, aoDia, aoMes, aoPausas }) {
+  const itens = [['dia', 'Escala do dia', aoDia], ['mes', 'Escala mensal', aoMes], ['pausas', 'Pausas', aoPausas]];
   return html`<div class="ea-visao" role="group" aria-label="Visão da escala">
-    <button type="button" class=${visao === 'dia' ? 'is-ativo' : ''} aria-pressed=${visao === 'dia'} disabled=${!aoDia && visao !== 'dia'} onClick=${visao === 'dia' ? undefined : aoDia}>Escala do dia</button>
-    <button type="button" class=${visao === 'mes' ? 'is-ativo' : ''} aria-pressed=${visao === 'mes'} disabled=${!aoMes && visao !== 'mes'} onClick=${visao === 'mes' ? undefined : aoMes}>Escala mensal</button>
+    ${itens.map(([id, rotulo, ao]) => html`<button key=${id} type="button" class=${visao === id ? 'is-ativo' : ''} aria-pressed=${visao === id} disabled=${!ao && visao !== id} onClick=${visao === id ? undefined : ao}>${rotulo}</button>`)}
   </div>`;
 }
 

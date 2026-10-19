@@ -17,14 +17,14 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261016-pend';
+} from '../../../services/api/wfm.js?v=20261019-pausas';
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261015-modulo8';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261019-pausas';
 import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -42,7 +42,7 @@ const diaSemanaSegunda = (iso) => (doIso(iso).getDay() + 6) % 7; // 0 = segunda
 const chave = (id, data) => `${id}:${data}`;
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa', INTERVALO: 'Intervalo' };
 
-export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
+export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoPausas, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
   const [dados, setDados] = useState(null);
   const [extras, setExtras] = useState([]);
@@ -339,7 +339,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
     <section class="mo-card-escala cx-cresce" aria-label="Escala do dia">
       <div class="mo-barra cx-fixo">
-        <${SeletorVisao} visao="dia" aoMes=${aoVerMes} />
+        <${SeletorVisao} visao="dia" aoMes=${aoVerMes} aoPausas=${aoPausas} />
         <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
           <button type="button" class="ea-icone-btn" aria-label="Dia anterior" title="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
           <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA[d0.getDay()]}, ${br(dia)}</span>

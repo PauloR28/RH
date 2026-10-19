@@ -20,6 +20,7 @@ from ..rbac import ROLE_ADMIN, ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from .wfm_escala import _exigir_ano_mes
+from .wfm_schema import TIPOS_ESCALA_TI_PADRAO
 
 RASCUNHO, EM_APROVACAO, APROVADA = "RASCUNHO", "EM_APROVACAO", "APROVADA"
 
@@ -519,6 +520,20 @@ class WfmAprovacaoRepositoryMixin:
                 cursor.execute(f"SELECT TOP 1 1 FROM dbo.{tabela} WHERE operacao = ?", (chave,))
                 if cursor.fetchone():
                     raise _http(status.HTTP_409_CONFLICT, "Este tipo de escala já tem histórico e não pode ser excluído: desative-o.")
+            if chave in {f"TI{wfm_scope.SEPARADOR_TIPO}{c}" for c, _, _ in TIPOS_ESCALA_TI_PADRAO}:
+                # Tipo semeado: apagar a linha faria o seed recriá-lo a cada deploy. Mantém a linha, marcada como excluída.
+                autor = normalize_text(user.nome) or user.username
+                cursor.execute(
+                    "IF NOT EXISTS (SELECT 1 FROM dbo.wfm_operacao_config WITH (UPDLOCK, HOLDLOCK) WHERE operacao = ?) "
+                    "INSERT INTO dbo.wfm_operacao_config (operacao, atualizado_por) VALUES (?, ?)",
+                    (chave, chave, autor),
+                )
+                cursor.execute("UPDATE dbo.wfm_operacao_config SET excluida = 1, ativa = 0, atualizado_por = ?, atualizado_em = GETDATE() WHERE operacao = ?", (autor, chave))
+                cursor.execute("UPDATE dbo.wfm_tipos_escala SET ativo = 0, atualizado_em = GETDATE() WHERE id_tipo = ?", (int(id_tipo),))
+                self.wfm_audit(cursor, user, operacao=chave, acao="excluir_tipo_escala", entidade="tipo_escala", entidade_id=id_tipo,
+                               antes={"nome": nome, "chave": chave}, depois={"excluida": True, "logica": True}, ip=ip)
+                conn.commit()
+                return {"success": True, "logica": True}
             for tabela in ("wfm_calendario_especial", "wfm_usuario_skills", "wfm_skills", "wfm_operador_contratos", "wfm_turnos", "wfm_contratos", "wfm_operacao_config", "wfm_aprovadores", "wfm_escalas"):
                 cursor.execute(f"DELETE FROM dbo.{tabela} WHERE operacao = ?", (chave,))
             cursor.execute("DELETE FROM dbo.wfm_tipos_escala WHERE id_tipo = ?", (int(id_tipo),))

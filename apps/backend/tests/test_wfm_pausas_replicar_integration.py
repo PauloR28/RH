@@ -84,3 +84,33 @@ def test_operador_nao_replica_pausas(mes_cheio):
     with pytest.raises(HTTPException) as e:
         c.repo.wfm_replicar_pausas(c.a, c.op, f"{MES}-08", f"{MES}-01", f"{MES}-31")
     assert e.value.status_code == 403
+
+
+# ---- aplicar horários definidos à mão (equipe/turno/duplicar) ----------------------------------------------------
+def test_aplicar_horarios_manuais_ao_dia_e_a_semana_e_ao_mes(mes_cheio):
+    c = mes_cheio
+    manual = _pausas(["09:30", "11:30", "13:30"])
+    r = c.repo.wfm_aplicar_pausas(c.cd, c.op, f"{MES}-08", f"{MES}-08", [c.id_a, c.id_b], manual)
+    assert r["pausas_gravadas"] == 2 and r["dias_programados"] == 1
+    assert _horas(c, c.id_a, 8) == ["09:30", "11:30", "13:30"] and _horas(c, c.id_b, 8) == ["09:30", "11:30", "13:30"]
+    assert _horas(c, c.id_c, 8) == ["10:00", "12:00", "14:00"]               # fora do grupo: intocado
+    # mês inteiro, só terças: grava exatamente o horário pedido nos dias em que o horário cabe no turno
+    r = c.repo.wfm_aplicar_pausas(c.cd, c.op, f"{MES}-01", f"{MES}-31", [c.id_a], manual, dias_semana=[1])
+    assert r["pausas_gravadas"] >= 2 and _horas(c, c.id_a, 9) == ["09:30", "11:30", "13:30"]
+
+
+def test_aplicar_fora_do_turno_e_ignorado_e_excesso_so_avisa(mes_cheio):
+    c = mes_cheio
+    r = c.repo.wfm_aplicar_pausas(c.cd, c.op, f"{MES}-08", f"{MES}-08", [c.id_a], _pausas(["06:00", "11:00", "13:00"]))
+    assert r["ignoradas"] == 1 and r["pausas_gravadas"] == 0                  # 06:00 está antes do turno (08-16)
+    c.repo.wfm_set_capacidade_pausas(c.cd, c.op, 1)
+    r = c.repo.wfm_aplicar_pausas(c.cd, c.op, f"{MES}-08", f"{MES}-08", [c.id_a, c.id_b, c.id_c], _pausas(["09:00", "11:00", "13:00"]))
+    assert r["pausas_gravadas"] == 3 and r["dias_com_excesso"] == 1          # grava mesmo assim: limite é aviso
+    c.repo.wfm_set_capacidade_pausas(c.cd, c.op, 2)
+
+
+def test_aplicar_exige_permissao_e_escopo(mes_cheio):
+    c = mes_cheio
+    assert _erro(c.repo.wfm_aplicar_pausas, c.admin, c.op, f"{MES}-08", f"{MES}-08", [c.id_a], _pausas(["09:00", "11:00", "13:00"])).status_code == 403
+    assert _erro(c.repo.wfm_aplicar_pausas, c.cd, c.op, f"{MES}-08", f"{MES}-08", [], _pausas(["09:00", "11:00", "13:00"])).status_code == 400
+    assert _erro(c.repo.wfm_aplicar_pausas, c.cd, c.op, f"{MES}-08", f"{MES}-01", [c.id_a], _pausas(["09:00", "11:00", "13:00"])).status_code == 400

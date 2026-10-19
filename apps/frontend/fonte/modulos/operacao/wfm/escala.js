@@ -11,14 +11,14 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261016-pend';
+} from '../../../services/api/wfm.js?v=20261019-pausas';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { OutrasEscalas } from './outras.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, doIso, paraIso, semAcento } from './escala-ui.js?v=20261015-modulo8';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, doIso, paraIso, semAcento } from './escala-ui.js?v=20261019-pausas';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -62,7 +62,7 @@ function SeletorDias({ dias, aoMudar }) {
   </div>`;
 }
 
-export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null }) {
+export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoPausas, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null }) {
   const [dados, setDados] = useState(null);
   const [configurando, setConfigurando] = useState(false);
   const [erro, setErro] = useState('');
@@ -301,7 +301,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
 
     <section class="mo-card-escala cx-cresce" aria-label="Escala do mês">
       <div class="mo-barra cx-fixo">
-        <${SeletorVisao} visao="mes" aoDia=${aoVoltarDia} />
+        <${SeletorVisao} visao="mes" aoDia=${aoVoltarDia} aoPausas=${somentePropria ? undefined : aoPausas} />
         <${FiltrosCompactos} rotuloBusca="Buscar operador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} operador(es)`}
           selects=${[
             { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },

@@ -1,5 +1,5 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261016-pend';
+import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
 import { Campo, ModalForm } from './formulario.js';
 import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
 import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';

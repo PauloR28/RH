@@ -237,6 +237,16 @@ class ReplicarPausasRequest(BaseSchema):
     sobrescrever: bool = True
 
 
+class AplicarPausasRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    data_ini: str = Field(max_length=10)
+    data_fim: str = Field(max_length=10)
+    ids: list[int] = Field(min_length=1, max_length=500)
+    pausas: list[PausaItemRequest] = Field(min_length=1, max_length=6)
+    dias_semana: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = todos
+    sobrescrever: bool = True
+
+
 class DistribuirPausasRequest(BaseSchema):
     operacao: str = Field(max_length=60)
     data: str = Field(max_length=10)

@@ -489,3 +489,50 @@ def test_restricao_wfm_vale_mesmo_com_permissao_gravada_no_banco_ou_no_token():
     env = {**os.environ, "RH_WFM_LIBERAR_PARTICIPANTES": "", "PYTHONPATH": str(REPO_ROOT / "apps" / "backend")}
     saida = subprocess.run([sys.executable, "-c", codigo], capture_output=True, text=True, env=env, cwd=str(REPO_ROOT / "apps" / "backend"), check=True).stdout.strip()
     assert saida == "['inicio.visualizar'] True", saida
+
+
+def test_excluir_tipo_semeado_e_logico_para_o_seed_nao_recria_no_deploy(ctx):
+    """Apagar a linha do tipo semeado (Plantão de sábado/Sobreaviso) faria o seed recriá-lo a cada deploy."""
+    from rh_api.repositories.wfm_schema import TIPOS_ESCALA_TI_PADRAO
+
+    chave = f"TI::{TIPOS_ESCALA_TI_PADRAO[0][0]}"
+    conn = ctx.repo._connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id_tipo FROM dbo.wfm_tipos_escala WHERE chave = ?", (chave,))
+        row = cur.fetchone()
+        if not row:
+            pytest.skip("tipo semeado ausente neste banco")
+        id_tipo = int(row[0])
+        cur.execute("SELECT excluida FROM dbo.wfm_operacao_config WHERE operacao = ?", (chave,))
+        antes = cur.fetchone()
+    finally:
+        conn.close()
+    try:
+        r = ctx.repo.wfm_excluir_tipo_escala(ctx.gestor, id_tipo, autorizado=True)
+    except HTTPException as exc:
+        if exc.status_code == 409:
+            pytest.skip("o tipo semeado já tem histórico neste banco (a exclusão lógica vem pelo caminho de exclusão de escala)")
+        raise
+    try:
+        assert r["success"] and r.get("logica")
+        conn = ctx.repo._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM dbo.wfm_tipos_escala WHERE chave = ?", (chave,))
+            assert cur.fetchone()[0] == 1                                   # a linha continua: o seed não a recria
+            assert chave not in {t["chave"] for t in ctx.repo.wfm_list_tipos_escala(ctx.gestor, "TI")}
+        finally:
+            conn.close()
+    finally:  # devolve o banco de DEV ao estado anterior
+        conn = ctx.repo._connect()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE dbo.wfm_tipos_escala SET ativo = 1 WHERE id_tipo = ?", (id_tipo,))
+            if antes is None:
+                cur.execute("DELETE FROM dbo.wfm_operacao_config WHERE operacao = ?", (chave,))
+            else:
+                cur.execute("UPDATE dbo.wfm_operacao_config SET excluida = ?, ativa = 1 WHERE operacao = ?", (int(antes[0]), chave))
+            conn.commit()
+        finally:
+            conn.close()
