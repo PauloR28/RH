@@ -293,6 +293,14 @@ class WfmEscalaRepositoryMixin:
                 aprovacao = self._wfm_aprovacao_resumo(user, operacao, cab, self._wfm_snapshot(cursor, operacao, ano_mes), self._wfm_aprovadores(cursor, operacao))
                 if aprovacao["estado"] == "EM_APROVACAO":
                     pode_editar = False  # em análise: ninguém edita até aprovar, declinar ou cancelar o envio
+            presencas_proprias: list[dict] = []
+            if somente_propria:
+                # Operador vê só a própria presença (presente, falta, atestado...) para mostrá-la no dia selecionado.
+                cursor.execute(
+                    "SELECT data, status, observacao FROM dbo.wfm_presencas WHERE operacao = ? AND id_operador = ? AND data BETWEEN ? AND ?",
+                    (operacao, user.id_usuario, dias[0], dias[-1]),
+                )
+                presencas_proprias = [{"data": r[0].isoformat(), "status": normalize_text(r[1]), "observacao": normalize_text(r[2]) or None} for r in cursor.fetchall()]
             status_cab = {k: v for k, v in cab.items() if k != "aprovacao"}
             cursor.execute("SELECT troca_antecedencia_dias FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
             cfg_troca = cursor.fetchone()
@@ -313,6 +321,7 @@ class WfmEscalaRepositoryMixin:
                 ],
                 "turnos": [t for t in turnos if t["ativo"] or t["id_turno"] in {i["id_turno"] for i in itens}],  # inativo/excluído só se aparece no histórico
                 "eventos": eventos,
+                "presencas": presencas_proprias,
                 "pode_editar": pode_editar,
             }
         finally:

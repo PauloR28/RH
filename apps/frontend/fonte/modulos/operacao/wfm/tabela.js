@@ -25,7 +25,7 @@ import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escal
 import { ModalConfigEscala } from './configuracao.js';
 import { GavetaAjusteDia } from './ajuste.js';
 import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261020-e5';
-import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
+import { LinhaTempo } from './minha.js?v=20261019-mes';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser

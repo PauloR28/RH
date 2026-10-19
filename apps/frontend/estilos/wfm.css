@@ -687,6 +687,15 @@ button.mc-dia:hover { background: color-mix(in srgb, var(--paper-sunken) 70%, va
 .mc-dia-pe { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
 .mc-dia.is-dsr { border-style: dashed; background: var(--paper-sunken); justify-content: flex-start; }
 .mc-dia.is-dsr .mc-dia-num { color: var(--ink-soft); }
+/* Dias que já passaram: cinza (continuam clicáveis só para consultar a presença). */
+.mc-dia.is-passado { background: var(--paper-sunken); color: var(--ink-soft); border-color: var(--line); }
+.mc-dia.is-passado .mc-chip { filter: grayscale(1); opacity: 0.7; }
+.mc-dia.is-passado.is-sel { background: var(--brand-soft); color: var(--ink); }
+.mc-presenca { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: 0.867rem; }
+.mc-presenca strong { font-weight: 700; }
+.mc-presenca.is-presente strong { color: var(--ok, #1f7a4d); }
+.mc-presenca.is-falta strong, .mc-presenca.is-atestado strong, .mc-presenca.is-falta_justificada strong { color: var(--danger, #b42318); }
+.mc-presenca small { color: var(--ink-soft); }
 .mc-dsr { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-soft); }
 
 .mc-chip { display: inline-block; min-width: 0; max-width: 100%; padding: 2px 6px; border: 1px solid var(--mc-cor, var(--ink)); border-radius: 4px; background: color-mix(in srgb, var(--mc-cor, var(--paper)) 16%, var(--paper)); color: var(--ink); font-size: 0.667rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

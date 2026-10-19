@@ -2,7 +2,7 @@ import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../.
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
-import { minutosParaHoras } from './comum.js';
+import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js';
 
 // Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel
 // do dia selecionado (turno, jornada, pausas e o pedido de troca). Clicar num dia só seleciona: o modal de troca
@@ -61,12 +61,12 @@ function CelulaDia({ data, itens, hoje, selecionado, comum, onSelecionar }) {
   const numero = String(data.getDate()).padStart(2, '0');
   if (!trabalhando.length) {
     const folga = itens[0] && itens[0].codigo !== 'DSR';
-    return html`<div class="mc-dia is-dsr" aria-label=${`${tituloDia(data)}, ${folga ? 'folga' : 'DSR'}`}>
+    return html`<div class=${`mc-dia is-dsr ${iso < hoje ? 'is-passado' : ''}`.trim()} aria-label=${`${tituloDia(data)}, ${folga ? 'folga' : 'DSR'}`}>
       <span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>
       <span class="mc-dsr">${folga ? 'FOLGA' : 'DSR'}</span></div>`;
   }
   const descricao = trabalhando.map((it) => `${it.entrada} às ${it.saida}, ${it.nome_turno || it.codigo}, pausas ${temPausas(it) ? 'programadas' : 'a programar'}`).join('; ');
-  const classe = `mc-dia ${ehHoje ? 'is-hoje' : ''} ${selecionado ? 'is-sel' : ''}`.trim();
+  const classe = `mc-dia ${ehHoje ? 'is-hoje' : ''} ${iso < hoje ? 'is-passado' : ''} ${selecionado ? 'is-sel' : ''}`.trim();
   return html`<button type="button" class=${classe} aria-pressed=${selecionado} aria-current=${ehHoje ? 'date' : undefined}
     aria-label=${`${nomeSemana(data)}, ${data.getDate()} de ${MESES[data.getMonth()]}, ${descricao}`} onClick=${() => onSelecionar(iso)}>
     <span class="mc-dia-topo"><span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>${ehHoje ? html`<span class="mc-hoje">HOJE</span>` : null}</span>
@@ -126,10 +126,13 @@ function BlocoTurno({ item, comum, mostrarEscala }) {
   </div>`;
 }
 
-function PainelDia({ data, itens, eventos, comum, podeTrocar, onTrocar }) {
+function PainelDia({ data, itens, eventos, presenca, comum, podeTrocar, onTrocar }) {
   const trabalhando = itens.filter((i) => i.trabalha);
+  const passado = paraIso(data) < paraIso(new Date());
   return html`<aside class="mc-painel" aria-label="Dia selecionado">
     <div><p class="mc-eyebrow">DIA SELECIONADO</p><h3 class="mc-painel-titulo">${tituloDia(data)}</h3></div>
+    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao ? html`<small>${presenca.observacao}</small>` : null}</div>`
+      : passado ? html`<div class="mc-presenca"><span>Presença: <strong>Não lançada</strong></span></div>` : null}
     ${trabalhando.map((item) => {
       const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
       const idAjuda = `mc-ajuda-${item.operacao}`;
@@ -279,7 +282,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
 // ---------------------------------------------------------------- tela
 
 export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
-  const [modo, setModo] = useState('semana');
+  const modo = 'mes'; // o operador vê a escala sempre por mês
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
@@ -320,6 +323,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
       setDados({
         itens,
         eventos: respostas.flatMap((r) => r.eventos || []),
+        presencas: Object.fromEntries(respostas.flatMap((r) => r.presencas || []).map((p) => [p.data, p])),
         publicada: respostas.some((r) => r.status.versao_publicada > 0),
       });
     } catch (e) {
@@ -379,10 +383,6 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
           <div><dd>${minutosParaHoras(totalMin)}</dd><dt>${modo === 'semana' ? 'na semana' : 'no mês'}</dt></div>
           <div><dd>${diasDsr}</dd><dt>DSR</dt></div>
         </dl>` : html`<span></span>`}
-        <div class="mc-seg" role="group" aria-label="Visualização">
-          <button type="button" aria-pressed=${modo === 'semana'} class=${modo === 'semana' ? 'is-ativo' : ''} onClick=${() => setModo('semana')}>Semana</button>
-          <button type="button" aria-pressed=${modo === 'mes'} class=${modo === 'mes' ? 'is-ativo' : ''} onClick=${() => setModo('mes')}>Mês</button>
-        </div>
       </div>
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
         : !dados ? html`<${LoadingState} titulo="Carregando a sua escala" />`
@@ -394,7 +394,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
               : periodo.grade.map((d) => (d.getMonth() === periodo.ini.getMonth() ? celula(d) : html`<div key=${paraIso(d)} class="mc-fora" aria-hidden="true"></div>`))}</div>
             <${Legenda} tipos=${tipos} comum=${comum} />
           </div>
-          ${dataSel ? html`<${PainelDia} data=${dataSel} itens=${dados.itens[sel] || []} eventos=${eventosDoDia(dataSel)} comum=${comum} podeTrocar=${podeTrocar} onTrocar=${setTrocando} />` : null}
+          ${dataSel ? html`<${PainelDia} data=${dataSel} itens=${dados.itens[sel] || []} eventos=${eventosDoDia(dataSel)} presenca=${dados.presencas?.[sel]} comum=${comum} podeTrocar=${podeTrocar} onTrocar=${setTrocando} />` : null}
         </div>`}
     </section>
     ${trocando && dataSel ? html`<${ModalTroca} operacao=${trocando.operacao} data=${dataSel} item=${trocando} showToast=${showToast} onClose=${() => setTrocando(null)} onFeito=${() => setTrocando(null)} />` : null}`;

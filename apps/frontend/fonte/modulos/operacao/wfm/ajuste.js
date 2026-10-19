@@ -8,7 +8,7 @@ import {
 } from '../../../services/api/wfm.js?v=20261020-dias';
 import { minutosParaHoras } from './comum.js';
 import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js';
-import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
+import { LinhaTempo } from './minha.js?v=20261019-mes';
 
 // Gaveta "Ajustar dia": turno, horário, hora extra e pausas de UM colaborador em UM dia, com a opção de repetir o
 // ajuste em outros dias do mês. Salva direto na API existente (itens da escala, pausas e hora extra); regras de negócio,

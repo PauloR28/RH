@@ -14,7 +14,7 @@ import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261020-e5';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
 import { TelaEscalaPausas } from './pausas.js?v=20261020-e5';
 import { TelaEscalaTabela } from './tabela.js?v=20261020-e5';
-import { TelaMinhaEscala } from './minha.js?v=20261007-admin-escala';
+import { TelaMinhaEscala } from './minha.js?v=20261019-mes';
 import { ListaEscalas } from './escalas.js?v=20261015-modulo8';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
 import { TelaTrocas } from './trocas.js';
