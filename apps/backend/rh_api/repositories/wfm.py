@@ -21,6 +21,7 @@ import pyodbc
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES, WFM_PERFIS_TI
+from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
 
@@ -542,7 +543,7 @@ class WfmRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             cursor.execute(
-                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor "
+                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays "
                 f"FROM dbo.wfm_turnos WHERE operacao = ? {'' if incluir_excluidos else 'AND excluido = 0'} ORDER BY tipo DESC, codigo",
                 (operacao,),
             )
@@ -551,6 +552,8 @@ class WfmRepositoryMixin:
             itens = []
             for r in linhas:
                 r["ativo"] = bool(r["ativo"])
+                r["weekdays"] = list(dias_semana.dias_de_texto(r.get("weekdays")))
+                r["dias_rotulo"] = dias_semana.rotulo_dias(r["weekdays"]) if r["tipo"] == "TRABALHO" else "—"
                 sup = sups.get(r.get("id_supervisor"))
                 r["supervisor"] = sup["nome"] if sup else None
                 r["id_equipe"] = sup["id_equipe"] if sup else None
@@ -614,40 +617,109 @@ class WfmRepositoryMixin:
                 total = (int(entrada[:2]) * 60 + int(entrada[3:]) + int(contrato[0]) + sum(p["duracao_min"] for p in pausas if p["tipo"] == "INTERVALO")) % 1440
                 saida = f"{total // 60:02d}:{total % 60:02d}"
             anterior = None
+            padrao_dias = None
             if id_turno:
                 cursor.execute(
-                    "SELECT codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo FROM dbo.wfm_turnos "
+                    "SELECT codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, weekdays FROM dbo.wfm_turnos "
                     "WHERE id_turno = ? AND operacao = ?",
                     (int(id_turno), operacao),
                 )
                 row = cursor.fetchone()
                 if not row:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
-                anterior = dict(zip(("codigo", "nome", "tipo", "cor", "entrada", "saida", "pausas_json", "ativo"), row))
+                anterior = dict(zip(("codigo", "nome", "tipo", "cor", "entrada", "saida", "pausas_json", "ativo", "weekdays"), row))
                 anterior["ativo"] = bool(anterior["ativo"])
                 codigo = normalize_text(anterior["codigo"])  # o código do turno nunca muda
+                padrao_dias = dias_semana.dias_de_texto(anterior["weekdays"])  # sem o campo na requisição, os dias não mudam
+                try:
+                    weekdays = dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO", padrao=padrao_dias)
+                except ValueError as exc:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+                weekdays_txt = dias_semana.texto_de_dias(weekdays)
                 cursor.execute(
                     "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, id_supervisor = ?, "
-                    "atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
-                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, normalize_text(user.nome) or user.username, int(id_turno), operacao),
+                    "weekdays = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
+                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, normalize_text(user.nome) or user.username, int(id_turno), operacao),
                 )
                 resolved = int(id_turno)
+                if tipo == "TRABALHO" and dias_semana.dias_de_texto(anterior.get("weekdays")) != weekdays:
+                    # Os dias já lançados de hoje em diante não somem: os que ficam fora dos novos dias passam a contar
+                    # como "configurados à mão" (o ajuste manual vence o padrão). Passado e versões publicadas não mudam.
+                    fora = self._wfm_itens_fora_dos_dias(cursor, operacao, resolved, weekdays)
+                    for lote in range(0, len(fora), 500):
+                        marcas = [i["id_item"] for i in fora[lote:lote + 500] if not i["manual"]]
+                        if marcas:
+                            cursor.execute(f"UPDATE dbo.wfm_escala_itens SET manual = 1 WHERE id_item IN ({','.join('?' * len(marcas))})", marcas)
             else:
                 cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ? AND excluido = 0", (operacao, codigo))
                 if cursor.fetchone():
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe um turno com este código nesta operação.")
+                try:
+                    weekdays = dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO")
+                except ValueError as exc:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+                weekdays_txt = dias_semana.texto_de_dias(weekdays)
                 cursor.execute(
-                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, atualizado_por) "
-                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, normalize_text(user.nome) or user.username),
+                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays, atualizado_por) "
+                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_turno", entidade="turno", entidade_id=resolved,
-                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato, "id_supervisor": id_supervisor}, ip=ip,
+                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato, "id_supervisor": id_supervisor, "weekdays": weekdays_txt}, ip=ip,
             )
             conn.commit()
-            return {"success": True, "id_turno": resolved, "saida": saida}
+            return {"success": True, "id_turno": resolved, "saida": saida, "weekdays": list(weekdays)}
+        finally:
+            conn.close()
+
+    def _wfm_itens_fora_dos_dias(self, cursor, operacao: str, id_turno: int, dias) -> list[dict]:
+        """Itens de escala (de hoje em diante) do turno cujo dia da semana não está em `dias`."""
+        ok = set(dias)
+        cursor.execute(
+            "SELECT id_item, id_operador, data, manual FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ? AND data >= ?",
+            (operacao, int(id_turno), date.today()),
+        )
+        return [{"id_item": int(r[0]), "id_operador": int(r[1]), "data": r[2], "manual": bool(r[3])} for r in cursor.fetchall() if r[2].weekday() not in ok]
+
+    def wfm_impacto_dias_turno(self, user, operacao: str, id_turno: int, weekdays) -> dict:
+        """Regra 8: antes de salvar novos dias de um turno em uso, quantos operadores, dias e pausas serão afetados."""
+        if not wfm_scope.pode_editar_cadastros(user.perfil):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar turnos.")
+        try:
+            novos = dias_semana.normalizar_dias(weekdays, tipo_trabalho=True)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cursor.execute("SELECT weekdays, tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ?", (int(id_turno), operacao))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
+            fora = self._wfm_itens_fora_dos_dias(cursor, operacao, int(id_turno), novos) if normalize_text(row[1]) == "TRABALHO" else []
+            pausas_auto = pausas_manuais = 0
+            for lote in range(0, len(fora), 500):
+                parte = fora[lote:lote + 500]
+                cursor.execute(
+                    "SELECT p.origem, COUNT(DISTINCT CONCAT(p.id_operador, ':', CONVERT(VARCHAR(10), p.data, 23))) FROM dbo.wfm_pausas p "
+                    "JOIN dbo.wfm_escala_itens i ON i.operacao = p.operacao AND i.id_operador = p.id_operador AND i.data = p.data "
+                    f"WHERE i.id_item IN ({','.join('?' * len(parte))}) GROUP BY p.origem",
+                    [i["id_item"] for i in parte],
+                )
+                for origem, qtd in cursor.fetchall():
+                    if normalize_text(origem) == "MANUAL":
+                        pausas_manuais += int(qtd)
+                    else:
+                        pausas_auto += int(qtd)
+            return {
+                "dias_atuais": list(dias_semana.dias_de_texto(row[0])), "dias_novos": list(novos),
+                "operadores": len({i["id_operador"] for i in fora}), "dias_fora": len(fora),
+                "pausas_automaticas": pausas_auto, "pausas_manuais": pausas_manuais,
+                "aviso": "Os dias já lançados continuam na escala e passam a contar como configurados à mão; escalas publicadas e o histórico de versões não mudam.",
+            }
         finally:
             conn.close()
 

@@ -1,9 +1,12 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
+import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { Icone } from './escala-ui.js?v=20261020-e5';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { CartaoGrafico, GraficoBarrasH, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, fmt } from './graficos.js';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261020-rel';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -141,27 +144,34 @@ function Painel({ painel, resumido = false }) {
   const g = painel.graficos;
   const semDados = !painel.totais.dias_escalados && !painel.totais.trocas;
   return html`
-    ${semDados ? html`<div class="mon-alerta mon-alerta--info" role="status">Não há dias de trabalho de escala publicada neste período. Os indicadores ficam zerados até uma escala ser publicada.</div>` : null}
-    <div class="wfm-rel-kpis">${painel.kpis.map((k) => html`<${Indicador} key=${k.chave} k=${k} />`)}</div>
-    <p class="mon-muted">Comparado com ${br(painel.anterior.ini)} a ${br(painel.anterior.fim)} (período imediatamente anterior, mesma duração).</p>
-    <div class="wfm-g-grade-cartoes">
-      <${CartaoGrafico} titulo="Escalados × presentes por dia" subtitulo="Barras: escalados · linha: presentes · vermelho: faltas" largo=${true}>
-        <${GraficoSerieDiaria} serie=${g.serie_diaria} /></${CartaoGrafico}>
-      <${CartaoGrafico} titulo="Situação da presença" subtitulo="Dias de trabalho do período">
-        <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" /></${CartaoGrafico}>
-      <${CartaoGrafico} titulo="Absenteísmo por dia da semana" subtitulo="Faltas ÷ dias apurados">
-        <${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} /></${CartaoGrafico}>
-      ${resumido ? null : html`
-        <${CartaoGrafico} titulo="Horas por operador" subtitulo="Trabalhadas / escaladas (top 10)">
-          <${GraficoBarrasH} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} series=${[{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }, { chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }]} unidade="h" /></${CartaoGrafico}>
-        <${CartaoGrafico} titulo="Horas escaladas por turno" subtitulo="Distribuição entre os turnos">
-          <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: 'var(--wfm-g-marca-clara)' }]} unidade="h" /></${CartaoGrafico}>
-        <${CartaoGrafico} titulo="Trocas por situação" subtitulo="Pedidos do período">
-          ${g.trocas_estado.length ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : html`<p class="mon-muted">Nenhum pedido de troca no período.</p>`}</${CartaoGrafico}>
-        <${CartaoGrafico} titulo="Comparação entre equipes" subtitulo="Horas trabalhadas e absenteísmo" largo=${true}>
-          ${g.equipes.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela wfm-rel-t"><thead><tr><th>Equipe</th><th class="wfm-rel-num">Dias escalados</th><th class="wfm-rel-num">Faltas</th><th class="wfm-rel-num">Horas trabalhadas</th><th>Absenteísmo</th></tr></thead>
+    <div class="wfm-p">
+      ${semDados ? html`<div class="mon-alerta mon-alerta--info" role="status">Não há dias de trabalho de escala publicada neste período. Os indicadores ficam zerados até uma escala ser publicada.</div>` : null}
+      <div class="wfm-rel-kpis wfm-p-kpis">${painel.kpis.map((k) => html`<${Indicador} key=${k.chave} k=${k} />`)}</div>
+      <p class="wfm-p-apoio">Comparado com ${br(painel.anterior.ini)} a ${br(painel.anterior.fim)} (período imediatamente anterior, mesma duração).</p>
+      <div class="wfm-p-fileira wfm-p-fileira--1">
+        <${CartaoGrafico} compacto=${true} titulo="Escalados × presentes por dia" subtitulo="Barras: escalados · linha: presentes · vermelho: faltas" acoes=${html`<${LegendaSerieDiaria} />`}>
+          <${GraficoSerieDiaria} serie=${g.serie_diaria} compacto=${true} /></${CartaoGrafico}>
+        <${CartaoGrafico} compacto=${true} titulo="Situação da presença" subtitulo="Dias de trabalho do período">
+          <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} /></${CartaoGrafico}>
+        <${CartaoGrafico} compacto=${true} titulo="Absenteísmo por dia da semana" subtitulo="Faltas ÷ dias apurados">
+          <${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} /></${CartaoGrafico}>
+      </div>
+      ${resumido ? null : html`<div class="wfm-p-fileira wfm-p-fileira--2">
+        <${CartaoGrafico} compacto=${true} titulo="Horas por operador" subtitulo="Trabalhadas / escaladas (top 10)"
+          rodape=${html`<${LegendaSimples} itens=${[{ rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }, { rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }]} />`}>
+          <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h"
+            principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} /></${CartaoGrafico}>
+        <div class="wfm-p-coluna">
+          <${CartaoGrafico} compacto=${true} titulo="Horas escaladas por turno" subtitulo="Distribuição entre os turnos">
+            <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: 'var(--wfm-g-marca-clara)' }]} unidade="h" /></${CartaoGrafico}>
+          <${CartaoGrafico} compacto=${true} titulo="Trocas por situação" subtitulo="Pedidos do período">
+            ${g.trocas_estado.length ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : html`<p class="mon-muted">Nenhum pedido de troca no período.</p>`}</${CartaoGrafico}>
+        </div>
+        <${CartaoGrafico} compacto=${true} titulo="Comparação entre equipes" subtitulo="Horas trabalhadas e absenteísmo">
+          ${g.equipes.length ? html`<div class="wfm-p-equipes"><table class="mon-tabela wfm-rel-t"><thead><tr><th>Equipe</th><th class="wfm-rel-num">Dias escalados</th><th class="wfm-rel-num">Faltas</th><th class="wfm-rel-num">Horas trabalhadas</th><th>Absenteísmo</th></tr></thead>
             <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td>${e.rotulo}</td><td class="wfm-rel-num">${fmt(e.escalados)}</td><td class="wfm-rel-num">${fmt(e.faltas)}</td><td class="wfm-rel-num">${fmt(e.horas, 2)}</td>
-              <td><span class="wfm-rel-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span><span class="wfm-rel-num-inline">${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</span></td></tr>`)}</tbody></table></div>` : html`<p class="mon-muted">Sem dados de equipes no período.</p>`}</${CartaoGrafico}>`}
+              <td><span class="wfm-rel-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span><span class="wfm-rel-num-inline">${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</span></td></tr>`)}</tbody></table></div>` : html`<p class="mon-muted">Sem dados de equipes no período.</p>`}</${CartaoGrafico}>
+      </div>`}
     </div>`;
 }
 
@@ -186,6 +196,15 @@ function DetalheOperador({ filtros, linha, onClose }) {
           : html`<p class="mon-muted">Sem dias de trabalho neste período.</p>`}`}
     </div>
   </${ModalPadrao}>`;
+}
+
+// Campo de data de 46 px, no mesmo desenho dos campos de contexto: o valor aparece formatado e o <input type="date"> fica por cima, invisível.
+function CampoData({ rotulo, valor, min, max, aoMudar }) {
+  return html`<label class="mo-campo is-seletor">
+    <span class="mo-campo-leg">${rotulo}</span>
+    <span class="mo-campo-valor"><span class="mo-trunca">${br(valor) || '—'}</span><${Icone} nome="calendar_month" /></span>
+    <input class="mo-campo-sel" type="date" aria-label=${rotulo} value=${valor} min=${min} max=${max} onClick=${(e) => e.target.showPicker?.()} onChange=${(e) => aoMudar(e.target.value)} />
+  </label>`;
 }
 
 // ---------------------------------------------------------------------------------------------------- exportar
@@ -260,46 +279,35 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast }
   const visaoAtual = VISOES.find((v) => v.id === visao);
   const ehPainel = visao === 'painel';
 
+  const opcoesEscalas = (contexto?.operacoes || []).map((o) => [o.chave, `${o.nome}${o.escala_ativa === false ? ' (inativa)' : ''}`]);
+  const opcoesPeriodo = [...Object.entries(PERIODOS).map(([k, p]) => [k, p.rotulo]), ['personalizado', 'Personalizado']];
+  const opcoesOperador = [['', 'Todos'], ...operadores.map((o) => [String(o.id_usuario), o.nome])];
+  const [calculoAberto, setCalculoAberto] = useState(false);
+  useEffect(() => { setCalculoAberto(false); }, [visao]);
+
   return html`
-    <section class="mon-card wfm-rel">
-      <div class="wfm-rel-filtros">
-        <label class="mon-campo"><span>Escala / operação</span>
-          <select class="form-select" value=${operacao} onChange=${(e) => aoTrocarEscala?.(e.target.value)}>
-            ${(contexto?.operacoes || []).map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}${o.escala_ativa === false ? ' (inativa)' : ''}</option>`)}
-          </select>
-        </label>
-        <label class="mon-campo"><span>Período</span>
-          <select class="form-select" value=${preset} onChange=${(e) => escolherPreset(e.target.value)}>
-            ${Object.entries(PERIODOS).map(([k, p]) => html`<option key=${k} value=${k}>${p.rotulo}</option>`)}
-            <option value="personalizado">Personalizado</option>
-          </select>
-        </label>
-        <label class="mon-campo"><span>De</span>
-          <input class="form-control" type="date" value=${ini} max=${fim || undefined} onChange=${(e) => { setPreset('personalizado'); setIntervalo([e.target.value, fim]); }} />
-        </label>
-        <label class="mon-campo"><span>Até</span>
-          <input class="form-control" type="date" value=${fim} min=${ini || undefined} onChange=${(e) => { setPreset('personalizado'); setIntervalo([ini, e.target.value]); }} />
-        </label>
-        <label class="mon-campo"><span>Operador</span>
-          <select class="form-select" value=${idOperador} onChange=${(e) => setIdOperador(e.target.value)}>
-            <option value="">Todos</option>
-            ${operadores.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}
-          </select>
-        </label>
-        <${MenuExportar} desabilitado=${!intervaloValido || !operacao} ocupado=${ocupado} onExportar=${exportar} />
+    <div class="mo-contexto cx-fixo wfm-rel2-filtros">
+      <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${opcoesEscalas} aoMudar=${(v) => aoTrocarEscala?.(v)} />
+      <${ContextField} rotulo="Período" valor=${preset} opcoes=${opcoesPeriodo} aoMudar=${escolherPreset} />
+      <${CampoData} rotulo="De" valor=${ini} max=${fim || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([v, fim]); }} />
+      <${CampoData} rotulo="Até" valor=${fim} min=${ini || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([ini, v]); }} />
+      <${ContextField} rotulo="Operador" valor=${idOperador} opcoes=${opcoesOperador} aoMudar=${setIdOperador} />
+      <div class="mo-contexto-fim"><${MenuExportar} desabilitado=${!intervaloValido || !operacao} ocupado=${ocupado} onExportar=${exportar} /></div>
+    </div>
+
+    <section class="mo-card-escala cx-cresce wfm-rel2" aria-label="Relatórios">
+      <div class="mo-subabas cx-fixo wfm-rel2-abas">
+        <${AbasConsole} prefixo="wfmrel" rotulo="Relatórios" variante="sublinhada" ativa=${visao} aoMudar=${(id) => { setVisao(id); setBusca(''); }}
+          itens=${VISOES.map((v) => ({ id: v.id, rotulo: v.rotulo, icone: v.icone }))} />
+        <button type="button" class="mo-btn mo-btn--neutro mo-btn--34 wfm-rel2-calc" aria-expanded=${calculoAberto} aria-controls="wfm-rel-calculo" disabled=${!rel || rel.tipo !== visao} onClick=${() => setCalculoAberto(!calculoAberto)}><${Icone} nome="info" />Como é calculado</button>
       </div>
 
-      <div class="wfm-rel-visoes" role="tablist" aria-label="Relatórios">
-        ${VISOES.map((v) => html`<button key=${v.id} type="button" role="tab" aria-selected=${v.id === visao} class=${`wfm-rel-visao ${v.id === visao ? 'is-ativa' : ''}`} onClick=${() => { setVisao(v.id); setBusca(''); }} title=${v.dica}>
-          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(v.icone)}</span>${v.rotulo}</button>`)}
-      </div>
-
-      ${!intervaloValido ? html`<div class="mon-alerta mon-alerta--danger" role="alert">A data inicial precisa ser anterior ou igual à final.</div>`
-        : erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
-        : !rel || rel.tipo !== visao ? html`<${LoadingState} titulo="Gerando o relatório" />`
-        : html`
-          ${ehPainel ? html`<${Painel} painel=${rel.painel} resumido=${!!idOperador} />` : html`
-            <div class="wfm-rel-kpis">${(rel.resumo || []).map((k) => html`<div key=${k.rotulo} class="wfm-rel-kpi" title=${k.dica || ''}>
+      <div class=${`wfm-rel2-corpo cx-cresce ${ehPainel ? 'is-painel' : ''}`} role="tabpanel" id=${idPainel('wfmrel', visao)} aria-labelledby=${idAba('wfmrel', visao)}>
+        ${!intervaloValido ? html`<div class="mon-alerta mon-alerta--danger" role="alert">A data inicial precisa ser anterior ou igual à final.</div>`
+          : erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
+          : !rel || rel.tipo !== visao ? html`<${LoadingState} titulo="Gerando o relatório" />`
+          : ehPainel ? html`<${Painel} painel=${rel.painel} resumido=${!!idOperador} />` : html`
+            <div class="wfm-rel-kpis wfm-rel2-resumo">${(rel.resumo || []).map((k) => html`<div key=${k.rotulo} class="wfm-rel-kpi" title=${k.dica || ''}>
               <span>${k.rotulo}</span><strong>${k.valor === null || k.valor === undefined ? '—' : fmt(k.valor, Number.isInteger(k.valor) ? 0 : 2)}${k.valor !== null && k.valor !== undefined && k.unidade ? html`<small>${k.unidade}</small>` : null}</strong></div>`)}</div>
             <div class="wfm-rel-barra">
               <p class="mon-muted">${visaoAtual?.dica}. ${fmt(linhas.length)} linha(s).</p>
@@ -308,12 +316,13 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast }
             </div>
             ${linhas.length ? html`<${TabelaDados} key=${visao} colunas=${rel.colunas} linhas=${linhas} comTotais=${!!visaoAtual?.totais} onLinha=${visao === 'resumo' ? setDetalhe : undefined} />`
               : html`<${EmptyState} icon="analytics" title="Sem dados no período" text=${busca ? 'Nenhuma linha corresponde ao filtro.' : 'Não há registros para esta escala no período escolhido. Meses sem escala publicada não geram horas.'} />`}`}
+      </div>
 
-          <details class="wfm-rel-calculo">
-            <summary>Como é calculado</summary>
-            <ul>${(rel.calculo || []).map((c, i) => html`<li key=${i}>${c}</li>`)}</ul>
-            <p class="mon-muted">Gerado em ${new Date(rel.gerado_em).toLocaleString('pt-BR')} · escopo do seu perfil aplicado pelo servidor.</p>
-          </details>`}
+      ${calculoAberto && rel ? html`<${PainelFlutuante} id="wfm-rel-calculo" posicao="cima" largura=${430} titulo="Como é calculado" aoFechar=${() => setCalculoAberto(false)}>
+        <div class="wfm-rel2-calculo">
+          <ul>${(rel.calculo || []).map((c, i) => html`<li key=${i}>${c}</li>`)}</ul>
+          <p class="mon-muted">Gerado em ${new Date(rel.gerado_em).toLocaleString('pt-BR')} · escopo do seu perfil aplicado pelo servidor.</p>
+        </div></${PainelFlutuante}>` : null}
     </section>
     ${detalhe ? html`<${DetalheOperador} filtros=${filtros} linha=${detalhe} onClose=${() => setDetalhe(null)} />` : null}`;
 }

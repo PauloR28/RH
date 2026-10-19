@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
+import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { minutosParaHoras } from './comum.js';
 
 // Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel

@@ -1,6 +1,6 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
+import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { infoDia } from './comum.js';
 

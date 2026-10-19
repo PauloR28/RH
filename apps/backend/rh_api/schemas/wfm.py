@@ -55,7 +55,13 @@ class TurnoRequest(BaseSchema):
     entrada: str = Field(default="", max_length=5)
     saida: str = Field(default="", max_length=5)
     pausas: list[PausaTurnoRequest] = Field(default_factory=list, max_length=12)
+    weekdays: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = Seg a Sex (turno de trabalho novo)
     ativo: bool = True
+
+
+class ImpactoDiasTurnoRequest(BaseSchema):
+    operacao: str = Field(default="", max_length=60)
+    weekdays: list[int] = Field(default_factory=list, max_length=7)
 
 
 class SkillRequest(BaseSchema):
@@ -93,6 +99,7 @@ class ItemEscalaRequest(BaseSchema):
     data: str = Field(max_length=10)
     id_turno: int | None = None  # None remove a marcação do dia
     versao_linha: int | None = None  # versão lida; exigida para editar linha existente
+    manual: bool = False  # dia configurado à mão (fora dos dias do turno é sempre manual)
     ajustar_horario: bool = False  # True: `entrada`/`saida` vazias removem o horário combinado do dia
     entrada: str = Field(default="", max_length=5)
     saida: str = Field(default="", max_length=5)

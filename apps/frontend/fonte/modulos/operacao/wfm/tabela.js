@@ -17,14 +17,14 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261019-pausas';
+} from '../../../services/api/wfm.js?v=20261020-dias';
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, minutosParaHoras } from './comum.js';
-import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js';
+import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261020-dias';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261019-pausas';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261020-e5';
 import { LinhaTempo } from './minha.js?v=20261007-admin-escala';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -425,8 +425,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
                   ${editavel ? html`<td class="ea-c-sel"><input type="checkbox" class="ea-check" aria-label=${`Selecionar ${o.nome}`} checked=${!!sel[id]} onChange=${() => setSel({ ...sel, [id]: !sel[id] })} /></td>` : null}
                   <td class="ea-c-nome"><span class="ea-nome" title=${o.nome}>${o.nome}</span><span class="ea-sup">${(o.supervisores || []).map((s) => s.nome.split(' ')[0]).join(', ')}</span></td>
                   <td>${editavel
-                    ? html`<${SeletorTurnoLinha} turno=${turnoLinha} turnos=${turnosSelecionaveis} rotuloAria=${`Alterar turno de ${o.nome}`} aoEscolher=${(v) => mudarTurno(id, dia, v)} />`
-                    : html`<span class="ea-turno-ro"><${Quadrado} cor=${turnoLinha?.cor} dsr=${!turnoLinha} />${turnoLinha ? turnoLinha.nome : 'DSR'}</span>`}</td>
+                    ? html`<${SeletorTurnoLinha} turno=${turnoLinha} turnos=${turnosSelecionaveis} rotuloAria=${`Alterar turno de ${o.nome}`} aoEscolher=${(v) => mudarTurno(id, dia, v)} data=${dia} />`
+                    : html`<span class="ea-turno-ro" title=${turnoLinha ? undefined : 'Sem escala neste dia (DSR, folga ou sem turno)'}><${Quadrado} cor=${turnoLinha?.cor} dsr=${!turnoLinha} />${turnoLinha ? turnoLinha.nome : '—'}</span>`}</td>
                   <td><${CelulaHorario} nome=${o.nome} trab=${trab} editavel=${editavel} entrada=${entradaDe(id, dia)} saida=${saidaDe(id, dia)} ajustado=${ajustado(id, dia)}
                     editando=${editHor === id} aoEditar=${(v) => setEditHor(v ? id : null)} aoMudar=${(campo, valor) => mudarHorario(id, dia, campo, valor)} /></td>
                   <td>${!trab ? html`<span class="ea-muted">—</span>`

@@ -14,6 +14,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR
+from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_pausas as regras
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
@@ -121,17 +122,35 @@ class WfmPausasRepositoryMixin:
             prog = self._wfm_programacao(escalados, programadas)
             cadastro = {o["id_usuario"]: o for o in self._wfm_operadores_visiveis(cursor, user, operacao)}
             visiveis = {i: o["nome"] for i, o in cadastro.items()}
+            cursor.execute("SELECT codigo, weekdays FROM dbo.wfm_turnos WHERE operacao = ? AND excluido = 0", (operacao,))
+            dias_por_codigo = {normalize_text(r[0]): dias_semana.dias_de_texto(r[1]) for r in cursor.fetchall()}
             itens = []
             for id_op, turno in sorted(escalados.items(), key=lambda kv: (kv[1]["entrada"], visiveis.get(kv[0], ""))):
                 if id_op not in visiveis:
                     continue
                 ini, fim = regras.janela_do_turno(turno["entrada"], turno["saida"])
+                dias = dias_por_codigo.get(turno["codigo"], dias_semana.TODOS_DIAS)
+                turno = {**turno, "weekdays": list(dias), "dias_rotulo": dias_semana.rotulo_dias(dias)}
                 itens.append({
                     "id_operador": id_op, "nome": visiveis[id_op], "turno": turno,
                     "pausas": programadas.get(id_op, []),
                     "id_equipe": cadastro[id_op]["id_equipe"], "equipe": cadastro[id_op]["equipe"], "cargo": cadastro[id_op]["cargo"],
                     "supervisores": cadastro[id_op]["supervisores"],
                     "erros": regras.validar_pausas_do_operador(prog.get(id_op, []), ini, fim),
+                })
+            # Quem não trabalha no dia aparece desativado (sem pausa possível): motivo = outro dia com turno no mês ou nenhum turno.
+            sem_escala = []
+            sem_id = [i for i in visiveis if i not in escalados]
+            com_turno_no_mes: set[int] = set()
+            if sem_id:
+                cursor.execute("SELECT DISTINCT id_operador FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ?", (operacao, f"{dia.year}-{dia.month:02d}"))
+                com_turno_no_mes = {int(r[0]) for r in cursor.fetchall()}
+            abrev = ("seg", "ter", "qua", "qui", "sex", "sáb", "dom")[dia.weekday()]
+            for id_op in sorted(sem_id, key=lambda i: visiveis[i]):
+                sem_escala.append({
+                    "id_operador": id_op, "nome": visiveis[id_op], "id_equipe": cadastro[id_op]["id_equipe"], "equipe": cadastro[id_op]["equipe"],
+                    "supervisores": cadastro[id_op]["supervisores"],
+                    "motivo": f"Hoje: sem turno ({abrev})" if id_op in com_turno_no_mes else "Sem turno cadastrado",
                 })
             ocup = regras.ocupacao(prog)
             blocos: dict[int, int] = {}
@@ -141,6 +160,7 @@ class WfmPausasRepositoryMixin:
                 "data": dia.isoformat(), "capacidade": capacidade,
                 "pausas_padrao": [{"ordem": o, "tipo": t, "duracao_min": d} for o, t, d in regras.PAUSAS_PADRAO],
                 "operadores": itens,
+                "sem_escala": sem_escala,
                 "excedentes": regras.excedentes(prog, capacidade),
                 "ocupacao": [{"hora": regras.min_para_hhmm(k), "qtd": v} for k, v in sorted(blocos.items())],
                 "sem_pausa_programada": sum(1 for i in itens if not i["pausas"]),
@@ -196,7 +216,7 @@ class WfmPausasRepositoryMixin:
                 cursor.execute("DELETE FROM dbo.wfm_pausas WHERE operacao = ? AND id_operador = ? AND data = ?", (operacao, id_op, dia))
                 for p in pausas:
                     cursor.execute(
-                        "INSERT INTO dbo.wfm_pausas (operacao, id_operador, data, ordem, tipo, inicio, duracao_min, atualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO dbo.wfm_pausas (operacao, id_operador, data, ordem, tipo, inicio, duracao_min, atualizado_por, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'MANUAL')",
                         (operacao, id_op, dia, p["ordem"], p["tipo"], p["inicio"], p["duracao_min"], autor),
                     )
                 self.wfm_audit(cursor, user, operacao=operacao, acao="programar_pausas", entidade="pausas", entidade_id=f"{id_op}:{dia.isoformat()}",

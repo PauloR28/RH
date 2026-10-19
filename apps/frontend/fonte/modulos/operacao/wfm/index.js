@@ -7,18 +7,18 @@ import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
-import { TelaEscala } from './escala.js?v=20261019-pausas';
+import { TelaEscala } from './escala.js?v=20261020-e5';
 import { TelaPresenca } from './presenca.js?v=20261015-modulo8';
-import { TelaCadastros } from './cadastros.js?v=20261015-modulo8';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261019-pausas';
+import { TelaCadastros } from './cadastros.js?v=20261020-dias';
+import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261020-e5';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
-import { TelaEscalaPausas } from './pausas.js?v=20261019-pausas';
-import { TelaEscalaTabela } from './tabela.js?v=20261019-pausas';
+import { TelaEscalaPausas } from './pausas.js?v=20261020-e5';
+import { TelaEscalaTabela } from './tabela.js?v=20261020-e5';
 import { TelaMinhaEscala } from './minha.js?v=20261007-admin-escala';
 import { ListaEscalas } from './escalas.js?v=20261015-modulo8';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
 import { TelaTrocas } from './trocas.js';
-import { TelaRelatorios } from './relatorios.js';
+import { TelaRelatorios } from './relatorios.js?v=20261020-rel';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
@@ -127,6 +127,19 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
           onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}
+      </${PainelRh}>`;
+  }
+
+  // Relatórios: cabeçalho do módulo, linha de filtros e card com abas de nível 2, sem rolagem da página.
+  if (telaAtual === 'screen-wfm-relatorios' && contexto && !erro && operacao && contexto.operacoes.length) {
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
+          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
+            abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
+          <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} />
+        <//>
       </${PainelRh}>`;
   }
 

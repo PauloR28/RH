@@ -1,7 +1,7 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
+import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { Campo, Marca, ModalForm } from './formulario.js';
 
 // Configurações da escala: nome, ativa/inativa, jornada (escala de trabalho), duplicar, excluir e QUEM aprova. Cada aprovador é escolhido em dois selects

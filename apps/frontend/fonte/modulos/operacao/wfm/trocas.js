@@ -7,7 +7,7 @@ import {
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261019-pausas';
+} from '../../../services/api/wfm.js?v=20261020-dias';
 import { dataHora } from './comum.js';
 
 // Trocas de plantão. Nenhuma troca é automática: mesmo com o colega de acordo, um Supervisor,

@@ -13,6 +13,9 @@ export const deMin = (min) => { const m = ((min % 1440) + 1440) % 1440; return `
 export const duracaoMin = (ini, fim) => (ini && fim ? (((aMin(fim) - aMin(ini)) % 1440) + 1440) % 1440 : 0);
 export const paraIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const doIso = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };
+// Dia da semana da data (0 = segunda ... 6 = domingo) e se o turno vale nele (turno sem a lista de dias vale todos os dias).
+const diaSemanaSegZero = (iso) => { const [a, m, d] = iso.split('-').map(Number); return (new Date(a, m - 1, d).getDay() + 6) % 7; };
+export const diaDoTurno = (turno, iso) => !turno || !Array.isArray(turno.weekdays) || turno.tipo !== 'TRABALHO' || turno.weekdays.includes(diaSemanaSegZero(iso));
 export const brData = (iso) => iso.split('-').reverse().join('/');
 export const SEMANA_LONGA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -58,7 +61,7 @@ const novoId = (p) => { seq += 1; return `${p}-${seq}`; };
 
 // Linha de filtros compactos (36px / 13px): busca + selects + contagem anunciada.
 // `selects`: [{ rotulo, valor, aoMudar, padrao: 'Equipe: todas', opcoes: [[valor, rotulo]] }]
-export function FiltrosCompactos({ rotuloBusca, busca, aoBuscar, selects, contagem }) {
+export function FiltrosCompactos({ rotuloBusca, busca, aoBuscar, selects, contagem, meio = null }) {
   const [id] = useState(() => novoId('ea-f'));
   return html`<div class="ea-filtros">
     <div class="ea-busca">
@@ -71,6 +74,7 @@ export function FiltrosCompactos({ rotuloBusca, busca, aoBuscar, selects, contag
       <select id=${`${id}-s${i}`} class=${`ea-campo ea-select ea-select--${s.largura || 'm'}`} value=${s.valor} onChange=${(e) => s.aoMudar(e.target.value)}>
         <option value="">${s.padrao}</option>${s.opcoes.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}
       </select></div>`)}
+    ${meio ? html`<div class="ea-filtros-meio">${meio}</div>` : null}
     <span class="ea-contagem" aria-live="polite">${contagem}</span>
   </div>`;
 }
@@ -103,7 +107,7 @@ export function LegendaTurnos({ turnos }) {
 }
 
 // Escolha do turno direto na linha: botão de 36px que abre uma lista (popover) com os turnos e o DSR.
-export function SeletorTurnoLinha({ turno, turnos, rotuloAria, desabilitado, aoEscolher }) {
+export function SeletorTurnoLinha({ turno, turnos, rotuloAria, desabilitado, aoEscolher, data = null }) {
   const [aberto, setAberto] = useState(null); // { x, y, topo } quando aberto
   const raiz = useRef(null);
   useEffect(() => {
@@ -128,12 +132,12 @@ export function SeletorTurnoLinha({ turno, turnos, rotuloAria, desabilitado, aoE
   const escolher = (valor) => { setAberto(null); aoEscolher(valor); raiz.current?.querySelector('.ea-turno-btn')?.focus(); };
   const dsr = !turno;
   return html`<span class="ea-turno" ref=${raiz}>
-    <button type="button" class=${`ea-turno-btn ${dsr ? 'is-dsr' : ''}`} aria-label=${rotuloAria} aria-haspopup="menu" aria-expanded=${!!aberto} disabled=${desabilitado} title=${turno ? turno.nome : 'DSR'} onClick=${aberto ? () => setAberto(null) : abrir}>
-      <${Quadrado} cor=${turno?.cor} dsr=${dsr} /><span class="ea-turno-nome">${turno ? turno.nome : 'DSR'}</span><${Icone} nome="expand_more" />
+    <button type="button" class=${`ea-turno-btn ${dsr ? 'is-dsr' : ''}`} aria-label=${rotuloAria} aria-haspopup="menu" aria-expanded=${!!aberto} disabled=${desabilitado} title=${turno ? turno.nome : 'Sem escala neste dia (DSR, folga ou sem turno)'} onClick=${aberto ? () => setAberto(null) : abrir}>
+      <${Quadrado} cor=${turno?.cor} dsr=${dsr} /><span class="ea-turno-nome">${turno ? turno.nome : '—'}</span><${Icone} nome="expand_more" />
     </button>
     ${aberto ? html`<div class="ea-turno-menu" role="menu" style=${{ left: `${aberto.x}px`, top: `${aberto.y}px` }}>
       ${turnos.map((t) => html`<button type="button" role="menuitemradio" aria-checked=${t.id_turno === turno?.id_turno} key=${t.id_turno} class=${`ea-turno-item ${t.id_turno === turno?.id_turno ? 'is-ativo' : ''}`} onClick=${() => escolher(String(t.id_turno))}>
-        <${Quadrado} cor=${t.cor} /><span class="ea-turno-nome">${t.nome}</span><span class="ea-muted ea-num">${faixaTurno(t)}</span></button>`)}
+        <${Quadrado} cor=${t.cor} /><span class="ea-turno-nome">${t.nome}</span><span class="ea-muted ea-num" title=${data && !diaDoTurno(t, data) ? `Fora dos dias do turno (${t.dias_rotulo}): fica como ajuste manual` : undefined}>${faixaTurno(t)}${data && !diaDoTurno(t, data) ? ' · fora dos dias' : ''}</span></button>`)}
       <button type="button" role="menuitemradio" aria-checked=${dsr} class=${`ea-turno-item ${dsr ? 'is-ativo' : ''}`} onClick=${() => escolher('')}><${Quadrado} dsr=${true} /><span class="ea-turno-nome">DSR</span><span class="ea-muted">sem turno</span></button>
     </div>` : null}
   </span>`;

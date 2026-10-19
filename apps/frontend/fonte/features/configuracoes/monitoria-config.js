@@ -14,7 +14,7 @@ import {
   transferirSupervisao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
-import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261019-pausas';
+import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261020-dias';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e

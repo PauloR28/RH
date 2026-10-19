@@ -1,12 +1,12 @@
 import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
 import { LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261019-pausas';
+import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { minutosParaHoras } from './comum.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
-import { Icone } from './escala-ui.js?v=20261019-pausas';
+import { Icone } from './escala-ui.js?v=20261020-e5';
 
 // Jornadas: limites do motor de regras (jornada diária, interjornada, dias seguidos) e pausas obrigatórias.
 // Administrador e Control Desk editam; os demais perfis só consultam.

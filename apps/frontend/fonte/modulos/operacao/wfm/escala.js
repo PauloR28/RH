@@ -11,14 +11,14 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261019-pausas';
+} from '../../../services/api/wfm.js?v=20261020-dias';
 import { dataHora, infoDia, minutosParaHoras } from './comum.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { OutrasEscalas } from './outras.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, doIso, paraIso, semAcento } from './escala-ui.js?v=20261019-pausas';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento } from './escala-ui.js?v=20261020-e5';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -156,6 +156,12 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const t = turnosPorId[idTurnoDe(idOp, d)];
     return t?.tipo === 'TRABALHO' ? { min: acc.min + (t.minutos || 0), dias: acc.dias + 1 } : acc;
   }, { min: 0, dias: 0 });
+  // Ao escolher o turno no padrão semanal, os dias da semana dele já vêm marcados (dá para ajustar à mão: dia fora do turno fica como ajuste manual).
+  const diasDoTurnoSelecionado = (idTurno, atuais) => {
+    const t = turnosPorId[Number(idTurno)];
+    if (!t || t.tipo !== 'TRABALHO' || !Array.isArray(t.weekdays) || atuais.some(Boolean)) return atuais;
+    return Array.from({ length: 7 }, (_, i) => t.weekdays.includes(i));
+  };
   const alvosDoPadrao = () => (visiveis.filter((o) => selecionados[o.id_usuario]).length ? visiveis.filter((o) => selecionados[o.id_usuario]) : visiveis);
   const aplicarPadrao = () => {
     const alvos = alvosDoPadrao();
@@ -252,13 +258,16 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   // Aplicar turno (barra em massa): troca o turno dos dias de TRABALHO dos selecionados; DSR/folga ficam como estão. Fica pendente até salvar.
   const aplicarTurnoMassa = () => {
     if (turnoMassa === '') { showToast?.('Escolha o turno que será atribuído.', 'info'); return; }
-    let dias = 0;
+    let dias = 0; let fora = 0;
+    const alvo = turnosPorId[Number(turnoMassa)];
     selecionadosVis.forEach((op) => dados.dias.forEach((d) => {
       if (turnosPorId[idTurnoDe(op.id_usuario, d)]?.tipo !== 'TRABALHO') return;
+      // O turno só vale nos dias da semana dele: nos outros dias o operador segue com o turno que já tinha.
+      if (!diaDoTurno(alvo, d)) { fora += 1; return; }
       mudar(op.id_usuario, d, Number(turnoMassa));
       dias += 1;
     }));
-    showToast?.(`Turno aplicado a ${selecionadosVis.length} operador(es) em ${dias} dia(s) de trabalho (DSR preservado). Revise e clique em "Salvar alterações".`, 'success');
+    showToast?.(`Turno aplicado a ${selecionadosVis.length} operador(es) em ${dias} dia(s) de trabalho (DSR preservado)${fora ? `; ${fora} dia(s) fora dos dias do turno (${alvo?.dias_rotulo || ''}) ficaram como estavam` : ''}. Revise e clique em "Salvar alterações".`, 'success');
   };
   // Setas movem o foco entre as células (tabindex móvel); Enter/Espaço abrem a gaveta pelo próprio botão.
   const aoTeclarGrade = (e) => {
@@ -353,10 +362,11 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
                     const t = turnosPorId[idTurnoDe(op.id_usuario, d)];
                     const dsr = !t || t.tipo === 'DSR';
                     const inf = infoDia(d);
-                    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${inf.dia}, ${dsr ? 'DSR' : t.nome}${pend ? ', alteração não salva' : ''}`;
+                    const manual = !dsr && (pend ? !diaDoTurno(t, d) : !!itensPorChave[chave]?.manual);
+                    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${inf.dia}, ${dsr ? 'DSR' : t.nome}${manual ? ', configurado à mão fora dos dias do turno' : ''}${pend ? ', alteração não salva' : ''}`;
                     const sel = celSel?.id === op.id_usuario && celSel?.data === d;
                     const aberta = gaveta?.id === op.id_usuario && gaveta?.data === d;
-                    const classe = `ea-cel ${dsr ? 'is-dsr' : ''} ${aberta || sel ? 'is-aberta' : ''}`;
+                    const classe = `ea-cel ${dsr ? 'is-dsr' : ''} ${manual ? 'is-manual' : ''} ${aberta || sel ? 'is-aberta' : ''}`;
                     const estilo = !dsr && t.cor ? { '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) } : undefined;
                     return html`<div key=${d} role="gridcell" aria-selected=${editavel ? sel : undefined} class=${`ea-g-cel ${inf.fimDeSemana ? 'is-fds' : ''} ${d === hojeIso ? 'is-hoje' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : (dsr ? undefined : t.nome)}>
                       ${editavel
@@ -423,7 +433,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           <div class="wfm-regras">
             ${padrao.regras.map((r, i) => html`<div class="wfm-regra" key=${i}>
               <label class="mon-campo"><span>Turno</span>
-                <select class="form-select" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value } : x)) })}>
+                <select class="form-select" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurnoSelecionado(e.target.value, x.dias) } : x)) })}>
                   <option value="">Escolher turno</option>${dados.turnos.filter((t) => t.ativo !== false).map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>
               <div class="mon-campo"><span>Dias da semana</span>
                 <${SeletorDias} dias=${r.dias} aoMudar=${(dias) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, dias } : x)) })} /></div>

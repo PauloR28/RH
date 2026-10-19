@@ -25,6 +25,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_export import gerar_csv, gerar_xlsx
@@ -253,7 +254,7 @@ class WfmEscalaRepositoryMixin:
             elif ids:
                 marcadores = ",".join("?" for _ in ids)
                 cursor.execute(
-                    f"SELECT id_operador, data, id_turno, versao_linha, atualizado_por, atualizado_em, entrada_ajuste, saida_ajuste FROM dbo.wfm_escala_itens "
+                    f"SELECT id_operador, data, id_turno, versao_linha, atualizado_por, atualizado_em, entrada_ajuste, saida_ajuste, manual FROM dbo.wfm_escala_itens "
                     f"WHERE operacao = ? AND ano_mes = ? AND id_operador IN ({marcadores})",
                     (operacao, ano_mes, *ids),
                 )
@@ -264,6 +265,7 @@ class WfmEscalaRepositoryMixin:
                             "versao_linha": int(r[3]), "atualizado_por": normalize_text(r[4]) or None,
                             "atualizado_em": r[5].isoformat() if r[5] else None,
                             "entrada_ajuste": normalize_text(r[6]) or None, "saida_ajuste": normalize_text(r[7]) or None,
+                            "manual": bool(r[8]),
                         }
                     )
             turnos = self.wfm_list_turnos(user, operacao, incluir_excluidos=True)  # excluídos só entram se aparecem no histórico
@@ -386,6 +388,8 @@ class WfmEscalaRepositoryMixin:
             cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND ativo = 1", (operacao,))
             turnos_ativos = {int(r[0]) for r in cursor.fetchall()}
             personalizados = self._wfm_personalizacoes_mapa(cursor, operacao)
+            cursor.execute("SELECT id_turno, weekdays FROM dbo.wfm_turnos WHERE operacao = ?", (operacao,))
+            dias_do_turno = {int(r[0]): dias_semana.dias_de_texto(r[1]) for r in cursor.fetchall()}
             todos_operadores = self._wfm_todos_operadores(cursor, operacao)
             operadores = {op["id_usuario"] for op in todos_operadores}
             nomes_operadores = {op["id_usuario"]: op["nome"] for op in todos_operadores}
@@ -413,7 +417,7 @@ class WfmEscalaRepositoryMixin:
                     if id_turno not in turnos_ativos:
                         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Turno inválido ou inativo para esta operação.")
                 cursor.execute(
-                    "SELECT id_item, id_turno, versao_linha, atualizado_por, atualizado_em, entrada_ajuste, saida_ajuste FROM dbo.wfm_escala_itens "
+                    "SELECT id_item, id_turno, versao_linha, atualizado_por, atualizado_em, entrada_ajuste, saida_ajuste, manual FROM dbo.wfm_escala_itens "
                     "WHERE operacao = ? AND id_operador = ? AND data = ?",
                     (operacao, id_operador, data),
                 )
@@ -452,7 +456,12 @@ class WfmEscalaRepositoryMixin:
                         choque = self._wfm_conflito_outras_escalas(cursor, operacao, id_operador, nomes_operadores.get(id_operador, "O colaborador"), data, ent_efetiva, sai_efetiva)
                         if choque:
                             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=choque)
-                mudancas.append(("upsert" if id_turno else "remover", {"id_operador": id_operador, "data": data, "atual": atual, "id_turno": id_turno, "ajuste": ajuste}, antes, depois))
+                # Ajuste manual vence o padrão: dia fora dos dias do turno é sempre "configurado à mão".
+                manual = False
+                if id_turno is not None and turnos[id_turno].tipo == "TRABALHO":
+                    manual = bool(item.get("manual")) or data.weekday() not in dias_do_turno.get(id_turno, dias_semana.TODOS_DIAS)                         or bool(atual and int(atual[1]) == id_turno and atual[7])
+                mudancas.append(("upsert" if id_turno else "remover", {"id_operador": id_operador, "data": data, "atual": atual, "id_turno": id_turno, "ajuste": ajuste, "manual": manual}, antes, depois))
+            self._wfm_validar_escalas_por_dia(cursor, operacao, ano_mes, mudancas, turnos, dias_do_turno, nomes_operadores)
             if conflitos:
                 conn.rollback()
                 raise HTTPException(
@@ -466,13 +475,13 @@ class WfmEscalaRepositoryMixin:
                 elif alvo["atual"]:
                     cursor.execute(
                         "UPDATE dbo.wfm_escala_itens SET id_turno = ?, versao_linha = versao_linha + 1, atualizado_por = ?, "
-                        "atualizado_em = GETDATE(), ano_mes = ?, entrada_ajuste = ?, saida_ajuste = ? WHERE id_item = ?",
-                        (alvo["id_turno"], autor, ano_mes, (alvo["ajuste"] or (None, None))[0], (alvo["ajuste"] or (None, None))[1], int(alvo["atual"][0])),
+                        "atualizado_em = GETDATE(), ano_mes = ?, entrada_ajuste = ?, saida_ajuste = ?, manual = ? WHERE id_item = ?",
+                        (alvo["id_turno"], autor, ano_mes, (alvo["ajuste"] or (None, None))[0], (alvo["ajuste"] or (None, None))[1], 1 if alvo["manual"] else 0, int(alvo["atual"][0])),
                     )
                 else:
                     cursor.execute(
-                        "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, atualizado_por, entrada_ajuste, saida_ajuste) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        (operacao, ano_mes, alvo["id_operador"], alvo["data"], alvo["id_turno"], autor, (alvo["ajuste"] or (None, None))[0], (alvo["ajuste"] or (None, None))[1]),
+                        "INSERT INTO dbo.wfm_escala_itens (operacao, ano_mes, id_operador, data, id_turno, atualizado_por, entrada_ajuste, saida_ajuste, manual) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (operacao, ano_mes, alvo["id_operador"], alvo["data"], alvo["id_turno"], autor, (alvo["ajuste"] or (None, None))[0], (alvo["ajuste"] or (None, None))[1], 1 if alvo["manual"] else 0),
                     )
                 self._wfm_invalidar_trocas(cursor, user, operacao, alvo["id_operador"], alvo["data"])
                 self.wfm_audit(
@@ -485,6 +494,38 @@ class WfmEscalaRepositoryMixin:
             return {"success": True, "alteradas": len(mudancas)}
         finally:
             conn.close()
+
+    def _wfm_validar_escalas_por_dia(self, cursor, operacao: str, ano_mes: str, mudancas, turnos, dias_do_turno, nomes) -> None:
+        """Até 4 escalas (turnos em dias diferentes) por operador e dias sem repetição entre elas. Só bloqueia quando esta
+        gravação introduz um turno novo para o operador no mês; dias manuais (fora dos dias do turno) não contam."""
+        por_operador: dict[int, list[dict]] = {}
+        for tipo, alvo, _antes, _depois in mudancas:
+            por_operador.setdefault(alvo["id_operador"], []).append(alvo)
+        mensagens: list[str] = []
+        for id_op, alvos in por_operador.items():
+            cursor.execute(
+                "SELECT data, id_turno, manual FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ? AND id_operador = ?",
+                (operacao, ano_mes, id_op),
+            )
+            antes = {r[0]: (int(r[1]), bool(r[2])) for r in cursor.fetchall()}
+            depois = dict(antes)
+            for a in alvos:
+                if a["id_turno"] is None:
+                    depois.pop(a["data"], None)
+                else:
+                    depois[a["data"]] = (a["id_turno"], a["manual"])
+
+            def escalas(estado):
+                ids = {t for t, manual in estado.values() if not manual and t in turnos and turnos[t].tipo == "TRABALHO"}
+                return [dias_semana.EscalaDoOperador(t, turnos[t].codigo, dias_do_turno.get(t, dias_semana.TODOS_DIAS)) for t in sorted(ids)]
+
+            novas = escalas(depois)
+            introduzidos = {e.id_turno for e in novas} - {e.id_turno for e in escalas(antes)}
+            if not introduzidos:
+                continue
+            mensagens += dias_semana.validar_escalas_do_operador(novas, nomes.get(id_op, "O colaborador"))
+        if mensagens:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"mensagem": " ".join(mensagens), "erros": mensagens})
 
     # ------------------------------------------------------------------
     # Validação pelo motor de regras
