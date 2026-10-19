@@ -50,7 +50,10 @@ export function abaInicialWfm(controlador) {
   return ordem.find((t) => controlador.podeAcessarTela(t)) || 'screen-wfm';
 }
 
-export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
+export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
+  // Operador/técnicos (só a própria escala, sem editar/criar) não veem a aba Escala: ficam com Minhas escalas e Trocas.
+  const soParticipante = controlador.possuiPermissao('wfm.escala.propria') && !controlador.possuiPermissao('wfm.escala.editar') && !controlador.possuiPermissao('wfm.escala.criar');
+  const telaAtual = soParticipante && telaPedida === 'screen-wfm' ? 'screen-wfm-minha-escala' : telaPedida;
   const { showToast, ToastHost } = useToast();
   const { contexto, erro, recarregar: recarregarContexto } = useContextoWfm();
   const [operacao, setOperacao] = useState('');
@@ -75,7 +78,7 @@ export function TelaWfm({ controlador, telaAtual = 'screen-wfm' }) {
 
   // "Minhas escalas" segue a permissão wfm.escala.propria: quem pode ser escalado (Operador, Técnicos e Analista de TI).
   // Jornadas vive dentro de Cadastros (alternador no topo da tela): uma aba a menos na barra.
-  const abas = ABAS_WFM.filter((a) => controlador.possuiPermissao(a.permissao) && a.tela !== 'screen-wfm-jornadas');
+  const abas = ABAS_WFM.filter((a) => controlador.possuiPermissao(a.permissao) && a.tela !== 'screen-wfm-jornadas' && !(soParticipante && a.tela === 'screen-wfm'));
   const abaAtiva = telaAtual === 'screen-wfm-jornadas' ? 'screen-wfm-cadastros' : telaAtual;
   const emConfig = ['screen-wfm-cadastros', 'screen-wfm-jornadas'].includes(telaAtual);
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-wfm'];
