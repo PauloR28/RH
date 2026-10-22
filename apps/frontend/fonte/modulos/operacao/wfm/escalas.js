@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { Campo, ModalForm } from './formulario.js';
-import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
 

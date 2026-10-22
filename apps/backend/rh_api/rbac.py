@@ -408,6 +408,13 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("wfm.troca.solicitar", "WFM", "Solicitar troca de plantão e responder pedidos de colegas (Operador).", critical=True),
         _permission("wfm.troca.aprovar", "WFM", "Aprovar ou reprovar trocas de plantão (Supervisor, Control Desk, Gestor/RH).", critical=True),
         _permission("wfm.troca.desfazer", "WFM", "Desfazer uma troca já aprovada, com justificativa.", critical=True),
+        # Controle de Equipes e Turnos (22/out/2026): visão do Supervisor sobre a própria equipe. Valores iniciais editáveis em Perfis e Permissões.
+        _permission("sessao.equipe.acessar", "Sessões", "Acessar a sessão Controle de Equipes e Turnos."),
+        _permission("equipes.controle.visualizar", "Equipes", "Abrir o Controle de Equipes e Turnos (equipe, turno, presença, monitorias, escala e horários da própria equipe)."),
+        _permission("equipes.membros.editar", "Equipes", "Adicionar e remover operadores da própria equipe (reflete no cadastro do operador).", critical=True),
+        _permission("equipes.mural.publicar", "Equipes", "Publicar no Mural direto nas intranets das operações da própria equipe.", critical=True),
+        # Ambiente > Segurança (senha) para usuários que não são da TI: a aba só aparece com esta chave.
+        _permission("ambiente.seguranca", "Configurações", "Ver a aba Segurança (alterar senha) em Configurações > Ambiente."),
         # Chamados (Suporte TI), módulo Tecnologia. Nenhum perfil é fixo no código: estes são só os valores iniciais.
         _permission("chamados.abrir", "Chamados", "Ver o menu Suporte TI, abrir chamados e acompanhar os próprios."),
         _permission("chamados.ver_operacao", "Chamados", "Ver e comentar chamados de qualquer operação à qual o usuário pertence."),
@@ -699,6 +706,7 @@ SESSION_MODULES: dict[str, set[str]] = {
     "gestao": {"Relatórios", "Calendário"},
     "drive": {"OneDrive", "Documentos"},
     "treinamentos": {"Onboarding"},
+    "equipe": {"Equipes"},
     "configuracoes": {"Configurações", "Usuários", "LGPD", "E-mails", "Templates de Documentos", "Central de Ajuda", "Logs", "Políticas"},
 }
 # O Supervisor trabalha em Treinamentos e Monitoria (promt.txt §3.3): as sessões de RH
@@ -804,6 +812,12 @@ ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"chamados.abrir", "c
 for _papel in PERFIS_TI:
     ROLE_PERMISSIONS.setdefault(_papel, set()).update({"chamados.atender", "chamados.atribuir", "chamados.dashboard"})
 
+# Controle de Equipes e Turnos: Supervisor gere a própria equipe; Control Desk e Gestor/RH consultam (escolhem o supervisor).
+_EQUIPES_LEITURA = {"sessao.equipe.acessar", "equipes.controle.visualizar"}
+ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update(_EQUIPES_LEITURA | {"equipes.membros.editar", "equipes.mural.publicar"})
+for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
+    ROLE_PERMISSIONS.setdefault(_papel, set()).update(_EQUIPES_LEITURA)
+
 SCREEN_PERMISSIONS.update(
     {
         "screen-monitoria": "monitoria.visualizar",
@@ -823,6 +837,7 @@ SCREEN_PERMISSIONS.update(
 
 SCREEN_PERMISSIONS.update(
     {
+        "screen-equipes-controle": "equipes.controle.visualizar",
         "screen-wfm": "wfm.escala.visualizar",
         "screen-wfm-minha-escala": "wfm.escala.propria",
         "screen-wfm-presenca": "wfm.presenca.lancar",

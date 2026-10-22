@@ -23,7 +23,6 @@ export function CabecalhoConsole({ sobretitulo, titulo, subtitulo, acoes = null,
         ${subtitulo ? html`<p class="cx-sub">${subtitulo}</p>` : null}
       </div>
       ${acoes ? html`<div class="cx-cab-acoes">${acoes}</div>` : null}
-      ${busca ? html`<div class="cx-cab-busca" data-tour-id="topbar-search">${busca}</div>` : null}
     </header>`;
 }
 

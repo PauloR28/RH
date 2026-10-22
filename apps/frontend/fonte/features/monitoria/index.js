@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261010-guia';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261022-equipes';
 import { IconeSvg } from '../../ui/icone.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
@@ -131,6 +131,7 @@ const SESSOES = [
   { id: 'drive', titulo: 'Drive', icone: 'cloud', desc: 'Arquivos e documentos.', telas: ['screen-onedrive-files'] },
   { id: 'treinamentos', titulo: 'Central de Treinamento', icone: 'school', desc: 'Treinamentos, trilhas e atribuições.', telas: ['screen-training', 'screen-training-mine', 'screen-training-trilhas'] },
   { id: 'monitoria', titulo: 'Monitorias', icone: 'fact_check', desc: 'Avaliações de qualidade, feedback e indicadores.', telas: ['__monitoria__'] },
+  { id: 'equipe', titulo: 'Equipes e Turnos', icone: 'groups', desc: 'Sua equipe, presença, monitorias, escala, horários e mural.', telas: ['screen-equipes-controle'] },
   { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-relatorios', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];

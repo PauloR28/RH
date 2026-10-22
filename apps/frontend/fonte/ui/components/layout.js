@@ -1,7 +1,7 @@
 import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
 import { BuscaGlobalTopbar } from '../busca-global.js';
 import { obterTourDaTela } from '../../shared/tour-config.js';
-import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261010-guia';
+import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261022-guia';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261010-guia';
@@ -171,6 +171,7 @@ export function BarraLateral({
   ];
   const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
   const sublinksWfm = [
+    { tela: 'screen-equipes-controle', icone: 'groups', label: 'Equipes e Turnos', permissao: 'equipes.controle.visualizar' },
     { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minhas escalas', permissao: 'wfm.escala.propria' },
     { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
@@ -927,6 +928,9 @@ export function BarraLateral({
       </nav>
 
       <div class="rh-modern-topnav-user">
+        <div class="rh-topnav-search" data-tour-id="topbar-search">
+          <${BuscaGlobalTopbar} placeholderBusca=${placeholderBusca || 'Pesquisar'} controlador=${controlador} />
+        </div>
         <${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />
       </div>
     </header>
@@ -968,7 +972,7 @@ export function PageIntro({
   ].filter(Boolean);
 
   return html`
-    <section class=${`rh-page-intro ${buscaPagina ? 'has-search' : ''}`.trim()} data-tour-id=${tourId || null}>
+    <section class="rh-page-intro" data-tour-id=${tourId || null}>
       <div class="rh-page-intro-heading">
         ${kicker ? html`<p class="rh-modern-kicker">${kicker}</p>` : null}
         <h2 class="rh-modern-title">${title}</h2>
@@ -976,16 +980,6 @@ export function PageIntro({
       ? html`<p class="rh-modern-description">${description}</p>`
       : null}
       </div>
-      ${buscaPagina
-      ? html`
-          <div class="rh-page-search" data-tour-id="topbar-search">
-            <${BuscaGlobalTopbar}
-              placeholderBusca=${buscaPagina.placeholderBusca}
-              controlador=${buscaPagina.controlador}
-            />
-          </div>
-        `
-      : null}
       ${acoesCombinadas.length
       ? html`<div class="rh-page-intro-actions">${acoesCombinadas}</div>`
       : null}
@@ -1440,24 +1434,17 @@ export function PainelRh({
           controlador=${controlador}
           mostrarAtalhos=${mostrarAtalhos}
           onOpenHelp=${abrirTour}
-          mostrarAjuda=${Boolean(tour?.steps?.length) && orientacoesAtivas()}
+          mostrarAjuda=${false}
         />
 
         <div class="rh-modern-main">
           <main class="rh-modern-page" ref=${paginaRef}>
-            ${semIntro && !semBusca
-      ? html`
-                  <div class="rh-page-search rh-page-search--solo" data-tour-id="topbar-search">
-                    <${BuscaGlobalTopbar} placeholderBusca=${placeholderBusca} controlador=${controlador} />
-                  </div>
-                `
-      : null}
             <${BuscaPaginaContext.Provider} value=${buscaPaginaContexto}>
               <${AcoesPaginaContext.Provider} value=${acaoPaginaContexto}>
                 ${children}
               </${AcoesPaginaContext.Provider}>
             </${BuscaPaginaContext.Provider}>
-            ${tour?.steps?.length && orientacoesAtivas()
+            ${false
       ? html`
                   <${TourGuiado}
                     screenId=${screenId}

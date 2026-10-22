@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';

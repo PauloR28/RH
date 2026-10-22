@@ -20,7 +20,8 @@ const ouvintesOrientacoes = new Set();
 const notificarOrientacoes = () => ouvintesOrientacoes.forEach((fn) => fn());
 
 export function orientacoesAtivas() {
-  return orientacoesGlobais;
+  // Guia rápido desativado: não abre sozinho nem pelo menu (decisão do RH, 22/out/2026).
+  return false;
 }
 
 export async function carregarOrientacoesGlobais(forcar = false) {

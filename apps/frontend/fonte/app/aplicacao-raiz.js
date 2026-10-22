@@ -6,7 +6,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261010-guia';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261022-equipes';
 import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261014-funcoes2';
 import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261014-funcoes';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
@@ -115,11 +115,12 @@ const importarMonitoria = () => import('../features/monitoria/index.js?v=2026101
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
+const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261022-equipes'), 'TelaEquipesControle');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261019-tr'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes3'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20260929-excluir-bold'), 'TelaMural');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261022-equipes'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
   () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),
@@ -373,6 +374,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-settings-monitoria') {
     return html`<${TelaCentralMonitoriaConfig} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-equipes-controle') {
+    return html`<${TelaEquipesControle} controlador=${controlador} />`;
   }
 
   if (telaResolvida.startsWith('screen-wfm')) {

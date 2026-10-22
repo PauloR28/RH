@@ -756,3 +756,41 @@
 @media (prefers-reduced-motion: reduce) { .cx-seta { transition: none; } }
 .cx-hist-tabela .cx-btn--texto { white-space: nowrap; }
 @media (max-width: 1099.98px) { .cx-hist-ad { display: none; } .cx-hist-tabela { min-width: 760px; } }
+
+/* ---- Controle de Equipes e Turnos (Supervisor) ---- */
+.eq-aba { display: flex; flex-direction: column; gap: 24px; padding-top: 16px; min-width: 0; }
+.eq-resumos { margin: 0; }
+.eq-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; min-width: 0; }
+.eq-card-cab { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 8px 24px; border-bottom: 1px solid var(--color-border); }
+.eq-card-titulo { margin: 0; font-size: 1rem; line-height: 24px; font-weight: 600; color: var(--color-text); }
+.eq-tabela-rolagem { overflow: auto; max-height: 480px; }
+.eq-nome { display: block; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eq-sub { display: block; font-size: 0.733rem; color: var(--color-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eq-acoes { text-align: right; }
+.eq-texto { margin: 0; color: var(--color-text-soft); font-size: 0.867rem; }
+.eq-modal { display: flex; flex-direction: column; gap: 16px; min-width: min(480px, 100%); }
+.eq-lista { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow: auto; border: 1px solid var(--color-border); border-radius: 8px; }
+.eq-lista-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); }
+.eq-lista-item:last-child { border-bottom: 0; }
+.eq-lista-nome { display: flex; flex-direction: column; min-width: 0; }
+.eq-lista-nome small { color: var(--color-text-soft); font-size: 0.733rem; }
+.eq-filtro { display: flex; gap: 16px; }
+.eq-filtro-campo { width: 240px; max-width: 100%; margin: 0; }
+.mural-embutido { display: flex; flex-direction: column; gap: 16px; padding-top: 16px; min-width: 0; }
+
+/* ---- Busca global na navbar ---- */
+.rh-topnav-search { flex: 0 1 280px; width: clamp(160px, 18vw, 280px); min-width: 0; margin-right: 16px; }
+.rh-topnav-search .rh-global-search { width: 100%; }
+.rh-topnav-search .rh-modern-search-shell { min-width: 0; min-height: 40px; padding-left: 12px; }
+.rh-topnav-search .rh-global-search-shortcut { display: none; }
+.rh-topnav-search .rh-global-search-panel { left: auto; right: 0; width: min(420px, 92vw); }
+@media (max-width: 991.98px) {
+  /* Recolhida: só a lupa. Ao receber foco (toque ou teclado) abre sobre a barra, alinhada à direita. */
+  .rh-topnav-search { position: relative; flex: 0 0 40px; width: 40px; margin-right: 8px; }
+  .rh-topnav-search .rh-global-search { position: absolute; top: 50%; right: 0; width: 40px; transform: translateY(-50%); }
+  .rh-topnav-search .rh-modern-search-shell { width: 40px; padding: 0 0 0 8px; overflow: hidden; }
+  .rh-topnav-search .rh-modern-search-shell input { position: absolute; inset: 0; width: 100%; padding: 0; opacity: 0; cursor: pointer; }
+  .rh-topnav-search .rh-global-search:focus-within { z-index: 2; width: min(280px, calc(100vw - 32px)); }
+  .rh-topnav-search .rh-global-search:focus-within .rh-modern-search-shell { width: 100%; padding-left: 12px; overflow: visible; background: var(--color-surface); }
+  .rh-topnav-search .rh-global-search:focus-within .rh-modern-search-shell input { position: static; opacity: 1; cursor: text; }
+}

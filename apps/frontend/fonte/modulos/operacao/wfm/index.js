@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
 import { useToast } from '../../../shared/hooks/use-toast.js';

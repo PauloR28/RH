@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { listarUsuarios } from '../../services/api/settings.js';
 import {
   aplicarLoteModulos,

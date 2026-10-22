@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState } from '../../../ui/componentes-compartilhados.js';
-import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { IconeSvg } from '../../../ui/icone.js';
 import {

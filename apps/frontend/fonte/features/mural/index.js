@@ -25,6 +25,20 @@ import {
   uploadImagemMural,
 } from '../../services/api/mural.js';
 
+// API do Mural usada pela tela. O padrão é o Mural do RH (/mural); a aba Mural de "Controle de Equipes e Turnos"
+// injeta a versão com escopo da operação do supervisor (/equipes/mural).
+export const API_MURAL_GLOBAL = {
+  listar: listarMural,
+  ambientes: listarAmbientesMural,
+  criar: criarPublicacaoMural,
+  atualizar: atualizarPublicacaoMural,
+  arquivar: arquivarPublicacaoMural,
+  restaurar: restaurarPublicacaoMural,
+  publicar: publicarMural,
+  excluir: excluirPublicacaoMural,
+  upload: uploadImagemMural,
+};
+
 const CATEGORIAS_MURAL = ['Aviso', 'Comunicado', 'Evento', 'Campanha', 'Institucional'];
 
 // Prompt.txt (23/set/2026): um emoji fixo por categoria, sempre antes do texto,
@@ -79,7 +93,7 @@ function montarConteudoSomenteImagem(imagens) {
     .join('');
 }
 
-function UploaderImagensMural({ imagens = [], onChange, disabled = false }) {
+function UploaderImagensMural({ imagens = [], onChange, disabled = false, upload = uploadImagemMural }) {
   const [enviando, setEnviando] = useState(false);
   const { showToast, ToastHost } = useToast();
 
@@ -89,7 +103,7 @@ function UploaderImagensMural({ imagens = [], onChange, disabled = false }) {
     if (!arquivo) return;
     setEnviando(true);
     try {
-      const resultado = await uploadImagemMural(arquivo);
+      const resultado = await upload(arquivo);
       onChange([...(imagens || []), resultado.url]);
     } catch (error) {
       showToast(error?.message || 'Não foi possível enviar a imagem.', 'danger');
@@ -237,12 +251,12 @@ function PublicacaoCard({ publicacao, podeEditar, podeExcluir, modoLista = false
   `;
 }
 
-export function TelaMural({ controlador }) {
+export function TelaMural({ controlador, embutido = false, api = API_MURAL_GLOBAL, rotuloAmbientes = 'Publicar também nestas intranets (SharePoint)' }) {
   const { showToast, ToastHost } = useToast();
-  const podeVisualizar = controlador.possuiPermissao('mural.visualizar');
-  const podeCriar = controlador.possuiPermissao('mural.criar');
-  const podeEditar = controlador.possuiPermissao('mural.editar');
-  const podeExcluir = controlador.possuiPermissao('mural.excluir');
+  const podeVisualizar = embutido ? true : controlador.possuiPermissao('mural.visualizar');
+  const podeCriar = embutido ? true : controlador.possuiPermissao('mural.criar');
+  const podeEditar = embutido ? true : controlador.possuiPermissao('mural.editar');
+  const podeExcluir = embutido ? true : controlador.possuiPermissao('mural.excluir');
 
   const [carregando, setCarregando] = useState(true);
   const [publicacoes, setPublicacoes] = useState([]);
@@ -265,8 +279,8 @@ export function TelaMural({ controlador }) {
     setCarregando(true);
     try {
       const [resultadoFeed, resultadoAmbientes] = await Promise.allSettled([
-        listarMural(statusFiltro),
-        podeCriar || podeEditar ? listarAmbientesMural() : Promise.resolve({ itens: [] }),
+        api.listar(statusFiltro),
+        podeCriar || podeEditar ? api.ambientes() : Promise.resolve({ itens: [] }),
       ]);
       setPublicacoes(resultadoFeed.status === 'fulfilled' ? resultadoFeed.value?.itens || [] : []);
       setAmbientesDisponiveis(resultadoAmbientes.status === 'fulfilled' ? resultadoAmbientes.value?.itens || [] : []);
@@ -374,10 +388,10 @@ export function TelaMural({ controlador }) {
     setSalvando(true);
     try {
       const resultado = publicacaoEmEdicao
-        ? await atualizarPublicacaoMural(publicacaoEmEdicao.id_publicacao, payload)
-        : await criarPublicacaoMural(payload);
+        ? await api.atualizar(publicacaoEmEdicao.id_publicacao, payload)
+        : await api.criar(payload);
       if (publicarAgora) {
-        await publicarMural(resultado.id_publicacao, form.ambientes);
+        await api.publicar(resultado.id_publicacao, form.ambientes);
       }
       showToast(publicarAgora ? 'Publicação enviada para as intranets.' : 'Publicação salva.', 'success');
       setModalAberto(false);
@@ -391,7 +405,7 @@ export function TelaMural({ controlador }) {
 
   const fixarPublicacao = async (publicacao) => {
     try {
-      await atualizarPublicacaoMural(publicacao.id_publicacao, {
+      await api.atualizar(publicacao.id_publicacao, {
         titulo: publicacao.titulo,
         resumo: publicacao.resumo,
         conteudo_html: publicacao.conteudo_html,
@@ -409,7 +423,7 @@ export function TelaMural({ controlador }) {
   const publicarExistente = async (publicacao) => {
     try {
       const idsAmbientes = (publicacao.ambientes || []).map((ambiente) => ambiente.id_ambiente);
-      await publicarMural(publicacao.id_publicacao, idsAmbientes.length ? idsAmbientes : ambientesDisponiveis.map((a) => a.id_ambiente));
+      await api.publicar(publicacao.id_publicacao, idsAmbientes.length ? idsAmbientes : ambientesDisponiveis.map((a) => a.id_ambiente));
       showToast('Publicação enviada para as intranets.', 'success');
       await carregar();
     } catch (error) {
@@ -419,7 +433,7 @@ export function TelaMural({ controlador }) {
 
   const arquivarExistente = async (publicacao) => {
     try {
-      await arquivarPublicacaoMural(publicacao.id_publicacao);
+      await api.arquivar(publicacao.id_publicacao);
       showToast('Publicação arquivada.', 'success');
       await carregar();
     } catch (error) {
@@ -429,7 +443,7 @@ export function TelaMural({ controlador }) {
 
   const restaurarExistente = async (publicacao) => {
     try {
-      await restaurarPublicacaoMural(publicacao.id_publicacao);
+      await api.restaurar(publicacao.id_publicacao);
       showToast('Publicação restaurada.', 'success');
       await carregar();
     } catch (error) {
@@ -440,7 +454,7 @@ export function TelaMural({ controlador }) {
   const confirmarExclusao = async () => {
     if (!publicacaoParaExcluir) return;
     try {
-      await excluirPublicacaoMural(publicacaoParaExcluir.id_publicacao);
+      await api.excluir(publicacaoParaExcluir.id_publicacao);
       showToast('Publicação excluída.', 'success');
       setPublicacaoParaExcluir(null);
       await carregar();
@@ -457,10 +471,12 @@ export function TelaMural({ controlador }) {
     `;
   }
 
+  const Contorno = embutido ? 'div' : PainelRh;
+  const propsContorno = embutido ? { class: 'mural-embutido' } : { screenId: 'screen-mural', navAtiva: 'screen-mural', subtituloMarca: 'Mural', placeholderBusca: 'Mural', controlador };
   return html`
-    <${PainelRh} screenId="screen-mural" navAtiva="screen-mural" subtituloMarca="Mural" placeholderBusca="Mural" controlador=${controlador}>
+    <${Contorno} ...${propsContorno}>
       <${ToastHost} />
-      <${PageIntro}
+      ${embutido ? null : html`<${PageIntro}
         kicker="Gestão"
         title="Mural"
         description="Avisos e comunicados do RH, publicados aqui e (opcionalmente) nas intranets do SharePoint."
@@ -472,9 +488,11 @@ export function TelaMural({ controlador }) {
               </button>
             `
           : null}
-      />
+      />`}
 
       <div class="mural-toolbar">
+        ${embutido && podeCriar ? html`<button type="button" class="btn btn-primary" onClick=${abrirNovaPublicacao}>
+          <span class="material-symbols-outlined">${IconeSvg('add')}</span>Nova publicação</button>` : null}
         ${podeEditar
           ? html`
               <div class="mural-filtros" role="group" aria-label="Status da publicação">
@@ -670,6 +688,7 @@ export function TelaMural({ controlador }) {
                 <div class="form-field">
                   <span class="form-label">${tipoPublicacao === 'imagem' ? 'Imagens' : 'Imagens anexadas'}</span>
                   <${UploaderImagensMural}
+                    upload=${api.upload}
                     imagens=${form.imagens}
                     disabled=${salvando}
                     onChange=${(imagens) => setForm((atual) => ({ ...atual, imagens }))}
@@ -679,7 +698,7 @@ export function TelaMural({ controlador }) {
             : null}
 
           <div class="mural-form-ambientes">
-            <span class="form-label">Publicar também nestas intranets (SharePoint)</span>
+            <span class="form-label">${rotuloAmbientes}</span>
             ${ambientesDisponiveis.length
               ? html`
                   <div class="mural-ambientes-grid">
@@ -754,6 +773,6 @@ export function TelaMural({ controlador }) {
         onClose=${() => setPublicacaoParaExcluir(null)}
         onConfirm=${confirmarExclusao}
       />
-    </${PainelRh}>
+    </${Contorno}>
   `;
 }

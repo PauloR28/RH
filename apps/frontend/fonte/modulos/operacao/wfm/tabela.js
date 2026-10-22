@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState } from '../../../ui/componentes-compartilhados.js';
-import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { IconeSvg } from '../../../ui/icone.js';
 import {
   definirCapacidadePausasWfm,

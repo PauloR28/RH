@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { BuscaGlobalTopbar } from '../../ui/busca-global.js';
 import {
   alterarStatusUsuario,
@@ -36,7 +36,7 @@ import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261010-guia';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261022-guia';
 import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
 import {
   CATEGORIAS_NOTIFICACAO,
@@ -89,6 +89,7 @@ const SESSOES_PERMISSAO = [
   { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
   { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
+  { id: 'equipe', modulo: 'operacao', label: 'Equipes e Turnos', icon: 'groups', modulos: ['Equipes'] },
   { id: 'chamados', modulo: 'tecnologia', label: 'Suporte TI (Chamados)', icon: 'support_agent', modulos: ['Chamados'] },
   {
     id: 'configuracoes',
@@ -2478,13 +2479,13 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           ${secaoCatalogoAtiva?.tipo === 'operacoes'
       ? html`
                 <div class="cfg-subabas" role="tablist" aria-label="Seções da operação">
-                  ${[['cadastro', 'Cadastro', 'edit_note'], ['ambiente', 'Configurar ambiente', 'tune']].map(([id, rotulo, icone]) => html`
+                  ${[['cadastro', 'Cadastro', 'edit_note'], ['ambiente', 'Configurar ambiente', 'tune']].filter(([id]) => id !== 'ambiente' || controlador.possuiPermissao('configuracoes.editar')).map(([id, rotulo, icone]) => html`
                     <button key=${id} type="button" role="tab" aria-selected=${abaOperacao === id} class=${`cfg-subaba ${abaOperacao === id ? 'is-active' : ''}`} onClick=${() => setAbaOperacao(id)}>
                       <${Icone} name=${icone} /> ${rotulo}
                     </button>`)}
                 </div>`
       : null}
-          ${secaoCatalogoAtiva?.tipo === 'operacoes' && abaOperacao === 'ambiente'
+          ${secaoCatalogoAtiva?.tipo === 'operacoes' && abaOperacao === 'ambiente' && controlador.possuiPermissao('configuracoes.editar')
       ? html`<${AbaAmbienteOperacao}
                 chave=${formItem.id_item ? (formItem.chave || String(formItem.nome || '').toUpperCase()) : ''}
                 nome=${formItem.nome}
@@ -3188,9 +3189,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       <${CabecalhoConsole}
         sobretitulo="Console - Administração"
         titulo="Operações"
-        busca=${controlador?.estado?.perfilUsuario === 'operador'
-      ? null
-      : html`<${BuscaGlobalTopbar} placeholderBusca="Configurações, usuários, permissões e logs" controlador=${controlador} />`}
       />
       <div class="cx-resumos">
         <${CardResumo} icone="check_circle" tom="sucesso" rotulo="Itens ativos" valor=${`${ativos}`} complemento=${ativos === 1 ? 'operação' : 'operações'} />
@@ -3250,12 +3248,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               ${salvando ? html`<span class="cx-spinner" aria-hidden="true"></span>` : html`<${IconeCx} nome="check" />`}${salvando ? 'Salvando...' : 'Salvar'}</button>` : null}
         >
           <div class="cx-op-abas">
-            <${AbasConsole} prefixo="op-modo" rotulo="Seções da operação" itens=${[{ id: 'cadastro', rotulo: 'Cadastro' }, { id: 'ambiente', rotulo: 'Configurar ambiente' }]} ativa=${abaOperacao} aoMudar=${setAbaOperacao} />
+            <${AbasConsole} prefixo="op-modo" rotulo="Seções da operação" itens=${[{ id: 'cadastro', rotulo: 'Cadastro' }, ...(controlador.possuiPermissao('configuracoes.editar') ? [{ id: 'ambiente', rotulo: 'Configurar ambiente' }] : [])]} ativa=${abaOperacao} aoMudar=${setAbaOperacao} />
             ${abaOperacao === 'cadastro' ? html`<${AbasConsole} variante="sublinhada" prefixo="op-secao" rotulo="Dados da operação"
               itens=${SECOES_OPERACAO.map((s, i) => ({ id: s.id, rotulo: s.rotulo, numero: String(i + 1), erro: secoesComErro.includes(s.id) }))} ativa=${secaoOperacao} aoMudar=${setSecaoOperacao} />` : null}
           </div>
           ${mensagem ? html`<div class=${`alert ${erro ? 'alert-danger' : 'alert-success'} c24-feedback cx-op-msg`} role=${erro ? 'alert' : 'status'}>${mensagem}</div>` : null}
-          ${abaOperacao === 'ambiente'
+          ${abaOperacao === 'ambiente' && controlador.possuiPermissao('configuracoes.editar')
       ? html`<div class="cx-op-painel" role="tabpanel"><${AbaAmbienteOperacao}
               chave=${formItem.id_item ? (formItem.chave || String(formItem.nome || '').toUpperCase()) : ''}
               nome=${formItem.nome}
@@ -3602,7 +3600,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
   const ABAS_AMBIENTE = [
     { id: 'perfil', label: 'Perfil', icon: 'person' },
-    { id: 'seguranca', label: 'Segurança', icon: 'lock' },
+    ...(controlador.possuiPermissao('ambiente.seguranca') ? [{ id: 'seguranca', label: 'Segurança', icon: 'lock' }] : []),
     { id: 'aparencia', label: 'Aparência', icon: 'tune' },
     { id: 'notificacoes', label: 'Notificações', icon: 'notifications_active' },
   ];
@@ -3886,26 +3884,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 </div>
               </div>
 
-              ${ehAdministrador ? html`<div class="settings-ambiente-section">
-                <h3>Guia de ajuda</h3>
-                <div class="process-cutoff-panel">
-                  <label class="process-switch-row">
-                    <input
-                      type="checkbox"
-                      checked=${orientacoesAmbiente}
-                      onChange=${(event) => alternarOrientacoesAmbiente(event.target.checked)}
-                    />
-                    <span class="process-switch-visual"></span>
-                    <span>
-                      <strong>Ativar o guia de ajuda para todos os perfis</strong>
-                      <small>
-                        Mostra dicas passo a passo na primeira visita a cada tela e o item "Ver orientações" no menu.
-                        A configuração é única do Conecta: usuários dos demais perfis não podem alterá-la.
-                      </small>
-                    </span>
-                  </label>
-                </div>
-              </div>` : null}
+              $
             `
       : null}
 

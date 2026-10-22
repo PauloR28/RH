@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261014-historico';
+import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
 import { Icone } from './escala-ui.js?v=20261020-e5';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261020-dias';

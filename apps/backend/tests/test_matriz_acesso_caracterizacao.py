@@ -16,6 +16,7 @@ import _matriz_acesso as m
 # Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
 # tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
 PERFIS_APROVADOS = frozenset(m.PERFIS_TI)
+_NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca")
 
 
 def _esperado_para_ti(antes: set[str]) -> set[str]:
@@ -50,7 +51,10 @@ def test_permissoes_efetivas_nao_mudaram(atual, base):
             esperado = _esperado_para_ti(antes) if perfil in PERFIS_APROVADOS else antes
             # Mudança aprovada (Suporte TI / Chamados): permissões `chamados.*` são NOVAS e podem aparecer em qualquer perfil
             # (seed: Supervisor, TI e Administrador). Só podem ser ADICIONADAS; o resto da matriz segue congelado.
-            depois = {p for p in depois if not p.startswith("chamados.")}
+            # Mudança aprovada (Controle de Equipes e Turnos / Ambiente > Segurança, 22/out/2026): chaves NOVAS `equipes.*`,
+            # `sessao.equipe.*` e `ambiente.seguranca`; também só são adicionadas.
+            depois = {p for p in depois if not p.startswith(_NOVAS)}
+            esperado = {p for p in esperado if not p.startswith(_NOVAS)}
             if depois != esperado:
                 divergencias.append(f"{estado}/{perfil}: +{sorted(depois - esperado)} -{sorted(esperado - depois)}")
     assert not divergencias, "Regressão de permissões:\n" + "\n".join(divergencias)

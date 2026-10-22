@@ -48,6 +48,7 @@ _DONO_POR_GRUPO = {
     "Onboarding": MODULO_RH,
     "Monitoria": MODULO_OPERACAO,
     "WFM": MODULO_OPERACAO,
+    "Equipes": MODULO_OPERACAO,
     "Configurações": MODULO_TECNOLOGIA,
     "Usuários": MODULO_TECNOLOGIA,
     "Logs": MODULO_TECNOLOGIA,
@@ -78,6 +79,7 @@ _DONO_POR_CHAVE = {
     "sessao.treinamentos.acessar": MODULO_CORE,
     "sessao.monitoria.acessar": MODULO_OPERACAO,
     "sessao.wfm.acessar": MODULO_OPERACAO,
+    "sessao.equipe.acessar": MODULO_OPERACAO,
     "sessao.configuracoes.acessar": MODULO_TECNOLOGIA,
 }
 

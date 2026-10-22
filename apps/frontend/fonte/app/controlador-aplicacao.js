@@ -223,6 +223,7 @@ export const PERMISSOES_TELAS = {
   // Módulo Tecnologia (centro de administração)
   'screen-tecnologia': 'configuracoes.visualizar',
   'screen-tecnologia-modulos': 'configuracoes.visualizar',
+  'screen-equipes-controle': 'equipes.controle.visualizar',
   // WFM — Turnos e Plantões
   'screen-wfm': 'wfm.escala.visualizar',
   'screen-wfm-minha-escala': 'wfm.escala.propria',
@@ -284,6 +285,7 @@ export const SESSAO_DA_TELA = {
   'screen-settings-monitoria-logs': 'configuracoes',
   'screen-tecnologia': 'configuracoes',
   'screen-tecnologia-modulos': 'configuracoes',
+  'screen-equipes-controle': 'equipe',
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',
   'screen-wfm-presenca': 'wfm',
