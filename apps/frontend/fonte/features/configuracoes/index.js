@@ -31,7 +31,7 @@ import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
 import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261014-funcoes';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { PainelTelaInicialPerfil } from './tela-inicial-config.js';
+import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261023-inicio';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';

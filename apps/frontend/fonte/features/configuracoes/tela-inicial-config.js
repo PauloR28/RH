@@ -9,6 +9,20 @@ import {
   salvarTelaInicialPerfil,
 } from '../../shared/tela-inicial.js';
 
+// Cards da Início por sessões (espelha SESSOES em features/monitoria/index.js).
+const SESSOES_INICIO = [
+  { id: 'curriculos', label: 'Caixa de Currículos', icone: 'badge' },
+  { id: 'processos', label: 'Processos', icone: 'checklist' },
+  { id: 'provas', label: 'Provas', icone: 'quiz' },
+  { id: 'gestao', label: 'Gestão', icone: 'analytics' },
+  { id: 'drive', label: 'Drive', icone: 'cloud' },
+  { id: 'treinamentos', label: 'Central de Treinamento', icone: 'school' },
+  { id: 'monitoria', label: 'Monitorias', icone: 'fact_check' },
+  { id: 'equipe', label: 'Equipes e Turnos', icone: 'groups' },
+  { id: 'wfm', label: 'Turnos e Plantões', icone: 'calendar_month' },
+  { id: 'configuracoes', label: 'Configurações', icone: 'settings' },
+];
+
 // Perfis e Permissões > [perfil] > Tela inicial: quais blocos aparecem na Início
 // do perfil e em que ordem. Só esconde/reordena: um bloco sem a permissão da área
 // continua oculto, e a tela avisa isso.
@@ -67,9 +81,22 @@ export function PainelTelaInicialPerfil({ perfil, permissoes = [], podeEditar = 
   };
 
   if (porSessoes) {
-    return html`<p class="text-muted small mb-0">
-      ${perfil?.nome || 'Este perfil'} usa a Início por sessões (Treinamentos, Monitorias...), definida pelas sessões liberadas acima.
-    </p>`;
+    const cards = SESSOES_INICIO.filter((sessao) => permissoes.includes(`sessao.${sessao.id}.acessar`));
+    return html`
+      <div class="settings-home-config">
+        <p class="text-muted small">
+          ${perfil?.nome || 'Este perfil'} usa a Início por sessões: cada sessão liberada em "Sessões de ${perfil?.nome || 'perfil'}" vira um card.
+          Para mudar a Início, libere ou bloqueie a sessão ao lado.
+        </p>
+        ${cards.length ? html`
+          <ol class="settings-home-config-list">
+            ${cards.map((sessao) => html`
+              <li key=${sessao.id} class="settings-home-config-item">
+                <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(sessao.icone)}</span>
+                <span class="settings-home-config-label"><strong>${sessao.label}</strong></span>
+              </li>`)}
+          </ol>` : html`<p class="text-muted small mb-0">Nenhuma sessão liberada: a Início ficará vazia.</p>`}
+      </div>`;
   }
   if (!configs && !erro) return html`<p class="text-muted small mb-0">Carregando…</p>`;
 

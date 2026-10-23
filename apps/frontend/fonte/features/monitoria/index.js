@@ -2,6 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261022-equipes';
 import { IconeSvg } from '../../ui/icone.js';
+import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
@@ -171,7 +172,7 @@ function useTrocasParaMim(habilitado) {
 export function TelaInicioPorSessoes({ controlador }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
-  const avatar = estado.avatarUsuario || '';
+  const avatar = resolverAvatarUrl(estado.avatarUsuario);
   const alertas = useAlertasMonitoria(controlador);
   const trocasPendentes = useTrocasParaMim(controlador.possuiPermissao('wfm.troca.visualizar'));
 
