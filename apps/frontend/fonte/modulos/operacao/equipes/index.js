@@ -306,7 +306,7 @@ export function TelaEquipesControle({ controlador }) {
       <${PaginaConsole} className="cx-pagina--modulo cx-pagina--rolavel">
         <${ModuleHeader} titulo=${titulo} subtitulo=${DESCRICAO[aba]}
           abas=${html`<${ModuleTabs} itens=${abas} ativa=${aba} aoMudar=${setAba} rotulo="Seções do Controle de Equipes e Turnos" />`} />
-        ${contexto && !contexto.eh_supervisor && contexto.supervisores?.length ? html`<div class="mo-contexto cx-fixo">
+        ${/* o supervisor só escolhe a equipe em Equipe e Monitorias; Escala, Presença e Horários seguem a escala/operação */ contexto && !contexto.eh_supervisor && contexto.supervisores?.length && (aba === 'equipe' || aba === 'monitorias') ? html`<div class="mo-contexto cx-fixo">
           <${ContextField} rotulo="Supervisor" valor=${idSupervisor} opcoes=${contexto.supervisores.map((s) => [String(s.id_usuario), s.nome])} aoMudar=${setIdSupervisor} />
         </div>` : null}
         ${corpo}
