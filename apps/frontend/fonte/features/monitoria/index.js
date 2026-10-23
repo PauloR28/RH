@@ -9,9 +9,9 @@ import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260
 import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261020-dias';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261014-nova';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20261023-hub';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20261023-ajustes';
 import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261023-hub';
-import { TelaDashboard } from './painel.js?v=20260929-qa-lucas';
+import { TelaDashboard } from './painel.js?v=20261023-ajustes';
 import { TelaFormularios } from './admin.js?v=20261014-formularios';
 import { TelaCentralMonitoria } from './central.js';
 

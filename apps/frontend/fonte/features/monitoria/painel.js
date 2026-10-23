@@ -100,12 +100,12 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
         ${!ehOperador && filtros.modo === 'operador' ? html`<label class="mon-filtro mon-filtro--select">Operador<select class="form-select" value=${filtros.id_operador} onChange=${(e) => campo('id_operador', e.target.value)}><option value="">Todos (comparar)</option>${opcoesOperador.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.rotulo}</option>`)}</select></label>` : null}
         ${!ehOperador ? html`<label class="mon-filtro mon-filtro--top">Top<select class="form-select" value=${filtros.top} onChange=${(e) => campo('top', Number(e.target.value))}>${[3, 5, 10, 15].map((n) => html`<option key=${n} value=${n}>Top ${n}</option>`)}</select></label>` : null}
       </div>
-      <p class="mon-muted mon-dica-modo">${DICA_MODO[filtros.modo]}${carregando && d ? ' · Atualizando…' : ''}</p>
+      ${carregando && d ? html`<p class="mon-muted mon-atualizando" role="status">Atualizando…</p>` : null}
 
       ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
       ${carregando && !d ? html`<${LoadingState} titulo="Carregando indicadores" />` : !r ? null : html`
         ${r.quantidade_realizadas === 0 ? html`<${EmptyState} icon="analytics" title="Sem monitorias no período" text="Ajuste os filtros para ver os indicadores." />` : html`
-        <div class="mon-kpis">
+        <div class="mon-kpis mon-kpis--fixo" style=${{ '--k': ehOperador ? 6 : 7, '--kp': ehOperador ? 3 : 4 }}>
           <${Kpi} rotulo="Nota média (válidas)" valor=${formatarNota(r.nota_media)} detalhe=${r.faixa?.label || ''} />
           <${Kpi} rotulo="Monitorias realizadas" valor=${r.quantidade_realizadas} detalhe=${`${r.quantidade_validas} válidas · ${r.quantidade_anuladas} anuladas`} />
           <${Kpi} rotulo="NCG" valor=${r.ncg} detalhe=${`${formatarNota(r.monitorias_ncg_pct)}% das monitorias`} alerta=${r.ncg > 0} />
@@ -114,7 +114,7 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
           <${Kpi} rotulo="Pilar de Conhecimento" valor=${formatarNota(r.pilares.conhecimento.media)} detalhe="escala 1–10" />
           <${Kpi} rotulo="Pilar de Encantamento" valor=${formatarNota(r.pilares.encantamento.media)} detalhe="escala 1–10" />
         </div>
-        <div class="mon-kpis">
+        <div class="mon-kpis mon-kpis--fixo" style=${{ '--k': 5, '--kp': 3 }}>
           <${Kpi} rotulo="Feedbacks pendentes" valor=${r.pendencias.feedbacks_pendentes} alerta=${r.pendencias.feedbacks_vencidos > 0} detalhe=${r.pendencias.feedbacks_vencidos ? `${r.pendencias.feedbacks_vencidos} vencido(s)` : ''} />
           <${Kpi} rotulo="Feedbacks aplicados" valor=${r.pendencias.feedbacks_aplicados} />
           <${Kpi} rotulo="Encerradas sem feedback" valor=${r.pendencias.encerradas_sem_feedback ?? 0} alerta=${(r.pendencias.encerradas_sem_feedback || 0) > 0} detalhe="feedback não aplicado em 72h" />
@@ -126,17 +126,18 @@ export function TelaDashboard({ controlador, contexto, showToast }) {
         ${filtros.modo === 'periodo' ? html`<div class="mon-card"><h3>Evolução da nota por ${{ dia: 'dia', semana: 'semana', mes: 'mês' }[filtros.granularidade]}</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
         ${ehOperador ? html`<${EscalaOperador} escala=${d.escala} />` : null}
         ${perfil === 'supervisor' && d.visao_operacao ? html`
-          <${SectionCard} title="Visão geral da operação (consolidada)">
-            <div class="mon-kpis">
+          <div class="mon-card mon-visao-operacao">
+            <h3>Visão geral da operação (consolidada)</h3>
+            <div class="mon-kpis mon-kpis--fixo" style=${{ '--k': 3, '--kp': 3 }}>
               <${Kpi} rotulo="Nota média da operação" valor=${formatarNota(d.visao_operacao.nota_media)} />
               <${Kpi} rotulo="Monitorias da operação" valor=${d.visao_operacao.quantidade_realizadas} />
               <${Kpi} rotulo="NCG na operação" valor=${d.visao_operacao.ncg} />
             </div>
-            <p class="mon-muted">Você vê o detalhe apenas da(s) sua(s) equipe(s); os números acima consolidam toda a operação.</p>
-          </${SectionCard}>` : null}
+            <p class="mon-muted mon-nota-compacta">Você vê o detalhe apenas da(s) sua(s) equipe(s); os números acima consolidam toda a operação.</p>
+          </div>` : null}
 
-        <div class="mon-grid-2">
-          ${filtros.modo !== 'periodo' ? html`<div class="mon-card"><h3>Evolução da nota</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
+        ${filtros.modo === 'equipe' || filtros.modo === 'operador' ? html`<div class="mon-card"><h3>Evolução da nota</h3><${LineTrendChart} points=${pontosEvolucao} valueFormatter=${(v) => formatarNota(v)} /></div>` : null}
+        <div class="mon-grid-auto">
           <div class="mon-card"><h3>Pilares (indicadores, escala 1–10)</h3>
             ${eixosPilar.length >= 3 ? html`<${ScoreRadarChart} axes=${eixosPilar} series=${[{ name: 'Média', values: valoresPilar }]} size=${200} />` : html`<p class="rh-chart-empty">Sem dados de pilares.</p>`}</div>
           <div class="mon-card"><h3>Desempenho por bloco (% de acerto)</h3>

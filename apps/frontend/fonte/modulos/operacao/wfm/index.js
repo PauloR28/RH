@@ -2,23 +2,23 @@ import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
-import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
-import { TelaEscala } from './escala.js?v=20261023-equipe';
+import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261023-ajustes';
+import { TelaEscala } from './escala.js?v=20261023-ajustes';
 import { TelaPresenca } from './presenca.js?v=20261023-equipe';
 import { TelaCadastros } from './cadastros.js?v=20261020-dias';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261020-e5';
+import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261023-ajustes';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
-import { TelaEscalaPausas } from './pausas.js?v=20261020-e5';
-import { TelaEscalaTabela } from './tabela.js?v=20261020-e5';
-import { TelaMinhaEscala } from './minha.js?v=20261019-mes';
+import { TelaEscalaPausas } from './pausas.js?v=20261023-ajustes';
+import { TelaEscalaTabela } from './tabela.js?v=20261023-ajustes';
+import { TelaMinhaEscala } from './minha.js?v=20261023-ajustes';
 import { ListaEscalas } from './escalas.js?v=20261015-modulo8';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
-import { TelaTrocas } from './trocas.js?v=20261019-tr';
-import { TelaRelatorios } from './relatorios.js?v=20261023-hub';
+import { TelaTrocas } from './trocas.js?v=20261023-ajustes';
+import { TelaRelatorios } from './relatorios.js?v=20261023-ajustes';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
@@ -64,7 +64,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   const [versaoLista, setVersaoLista] = useState(0);
   // Minhas escalas: quem enxerga escalas (Supervisor, Gestor...) alterna entre a própria escala e a da equipe (somente leitura;
   // o escopo da equipe é aplicado no servidor). O Supervisor abre direto na equipe, já que quase não tem escala própria.
-  const podeVerEquipe = controlador.possuiPermissao('wfm.escala.visualizar');
+  const podeVerEquipe = controlador.possuiPermissao('wfm.escala.visualizar') && !soParticipante && controlador.estado.perfilUsuario !== 'operador';
   const [visaoMinha, setVisaoMinha] = useState(controlador.estado.perfilUsuario === 'supervisor' ? 'equipe' : 'minha');
   useEffect(() => {
     // Também reposiciona quando a escala selecionada deixa de existir (ex.: tipo de escala excluído).
@@ -173,7 +173,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
           <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
             abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
           <div class="mo-contexto cx-fixo">
-            <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${contexto.operacoes.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} />
+            <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${contexto.operacoes.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} ocultar=${contexto.operacoes.length <= 1} />
             ${noCadastros ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
           </div>
           <section class="mo-card-escala cx-cresce mo-cad-card">

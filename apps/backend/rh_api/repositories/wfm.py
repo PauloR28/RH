@@ -94,9 +94,11 @@ class WfmRepositoryMixin:
         """Notificação in-app (bolinha vermelha) do WFM, categoria `wfm`, na mesma transação do evento; nunca notifica quem agiu."""
         ignorados = {int(i) for i in ignorar if i}
         for id_usuario in sorted({int(i) for i in usuarios if i} - ignorados):
-            cursor.execute("SELECT login FROM dbo.usuarios WHERE id_usuario = ?", (id_usuario,))
+            # A lista de notificações casa o e-mail ou o usuário da sessão (como faz a Monitoria): gravar só o login perdia o aviso de
+            # quem entra pela conta Microsoft. E-mail primeiro; login só se a pessoa não tem e-mail.
+            cursor.execute("SELECT email, login FROM dbo.usuarios WHERE id_usuario = ?", (id_usuario,))
             row = cursor.fetchone()
-            login = normalize_text(row[0]) if row else ""
+            login = (normalize_text(row[0]) or normalize_text(row[1])) if row else ""
             if login:
                 self._criar_notificacao(cursor, destinatario_usuario=login, titulo=titulo, mensagem=mensagem,
                                         categoria="wfm", entidade=entidade, entidade_id=entidade_id)

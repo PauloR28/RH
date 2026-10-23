@@ -75,10 +75,22 @@ export async function carregarOperacoes(area) {
 
 const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false) => ({
   id: `wfm.${tipo}`, area: 'wfm', rotulo, descricao, permissao: `relhub.wfm.${tipo}`,
-  filtros: ['periodo', 'operacao', 'operador', 'busca'], operacaoObrigatoria: true, totais,
+  filtros: ['periodo', 'operacao', 'operador', 'busca'], totais,
+  // Sem escala escolhida = todas as escalas a que a pessoa tem acesso (uma troca ou presença nunca "some" por estar noutra escala).
   async carregar(f) {
-    const r = await lerRelatorioWfm({ operacao: f.operacao, data_ini: f.ini, data_fim: f.fim, id_operador: f.operador || undefined, tipo });
-    return { colunas: r.colunas || [], linhas: r.linhas || [], resumo: r.resumo || [], operadores: (r.operadores || []).map((o) => [String(o.id_usuario), o.nome]) };
+    const consulta = (operacao) => lerRelatorioWfm({ operacao, data_ini: f.ini, data_fim: f.fim, id_operador: f.operador || undefined, tipo });
+    if (f.operacao) {
+      const r = await consulta(f.operacao);
+      return { colunas: r.colunas || [], linhas: r.linhas || [], resumo: r.resumo || [], operadores: (r.operadores || []).map((o) => [String(o.id_usuario), o.nome]) };
+    }
+    // Relatório é histórico: inclui também as escalas inativas (uma troca antiga não pode sumir por a escala ter sido desativada).
+    const escalas = (await lerContextoWfm())?.operacoes || [];
+    const respostas = (await Promise.all(escalas.map((o) => consulta(o.chave).then((r) => ({ ...r, escala: o.nome }), () => null)))).filter(Boolean);
+    if (!respostas.length) throw new Error('Não foi possível carregar os relatórios das escalas.');
+    const colunas = [col('_escala', 'Escala'), ...(respostas[0].colunas || [])];
+    const linhas = respostas.flatMap((r) => (r.linhas || []).map((l) => ({ _escala: r.escala, ...l })));
+    const operadores = [...new Map(respostas.flatMap((r) => (r.operadores || []).map((o) => [String(o.id_usuario), o.nome]))).entries()];
+    return { colunas, linhas, operadores };
   },
 });
 

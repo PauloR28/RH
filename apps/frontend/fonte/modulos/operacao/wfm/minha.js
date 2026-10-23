@@ -131,7 +131,7 @@ function PainelDia({ data, itens, eventos, presenca, comum, podeTrocar, onTrocar
   const passado = paraIso(data) < paraIso(new Date());
   return html`<aside class="mc-painel" aria-label="Dia selecionado">
     <div><p class="mc-eyebrow">DIA SELECIONADO</p><h3 class="mc-painel-titulo">${tituloDia(data)}</h3></div>
-    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao ? html`<small>${presenca.observacao}</small>` : null}</div>`
+    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao && !String(presenca.lancado_por || '').startsWith('Automática') ? html`<small>${presenca.observacao}</small>` : null}</div>`
       : passado ? html`<div class="mc-presenca"><span>Presença: <strong>Não lançada</strong></span></div>` : null}
     ${trabalhando.map((item) => {
       const motivo = podeTrocar ? motivoSemTroca(data, item) : '';

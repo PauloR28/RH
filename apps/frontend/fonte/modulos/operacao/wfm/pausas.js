@@ -2,7 +2,7 @@ import { html, useCallback, useEffect, useMemo, useState } from '../../../infrae
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { ModalForm } from './formulario.js';
-import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento } from './escala-ui.js?v=20261020-e5';
+import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento } from './escala-ui.js?v=20261023-ajustes';
 
 // Aba "Pausas" da escala: as 3 pausas de cada colaborador escalado no dia (2 de 10 min e 1 de 20 min, todas contadas
 // como jornada). Define horários à mão — por colaborador, em lote, por equipe ou por turno — e aplica ao dia, à semana ou
@@ -37,7 +37,7 @@ const diasEscolhidos = (escopo, dias) => (escopo === 'dia' ? null : dias.map((v,
 
 const FILTROS_RAPIDOS = [['todos', 'Todos'], ['sem', 'Sem pausas'], ['nao', 'Não salvas']];
 
-export function TelaEscalaPausas({ controlador, operacao, anoMes, showToast, aoDia, aoMes, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
+export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, showToast, aoDia, aoMes, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
   const [dados, setDados] = useState(null);
   const [escala, setEscala] = useState(null);
@@ -190,7 +190,7 @@ export function TelaEscalaPausas({ controlador, operacao, anoMes, showToast, aoD
   const nTabelaCols = dados.pausas_padrao.length;
 
   return html`
-    <${LinhaContexto} nome=${nomeEscala} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes}
+    <${LinhaContexto} nome=${nomeEscala} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes} ocultarEscala=${(contexto?.operacoes || []).length <= 1}
       escalados=${operadores.length} emDsr=${semEscala.length}
       versao=${escala?.status?.versao_publicada || 0} aoVoltarLista=${aoVoltarLista} />
 

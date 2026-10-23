@@ -205,9 +205,12 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
   const cartaoManifestacao = podeManifestar ? html`
     <${Cartao} titulo="Sua manifestação sobre o feedback">
       <div class="mon-form-feedback">
+        ${(d.feedbacks || []).length ? html`<div class="mon-fb-msg">${d.feedbacks.map((f) => html`<div key=${f.id_feedback}>
+          <strong>Feedback de ${f.aplicado_por}</strong><span class="mon-muted"> · ${formatarDataHoraCurta(f.em)}</span>
+          <p>${f.observacao}</p>${f.complemento ? html`<p>${f.complemento}</p>` : null}</div>`)}</div>` : null}
         <p class="mon-muted">Prazo de 48 horas. Sem resposta, a monitoria é confirmada automaticamente.</p>
         ${!contestando ? html`
-          <div class="mon-decisao">
+          <div class="mon-decisao mon-decisao--lado">
             <button type="button" class="btn btn-primary mon-btn-icone" disabled=${ocupado}
               onClick=${() => executar(() => confirmarMonitoria(d.codigo), 'Você concordou com a monitoria.')}><${Icone} nome="check_circle" />Concordar</button>
             <button type="button" class="btn btn-outline-danger mon-btn-icone" disabled=${ocupado} onClick=${() => setContestando(true)}><${Icone} nome="flag" />Contestar feedback</button>

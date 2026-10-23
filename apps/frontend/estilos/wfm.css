@@ -698,7 +698,7 @@ button.mc-dia:hover { background: color-mix(in srgb, var(--paper-sunken) 70%, va
 .mc-presenca small { color: var(--ink-soft); }
 .mc-dsr { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-soft); }
 
-.mc-chip { display: inline-block; min-width: 0; max-width: 100%; padding: 2px 6px; border: 1px solid var(--mc-cor, var(--ink)); border-radius: 4px; background: color-mix(in srgb, var(--mc-cor, var(--paper)) 16%, var(--paper)); color: var(--ink); font-size: 0.667rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-chip { display: inline-block; min-width: 0; max-width: 100%; padding: 2px 6px; border: 1px solid var(--mc-cor, var(--ink)); border-radius: 4px; background: color-mix(in srgb, var(--mc-cor, var(--paper)) 16%, var(--paper)); color: var(--ink); font-size: 0.667rem; letter-spacing: 0.04em; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-chip.is-solido { background: var(--ink); color: var(--paper); }
 .mc-chip.is-contorno { background: transparent; border-color: var(--ink); }
 .mc-ponto { flex: none; width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; display: inline-block; }
@@ -1208,8 +1208,8 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .wfm-p-kpis .wfm-rel-anterior { min-height: 14px; font-size: 0.733rem; }
 .wfm-p-apoio { margin: 0; flex: none; font-size: 0.719rem; line-height: 16px; color: var(--ink-soft); }
 .wfm-p-fileira { display: grid; gap: 10px; min-height: 0; }
-.wfm-p-fileira--1 { flex: none; height: 196px; grid-template-columns: 640px 330px minmax(0, 1fr); }
-.wfm-p-fileira--2 { flex: 1 1 auto; grid-template-columns: 330px 290px minmax(0, 1fr); }
+.wfm-p-fileira--1 { flex: none; height: 196px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } /* fração em vez de largura fixa: o cartão da direita não sai da tela */
+.wfm-p-fileira--2 { flex: 1 1 auto; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .wfm-p-coluna { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
 .wfm-p-coluna > .wfm-g-cartao { flex: 1 1 0; min-height: 0; }
 .wfm-g-cartao--compacto { gap: 8px; padding: 12px 16px; min-height: 0; overflow: hidden; }

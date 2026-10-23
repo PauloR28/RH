@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js';
 import { BotaoExportar, baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261023-hub';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261023-ajustes';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Menu lateral por área,
 // filtros unificados, uma planilha e exportação XLSX/CSV/PDF. Cada relatório só aparece se o perfil tem a chave `relhub.*`
@@ -23,6 +23,14 @@ const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
           : id.startsWith('rh.') ? 'relatorios.exportar'
             : 'logs.exportar');
 
+// Colunas com nome de pessoa mostram só o primeiro e o segundo nome (o nome completo fica no balão e na exportação).
+const COLUNA_PESSOA = /^(operador|candidato|avaliad|monitor|supervisor|usu[aá]rio|solicitante|colega|alvo|aprovador|nome|quem|decidido)/i;
+const nomeCurto = (valor) => {
+  const t = String(valor ?? '').trim();
+  if (!t || t.includes('@') || /\d/.test(t)) return t;
+  const partes = t.split(/\s+/);
+  return partes.length > 2 ? partes.slice(0, 2).join(' ') : t;
+};
 const br = (d) => (d ? d.split('-').reverse().join('/') : '');
 const valorTexto = (v) => (v === null || v === undefined || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v));
 const formatarNumero = (v, tipo) => {
@@ -56,7 +64,7 @@ const COLUNA_DO_FILTRO = {
 };
 const ROTULO_FILTRO = { equipe: 'Equipe', supervisor: 'Supervisor', operador: 'Operador', status: 'Status' };
 
-function Planilha({ relatorio, dados, filtrosColuna, busca, onExportar, exportando, podeExportar }) {
+function Planilha({ relatorio, dados, filtrosColuna, busca, aoBuscar, onExportar, exportando, podeExportar }) {
   const [ordem, setOrdem] = useState(null);
   const [pagina, setPagina] = useState(0);
   const [tamanho, setTamanho] = useState(TAMANHOS[0]);
@@ -86,6 +94,8 @@ function Planilha({ relatorio, dados, filtrosColuna, busca, onExportar, exportan
   return html`
     <div class="rhub-barra">
       <span class="rhub-contagem" role="status">${linhas.length.toLocaleString('pt-BR')} linha(s)${dados.aviso ? ` · ${dados.aviso}` : ''}</span>
+      ${relatorio.filtros.includes('busca') ? html`<label class="rhub-busca"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('search')}</span>
+        <input class="form-control" type="search" placeholder="Buscar na planilha" value=${busca} onInput=${(e) => aoBuscar(e.target.value)} aria-label="Buscar na planilha" /></label>` : null}
       ${podeExportar ? html`<${BotaoExportar} desabilitado=${exportando || !linhas.length} rotulo=${exportando ? 'Gerando…' : 'Exportar'} opcoes=${[
         { rotulo: 'Exportar XLSX', onSelecionar: () => onExportar('xlsx', ordenadas) },
         { rotulo: 'Exportar CSV', onSelecionar: () => onExportar('csv', ordenadas) },
@@ -101,9 +111,9 @@ function Planilha({ relatorio, dados, filtrosColuna, busca, onExportar, exportan
     return html`<th key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''} aria-sort=${ativo ? (ordem.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
               <button type="button" class=${`rhub-ordenar ${ativo ? 'is-ativo' : ''}`} onClick=${() => alternar(c.chave)} title="Ordenar">${c.rotulo}<span aria-hidden="true">${ativo ? (ordem.dir === 'asc' ? '↑' : '↓') : '↕'}</span></button></th>`;
   })}</tr></thead>
-          <tbody>${fatia.map((l, i) => html`<tr key=${i}>${dados.colunas.map((c) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''} title=${typeof l[c.chave] === 'string' && l[c.chave].length > 60 ? l[c.chave] : undefined}>
+          <tbody>${fatia.map((l, i) => html`<tr key=${i}>${dados.colunas.map((c) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''} title=${typeof l[c.chave] === 'string' && (l[c.chave].length > 40 || COLUNA_PESSOA.test(c.rotulo)) ? l[c.chave] : undefined}>
             ${c.tipo === 'estado' ? html`<span class=${`mon-badge ${tomEstado(l[c.chave])}`}>${valorTexto(l[c.chave])}</span>`
-    : NUMERICOS.includes(c.tipo) ? formatarNumero(l[c.chave], c.tipo) : valorTexto(l[c.chave])}</td>`)}</tr>`)}</tbody>
+    : NUMERICOS.includes(c.tipo) ? formatarNumero(l[c.chave], c.tipo) : COLUNA_PESSOA.test(c.rotulo) && typeof l[c.chave] === 'string' ? (nomeCurto(l[c.chave]) || '—') : valorTexto(l[c.chave])}</td>`)}</tr>`)}</tbody>
           ${totais ? html`<tfoot><tr>${dados.colunas.map((c, i) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''}>${i === 0 ? `Total (${linhas.length})` : c.chave in totais ? formatarNumero(totais[c.chave], c.tipo) : ''}</td>`)}</tr></tfoot>` : null}
         </table>
       </div>
@@ -124,9 +134,9 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261023-hub').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261023-ajustes').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
-      Promise.all([import('../monitoria/painel.js?v=20260929-qa-lucas'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
+      Promise.all([import('../monitoria/painel.js?v=20261023-ajustes'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
         if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
         if (!contexto) return html`<${LoadingState} titulo="Carregando" />`;
@@ -166,6 +176,7 @@ export function TelaRelatoriosHub({ controlador }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [exportando, setExportando] = useState(false);
+  const [fechadas, setFechadas] = useState(() => new Set()); // áreas recolhidas no menu
 
   const escolher = (id) => {
     setSelecionado(id);
@@ -235,13 +246,11 @@ export function TelaRelatoriosHub({ controlador }) {
           aoMudar=${(v) => setFiltros((f) => (v === 'personalizado' ? { ...f, preset: v } : { ...f, preset: v, ini: PERIODOS[v].calc()[0], fim: PERIODOS[v].calc()[1] }))} />
         <label class="rhub-filtro rhub-filtro--data"><span>De</span><input class="form-control" type="date" value=${filtros.ini} max=${filtros.fim || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', ini: e.target.value }))} /></label>
         <label class="rhub-filtro rhub-filtro--data"><span>Até</span><input class="form-control" type="date" value=${filtros.fim} min=${filtros.ini || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', fim: e.target.value }))} /></label>` : null}
-      ${usa('operacao') && (opcoesOperacao.length > 1 || relatorio.operacaoObrigatoria) ? html`<${Seletor} rotulo=${relatorio.area === 'wfm' ? 'Escala / operação' : 'Operação'} valor=${filtros.operacao} opcoes=${opcoesOperacao} aoMudar=${mudar('operacao')} todos=${relatorio.operacaoObrigatoria ? null : 'Todas'} />` : null}
+      ${usa('operacao') && (opcoesOperacao.length > 1) ? html`<${Seletor} rotulo=${relatorio.area === 'wfm' ? 'Escala / operação' : 'Operação'} valor=${filtros.operacao} opcoes=${opcoesOperacao} aoMudar=${mudar('operacao')} todos=${relatorio.operacaoObrigatoria ? null : relatorio.area === 'wfm' ? 'Todas as escalas' : 'Todas'} />` : null}
       ${['equipe', 'supervisor'].map((campo) => (usa(campo) && opcoesColuna(campo)?.length ? html`<${Seletor} key=${campo} rotulo=${ROTULO_FILTRO[campo]} valor=${filtros[campo]} opcoes=${opcoesColuna(campo)} aoMudar=${mudar(campo)} />` : null))}
       ${usa('operador') ? (opcoesOperador?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesOperador} aoMudar=${mudar('operador')} />`
         : opcoesColuna('operador')?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesColuna('operador')} aoMudar=${mudar('operador')} />` : null) : null}
       ${usa('status') && opcoesColuna('status')?.length ? html`<${Seletor} rotulo="Status" valor=${filtros.status} opcoes=${opcoesColuna('status')} aoMudar=${mudar('status')} />` : null}
-      ${usa('busca') ? html`<label class="rhub-filtro rhub-filtro--busca"><span>Buscar</span><span class="rhub-busca"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('search')}</span>
-        <input class="form-control" type="search" placeholder="Filtrar linhas" value=${filtros.busca} onInput=${(e) => mudar('busca')(e.target.value)} aria-label="Filtrar linhas do relatório" /></span></label>` : null}
     </div>` : null;
 
   let corpo;
@@ -249,7 +258,7 @@ export function TelaRelatoriosHub({ controlador }) {
   else if (relatorio.tela) corpo = html`<${TelaEmbutida} key=${relatorio.id} relatorio=${relatorio} controlador=${controlador} filtros=${filtros} showToast=${showToast} />`;
   else if (erro) corpo = html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
   else if (!dados) corpo = html`<${LoadingState} titulo="Gerando o relatório" />`;
-  else corpo = html`<${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} onExportar=${exportar} exportando=${exportando}
+  else corpo = html`<${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} aoBuscar=${mudar('busca')} onExportar=${exportar} exportando=${exportando}
     podeExportar=${controlador.possuiPermissao(exportarPermissao(relatorio.id))} />`;
 
   return html`
@@ -257,10 +266,12 @@ export function TelaRelatoriosHub({ controlador }) {
       <${ToastHost} />
       <div class="rhub">
         <nav class="rhub-menu" aria-label="Relatórios e históricos">
-          ${porArea.map((a) => html`<div key=${a.id} class="rhub-grupo">
-            <h2 class="rhub-grupo-titulo"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span>${a.rotulo}</h2>
-            ${a.itens.map((r) => html`<button key=${r.id} type="button" class=${`rhub-item ${relatorio?.id === r.id ? 'is-ativo' : ''}`} aria-current=${relatorio?.id === r.id ? 'page' : undefined} onClick=${() => escolher(r.id)}>${r.rotulo}</button>`)}
-          </div>`)}
+          ${porArea.map((a) => { const aberta = !fechadas.has(a.id) || a.itens.some((r) => r.id === relatorio?.id); return html`<div key=${a.id} class="rhub-grupo">
+            <button type="button" class="rhub-grupo-titulo" aria-expanded=${aberta} onClick=${() => setFechadas((atual) => { const novo = new Set(atual); if (novo.has(a.id)) novo.delete(a.id); else novo.add(a.id); return novo; })}>
+              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span><span class="rhub-grupo-nome">${a.rotulo}</span>
+              <span class=${`material-symbols-outlined rhub-chevron ${aberta ? 'is-aberto' : ''}`} aria-hidden="true">${IconeSvg('expand_more')}</span></button>
+            ${aberta ? a.itens.map((r) => html`<button key=${r.id} type="button" class=${`rhub-item ${relatorio?.id === r.id ? 'is-ativo' : ''}`} aria-current=${relatorio?.id === r.id ? 'page' : undefined} onClick=${() => escolher(r.id)}>${r.rotulo}</button>`) : null}
+          </div>`; })}
         </nav>
         <section class="rhub-principal" aria-live="polite">
           ${relatorio ? html`<header class="rhub-cab"><h1>${relatorio.rotulo}</h1><p>${relatorio.descricao}</p></header>` : null}

@@ -2,8 +2,8 @@ import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../.
 import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
-import { Icone } from './escala-ui.js?v=20261020-e5';
+import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
+import { Icone } from './escala-ui.js?v=20261023-ajustes';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261020-dias';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261020-rel';
@@ -287,7 +287,7 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
 
   return html`
     <div class="mo-contexto cx-fixo wfm-rel2-filtros">
-      <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${opcoesEscalas} aoMudar=${(v) => aoTrocarEscala?.(v)} />
+      <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${opcoesEscalas} aoMudar=${(v) => aoTrocarEscala?.(v)} ocultar=${opcoesEscalas.length <= 1} />
       <${ContextField} rotulo="Período" valor=${preset} opcoes=${opcoesPeriodo} aoMudar=${escolherPreset} />
       <${CampoData} rotulo="De" valor=${ini} max=${fim || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([v, fim]); }} />
       <${CampoData} rotulo="Até" valor=${fim} min=${ini || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([ini, v]); }} />

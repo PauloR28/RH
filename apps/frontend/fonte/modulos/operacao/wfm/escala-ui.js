@@ -1,7 +1,7 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
 import { textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
-import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 
 // Peças compartilhadas da administração de escala (Escala do dia, Escala mensal e gaveta "Ajustar dia").
 // Só apresentação e estado local de interface; regras, API e permissões continuam nas telas. Estilos: bloco `.ea-*` em estilos/wfm.css.
@@ -43,10 +43,10 @@ export const somarMes = (anoMes, delta) => { const [a, m] = anoMes.split('-').ma
 
 // Linha de contexto da escala aberta (46 px): voltar, escala / operação, mês, selos de situação e, à direita, "Padrão semanal" e "Ações".
 // `operacoes`: [[chave, nome]] para quem pode trocar de escala; sem ela o campo só mostra o nome.
-export function LinhaContexto({ nome, operacao, operacoes = null, aoTrocarEscala, anoMes, aoMudarMes, escalados, emDsr, versao, aoVoltarLista, aoPadrao, padraoAtivo = false, menu }) {
+export function LinhaContexto({ nome, operacao, operacoes = null, aoTrocarEscala, anoMes, aoMudarMes, escalados, emDsr, versao, aoVoltarLista, aoPadrao, padraoAtivo = false, menu, ocultarEscala = false }) {
   return html`<div class="mo-contexto cx-fixo">
     ${aoVoltarLista ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--46" onClick=${aoVoltarLista}><${Icone} nome="arrow_back" />Escalas</button>` : null}
-    <${ContextField} rotulo="Escala / operação" valor=${operacoes ? operacao : nome} opcoes=${operacoes} aoMudar=${aoTrocarEscala} />
+    <${ContextField} rotulo="Escala / operação" valor=${operacoes ? operacao : nome} opcoes=${operacoes} aoMudar=${aoTrocarEscala} ocultar=${ocultarEscala} />
     ${aoMudarMes ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes(somarMes(anoMes, 1))} />` : null}
     <p class="mo-selos"><span class="mo-pilula mo-pilula--ok">${escalados} escalado(s)</span><span class="mo-pilula mo-pilula--neutro">${emDsr} em DSR/folga</span>${versao ? html`<span class="mo-pilula mo-pilula--atencao">Publicada v${versao}</span>` : null}</p>
     <div class="mo-contexto-fim">

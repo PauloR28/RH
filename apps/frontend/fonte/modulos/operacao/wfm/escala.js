@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState } from '../../../ui/componentes-compartilhados.js';
 import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { IconeSvg } from '../../../ui/icone.js';
 import {
   distribuirPausasWfm,
@@ -18,7 +18,7 @@ import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=202610
 import { ModalConfigEscala } from './configuracao.js';
 import { OutrasEscalas } from './outras.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento } from './escala-ui.js?v=20261020-e5';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento } from './escala-ui.js?v=20261023-ajustes';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -304,7 +304,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const mostrarRodape = editavel || (!somentePropria && pode('wfm.escala.publicar'));
 
   return html`
-    <${LinhaContexto} nome=${nomeOperacao} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes}
+    <${LinhaContexto} nome=${nomeOperacao} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes} ocultarEscala=${(contexto?.operacoes || []).length <= 1}
       escalados=${operadoresEscalados} emDsr=${dados.operadores.length - operadoresEscalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista}
       aoPadrao=${padraoDisponivel ? abrirPadrao : undefined} padraoAtivo=${!!padrao} menu=${menuAcoes} />
 
@@ -408,9 +408,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
         </div>
         <div class="mo-rodape-dir">
           ${!somentePropria && versoes.length ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" aria-expanded=${verVersoes} aria-controls="mo-painel-versoes" onClick=${() => setVerVersoes(!verVersoes)}>Histórico de versões (${versoes.length})</button>` : null}
-          ${pode('wfm.escala.fechar') && !fechada ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" disabled=${ocupado || !dados.status.versao_publicada} onClick=${fechar}><${Icone} nome="lock" />Fechar período</button>` : null}
+          ${pode('wfm.escala.fechar') && !fechada && !somenteLeitura ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" disabled=${ocupado || !dados.status.versao_publicada} onClick=${fechar}><${Icone} nome="lock" />Fechar período</button>` : null}
           ${totalPend ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" onClick=${() => setPendentes({})}>Descartar</button>` : null}
-          ${pode('wfm.escala.publicar') ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--38" disabled=${publicarBloqueado} title=${totalPend ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : ''} onClick=${publicar}><${Icone} nome="send" />Publicar nova versão</button>` : null}
+          ${pode('wfm.escala.publicar') && !somenteLeitura && !(aprovada && dados.status.versao_publicada > 0 && totalPend === 0) ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--38" disabled=${publicarBloqueado} title=${totalPend ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : ''} onClick=${publicar}><${Icone} nome="send" />Publicar nova versão</button>` : null}
           ${editavel ? html`<button type="button" class="mo-btn mo-btn--prim mo-btn--38" disabled=${ocupado || totalPend === 0 || (fechada && !justificativa.trim())} onClick=${salvar}>Salvar alterações${totalPend ? ` (${totalPend})` : ''}</button>` : null}
         </div>
       </footer>` : null}

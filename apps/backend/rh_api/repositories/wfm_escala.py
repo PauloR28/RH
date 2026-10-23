@@ -891,9 +891,12 @@ class WfmEscalaRepositoryMixin:
                 f"WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marcadores})",
                 (operacao, dias[0], dias[-1], *ids),
             )
+            # O operador não sabe que existe presença automática: o texto e a origem ficam só para quem gere a escala.
+            ocultar = user.perfil in WFM_PERFIS_PARTICIPANTES
             return [
                 {"id_operador": int(r[0]), "data": r[1].isoformat(), "status": normalize_text(r[2]),
-                 "observacao": normalize_text(r[3]) or None, "lancado_por": normalize_text(r[4]) or None}
+                 "observacao": None if ocultar and normalize_text(r[4]) == PRESENCA_AUTOMATICA else (normalize_text(r[3]) or None),
+                 "lancado_por": None if ocultar and normalize_text(r[4]) == PRESENCA_AUTOMATICA else (normalize_text(r[4]) or None)}
                 for r in cursor.fetchall()
             ]
         finally:

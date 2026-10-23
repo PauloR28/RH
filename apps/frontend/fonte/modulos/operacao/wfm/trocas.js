@@ -135,6 +135,14 @@ export function TelaTrocas({ controlador, operacao, showToast }) {
     try { setItens((await listarTrocasWfm(operacao)).itens); } catch (e) { setItens(null); setErro(e?.message || 'Não foi possível carregar as trocas.'); }
   }, [operacao]);
   useEffect(() => { setItens(null); carregar(); }, [carregar]);
+  // Atualiza sozinha (a cada 15 s e ao voltar para a aba): quem pediu a troca via "aguardando aprovação" depois da decisão do supervisor.
+  useEffect(() => {
+    if (!operacao) return undefined;
+    const silencioso = () => { if (!document.hidden) listarTrocasWfm(operacao).then((r) => setItens(r.itens), () => {}); };
+    const timer = setInterval(silencioso, 15000);
+    document.addEventListener('visibilitychange', silencioso);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', silencioso); };
+  }, [operacao]);
 
   const executar = async (fn, sucesso) => {
     try { await fn(); showToast?.(sucesso, 'success'); await carregar(); return true; } catch (e) { showToast?.(e?.message || 'Não foi possível concluir.', 'error'); await carregar(); return false; }

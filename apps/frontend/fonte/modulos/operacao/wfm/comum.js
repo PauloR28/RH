@@ -40,7 +40,7 @@ export function SeletorPeriodo({ contexto, operacao, setOperacao, anoMes, setAno
   if (semMes && (contexto?.operacoes || []).length < 2) return null;
   return html`
     <div class="wfm-filtros">
-      ${semOperacao ? null : html`<label class="mon-campo"><span>Escala / operação</span>
+      ${semOperacao || (contexto?.operacoes || []).filter((o) => !soEscalasAtivas || o.escala_ativa !== false).length < 2 ? null : html`<label class="mon-campo"><span>Escala / operação</span>
         <select class="form-select" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>
           ${(contexto?.operacoes || []).filter((o) => !soEscalasAtivas || o.escala_ativa !== false).map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}
         </select>

@@ -155,8 +155,9 @@ class WfmRelatoriosRepositoryMixin:
             "SELECT t.id_troca, t.id_solicitante, t.id_alvo, t.data_a, t.data_b, t.estado, t.motivo, t.criado_em, t.decidido_por, t.decidido_em, t.justificativa, "
             "us.nome, us.sobrenome, ua.nome, ua.sobrenome FROM dbo.wfm_trocas t "
             "LEFT JOIN dbo.usuarios us ON us.id_usuario = t.id_solicitante LEFT JOIN dbo.usuarios ua ON ua.id_usuario = t.id_alvo "
-            "WHERE t.operacao = ? AND ((t.data_a BETWEEN ? AND ?) OR (t.data_b BETWEEN ? AND ?)) ORDER BY t.criado_em DESC",
-            (operacao, ini, fim, ini, fim),
+            "WHERE t.operacao = ? AND ((t.data_a BETWEEN ? AND ?) OR (t.data_b BETWEEN ? AND ?) "
+            "OR (CAST(t.criado_em AS DATE) BETWEEN ? AND ?)) ORDER BY t.criado_em DESC",
+            (operacao, ini, fim, ini, fim, ini, fim),
         )
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
         trocas = []

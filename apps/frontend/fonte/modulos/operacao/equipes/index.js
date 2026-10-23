@@ -1,8 +1,9 @@
 import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, ModalPadrao, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { CardResumo, EstadoConsole, IconeCx, PaginaConsole } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { useToast } from '../../../shared/hooks/use-toast.js';
+import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js';
 import {
   adicionarOperadorEquipe,
   API_MURAL_EQUIPE,
@@ -13,11 +14,11 @@ import {
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261005-redesign16';
-import { TelaEscala } from '../wfm/escala.js?v=20261023-equipe';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261023-ajustes';
+import { TelaEscala } from '../wfm/escala.js?v=20261023-ajustes';
 import { TelaPresenca } from '../wfm/presenca.js?v=20261023-equipe';
 import { TelaCadastros } from '../wfm/cadastros.js?v=20261020-dias';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261020-e5';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261023-ajustes';
 
 // Controle de Equipes e Turnos (Supervisor): visão macro da própria equipe. Presença, escala e horários reaproveitam as telas do
 // WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural usam as rotas /equipes.
@@ -123,9 +124,43 @@ function ModalRemover({ operador, aoFechar, aoConfirmar }) {
   </${ModalPadrao}>`;
 }
 
+// Transferir = tirar o operador da minha equipe e entregá-lo a outro supervisor (confirmação obrigatória).
+function ModalTransferir({ operador, aoFechar, aoConfirmar }) {
+  const [destinos, setDestinos] = useState(null);
+  const [novo, setNovo] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    if (!operador) return;
+    setNovo(''); setErro(''); setDestinos(null);
+    listarSupervisoresDestinoEquipe().then((r) => setDestinos(r.itens || []), () => setDestinos([]));
+  }, [operador]);
+  if (!operador) return null;
+  const confirmar = async () => {
+    setSalvando(true); setErro('');
+    try { await aoConfirmar(operador, Number(novo), (destinos || []).find((d) => String(d.id_usuario) === novo)?.nome || ''); } catch (e) { setErro(e?.message || 'Não foi possível transferir.'); } finally { setSalvando(false); }
+  };
+  return html`<${ModalPadrao} aberto=${true} titulo="Transferir operador" subtitulo=${operador.nome} onClose=${aoFechar}>
+    <div class="eq-modal">
+      <p class="eq-texto">O operador sai da sua equipe e passa para a equipe do supervisor escolhido. O cadastro dele é atualizado na hora.</p>
+      <label class="form-field"><span class="form-label">Equipe do supervisor</span>
+        <select class="form-select" value=${novo} onChange=${(e) => setNovo(e.target.value)} disabled=${destinos === null}>
+          <option value="">${destinos === null ? 'Carregando…' : destinos.length ? 'Selecione' : 'Nenhum supervisor disponível'}</option>
+          ${(destinos || []).map((d) => html`<option key=${d.id_usuario} value=${d.id_usuario}>${d.nome}</option>`)}
+        </select></label>
+      ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
+      <footer class="rh-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${aoFechar}>Cancelar</button>
+        <button type="button" class="btn btn-primary" disabled=${salvando || !novo} onClick=${confirmar}>${salvando ? 'Transferindo...' : 'Confirmar transferência'}</button>
+      </footer>
+    </div>
+  </${ModalPadrao}>`;
+}
+
 function AbaEquipe({ contexto, setContexto, showToast }) {
   const [adicionando, setAdicionando] = useState(false);
   const [removendo, setRemovendo] = useState(null);
+  const [transferindo, setTransferindo] = useState(null);
   const sup = contexto.supervisor;
   const operadores = contexto.operadores || [];
   const sem = operadores.filter((o) => !o.turno).length;
@@ -137,6 +172,11 @@ function AbaEquipe({ contexto, setContexto, showToast }) {
     const novo = await removerOperadorEquipe(operador.id_usuario, idNovo);
     setContexto(novo); setRemovendo(null); showToast(`${operador.nome} saiu da sua equipe.`, 'success');
   };
+  const transferir = async (operador, idNovo, nomeNovo) => {
+    const novo = await removerOperadorEquipe(operador.id_usuario, idNovo);
+    setContexto(novo); setTransferindo(null); showToast(`${operador.nome} foi transferido${nomeNovo ? ` para a equipe de ${nomeNovo}` : ''}.`, 'success');
+  };
+  const primeiroSegundo = (nome) => String(nome || '').trim().split(/\s+/).slice(0, 2).join(' ');
   return html`<div class="eq-aba">
     <div class="cx-resumos eq-resumos">
       <${CardResumo} icone="person" rotulo="Supervisor" valor=${sup.nome} texto=${true} />
@@ -147,22 +187,23 @@ function AbaEquipe({ contexto, setContexto, showToast }) {
     <section class="eq-card" aria-label="Operadores da equipe">
       <header class="eq-card-cab">
         <h2 class="eq-card-titulo">Operadores da equipe</h2>
-        ${contexto.pode_editar_membros ? html`<button type="button" class="cx-btn cx-btn--primario" onClick=${() => setAdicionando(true)}><${IconeCx} nome="person_add" />Adicionar operador</button>` : null}
+        ${contexto.pode_editar_membros ? html`<${MenuAcoesProcesso} label="Ações" mostrarLabel=${true} icon="expand_more" ariaLabel="Ações da equipe" triggerClassName="cx-btn cx-btn--primario"
+          acoes=${[{ label: 'Adicionar operador', icon: 'person_add', onClick: () => setAdicionando(true) }]} />` : null}
       </header>
-      ${operadores.length ? html`<div class="eq-tabela-rolagem"><table class="cx-tabela">
-        <thead><tr><th>Operador</th><th>Operação</th><th>Turno</th><th>Equipe</th><th>Supervisores</th>${contexto.pode_editar_membros ? html`<th aria-label="Ações"></th>` : null}</tr></thead>
+      ${operadores.length ? html`<div class="eq-tabela-rolagem"><table class="cx-tabela eq-compacta">
+        <thead><tr><th>Operador</th><th>Operação</th><th>Turno</th>${contexto.pode_editar_membros ? html`<th class="eq-acoes">Ações</th>` : null}</tr></thead>
         <tbody>${operadores.map((o) => html`<tr key=${o.id_usuario}>
-          <td><strong class="eq-nome">${o.nome}</strong><small class="eq-sub">${o.email}</small></td>
+          <td><strong class="eq-nome" title=${`${o.nome} · ${o.email}`}>${primeiroSegundo(o.nome)}</strong></td>
           <td>${o.operacoes.join(', ') || '—'}</td>
           <td>${o.turno || '—'}</td>
-          <td>${o.equipe_nome || '—'}</td>
-          <td>${o.qtd_supervisores}</td>
-          ${contexto.pode_editar_membros ? html`<td class="eq-acoes"><button type="button" class="cx-btn cx-btn--sm" onClick=${() => setRemovendo(o)}>Remover</button></td>` : null}
+          ${contexto.pode_editar_membros ? html`<td class="eq-acoes"><${MenuAcoesProcesso} icon="more_horiz" ariaLabel=${`Ações de ${o.nome}`}
+            acoes=${[{ label: 'Transferir operador', icon: 'swap_horiz', onClick: () => setTransferindo(o) }, { separator: true }, { label: 'Remover da equipe', icon: 'person_remove', danger: true, onClick: () => setRemovendo(o) }]} /></td>` : null}
         </tr>`)}</tbody>
       </table></div>` : html`<${EstadoConsole} mensagem="Nenhum operador na sua equipe ainda." rotuloAcao=${contexto.pode_editar_membros ? 'Adicionar operador' : undefined} aoAcao=${contexto.pode_editar_membros ? () => setAdicionando(true) : undefined} />`}
     </section>
     <${ModalAdicionar} aberto=${adicionando} aoFechar=${() => setAdicionando(false)} aoAdicionar=${adicionar} />
     <${ModalRemover} operador=${removendo} aoFechar=${() => setRemovendo(null)} aoConfirmar=${remover} />
+    <${ModalTransferir} operador=${transferindo} aoFechar=${() => setTransferindo(null)} aoConfirmar=${transferir} />
   </div>`;
 }
 
@@ -244,13 +285,12 @@ export function TelaEquipesControle({ controlador }) {
     if (!escalas.length || !operacao) return html`<${EmptyState} icon="calendar_month" title="Nenhuma escala ativa" text="Não há escala ativa para a sua equipe. Quem gere as escalas pode criar ou ativar uma em Turnos e Plantões." />`;
     const props = { controlador, contexto: wfm.contexto, operacao, anoMes, showToast, recarregarContexto: wfm.recarregar, aoTrocarEscala: setOperacao };
     return html`
-      <div class="mo-contexto cx-fixo">
-        <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${escalas.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} />
-        ${aba !== 'presenca' ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
-        ${aba === 'escala' && controlador.possuiPermissao('wfm.escala.visualizar') ? html`<button type="button" class="cx-btn" onClick=${() => controlador.irParaTelaProtegida('screen-wfm')}><${IconeCx} nome="open_in_new" />Abrir em Turnos e Plantões</button>` : null}
-      </div>
+      ${aba === 'horarios' || (aba === 'presenca' && escalas.length > 1) ? html`<div class="mo-contexto cx-fixo">
+        <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${escalas.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} ocultar=${escalas.length < 2} />
+        ${aba === 'horarios' ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
+      </div>` : null}
       ${aba === 'presenca' ? html`<${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`
-        : aba === 'escala' ? html`<${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} />`
+        : aba === 'escala' ? html`<${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
           : html`<${TelaCadastros} ...${props} />`}`;
   };
 

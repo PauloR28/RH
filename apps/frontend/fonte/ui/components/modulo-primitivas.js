@@ -38,7 +38,8 @@ export function ModuleHeader({ titulo, subtitulo, abas = null }) {
 
 // Campo de contexto (46 px): legenda de 11 px em cima e valor embaixo. Com `opcoes` vira um seletor; sem, só mostra o valor.
 // `opcoes`: [[valor, rotulo]].
-export function ContextField({ rotulo, valor, opcoes = null, aoMudar, id }) {
+export function ContextField({ rotulo, valor, opcoes = null, aoMudar, id, ocultar = false }) {
+  if (ocultar) return null; // ex.: quem só tem 1 operação não precisa ver o campo
   const atual = opcoes ? (opcoes.find(([v]) => String(v) === String(valor)) || [])[1] : valor;
   return html`<div class=${`mo-campo ${opcoes && opcoes.length > 1 ? 'is-seletor' : ''}`}>
     <span class="mo-campo-leg" id=${id ? `${id}-leg` : undefined}>${rotulo}</span>

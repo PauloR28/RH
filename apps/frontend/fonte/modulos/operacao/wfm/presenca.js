@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState } from '../../../ui/componentes-compartilhados.js';
 import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { PainelFlutuante, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
+import { PainelFlutuante, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import {
   lancarPresencaLoteWfm,
   lancarPresencaWfm,
@@ -12,7 +12,7 @@ import {
   registrarAtestadoWfm,
 } from '../../../services/api/wfm.js?v=20261020-dias';
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
-import { Icone } from './escala-ui.js?v=20261020-e5';
+import { Icone } from './escala-ui.js?v=20261023-ajustes';
 
 // Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.
 // Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria. Atestado guarda só período,

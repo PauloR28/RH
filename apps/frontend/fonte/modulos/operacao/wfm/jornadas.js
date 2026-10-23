@@ -5,8 +5,8 @@ import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm,
 import { ModalPadrao } from '../../../ui/componentes-compartilhados.js';
 import { minutosParaHoras } from './comum.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
-import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261015-modulo8';
-import { Icone } from './escala-ui.js?v=20261020-e5';
+import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
+import { Icone } from './escala-ui.js?v=20261023-ajustes';
 
 // Jornadas: limites do motor de regras (jornada diária, interjornada, dias seguidos) e pausas obrigatórias.
 // Administrador e Control Desk editam; os demais perfis só consultam.
