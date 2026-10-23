@@ -7,8 +7,8 @@ import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261005-redesign16';
-import { TelaEscala } from './escala.js?v=20261020-e5';
-import { TelaPresenca } from './presenca.js?v=20261015-modulo8';
+import { TelaEscala } from './escala.js?v=20261023-equipe';
+import { TelaPresenca } from './presenca.js?v=20261023-equipe';
 import { TelaCadastros } from './cadastros.js?v=20261020-dias';
 import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261020-e5';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
@@ -62,6 +62,10 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   const [visaoEscala, setVisaoEscala] = useState('lista');
   const [configurandoItem, setConfigurandoItem] = useState(null);
   const [versaoLista, setVersaoLista] = useState(0);
+  // Minhas escalas: quem enxerga escalas (Supervisor, Gestor...) alterna entre a própria escala e a da equipe (somente leitura;
+  // o escopo da equipe é aplicado no servidor). O Supervisor abre direto na equipe, já que quase não tem escala própria.
+  const podeVerEquipe = controlador.possuiPermissao('wfm.escala.visualizar');
+  const [visaoMinha, setVisaoMinha] = useState(controlador.estado.perfilUsuario === 'supervisor' ? 'equipe' : 'minha');
   useEffect(() => {
     // Também reposiciona quando a escala selecionada deixa de existir (ex.: tipo de escala excluído).
     if (!contexto) return;
@@ -206,7 +210,20 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       aoMudou=${() => { recarregarContexto(); setVersaoLista((v) => v + 1); }} />`;
   else if (!contexto.operacoes.length && !(telaAtual === 'screen-wfm-cadastros' && contexto.pode_editar_tipos_escala)) corpo = html`<${EmptyState} icon="lock" title="Nenhuma operação vinculada" text="Seu usuário ainda não está vinculado a uma operação. Fale com o Administrador." />`;
   else if (!operacao && !(telaAtual === 'screen-wfm-cadastros' && contexto.pode_editar_tipos_escala)) corpo = html`<${LoadingState} titulo="Carregando" />`;
-  else if (telaAtual === 'screen-wfm-minha-escala') corpo = html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} />`;
+  else if (telaAtual === 'screen-wfm-minha-escala') {
+    const equipe = podeVerEquipe && visaoMinha === 'equipe';
+    corpo = html`
+      ${podeVerEquipe ? html`<div class="wfm-segmento" role="tablist" aria-label="Escala exibida">
+        ${[['minha', 'Minha escala'], ['equipe', 'Minha equipe']].map(([id, rotulo]) => html`<button key=${id} type="button" role="tab" aria-selected=${visaoMinha === id} class=${visaoMinha === id ? 'is-ativo' : ''} onClick=${() => setVisaoMinha(id)}>${rotulo}</button>`)}
+      </div>` : null}
+      ${equipe ? html`
+        <div class="mo-contexto cx-fixo">
+          <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${operacoesComEscala.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} />
+          <${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />
+        </div>
+        <${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} />`
+        : html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} />`}`;
+  }
   else if (telaAtual === 'screen-wfm-trocas') corpo = html`<${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`;
   else if (telaAtual === 'screen-wfm-relatorios') corpo = html`<${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} />`;
   else if (telaAtual === 'screen-wfm-presenca') corpo = html`<${TelaPresenca} ...${props} />`;
