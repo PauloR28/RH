@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
 from ..auth import AuthenticatedUser
-from ..dependencies import get_current_user, get_repository, require_permissions
+from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..services import wfm_historico as historico
 from ..schemas.wfm import (
@@ -188,13 +188,25 @@ def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str 
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
+_RELATORIOS_WFM = ("painel", "resumo", "escalas", "presencas", "trocas", "aprovacoes")
+
+
+def _exigir_relatorio_wfm(user: AuthenticatedUser, tipo: str) -> None:
+    """Cada relatório do WFM é liberado separadamente em Perfis e Permissões (`relhub.wfm.*`); 'completo' junta todos."""
+    for item in (_RELATORIOS_WFM if tipo == "completo" else (tipo,)):
+        if item in _RELATORIOS_WFM:
+            exigir_relatorio_hub(user, f"relhub.wfm.{item}")
+
+
 @router.get("/relatorios", dependencies=[Depends(require_permissions("wfm.relatorios"))])
 def relatorio(operacao: str, data_ini: str, data_fim: str, tipo: str = "resumo", id_operador: int | None = None, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    _exigir_relatorio_wfm(user, tipo)
     return repository.wfm_relatorio(user, operacao, tipo, data_ini, data_fim, id_operador)
 
 
 @router.get("/relatorios/exportar", dependencies=[Depends(require_permissions("wfm.relatorios"))])
 def exportar_relatorio(operacao: str, data_ini: str, data_fim: str, tipo: str = "resumo", id_operador: int | None = None, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    _exigir_relatorio_wfm(user, tipo)
     conteudo, nome, mime = repository.wfm_relatorio_exportar(user, operacao, tipo, data_ini, data_fim, id_operador, formato)
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 

@@ -57,6 +57,7 @@ _DONO_POR_GRUPO = {
     "LGPD": MODULO_TECNOLOGIA,
     "Chamados": MODULO_TECNOLOGIA,
     "Relatórios": MODULO_TECNOLOGIA,  # decisão do RH (D-3); reatribuível, e não abre o módulo (D-8)
+    "Relatórios e Históricos": MODULO_CORE,  # página central de relatórios (23/out/2026); cada perfil recebe só o que já via
 }
 
 # Exceções por chave (têm precedência sobre o grupo).

@@ -28,7 +28,7 @@ ROLE_ANALISTA_TI = "analista_ti"  # Gestor de TI: monta, aprova, publica e admin
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-10-03-chamados"
+PERMISSIONS_VERSION = "2026-10-23-relatorios-historicos"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -164,6 +164,33 @@ def _permission(
         description=description,
         critical=critical,
     )
+
+
+# Relatórios e Históricos (23/out/2026): UMA permissão por relatório. `RELATORIOS_HUB` = (chave, descrição, permissão de BASE, crítica).
+# A de base continua sendo exigida pelo backend (a chave nova só liga o relatório na página); a semente copia o acesso que cada
+# perfil já tem hoje (ver o fim do arquivo). Supervisor/Operador nunca recebem os logs: a base (logs.*) não é deles.
+GRUPO_RELHUB = "Relatórios e Históricos"
+RELATORIOS_HUB: tuple[tuple[str, str, str, bool], ...] = (
+    ("relhub.wfm.painel", "Painel de indicadores e gráficos de Turnos e Plantões.", "wfm.relatorios", False),
+    ("relhub.wfm.resumo", "Relatório Resumo por operador (horas, presença e faltas) de Turnos e Plantões.", "wfm.relatorios", False),
+    ("relhub.wfm.escalas", "Relatório de escalas publicadas e quem aprovou (Turnos e Plantões).", "wfm.relatorios", False),
+    ("relhub.wfm.presencas", "Relatório/histórico de presenças e faltas dia a dia (Turnos e Plantões).", "wfm.relatorios", False),
+    ("relhub.wfm.trocas", "Relatório/histórico de trocas de plantão (pedidos, aprovações e reprovações).", "wfm.relatorios", False),
+    ("relhub.wfm.aprovacoes", "Relatório de aprovações de escala (envio, aprovação, declínio e publicação).", "wfm.relatorios", False),
+    ("relhub.wfm.historico", "Histórico/auditoria de Turnos e Plantões (quem fez o quê, quando, antes e depois).", "wfm.auditoria", True),
+    ("relhub.monitoria.historico", "Histórico de monitorias realizadas.", "monitoria.relatorios", False),
+    ("relhub.monitoria.qualidade", "Relatório de qualidade da Monitoria.", "monitoria.relatorios", False),
+    ("relhub.monitoria.planos", "Relatório de planos de ação da Monitoria.", "monitoria.plano_acao_visualizar", False),
+    ("relhub.monitoria.dashboard", "Dashboard da Monitoria.", "monitoria.dashboard", False),
+    ("relhub.monitoria.logs", "Logs de auditoria da Monitoria.", "monitoria.logs", True),
+    ("relhub.rh.processos", "Relatório de processos seletivos (Relatórios Gerais do RH).", "relatorios.visualizar", False),
+    ("relhub.rh.candidatos", "Relatório de candidatos (Relatórios Gerais do RH).", "relatorios.visualizar", False),
+    ("relhub.rh.ranking", "Ranking analítico de candidatos (Relatórios Gerais do RH).", "relatorios.visualizar", False),
+    ("relhub.rh.funil", "Dashboard de funil de recrutamento.", "relatorios.visualizar", False),
+    ("relhub.rh.exames", "Histórico de exames e provas.", "candidatos.consultar_historico", False),
+    ("relhub.sistema.logs", "Logs de auditoria do sistema.", "logs.visualizar", True),
+)
+RELHUB_PERMISSAO_BASE: dict[str, str] = {chave: base for chave, _d, base, _c in RELATORIOS_HUB}
 
 
 PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
@@ -422,6 +449,9 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("chamados.atribuir", "Chamados", "Atribuir chamados a outros técnicos.", critical=True),
         _permission("chamados.dashboard", "Chamados", "Ver o dashboard de chamados."),
         _permission("chamados.configurar", "Chamados", "Gerenciar categorias, prazos de SLA, encerramento automático e limites de anexo.", critical=True),
+        # Relatórios e Históricos: a sessão (abre a página) e uma permissão por relatório.
+        _permission("sessao.relatorios.acessar", "Sessões", "Acessar a sessão Relatórios e Históricos."),
+        *(_permission(chave, GRUPO_RELHUB, descricao, critical=critica) for chave, descricao, _base, critica in RELATORIOS_HUB),
     )
 }
 
@@ -802,6 +832,7 @@ PERMISSOES_ADMINISTRACAO_TI = frozenset(
     for chave in ROLE_PERMISSIONS[ROLE_ADMIN]
     if modulo_dono_padrao(chave, PERMISSION_DEFINITIONS[chave].module) in (MODULO_CORE, MODULO_TECNOLOGIA)
     and not chave.startswith("chamados.")  # Chamados tem seed próprio (abaixo); a V057 já aplicada não pode mudar
+    and not chave.startswith("relhub.") and chave != "sessao.relatorios.acessar"  # Relatórios: só pelo que o perfil já tem (semente no fim)
 )
 for _papel in PERFIS_TI:
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(PERMISSOES_ADMINISTRACAO_TI)
@@ -817,6 +848,16 @@ _EQUIPES_LEITURA = {"sessao.equipe.acessar", "equipes.controle.visualizar"}
 ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update(_EQUIPES_LEITURA | {"equipes.membros.editar", "equipes.mural.publicar"})
 for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(_EQUIPES_LEITURA)
+
+# Relatórios e Históricos: cada perfil recebe a chave do relatório SE já tem a permissão de base (nada some, nada novo aparece);
+# quem recebe ao menos um relatório recebe também a sessão. Roda por último de propósito: não entra na administração herdada da TI.
+# Operador, Candidato e Colaborador ficam de fora por decisão do RH: quem precisar libera em Perfis e Permissões.
+for _papel, _perms in ROLE_PERMISSIONS.items():
+    if _papel in (ROLE_OPERATOR, ROLE_CANDIDATE, ROLE_EMPLOYEE):
+        continue
+    _hub = {chave for chave, base in RELHUB_PERMISSAO_BASE.items() if base in _perms}
+    if _hub:
+        _perms.update(_hub | {"sessao.relatorios.acessar"})
 
 SCREEN_PERMISSIONS.update(
     {
@@ -846,6 +887,8 @@ SCREEN_PERMISSIONS.update(
         "screen-wfm-jornadas": "wfm.cadastros.visualizar",
         "screen-wfm-auditoria": "wfm.auditoria",
         "screen-wfm-trocas": "wfm.troca.visualizar",
+        "screen-relatorios": "sessao.relatorios.acessar",
+        "screen-wfm-painel": "relhub.wfm.painel",
     }
 )
 

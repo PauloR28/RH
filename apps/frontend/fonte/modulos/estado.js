@@ -5,7 +5,7 @@ import { useEffect, useState } from '../infraestrutura-react.js';
 import { lerSessaoAutenticacao } from '../services/api/core.js';
 import { lerAcessoCore } from '../services/api/modulos.js';
 import { definirAreasInativas } from '../shared/areas.js';
-import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261014-funcoes';
+import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261023-hub';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
 

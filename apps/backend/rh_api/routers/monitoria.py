@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from ..auth import AuthenticatedUser
-from ..dependencies import get_current_user, get_repository, require_permissions
+from ..dependencies import get_current_user, get_repository, require_permissions, exigir_relatorio_hub
 from ..repositories import DatabaseRepository
 from ..services.http_cache import aplicar_cache_http
 from ..schemas.monitoria import (
@@ -602,12 +602,23 @@ def dashboard(
                                     modo=modo, top=top, granularidade=granularidade)
 
 
+_RELATORIOS_MONITORIA = {"monitorias": "relhub.monitoria.historico", "qualidade": "relhub.monitoria.qualidade", "planos": "relhub.monitoria.planos"}
+
+
+def _exigir_relatorio_monitoria(user: AuthenticatedUser, tipo: str) -> None:
+    """Cada relatório da Monitoria é liberado separadamente em Perfis e Permissões (`relhub.monitoria.*`)."""
+    chave = _RELATORIOS_MONITORIA.get(tipo)
+    if chave:
+        exigir_relatorio_hub(user, chave)
+
+
 @router.get("/relatorios/{tipo}", dependencies=[Depends(require_permissions("monitoria.relatorios"))])
 def relatorio(
     tipo: str, operacao: str = "", id_equipe: int = 0, id_operador: int = 0, id_avaliador: int = 0, data_inicio: str = "",
     data_fim: str = "", status: str = "", user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
+    _exigir_relatorio_monitoria(user, tipo)
     filtros = _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim)
     filtros["status"] = status
     return repository.mon_relatorio(user, tipo, filtros)
@@ -619,6 +630,7 @@ def exportar_relatorio(
     id_avaliador: int = 0, data_inicio: str = "", data_fim: str = "", status: str = "",
     user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
 ):
+    _exigir_relatorio_monitoria(user, tipo)
     filtros = _filtros(operacao, id_equipe, id_operador, id_avaliador, data_inicio, data_fim)
     filtros["status"] = status
     conteudo, nome, mime = repository.mon_exportar(user, tipo, formato, filtros, ip=client_ip(request))

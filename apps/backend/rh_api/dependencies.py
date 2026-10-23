@@ -249,3 +249,9 @@ def audit_action(
 
 def is_permission_critical(permission: str) -> bool:
     return is_critical_permission(permission)
+
+
+def exigir_relatorio_hub(user: AuthenticatedUser, chave: str) -> None:
+    """Relatórios e Históricos: o relatório precisa estar ligado ao perfil (`relhub.*`), além da permissão de base da rota."""
+    if not user.has_permission(chave):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)

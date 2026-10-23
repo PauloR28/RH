@@ -298,7 +298,6 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
         </div>
         <div class="mon-dt-acoes">
           ${podeExportar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportar}>Exportar (XLSX)</button>` : null}
-          ${podeExportar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${abrirCompartilhar}>Compartilhar por e-mail</button>` : null}
           ${ehAdministrador && !d.excluida ? html`<button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo({ motivo: '', confirmacao: '' })}>Excluir</button>` : null}
         </div>
       </div>

@@ -20,7 +20,10 @@ from .wfm_schema_v061 import ensure_wfm_v061
 from .wfm_schema_v064 import ensure_wfm_v064
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .wfm_schema import ensure_wfm_schema
-from ..rbac import PERMISSION_DEFINITIONS, ROLE_ADMIN, ROLE_DEFINITIONS, ROLE_PERMISSIONS, SETTINGS_CATALOGS
+from ..rbac import (
+    PERMISSION_DEFINITIONS, RELHUB_PERMISSAO_BASE, ROLE_ADMIN, ROLE_CANDIDATE, ROLE_DEFINITIONS, ROLE_EMPLOYEE, ROLE_OPERATOR,
+    ROLE_PERMISSIONS, SETTINGS_CATALOGS,
+)
 from ..services.helpers import (
     normalize_compare_text,
     normalize_indication_type,
@@ -275,8 +278,13 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
             ),
         )
 
+    # Relatórios e Históricos: as chaves `relhub.*` e a sessão NÃO entram na semente por código (abaixo elas espelham o que cada
+    # perfil realmente tem no banco, que pode ter sido ajustado em Perfis e Permissões).
+    chaves_relatorios = {*RELHUB_PERMISSAO_BASE, "sessao.relatorios.acessar"}
     for role_id, permissions in ROLE_PERMISSIONS.items():
         for permission_key in permissions:
+            if permission_key in chaves_relatorios:
+                continue
             cursor.execute(
                 """
                 IF NOT EXISTS (
@@ -292,6 +300,29 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
                 """,
                 (role_id, permission_key, role_id, permission_key),
             )
+
+    # Cada perfil recebe o relatório SE já tem, no banco, a permissão de base (nada some, nada novo aparece); só insere o que falta,
+    # então o que o Administrador mudar depois em Perfis e Permissões nunca é desfeito. Operador/Candidato/Colaborador ficam de fora.
+    for chave_relatorio, permissao_base in RELHUB_PERMISSAO_BASE.items():
+        cursor.execute(
+            """
+            INSERT INTO perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+            SELECT pp.id_perfil, ?, 1, GETDATE(), GETDATE()
+            FROM perfil_permissoes pp
+            WHERE pp.chave_permissao = ? AND pp.permitido = 1 AND pp.id_perfil NOT IN (?, ?, ?)
+              AND NOT EXISTS (SELECT 1 FROM perfil_permissoes e WHERE e.id_perfil = pp.id_perfil AND e.chave_permissao = ?)
+            """,
+            (chave_relatorio, permissao_base, ROLE_OPERATOR, ROLE_CANDIDATE, ROLE_EMPLOYEE, chave_relatorio),
+        )
+    cursor.execute(
+        """
+        INSERT INTO perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+        SELECT DISTINCT pp.id_perfil, 'sessao.relatorios.acessar', 1, GETDATE(), GETDATE()
+        FROM perfil_permissoes pp
+        WHERE pp.chave_permissao LIKE 'relhub.%' AND pp.permitido = 1
+          AND NOT EXISTS (SELECT 1 FROM perfil_permissoes e WHERE e.id_perfil = pp.id_perfil AND e.chave_permissao = 'sessao.relatorios.acessar')
+        """
+    )
 
     cursor.execute(
         """

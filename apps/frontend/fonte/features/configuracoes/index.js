@@ -29,7 +29,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261014-funcoes';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261023-hub';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261023-inicio';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -85,6 +85,7 @@ const SESSOES_PERMISSAO = [
   { id: 'processos', modulo: 'rh', label: 'Processos', icon: 'checklist', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
   { id: 'provas', modulo: 'rh', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
   { id: 'gestao', modulo: 'core', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
+  { id: 'relatorios', modulo: 'core', label: 'Relatórios e Históricos', icon: 'table_chart', modulos: ['Relatórios e Históricos'] },
   { id: 'drive', modulo: 'core', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
   { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },

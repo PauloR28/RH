@@ -9,8 +9,8 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261014-funcoes';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261005-redesign16';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261023-hub';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261023-hub';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -166,7 +166,6 @@ export function BarraLateral({
     { tela: 'screen-monitoria', icone: 'history', label: 'Histórico', permissao: 'monitoria.visualizar' },
     { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Dashboard', permissao: 'monitoria.dashboard' },
     { tela: 'screen-monitoria-planos', icone: 'task_alt', label: 'Planos de ação', permissao: 'monitoria.plano_acao_visualizar' },
-    { tela: 'screen-monitoria-relatorios', icone: 'table_chart', label: 'Relatórios', permissao: 'monitoria.relatorios' },
     { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
   ];
   const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
@@ -176,18 +175,12 @@ export function BarraLateral({
     { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
-    { tela: 'screen-wfm-relatorios', icone: 'analytics', label: 'Relatórios', permissao: 'wfm.relatorios' },
+    { tela: 'screen-wfm-painel', icone: 'monitoring', label: 'Painel', permissao: 'relhub.wfm.painel' },
     { tela: 'screen-wfm-jornadas', icone: 'schedule', label: 'Jornadas', permissao: 'wfm.cadastros.visualizar' },
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
   const sublinksGestao = [
-    {
-      tela: 'screen-analysis-candidates',
-      icone: 'bar_chart',
-      label: 'Relatórios Gerais',
-      permissao: 'relatorios.visualizar',
-    },
     {
       tela: 'screen-dashboard-funil',
       icone: 'monitoring',
@@ -271,12 +264,6 @@ export function BarraLateral({
       icone: 'shield_lock',
       label: 'LGPD e Retenção',
       permissao: 'lgpd.visualizar',
-    },
-    {
-      tela: 'screen-wfm-auditoria',
-      icone: 'history',
-      label: 'Auditoria de Plantões',
-      permissao: 'wfm.auditoria',
     },
     {
       tela: 'screen-settings-logs',
@@ -925,6 +912,7 @@ export function BarraLateral({
               </div>
             `
       : null}
+        ${emTecnologia ? null : renderizarItem({ tela: 'screen-relatorios', icone: 'table_chart', label: 'Relatórios e Históricos', permissao: 'sessao.relatorios.acessar' })}
       </nav>
 
       <div class="rh-modern-topnav-user">

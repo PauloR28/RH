@@ -62,11 +62,12 @@ export const TELA_SUPORTE_TI = 'screen-chamados';
 export const TELAS_SUPORTE_TI = ['screen-chamados', 'screen-chamados-fila', 'screen-chamados-dashboard', 'screen-chamados-config'];
 
 // Telas do WFM, na ordem em que o módulo Tecnologia escolhe a primeira que o usuário pode abrir (mesma ordem do WFM).
-export const TELAS_WFM_DA_TI = ['screen-wfm', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca', 'screen-wfm-relatorios'];
+export const TELAS_WFM_DA_TI = ['screen-wfm', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca', 'screen-wfm-painel'];
 
 // Menu do módulo Tecnologia (wireframe aprovado): Início · Acessos ▾ · Sistema ▾ · Auditoria ▾ · Escalas e Plantões (do WFM).
 export const MENU_TECNOLOGIA = [
   { id: 'inicio', tipo: 'item', tela: TELA_INICIO_TECNOLOGIA, label: 'Início', icone: 'home' },
+  { id: 'relatorios', tipo: 'item', tela: 'screen-relatorios', label: 'Relatórios e Históricos', icone: 'table_chart' },
   { id: 'suporte', tipo: 'suporte', label: 'Suporte TI', icone: 'support_agent' },
   {
     id: 'acessos',

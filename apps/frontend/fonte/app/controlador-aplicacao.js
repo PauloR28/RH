@@ -224,6 +224,8 @@ export const PERMISSOES_TELAS = {
   'screen-tecnologia': 'configuracoes.visualizar',
   'screen-tecnologia-modulos': 'configuracoes.visualizar',
   'screen-equipes-controle': 'equipes.controle.visualizar',
+  'screen-relatorios': 'sessao.relatorios.acessar',
+  'screen-wfm-painel': 'relhub.wfm.painel',
   // WFM — Turnos e Plantões
   'screen-wfm': 'wfm.escala.visualizar',
   'screen-wfm-minha-escala': 'wfm.escala.propria',
@@ -286,6 +288,8 @@ export const SESSAO_DA_TELA = {
   'screen-tecnologia': 'configuracoes',
   'screen-tecnologia-modulos': 'configuracoes',
   'screen-equipes-controle': 'equipe',
+  'screen-relatorios': 'relatorios',
+  'screen-wfm-painel': 'wfm',
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',
   'screen-wfm-presenca': 'wfm',

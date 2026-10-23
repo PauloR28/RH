@@ -182,8 +182,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       ${podeSelecionar && selecionadas.length ? html`
         <div class="mon-acoes mon-acoes--selecao"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>
           ${podeExportar ? html`
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportarSelecionadas}>Exportar seleção (XLSX)</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirDetalhe(selecionadas.length === 1 ? String(selecionadas[0]) : null, { compartilhar: selecionadas })}>Compartilhar por e-mail</button>` : null}
+          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportarSelecionadas}>Exportar seleção (XLSX)</button>` : null}
           ${ehAdministrador && modo === 'historico' ? html`
           <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo({ motivo: '', confirmacao: '' })}>Excluir seleção</button>` : null}</div>` : null}
 

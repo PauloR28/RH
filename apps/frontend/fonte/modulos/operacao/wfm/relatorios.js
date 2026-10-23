@@ -234,7 +234,7 @@ function MenuExportar({ desabilitado, ocupado, onExportar }) {
 }
 
 // ---------------------------------------------------------------------------------------------------- tela
-export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast }) {
+export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, somentePainel = false }) {
   const [visao, setVisao] = useState('painel');
   const [preset, setPreset] = useState('mes');
   const [[ini, fim], setIntervalo] = useState(() => PERIODOS.mes.calc());
@@ -292,13 +292,13 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast }
       <${CampoData} rotulo="De" valor=${ini} max=${fim || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([v, fim]); }} />
       <${CampoData} rotulo="Até" valor=${fim} min=${ini || undefined} aoMudar=${(v) => { setPreset('personalizado'); setIntervalo([ini, v]); }} />
       <${ContextField} rotulo="Operador" valor=${idOperador} opcoes=${opcoesOperador} aoMudar=${setIdOperador} />
-      <div class="mo-contexto-fim"><${MenuExportar} desabilitado=${!intervaloValido || !operacao} ocupado=${ocupado} onExportar=${exportar} /></div>
+      ${somentePainel ? null : html`<div class="mo-contexto-fim"><${MenuExportar} desabilitado=${!intervaloValido || !operacao} ocupado=${ocupado} onExportar=${exportar} /></div>`}
     </div>
 
     <section class="mo-card-escala cx-cresce wfm-rel2" aria-label="Relatórios">
       <div class="mo-subabas cx-fixo wfm-rel2-abas">
-        <${AbasConsole} prefixo="wfmrel" rotulo="Relatórios" variante="sublinhada" ativa=${visao} aoMudar=${(id) => { setVisao(id); setBusca(''); }}
-          itens=${VISOES.map((v) => ({ id: v.id, rotulo: v.rotulo, icone: v.icone }))} />
+        ${somentePainel ? html`<span></span>` : html`<${AbasConsole} prefixo="wfmrel" rotulo="Relatórios" variante="sublinhada" ativa=${visao} aoMudar=${(id) => { setVisao(id); setBusca(''); }}
+          itens=${VISOES.map((v) => ({ id: v.id, rotulo: v.rotulo, icone: v.icone }))} />`}
         <button type="button" class="mo-btn mo-btn--neutro mo-btn--34 wfm-rel2-calc" aria-expanded=${calculoAberto} aria-controls="wfm-rel-calculo" disabled=${!rel || rel.tipo !== visao} onClick=${() => setCalculoAberto(!calculoAberto)}><${Icone} nome="info" />Como é calculado</button>
       </div>
 
@@ -325,4 +325,25 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast }
         </div></${PainelFlutuante}>` : null}
     </section>
     ${detalhe ? html`<${DetalheOperador} filtros=${filtros} linha=${detalhe} onClose=${() => setDetalhe(null)} />` : null}`;
+}
+
+
+// Painel de indicadores para a página "Relatórios e Históricos" (duplicado: a aba Painel do WFM continua com o mesmo componente).
+export function PainelWfmHub({ operacao, ini, fim, idOperador = '' }) {
+  const [rel, setRel] = useState(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    let ativo = true;
+    setRel(null); setErro('');
+    if (!operacao || !ini || !fim || ini > fim) return undefined;
+    lerRelatorioWfm({ operacao, data_ini: ini, data_fim: fim, id_operador: idOperador || undefined, tipo: 'painel' })
+      .then((r) => { if (ativo) setRel(r); })
+      .catch((e) => { if (ativo) setErro(e?.message || 'Não foi possível gerar o painel.'); });
+    return () => { ativo = false; };
+  }, [operacao, ini, fim, idOperador]);
+  if (!operacao) return html`<${EmptyState} icon="calendar_month" title="Escolha uma escala" text="Selecione a escala / operação para ver o painel." />`;
+  if (ini > fim) return html`<div class="mon-alerta mon-alerta--danger" role="alert">A data inicial precisa ser anterior ou igual à final.</div>`;
+  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
+  if (!rel?.painel) return html`<${LoadingState} titulo="Gerando o painel" />`;
+  return html`<${Painel} painel=${rel.painel} resumido=${!!idOperador} />`;
 }

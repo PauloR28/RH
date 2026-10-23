@@ -1,14 +1,15 @@
 import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
 import { usaInicioPorSessoes } from '../shared/tela-inicial.js';
+import { CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO } from '../shared/relatorios-hub.js';
 import {
   navegarParaTela,
   usarTelaAtual,
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261022-equipes';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261023-hub';
 import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261014-funcoes2';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261014-funcoes';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261023-hub';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -80,7 +81,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20260930-processo-individual');
+const importarGestao = () => import('../features/telas-gestao.js?v=20261023-hub');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -111,12 +112,13 @@ const TelaConfiguracoesSistema = carregarTela(
   () => import('../features/configuracoes/index.js?v=20261023-inicio'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261023-inicio');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261023-hub');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
+const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261023-hub'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261022-equipes'), 'TelaEquipesControle');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261023-equipe'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261023-hub'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes3'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
@@ -194,6 +196,12 @@ function resolverTelaProtegida(telaAtual, controlador) {
 
   if (telaAtual === 'screen-processes-open') {
     return 'screen-processes';
+  }
+
+  // Relatórios e Históricos: telas antigas que migraram só redirecionam (a página nova confere as permissões de cada relatório).
+  if (TELA_ANTIGA_PARA_RELATORIO[telaAtual]) {
+    try { window.sessionStorage.setItem(CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO[telaAtual]); } catch { /* sem storage */ }
+    return 'screen-relatorios';
   }
 
   // Módulo Tecnologia: o início é o centro de administração (quem só tem esse módulo cai direto nele).
@@ -374,6 +382,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-settings-monitoria') {
     return html`<${TelaCentralMonitoriaConfig} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-relatorios') {
+    return html`<${TelaRelatoriosHub} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-equipes-controle') {

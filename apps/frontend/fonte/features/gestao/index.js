@@ -147,7 +147,7 @@ const LIMITE_CACHE_EMAILS_RECEBIDOS = 80;
 const TEMPO_CACHE_SECAO_EMAIL_MS = 60 * 60 * 1000;
 const cacheSecoesEmail = new Map();
 
-const COLUNAS_RELATORIO_PROCESSOS = [
+export const COLUNAS_RELATORIO_PROCESSOS = [
   { label: 'ID do processo', key: 'id_processo_relatorio' },
   { label: 'Processo', key: 'processo_relatorio' },
   { label: 'Data de abertura', key: 'data_abertura_relatorio' },
@@ -160,7 +160,7 @@ const COLUNAS_RELATORIO_PROCESSOS = [
   { label: 'Eliminados', key: 'eliminados_relatorio' },
 ];
 
-const COLUNAS_RELATORIO_CANDIDATOS = [
+export const COLUNAS_RELATORIO_CANDIDATOS = [
   { label: 'ID do Candidato', key: 'id_candidato' },
   { label: 'Nome', key: 'nome' },
   { label: 'Telefone', key: 'telefone' },
@@ -187,7 +187,7 @@ const COLUNAS_RELATORIO_CANDIDATOS = [
   { label: 'Data de Saída', key: 'data_saida' },
 ];
 
-const COLUNAS_RANKING_ANALITICO = [
+export const COLUNAS_RANKING_ANALITICO = [
   { label: 'Processo', key: 'id_processo' },
   { label: 'Candidato', key: 'nome_candidato' },
   { label: 'Vaga', key: 'vaga' },
@@ -725,7 +725,7 @@ function baixarXlsxRelatorio(nomeBase, nomePlanilha, colunas, linhas) {
   }));
 }
 
-function montarLinhaProcessoRelatorio(linha) {
+export function montarLinhaProcessoRelatorio(linha) {
   const status = obterStatusRelatorioProcesso(linha);
   return {
     ...linha,
@@ -742,7 +742,7 @@ function montarLinhaProcessoRelatorio(linha) {
   };
 }
 
-function montarLinhaRankingRelatorio(linha) {
+export function montarLinhaRankingRelatorio(linha) {
   return {
     ...linha,
     nota_final: formatarNotaAnalise(linha.nota_final),

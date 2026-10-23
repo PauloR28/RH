@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261022-equipes';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261023-hub';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -9,8 +9,8 @@ import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260
 import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261020-dias';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261014-nova';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20261015-detalhe2';
-import { ListaMonitorias, ModalCompartilhar, TelaPlanos, TelaRelatorios } from './listas.js?v=20261015-detalhe2';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20261023-hub';
+import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261023-hub';
 import { TelaDashboard } from './painel.js?v=20260929-qa-lucas';
 import { TelaFormularios } from './admin.js?v=20261014-formularios';
 import { TelaCentralMonitoria } from './central.js';
@@ -27,7 +27,6 @@ export const ABAS_MONITORIA = [
   { tela: 'screen-monitoria', rotulo: 'Histórico', icone: 'history', permissao: 'monitoria.visualizar' },
   { tela: 'screen-monitoria-dashboard', rotulo: 'Dashboard', icone: 'analytics', permissao: 'monitoria.dashboard' },
   { tela: 'screen-monitoria-planos', rotulo: 'Planos de ação', icone: 'task_alt', permissao: 'monitoria.plano_acao_visualizar' },
-  { tela: 'screen-monitoria-relatorios', rotulo: 'Relatórios', icone: 'table_chart', permissao: 'monitoria.relatorios' },
   { tela: 'screen-monitoria-formularios', rotulo: 'Formulários', icone: 'rule', permissao: 'monitoria.matriz' },
 ];
 
@@ -105,7 +104,6 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
       </div>`}
       <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
         onClose=${() => setDetalhe(null)} onAlterou=${() => setAtualizacao((n) => n + 1)} onLida=${() => setAlertasTick((n) => n + 1)} />
-      <${ModalCompartilhar} ids=${compartilhar} onClose=${() => setCompartilhar(null)} showToast=${showToast} />
     </${PainelRh}>`;
 }
 
@@ -133,7 +131,8 @@ const SESSOES = [
   { id: 'treinamentos', titulo: 'Central de Treinamento', icone: 'school', desc: 'Treinamentos, trilhas e atribuições.', telas: ['screen-training', 'screen-training-mine', 'screen-training-trilhas'] },
   { id: 'monitoria', titulo: 'Monitorias', icone: 'fact_check', desc: 'Avaliações de qualidade, feedback e indicadores.', telas: ['__monitoria__'] },
   { id: 'equipe', titulo: 'Equipes e Turnos', icone: 'groups', desc: 'Sua equipe, presença, monitorias, escala, horários e mural.', telas: ['screen-equipes-controle'] },
-  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-relatorios', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
+  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
+  { id: 'relatorios', titulo: 'Relatórios e Históricos', icone: 'table_chart', desc: 'Relatórios, históricos e exportações em um só lugar.', telas: ['screen-relatorios'] },
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];
 

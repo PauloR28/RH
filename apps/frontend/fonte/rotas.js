@@ -71,6 +71,8 @@ export const ROTAS_POR_TELA = {
   'screen-tecnologia': 'administracao-ti',
   'screen-tecnologia-modulos': 'administracao-ti/modulos',
   'screen-equipes-controle': 'equipes-turnos',
+  'screen-relatorios': 'relatorios-historicos',
+  'screen-wfm-painel': 'turnos-plantoes/painel',
   'screen-wfm': 'turnos-plantoes',
   'screen-wfm-minha-escala': 'turnos-plantoes/minha-escala',
   'screen-wfm-presenca': 'turnos-plantoes/presenca',
