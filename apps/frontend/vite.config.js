@@ -1,4 +1,7 @@
 // @ts-check
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 /**
@@ -81,7 +84,7 @@ const API_PROXY_PATTERN = `^/(${API_PATH_PREFIXES.join('|')})(/|$)`;
  * Vite e o devolvem intacto no index.html gerado.
  */
 const guardados = [];
-const CSS_LINK = /<link\s[^>]*href="\/estilos\/estilos\.css[^"]*"[^>]*>/;
+const CSS_LINK = /<link\s[^>]*href="\/estilos\/(?:estilos|bootstrap-[\d.]+\.min)\.css[^"]*"[^>]*>/g;
 const separarCssFonte = {
   name: 'conecta-separar-css-fonte',
   transformIndexHtml: {
@@ -89,11 +92,43 @@ const separarCssFonte = {
     handler: (html) => html.replace(CSS_LINK, (m) => { guardados.push(m); return `<!--CONECTA_CSS_${guardados.length - 1}-->`; }),
   },
 };
+
+/**
+ * No build, junta os 20 @import de estilos.css em UM arquivo com hash no nome (cache longo): são 20 requisicoes a menos
+ * no carregamento, o que pesa muito em rede lenta/VPN. A ordem dos @import (= a cascata) e o conteudo sao preservados;
+ * os 3 url() relativos viram absolutos (/estilos/...). Em dev (npm run dev) nada muda.
+ */
+let cssJuntado = null;
+function juntarCss() {
+  const dir = resolve(__dirname, 'estilos');
+  const raiz = readFileSync(resolve(dir, 'estilos.css'), 'utf8');
+  const bootstrap = readdirSync(dir).find((f) => /^bootstrap-[\d.]+\.min\.css$/.test(f));
+  const partes = bootstrap ? [readFileSync(resolve(dir, bootstrap), 'utf8')] : [];
+  for (const m of raiz.matchAll(/@import\s+url\((['"]?)\.\/([^'")?]+)(?:\?[^'")]*)?\1\)\s*;/g)) {
+    const css = readFileSync(resolve(dir, m[2]), 'utf8');
+    partes.push(css.replace(/url\((['"]?)\.\/(?![a-z]+:)/g, 'url($1/estilos/'));
+  }
+  const resto = raiz.replace(/@import[^;]*;/g, '');
+  const conteudo = `${partes.join('\n')}\n${resto}`;
+  const hash = createHash('sha256').update(conteudo).digest('hex').slice(0, 10);
+  return { nome: `estilos-${hash}.css`, conteudo };
+}
+
 const devolverCssFonte = {
   name: 'conecta-devolver-css-fonte',
   transformIndexHtml: {
     order: 'post',
-    handler: (html) => html.replace(/<!--CONECTA_CSS_(\d+)-->/g, (_, i) => guardados[Number(i)]),
+    handler: (html, ctx) => html.replace(/<!--CONECTA_CSS_(\d+)-->/g, (_, i) => {
+      if (!ctx || !ctx.bundle) return guardados[Number(i)];
+      // Bootstrap + estilos.css viram o mesmo arquivo: o 1o placeholder leva o <link>, os demais saem.
+      if (cssJuntado) return '';
+      cssJuntado = juntarCss();
+      return `<link href="/bundle/${cssJuntado.nome}" rel="stylesheet" />`;
+    }),
+  },
+  closeBundle() {
+    if (!cssJuntado) return;
+    writeFileSync(resolve(__dirname, 'dist', 'bundle', cssJuntado.nome), cssJuntado.conteudo);
   },
 };
 

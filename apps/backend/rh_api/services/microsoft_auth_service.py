@@ -53,13 +53,27 @@ def validate_microsoft_auth_configuration(settings: Settings) -> None:
         )
 
 
+# O MSAL consulta a Microsoft (descoberta de autoridade) ao criar o cliente: refazer isso a cada login/callback
+# custava segundos em rede lenta. O cliente é reutilizável; o fluxo de cada usuário vive na sessão, não nele.
+_microsoft_clients: dict[tuple[str, str, str], msal.ConfidentialClientApplication] = {}
+
+
 def create_microsoft_client(
     settings: Settings | None = None,
 ) -> msal.ConfidentialClientApplication:
     resolved_settings = settings or get_settings()
     validate_microsoft_auth_configuration(resolved_settings)
-    return msal.ConfidentialClientApplication(
-        client_id=resolved_settings.microsoft_client_id,
-        authority=resolved_settings.microsoft_authority,
-        client_credential=resolved_settings.microsoft_client_secret,
+    chave = (
+        resolved_settings.microsoft_client_id,
+        resolved_settings.microsoft_authority,
+        resolved_settings.microsoft_client_secret,
     )
+    cliente = _microsoft_clients.get(chave)
+    if cliente is None:
+        cliente = msal.ConfidentialClientApplication(
+            client_id=resolved_settings.microsoft_client_id,
+            authority=resolved_settings.microsoft_authority,
+            client_credential=resolved_settings.microsoft_client_secret,
+        )
+        _microsoft_clients[chave] = cliente
+    return cliente
