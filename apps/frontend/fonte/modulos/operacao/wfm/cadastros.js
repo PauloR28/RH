@@ -23,7 +23,7 @@ import {
   impactoDiasTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261020-dias';
+} from '../../../services/api/wfm.js?v=20261026-trocas';
 import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
 import { descreverTurno } from './escala.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';

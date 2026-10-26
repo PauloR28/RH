@@ -1,5 +1,5 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { criarEscalaWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
+import { criarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
 import { Campo, ModalForm } from './formulario.js';
 import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
@@ -121,6 +121,20 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
     } finally { setPublicando(''); }
   };
 
+  const duplicarMes = async (e) => {
+    const proximo = somarMes(anoMes, 1);
+    if (!window.confirm(`Copiar a escala "${e.nome}" de ${rotuloMesAno(anoMes)} para ${rotuloMesAno(proximo)}?
+
+Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da semana. O que já estiver lançado em ${nomeMes(proximo)} não é alterado. Pausas, presenças e horas extras não são copiadas.`)) return;
+    try {
+      const r = await duplicarEscalaMesWfm({ operacao: e.chave, ano_mes: anoMes });
+      showToast?.(`Escala copiada para ${rotuloMesAno(r.ano_mes)}: ${r.colaboradores} colaborador(es), ${r.dias_copiados} dia(s).`, 'success');
+      aoMudarMes?.(r.ano_mes);
+    } catch (err) {
+      showToast?.(err?.message || 'Não foi possível duplicar a escala para o mês seguinte.', 'error');
+    }
+  };
+
   const botaoNova = gere ? html`<button type="button" class="cx-btn cx-btn--primario" onClick=${() => setCriando(true)}><${IconeCx} nome="add" />Nova escala</button>` : null;
   const corpoTabela = () => {
     if (erro) return html`<${EstadoConsole} mensagem=${erro} rotuloAcao="Tentar de novo" aoAcao=${() => setTentativa((t) => t + 1)} />`;
@@ -149,6 +163,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
               ${gere ? html`<${MenuAcoesProcesso} ariaLabel=${`Mais ações de ${e.nome}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
                 acoes=${[
         { label: 'Abrir escala', icon: 'edit_note', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'mes') },
+        { label: 'Duplicar para o mês seguinte', icon: 'content_copy', disabled: !e.ativa || !e.escalados, onClick: () => duplicarMes(e) },
         { label: 'Configurações da escala', icon: 'settings', onClick: () => aoConfigurar(e) },
       ]} />` : null}
             </span></td>

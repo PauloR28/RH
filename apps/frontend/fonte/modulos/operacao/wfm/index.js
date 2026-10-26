@@ -14,11 +14,11 @@ import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261023-ajustes';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
 import { TelaEscalaPausas } from './pausas.js?v=20261023-ajustes';
 import { TelaEscalaTabela } from './tabela.js?v=20261023-ajustes';
-import { TelaMinhaEscala } from './minha.js?v=20261023-ajustes';
-import { ListaEscalas } from './escalas.js?v=20261026-ajustes';
+import { TelaMinhaEscala } from './minha.js?v=20261026-trocas';
+import { ListaEscalas } from './escalas.js?v=20261026-trocas';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
-import { TelaTrocas } from './trocas.js?v=20261023-ajustes';
-import { TelaRelatorios } from './relatorios.js?v=20261023-ajustes';
+import { TelaTrocas } from './trocas.js?v=20261026-trocas';
+import { TelaRelatorios } from './relatorios.js?v=20261026-trocas';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
@@ -217,7 +217,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
         ${[['minha', 'Minha escala'], ['equipe', 'Minha equipe']].map(([id, rotulo]) => html`<button key=${id} type="button" role="tab" aria-selected=${visaoMinha === id} class=${visaoMinha === id ? 'is-ativo' : ''} onClick=${() => setVisaoMinha(id)}>${rotulo}</button>`)}
       </div>` : null}
       ${equipe ? html`<${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} opcoesEscala=${operacoesComEscala.length > 1 ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null} />`
-        : html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} />`}`;
+        : html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} nomeUsuario=${controlador.estado?.nomeUsuarioAutenticado || ''} />`}`;
   }
   else if (telaAtual === 'screen-wfm-trocas') corpo = html`<${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`;
   else if (telaAtual === 'screen-wfm-painel') corpo = html`<${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />`;

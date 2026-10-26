@@ -268,6 +268,17 @@ class WfmEscalaRepositoryMixin:
                             "manual": bool(r[8]),
                         }
                     )
+            pausas_equipe: list[dict] = []
+            if ids and not somente_propria:
+                cursor.execute(
+                    f"SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND data BETWEEN ? AND ? "
+                    f"AND id_operador IN ({','.join('?' for _ in ids)}) ORDER BY data, id_operador, ordem",
+                    (operacao, dias[0], dias[-1], *ids),
+                )
+                pausas_equipe = [
+                    {"id_operador": int(r[0]), "data": r[1].isoformat(), "tipo": normalize_text(r[2]), "inicio": normalize_text(r[3]), "duracao_min": int(r[4])}
+                    for r in cursor.fetchall()
+                ]
             turnos = self.wfm_list_turnos(user, operacao, incluir_excluidos=True)  # excluídos só entram se aparecem no histórico
             eventos = self.wfm_list_calendario(user, operacao, ano_mes)
             contratos_op = self._wfm_contratos_vigentes(cursor, operacao, ids, dias[0], dias[-1]) if ids else {}
@@ -315,6 +326,7 @@ class WfmEscalaRepositoryMixin:
                 "nome_escala": self._wfm_nome_escala(cursor, operacao),
                 "operadores": operadores,
                 "itens": itens,
+                "pausas_equipe": pausas_equipe,
                 "personalizacoes": [
                     {"id_turno": t, "id_operador": o, "entrada": h[0], "saida": h[1]}
                     for (t, o), h in sorted(self._wfm_personalizacoes_mapa(cursor, operacao).items()) if o in set(ids)

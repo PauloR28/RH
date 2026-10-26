@@ -7,8 +7,9 @@ import {
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261020-dias';
+} from '../../../services/api/wfm.js?v=20261026-trocas';
 import { dataHora } from './comum.js';
+import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js';
 
 // Trocas de plantão. Nenhuma troca é automática: mesmo com o colega de acordo, um Supervisor,
 // Control Desk ou Gestor/RH aprova. Todas as regras (janela, prazo, skills, motor) rodam no servidor.
@@ -65,7 +66,9 @@ function CartaoTurno({ nome, rotulo, data, turno, supervisor, equipe }) {
 function DetalheTroca({ troca, executar }) {
   const [pendente, setPendente] = useState(null); // 'reprovar' | 'desfazer'
   const [texto, setTexto] = useState('');
-  useEffect(() => { setPendente(null); setTexto(''); }, [troca.id_troca]);
+  const [resumo, setResumo] = useState(false);
+  const [aprovando, setAprovando] = useState(false);
+  useEffect(() => { setResumo(false); setPendente(null); setTexto(''); }, [troca.id_troca]);
   const confirmar = async () => {
     if (!texto.trim()) return;
     const ok = await executar(() => (pendente === 'reprovar' ? decidirTrocaWfm(troca.id_troca, false, texto) : desfazerTrocaWfm(troca.id_troca, texto)),
@@ -115,10 +118,13 @@ function DetalheTroca({ troca, executar }) {
       <div class="wfm-acoes">
         ${troca.pode_responder ? html`<button type="button" class="btn btn-outline-secondary btn-sm tr-recusar" onClick=${() => executar(() => responderTrocaWfm(troca.id_troca, false), 'Você recusou a troca.')}>Recusar</button><button type="button" class="btn btn-primary btn-sm" onClick=${() => executar(() => responderTrocaWfm(troca.id_troca, true), 'Você aceitou. A troca segue para aprovação.')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Aceitar</button>` : null}
         ${troca.pode_cancelar ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => executar(() => cancelarTrocaWfm(troca.id_troca), 'Troca cancelada.')}>Cancelar pedido</button>` : null}
-        ${troca.pode_decidir ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPendente('reprovar')}>Reprovar</button><button type="button" class="btn btn-primary btn-sm" onClick=${() => executar(() => decidirTrocaWfm(troca.id_troca, true), 'Troca aprovada e escala republicada.')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Aprovar</button>` : null}
+        ${troca.pode_decidir ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPendente('reprovar')}>Reprovar</button><button type="button" class="btn btn-primary btn-sm" onClick=${() => setResumo(true)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('check')}</span>Aprovar</button>` : null}
         ${troca.pode_desfazer ? html`<button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPendente('desfazer')}>Desfazer troca</button>` : null}
       </div>
     </footer>` : null}
+    ${resumo ? html`<${ModalResumoTroca} ocupado=${aprovando} onClose=${() => setResumo(false)}
+      texto=${textoTrocaSupervisor({ dataA: troca.data_a, dataB: troca.data_b, nomeA: troca.solicitante, nomeB: troca.alvo })}
+      onConfirmar=${async () => { setAprovando(true); const ok = await executar(() => decidirTrocaWfm(troca.id_troca, true), 'Troca aprovada e escala republicada.'); setAprovando(false); if (ok) setResumo(false); }} />` : null}
   </section>`;
 }
 

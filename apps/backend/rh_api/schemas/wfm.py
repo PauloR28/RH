@@ -153,6 +153,11 @@ class DuplicarEscalaRequest(BaseSchema):
     nome: str = Field(default="", max_length=120)
 
 
+class DuplicarEscalaMesRequest(BaseSchema):
+    operacao: str = Field(max_length=60)
+    ano_mes: str = Field(max_length=7)
+
+
 class FecharRequest(BaseSchema):
     operacao: str = Field(max_length=60)
     ano_mes: str = Field(max_length=7)

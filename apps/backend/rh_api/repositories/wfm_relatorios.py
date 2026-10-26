@@ -70,6 +70,14 @@ def _horas(minutos: int | float) -> float:
     return round(minutos / 60, 2)
 
 
+def _hhmm(horas: Any) -> str:
+    """Horas decimais -> "hh:mm" (usado nas colunas de tempo exportadas)."""
+    if horas is None or horas == "":
+        return ""
+    total = int(round(float(horas) * 60))
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
 def _meses(ini: date, fim: date) -> list[str]:
     out, atual = [], date(ini.year, ini.month, 1)
     while atual <= fim:
@@ -492,7 +500,13 @@ class WfmRelatoriosRepositoryMixin:
         nome = f"wfm_{sufixo}_{base}_{relatorios[0]['periodo']['ini']}_{relatorios[0]['periodo']['fim']}.{formato}"
 
         def tabela(rel: dict) -> tuple[list[str], list[list]]:
-            return [c["rotulo"] for c in rel["colunas"]], [[l.get(c["chave"], "") if l.get(c["chave"]) is not None else "" for c in rel["colunas"]] for l in rel["linhas"]]
+            def celula(l: dict, c: dict) -> Any:
+                v = l.get(c["chave"], "")
+                if v is None:
+                    return ""
+                return _hhmm(v) if c.get("tipo") == "horas" else v
+
+            return [c["rotulo"] for c in rel["colunas"]], [[celula(l, c) for c in rel["colunas"]] for l in rel["linhas"]]
 
         if formato == "csv":
             colunas, linhas = tabela(relatorios[0])

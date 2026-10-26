@@ -1304,3 +1304,44 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
   .tr-detalhe-corpo { grid-template-columns: 1fr; grid-template-rows: auto; overflow-y: auto; }
   .tr-col-principal, .tr-col-tempo { overflow: visible; border-left: 0; }
 }
+
+/* Escala da equipe em calendário (Supervisor, Equipes e Turnos) — versão reduzida do calendário do operador. */
+.ce-card { display: flex; flex-direction: column; gap: 16px; padding: 24px; }
+.ce-barra { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ce-barra-esq { display: flex; align-items: center; gap: 16px; }
+.ce-mes { margin: 0; font-size: var(--text-lg, 18px); font-weight: 700; text-transform: capitalize; }
+.ce-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.ce-grade-col { min-width: 0; }
+.ce-cab, .ce-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.ce-cab { margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted, #667085); text-align: center; }
+.ce-dia { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 72px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.ce-dia:hover { border-color: var(--brand, #1d4ed8); }
+.ce-dia.is-sel { border-color: var(--brand, #1d4ed8); box-shadow: 0 0 0 1px var(--brand, #1d4ed8); }
+.ce-dia.is-hoje .ce-dia-num { color: var(--brand, #1d4ed8); font-weight: 700; }
+.ce-dia.is-vazio { color: var(--text-muted, #667085); }
+.ce-dia-num { font-size: 12px; font-weight: 600; }
+.ce-dia-n { font-size: 18px; line-height: 1; }
+.ce-dia-cod { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--text-muted, #667085); }
+.ce-fora { min-height: 72px; }
+.ce-ponto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand, #1d4ed8); }
+.ce-dia .ce-ponto { position: absolute; top: 8px; right: 8px; }
+.ce-legenda { margin: 16px 0 0; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted, #667085); }
+.ce-painel { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; max-height: 640px; overflow-y: auto; }
+.ce-painel-titulo { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.ce-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ce-pessoa { padding: 8px 0; border-top: 1px solid var(--line); }
+.ce-pessoa:first-child { border-top: 0; }
+.ce-pessoa-topo { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.ce-horario { font-variant-numeric: tabular-nums; color: var(--text-muted, #667085); white-space: nowrap; }
+.ce-pessoa-sub { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; font-size: 12px; }
+.ce-cod { padding: 0 8px; border: 1px solid var(--ce-cor, var(--line)); border-radius: 6px; font-weight: 600; }
+.ce-pausa { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ce-pausa.is-vazio { color: var(--text-muted, #667085); }
+.ce-folgas { margin: 8px 0 0; font-size: 12px; color: var(--text-muted, #667085); }
+@media (max-width: 1100px) { .ce-corpo { grid-template-columns: 1fr; } .ce-painel { max-height: none; } }
+
+/* Troca de escala: texto formal e resumo do supervisor. */
+.mc-formalizacao { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.mc-formalizacao-texto { margin: 0; font-size: 13px; line-height: 1.5; white-space: pre-line; color: var(--ink); }
+.mc-ciente { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.tr-resumo-texto { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }

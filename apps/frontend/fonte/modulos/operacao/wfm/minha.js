@@ -1,7 +1,8 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261020-dias';
+import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
+import { textoTrocaOperador } from './trocas-texto.js';
 import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js';
 
 // Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel
@@ -131,7 +132,7 @@ function PainelDia({ data, itens, eventos, presenca, comum, podeTrocar, onTrocar
   const passado = paraIso(data) < paraIso(new Date());
   return html`<aside class="mc-painel" aria-label="Dia selecionado">
     <div><p class="mc-eyebrow">DIA SELECIONADO</p><h3 class="mc-painel-titulo">${tituloDia(data)}</h3></div>
-    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao && !String(presenca.lancado_por || '').startsWith('Automática') ? html`<small>${presenca.observacao}</small>` : null}</div>`
+    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao && !String(presenca.lancado_por || '').startsWith('Automática') && !String(presenca.observacao).startsWith('Presença automática') ? html`<small>${presenca.observacao}</small>` : null}</div>`
       : passado ? html`<div class="mc-presenca"><span>Presença: <strong>Não lançada</strong></span></div>` : null}
     ${trabalhando.map((item) => {
       const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
@@ -154,7 +155,7 @@ function Avatar({ nome, ativo }) {
 }
 
 // Passo a passo: o que trocar → com quem → confirmar. Regras de negócio e payload iguais aos de antes.
-function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
+function ModalTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, showToast }) {
   const iso = paraIso(data);
   const [colegas, setColegas] = useState(null);
   const [modo, setModo] = useState('turno'); // 'turno' = mesmo dia | 'dia' = assumo outro dia do colega
@@ -164,6 +165,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
   const [busca, setBusca] = useState('');
   const [horario, setHorario] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [ciente, setCiente] = useState(false);
   const caixa = useRef(null);
   const fechar = useRef(onClose);
   fechar.current = onClose;
@@ -200,7 +202,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
   const horarioB = colega?.dias?.[dataFinalB];
   const pronto = !!colega && !!horarioB;
 
-  const trocarModo = (m) => { setModo(m); setIdColega(null); setDataB(''); setHorario(''); };
+  const trocarModo = (m) => { setCiente(false); setModo(m); setIdColega(null); setDataB(''); setHorario(''); };
   const limpar = () => { setBusca(''); setHorario(''); };
   const enviar = async () => {
     setEnviando(true);
@@ -248,7 +250,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
           ${filtradas.length ? html`<div class="mc-lista" role="radiogroup" aria-label="Operadores">${filtradas.map((c) => {
             const ativo = idColega === c.id_usuario;
             return html`<label key=${c.id_usuario} class=${`mc-linha ${ativo ? 'is-ativa' : ''}`}>
-              <input type="radio" name="mc-colega" class="mc-radio-oculto" checked=${ativo} onChange=${() => { setIdColega(c.id_usuario); setDataB(''); }} />
+              <input type="radio" name="mc-colega" class="mc-radio-oculto" checked=${ativo} onChange=${() => { setIdColega(c.id_usuario); setDataB(''); setCiente(false); }} />
               <${Avatar} nome=${c.nome} ativo=${ativo} />
               <span class="mc-linha-nome">${c.nome}</span>
               <span class="mc-linha-horario">${modo === 'turno' ? faixa(c.dias[iso]) : `${diasAssumiveis(c).length} dia(s)`}</span>
@@ -259,7 +261,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
           ${modo === 'dia' && colega ? html`<div class="mc-dias-colega" role="radiogroup" aria-label=${`Dia que você assume de ${colega.nome.split(' ')[0]}`}>
             <span>Dia que você assume de ${colega.nome.split(' ')[0]}:</span>
             ${diasAssumiveis(colega).map(([d, h]) => html`<label key=${d} class=${`mc-dia-opcao ${dataB === d ? 'is-ativa' : ''}`}>
-              <input type="radio" name="mc-dia-b" class="mc-radio-oculto" checked=${dataB === d} onChange=${() => setDataB(d)} /><strong>${rotuloDia(d)}</strong><small>${h.entrada}–${h.saida}</small></label>`)}</div>` : null}`}
+              <input type="radio" name="mc-dia-b" class="mc-radio-oculto" checked=${dataB === d} onChange=${() => { setDataB(d); setCiente(false); }} /><strong>${rotuloDia(d)}</strong><small>${h.entrada}–${h.saida}</small></label>`)}</div>` : null}`}
       </fieldset>
 
       ${resumo ? html`<section class="mc-resumo" aria-label="Resumo da troca">
@@ -269,11 +271,15 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
           <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_forward')}</span><b class="mc-resumo-para">${para}</b></div>`)}
         <label class="mc-motivo"><span>Motivo (opcional)</span><input class="form-control" maxlength="300" value=${motivo} onInput=${(e) => setMotivo(e.target.value)} /></label>
         <p class="mc-ajuda">Seu colega precisa aceitar e depois o supervisor (ou o RH) aprova.</p>
+        <div class="mc-formalizacao">
+          <p class="mc-formalizacao-texto">${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${faixa(item)} (${nomeUsuario ? nomeUsuario.split(' ')[0] : 'você'}) e ${faixa(horarioB)} (${colega.nome.split(' ')[0]})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })}</p>
+          <label class="mc-ciente"><input type="checkbox" checked=${ciente} onChange=${(e) => setCiente(e.target.checked)} /> Estou ciente</label>
+        </div>
       </section>` : null}
 
       <footer class="mc-modal-rodape">
         <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
-        <button type="button" class="btn btn-primary" disabled=${!pronto || enviando} onClick=${enviar}>${enviando ? 'Enviando…' : 'Enviar solicitação'}</button>
+        <button type="button" class="btn btn-primary" disabled=${!pronto || !ciente || enviando} onClick=${enviar}>${enviando ? 'Enviando…' : 'Enviar solicitação'}</button>
       </footer>
     </div>
   </div>`;
@@ -281,7 +287,7 @@ function ModalTroca({ operacao, data, item, onClose, onFeito, showToast }) {
 
 // ---------------------------------------------------------------- tela
 
-export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
+export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeUsuario = '' }) {
   const modo = 'mes'; // o operador vê a escala sempre por mês
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
@@ -397,5 +403,5 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false }) {
           ${dataSel ? html`<${PainelDia} data=${dataSel} itens=${dados.itens[sel] || []} eventos=${eventosDoDia(dataSel)} presenca=${dados.presencas?.[sel]} comum=${comum} podeTrocar=${podeTrocar} onTrocar=${setTrocando} />` : null}
         </div>`}
     </section>
-    ${trocando && dataSel ? html`<${ModalTroca} operacao=${trocando.operacao} data=${dataSel} item=${trocando} showToast=${showToast} onClose=${() => setTrocando(null)} onFeito=${() => setTrocando(null)} />` : null}`;
+    ${trocando && dataSel ? html`<${ModalTroca} nomeUsuario=${nomeUsuario} operacao=${trocando.operacao} data=${dataSel} item=${trocando} showToast=${showToast} onClose=${() => setTrocando(null)} onFeito=${() => setTrocando(null)} />` : null}`;
 }

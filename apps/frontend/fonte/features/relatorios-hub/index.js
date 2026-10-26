@@ -33,12 +33,17 @@ const nomeCurto = (valor) => {
 };
 const br = (d) => (d ? d.split('-').reverse().join('/') : '');
 const valorTexto = (v) => (v === null || v === undefined || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v));
+// Horas decimais (7,5) -> "hh:mm" (07:30).
+const hhmm = (v) => {
+  const total = Math.round((Number(v) || 0) * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
 const formatarNumero = (v, tipo) => {
   if (v === null || v === undefined || v === '') return '—';
   const n = Number(v);
   if (Number.isNaN(n)) return String(v);
   if (tipo === 'percentual') return `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-  if (tipo === 'horas') return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (tipo === 'horas') return hhmm(n);
   if (tipo === 'variacao') return `${n > 0 ? '+' : ''}${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`;
   return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 };
@@ -132,7 +137,7 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261023-ajustes').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261026-trocas').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261023-ajustes'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
@@ -229,7 +234,7 @@ export function TelaRelatoriosHub({ controlador }) {
       const arquivo = await exportarRelatorioHub({
         relatorio: relatorio.id, formato, titulo: `${relatorio.rotulo}`, filtros: filtrosTexto,
         colunas: dados.colunas.map((c) => c.rotulo),
-        linhas: linhas.map((l) => dados.colunas.map((c) => (NUMERICOS.includes(c.tipo) && l[c.chave] !== '' && l[c.chave] !== null && !Number.isNaN(Number(l[c.chave])) ? Number(l[c.chave]) : (l[c.chave] ?? '')))),
+        linhas: linhas.map((l) => dados.colunas.map((c) => (c.tipo === 'horas' && l[c.chave] !== '' && l[c.chave] !== null && !Number.isNaN(Number(l[c.chave])) ? hhmm(l[c.chave]) : NUMERICOS.includes(c.tipo) && l[c.chave] !== '' && l[c.chave] !== null && !Number.isNaN(Number(l[c.chave])) ? Number(l[c.chave]) : (l[c.chave] ?? '')))),
       });
       baixarArquivo(arquivo);
       showToast('Arquivo gerado.', 'success');

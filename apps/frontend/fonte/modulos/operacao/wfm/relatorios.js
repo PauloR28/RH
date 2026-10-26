@@ -4,7 +4,7 @@ import { IconeSvg } from '../../../ui/icone.js';
 import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { Icone } from './escala-ui.js?v=20261023-ajustes';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261020-dias';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261020-rel';
 
@@ -36,10 +36,16 @@ const PERIODOS = {
 };
 const br = (isoData) => (isoData ? isoData.split('-').reverse().join('/') : '');
 
+// Horas decimais (ex.: 7,5) -> "hh:mm" (07:30).
+const fmtHoras = (v) => {
+  const total = Math.round((Number(v) || 0) * 60);
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+};
+
 const fmtValor = (v, tipo) => {
   if (v === null || v === undefined || v === '') return '—';
   if (tipo === 'percentual') return `${fmt(v, 1)}%`;
-  if (tipo === 'horas') return fmt(v, 2);
+  if (tipo === 'horas') return fmtHoras(v);
   if (tipo === 'variacao') return `${Number(v) > 0 ? '+' : ''}${fmt(v, 2)}`;
   return fmt(v);
 };
@@ -131,12 +137,12 @@ function Indicador({ k }) {
   const sobe = k.variacao > 0, desce = k.variacao < 0;
   let tom = 'is-neutro';
   if (k.variacao !== null && k.melhor !== 'neutra') tom = (sobe && k.melhor === 'alta') || (desce && k.melhor === 'baixa') ? 'is-bom' : (sobe || desce) ? 'is-ruim' : 'is-neutro';
-  const valor = k.valor === null || k.valor === undefined ? '—' : fmt(k.valor, k.unidade === 'h' || k.unidade === '%' ? (k.unidade === '%' ? 1 : 2) : 0);
+  const valor = k.valor === null || k.valor === undefined ? '—' : k.unidade === 'h' ? fmtHoras(k.valor) : fmt(k.valor, k.unidade === '%' ? 1 : 0);
   return html`<div class="wfm-rel-kpi" title=${k.dica}>
     <span>${k.rotulo}</span>
-    <strong>${valor}${k.valor !== null && k.unidade ? html`<small>${k.unidade}</small>` : null}</strong>
+    <strong>${valor}${k.valor !== null && k.unidade ? html`<small>${k.unidade === 'h' ? '' : k.unidade}</small>` : null}</strong>
     <em class=${`wfm-rel-delta ${tom}`}>${k.variacao === null ? 'sem base de comparação' : html`<span aria-hidden="true">${sobe ? '▲' : desce ? '▼' : '='}</span> ${k.variacao > 0 ? '+' : ''}${fmt(k.variacao, 1)}% vs. anterior`}</em>
-    <small class="wfm-rel-anterior">${k.anterior === null || k.anterior === undefined ? '' : `Anterior: ${fmt(k.anterior, k.unidade === '%' ? 1 : k.unidade === 'h' ? 2 : 0)}${k.unidade}`}</small>
+    <small class="wfm-rel-anterior">${k.anterior === null || k.anterior === undefined ? '' : `Anterior: ${k.unidade === 'h' ? fmtHoras(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade}`}`}</small>
   </div>`;
 }
 

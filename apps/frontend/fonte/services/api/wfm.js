@@ -111,4 +111,5 @@ export const gestaoEscalasWfm = (anoMes) =>
   });
 export const criarEscalaWfm = (dados) => enviar('/wfm/escalas', 'POST', dados);
 export const duplicarEscalaWfm = (dados) => enviar('/wfm/escalas/duplicar', 'POST', dados);
+export const duplicarEscalaMesWfm = (dados) => enviar('/wfm/escalas/duplicar-mes', 'POST', dados);
 export const excluirEscalaWfm = (operacao) => requisitar(`/wfm/escalas${consulta({ operacao })}`, { method: 'DELETE' });

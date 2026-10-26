@@ -10,7 +10,7 @@ import {
   listarPresencasWfm,
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
-} from '../../../services/api/wfm.js?v=20261020-dias';
+} from '../../../services/api/wfm.js?v=20261026-trocas';
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
 import { Icone } from './escala-ui.js?v=20261023-ajustes';
 

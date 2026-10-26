@@ -10,9 +10,25 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
+from ..rbac import ROLE_SUPERVISOR
 from ..services import wfm_scope
+from ..services.wfm_montagem import dias_do_mes
 from ..services.helpers import normalize_text
 from .wfm_escala import _exigir_ano_mes
+
+
+def _mes_seguinte(ano_mes: str) -> str:
+    ano, mes = (int(p) for p in ano_mes.split("-"))
+    return f"{ano + (mes == 12)}-{(mes % 12) + 1:02d}"
+
+
+def _data_de_origem(destino, origem_por_dia_semana: dict[int, list]):
+    """Mesma posição na semana: 1ª segunda do mês novo copia a 1ª segunda do mês de origem, e assim por diante.
+    Se o mês novo tem uma 5ª ocorrência que a origem não tem, repete a última da origem."""
+    ocorrencias = origem_por_dia_semana.get(destino.weekday()) or []
+    if not ocorrencias:
+        return None
+    return ocorrencias[min((destino.day - 1) // 7, len(ocorrencias) - 1)]
 
 
 def _http(codigo: int, detalhe: str) -> HTTPException:
@@ -144,6 +160,66 @@ class WfmGestaoRepositoryMixin:
             return {"success": True, "logica": True}
         finally:
             conn.close()
+
+    def wfm_duplicar_escala_mes(self, user, chave: str, ano_mes: str, *, ip: str = "") -> dict:
+        """Copia a escala do mês para o mês seguinte (mesmos colaboradores, turnos e horários combinados, alinhados por dia da
+        semana). Não sobrescreve o que já foi lançado no mês novo, não copia pausas, presenças nem horas extras."""
+        self._wfm_exigir_criar(user)
+        ano_mes = _exigir_ano_mes(ano_mes)
+        destino_mes = _mes_seguinte(ano_mes)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, chave, escrita=True, escala=True)
+            conn.commit()
+            cursor.execute(
+                "SELECT id_operador, data, id_turno, entrada_ajuste, saida_ajuste, manual FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ?",
+                (operacao, ano_mes),
+            )
+            origem = {(int(r[0]), r[1]): r for r in cursor.fetchall()}
+            cursor.execute("SELECT id_operador, data FROM dbo.wfm_escala_itens WHERE operacao = ? AND ano_mes = ?", (operacao, destino_mes))
+            ocupados = {(int(r[0]), r[1]) for r in cursor.fetchall()}
+            cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND ativo = 1", (operacao,))
+            turnos_ativos = {int(r[0]) for r in cursor.fetchall()}
+            validos = {op["id_usuario"] for op in self._wfm_todos_operadores(cursor, operacao)}
+            if user.perfil == ROLE_SUPERVISOR:
+                validos &= set(self._wfm_equipe_ids(cursor, user.id_usuario, operacao))
+        finally:
+            conn.close()
+        if not origem:
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "A escala deste mês não tem colaboradores escalados para copiar.")
+
+        por_dia_semana: dict[int, list] = {}
+        for d in dias_do_mes(ano_mes):
+            por_dia_semana.setdefault(d.weekday(), []).append(d)
+        itens: list[dict] = []
+        for id_operador in sorted({k[0] for k in origem} & validos):
+            for dia in dias_do_mes(destino_mes):
+                if (id_operador, dia) in ocupados:
+                    continue
+                fonte = _data_de_origem(dia, por_dia_semana)
+                linha = origem.get((id_operador, fonte)) if fonte else None
+                if not linha or int(linha[2]) not in turnos_ativos:
+                    continue
+                item = {"id_operador": id_operador, "data": dia.isoformat(), "id_turno": int(linha[2]), "manual": bool(linha[5])}
+                if linha[3] and linha[4]:
+                    item.update({"ajustar_horario": True, "entrada": normalize_text(linha[3]), "saida": normalize_text(linha[4])})
+                itens.append(item)
+        if not itens:
+            raise _http(status.HTTP_409_CONFLICT, "Nada a copiar: o mês seguinte já está preenchido ou os turnos/colaboradores não estão mais ativos.")
+
+        # Em lotes por colaborador (limite de 1500 alterações por gravação).
+        copiadas = 0
+        lote: list[dict] = []
+        for id_operador in sorted({i["id_operador"] for i in itens}):
+            do_operador = [i for i in itens if i["id_operador"] == id_operador]
+            if lote and len(lote) + len(do_operador) > 1000:
+                copiadas += self.wfm_salvar_itens(user, operacao, destino_mes, lote, ip=ip)["alteradas"]
+                lote = []
+            lote += do_operador
+        if lote:
+            copiadas += self.wfm_salvar_itens(user, operacao, destino_mes, lote, ip=ip)["alteradas"]
+        return {"success": True, "ano_mes": destino_mes, "dias_copiados": copiadas, "colaboradores": len({i["id_operador"] for i in itens})}
 
     def wfm_duplicar_escala(self, user, chave: str, operacao_destino: str, nome: str = "", *, ip: str = "") -> dict:
         """Cria uma escala nova (na mesma operação ou em outra do escopo do usuário) com o nome, aprovadores,

@@ -20,6 +20,7 @@ from ..schemas.wfm import (
     CapacidadePausasRequest,
     ConfigEscalaRequest,
     CriarEscalaRequest,
+    DuplicarEscalaMesRequest,
     DuplicarEscalaRequest,
     DeclinarRequest,
     DistribuirPausasRequest,
@@ -493,6 +494,11 @@ def criar_escala(payload: CriarEscalaRequest, request: Request, user: Authentica
 @router.post("/escalas/duplicar", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
 def duplicar_escala(payload: DuplicarEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_duplicar_escala(user, payload.operacao, payload.operacao_destino, payload.nome, ip=client_ip(request))
+
+
+@router.post("/escalas/duplicar-mes", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
+def duplicar_escala_mes(payload: DuplicarEscalaMesRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_duplicar_escala_mes(user, payload.operacao, payload.ano_mes, ip=client_ip(request))
 
 
 @router.delete("/escalas", dependencies=[Depends(require_permissions("wfm.escala.criar"))])
