@@ -151,7 +151,7 @@ export function telaWfmParaTecnologia(podeAcessarTela) {
 /** Monta o menu de Tecnologia já filtrado pelo que o usuário pode abrir. Grupos sem item visível somem. */
 export function montarMenuTecnologia(podeAcessarTela, possuiPermissao) {
   const itemVisivel = (item) => podeAcessarTela(item.tela) && (!item.permissao || possuiPermissao(item.permissao));
-  return MENU_TECNOLOGIA.flatMap((entrada) => {
+  const menu = MENU_TECNOLOGIA.flatMap((entrada) => {
     if (entrada.tipo === 'item') return podeAcessarTela(entrada.tela) ? [entrada] : [];
     if (entrada.tipo === 'suporte') {
       if (!funcaoLigada(MODULO_TECNOLOGIA, 'suporte')) return [];
@@ -167,6 +167,25 @@ export function montarMenuTecnologia(podeAcessarTela, possuiPermissao) {
     const itens = entrada.itens.filter(itemVisivel);
     return itens.length ? [{ ...entrada, itens }] : [];
   });
+  return ajustarMenuTecnologia(menu, possuiPermissao);
+}
+
+// Menu enxuto: "Relatórios e Históricos" e "Escalas e Plantões" vão para dentro de Sistema. Quem não tem Sistema (nenhum item liberado)
+// continua vendo os dois como links soltos. A Auditoria passa a viver em Relatórios e Históricos quando a página cobre o item.
+function ajustarMenuTecnologia(menu, possuiPermissao) {
+  const COBERTO_PELO_HUB = { 'screen-settings-logs': 'relhub.sistema.logs', 'screen-wfm-auditoria': 'relhub.wfm.historico' };
+  const temHub = menu.some((e) => e.id === 'relatorios');
+  const base = !temHub ? menu : menu.flatMap((e) => {
+    if (e.id !== 'auditoria') return [e];
+    const itens = e.itens.filter((i) => !(COBERTO_PELO_HUB[i.tela] && possuiPermissao(COBERTO_PELO_HUB[i.tela])));
+    return itens.length ? [{ ...e, itens }] : [];
+  });
+  const sistema = base.find((e) => e.id === 'sistema');
+  if (!sistema) return base;
+  const soltos = base.filter((e) => e.id === 'relatorios' || e.id === 'escalas');
+  if (!soltos.length) return base;
+  const dentro = soltos.map((e) => ({ tela: e.tela, label: e.label, icone: e.icone }));
+  return base.filter((e) => !soltos.includes(e)).map((e) => (e.id === 'sistema' ? { ...e, itens: [...dentro, ...e.itens] } : e));
 }
 
 /** Tela inicial de cada módulo (o seletor leva para ela). */

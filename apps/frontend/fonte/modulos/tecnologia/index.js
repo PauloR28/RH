@@ -5,7 +5,7 @@ import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { montarHashDaTela } from '../../rotas.js';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261023-hub';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261026-ajustes';
 import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261014-modulos2';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por

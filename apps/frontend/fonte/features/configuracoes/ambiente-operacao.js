@@ -2,11 +2,14 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { LoadingState } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import {
+  enviarLogoOperacao,
   lerAmbienteOperacao,
+  listarIdentidadeOperacoes,
   listarCatalogoMonitoria,
   listarEquipesMonitoria,
   salvarAmbienteOperacao,
   salvarCatalogoMonitoria,
+  salvarCorOperacao,
   salvarEquipeMonitoria,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
@@ -26,7 +29,50 @@ function Secao({ titulo, resumo, aberta = true, children }) {
     </details>`;
 }
 
-export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganizacao, onFeedback, onErro }) {
+// Cor primária e logo próprias da operação (só o Administrador). Valem apenas no ambiente da própria operação.
+function SecaoIdentidade({ chave, ativa, onFeedback, onErro }) {
+  const [atual, setAtual] = useState(null);
+  const [cor, setCor] = useState('#0a4b8c');
+  const [ocupado, setOcupado] = useState(false);
+  const [recarga, setRecarga] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    listarIdentidadeOperacoes().then((r) => {
+      if (!vivo) return;
+      const item = (r.itens || []).find((i) => i.chave === chave) || null;
+      setAtual(item);
+      if (item?.cor_primaria) setCor(item.cor_primaria);
+    }).catch(() => vivo && setAtual(null));
+    return () => { vivo = false; };
+  }, [chave, recarga]);
+  const executar = async (fn, msg) => {
+    setOcupado(true);
+    try { await fn(); onFeedback?.(msg); setRecarga((n) => n + 1); } catch (e) { onErro?.(e?.message || 'Não foi possível salvar a identidade visual.'); } finally { setOcupado(false); }
+  };
+  return html`
+    <${Secao} titulo="Identidade visual" resumo=${atual?.cor_primaria ? atual.cor_primaria : 'Padrão do Conecta'} aberta=${false}>
+      <p class="amb-explicacao">A cor primária e a logo valem somente no ambiente desta operação. Cores sem contraste suficiente para botões com texto branco são recusadas.</p>
+      <div class="amb-identidade">
+        <div class="amb-campo"><span>Cor primária</span>
+          <div class="mon-cor-linha"><input type="color" aria-label="Escolher cor" value=${cor} disabled=${!ativa || ocupado} onInput=${(e) => setCor(e.target.value)} />
+            <input class="form-control" aria-label="Código da cor" value=${cor} disabled=${!ativa || ocupado} onInput=${(e) => setCor(e.target.value)} /></div>
+          <div class="amb-identidade-acoes">
+            <button type="button" class="btn btn-primary btn-sm" disabled=${!ativa || ocupado} onClick=${() => executar(() => salvarCorOperacao(chave, cor), 'Cor da operação atualizada.')}>Aplicar cor</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${!ativa || ocupado || !atual?.cor_primaria} onClick=${() => executar(() => salvarCorOperacao(chave, ''), 'Cor removida: a operação usa a cor padrão.')}>Usar cor padrão</button>
+          </div>
+        </div>
+        <label class="amb-campo"><span>Logo (PNG ou JPG, até 1 MB)</span>
+          <input type="file" class="form-control" accept=".png,.jpg,.jpeg" disabled=${!ativa || ocupado}
+            onChange=${(e) => { const f = e.target.files?.[0]; if (f) executar(() => enviarLogoOperacao(chave, f), 'Logo atualizada.'); e.target.value = ''; }} />
+          <div class="amb-identidade-previa">
+            ${atual?.logo_arquivo ? html`<img class="mon-logo-preview" alt="Logo da operação" src=${`/monitoria/logos/${atual.logo_arquivo}`} />` : html`<small>Sem logo: usa a logo padrão do Conecta.</small>`}
+          </div>
+        </label>
+      </div>
+    </${Secao}>`;
+}
+
+export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganizacao, podeIdentidade = false, onFeedback, onErro }) {
   const [dados, setDados] = useState(null);
   const [form, setForm] = useState(VAZIO);
   const [equipes, setEquipes] = useState([]);
@@ -163,6 +209,8 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
           </div>` : null}
         </div>
       </${Secao}>
+
+      ${podeIdentidade ? html`<${SecaoIdentidade} chave=${chave} ativa=${dados.ativa} onFeedback=${onFeedback} onErro=${onErro} />` : null}
 
       <div class="amb-rodape">
         <button type="button" class="btn btn-primary btn-sm" disabled=${!podeEditar || salvando || !dados.ativa} onClick=${salvar}>

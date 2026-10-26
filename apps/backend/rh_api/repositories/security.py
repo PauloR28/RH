@@ -40,7 +40,16 @@ from ..services.helpers import normalize_compare_text, normalize_text, rows_to_d
 
 AUTH_PROVIDER_LOCAL = "local"
 AUTH_PROVIDER_MICROSOFT = "microsoft"
-_VALID_AUTH_PROVIDERS = {AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_MICROSOFT}
+AUTH_PROVIDER_AMBOS = "ambos"
+_VALID_AUTH_PROVIDERS = {AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_MICROSOFT, AUTH_PROVIDER_AMBOS}
+MENSAGEM_SOMENTE_MICROSOFT = "Este usuário deve autenticar-se exclusivamente pela Microsoft."
+MENSAGEM_SOMENTE_LOGIN = "Este usuário deve autenticar-se exclusivamente por login e senha, não pela Microsoft."
+
+
+def _provedor_permite(provedor, metodo: str) -> bool:
+    """Tipo de acesso do cadastro x forma de entrada ('local' ou 'microsoft'). Ambos libera as duas; vazio (legado) não bloqueia."""
+    p = normalize_text(provedor).lower()
+    return p in ("", AUTH_PROVIDER_AMBOS) or p == metodo
 _EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _AVATAR_ILUSTRADO_PATTERN = re.compile(r"^avatar-(0[1-9]|[12]\d|3\d|40)$")
 
@@ -396,6 +405,21 @@ class SecurityRepositoryMixin:
                 )
                 conn.commit()
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo ou bloqueado.")
+
+            if not _provedor_permite(user_row.get("provedor_autenticacao"), AUTH_PROVIDER_LOCAL):
+                self._insert_audit_log(
+                    cursor,
+                    user=user_context,
+                    modulo="Autenticação",
+                    acao="login_negado",
+                    entidade="usuario",
+                    entidade_id=str(user_row.get("id_usuario") or ""),
+                    justificativa="Usuário configurado para acesso exclusivo pela Microsoft.",
+                    origem=origem,
+                    sucesso=False,
+                )
+                conn.commit()
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=MENSAGEM_SOMENTE_MICROSOFT)
 
             if not verify_password(senha, user_row.get("senha_hash")):
                 self._insert_audit_log(
@@ -754,6 +778,23 @@ class SecurityRepositoryMixin:
                     detail="Seu acesso ao Conecta está desativado.",
                 )
 
+            if not _provedor_permite(user_row.get("provedor_autenticacao"), AUTH_PROVIDER_MICROSOFT):
+                self._insert_audit_log(
+                    cursor,
+                    user=user_context,
+                    modulo="Autenticação",
+                    acao="login_microsoft_negado",
+                    entidade="usuario",
+                    entidade_id=str(user_row.get("id_usuario") or ""),
+                    justificativa="Usuário configurado para acesso exclusivo por login e senha.",
+                    origem=origem,
+                    sucesso=False,
+                )
+                conn.commit()
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=MENSAGEM_SOMENTE_LOGIN)
+
+            # O login Microsoft não troca mais o tipo de acesso do cadastro: só preenche quando está vazio (legado).
+            provedor_final = normalize_text(user_row.get("provedor_autenticacao")).lower() or AUTH_PROVIDER_MICROSOFT
             try:
                 cursor.execute(
                     """
@@ -769,7 +810,7 @@ class SecurityRepositoryMixin:
                     (
                         safe_oid,
                         safe_tenant_id,
-                        AUTH_PROVIDER_MICROSOFT,
+                        provedor_final,
                         user_row.get("id_usuario"),
                     ),
                 )
@@ -802,7 +843,7 @@ class SecurityRepositoryMixin:
             result = self._serialize_system_user(
                 {
                     **user_row,
-                    "provedor_autenticacao": AUTH_PROVIDER_MICROSOFT,
+                    "provedor_autenticacao": provedor_final,
                 },
                 permissions,
                 operacoes,
@@ -815,7 +856,7 @@ class SecurityRepositoryMixin:
                     acao="vincular_conta_microsoft",
                     entidade="usuario",
                     entidade_id=str(user_row.get("id_usuario") or ""),
-                    valor_novo={"provedor_autenticacao": AUTH_PROVIDER_MICROSOFT},
+                    valor_novo={"provedor_autenticacao": provedor_final},
                     origem=origem,
                     sucesso=True,
                 )
@@ -918,7 +959,7 @@ class SecurityRepositoryMixin:
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
             senha_hash, provedor = row[0], row[1]
-            if normalize_text(provedor) != AUTH_PROVIDER_LOCAL:
+            if not _provedor_permite(provedor, AUTH_PROVIDER_LOCAL):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Este usuário autentica pela Microsoft; a senha é gerenciada por lá.",
@@ -1022,7 +1063,7 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
-            if safe_provider == AUTH_PROVIDER_LOCAL:
+            if safe_provider in (AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_AMBOS):
                 cursor.execute("SELECT senha_hash FROM usuarios WHERE id_usuario = ?", (int(id_usuario),))
                 row = cursor.fetchone()
                 if not row:
@@ -1497,10 +1538,10 @@ class SecurityRepositoryMixin:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Informe um e-mail válido.",
             )
-        if auth_provider == AUTH_PROVIDER_LOCAL and not safe_password:
+        if auth_provider in (AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_AMBOS) and not safe_password:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A senha é obrigatória para usuários com acesso Local.",
+                detail="A senha é obrigatória para usuários com acesso por Login.",
             )
 
         password_hash = hash_password(safe_password) if safe_password else None
@@ -2108,9 +2149,13 @@ class SecurityRepositoryMixin:
 
     def _guard_operacao_delete(self, cursor, previous: dict) -> None:
         if self._operacao_em_uso_monitoria(cursor, normalize_text(previous.get("chave"))):
+            ja_inativa = not bool(previous.get("ativo"))
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Esta operação possui monitorias e não pode ser excluída. Desative-a.",
+                detail=(
+                    "Esta operação possui matriz/monitorias e não pode ser excluída: o histórico da Monitoria é imutável. "
+                    + ("Ela já está inativa e permanece apenas para consulta." if ja_inativa else "Desative-a para tirá-la das seleções.")
+                ),
             )
 
     def list_configuration_catalog(self) -> dict:

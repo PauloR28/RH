@@ -16748,3 +16748,14 @@ display: grid;
 .generated-essay-text p:last-child {
   margin-bottom: 0;
 }
+
+
+/* Usuários em telas grandes: mais respiro nas linhas e na tipografia, sem mexer nas telas pequenas (só vale a partir de 1536px). */
+@media (min-width: 1536px) {
+  #screen-settings-users .users-modern-page,
+  #screen-settings .users-modern-page { gap: 24px; }
+  #screen-settings-users .users-modern-table th,
+  #screen-settings .users-modern-table th { padding: 16px 24px; font-size: 0.75rem; }
+  #screen-settings-users .users-modern-table td,
+  #screen-settings .users-modern-table td { padding: 16px 24px; font-size: 0.875rem; }
+}

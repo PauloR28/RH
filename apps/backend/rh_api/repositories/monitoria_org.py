@@ -957,7 +957,8 @@ class MonitoriaOrgRepositoryMixin:
         erros = validar_vinculos(perfil, operacoes, supervisores)
         if erros:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(erros))
-        provedor = "local" if normalize_text(data.get("provedor_autenticacao")) == "local" else "microsoft"
+        provedor = normalize_text(data.get("provedor_autenticacao")).lower()
+        provedor = provedor if provedor in ("local", "ambos") else "microsoft"
         criado = self.create_system_user(
             {
                 "nome": data.get("nome"),
@@ -974,7 +975,7 @@ class MonitoriaOrgRepositoryMixin:
         )
         id_usuario = int(criado["id_usuario"])
         try:
-            if provedor == "local":
+            if provedor in ("local", "ambos"):
                 conn = self._connect()
                 try:
                     conn.cursor().execute("UPDATE dbo.usuarios SET deve_trocar_senha = 1 WHERE id_usuario = ?", (id_usuario,))

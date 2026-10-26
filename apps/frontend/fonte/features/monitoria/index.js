@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261023-hub';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261026-ajustes';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -10,7 +10,7 @@ import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=202
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261014-nova';
 import { ModalDetalheMonitoria } from './detalhe.js?v=20261023-ajustes';
-import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261023-hub';
+import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261026-ajustes';
 import { TelaDashboard } from './painel.js?v=20261023-ajustes';
 import { TelaFormularios } from './admin.js?v=20261014-formularios';
 import { TelaCentralMonitoria } from './central.js';

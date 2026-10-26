@@ -2,7 +2,7 @@ import { html, useEffect, useRef, useState } from '../infraestrutura-react.js';
 import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
 import { IconeSvg } from '../ui/icone.js';
 import { selecionarModulo } from './estado.js?v=20261014-funcoes2';
-import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261023-hub';
+import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261026-ajustes';
 
 // Peças de interface dos módulos usadas pela navbar (ui/components/layout.js): seletor de módulo e menu da Tecnologia.
 
@@ -70,7 +70,7 @@ export function NavTecnologia({ controlador, navAtiva, grupoAberto, alternarGrup
           ${entrada.tipo === 'suporte' && naoLidosChamados > 0 ? html`<span class="tec-dot" role="status" aria-label=${`${naoLidosChamados} notificação(ões) de chamados`}></span>` : null}
         </button>`;
     }
-    const grupoAtivo = entrada.itens.some((i) => i.tela === navAtiva);
+    const grupoAtivo = entrada.itens.some((i) => ativa(i.tela));
     return html`
       <div key=${entrada.id} class=${`rh-modern-nav-group ${grupoAberto === `tec-${entrada.id}` ? 'is-open' : ''} ${grupoAtivo ? 'has-active' : ''}`.trim()}>
         <button type="button" class=${`rh-modern-nav-btn rh-modern-nav-parent-btn ${grupoAtivo ? 'is-active' : ''}`.trim()} title=${entrada.label}
@@ -82,8 +82,8 @@ export function NavTecnologia({ controlador, navAtiva, grupoAberto, alternarGrup
         ${grupoAberto === `tec-${entrada.id}` ? html`
           <div class="rh-modern-subnav" role="menu" aria-label=${`Submenu de ${entrada.label}`}>
             ${entrada.itens.map((subitem) => html`
-              <button type="button" key=${subitem.tela} role="menuitem" class=${`rh-modern-subnav-btn ${subitem.tela === navAtiva ? 'is-active' : ''}`.trim()}
-                aria-current=${subitem.tela === navAtiva ? 'page' : null} onClick=${() => { fecharGrupo(); controlador.irParaTelaProtegida(subitem.tela); }}>
+              <button type="button" key=${subitem.tela} role="menuitem" class=${`rh-modern-subnav-btn ${ativa(subitem.tela) ? 'is-active' : ''}`.trim()}
+                aria-current=${ativa(subitem.tela) ? 'page' : null} onClick=${() => { fecharGrupo(); controlador.irParaTelaProtegida(subitem.tela); }}>
                 <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(subitem.icone)}</span>
                 <span>${subitem.label}</span>
               </button>`)}

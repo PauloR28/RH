@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261023-hub';
+} from './gestao/index.js?v=20261026-ajustes';

@@ -9,8 +9,8 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261023-hub';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261023-hub';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261026-ajustes';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261026-ajustes';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };

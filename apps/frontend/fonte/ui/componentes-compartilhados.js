@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261023-hub';
+} from './components/layout.js?v=20261026-ajustes';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,

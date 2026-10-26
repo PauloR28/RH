@@ -537,7 +537,7 @@ class FakeSecurityRepository(SecurityRepositoryMixin):
 
 
 def test_first_microsoft_login_links_by_normalized_email_and_preserves_access():
-    cursor = FakeCursor(email_user=_user_record())
+    cursor = FakeCursor(email_user=_user_record(provedor_autenticacao="microsoft"))
     repository = FakeSecurityRepository(cursor)
     result = repository.authenticate_microsoft_user(
         microsoft_oid="oid-1",
@@ -553,6 +553,33 @@ def test_first_microsoft_login_links_by_normalized_email_and_preserves_access():
     update = next(sql for sql, _ in cursor.executions if sql.startswith("update usuarios"))
     assert "microsoft_oid = ?" in update
     assert repository.connection.commits == 1
+
+
+def test_microsoft_login_is_refused_for_user_configured_for_login_only():
+    cursor = FakeCursor(email_user=_user_record(provedor_autenticacao="local"))
+    repository = FakeSecurityRepository(cursor)
+    with pytest.raises(HTTPException, match="exclusivamente por login e senha") as erro:
+        repository.authenticate_microsoft_user(microsoft_oid="oid-1", microsoft_tenant_id=TENANT_ID, email="ana@empresa.com.br")
+    assert erro.value.status_code == 403
+    assert not any(sql.startswith("update usuarios") for sql, _ in cursor.executions)
+
+
+def test_microsoft_login_keeps_access_type_ambos_untouched():
+    cursor = FakeCursor(email_user=_user_record(provedor_autenticacao="ambos"))
+    repository = FakeSecurityRepository(cursor)
+    result = repository.authenticate_microsoft_user(microsoft_oid="oid-1", microsoft_tenant_id=TENANT_ID, email="ana@empresa.com.br")
+    assert result["provedor_autenticacao"] == "ambos"
+    update = next((sql, params) for sql, params in cursor.executions if sql.startswith("update usuarios"))
+    assert "ambos" in update[1]
+
+
+def test_provedor_permite_regras_de_tipo_de_acesso():
+    from rh_api.repositories.security import _provedor_permite
+
+    assert _provedor_permite("local", "local") and not _provedor_permite("local", "microsoft")
+    assert _provedor_permite("microsoft", "microsoft") and not _provedor_permite("microsoft", "local")
+    assert _provedor_permite("ambos", "local") and _provedor_permite("ambos", "microsoft")
+    assert _provedor_permite("", "local") and _provedor_permite(None, "microsoft")  # legado sem valor não bloqueia
 
 
 def test_next_microsoft_login_finds_user_by_oid_and_tenant_first():

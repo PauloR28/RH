@@ -17,13 +17,14 @@
 .rhub-cab h1 { margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; color: var(--ink); }
 .rhub-cab p { margin: 0; font-size: var(--text-sm); color: var(--ink-soft); }
 
-.rhub-filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-.rhub-filtro { display: flex; flex-direction: column; gap: 4px; flex: 0 1 176px; min-width: 128px; font-size: var(--text-xs, 0.75rem); font-weight: 600; color: var(--ink-soft); }
-.rhub-filtro .form-select, .rhub-filtro .form-control { height: 32px; padding-top: 0; padding-bottom: 0; font-size: var(--text-sm); font-weight: 400; }
-.rhub-filtro--data { flex-basis: 136px; min-width: 128px; }
-.rhub-busca { position: relative; display: block; flex: 0 1 280px; margin-left: auto; }
+.rhub-filtros { display: flex; flex-wrap: nowrap; gap: 16px; align-items: flex-end; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.rhub-filtro { display: flex; flex-direction: column; gap: 4px; flex: 1 1 0; min-width: 0; font-size: var(--text-xs, 0.75rem); font-weight: 600; color: var(--ink-soft); }
+.rhub-filtro .form-select, .rhub-filtro .form-control { width: 100%; min-width: 0; height: 32px; padding-top: 0; padding-bottom: 0; font-size: var(--text-sm); font-weight: 400; text-overflow: ellipsis; }
+.rhub-filtro--data { flex: 0 1 152px; }
+.rhub-filtro--busca { flex: 1.25 1 0; }
+.rhub-busca { position: relative; display: block; }
 .rhub-busca .material-symbols-outlined { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--ink-faint); pointer-events: none; }
-.rhub-busca .form-control { height: 32px; padding-left: 40px; font-size: var(--text-sm); }
+.rhub-busca .form-control { padding-left: 40px; }
 
 .rhub-barra { display: flex; align-items: center; gap: 16px; }
 .rhub-contagem { font-size: var(--text-sm); color: var(--ink-soft); white-space: nowrap; }
@@ -48,6 +49,11 @@
 .rhub-paginacao-botoes { display: inline-flex; align-items: center; gap: 8px; }
 .rhub-atalho { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--ink-soft); }
 
+@media (max-width: 1180px) {
+  .rhub-filtros { flex-wrap: wrap; }
+  .rhub-filtro { flex: 1 1 160px; }
+  .rhub-filtro--data { flex: 1 1 136px; }
+}
 @media (max-width: 960px) {
   .rhub { grid-template-columns: 1fr; padding: 16px; }
   .rhub-menu { position: static; max-height: none; flex-direction: row; flex-wrap: wrap; }

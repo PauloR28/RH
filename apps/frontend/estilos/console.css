@@ -797,3 +797,12 @@
   .rh-topnav-search .rh-global-search:focus-within .rh-modern-search-shell { width: 100%; padding-left: 12px; overflow: visible; background: var(--color-surface); }
   .rh-topnav-search .rh-global-search:focus-within .rh-modern-search-shell input { position: static; opacity: 1; cursor: text; }
 }
+
+
+/* Operações: lista mais compacta (cabem mais itens sem rolar) e interruptor Ativa/Inativa do Editar operação. */
+.cx-op-item { min-height: 48px; }
+.cx-op-item-main { min-height: 48px; gap: 8px; }
+.cx-op-icone { width: 32px; height: 32px; }
+.cx-op-item-texto strong { font-size: 0.8125rem; line-height: 16px; }
+.cx-op-item-texto small { font-size: 0.6875rem; line-height: 16px; }
+.cx-op-ativo { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-soft); }

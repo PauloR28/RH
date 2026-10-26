@@ -29,7 +29,7 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261023-hub';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261026-ajustes';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261023-inicio';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -61,7 +61,8 @@ import {
 import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261020-dias';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20260929-qa-lucas';
+import { SelectMultiplo } from '../monitoria/comum.js';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261026-ajustes';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261007-perfis';
 
 const ABAS = [
@@ -289,6 +290,8 @@ function textoSeguro(valor, fallback = '-') {
   }
   return String(valor);
 }
+
+const valoresTipoAcesso = (provedor) => { const p = String(provedor || 'local').toLowerCase(); return p === 'ambos' ? ['local', 'microsoft'] : [p === 'microsoft' ? 'microsoft' : 'local']; };
 
 function normalizarBusca(valor) {
   return String(valor || '')
@@ -607,7 +610,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   });
   const [painelFiltrosUsuariosAberto, setPainelFiltrosUsuariosAberto] = useState(false);
   const [paginaUsuarios, setPaginaUsuarios] = useState(1);
-  const [tamanhoPaginaUsuarios, setTamanhoPaginaUsuarios] = useState(7);
+  // Telas altas comportam mais linhas: começa com a maior opção que cabe na janela (mínimo 7, como antes nas telas pequenas).
+  const [tamanhoPaginaUsuarios, setTamanhoPaginaUsuarios] = useState(() => {
+    const altura = typeof window !== 'undefined' ? window.innerHeight : 0;
+    const linhasQueCabem = Math.floor((altura - 340) / 56);
+    return [50, 30, 15].find((n) => n <= linhasQueCabem) || 7;
+  });
   const [perfilSelecionadoId, setPerfilSelecionadoId] = useState('');
   const [permissoesPerfilDraft, setPermissoesPerfilDraft] = useState([]);
   const [buscaPermissao, setBuscaPermissao] = useState('');
@@ -1419,6 +1427,29 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
   };
 
+  // Interruptor "Operação ativa" do Editar operação: desativa (arquivamento lógico) ou reativa (o servidor só muda o status).
+  const alternarAtivoOperacao = async (item, ativar) => {
+    if (!item) return;
+    setErro('');
+    setFeedback('');
+    try {
+      if (ativar) {
+        await atualizarItemConfiguracao('operacoes', item.id_item, {
+          chave: item.chave, nome: item.nome, descricao: item.descricao || '', categoria: item.categoria || '',
+          payload: item.payload || {}, ativo: true, justificativa: 'Reativação em Configurações > Operações.',
+        });
+        setFeedback(`Operação "${item.nome}" ativada.`);
+      } else {
+        if (!window.confirm(`Desativar "${item.nome || 'esta operação'}"? Ela some das novas seleções e fica somente para consulta.`)) return;
+        await desativarItemConfiguracao('operacoes', item.id_item, 'Desativação em Configurações > Operações.');
+        setFeedback(`Operação "${item.nome}" desativada.`);
+      }
+      await carregarAba(abaRenderizada);
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível alterar o status da operação.');
+    }
+  };
+
   // Exclusão definitiva: só de operação já inativa; o servidor recusa (409) se ela tem monitorias.
   const confirmarExclusaoOperacao = async ({ justificativa } = {}) => {
     if (!operacaoExcluir) return;
@@ -2100,24 +2131,24 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       </label>
                       <label>
                         <span>Tipo de acesso</span>
-                        <select
-                          class="form-select"
-                          required
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.provedor_autenticacao}
-                          onChange=${(event) => setFormUsuario({
-          ...formUsuario,
-          provedor_autenticacao: event.target.value,
-          senha: event.target.value === 'microsoft' ? '' : formUsuario.senha,
-        })}
-                        >
-                          <option value="microsoft">Microsoft</option>
-                          <option value="local">Local</option>
-                        </select>
+                        <${SelectMultiplo}
+                          rotulo="Tipo de acesso"
+                          desabilitado=${bloqueadoLeitura}
+                          placeholder="Selecione"
+                          opcoes=${[{ valor: 'local', rotulo: 'Login' }, { valor: 'microsoft', rotulo: 'Microsoft' }]}
+                          valores=${valoresTipoAcesso(formUsuario.provedor_autenticacao)}
+                          onChange=${(marcados) => {
+          if (!marcados.length) return; // sempre fica ao menos um tipo de acesso
+          const provedor = marcados.length > 1 ? 'ambos' : marcados[0];
+          setFormUsuario({ ...formUsuario, provedor_autenticacao: provedor, senha: provedor === 'microsoft' ? '' : formUsuario.senha });
+        }}
+                        />
                         <small class="text-muted">
                           ${acessoMicrosoft
-          ? 'Entra só pelo botão "Entrar com a Microsoft", com o e-mail corporativo cadastrado acima (não tem senha no Conecta).'
-          : 'Entra com login e senha. No primeiro acesso a pessoa troca a senha inicial.'}
+          ? 'Entra só pelo botão "Entrar com a Microsoft", com o e-mail corporativo cadastrado acima (não tem senha no Conecta). Login e senha são recusados.'
+          : normalizarBusca(formUsuario.provedor_autenticacao) === 'ambos'
+            ? 'Pode entrar com login e senha ou pela Microsoft.'
+            : 'Entra só com login e senha (a Microsoft é recusada). No primeiro acesso a pessoa troca a senha inicial.'}
                         </small>
                       </label>
                       <${CamposVinculosMonitoria}
@@ -2492,6 +2523,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                 nome=${formItem.nome}
                 podeEditar=${controlador.possuiPermissao('configuracoes.editar')}
                 podeEditarOrganizacao=${controlador.possuiPermissao('monitoria.equipes')}
+              podeIdentidade=${ehAdministrador && controlador.possuiPermissao('monitoria.configurar')}
                 onFeedback=${(mensagem) => { setErro(''); setFeedback(mensagem); }}
                 onErro=${(mensagem) => { setFeedback(''); setErro(mensagem); }}
               />
@@ -3239,8 +3271,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           titulo=${formItem.id_item ? 'Editar operação' : 'Nova operação'}
           legenda="Preencha os dados desta operação — eles passam a valer em Processos, Provas e Treinamentos."
           acoes=${itemEmEdicao ? html`<div class="cx-cab-acoes">
-            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => duplicarItem(itemEmEdicao)}><${IconeCx} nome="content_copy" />Duplicar</button>
-            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => desativarItem(itemEmEdicao)}><${IconeCx} nome="archive" />Arquivar</button></div>` : null}
+            <span class="cx-op-ativo"><span aria-hidden="true">${itemEmEdicao.ativo ? 'Ativa' : 'Inativa'}</span>
+              <${InterruptorCx} ativo=${Boolean(itemEmEdicao.ativo)} desabilitado=${!podeEditarOperacao} rotulo=${itemEmEdicao.ativo ? 'Desativar operação' : 'Ativar operação'} aoMudar=${(ligar) => alternarAtivoOperacao(itemEmEdicao, ligar)} /></span>
+            <button type="button" class="cx-btn cx-btn--sm" onClick=${() => duplicarItem(itemEmEdicao)}><${IconeCx} nome="content_copy" />Duplicar</button></div>` : null}
           rodape=${abaOperacao === 'cadastro' ? html`
             <label class="cx-op-just"><span class="cx-campo-rotulo">Justificativa</span>
               <input aria-label="Justificativa" value=${formItem.justificativa} onInput=${(e) => setFormItem({ ...formItem, justificativa: e.target.value })} /></label>
@@ -3260,6 +3293,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               nome=${formItem.nome}
               podeEditar=${controlador.possuiPermissao('configuracoes.editar')}
               podeEditarOrganizacao=${controlador.possuiPermissao('monitoria.equipes')}
+              podeIdentidade=${ehAdministrador && controlador.possuiPermissao('monitoria.configurar')}
               onFeedback=${(m) => { setErro(''); setFeedback(m); }}
               onErro=${(m) => { setFeedback(''); setErro(m); }} /></div>`
       : html`<div class="cx-op-painel" role="tabpanel" id=${idPainel('op-secao', secaoOperacao)} aria-labelledby=${idAba('op-secao', secaoOperacao)}><div class="cx-form-grade">${painelSecao()}</div></div>`}

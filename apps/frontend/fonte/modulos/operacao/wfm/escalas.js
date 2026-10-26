@@ -62,7 +62,9 @@ const somarMes = (anoMes, delta) => {
   const d = new Date(a, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
-const ehRascunho = (e) => !e.declinada && !foraDeRascunho(e);
+// Rascunho só existe se alguém começou a montar a escala (tem colaboradores escalados) e ainda não enviou/publicou.
+const ehRascunho = (e) => !e.declinada && !foraDeRascunho(e) && Number(e.escalados) > 0;
+const semEscala = (e) => !e.declinada && !foraDeRascunho(e) && !(Number(e.escalados) > 0);
 const ehPublicada = (e) => e.versao_publicada > 0;
 
 // Regra de hoje para publicar (a mesma da tela da escala aberta): aprovada (ou período fechado) e com colaboradores.
@@ -105,7 +107,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
     colaboradores: base.reduce((soma, e) => soma + (Number(e.escalados) || 0), 0),
   };
   const mes = nomeMes(anoMes);
-  const semColaboradores = base.filter((e) => ehRascunho(e) && !e.escalados);
+  const semColaboradores = base.filter(semEscala);
 
   const publicar = async (e) => {
     if (!window.confirm(`Publicar a escala "${e.nome}" de ${rotuloMesAno(anoMes)}?`)) return;
@@ -133,7 +135,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
           <th scope="col" class="cx-col-num cx-col-acoes">Ações</th>
         </tr></thead>
         <tbody>${itens.map((e) => {
-    const [rotulo, variante] = e.declinada ? ['Declinada', 'falta'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
+    const [rotulo, variante] = e.declinada ? ['Declinada', 'falta'] : semEscala(e) ? ['Sem escala', 'inativo'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
     const motivo = motivoSemPublicar(e);
     return html`<tr key=${e.chave}>
             <td><div class="cx-linha-nome cx-trunca" title=${e.nome}>${e.nome}</div>

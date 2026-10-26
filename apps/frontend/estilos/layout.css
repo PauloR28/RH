@@ -116,7 +116,7 @@
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.22rem;
+  gap: 8px;
   min-height: 0;
       justify-content: center;
   min-width: 0;

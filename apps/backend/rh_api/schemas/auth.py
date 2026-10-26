@@ -163,6 +163,6 @@ class UpdateAuthProviderRequest(BaseSchema):
     @classmethod
     def validate_provedor(cls, value: str) -> str:
         safe_value = str(value or "").strip().lower()
-        if safe_value not in {"local", "microsoft"}:
+        if safe_value not in {"local", "microsoft", "ambos"}:
             raise ValueError("Tipo de acesso inválido.")
         return safe_value

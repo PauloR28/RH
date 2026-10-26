@@ -1,6 +1,6 @@
 import { requisitar, requisitarArquivo } from './core.js';
 import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261014-funcoes2';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261023-hub';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261026-ajustes';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
