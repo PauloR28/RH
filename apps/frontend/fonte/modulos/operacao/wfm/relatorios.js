@@ -285,7 +285,7 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
   const visaoAtual = VISOES.find((v) => v.id === visao);
   const ehPainel = visao === 'painel';
 
-  const opcoesEscalas = (contexto?.operacoes || []).map((o) => [o.chave, `${o.nome}${o.escala_ativa === false ? ' (inativa)' : ''}`]);
+  const opcoesEscalas = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => [o.chave, o.nome]);
   const opcoesPeriodo = [...Object.entries(PERIODOS).map(([k, p]) => [k, p.rotulo]), ['personalizado', 'Personalizado']];
   const opcoesOperador = [['', 'Todos'], ...operadores.map((o) => [String(o.id_usuario), o.nome])];
   const [calculoAberto, setCalculoAberto] = useState(false);

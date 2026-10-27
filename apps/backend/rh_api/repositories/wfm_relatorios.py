@@ -23,7 +23,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_SUPERVISOR
+from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from ..services.monitoria_export import gerar_csv, gerar_xlsx
@@ -171,7 +171,8 @@ class WfmRelatoriosRepositoryMixin:
         trocas = []
         for r in cursor.fetchall():
             id_a, id_b = int(r[1]), int(r[2])
-            if not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
+            # O Administrador não lê o detalhe da troca na tela de pedidos, mas o histórico de relatórios é de leitura geral.
+            if user.perfil != ROLE_ADMIN and not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
                 continue
             if id_operador is not None and id_operador not in (id_a, id_b):
                 continue

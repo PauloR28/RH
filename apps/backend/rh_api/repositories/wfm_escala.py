@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 STATUS_PRESENCA = ("PRESENTE", "FALTA", "FALTA_JUSTIFICADA", "ATESTADO")
 PRESENCA_AUTOMATICA = "Automática (1º login)"
+_PRESENCA_AUTOMATICA_FEITA: set[tuple[int, date]] = set()
 TIPOS_ATESTADO = ("MEDICO", "ACOMPANHAMENTO", "DOACAO_SANGUE", "OUTRO")
 _RE_ANO_MES = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 CONTEXTO_DIAS = 7  # dias de contexto antes/depois do mês para interjornada e sequência
@@ -993,6 +994,9 @@ class WfmEscalaRepositoryMixin:
         """
         if not getattr(user, "id_usuario", None):
             return 0
+        chave_dia = (int(user.id_usuario), date.today())
+        if chave_dia in _PRESENCA_AUTOMATICA_FEITA:  # já gravada hoje neste processo: evita consulta a cada abertura do sistema
+            return 0
         try:
             conn = self._connect()
         except Exception:  # noqa: BLE001
@@ -1021,6 +1025,8 @@ class WfmEscalaRepositoryMixin:
                 )
                 gravadas += 1
             conn.commit()
+            if gravadas:
+                _PRESENCA_AUTOMATICA_FEITA.add(chave_dia)
         except Exception:  # noqa: BLE001 - presença automática jamais pode impedir o login
             logger.warning("Falha na presença automática do usuário %s.", getattr(user, "id_usuario", None), exc_info=True)
             try:

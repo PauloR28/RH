@@ -15,10 +15,10 @@ import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
 import { TelaEscalaPausas } from './pausas.js?v=20261023-ajustes';
 import { TelaEscalaTabela } from './tabela.js?v=20261023-ajustes';
 import { TelaMinhaEscala } from './minha.js?v=20261026-trocas';
-import { ListaEscalas } from './escalas.js?v=20261026-trocas';
+import { ListaEscalas } from './escalas.js?v=20261027-publicar';
 import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
 import { TelaTrocas } from './trocas.js?v=20261026-trocas';
-import { TelaRelatorios } from './relatorios.js?v=20261026-trocas';
+import { TelaRelatorios } from './relatorios.js?v=20261027-escalas';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;

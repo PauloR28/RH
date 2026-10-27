@@ -64,7 +64,8 @@ async function lerTudo(proxima) {
 export async function carregarOperacoes(area) {
   if (area === 'wfm') {
     const ctx = await lerContextoWfm();
-    return (ctx?.operacoes || []).map((o) => [o.chave, `${o.nome}${o.escala_ativa === false ? ' (inativa)' : ''}`]);
+    // Escala desativada ou excluída não entra nos relatórios (não existe mais para a operação).
+    return (ctx?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => [o.chave, o.nome]);
   }
   if (area === 'monitoria') {
     const ctx = await lerContextoMonitoria();
@@ -83,8 +84,8 @@ const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false) => ({
       const r = await consulta(f.operacao);
       return { colunas: r.colunas || [], linhas: r.linhas || [], resumo: r.resumo || [], operadores: (r.operadores || []).map((o) => [String(o.id_usuario), o.nome]) };
     }
-    // Relatório é histórico: inclui também as escalas inativas (uma troca antiga não pode sumir por a escala ter sido desativada).
-    const escalas = (await lerContextoWfm())?.operacoes || [];
+    // Só as escalas que existem (ativas): a principal desativada/excluída não aparece nem soma linhas zeradas.
+    const escalas = ((await lerContextoWfm())?.operacoes || []).filter((o) => o.escala_ativa !== false);
     const respostas = (await Promise.all(escalas.map((o) => consulta(o.chave).then((r) => ({ ...r, escala: o.nome }), () => null)))).filter(Boolean);
     if (!respostas.length) throw new Error('Não foi possível carregar os relatórios das escalas.');
     const colunas = [col('_escala', 'Escala'), ...(respostas[0].colunas || [])];

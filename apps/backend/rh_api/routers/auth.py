@@ -585,7 +585,12 @@ def complete_microsoft_login(
 
 
 @router.get("/me", response_model=SessionResponse)
-def me(user: AuthenticatedUser = Depends(get_current_user)) -> SessionResponse:
+def me(
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+) -> SessionResponse:
+    # Quem mantém a sessão aberta de um dia para o outro não passa pelo login: a abertura do sistema também vale como 1º acesso do dia.
+    _presenca_automatica(repository, user)
     return SessionResponse(
         usuario=user.username,
         nome=user.nome,

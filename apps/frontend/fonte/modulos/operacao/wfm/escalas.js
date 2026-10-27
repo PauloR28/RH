@@ -159,7 +159,7 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
             <td>${e.versao_publicada ? `Versão ${e.versao_publicada}` : 'Não publicada'}</td>
             <td class="cx-col-num"><span class="cx-linha-acoes">
               <button type="button" class="cx-btn cx-btn--sm cx-btn--suave" title="Visualizar a escala do mês inteiro" onClick=${() => aoAbrir(e.chave, 'mes')}><${IconeCx} nome="calendar_month" />Visualizar</button>
-              ${podePublicar ? html`<span title=${motivo || undefined}><button type="button" class="cx-btn cx-btn--sm" disabled=${Boolean(motivo) || publicando === e.chave} onClick=${() => publicar(e)}>${publicando === e.chave ? 'Publicando...' : 'Publicar'}</button></span>` : null}
+              ${podePublicar && !(e.aprovacao === 'APROVADA' && e.versao_publicada > 0) ? html`<span title=${motivo || undefined}><button type="button" class="cx-btn cx-btn--sm" disabled=${Boolean(motivo) || publicando === e.chave} onClick=${() => publicar(e)}>${publicando === e.chave ? 'Publicando...' : 'Publicar'}</button></span>` : null}
               ${gere ? html`<${MenuAcoesProcesso} ariaLabel=${`Mais ações de ${e.nome}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
                 acoes=${[
         { label: 'Abrir escala', icon: 'edit_note', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'mes') },

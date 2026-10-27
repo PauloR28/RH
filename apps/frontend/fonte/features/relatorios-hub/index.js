@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js';
 import { BotaoExportar, baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261023-ajustes';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261027-escalas';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Menu lateral por área,
 // filtros unificados, uma planilha e exportação XLSX/CSV/PDF. Cada relatório só aparece se o perfil tem a chave `relhub.*`
@@ -137,7 +137,7 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261026-trocas').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261027-escalas').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261023-ajustes'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
