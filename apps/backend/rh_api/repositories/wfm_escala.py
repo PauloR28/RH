@@ -106,8 +106,10 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Leitura auxiliar
     # ------------------------------------------------------------------
-    def _wfm_operadores_visiveis(self, cursor, user, operacao: str) -> list[dict]:
-        """Participantes da escala que o usuário PODE VER (Operador/Técnico: só ele; Supervisor: só a equipe)."""
+    def _wfm_operadores_visiveis(self, cursor, user, operacao: str, *, todos_da_escala: bool = False) -> list[dict]:
+        """Participantes da escala que o usuário PODE VER (Operador/Técnico: só ele; Supervisor: só a equipe).
+
+        `todos_da_escala=True` ignora o escopo: só para indicadores agregados (comparação entre equipes), nunca para dados individuais."""
         filtro, parametros = self._wfm_participantes_sql(operacao)
         cursor.execute(
             f"""
@@ -132,6 +134,8 @@ class WfmEscalaRepositoryMixin:
             supervisores.setdefault(int(id_op), []).append({"id_usuario": int(id_sup), "nome": normalize_text(nome_sup)})
         for op in todos:
             op["supervisores"] = supervisores.get(op["id_usuario"], [])
+        if todos_da_escala:
+            return todos
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
         return [
             op

@@ -6,7 +6,7 @@ import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-pri
 import { Icone } from './escala-ui.js?v=20261023-ajustes';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261020-rel';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261028-hms';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -36,10 +36,10 @@ const PERIODOS = {
 };
 const br = (isoData) => (isoData ? isoData.split('-').reverse().join('/') : '');
 
-// Horas decimais (ex.: 7,5) -> "hh:mm" (07:30).
+// Horas decimais (ex.: 7,5) -> "hh:mm:ss" (07:30:00).
 const fmtHoras = (v) => {
-  const total = Math.round((Number(v) || 0) * 60);
-  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+  const total = Math.round((Number(v) || 0) * 3600);
+  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
 };
 
 const fmtValor = (v, tipo) => {
@@ -175,7 +175,7 @@ function Painel({ painel, resumido = false }) {
         </div>
         <${CartaoGrafico} compacto=${true} titulo="Comparação entre equipes" subtitulo="Horas trabalhadas e absenteísmo">
           ${g.equipes.length ? html`<div class="wfm-p-equipes"><table class="mon-tabela wfm-rel-t"><thead><tr><th>Equipe</th><th class="wfm-rel-num">Dias escalados</th><th class="wfm-rel-num">Faltas</th><th class="wfm-rel-num">Horas trabalhadas</th><th>Absenteísmo</th></tr></thead>
-            <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td>${e.rotulo}</td><td class="wfm-rel-num">${fmt(e.escalados)}</td><td class="wfm-rel-num">${fmt(e.faltas)}</td><td class="wfm-rel-num">${fmt(e.horas, 2)}</td>
+            <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td>${e.rotulo}</td><td class="wfm-rel-num">${fmt(e.escalados)}</td><td class="wfm-rel-num">${fmt(e.faltas)}</td><td class="wfm-rel-num">${fmtHoras(e.horas)}</td>
               <td><span class="wfm-rel-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span><span class="wfm-rel-num-inline">${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</span></td></tr>`)}</tbody></table></div>` : html`<p class="mon-muted">Sem dados de equipes no período.</p>`}</${CartaoGrafico}>
       </div>`}
     </div>`;

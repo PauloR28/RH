@@ -1235,7 +1235,8 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .wfm-g-sobre-princ { z-index: 1; }
 .wfm-g-cartao--compacto .wfm-g-barras { gap: 6px; font-size: 0.75rem; overflow: auto; }
 .wfm-p-equipes { flex: 1 1 auto; min-height: 0; overflow: auto; }
-.wfm-p-equipes table { width: 100%; height: 100%; }
+.wfm-p-equipes table { width: 100%; }
+.wfm-p-equipes td { height: 40px; }
 .wfm-p-equipes th { height: 32px; font-size: 0.667rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .wfm-p-equipes td { font-size: 0.8rem; }
 @media (max-height: 800px) { .wfm-p-fileira--1 { height: 160px; } }

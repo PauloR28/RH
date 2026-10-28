@@ -5,6 +5,12 @@ import { html } from '../../../infraestrutura-react.js';
 
 const nf = (v, casas = 0) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 export const fmt = nf;
+// Horas decimais -> "hh:mm:ss" (usado quando a unidade do gráfico é 'h').
+const hms = (v) => {
+  const t = Math.round((Number(v) || 0) * 3600);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(Math.floor(t / 3600))}:${p(Math.floor((t % 3600) / 60))}:${p(t % 60)}`;
+};
 
 // Máximo "redondo" para o eixo (1, 2, 5 × 10^n).
 function maximoBonito(v) {
@@ -93,8 +99,8 @@ export function GraficoBarrasH({ dados, series, unidade = '' }) {
       <ul class="wfm-g-barras">
         ${dados.map((d) => html`<li key=${d.rotulo}>
           <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${nf(d[s.chave] || 0, 2)}${unidade}`}></span>`)}</span>
-          <span class="wfm-g-barras-valor">${series.map((s) => nf(d[s.chave] || 0, unidade === 'h' ? 1 : 0)).join(' / ')}${unidade}</span>
+          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${unidade === 'h' ? hms(d[s.chave]) : `${nf(d[s.chave] || 0, 2)}${unidade}`}`}></span>`)}</span>
+          <span class="wfm-g-barras-valor">${series.map((s) => (unidade === 'h' ? hms(d[s.chave]) : nf(d[s.chave] || 0, 0))).join(' / ')}${unidade === 'h' ? '' : unidade}</span>
         </li>`)}
       </ul>
       ${series.length > 1 ? html`<${Legenda} itens=${series.map((s) => ({ rotulo: s.rotulo, cor: s.cor }))} />` : null}
@@ -109,10 +115,10 @@ export function GraficoBarrasSobrepostas({ dados, unidade = '', principal, refer
     <ul class="wfm-g-barras wfm-g-barras--finas">
       ${dados.map((d) => html`<li key=${d.rotulo}>
         <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${nf(d[principal.chave] || 0, 2)}${unidade} · ${referencia.rotulo}: ${nf(d[referencia.chave] || 0, 2)}${unidade}`}>
+        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${unidade === 'h' ? hms(d[principal.chave]) : `${nf(d[principal.chave] || 0, 2)}${unidade}`} · ${referencia.rotulo}: ${unidade === 'h' ? hms(d[referencia.chave]) : `${nf(d[referencia.chave] || 0, 2)}${unidade}`}`}>
           <span class="wfm-g-sobre-ref" style=${{ width: `${Math.max(2, ((d[referencia.chave] || 0) / max) * 100)}%`, background: referencia.cor }}></span>
           <span class="wfm-g-sobre-princ" style=${{ width: `${Math.max(1, ((d[principal.chave] || 0) / max) * 100)}%`, background: principal.cor }}></span></span>
-        <span class="wfm-g-barras-valor">${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}</span>
+        <span class="wfm-g-barras-valor">${unidade === 'h' ? `${hms(d[principal.chave])} / ${hms(d[referencia.chave])}` : `${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}`}</span>
       </li>`)}
     </ul>`;
 }
