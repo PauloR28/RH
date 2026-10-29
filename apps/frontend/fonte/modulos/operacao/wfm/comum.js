@@ -73,4 +73,9 @@ export const ROTULO_STATUS_PRESENCA = {
   FERIAS: 'Férias',
 };
 
+// Status desconhecido (ex.: o servidor passou a aceitar um novo e a tela ainda não) nunca derruba a tela: mostra o código legível.
+const legivel = (codigo) => String(codigo || '').toLowerCase().replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+export const rotuloPresenca = (status) => ROTULO_STATUS_PRESENCA[status] || legivel(status);
+export const siglaPresenca = (status) => SIGLA_PRESENCA[status] || String(status || '').slice(0, 2).toUpperCase();
+
 export const SIGLA_PRESENCA = { PRESENTE: 'P', FALTA: 'F', FALTA_JUSTIFICADA: 'FJ', ATESTADO: 'AT', SERVICO_EXTERNO: 'SE', DAY_OFF: 'DO', FOLGA_COMP_BH: 'FB', FOLGA: 'FL', FERIAS: 'FE' };

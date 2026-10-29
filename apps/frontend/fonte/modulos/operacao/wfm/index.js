@@ -8,7 +8,7 @@ import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261023-ajustes';
 import { TelaEscala } from './escala.js?v=20261023-ajustes';
-import { TelaPresenca } from './presenca.js?v=20261028-ausencias';
+import { TelaPresenca } from './presenca.js?v=20261029-presenca';
 import { TelaCadastros } from './cadastros.js?v=20261020-dias';
 import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261023-ajustes';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
