@@ -32,7 +32,10 @@ from ..services.wfm_montagem import EventoCalendario, horario_efetivo
 MAX_DIAS = 366
 TIPOS = ("resumo", "escalas", "presencas", "trocas", "aprovacoes")  # relatórios em tabela (exportáveis)
 SEMANA = ("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
-ROTULO_STATUS = {"PRESENTE": "Presente", "FALTA": "Falta", "FALTA_JUSTIFICADA": "Falta justificada", "ATESTADO": "Atestado", "SEM_LANCAMENTO": "Sem lançamento"}
+ROTULO_STATUS = {"PRESENTE": "Presente", "FALTA": "Falta", "FALTA_JUSTIFICADA": "Falta justificada", "ATESTADO": "Atestado", "SERVICO_EXTERNO": "Serviço Externo", "DAY_OFF": "Day Off",
+                  "FOLGA_COMP_BH": "Folga Compensação (BH)", "FOLGA": "Folga", "FERIAS": "Férias", "SEM_LANCAMENTO": "Sem lançamento"}
+# Ausências previstas/autorizadas: aparecem à parte, sem entrar em faltas nem em absenteísmo.
+OUTRAS_AUSENCIAS = ("SERVICO_EXTERNO", "DAY_OFF", "FOLGA_COMP_BH", "FOLGA", "FERIAS")
 ROTULO_TROCA = {
     "AGUARDANDO_B": "Aguardando o colega", "AGUARDANDO_APROVACAO": "Aguardando aprovação", "APROVADA": "Aprovada", "REPROVADA": "Reprovada",
     "RECUSADA": "Recusada pelo colega", "CANCELADA": "Cancelada", "EXPIRADA": "Expirada", "INVALIDADA": "Invalidada", "BLOQUEADA": "Bloqueada", "DESFEITA": "Desfeita",
@@ -252,7 +255,7 @@ class WfmRelatoriosRepositoryMixin:
     def _wfm_rel_agregar(self, dado: dict) -> dict[int, dict]:
         """Totais brutos por operador (minutos e contagens) — base do resumo, do painel e das comparações."""
         por_op: dict[int, dict] = {o["id_usuario"]: {"operador": o["nome"], "equipe": o.get("equipe") or "", "escalados": 0, "horas_escaladas": 0, "presentes": 0, "faltas": 0,
-                                                    "justificadas": 0, "atestados": 0, "sem_lancamento": 0, "horas_trabalhadas": 0, "extras": 0, "trocas": 0}
+                                                    "justificadas": 0, "atestados": 0, "outras": 0, "sem_lancamento": 0, "horas_trabalhadas": 0, "extras": 0, "trocas": 0}
                                     for o in dado["operadores"]}
         for d in dado["dias_escala"]:
             if not d["trabalha"]:
@@ -270,6 +273,8 @@ class WfmRelatoriosRepositoryMixin:
                 linha["justificadas"] += 1
             elif situacao == "ATESTADO":
                 linha["atestados"] += 1
+            elif situacao in OUTRAS_AUSENCIAS:
+                linha["outras"] += 1
             else:
                 linha["sem_lancamento"] += 1
         for (id_op, _d), minutos in dado["extras"].items():
@@ -293,7 +298,7 @@ class WfmRelatoriosRepositoryMixin:
             linhas.append({
                 "_id_operador": id_op,
                 "operador": linha["operador"], "equipe": linha["equipe"], "dias_escalados": linha["escalados"], "horas_escaladas": _horas(linha["horas_escaladas"]),
-                "presencas": linha["presentes"], "faltas": linha["faltas"], "faltas_justificadas": linha["justificadas"], "atestados": linha["atestados"],
+                "presencas": linha["presentes"], "faltas": linha["faltas"], "faltas_justificadas": linha["justificadas"], "atestados": linha["atestados"], "outras_ausencias": linha["outras"],
                 "sem_lancamento": linha["sem_lancamento"], "horas_trabalhadas": _horas(linha["horas_trabalhadas"]), "horas_extras": _horas(linha["extras"]),
                 "total_horas": _horas(linha["horas_trabalhadas"] + linha["extras"]), "trocas_aprovadas": linha["trocas"],
                 "variacao_horas": _horas((linha["horas_trabalhadas"] + linha["extras"]) - horas_ant) if horas_ant is not None else None,
@@ -302,7 +307,7 @@ class WfmRelatoriosRepositoryMixin:
         colunas = [
             _col("operador", "Operador"), _col("equipe", "Equipe"), _col("dias_escalados", "Dias escalados", "numero"), _col("horas_escaladas", "Horas escaladas", "horas"),
             _col("presencas", "Presenças", "numero"), _col("faltas", "Faltas", "numero"), _col("faltas_justificadas", "Faltas justificadas", "numero"),
-            _col("atestados", "Atestados", "numero"), _col("sem_lancamento", "Sem lançamento", "numero"), _col("horas_trabalhadas", "Horas trabalhadas", "horas"),
+            _col("atestados", "Atestados", "numero"), _col("outras_ausencias", "Outras ausências", "numero"), _col("sem_lancamento", "Sem lançamento", "numero"), _col("horas_trabalhadas", "Horas trabalhadas", "horas"),
             _col("horas_extras", "Horas extras", "horas"), _col("total_horas", "Total de horas", "horas"), _col("trocas_aprovadas", "Trocas aprovadas", "numero"),
             _col("absenteismo", "Absenteísmo (%)", "percentual"), _col("variacao_horas", "Δ horas vs. período anterior", "variacao"),
         ]
@@ -377,7 +382,7 @@ class WfmRelatoriosRepositoryMixin:
                 eq["horas"] += x["minutos"]
             elif situacao in ("FALTA", "FALTA_JUSTIFICADA"):
                 eq["faltas"] += 1
-            if situacao != "SEM_LANCAMENTO":
+            if situacao != "SEM_LANCAMENTO" and situacao not in OUTRAS_AUSENCIAS:
                 eq["apurados"] += 1
         for x in dado["dias_escala"]:
             if not x["trabalha"] or x["data"] not in dias:
@@ -397,7 +402,7 @@ class WfmRelatoriosRepositoryMixin:
                 linha["atestados"] += 1
             else:
                 linha["sem"] += 1
-            if situacao != "SEM_LANCAMENTO":
+            if situacao != "SEM_LANCAMENTO" and situacao not in OUTRAS_AUSENCIAS:
                 sem["apurados"] += 1
         serie = [{"data": k.isoformat(), "rotulo": f"{k.day:02d}/{k.month:02d}", **{kk: (_horas(vv) if kk == "horas" else vv) for kk, vv in v.items()}} for k, v in dias.items()]
 
@@ -459,7 +464,8 @@ class WfmRelatoriosRepositoryMixin:
                    _col("observacao", "Observação"), _col("lancado_por", "Lançado por")]
         cont = lambda s: sum(1 for l in linhas if l["status"] == ROTULO_STATUS[s])  # noqa: E731
         resumo = [{"rotulo": "Dias de trabalho", "valor": len(linhas)}, {"rotulo": "Presenças", "valor": cont("PRESENTE")},
-                  {"rotulo": "Faltas", "valor": cont("FALTA") + cont("FALTA_JUSTIFICADA")}, {"rotulo": "Atestados", "valor": cont("ATESTADO")}, {"rotulo": "Sem lançamento", "valor": cont("SEM_LANCAMENTO")}]
+                  {"rotulo": "Faltas", "valor": cont("FALTA") + cont("FALTA_JUSTIFICADA")}, {"rotulo": "Atestados", "valor": cont("ATESTADO")},
+                  {"rotulo": "Outras ausências", "valor": sum(cont(s) for s in OUTRAS_AUSENCIAS)}, {"rotulo": "Sem lançamento", "valor": cont("SEM_LANCAMENTO")}]
         calculo = [*CALCULO_COMUM, "Só aparecem dias de trabalho (folga e DSR ficam de fora). Sem presença lançada = \"Sem lançamento\"."]
         return colunas, linhas, resumo, calculo
 
@@ -547,7 +553,8 @@ class WfmRelatoriosRepositoryMixin:
 
     def wfm_relatorio_exportar(self, user, operacao: str, tipo: str, data_ini: Any, data_fim: Any, id_operador: int | None = None, formato: str = "xlsx") -> tuple[bytes, str, str]:
         """XLSX (aba do relatório escolhido + aba "Como é calculado") ou CSV. `tipo=completo` gera todas as abas no XLSX."""
-        formato = "csv" if normalize_text(formato).lower() == "csv" else "xlsx"
+        formato = normalize_text(formato).lower()
+        formato = formato if formato in ("csv", "pdf") else "xlsx"
         escolhido = normalize_text(tipo) or "resumo"
         escolhido = "resumo" if escolhido == "painel" else escolhido  # o painel é visual: exporta-se o resumo que o alimenta
         tipos = list(TIPOS) if normalize_text(tipo) == "completo" and formato == "xlsx" else [escolhido]
@@ -568,6 +575,13 @@ class WfmRelatoriosRepositoryMixin:
         if formato == "csv":
             colunas, linhas = tabela(relatorios[0])
             return gerar_csv(colunas, linhas), nome, "text/csv; charset=utf-8"
+        if formato == "pdf":
+            from ..services import relatorio_exportacao as _exp
+
+            colunas, linhas = tabela(relatorios[0])
+            periodo = f"{_br(date.fromisoformat(relatorios[0]['periodo']['ini']))} a {_br(date.fromisoformat(relatorios[0]['periodo']['fim']))}"
+            filtros = [("Operação", relatorios[0]["operacao"]), ("Período", periodo)]
+            return _exp.gerar_pdf(relatorios[0]["titulo"], filtros, colunas, linhas), nome, "application/pdf"
         abas = []
         for rel in relatorios:
             colunas, linhas = tabela(rel)

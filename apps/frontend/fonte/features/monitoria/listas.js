@@ -132,9 +132,9 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
     setFiltros((f) => ({ ...f }));
   };
 
-  const exportarSelecionadas = async () => {
+  const exportarSelecionadas = async (formato) => {
     try {
-      baixarArquivo(await exportarMonitorias(selecionadas));
+      baixarArquivo(await exportarMonitorias(selecionadas, formato));
     } catch (e) {
       showToast(e?.message || 'Não foi possível exportar.', 'danger');
     }
@@ -182,7 +182,7 @@ export function ListaMonitorias({ modo = 'historico', controlador, contexto, abr
       ${podeSelecionar && selecionadas.length ? html`
         <div class="mon-acoes mon-acoes--selecao"><span class="mon-muted">${selecionadas.length} selecionada(s)</span>
           ${podeExportar ? html`
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${exportarSelecionadas}>Exportar seleção (XLSX)</button>` : null}
+          <${BotaoExportar} opcoes=${[{ rotulo: 'Exportar XLSX', onSelecionar: () => exportarSelecionadas('xlsx') }, { rotulo: 'Exportar CSV', onSelecionar: () => exportarSelecionadas('csv') }, { rotulo: 'Exportar PDF', onSelecionar: () => exportarSelecionadas('pdf') }]} />` : null}
           ${ehAdministrador && modo === 'historico' ? html`
           <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setExcluindo({ motivo: '', confirmacao: '' })}>Excluir seleção</button>` : null}</div>` : null}
 
@@ -383,7 +383,7 @@ export function TelaRelatorios({ controlador, contexto, showToast }) {
         ${(contexto?.operacoes || []).length > 1 ? html`<label class="mon-filtro">Operação<${SelectOperacao} contexto=${contexto} valor=${filtros.operacao} onChange=${(v) => setFiltros({ ...filtros, operacao: v })} /></label>` : null}
         <label class="mon-filtro mon-filtro--data">Período inicial<input class="form-control" type="date" value=${filtros.data_inicio} onInput=${(e) => setFiltros({ ...filtros, data_inicio: e.target.value })} /></label>
         <label class="mon-filtro mon-filtro--data">Período final<input class="form-control" type="date" value=${filtros.data_fim} onInput=${(e) => setFiltros({ ...filtros, data_fim: e.target.value })} /></label>
-        ${podeExportar ? html`<div class="mon-filtros-acoes"><${BotaoExportar} opcoes=${[{ rotulo: 'Exportar XLSX', onSelecionar: () => exportar('xlsx') }, { rotulo: 'Exportar CSV', onSelecionar: () => exportar('csv') }]} /></div>` : null}
+        ${podeExportar ? html`<div class="mon-filtros-acoes"><${BotaoExportar} opcoes=${[{ rotulo: 'Exportar XLSX', onSelecionar: () => exportar('xlsx') }, { rotulo: 'Exportar CSV', onSelecionar: () => exportar('csv') }, { rotulo: 'Exportar PDF', onSelecionar: () => exportar('pdf') }]} /></div>` : null}
       </div>
       ${carregando && dados ? html`<p class="mon-muted mon-atualizando" role="status">Atualizando…</p>` : null}
       ${carregando && !dados ? html`<${LoadingState} titulo="Gerando relatório" />` : !linhas.length ? html`<${EmptyState} icon="table_chart" title="Sem dados" text="Nenhum registro para os filtros selecionados." />` : html`

@@ -26,7 +26,7 @@ const paraIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const somar = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const segundaDe = (d) => somar(d, -((d.getDay() + 6) % 7));
 const br = (iso) => iso.split('-').reverse().join('/');
-const SIGLA_CLASSE = { PRESENTE: 'p', FALTA: 'f', FALTA_JUSTIFICADA: 'fj', ATESTADO: 'at' };
+const SIGLA_CLASSE = { PRESENTE: 'p', FALTA: 'f', FALTA_JUSTIFICADA: 'fj', ATESTADO: 'at', SERVICO_EXTERNO: 'se', DAY_OFF: 'do', FOLGA_COMP_BH: 'fb', FOLGA: 'fl', FERIAS: 'fe' };
 
 export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias }) {
   const [ancora, setAncora] = useState(() => new Date());

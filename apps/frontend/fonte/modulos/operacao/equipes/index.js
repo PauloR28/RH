@@ -14,10 +14,10 @@ import {
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261023-ajustes';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261028-ausencias';
 import { TelaEscala } from '../wfm/escala.js?v=20261023-ajustes';
 import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261026-trocas';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261023-equipe';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261028-ausencias';
 import { TelaCadastros } from '../wfm/cadastros.js?v=20261020-dias';
 import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261023-ajustes';
 

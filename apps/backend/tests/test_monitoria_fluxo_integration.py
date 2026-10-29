@@ -530,7 +530,7 @@ def test_relatorio_exportacao_usa_o_mesmo_motor_do_dashboard(repo, cenario):
     csv_bytes, _, _ = repo.mon_exportar(q, "monitorias", "csv", filtros)
     assert csv_bytes.decode("utf-8-sig").count("\r\n") == len(rel["linhas"]) + 1
     with pytest.raises(HTTPException):
-        repo.mon_exportar(q, "monitorias", "pdf", filtros)
+        repo.mon_exportar(q, "monitorias", "docx", filtros)
     logs = repo.mon_logs(_ator(ROLE_ADMIN, 1), {"acao": "exportar_relatorio"}, por_pagina=5)
     assert logs["itens"]
 
@@ -542,6 +542,11 @@ def test_exportar_monitoria_individual_respeita_escopo(repo, cenario):
     with pytest.raises(HTTPException) as e:
         repo.mon_exportar_monitorias(cenario["sup_crf"], [r["id_monitoria"]])
     assert e.value.status_code == 404
+    for formato, assinatura in (("csv", "ef bb bf"), ("pdf", "25 50 44 46 2d")):
+        saida, nome_f, _ = repo.mon_exportar_monitorias(cenario["qual"], [r["id_monitoria"]], formato)
+        assert nome_f == f"monitoria_{r['codigo']}.{formato}" and saida.startswith(bytes.fromhex(assinatura.replace(" ", "")))
+    with pytest.raises(HTTPException):
+        repo.mon_exportar_monitorias(cenario["qual"], [r["id_monitoria"]], "docx")
 
 
 def test_compartilhar_por_email_so_com_quem_pode_ver_e_com_log(repo, cenario, admin, monkeypatch):
@@ -688,6 +693,8 @@ def test_rotas_negam_perfis_sem_permissao_e_operador_nao_exporta(repo, cenario):
     assert cliente.get("/monitoria/monitorias").status_code == 401
     ok = cliente.get("/monitoria/relatorios/monitorias/exportar?formato=csv&operacao=" + OP, headers=cab(cenario["qual"]))
     assert ok.status_code == 200 and ok.headers["content-type"].startswith("text/csv")
+    pdf = cliente.get("/monitoria/relatorios/monitorias/exportar?formato=pdf&operacao=" + OP, headers=cab(cenario["qual"]))
+    assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf" and pdf.content[:5] == b"%PDF-"
     assert cliente.get("/monitoria/logos/..%2F..%2Fetc.png").status_code in (404, 422)
 
 

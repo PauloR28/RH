@@ -639,10 +639,10 @@ def exportar_relatorio(
 
 @router.post("/exportar/monitorias", dependencies=[Depends(require_permissions("monitoria.exportar"))])
 def exportar_monitorias(
-    payload: CompartilharRequest, request: Request,
+    payload: CompartilharRequest, request: Request, formato: str = "xlsx",
     user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository),
 ):
-    conteudo, nome, mime = repository.mon_exportar_monitorias(user, payload.ids, ip=client_ip(request))
+    conteudo, nome, mime = repository.mon_exportar_monitorias(user, payload.ids, formato, ip=client_ip(request))
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 

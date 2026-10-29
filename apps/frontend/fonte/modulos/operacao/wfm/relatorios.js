@@ -234,6 +234,7 @@ function MenuExportar({ desabilitado, ocupado, onExportar }) {
       ${aberto ? html`<div class="wfm-menu-lista" role="menu">
         <button type="button" role="menuitem" onClick=${() => escolher('xlsx')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('table_chart')}</span>Este relatório (Excel)</button>
         <button type="button" role="menuitem" onClick=${() => escolher('csv')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('description')}</span>Este relatório (CSV)</button>
+        <button type="button" role="menuitem" onClick=${() => escolher('pdf')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('picture_as_pdf')}</span>Este relatório (PDF)</button>
         <button type="button" role="menuitem" onClick=${() => escolher('completo')}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('folder_zip')}</span>Todos os relatórios (Excel)</button>
       </div>` : null}
     </div>`;
@@ -272,7 +273,7 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
   const exportar = async (formato) => {
     setOcupado(true);
     try {
-      baixarArquivo(await exportarRelatorioWfm({ ...filtros, tipo: formato === 'completo' ? 'completo' : visao, formato: formato === 'csv' ? 'csv' : 'xlsx' }));
+      baixarArquivo(await exportarRelatorioWfm({ ...filtros, tipo: formato === 'completo' ? 'completo' : visao, formato: formato === 'csv' || formato === 'pdf' ? formato : 'xlsx' }));
       showToast?.('Relatório gerado.', 'success');
     } catch (e) { showToast?.(e?.message || 'Não foi possível exportar.', 'error'); } finally { setOcupado(false); }
   };

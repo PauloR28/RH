@@ -651,6 +651,9 @@
 .mo-pres--f { background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger); }
 .mo-pres--fj { background: var(--status-warning-bg); color: var(--status-warning-ink); border-color: var(--status-warning-ink); }
 .mo-pres--at { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-primary); }
+.mo-pres--se { background: var(--status-info-bg); color: var(--status-info); border-color: var(--status-info); }
+.mo-pres--do, .mo-pres--fb, .mo-pres--fl { background: var(--status-neutral-bg); color: var(--status-neutral); border-color: var(--status-neutral); }
+.mo-pres--fe { background: var(--status-success-bg); color: var(--status-success); border-color: var(--status-success); }
 .mo-pres-nada { color: var(--color-text-muted); }
 .mo-ponto-pres { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--color-border-strong); }
 .mo-ponto-pres.is-pendente { background: var(--status-danger); }

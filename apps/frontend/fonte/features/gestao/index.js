@@ -1,5 +1,6 @@
 import { IconeSvg } from '../../ui/icone.js';
 import { listarMural } from '../../services/api/mural.js';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 
 import {
   React,
@@ -5758,7 +5759,15 @@ export function TelaAnaliseCandidatos({ controlador }) {
     setExportandoRelatorio(true);
     setErroRelatorio('');
     try {
-      if (formato === 'xlsx') {
+      if (formato === 'pdf') {
+        const chave = relatorioAtivo === 'processos' ? 'rh.processos' : relatorioAtivo === 'ranking' ? 'rh.ranking' : 'rh.candidatos';
+        const arquivo = await exportarRelatorioHub({
+          relatorio: chave, formato: 'pdf', titulo: configuracao.planilha, filtros: [],
+          colunas: configuracao.colunas.map((c) => c.label),
+          linhas: configuracao.linhas.map((l) => configuracao.colunas.map((c) => normalizarValorExportacao(l[c.key]))),
+        });
+        baixarBlob(arquivo.filename || `${configuracao.nomeBase}.pdf`, arquivo.blob);
+      } else if (formato === 'xlsx') {
         baixarXlsxRelatorio(
           configuracao.nomeBase,
           configuracao.planilha,
@@ -6055,6 +6064,16 @@ export function TelaAnaliseCandidatos({ controlador }) {
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('table_view')}</span>
                       Excel (.xlsx)
+                    </button>
+                    <button
+                      type="button"
+                      class="reports-export-option"
+                      role="menuitem"
+                      disabled=${exportandoRelatorio}
+                      onClick=${() => exportarRelatorioAtivo('pdf')}
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('picture_as_pdf')}</span>
+                      PDF
                     </button>
                   </div>
                 `

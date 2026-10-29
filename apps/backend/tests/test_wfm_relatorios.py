@@ -135,6 +135,18 @@ def test_exportacao_xlsx_csv_e_completo(ctx):
     assert nome.endswith(".xlsx") and conteudo[:2] == b"PK" and "spreadsheetml" in mime
     csv, nome_csv, mime_csv = ctx.repo.wfm_relatorio_exportar(ctx.cd, ctx.op, "presencas", f"{MES}-01", f"{MES}-30", None, "csv")
     assert nome_csv.endswith(".csv") and "csv" in mime_csv and b"Presente" in csv
+    pdf, nome_pdf, mime_pdf = ctx.repo.wfm_relatorio_exportar(ctx.cd, ctx.op, "presencas", f"{MES}-01", f"{MES}-30", None, "pdf")
+    assert nome_pdf.endswith(".pdf") and mime_pdf == "application/pdf" and pdf[:5] == b"%PDF-"
+
+
+def test_novas_ausencias_tem_rotulo_e_nao_viram_falta():
+    from rh_api.repositories.wfm_escala import STATUS_PRESENCA
+    from rh_api.repositories.wfm_relatorios import OUTRAS_AUSENCIAS, ROTULO_STATUS
+
+    assert {"SERVICO_EXTERNO", "DAY_OFF", "FOLGA_COMP_BH", "FOLGA", "FERIAS"} == set(OUTRAS_AUSENCIAS)
+    assert all(s in STATUS_PRESENCA and s in ROTULO_STATUS for s in OUTRAS_AUSENCIAS)
+    assert all(len(s) <= 20 for s in STATUS_PRESENCA)  # cabem em wfm_presencas.status NVARCHAR(20)
+    assert ROTULO_STATUS["FOLGA_COMP_BH"] == "Folga Compensação (BH)" and ROTULO_STATUS["FERIAS"] == "Férias"
 
 
 def test_painel_kpis_comparacao_e_graficos(ctx):

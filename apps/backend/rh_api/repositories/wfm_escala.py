@@ -47,7 +47,8 @@ from ..services.wfm_regras import (
 
 logger = logging.getLogger(__name__)
 
-STATUS_PRESENCA = ("PRESENTE", "FALTA", "FALTA_JUSTIFICADA", "ATESTADO")
+# Os cinco últimos são ausências previstas/autorizadas: não contam como falta nem entram no absenteísmo (códigos cabem em NVARCHAR(20)).
+STATUS_PRESENCA = ("PRESENTE", "FALTA", "FALTA_JUSTIFICADA", "ATESTADO", "SERVICO_EXTERNO", "DAY_OFF", "FOLGA_COMP_BH", "FOLGA", "FERIAS")
 PRESENCA_AUTOMATICA = "Automática (1º login)"
 _PRESENCA_AUTOMATICA_FEITA: set[tuple[int, date]] = set()
 TIPOS_ATESTADO = ("MEDICO", "ACOMPANHAMENTO", "DOACAO_SANGUE", "OUTRO")

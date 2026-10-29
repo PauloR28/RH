@@ -224,7 +224,9 @@
 .wfm-pres-presente { background: var(--status-success-bg); color: var(--status-success); box-shadow: inset 0 0 0 1px var(--status-success); }
 .wfm-pres-falta { background: var(--status-danger-bg); color: var(--status-danger); box-shadow: inset 0 0 0 1px var(--status-danger); }
 .wfm-pres-falta_justificada { background: var(--status-warning-bg); color: var(--status-warning); box-shadow: inset 0 0 0 1px var(--status-warning); }
-.wfm-pres-atestado { background: var(--status-info-bg); color: var(--status-info); box-shadow: inset 0 0 0 1px var(--status-info); }
+.wfm-pres-atestado, .wfm-pres-servico_externo { background: var(--status-info-bg); color: var(--status-info); box-shadow: inset 0 0 0 1px var(--status-info); }
+.wfm-pres-day_off, .wfm-pres-folga_comp_bh, .wfm-pres-folga { background: var(--status-neutral-bg); color: var(--status-neutral); box-shadow: inset 0 0 0 1px var(--status-neutral); }
+.wfm-pres-ferias { background: var(--status-success-bg); color: var(--status-success); box-shadow: inset 0 0 0 1px var(--status-success); }
 .wfm-grade td > .wfm-pres { width: auto; min-width: 32px; height: 24px; margin: 0 auto; }
 .wfm-select[class*="wfm-pres-"]:not(.wfm-pres-) { display: block; width: 48px; height: 24px; margin: 0 auto; padding: 0 8px; border-radius: 6px; font-weight: 700; font-size: var(--text-xs); text-align: center; text-align-last: center; }
 .wfm-select.wfm-pres- { height: 48px; }

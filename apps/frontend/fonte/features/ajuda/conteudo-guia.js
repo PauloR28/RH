@@ -330,7 +330,7 @@ export const GUIA_SESSOES = [
         onde: 'Monitoria > Histórico',
         passos: [
           'Filtre por ID, operador, avaliador, período, operação ou status.',
-          'Marque uma ou mais monitorias (a caixa ao lado de ID marca todas da página) e use Exportar seleção ou Compartilhar por e-mail.',
+          'Marque uma ou mais monitorias (a caixa ao lado de ID marca todas da página) e use o menu Exportar (XLSX, CSV ou PDF).',
         ],
       },
       {

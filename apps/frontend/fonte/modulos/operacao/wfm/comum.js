@@ -63,6 +63,11 @@ export const ROTULO_STATUS_PRESENCA = {
   FALTA: 'Falta',
   FALTA_JUSTIFICADA: 'Falta justificada',
   ATESTADO: 'Atestado',
+  SERVICO_EXTERNO: 'Serviço Externo',
+  DAY_OFF: 'Day Off',
+  FOLGA_COMP_BH: 'Folga Compensação (BH)',
+  FOLGA: 'Folga',
+  FERIAS: 'Férias',
 };
 
-export const SIGLA_PRESENCA = { PRESENTE: 'P', FALTA: 'F', FALTA_JUSTIFICADA: 'FJ', ATESTADO: 'AT' };
+export const SIGLA_PRESENCA = { PRESENTE: 'P', FALTA: 'F', FALTA_JUSTIFICADA: 'FJ', ATESTADO: 'AT', SERVICO_EXTERNO: 'SE', DAY_OFF: 'DO', FOLGA_COMP_BH: 'FB', FOLGA: 'FL', FERIAS: 'FE' };

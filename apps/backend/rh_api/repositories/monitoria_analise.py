@@ -253,8 +253,16 @@ class MonitoriaAnaliseRepositoryMixin:
         elif formato == "xlsx":
             conteudo = gerar_xlsx([{"nome": nomes.get(tipo, tipo).title(), "colunas": relatorio["colunas"], "linhas": relatorio["linhas"]}])
             mime, ext = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
+        elif formato == "pdf":
+            from ..services import relatorio_exportacao as _exp
+
+            filtros_pdf = [(r, v) for r, v in (("Operação", normalize_text((filtros or {}).get("operacao"))),
+                                               ("De", normalize_text((filtros or {}).get("data_inicio"))),
+                                               ("Até", normalize_text((filtros or {}).get("data_fim")))) if v]
+            conteudo = _exp.gerar_pdf(nomes.get(tipo, tipo).replace("_", " ").title(), filtros_pdf, relatorio["colunas"], relatorio["linhas"])
+            mime, ext = "application/pdf", "pdf"
         else:
-            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Formato inválido (use xlsx ou csv).")
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Formato inválido (use xlsx, csv ou pdf).")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -265,8 +273,9 @@ class MonitoriaAnaliseRepositoryMixin:
             conn.close()
         return conteudo, f"monitoria_{nomes.get(tipo, tipo)}_{carimbo}.{ext}", mime
 
-    def _mon_xlsx_monitorias(self, user, ids: list[int]) -> tuple[bytes, list[dict]]:
+    def _mon_xlsx_monitorias(self, user, ids: list[int]) -> tuple[bytes, list[dict], tuple[list[str], list[list]]]:
         """XLSX de monitorias individuais (resumo, critérios, pilares, linha do tempo).
+        Devolve também a aba Resumo (colunas, linhas), usada no CSV e no PDF.
         Cada id passa pela checagem de escopo do detalhe (404 fora dele)."""
         detalhes = [self.mon_detalhe(user, str(i)) for i in ids]
         resumo_linhas, criterios_linhas, pilares_linhas, tempo_linhas = [], [], [], []
@@ -283,36 +292,50 @@ class MonitoriaAnaliseRepositoryMixin:
                     pilares_linhas.append([d["codigo"], tipo.title(), indicador, nota])
             for e in d["eventos"]:
                 tempo_linhas.append([d["codigo"], e["em"], e["para_rotulo"], e["usuario"], "Automático" if e["automatico"] else "", e["observacao"]])
+        resumo_colunas = ["ID", "OPERAÇÃO", "EQUIPE", "OPERADOR", "AVALIADOR", "DATA_CONTATO", "DATA_MONITORIA", "CANAL", "TIPO",
+                          "NOTA", "NÍVEL", "NCG", "MOTIVO_NCG", "VERSÃO_MATRIZ", "STATUS", "OBSERVAÇÃO", "SUGESTÃO_FEEDBACK"]
         conteudo = gerar_xlsx([
-            {"nome": "Resumo", "colunas": ["ID", "OPERAÇÃO", "EQUIPE", "OPERADOR", "AVALIADOR", "DATA_CONTATO", "DATA_MONITORIA", "CANAL", "TIPO",
-                                            "NOTA", "NÍVEL", "NCG", "MOTIVO_NCG", "VERSÃO_MATRIZ", "STATUS", "OBSERVAÇÃO", "SUGESTÃO_FEEDBACK"], "linhas": resumo_linhas},
+            {"nome": "Resumo", "colunas": resumo_colunas, "linhas": resumo_linhas},
             {"nome": "Critérios", "colunas": ["ID", "BLOCO", "CRITÉRIO", "PESO", "RESPOSTA"], "linhas": criterios_linhas},
             {"nome": "Pilares", "colunas": ["ID", "PILAR", "INDICADOR", "NOTA"], "linhas": pilares_linhas},
             {"nome": "Linha do tempo", "colunas": ["ID", "QUANDO", "STATUS", "QUEM", "AUTOMÁTICO", "OBSERVAÇÃO"], "linhas": tempo_linhas},
         ])
-        return conteudo, detalhes
+        return conteudo, detalhes, (resumo_colunas, resumo_linhas)
 
-    def mon_exportar_monitorias(self, user, ids: list[int], *, ip: str = "") -> tuple[bytes, str, str]:
+    def mon_exportar_monitorias(self, user, ids: list[int], formato: str = "xlsx", *, ip: str = "") -> tuple[bytes, str, str]:
+        """Exporta as monitorias selecionadas em XLSX (4 abas), CSV ou PDF (estes dois com a aba Resumo, uma linha por monitoria)."""
         if not ids:
             raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selecione ao menos uma monitoria.")
-        conteudo, detalhes = self._mon_xlsx_monitorias(user, [int(i) for i in ids][:500])
+        formato = normalize_text(formato).lower() or "xlsx"
+        if formato not in ("xlsx", "csv", "pdf"):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Formato inválido (use xlsx, csv ou pdf).")
+        xlsx, detalhes, (colunas, linhas) = self._mon_xlsx_monitorias(user, [int(i) for i in ids][:500])
+        if formato == "csv":
+            conteudo, mime = gerar_csv(colunas, linhas), "text/csv; charset=utf-8"
+        elif formato == "pdf":
+            from ..services import relatorio_exportacao as _exp
+
+            filtros = [("Monitorias", str(len(detalhes)))]
+            conteudo, mime = _exp.gerar_pdf("Monitorias selecionadas", filtros, colunas, linhas), "application/pdf"
+        else:
+            conteudo, mime = xlsx, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         conn = self._connect()
         try:
             cursor = conn.cursor()
             self.mon_log(cursor, user, acao="exportar_monitorias", entidade="monitoria",
-                         detalhes={"codigos": [d["codigo"] for d in detalhes]}, ip=ip)
+                         detalhes={"codigos": [d["codigo"] for d in detalhes], "formato": formato}, ip=ip)
             conn.commit()
         finally:
             conn.close()
-        nome = f"monitoria_{detalhes[0]['codigo']}.xlsx" if len(detalhes) == 1 else f"monitorias_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        return conteudo, nome, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        base = f"monitoria_{detalhes[0]['codigo']}" if len(detalhes) == 1 else f"monitorias_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        return conteudo, f"{base}.{formato}", mime
 
     def mon_compartilhar(self, user, ids: list[int], destinatarios: list[int], mensagem: str = "", *, ip: str = "") -> dict:
         """Compartilha por e-mail (anexo XLSX): destinatários só entre usuários ativos do Conecta que
         PODEM ver TODAS as monitorias enviadas; quem envia só compartilha o que pode ver."""
         if not ids or not destinatarios:
             raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selecione as monitorias e os destinatários.")
-        conteudo, detalhes = self._mon_xlsx_monitorias(user, [int(i) for i in ids][:100])
+        conteudo, detalhes, _ = self._mon_xlsx_monitorias(user, [int(i) for i in ids][:100])
         conn = self._connect()
         try:
             cursor = conn.cursor()

@@ -137,8 +137,8 @@ export const lerRelatorio = (tipo, filtros = {}) =>
   requisitar(`/monitoria/relatorios/${tipo}${consulta(filtros)}`, { method: 'GET' });
 export const exportarRelatorio = (tipo, formato, filtros = {}) =>
   requisitarArquivo(`/monitoria/relatorios/${tipo}/exportar${consulta({ ...filtros, formato })}`, { method: 'GET' });
-export const exportarMonitorias = (ids) =>
-  requisitarArquivo('/monitoria/exportar/monitorias', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ ids }) });
+export const exportarMonitorias = (ids, formato = 'xlsx') =>
+  requisitarArquivo(`/monitoria/exportar/monitorias${consulta({ formato })}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ ids }) });
 export const listarDestinatarios = (ids) => requisitar(`/monitoria/destinatarios${consulta({ ids: ids.join(',') })}`, { method: 'GET' });
 export const compartilharMonitorias = (payload) => enviar('/monitoria/compartilhar', 'POST', payload);
 export const listarLogsMonitoria = (filtros = {}) => requisitar(`/monitoria/logs${consulta(filtros)}`, { method: 'GET' });
