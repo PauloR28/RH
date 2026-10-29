@@ -1,6 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { criarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
+import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
 import { Campo, ModalForm } from './formulario.js';
+import { dataHora, falhaAo } from './comum.js';
 import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
@@ -75,7 +76,58 @@ const motivoSemPublicar = (e) => {
   return '';
 };
 
-export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou, titulo, descricao, abas, abaAtiva, aoMudarAba }) {
+// Painel "Aprovações pendentes": o aprovador decide aqui mesmo (Aprovar / Declinar com justificativa), sem abrir a escala inteira.
+// "Ver escala" abre o mês para conferir antes de decidir. Quem pode aprovar e o que acontece ao aprovar é decidido no servidor.
+function PainelAprovacoes({ itens, aoVer, aoDecidiu, showToast }) {
+  const [declinando, setDeclinando] = useState(''); // `${chave}|${ano_mes}` em declínio
+  const [motivo, setMotivo] = useState('');
+  const [ocupado, setOcupado] = useState('');
+  const idDe = (e) => `${e.chave}|${e.ano_mes}`;
+  const aprovar = async (e) => {
+    if (!window.confirm(`Aprovar a escala "${e.nome}" de ${rotuloMesAno(e.ano_mes)}? A aprovação publica a escala para os colaboradores.`)) return;
+    setOcupado(idDe(e));
+    try {
+      const r = await aprovarEscalaWfm({ operacao: e.chave, ano_mes: e.ano_mes });
+      if (r?.publicada) showToast?.(`Escala "${e.nome}" aprovada e publicada (versão ${r.versao}).`, 'success');
+      else showToast?.(`Escala "${e.nome}" aprovada, mas não foi publicada automaticamente: ${r?.aviso || 'publique manualmente.'}`, 'warning');
+      aoDecidiu();
+    } catch (err) { showToast?.(falhaAo(`aprovar a escala "${e.nome}"`, err), 'error'); aoDecidiu(); } finally { setOcupado(''); }
+  };
+  const declinar = async (e) => {
+    setOcupado(idDe(e));
+    try {
+      await declinarEscalaWfm({ operacao: e.chave, ano_mes: e.ano_mes, justificativa: motivo });
+      showToast?.(`Escala "${e.nome}" declinada e devolvida para correção.`, 'success');
+      setDeclinando(''); setMotivo('');
+      aoDecidiu();
+    } catch (err) { showToast?.(falhaAo(`declinar a escala "${e.nome}"`, err), 'error'); aoDecidiu(); } finally { setOcupado(''); }
+  };
+  return html`<section class="cx-card cx-aprovacoes" aria-labelledby="cx-aprov-titulo">
+    <div class="cx-card-cab"><div class="cx-card-titulo"><p class="cx-sobre">Precisa da sua decisão</p>
+      <h2 class="cx-h2" id="cx-aprov-titulo">Aprovações pendentes${itens.length ? html` <span class="cx-bolinha-n" aria-label=${`${itens.length} pendente(s)`}>${itens.length}</span>` : null}</h2></div></div>
+    <div class="cx-card-corpo cx-aprov-corpo">
+      ${itens.length ? html`<ul class="cx-aprov-lista">${itens.map((e) => html`<li key=${idDe(e)} class="cx-aprov-item">
+        <div class="cx-aprov-info">
+          <strong class="cx-trunca" title=${e.nome}>${e.nome}</strong>
+          <small>${rotuloMesAno(e.ano_mes)} · ${e.colaboradores} colaborador(es)</small>
+          <small>Enviada por ${e.enviado_por || '—'}${e.enviado_em ? ` em ${dataHora(e.enviado_em)}` : ''}</small>
+        </div>
+        <div class="cx-aprov-acoes">
+          <button type="button" class="cx-btn cx-btn--sm" onClick=${() => aoVer(e)}>Ver escala</button>
+          <button type="button" class="cx-btn cx-btn--sm cx-btn--primario" disabled=${ocupado === idDe(e)} onClick=${() => aprovar(e)}>Aprovar</button>
+          ${e.pode_declinar ? html`<button type="button" class="cx-btn cx-btn--sm" aria-expanded=${declinando === idDe(e)} disabled=${ocupado === idDe(e)} onClick=${() => { setDeclinando(declinando === idDe(e) ? '' : idDe(e)); setMotivo(''); }}>Declinar</button>` : null}
+        </div>
+        ${declinando === idDe(e) ? html`<div class="cx-aprov-declinar">
+          <label class="visually-hidden" for=${`cx-motivo-${idDe(e)}`}>Justificativa do declínio</label>
+          <input id=${`cx-motivo-${idDe(e)}`} class="form-control" maxlength="400" autofocus value=${motivo} onInput=${(ev) => setMotivo(ev.target.value)} placeholder="O que precisa ser corrigido? (obrigatório)" />
+          <button type="button" class="cx-btn cx-btn--sm cx-btn--primario" disabled=${ocupado === idDe(e) || motivo.trim().length < 3} onClick=${() => declinar(e)}>Confirmar declínio</button>
+        </div>` : null}
+      </li>`)}</ul>` : html`<p class="cx-legenda cx-aprov-vazio">Nenhuma escala aguardando a sua aprovação.</p>`}
+    </div>
+  </section>`;
+}
+
+export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou, titulo, descricao, abas, abaAtiva, aoMudarAba, aprovacoes = [], aoRecarregarAprovacoes }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [tentativa, setTentativa] = useState(0);
@@ -94,11 +146,13 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
   }, [anoMes, versao, tentativa]);
 
   const gere = Boolean(dados?.pode_criar);
+  const podeAprovar = Boolean(controlador?.possuiPermissao?.('wfm.escala.aprovar'));
+  const pendenteNoMes = new Set(aprovacoes.filter((a) => a.ano_mes === anoMes).map((a) => a.chave));
   const ehGestor = controlador?.estado?.perfilUsuario === 'gestor';
   const podePublicar = controlador?.possuiPermissao?.('wfm.escala.publicar');
   const base = dados ? dados.itens.filter((e) => (gere || e.ativa) && (!ehGestor || foraDeRascunho(e))) : [];
   const termo = busca.trim().toLowerCase();
-  const itens = base.filter((e) => (filtro === 'todas' || (filtro === 'rascunho' ? ehRascunho(e) : ehPublicada(e)))
+  const itens = base.filter((e) => (filtro === 'todas' || (filtro === 'aprovacao' ? pendenteNoMes.has(e.chave) : filtro === 'rascunho' ? ehRascunho(e) : ehPublicada(e)))
     && (!termo || `${e.nome} ${e.operacao}`.toLowerCase().includes(termo)));
   const totais = {
     todas: base.length,
@@ -117,7 +171,7 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
       showToast?.('Escala publicada.', 'success');
       aoMudou?.();
     } catch (err) {
-      showToast?.(`${err?.message || 'Não foi possível publicar.'} Se for preciso justificar, abra a escala para publicar.`, 'error');
+      showToast?.(`${falhaAo('publicar', err)} Se for preciso justificar, abra a escala para publicar.`, 'error');
     } finally { setPublicando(''); }
   };
 
@@ -131,7 +185,7 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
       showToast?.(`Escala copiada para ${rotuloMesAno(r.ano_mes)}: ${r.colaboradores} colaborador(es), ${r.dias_copiados} dia(s).`, 'success');
       aoMudarMes?.(r.ano_mes);
     } catch (err) {
-      showToast?.(err?.message || 'Não foi possível duplicar a escala para o mês seguinte.', 'error');
+      showToast?.(falhaAo('copiar a escala para o mês seguinte', err), 'error');
     }
   };
 
@@ -152,7 +206,7 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
     const [rotulo, variante] = e.declinada ? ['Declinada', 'falta'] : semEscala(e) ? ['Sem escala', 'inativo'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
     const motivo = motivoSemPublicar(e);
     return html`<tr key=${e.chave}>
-            <td><div class="cx-linha-nome cx-trunca" title=${e.nome}>${e.nome}</div>
+            <td><div class="cx-linha-nome cx-trunca" title=${e.nome}>${pendenteNoMes.has(e.chave) ? html`<span class="cx-bolinha" role="img" aria-label="Aprovação pendente" title="Aguardando a sua aprovação"></span>` : null}${e.nome}</div>
               <div class="cx-linha-sub cx-trunca" title=${e.operacao}>${e.operacao}${e.principal ? ' · principal' : ''}${e.jornada ? ` · jornada ${e.jornada}` : ''}${gere && !e.ativa ? ' · inativa' : ''}</div></td>
             <td><${PilulaStatus} variante=${e.fechada ? 'inativo' : variante}>${e.fechada ? 'Fechada' : rotulo}</${PilulaStatus}></td>
             <td class="cx-col-num">${e.escalados}</td>
@@ -172,7 +226,8 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
       </table>`;
   };
 
-  const chips = [['todas', 'Todas', totais.todas], ['rascunho', 'Rascunho', totais.rascunho], ['publicadas', 'Publicadas', totais.publicadas]];
+  const chips = [['todas', 'Todas', totais.todas], ['rascunho', 'Rascunho', totais.rascunho], ['publicadas', 'Publicadas', totais.publicadas],
+    ...(podeAprovar && pendenteNoMes.size ? [['aprovacao', 'Aguardando aprovação', pendenteNoMes.size]] : [])];
   return html`
     <${PaginaConsole} className="cx-escala cx-pagina--modulo">
       <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
@@ -201,6 +256,9 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
           ${gere && dados ? html`<div class="cx-card-rodape cx-card-rodape--solto"><${BotaoTracejado} onClick=${() => setCriando(true)}>Criar outra escala para ${mes}</${BotaoTracejado}></div>` : null}
         </section>
         <aside class="cx-escala-lateral">
+          ${podeAprovar ? html`<${PainelAprovacoes} itens=${aprovacoes} showToast=${showToast}
+            aoVer=${(e) => { aoMudarMes?.(e.ano_mes); aoAbrir(e.chave, 'mes'); }}
+            aoDecidiu=${() => { aoRecarregarAprovacoes?.(); aoMudou?.(); }} />` : null}
           <section class="cx-card">
             <div class="cx-card-cab"><div class="cx-card-titulo"><p class="cx-sobre">Próximos passos</p><h2 class="cx-h2">Para publicar o mês</h2></div></div>
             <div class="cx-card-corpo cx-passos-corpo">

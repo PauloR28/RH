@@ -24,6 +24,7 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
   const [ativa, setAtiva] = useState(true);
   const [idContrato, setIdContrato] = useState('');
   const [trocaDias, setTrocaDias] = useState('3');
+  const [maxEscalas, setMaxEscalas] = useState('4');
   const [destino, setDestino] = useState('');
   const [nomeCopia, setNomeCopia] = useState('');
   const [confirmaExcluir, setConfirmaExcluir] = useState(false);
@@ -34,7 +35,7 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
     lerConfigEscalaWfm(operacao).then((c) => {
       if (!ativo) return;
       setCfg(c); setNome(c.nome_escala || ''); setPerfis(c.aprovadores.perfis || []); setUsuarios(c.aprovadores.usuarios || []);
-      setAtiva(c.ativa !== false); setIdContrato(c.id_contrato ? String(c.id_contrato) : ''); setTrocaDias(String(c.troca_antecedencia_dias ?? 3)); setDestino((c.operacoes_destino || [])[0]?.chave || '');
+      setAtiva(c.ativa !== false); setIdContrato(c.id_contrato ? String(c.id_contrato) : ''); setTrocaDias(String(c.troca_antecedencia_dias ?? 3)); setMaxEscalas(String(c.max_escalas_operador ?? 4)); setDestino((c.operacoes_destino || [])[0]?.chave || '');
     }).catch((e) => ativo && setErro(e?.message || 'Não foi possível carregar as configurações.'));
     return () => { ativo = false; };
   }, [operacao]);
@@ -71,11 +72,12 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
       await salvarConfigEscalaWfm({
         operacao, nome_escala: nome, perfis, usuarios,
         ...(podeEditar && trocaDias !== '' ? { troca_antecedencia_dias: Math.max(0, Math.min(30, Number(trocaDias))) } : {}),
+        ...(podeEditar && maxEscalas !== '' ? { max_escalas_operador: Math.max(1, Math.min(7, Number(maxEscalas))) } : {}),
         ...(cfg.pode_gerir ? { ativa, alterar_jornada: true, id_contrato: idContrato ? Number(idContrato) : null } : {}),
       });
       showToast?.('Configurações da escala salvas.', 'success');
       onSalvo();
-    } catch (e) { setErro(e?.message || 'Não foi possível salvar.'); } finally { setSalvando(false); }
+    } catch (e) { setErro(`Falha ao salvar as configurações: ${e?.message || 'motivo não informado pelo servidor.'}`); } finally { setSalvando(false); }
   };
 
   const duplicar = async () => {
@@ -106,6 +108,9 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
         </${Campo}>
         <${Campo} rotulo="Antecedência mínima para trocas (dias)" span=${12} dica="A troca de plantão pode ser pedida em qualquer dia, desde que falte pelo menos este número de dias para o turno. Padrão: 3.">
           <input class="form-control" type="number" min="0" max="30" disabled=${!podeEditar} value=${trocaDias} onInput=${(e) => setTrocaDias(e.target.value)} />
+        </${Campo}>
+        <${Campo} rotulo="Escalas por operador (máximo)" span=${12} dica="Quantas escalas distintas (turnos em dias da semana diferentes) cada operador pode ter nesta escala. Padrão: 4. Turnos de Escala Especial não entram nessa conta.">
+          <input class="form-control" type="number" min="1" max="7" disabled=${!podeEditar} value=${maxEscalas} onInput=${(e) => setMaxEscalas(e.target.value)} />
         </${Campo}>
         ${cfg.pode_gerir ? html`
           <${Campo} rotulo="Escala de trabalho (jornada)" span=${8} dica="Jornada aplicada a quem não tem contrato próprio nesta escala.">

@@ -129,10 +129,11 @@ class WfmAprovacaoRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
-            cursor.execute("SELECT ativa, id_contrato, troca_antecedencia_dias FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
+            cursor.execute("SELECT ativa, id_contrato, troca_antecedencia_dias, max_escalas_operador FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
             cfg = cursor.fetchone()
             ativa, id_contrato = (bool(cfg[0]), cfg[1]) if cfg else (True, None)
             troca_dias = int(cfg[2]) if cfg and cfg[2] is not None else 3
+            max_escalas = int(cfg[3]) if cfg and cfg[3] else 4
             id_tipo = None
             if wfm_scope.eh_tipo_escala(operacao):
                 cursor.execute("SELECT id_tipo, ativo FROM dbo.wfm_tipos_escala WHERE chave = ?", (operacao,))
@@ -151,6 +152,7 @@ class WfmAprovacaoRepositoryMixin:
                 "ativa": ativa,
                 "id_contrato": int(id_contrato) if id_contrato else None,
                 "troca_antecedencia_dias": troca_dias,
+                "max_escalas_operador": max_escalas,
                 "contratos": contratos,
                 "principal": id_tipo is None,
                 "id_tipo": id_tipo,
@@ -163,7 +165,7 @@ class WfmAprovacaoRepositoryMixin:
     def wfm_save_config_escala(
         self, user, operacao: str, nome_escala: str, perfis: list[str], usuarios: list[int], *, ip: str = "",
         ativa: bool | None = None, id_contrato: int | None = None, alterar_contrato: bool = False,
-        troca_antecedencia_dias: int | None = None,
+        troca_antecedencia_dias: int | None = None, max_escalas_operador: int | None = None,
     ) -> dict:
         if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise _http(status.HTTP_403_FORBIDDEN, "Sem permissão para configurar a escala.")
@@ -195,6 +197,11 @@ class WfmAprovacaoRepositoryMixin:
             )
             if troca_antecedencia_dias is not None:
                 cursor.execute("UPDATE dbo.wfm_operacao_config SET troca_antecedencia_dias = ? WHERE operacao = ?", (int(troca_antecedencia_dias), operacao))
+            if max_escalas_operador is not None:
+                cursor.execute("SELECT max_escalas_operador FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
+                linha = cursor.fetchone()
+                antes["max_escalas_operador"] = int(linha[0]) if linha and linha[0] else 4
+                cursor.execute("UPDATE dbo.wfm_operacao_config SET max_escalas_operador = ? WHERE operacao = ?", (int(max_escalas_operador), operacao))
             if alterar_contrato:
                 if id_contrato:
                     cursor.execute("SELECT 1 FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ? AND ativo = 1", (int(id_contrato), operacao))
@@ -222,7 +229,8 @@ class WfmAprovacaoRepositoryMixin:
                            antes=antes, depois={"nome_escala": nome_escala, "aprovadores": {"perfis": perfis, "usuarios": usuarios},
                                                               **({"ativa": bool(ativa)} if ativa is not None else {}),
                                                               **({"id_contrato": id_contrato} if alterar_contrato else {}),
-                                                              **({"troca_antecedencia_dias": troca_antecedencia_dias} if troca_antecedencia_dias is not None else {})}, ip=ip)
+                                                              **({"troca_antecedencia_dias": troca_antecedencia_dias} if troca_antecedencia_dias is not None else {}),
+                                                              **({"max_escalas_operador": max_escalas_operador} if max_escalas_operador is not None else {})}, ip=ip)
             conn.commit()
             return {"success": True}
         finally:
@@ -409,6 +417,48 @@ class WfmAprovacaoRepositoryMixin:
                            antes={"estado": EM_APROVACAO}, depois={"estado": RASCUNHO}, ip=ip)
             conn.commit()
             return {"success": True, "estado": RASCUNHO}
+        finally:
+            conn.close()
+
+    def wfm_aprovacoes_pendentes(self, user) -> dict:
+        """Escalas de qualquer mês aguardando a decisão DESTE usuário (as que ele pode aprovar ou declinar agora).
+        Alimenta a bolinha da lista de escalas e o painel "Aprovações pendentes", sem precisar abrir cada escala."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT e.operacao, e.ano_mes FROM dbo.wfm_escalas e WHERE e.aprov_estado = ? AND e.fechada = 0 "
+                "AND NOT EXISTS (SELECT 1 FROM dbo.wfm_operacao_config oc WHERE oc.operacao = e.operacao AND (oc.excluida = 1 OR oc.ativa = 0)) "
+                "ORDER BY e.ano_mes, e.operacao",
+                (EM_APROVACAO,),
+            )
+            candidatas = [(normalize_text(r[0]), normalize_text(r[1])) for r in cursor.fetchall()]
+            cursor.execute("SELECT chave, nome FROM dbo.operacoes")
+            nomes_operacao = {normalize_text(r[0]): normalize_text(r[1]) for r in cursor.fetchall()}
+            cursor.execute("SELECT chave, nome FROM dbo.wfm_tipos_escala")
+            nomes_tipo = {normalize_text(r[0]): normalize_text(r[1]) for r in cursor.fetchall()}
+            itens = []
+            for operacao, ano_mes in candidatas:
+                if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, operacao):
+                    continue
+                cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
+                snapshot = self._wfm_snapshot(cursor, operacao, ano_mes)
+                resumo = self._wfm_aprovacao_resumo(user, operacao, cab, snapshot, self._wfm_aprovadores(cursor, operacao))
+                if resumo["estado"] != EM_APROVACAO or not resumo["pode_aprovar"]:
+                    continue
+                itens.append({
+                    "chave": operacao,
+                    "ano_mes": ano_mes,
+                    "nome": self._wfm_nome_escala(cursor, operacao) or nomes_tipo.get(operacao) or nomes_operacao.get(wfm_scope.operacao_base(operacao)) or operacao,
+                    "operacao": nomes_operacao.get(wfm_scope.operacao_base(operacao), operacao),
+                    "enviado_por": resumo["enviado_por"],
+                    "enviado_em": resumo["enviado_em"],
+                    "colaboradores": len({i["id_operador"] for i in snapshot["itens"]}),
+                    "dias_lancados": len(snapshot["itens"]),
+                    "versao_publicada": cab["versao_publicada"],
+                    "pode_declinar": resumo["pode_declinar"],
+                })
+            return {"total": len(itens), "itens": itens}
         finally:
             conn.close()
 

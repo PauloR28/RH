@@ -77,12 +77,17 @@ def eh_restrita(escala: EscalaDoOperador) -> bool:
     return 0 < len(escala.dias) < 7
 
 
-def validar_escalas_do_operador(escalas: list[EscalaDoOperador], nome: str = "O colaborador") -> list[str]:
-    """Mensagens de bloqueio (vazio = ok) para o conjunto de escalas de um operador no período."""
+def validar_escalas_do_operador(escalas: list[EscalaDoOperador], nome: str = "O colaborador", maximo: int = MAX_ESCALAS_OPERADOR) -> list[str]:
+    """Mensagens de bloqueio (vazio = ok) para o conjunto de escalas de um operador no período.
+    `maximo` vem das Configurações da escala (padrão 4)."""
     restritas = [e for e in {e.id_turno: e for e in escalas}.values() if eh_restrita(e)]
     erros: list[str] = []
-    if len(restritas) > MAX_ESCALAS_OPERADOR:
-        erros.append(f"{nome} já tem {MAX_ESCALAS_OPERADOR} escalas (turnos em dias diferentes); o máximo é {MAX_ESCALAS_OPERADOR}.")
+    if len(restritas) > maximo:
+        codigos = ", ".join(e.codigo for e in sorted(restritas, key=lambda x: x.id_turno))
+        erros.append(
+            f"{nome} passaria a ter {len(restritas)} escalas ({codigos}), mas o máximo desta escala é {maximo}. "
+            "Para permitir mais, aumente o limite em Configurações da escala; para um dia avulso, use um turno de Escala Especial."
+        )
     dono: dict[int, EscalaDoOperador] = {}
     for e in sorted(restritas, key=lambda x: x.id_turno):
         repetidos: dict[str, list[str]] = {}

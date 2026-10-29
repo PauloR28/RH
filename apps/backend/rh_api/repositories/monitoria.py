@@ -17,6 +17,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from .monitoria_schema import (
+    schema_cliente_statements,
     SQL_MONITORIA_NAO_EXCLUIDA,
     schema_formularios_exclusao_statements,
     schema_situacao_formularios_statements,
@@ -48,6 +49,20 @@ _ROLE_ADMIN_LIKE = {ROLE_ADMIN}
 
 def _http(codigo: int, mensagem: str) -> HTTPException:
     return HTTPException(status_code=codigo, detail=mensagem)
+
+
+def _cpf_formatado(valor: Any) -> str | None:
+    """CPF só com dígitos válidos (dígitos verificadores conferidos) -> 000.000.000-00; vazio -> None."""
+    digitos = "".join(c for c in str(valor or "") if c.isdigit())
+    if not digitos:
+        return None
+    if len(digitos) != 11 or len(set(digitos)) == 1:
+        raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "CPF do cliente inválido: informe os 11 dígitos.")
+    for tamanho in (9, 10):
+        soma = sum(int(digitos[i]) * (tamanho + 1 - i) for i in range(tamanho))
+        if (soma * 10 % 11) % 10 != int(digitos[tamanho]):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "CPF do cliente inválido: confira os números digitados.")
+    return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
 
 
 def _json(valor: Any) -> str:
@@ -114,6 +129,18 @@ class MonitoriaRepositoryMixin:
             cursor.execute(schema_situacao_formularios_statements()[0])
             cursor.connection.commit()
         type(self)._mon_arquivado_ok = True
+
+    def _mon_garantir_colunas_cliente(self, cursor) -> None:
+        """Se a V065 ainda não rodou neste ambiente, cria (idempotente) nome/CPF do cliente na primeira necessidade."""
+        if getattr(type(self), "_mon_cliente_ok", False):
+            return
+        cursor.execute("SELECT COL_LENGTH('dbo.monitorias', 'nome_cliente'), COL_LENGTH('dbo.monitorias', 'cpf_cliente')")
+        nome, cpf = cursor.fetchone()
+        if nome is None or cpf is None:
+            for instrucao in schema_cliente_statements():
+                cursor.execute(instrucao)
+            cursor.connection.commit()
+        type(self)._mon_cliente_ok = True
 
     def _mon_garantir_matriz(self, cursor, operacao: str) -> int:
         """Devolve o id da matriz da operação, criando a versão 1.0 padrão se
@@ -831,6 +858,9 @@ class MonitoriaRepositoryMixin:
                 )
             nivel = faixa_da_nota(resultado["nota"], config.get("faixas"))["label"]
 
+            nome_cliente = normalize_text(dados.get("nome_cliente")) or None
+            cpf_cliente = _cpf_formatado(dados.get("cpf_cliente"))
+            self._mon_garantir_colunas_cliente(cursor)
             codigo = self._mon_novo_codigo(cursor)
             cursor.execute(
                 """
@@ -838,9 +868,10 @@ class MonitoriaRepositoryMixin:
                 (codigo, operacao, operacao_nome, id_equipe, equipe_nome, turno, id_operador, operador_nome, operador_email,
                  supervisores_json, id_avaliador, avaliador_nome, id_matriz, id_versao, numero_versao, config_json, canal,
                  tipo_atendimento, data_contato, telefone, id_interacao, data_monitoria, respostas_json, pilares_json, nota, nivel,
-                 possui_ncg, motivo_ncg, blocos_avaliados, blocos_nulos, anulada, justificativa_anulacao, observacao, sugestao_feedback)
+                 possui_ncg, motivo_ncg, blocos_avaliados, blocos_nulos, anulada, justificativa_anulacao, observacao, sugestao_feedback,
+                 nome_cliente, cpf_cliente)
                 OUTPUT INSERTED.id_monitoria
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     codigo, operacao, operacao_nome, op[6], normalize_text(op[7]) or None, normalize_text(op[5]) or None,
@@ -852,6 +883,7 @@ class MonitoriaRepositoryMixin:
                     1 if resultado["possui_ncg"] else 0, motivo_ncg or None, resultado["blocos_avaliados"], resultado["blocos_nulos"],
                     1 if resultado["anulada"] else 0, justificativa_anulacao or None,
                     normalize_text(dados.get("observacao")) or None, normalize_text(dados.get("sugestao_feedback")) or None,
+                    nome_cliente, cpf_cliente,
                 ),
             )
             id_monitoria = int(cursor.fetchone()[0])
@@ -1218,6 +1250,7 @@ class MonitoriaRepositoryMixin:
                 "canal": normalize_text(m["canal"]), "tipo_atendimento": normalize_text(m["tipo_atendimento"]),
                 "data_contato": _iso(m["data_contato"]), "data_monitoria": _iso(m["data_monitoria"]),
                 "telefone": normalize_text(m["telefone"]), "id_interacao": normalize_text(m["id_interacao"]),
+                "nome_cliente": normalize_text(m.get("nome_cliente")), "cpf_cliente": normalize_text(m.get("cpf_cliente")),
                 "nota": float(m["nota"]), "nivel": normalize_text(m["nivel"]),
                 "faixa": faixa_da_nota(m["nota"], config.get("faixas")), "possui_ncg": bool(m["possui_ncg"]),
                 "motivo_ncg": normalize_text(m["motivo_ncg"]), "anulada": bool(m["anulada"]),

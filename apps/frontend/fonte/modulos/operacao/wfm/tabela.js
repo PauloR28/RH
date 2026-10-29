@@ -18,13 +18,13 @@ import {
   salvarItensEscalaWfm,
   salvarPausasWfm,
 } from '../../../services/api/wfm.js?v=20261026-trocas';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, minutosParaHoras } from './comum.js';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261020-dias';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento } from './escala-ui.js?v=20261023-ajustes';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261023-ajustes';
 import { LinhaTempo } from './minha.js?v=20261026-trocas';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -76,6 +76,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [limite, setLimite] = useState(50);
   const [gaveta, setGaveta] = useState(null); // { id, nome, data, secao }
   const [editHor, setEditHor] = useState(null); // id do colaborador com o horário em edição inline
+  const ehSupervisor = controlador.estado?.perfilUsuario === 'supervisor';
+  const [todasEquipes, setTodasEquipes] = useVisaoEquipes(ehSupervisor);
   const podePublicar = controlador.possuiPermissao('wfm.escala.publicar');
   const podePresenca = controlador.possuiPermissao('wfm.presenca.lancar');
   const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar');
@@ -92,7 +94,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     setErro('');
     try {
       const [d, e, pr, c, sv] = await Promise.all([
-        lerEscalaWfm(operacao, anoMes),
+        lerEscalaWfm(operacao, anoMes, false, todasEquipes),
         listarHorasExtrasWfm(operacao, anoMes).catch(() => ({ itens: [] })),
         listarPresencasWfm(operacao, anoMes).catch(() => ({ itens: [] })),
         listarContratosWfm(operacao).catch(() => ({ itens: [] })),
@@ -106,8 +108,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
       setPend({});
       await carregarPausas();
     } catch (err) { setDados(null); setErro(err?.message || 'Não foi possível carregar a escala.'); }
-  }, [operacao, anoMes, carregarPausas]);
-  useEffect(() => { setDados(null); carregar(); }, [operacao, anoMes]);
+  }, [operacao, anoMes, carregarPausas, todasEquipes]);
+  useEffect(() => { setDados(null); carregar(); }, [operacao, anoMes, todasEquipes]);
   useEffect(() => { carregarPausas(); }, [carregarPausas]);
 
   const turnos = useMemo(() => Object.fromEntries((dados?.turnos || []).map((t) => [t.id_turno, t])), [dados]);
@@ -291,7 +293,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
       setJustificativa('');
       await carregar();
     } catch (err) {
-      showToast?.(err?.message || 'Não foi possível salvar.', 'error');
+      showToast?.(falhaAo('salvar a escala', err), 'error');
       await carregar();
     } finally { setOcupado(false); }
   };
@@ -304,7 +306,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
       setJustificativa('');
       setPedirJust(false);
       await carregar();
-    } catch (err) { showToast?.(err?.message || 'Não foi possível publicar.', 'error'); setPedirJust(true); } finally { setOcupado(false); }
+    } catch (err) { showToast?.(falhaAo('publicar a escala', err), 'error'); setPedirJust(true); } finally { setOcupado(false); }
   };
 
   const salvarCapacidade = async () => {
@@ -358,8 +360,9 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
         ${podeCadastros && pausasDia ? html`<span class="wfm-capacidade"><label for="wfm-cap">Em pausa ao mesmo tempo</label><input id="wfm-cap" class="form-control" type="number" min="1" max="200" value=${capacidade} onInput=${(e) => setCapacidade(e.target.value)} />${Number(capacidade) !== pausasDia.capacidade ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${salvarCapacidade}>OK</button>` : null}</span>` : null}
       </div>` : null}
 
-      <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)`}
+      <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}`}
         selects=${[
+          ...(ehSupervisor ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
           { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
           { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
           { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },

@@ -40,7 +40,7 @@ export const vincularContratoOperadorWfm = (idOperador, dados) => enviar(`/wfm/o
 export const listarCalendarioWfm = (operacao, anoMes = '') => requisitar(`/wfm/calendario${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 export const salvarEventoWfm = (dados, id) => enviar(id ? `/wfm/calendario/${id}` : '/wfm/calendario', id ? 'PUT' : 'POST', dados);
 
-export const lerEscalaWfm = (operacao, anoMes, propria = false) => requisitar(`/wfm/escala${consulta({ operacao, ano_mes: anoMes, ...(propria ? { propria: true } : {}) })}`, { method: 'GET' });
+export const lerEscalaWfm = (operacao, anoMes, propria = false, todasEquipes = false) => requisitar(`/wfm/escala${consulta({ operacao, ano_mes: anoMes, ...(propria ? { propria: true } : {}), ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const salvarItensEscalaWfm = (dados) => enviar('/wfm/escala/itens', 'PUT', dados);
 export const validarEscalaWfm = (operacao, anoMes) => requisitar(`/wfm/escala/validar${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 export const publicarEscalaWfm = (dados) => enviar('/wfm/escala/publicar', 'POST', dados);
@@ -93,6 +93,7 @@ export const definirCapacidadePausasWfm = (dados) => enviar('/wfm/pausas/capacid
 
 // Aprovação da escala antes da publicação e tipos de escala do setor de TI.
 export const enviarAprovacaoEscalaWfm = (dados) => enviar('/wfm/escala/enviar-aprovacao', 'POST', dados);
+export const aprovacoesPendentesWfm = () => requisitar('/wfm/escalas/aprovacoes-pendentes', { method: 'GET' });
 export const aprovarEscalaWfm = (dados) => enviar('/wfm/escala/aprovar', 'POST', dados);
 export const declinarEscalaWfm = (dados) => enviar('/wfm/escala/declinar', 'POST', dados);
 export const cancelarEnvioEscalaWfm = (dados) => enviar('/wfm/escala/cancelar-envio', 'POST', dados);

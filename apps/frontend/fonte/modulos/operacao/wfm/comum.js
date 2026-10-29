@@ -18,6 +18,9 @@ export function useContextoWfm() {
   return { contexto, erro, recarregar };
 }
 
+// Mensagem de falha sempre com o motivo: "Falha ao salvar a escala: Ana já tem 4 escalas...". Nunca só "falha".
+export const falhaAo = (acao, erro) => `Falha ao ${acao}: ${erro?.message || 'o servidor não informou o motivo. Tente de novo; se continuar, avise o suporte.'}`;
+
 export function mesAtual() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;

@@ -48,7 +48,7 @@ class TurnoRequest(BaseSchema):
     operacao: str = Field(default="", max_length=60)
     id_contrato: int | None = None  # turno atrelado a um contrato: a saída = entrada + jornada do contrato
     id_supervisor: int | None = None  # supervisor responsável pelo turno (a equipe vem do supervisor)
-    codigo: str = Field(default="", max_length=20)
+    codigo: str = Field(default="", max_length=20)  # vazio = gerado automaticamente a partir do nome
     nome: str = Field(default="", max_length=120)
     tipo: str = Field(default="TRABALHO", max_length=12)
     cor: str = Field(default="#1f5fbf", max_length=9)
@@ -56,6 +56,7 @@ class TurnoRequest(BaseSchema):
     saida: str = Field(default="", max_length=5)
     pausas: list[PausaTurnoRequest] = Field(default_factory=list, max_length=12)
     weekdays: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = Seg a Sex (turno de trabalho novo)
+    especial: bool = False  # Escala Especial: dias fora da escala tradicional; vale em qualquer dia e não conta no limite de escalas
     ativo: bool = True
 
 
@@ -82,6 +83,13 @@ class ContratoOperadorRequest(BaseSchema):
     vigencia_ini: date
 
 
+class ServicoFeriadoRequest(BaseSchema):
+    id_turno: int | None = None
+    entrada: str = Field(default="", max_length=5)  # vazio = horário do turno
+    saida: str = Field(default="", max_length=5)
+    ids_operadores: list[int] = Field(default_factory=list, max_length=500)
+
+
 class EventoRequest(BaseSchema):
     operacao: str = Field(default="", max_length=60)
     tipo: str = Field(default="", max_length=20)
@@ -91,6 +99,8 @@ class EventoRequest(BaseSchema):
     id_turno: int | None = None
     entrada: str = Field(default="", max_length=5)
     saida: str = Field(default="", max_length=5)
+    gera_servico: bool = False  # só feriado: True = quem trabalha vem de `servico`; False = Folga para todos
+    servico: ServicoFeriadoRequest | None = None
     ativo: bool = True
 
 
@@ -140,6 +150,7 @@ class ConfigEscalaRequest(BaseSchema):
     alterar_jornada: bool = False
     id_contrato: int | None = None
     troca_antecedencia_dias: int | None = Field(default=None, ge=0, le=30)
+    max_escalas_operador: int | None = Field(default=None, ge=1, le=7)  # quantas escalas (turnos em dias diferentes) cada operador pode ter
 
 
 class CriarEscalaRequest(BaseSchema):

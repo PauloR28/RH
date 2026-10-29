@@ -25,6 +25,8 @@ const ESTADO_INICIAL = {
   data_contato: hoje(),
   telefone: '',
   id_interacao: '',
+  nome_cliente: '',
+  cpf_cliente: '',
   respostas: {},
   pilares: { conhecimento: {}, encantamento: {} },
   motivo_ncg: '',
@@ -37,6 +39,16 @@ const ETAPA_CONTATO = 'contato';
 const ETAPA_PILARES = 'pilares';
 const ETAPA_OBS = 'obs';
 const idBloco = (b) => `bloco:${b.id}`;
+// 000.000.000-00 enquanto digita; a validação dos dígitos verificadores é a mesma do servidor.
+const mascararCpf = (valor) => {
+  const d = String(valor || '').replace(/\D/g, '').slice(0, 11);
+  return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1-$2');
+};
+const cpfValido = (valor) => {
+  const d = String(valor || '').replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  return [9, 10].every((n) => ((d.slice(0, n).split('').reduce((soma, c, i) => soma + Number(c) * (n + 1 - i), 0) * 10) % 11) % 10 === Number(d[n]));
+};
 const Icone = ({ nome }) => html`<span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(nome)}</span>`;
 
 export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast }) {
@@ -142,6 +154,7 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
   if (!dados.id_operador) problemas.push('Selecione o operador.');
   if (!dados.canal || !dados.tipo_atendimento) problemas.push('Informe o canal e o tipo de atendimento.');
   if (!dados.data_contato) problemas.push('Informe a data do contato.');
+  if (dados.cpf_cliente && !cpfValido(dados.cpf_cliente)) problemas.push('CPF do cliente inválido: confira os 11 números.');
   if (previa && previa.pendentes > 0) problemas.push(`Responda todos os critérios (${previa.pendentes} pendente(s)).`);
   if (pendentesPilares > 0) problemas.push('Avalie todos os indicadores dos pilares.');
   if (previa?.possui_ncg && !dados.motivo_ncg.trim()) problemas.push('Informe o motivo da NCG.');
@@ -259,6 +272,13 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
           </label>
           <label class="mon-campo">Data do contato
             <input class="form-control" type="date" max=${hoje()} value=${dados.data_contato} onInput=${(e) => atualizar('data_contato', e.target.value)} />
+          </label>
+          <label class="mon-campo">Nome do cliente (opcional)
+            <input class="form-control" value=${dados.nome_cliente} maxlength="180" autocomplete="off" onInput=${(e) => atualizar('nome_cliente', e.target.value)} />
+          </label>
+          <label class="mon-campo">CPF do cliente (opcional)
+            <input class="form-control" inputmode="numeric" placeholder="000.000.000-00" value=${dados.cpf_cliente} maxlength="14" autocomplete="off" aria-invalid=${Boolean(dados.cpf_cliente) && !cpfValido(dados.cpf_cliente)} onInput=${(e) => atualizar('cpf_cliente', mascararCpf(e.target.value))} />
+            ${dados.cpf_cliente && !cpfValido(dados.cpf_cliente) && dados.cpf_cliente.length === 14 ? html`<small class="mon-muted" role="alert">CPF inválido: confira os números.</small>` : null}
           </label>
           <label class="mon-campo">Telefone (opcional)
             <input class="form-control" value=${dados.telefone} maxlength="40" onInput=${(e) => atualizar('telefone', e.target.value)} />

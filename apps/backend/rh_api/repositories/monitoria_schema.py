@@ -428,6 +428,7 @@ def ensure_monitoria_schema(cursor) -> None:
         + schema_tipos_atendimento_statements()
         + schema_formularios_exclusao_statements()
         + schema_situacao_formularios_statements()
+        + schema_cliente_statements()
     ):
         cursor.execute(instrucao)
 
@@ -576,6 +577,38 @@ def render_rollback_situacao_formularios_sql() -> str:
         "-- Rollback da V063: remove a coluna arquivado. Seguro: formularios arquivados voltam a aparecer como desativados.\n"
         "IF COL_LENGTH('dbo.monitoria_matrizes', 'arquivado') IS NOT NULL\n"
         "    ALTER TABLE dbo.monitoria_matrizes DROP COLUMN arquivado;\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cliente atendido (nome e CPF no formulário da monitoria, out/2026): gera a V065.
+# Colunas opcionais; a monitoria continua imutável (a trigger só barra UPDATE/DELETE).
+# ---------------------------------------------------------------------------
+_COLUNAS_CLIENTE: list[tuple[str, str, str]] = [
+    ("monitorias", "nome_cliente", "NVARCHAR(180)"),
+    ("monitorias", "cpf_cliente", "NVARCHAR(14)"),
+]
+
+
+def schema_cliente_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_CLIENTE]
+
+
+def render_migration_cliente_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: nome e CPF do cliente atendido. Aditiva e idempotente.\n"
+        "-- Gerada a partir de rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_cliente_statements()) + "\n"
+
+
+def render_rollback_cliente_sql() -> str:
+    return (
+        "-- Rollback da V065: remove as colunas do cliente. Os nomes/CPFs ja gravados sao perdidos.\n"
+        "IF COL_LENGTH('dbo.monitorias', 'nome_cliente') IS NOT NULL\n"
+        "    ALTER TABLE dbo.monitorias DROP COLUMN nome_cliente;\n"
+        "IF COL_LENGTH('dbo.monitorias', 'cpf_cliente') IS NOT NULL\n"
+        "    ALTER TABLE dbo.monitorias DROP COLUMN cpf_cliente;\n"
     )
 
 

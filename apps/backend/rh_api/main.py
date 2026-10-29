@@ -106,6 +106,24 @@ def _get_validation_message(error: dict) -> str:
     return error.get("msg") or "Dados inválidos."
 
 
+def _mensagem_do_erro_http(detail) -> str:
+    """Motivo mostrado ao usuário. `detail` pode ser texto, dict com `mensagem` (regras de negócio) ou lista (validação)."""
+    if isinstance(detail, str):
+        return detail
+    if isinstance(detail, dict):
+        for chave in ("mensagem", "message", "detail"):
+            if isinstance(detail.get(chave), str) and detail[chave].strip():
+                return detail[chave]
+        erros = detail.get("erros")
+        if isinstance(erros, list) and erros:
+            return " ".join(str(item) for item in erros)
+    if isinstance(detail, list):
+        textos = [str(item.get("msg") if isinstance(item, dict) else item) for item in detail if item]
+        if textos:
+            return " ".join(textos)
+    return "Falha ao processar a requisição."
+
+
 def _client_prefers_html(request: Request) -> bool:
     accept = request.headers.get("accept", "").lower()
     return "text/html" in accept
@@ -334,11 +352,15 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def handle_http_exception(_: Request, exc: HTTPException):
-        message = exc.detail if isinstance(exc.detail, str) else "Falha ao processar a requisicao."
+        message = _mensagem_do_erro_http(exc.detail)
         logger.warning("Falha HTTP %s: %s", exc.status_code, message)
+        content = {"success": False, "message": message}
+        if isinstance(exc.detail, dict):
+            # Dados extras da regra (ex.: lista de conflitos) seguem junto com o motivo.
+            content["detalhes"] = exc.detail
         return JSONResponse(
             status_code=exc.status_code,
-            content={"success": False, "message": message},
+            content=content,
         )
 
     @app.exception_handler(RequestValidationError)

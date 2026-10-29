@@ -156,8 +156,8 @@ def atualizar_evento(id_item: int, payload: EventoRequest, request: Request, use
 
 # ---- Escala ------------------------------------------------------------
 @router.get("/escala", dependencies=[Depends(require_permissions(*_LER_ESCALA))])
-def obter_escala(operacao: str, ano_mes: str, propria: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return repository.wfm_get_escala(user, operacao, ano_mes, propria=propria)
+def obter_escala(operacao: str, ano_mes: str, propria: bool = False, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_escala(user, operacao, ano_mes, propria=propria, todas_equipes=todas_equipes)
 
 
 @router.put("/escala/itens", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
@@ -478,12 +478,17 @@ def obter_config_escala(operacao: str, user: AuthenticatedUser = Depends(get_cur
 @router.put("/escala/config", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
 def salvar_config_escala(payload: ConfigEscalaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_save_config_escala(user, payload.operacao, payload.nome_escala, payload.perfis, payload.usuarios, ip=client_ip(request),
-                                                  ativa=payload.ativa, id_contrato=payload.id_contrato, alterar_contrato=payload.alterar_jornada, troca_antecedencia_dias=payload.troca_antecedencia_dias)
+                                                  ativa=payload.ativa, id_contrato=payload.id_contrato, alterar_contrato=payload.alterar_jornada, troca_antecedencia_dias=payload.troca_antecedencia_dias, max_escalas_operador=payload.max_escalas_operador)
 
 
 @router.get("/escalas/gestao", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
 def gestao_escalas(ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_gestao_escalas(user, ano_mes)
+
+
+@router.get("/escalas/aprovacoes-pendentes", dependencies=[Depends(require_permissions("wfm.escala.aprovar"))])
+def aprovacoes_pendentes(user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_aprovacoes_pendentes(user)
 
 
 @router.post("/escalas", dependencies=[Depends(require_permissions("wfm.escala.criar"))])

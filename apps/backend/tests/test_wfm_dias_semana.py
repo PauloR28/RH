@@ -85,7 +85,7 @@ def test_limite_de_4_escalas():
     cinco = [d.EscalaDoOperador(i, f"T{i}", (i,)) for i in range(5)]
     assert d.validar_escalas_do_operador(cinco[:4]) == []
     erros = d.validar_escalas_do_operador(cinco)
-    assert len(erros) == 1 and "máximo é 4" in erros[0]
+    assert len(erros) == 1 and "máximo desta escala é 4" in erros[0]
 
 
 def test_turno_de_7_dias_da_migracao_nao_bloqueia_quem_alterna_turnos():

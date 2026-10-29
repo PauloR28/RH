@@ -264,6 +264,17 @@ function notificarSessaoExpirada() {
   window.dispatchEvent(new CustomEvent(EVENTO_AUTENTICACAO_EXPIRADA));
 }
 
+// Quando o servidor não explica o motivo, a tela ainda diz o que aconteceu (nunca só "falha").
+const MENSAGEM_PADRAO_POR_STATUS = {
+  401: 'Sua sessão expirou. Entre novamente no sistema.',
+  403: 'Você não tem permissão para fazer esta ação.',
+  404: 'O item procurado não foi encontrado (pode ter sido removido por outra pessoa).',
+  405: 'Esta ação não está disponível.',
+  409: 'Outra pessoa alterou este registro antes de você. Recarregue a tela e tente de novo.',
+  413: 'O arquivo ou os dados enviados são grandes demais.',
+  429: 'Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.',
+};
+
 async function lerMensagemErro(resposta) {
   const tipo = resposta.headers.get('content-type') || '';
 
@@ -271,7 +282,8 @@ async function lerMensagemErro(resposta) {
     const json = await resposta.json().catch(() => null);
     if (json?.message) return json.message;
     if (json?.detail && typeof json.detail === 'object' && !Array.isArray(json.detail) && json.detail.mensagem) return json.detail.mensagem;
-    if (json?.detail) return json.detail;
+    if (Array.isArray(json?.detail)) return json.detail.map((item) => item?.msg || String(item)).join(' ');
+    if (typeof json?.detail === 'string' && json.detail) return json.detail;
   }
 
   return resposta.text().catch(() => '');
@@ -329,7 +341,7 @@ async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
           'Não foi possível concluir a operação. A API retornou erro interno. Verifique o log do servidor.',
       );
     }
-    throw new Error(textoErro || `Falha na API (${resposta.status}).`);
+    throw new Error(textoErro || MENSAGEM_PADRAO_POR_STATUS[resposta.status] || `Falha na requisição (erro ${resposta.status}). Tente novamente; se continuar, avise o suporte.`);
   }
 
   return resposta;
