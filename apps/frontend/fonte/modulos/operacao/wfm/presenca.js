@@ -11,7 +11,7 @@ import {
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
 } from '../../../services/api/wfm.js?v=20261026-trocas';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA } from './comum.js';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js';
 import { Icone } from './escala-ui.js?v=20261023-ajustes';
 
 // Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.
@@ -121,7 +121,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
     try {
       const r = await lancarPresencaLoteWfm({ operacao, data: lote.data, status: lote.status, excecoes });
       if (lote.marcar) await Promise.all(excecoes.map((id) => lancarPresencaWfm({ operacao, id_operador: id, data: lote.data, status: lote.marcar })));
-      showToast?.(`${r.aplicados} operador(es) com ${ROTULO_STATUS_PRESENCA[lote.status].toLowerCase()}${excecoes.length ? `; ${excecoes.length} exceção(ões) preservada(s)` : ''}.`, 'success');
+      showToast?.(`${r.aplicados} operador(es) com ${rotuloPresenca(lote.status).toLowerCase()}${excecoes.length ? `; ${excecoes.length} exceção(ões) preservada(s)` : ''}.`, 'success');
       setLote({ ...lote, excecoes: {}, marcar: '' });
       await carregar();
     } catch (e) { showToast?.(e?.message || 'Não foi possível aplicar a presença.', 'error'); } finally { setOcupado(false); }
@@ -141,11 +141,11 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
 
   // Conteúdo de uma célula do quadro: "—" (fora da escala), ponto vermelho (pendente), ponto cinza (ainda vai chegar) ou chip.
   const marca = (valor, esc, d) => {
-    if (valor) return html`<span class=${`mo-pres mo-pres--${SIGLA_CLASSE[valor]}`} aria-hidden="true">${SIGLA_PRESENCA[valor]}</span>`;
+    if (valor) return html`<span class=${`mo-pres mo-pres--${SIGLA_CLASSE[valor] || 'p'}`} aria-hidden="true">${siglaPresenca(valor)}</span>`;
     if (!esc) return html`<span class="mo-pres-nada" aria-hidden="true">—</span>`;
     return html`<span class=${`mo-ponto-pres ${d <= hoje ? 'is-pendente' : ''}`} aria-hidden="true"></span>`;
   };
-  const textoCelula = (valor, esc, d) => (valor ? ROTULO_STATUS_PRESENCA[valor].toLowerCase() : !esc ? 'sem escala' : d <= hoje ? 'pendente' : 'sem lançamento');
+  const textoCelula = (valor, esc, d) => (valor ? rotuloPresenca(valor).toLowerCase() : !esc ? 'sem escala' : d <= hoje ? 'pendente' : 'sem lançamento');
 
   return html`
     <div class="mo-contexto cx-fixo">
@@ -206,12 +206,12 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
             <label class="mon-campo"><span>Dia</span><select class="form-select" value=${lote.data} onChange=${(e) => setLote({ ...lote, data: e.target.value, excecoes: {} })}>${dias.map((d, i) => html`<option key=${d} value=${d}>${SEMANA[i]} ${br(d).slice(0, 5)}</option>`)}</select></label>
             <label class="mon-campo"><span>Aplicar a todos</span><select class="form-select" value=${lote.status} onChange=${(e) => setLote({ ...lote, status: e.target.value })}>${Object.entries(ROTULO_STATUS_PRESENCA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
             <label class="mon-campo"><span>Quem ficou de fora, marcar como</span><select class="form-select" value=${lote.marcar} onChange=${(e) => setLote({ ...lote, marcar: e.target.value })}><option value="">Não alterar</option>${['FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'].map((k) => html`<option key=${k} value=${k}>${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select></label>
-            <button type="button" class="btn btn-primary wfm-lote-botao" disabled=${ocupado || !escaladosDoDia.length || escaladosDoDia.length === contagemExc} onClick=${aplicarLote}>${ROTULO_STATUS_PRESENCA[lote.status]} para ${escaladosDoDia.length - contagemExc} operador(es)</button>
+            <button type="button" class="btn btn-primary wfm-lote-botao" disabled=${ocupado || !escaladosDoDia.length || escaladosDoDia.length === contagemExc} onClick=${aplicarLote}>${rotuloPresenca(lote.status)} para ${escaladosDoDia.length - contagemExc} operador(es)</button>
           </div>
           ${escaladosDoDia.length ? html`
             <div class="wfm-lote-excecoes">
               <strong class="wfm-rotulo-sm">Exceto (${contagemExc} de ${escaladosDoDia.length} escalados em ${br(lote.data).slice(0, 5)})</strong>
-              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small class=${`wfm-pres wfm-pres-${statusDe(o.id_usuario, lote.data).toLowerCase()}`}>${SIGLA_PRESENCA[statusDe(o.id_usuario, lote.data)]}</small>` : null}</label>`)}</div>
+              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small class=${`wfm-pres wfm-pres-${statusDe(o.id_usuario, lote.data).toLowerCase()}`}>${siglaPresenca(statusDe(o.id_usuario, lote.data))}</small>` : null}</label>`)}</div>
             </div>` : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
         </div>
       <//>` : null}

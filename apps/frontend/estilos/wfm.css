@@ -1348,3 +1348,13 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .mc-formalizacao-texto { margin: 0; font-size: 13px; line-height: 1.5; white-space: pre-line; color: var(--ink); }
 .mc-ciente { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
 .tr-resumo-texto { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font: inherit; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+
+/* Feriado: gera serviço ou folga para todos (calendário especial) */
+.wfm-feriado { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 16px; border: 1px solid var(--line, #d9dee7); border-radius: 8px; min-width: 0; }
+.wfm-feriado > legend { float: none; width: auto; margin: 0; padding: 0 8px; font-size: var(--text-sm); font-weight: 600; }
+.wfm-feriado-servico { display: flex; flex-direction: column; gap: 16px; padding-top: 8px; }
+.wfm-feriado-pessoas { display: flex; flex-direction: column; gap: 8px; }
+.wfm-feriado-cab { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+.wfm-feriado-cab .form-control { max-width: 240px; height: 32px; }
+.wfm-feriado-lista { list-style: none; margin: 0; padding: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; max-height: 192px; overflow-y: auto; border: 1px solid var(--line, #d9dee7); border-radius: 6px; }
+@media (max-width: 599.98px) { .wfm-feriado-lista { grid-template-columns: minmax(0, 1fr); } }

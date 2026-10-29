@@ -18,6 +18,7 @@ from .chamados_schema import ensure_chamados_schema
 from .chamados_schema_v060 import ensure_chamados_v060
 from .wfm_schema_v061 import ensure_wfm_v061
 from .wfm_schema_v064 import ensure_wfm_v064
+from .wfm_schema_v066 import ensure_wfm_v066
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .wfm_schema import ensure_wfm_schema
 from ..rbac import (
@@ -3748,6 +3749,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_wfm_schema(cursor)
             ensure_wfm_v061(cursor)
             ensure_wfm_v064(cursor)
+            ensure_wfm_v066(cursor)
             ensure_chamados_schema(cursor)
             ensure_chamados_v060(cursor)
             ensure_modulos_funcoes(cursor)

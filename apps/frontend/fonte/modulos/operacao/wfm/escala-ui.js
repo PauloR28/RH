@@ -59,6 +59,16 @@ export function LinhaContexto({ nome, operacao, operacoes = null, aoTrocarEscala
 let seq = 0;
 const novoId = (p) => { seq += 1; return `${p}-${seq}`; };
 
+// Supervisor: ver só a própria equipe ou a escala de TODAS as equipes (somente leitura; o servidor aplica a regra).
+// A escolha vale para as telas do mês e do dia e fica guardada na sessão do navegador.
+const CHAVE_TODAS_EQUIPES = 'wfm_ver_todas_equipes';
+export function useVisaoEquipes(ehSupervisor) {
+  const [todas, setTodas] = useState(() => { try { return ehSupervisor && sessionStorage.getItem(CHAVE_TODAS_EQUIPES) === '1'; } catch { return false; } });
+  const mudar = (valor) => { setTodas(valor); try { sessionStorage.setItem(CHAVE_TODAS_EQUIPES, valor ? '1' : '0'); } catch { /* sem armazenamento: vale só nesta tela */ } };
+  return [Boolean(ehSupervisor && todas), mudar];
+}
+export const seletorVisaoEquipes = (todas, aoMudar) => ({ rotulo: 'Equipes exibidas', padrao: 'Minha equipe', valor: todas ? 'todas' : '', aoMudar: (v) => aoMudar(v === 'todas'), largura: 'g', opcoes: [['todas', 'Todas as equipes']] });
+
 // Linha de filtros compactos (36px / 13px): busca + selects + contagem anunciada.
 // `selects`: [{ rotulo, valor, aoMudar, padrao: 'Equipe: todas', opcoes: [[valor, rotulo]] }]
 export function FiltrosCompactos({ rotuloBusca, busca, aoBuscar, selects, contagem, meio = null }) {

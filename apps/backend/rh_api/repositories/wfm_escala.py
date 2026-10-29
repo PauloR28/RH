@@ -89,6 +89,21 @@ def _contrato_de_linha(row: dict) -> ParametrosContrato:
     )
 
 
+def _mensagem_conflito(conflitos: list[dict], nomes: dict[int, str]) -> str:
+    """Explica QUEM e QUANDO: a tela mostra o motivo, não só 'falha'."""
+    exemplos = []
+    for c in conflitos[:3]:
+        quem = nomes.get(c["id_operador"], "um colaborador")
+        dia = ".".join(reversed(c["data"].split("-")[1:]))
+        por = f" por {c['alterado_por']}" if c.get("alterado_por") else ""
+        exemplos.append(f"{quem} em {dia.replace('.', '/')}{por}")
+    resto = f" e mais {len(conflitos) - 3}" if len(conflitos) > 3 else ""
+    return (
+        f"Outra pessoa alterou a escala enquanto você editava ({'; '.join(exemplos)}{resto}). "
+        "Nada foi salvo: a tela foi recarregada, refaça as alterações."
+    )
+
+
 def _hhmm_ok(valor: str) -> bool:
     return bool(re.match(r"^([01]\d|2[0-3]):[0-5]\d$", valor or ""))
 
@@ -206,7 +221,7 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Escala (leitura)
     # ------------------------------------------------------------------
-    def wfm_get_escala(self, user, operacao: str, ano_mes: str, *, propria: bool = False) -> dict:
+    def wfm_get_escala(self, user, operacao: str, ano_mes: str, *, propria: bool = False, todas_equipes: bool = False) -> dict:
         ano_mes = _exigir_ano_mes(ano_mes)
         dias = dias_do_mes(ano_mes)
         conn = self._connect()
@@ -216,6 +231,14 @@ class WfmEscalaRepositoryMixin:
             conn.commit()
             cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
             operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
+            # Supervisor: além da própria equipe, pode CONSULTAR (somente leitura) a escala das demais equipes — em fins de
+            # semana e feriados ele responde pela operação toda. Editar continua restrito à equipe (checado em wfm_salvar_itens).
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR and not propria)
+            if ver_todas:
+                equipe_propria = self._wfm_equipe_ids(cursor, user.id_usuario, operacao)
+                operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=True)
+                for op in operadores:
+                    op["minha_equipe"] = op["id_usuario"] in equipe_propria
             ids = [op["id_usuario"] for op in operadores]
             somente_propria = user.perfil in WFM_PERFIS_PARTICIPANTES or (propria and user.has_permission("wfm.escala.propria"))
             itens: list[dict] = []
@@ -301,6 +324,7 @@ class WfmEscalaRepositoryMixin:
                 op["skills"] = sorted(skills_op.get(op["id_usuario"], []))
             pode_editar = (
                 not somente_propria
+                and not ver_todas
                 and user.has_permission("wfm.escala.editar")
                 and user.perfil != ROLE_ADMIN
                 and (not cab["fechada"] or user.has_permission("wfm.escala.corrigir_fechada"))
@@ -331,6 +355,7 @@ class WfmEscalaRepositoryMixin:
                 "aprovacao": aprovacao,
                 "nome_escala": self._wfm_nome_escala(cursor, operacao),
                 "operadores": operadores,
+                "todas_equipes": ver_todas,
                 "itens": itens,
                 "pausas_equipe": pausas_equipe,
                 "personalizacoes": [
@@ -493,7 +518,7 @@ class WfmEscalaRepositoryMixin:
                 conn.rollback()
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail={"mensagem": "A escala foi alterada por outra pessoa. Recarregue antes de salvar.", "conflitos": conflitos},
+                    detail={"mensagem": _mensagem_conflito(conflitos, nomes_operadores), "conflitos": conflitos},
                 )
             autor = normalize_text(user.nome) or user.username
             for tipo, alvo, antes, depois in mudancas:
@@ -523,8 +548,13 @@ class WfmEscalaRepositoryMixin:
             conn.close()
 
     def _wfm_validar_escalas_por_dia(self, cursor, operacao: str, ano_mes: str, mudancas, turnos, dias_do_turno, nomes) -> None:
-        """Até 4 escalas (turnos em dias diferentes) por operador e dias sem repetição entre elas. Só bloqueia quando esta
+        """Até N escalas (turnos em dias diferentes; N = Configurações da escala, padrão 4) por operador e dias sem repetição entre elas. Só bloqueia quando esta
         gravação introduz um turno novo para o operador no mês; dias manuais (fora dos dias do turno) não contam."""
+        cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND especial = 1", (operacao,))
+        especiais = {int(r[0]) for r in cursor.fetchall()}  # Escala Especial não conta no limite nem na repetição de dias
+        cursor.execute("SELECT max_escalas_operador FROM dbo.wfm_operacao_config WHERE operacao = ?", (operacao,))
+        linha_max = cursor.fetchone()
+        maximo = int(linha_max[0]) if linha_max and linha_max[0] else dias_semana.MAX_ESCALAS_OPERADOR
         por_operador: dict[int, list[dict]] = {}
         for tipo, alvo, _antes, _depois in mudancas:
             por_operador.setdefault(alvo["id_operador"], []).append(alvo)
@@ -543,14 +573,14 @@ class WfmEscalaRepositoryMixin:
                     depois[a["data"]] = (a["id_turno"], a["manual"])
 
             def escalas(estado):
-                ids = {t for t, manual in estado.values() if not manual and t in turnos and turnos[t].tipo == "TRABALHO"}
+                ids = {t for t, manual in estado.values() if not manual and t not in especiais and t in turnos and turnos[t].tipo == "TRABALHO"}
                 return [dias_semana.EscalaDoOperador(t, turnos[t].codigo, dias_do_turno.get(t, dias_semana.TODOS_DIAS)) for t in sorted(ids)]
 
             novas = escalas(depois)
             introduzidos = {e.id_turno for e in novas} - {e.id_turno for e in escalas(antes)}
             if not introduzidos:
                 continue
-            mensagens += dias_semana.validar_escalas_do_operador(novas, nomes.get(id_op, "O colaborador"))
+            mensagens += dias_semana.validar_escalas_do_operador(novas, nomes.get(id_op, "O colaborador"), maximo)
         if mensagens:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"mensagem": " ".join(mensagens), "erros": mensagens})
 

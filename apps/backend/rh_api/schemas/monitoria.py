@@ -114,6 +114,8 @@ class MonitoriaCriarRequest(BaseSchema):
     data_contato: str = ""
     telefone: str = Field(default="", max_length=40)
     id_interacao: str = Field(default="", max_length=120)
+    nome_cliente: str = Field(default="", max_length=180)
+    cpf_cliente: str = Field(default="", max_length=14)
     respostas: dict[str, str] = {}
     pilares: dict[str, dict[str, int]] = {}
     motivo_ncg: str = ""

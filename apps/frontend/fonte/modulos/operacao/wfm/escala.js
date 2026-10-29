@@ -12,13 +12,13 @@ import {
   salvarItensEscalaWfm,
   validarEscalaWfm,
 } from '../../../services/api/wfm.js?v=20261026-trocas';
-import { dataHora, infoDia, minutosParaHoras } from './comum.js';
+import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js';
 import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
 import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
 import { ModalConfigEscala } from './configuracao.js';
 import { OutrasEscalas } from './outras.js';
 import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento } from './escala-ui.js?v=20261023-ajustes';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261023-ajustes';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -86,12 +86,13 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
 
   const pode = (p) => controlador.possuiPermissao(p);
+  const [todasEquipes, setTodasEquipes] = useVisaoEquipes(!somentePropria && controlador.estado?.perfilUsuario === 'supervisor');
 
   const carregar = useCallback(async () => {
     if (!operacao) return;
     setErro('');
     try {
-      const d = await lerEscalaWfm(operacao, anoMes);
+      const d = await lerEscalaWfm(operacao, anoMes, false, todasEquipes);
       setDados(d);
       setPendentes({});
       if (!somentePropria && pode('wfm.escala.visualizar')) {
@@ -102,7 +103,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       setDados(null);
       setErro(e?.message || 'Não foi possível carregar a escala.');
     }
-  }, [operacao, anoMes, somentePropria]);
+  }, [operacao, anoMes, somentePropria, todasEquipes]);
 
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
   const turnosPorId = useMemo(() => Object.fromEntries((dados?.turnos || []).map((t) => [t.id_turno, t])), [dados]);
@@ -187,14 +188,14 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const alternarSel = (id) => setSelecionados((s0) => ({ ...s0, [id]: !s0[id] }));
   const todosSel = visiveis.length > 0 && visiveis.every((o) => selecionados[o.id_usuario]);
 
-  const executar = async (fn, sucesso) => {
+  const executar = async (fn, sucesso, acao = 'concluir a operação') => {
     setOcupado(true);
     try {
       const r = await fn();
       if (sucesso) showToast?.(typeof sucesso === 'function' ? sucesso(r) : sucesso, 'success');
       return r;
     } catch (e) {
-      showToast?.(e?.message || 'Não foi possível concluir a operação.', 'error');
+      showToast?.(falhaAo(acao, e), 'error');
       await carregar();
       return null;
     } finally {
@@ -207,6 +208,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const r = await executar(
       () => salvarItensEscalaWfm({ operacao, ano_mes: anoMes, itens: Object.values(pendentes), justificativa }),
       (x) => `${x.alteradas} alteração(ões) salva(s).`,
+      'salvar a escala',
     );
     if (r) {
       setJustificativa('');
@@ -223,12 +225,13 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const r = await executar(
       () => publicarEscalaWfm({ operacao, ano_mes: anoMes, justificativa }),
       (x) => `Escala publicada (versão ${x.versao}).`,
+      'publicar a escala',
     );
     if (r) { setJustificativa(''); await carregar(); }
   };
   const fechar = async () => {
     if (!window.confirm('Fechar o período? Depois disso só o Gestor/RH pode corrigir, com justificativa.')) return;
-    const r = await executar(() => fecharPeriodoWfm({ operacao, ano_mes: anoMes }), 'Período fechado.');
+    const r = await executar(() => fecharPeriodoWfm({ operacao, ano_mes: anoMes }), 'Período fechado.', 'fechar o período');
     if (r) await carregar();
   };
 
@@ -311,8 +314,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     <section class="mo-card-escala cx-cresce" aria-label="Escala do mês">
       <div class="mo-barra cx-fixo">
         <${SeletorVisao} visao="mes" aoDia=${aoVoltarDia} aoPausas=${somentePropria ? undefined : aoPausas} />
-        <${FiltrosCompactos} rotuloBusca="Buscar operador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} operador(es)`}
+        <${FiltrosCompactos} rotuloBusca="Buscar operador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} operador(es)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}`}
           selects=${[
+            ...(controlador.estado?.perfilUsuario === 'supervisor' && !somentePropria ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
             { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
             { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
             { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },

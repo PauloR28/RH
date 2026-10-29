@@ -24,6 +24,7 @@ from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTIC
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
+from .wfm_schema_v066 import ensure_wfm_v066
 
 CATEGORIAS_SKILL = ("IDIOMA", "PRODUTO", "RETENCAO", "OUTRO")
 TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO", "APRENDIZ")
@@ -63,6 +64,38 @@ def _json(valor: Any) -> str | None:
     if valor is None:
         return None
     return valor if isinstance(valor, str) else json.dumps(valor, ensure_ascii=False, default=str)
+
+
+def _abreviar_nome_turno(nome: str) -> str:
+    """Código do turno a partir do nome: 1 palavra = 3 primeiras letras; várias = iniciais (até 4); só maiúsculas e números."""
+    import re
+    import unicodedata
+
+    sem_acento = "".join(c for c in unicodedata.normalize("NFD", nome) if unicodedata.category(c) != "Mn").upper()
+    palavras = [p for p in re.findall(r"[A-Z0-9]+", sem_acento) if p not in {"DE", "DA", "DO", "DAS", "DOS", "E"}]
+    if not palavras:
+        return "TURNO"
+    if len(palavras) == 1:
+        return palavras[0][:3] if palavras[0].isalpha() else palavras[0][:6]
+    return "".join(p[0] if p.isalpha() else p[:3] for p in palavras)[:4]
+
+
+def _itens_do_feriado(dias: list, ids_editaveis: list[int], servico: dict | None, id_folga: int, versoes: dict) -> list[dict]:
+    """Lançamentos do feriado em um mês: sem serviço, Folga para todos; com serviço, quem foi escolhido trabalha no turno
+    (dia marcado como configurado à mão, com o horário informado quando houver) e os demais ficam de Folga."""
+    trabalham = set(servico["ids_operadores"]) if servico else set()
+    itens: list[dict] = []
+    for dia in dias:
+        for id_operador in ids_editaveis:
+            item = {"id_operador": id_operador, "data": dia.isoformat(), "versao_linha": versoes.get((id_operador, dia))}
+            if id_operador in trabalham:
+                item.update({"id_turno": servico["id_turno"], "manual": True})
+                if servico.get("entrada"):
+                    item.update({"ajustar_horario": True, "entrada": servico["entrada"], "saida": servico["saida"]})
+            else:
+                item["id_turno"] = id_folga
+            itens.append(item)
+    return itens
 
 
 def _hhmm_valido(valor: str | None) -> bool:
@@ -175,8 +208,23 @@ class WfmRepositoryMixin:
             cfg = cursor.fetchone()
             if cfg and not bool(cfg[0]):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Esta escala está desativada: ative-a nas configurações para alterar.")
+        self._wfm_garantir_v066(cursor)
         self._wfm_garantir_padroes(cursor, operacao)
         return operacao
+
+    def _wfm_garantir_v066(self, cursor) -> None:
+        """Se a V066 (turno especial, limite de escalas, serviço no feriado) ainda não rodou neste ambiente, aplica
+        (idempotente) na primeira necessidade, em vez de quebrar as telas do WFM."""
+        if getattr(type(self), "_wfm_v066_ok", False):
+            return
+        cursor.execute(
+            "SELECT COL_LENGTH('dbo.wfm_turnos', 'especial'), COL_LENGTH('dbo.wfm_operacao_config', 'max_escalas_operador'), "
+            "COL_LENGTH('dbo.wfm_calendario_especial', 'gera_servico'), COL_LENGTH('dbo.wfm_calendario_especial', 'servico_json')"
+        )
+        if any(v is None for v in cursor.fetchone()):
+            ensure_wfm_v066(cursor)
+            cursor.connection.commit()
+        type(self)._wfm_v066_ok = True
 
     def _wfm_perfis_participantes(self, operacao: str) -> tuple[str, ...]:
         # Escalas criadas (tipos) reúnem os dois grupos: o vínculo à operação separa Operadores (atendimento) de Técnicos/Analista (TI).
@@ -545,7 +593,7 @@ class WfmRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             cursor.execute(
-                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays "
+                "SELECT id_turno, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays, especial "
                 f"FROM dbo.wfm_turnos WHERE operacao = ? {'' if incluir_excluidos else 'AND excluido = 0'} ORDER BY tipo DESC, codigo",
                 (operacao,),
             )
@@ -554,8 +602,9 @@ class WfmRepositoryMixin:
             itens = []
             for r in linhas:
                 r["ativo"] = bool(r["ativo"])
+                r["especial"] = bool(r.get("especial"))
                 r["weekdays"] = list(dias_semana.dias_de_texto(r.get("weekdays")))
-                r["dias_rotulo"] = dias_semana.rotulo_dias(r["weekdays"]) if r["tipo"] == "TRABALHO" else "—"
+                r["dias_rotulo"] = ("Qualquer dia" if r["especial"] else dias_semana.rotulo_dias(r["weekdays"])) if r["tipo"] == "TRABALHO" else "—"
                 sup = sups.get(r.get("id_supervisor"))
                 r["supervisor"] = sup["nome"] if sup else None
                 r["id_equipe"] = sup["id_equipe"] if sup else None
@@ -576,10 +625,11 @@ class WfmRepositoryMixin:
         tipo = normalize_text(data.get("tipo") or "TRABALHO").upper()
         if tipo not in TIPOS_TURNO:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de turno inválido.")
-        codigo = normalize_text(data.get("codigo")).upper()
+        codigo = normalize_text(data.get("codigo")).upper()  # opcional: se vier vazio, é gerado a partir do nome (turno novo)
         nome = normalize_text(data.get("nome"))
-        if not codigo or not nome:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe código e nome do turno.")
+        if not nome:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe o nome do turno.")
+        especial = 1 if tipo == "TRABALHO" and data.get("especial") else 0
         entrada, saida = normalize_text(data.get("entrada")) or None, normalize_text(data.get("saida")) or None
         pausas: list[dict] = []
         if tipo == "TRABALHO":
@@ -634,14 +684,17 @@ class WfmRepositoryMixin:
                 codigo = normalize_text(anterior["codigo"])  # o código do turno nunca muda
                 padrao_dias = dias_semana.dias_de_texto(anterior["weekdays"])  # sem o campo na requisição, os dias não mudam
                 try:
-                    weekdays = dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO", padrao=padrao_dias)
+                    if especial:  # turno especial vale em qualquer dia da semana (não depende dos dias do padrão)
+                        weekdays = dias_semana.TODOS_DIAS
+                    else:
+                        weekdays = dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO", padrao=padrao_dias)
                 except ValueError as exc:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
                 weekdays_txt = dias_semana.texto_de_dias(weekdays)
                 cursor.execute(
                     "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, id_supervisor = ?, "
-                    "weekdays = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
-                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, normalize_text(user.nome) or user.username, int(id_turno), operacao),
+                    "weekdays = ?, especial = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
+                    (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, especial, normalize_text(user.nome) or user.username, int(id_turno), operacao),
                 )
                 resolved = int(id_turno)
                 if tipo == "TRABALHO" and dias_semana.dias_de_texto(anterior.get("weekdays")) != weekdays:
@@ -653,28 +706,42 @@ class WfmRepositoryMixin:
                         if marcas:
                             cursor.execute(f"UPDATE dbo.wfm_escala_itens SET manual = 1 WHERE id_item IN ({','.join('?' * len(marcas))})", marcas)
             else:
-                cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ? AND excluido = 0", (operacao, codigo))
-                if cursor.fetchone():
-                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe um turno com este código nesta operação.")
+                if not codigo:
+                    codigo = self._wfm_gerar_codigo_turno(cursor, operacao, nome)
+                else:
+                    cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_turnos WHERE operacao = ? AND codigo = ? AND excluido = 0", (operacao, codigo))
+                    if cursor.fetchone():
+                        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Já existe um turno com o código {codigo} nesta escala. Escolha outro código ou deixe em branco para gerar automaticamente.")
                 try:
-                    weekdays = dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO")
+                    weekdays = dias_semana.TODOS_DIAS if especial else dias_semana.normalizar_dias(data.get("weekdays"), tipo_trabalho=tipo == "TRABALHO")
                 except ValueError as exc:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
                 weekdays_txt = dias_semana.texto_de_dias(weekdays)
                 cursor.execute(
-                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays, atualizado_por) "
-                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, normalize_text(user.nome) or user.username),
+                    "INSERT INTO dbo.wfm_turnos (operacao, codigo, nome, tipo, cor, entrada, saida, pausas_json, ativo, id_contrato, id_supervisor, weekdays, especial, atualizado_por) "
+                    "OUTPUT INSERTED.id_turno VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, codigo, nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, especial, normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_turno", entidade="turno", entidade_id=resolved,
-                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato, "id_supervisor": id_supervisor, "weekdays": weekdays_txt}, ip=ip,
+                antes=anterior, depois={"codigo": codigo, "nome": nome, "tipo": tipo, "entrada": entrada, "saida": saida, "ativo": bool(ativo), "id_contrato": id_contrato, "id_supervisor": id_supervisor, "weekdays": weekdays_txt, "especial": bool(especial)}, ip=ip,
             )
             conn.commit()
-            return {"success": True, "id_turno": resolved, "saida": saida, "weekdays": list(weekdays)}
+            return {"success": True, "id_turno": resolved, "codigo": codigo, "saida": saida, "weekdays": list(weekdays), "especial": bool(especial)}
         finally:
             conn.close()
+
+    def _wfm_gerar_codigo_turno(self, cursor, operacao: str, nome: str) -> str:
+        """Código único na escala, a partir do nome (ex.: 'Plantão Sábado' -> PS; repetido vira PS2, PS3...)."""
+        base = _abreviar_nome_turno(nome)
+        cursor.execute("SELECT codigo FROM dbo.wfm_turnos WHERE operacao = ? AND excluido = 0", (operacao,))
+        usados = {normalize_text(r[0]).upper() for r in cursor.fetchall()}
+        candidato, n = base, 1
+        while candidato in usados:
+            n += 1
+            candidato = f"{base}{n}"
+        return candidato[:20]
 
     def _wfm_itens_fora_dos_dias(self, cursor, operacao: str, id_turno: int, dias) -> list[dict]:
         """Itens de escala (de hoje em diante) do turno cujo dia da semana não está em `dias`."""
@@ -975,7 +1042,7 @@ class WfmRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             sql = (
-                "SELECT id_item, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo "
+                "SELECT id_item, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, gera_servico, servico_json "
                 "FROM dbo.wfm_calendario_especial WHERE operacao = ? AND ativo = 1"
             )
             params: list = [operacao]
@@ -990,6 +1057,11 @@ class WfmRepositoryMixin:
             for r in rows_to_dicts(cursor, cursor.fetchall()):
                 r["data_ini"], r["data_fim"] = r["data_ini"].isoformat(), r["data_fim"].isoformat()
                 r["ativo"] = bool(r["ativo"])
+                r["gera_servico"] = bool(r.get("gera_servico"))
+                try:
+                    r["servico"] = json.loads(r.pop("servico_json") or "null")
+                except ValueError:
+                    r["servico"] = None
                 itens.append(r)
             return itens
         finally:
@@ -1019,10 +1091,34 @@ class WfmRepositoryMixin:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe entrada e saída válidas (HH:MM).")
         if tipo != "HORARIO_ESPECIAL":
             entrada = saida = None
+        # Feriado: sem serviço = folga para todos; com serviço = quem trabalha, em qual turno/horário.
+        gera_servico = 1 if tipo == "FERIADO" and data.get("gera_servico") and data.get("ativo", True) else 0  # item removido não revalida o serviço
+        servico = None
+        if gera_servico:
+            bruto = data.get("servico") or {}
+            ids_op = sorted({int(i) for i in (bruto.get("ids_operadores") or [])})
+            id_turno_serv = int(bruto["id_turno"]) if bruto.get("id_turno") not in (None, "", 0) else None
+            ent_serv, sai_serv = normalize_text(bruto.get("entrada")) or None, normalize_text(bruto.get("saida")) or None
+            if not ids_op:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Feriado com serviço: escolha pelo menos uma pessoa que vai trabalhar.")
+            if not id_turno_serv:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Feriado com serviço: escolha o turno de quem vai trabalhar.")
+            if bool(ent_serv) != bool(sai_serv) or (ent_serv and not (_hhmm_valido(ent_serv) and _hhmm_valido(sai_serv) and ent_serv != sai_serv)):
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Feriado com serviço: informe entrada e saída válidas (HH:MM) e diferentes, ou deixe os dois em branco para usar o horário do turno.")
+            servico = {"id_turno": id_turno_serv, "entrada": ent_serv, "saida": sai_serv, "ids_operadores": ids_op}
         conn = self._connect()
         try:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, data.get("operacao", ""), escrita=True)
+            if servico:
+                cursor.execute("SELECT tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ? AND ativo = 1 AND excluido = 0", (servico["id_turno"], operacao))
+                turno_serv = cursor.fetchone()
+                if not turno_serv or normalize_text(turno_serv[0]) != "TRABALHO":
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Feriado com serviço: use um turno de trabalho ativo desta escala.")
+                validos = {op["id_usuario"] for op in self._wfm_todos_operadores(cursor, operacao)}
+                fora = [i for i in servico["ids_operadores"] if i not in validos]
+                if fora:
+                    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Feriado com serviço: há pessoa escolhida que não faz parte desta escala.")
             if id_turno:
                 cursor.execute("SELECT tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ? AND ativo = 1", (id_turno, operacao))
                 turno = cursor.fetchone()
@@ -1045,25 +1141,110 @@ class WfmRepositoryMixin:
                     ("tipo", "data_ini", "data_fim", "descricao", "id_turno", "entrada", "saida", "ativo"), row)}
                 cursor.execute(
                     "UPDATE dbo.wfm_calendario_especial SET tipo = ?, data_ini = ?, data_fim = ?, descricao = ?, id_turno = ?, "
-                    "entrada = ?, saida = ?, ativo = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_item = ? AND operacao = ?",
-                    (tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, normalize_text(user.nome) or user.username, int(id_item), operacao),
+                    "entrada = ?, saida = ?, ativo = ?, gera_servico = ?, servico_json = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_item = ? AND operacao = ?",
+                    (tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, gera_servico, _json(servico), normalize_text(user.nome) or user.username, int(id_item), operacao),
                 )
                 resolved = int(id_item)
             else:
                 cursor.execute(
-                    "INSERT INTO dbo.wfm_calendario_especial (operacao, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, atualizado_por) "
-                    "OUTPUT INSERTED.id_item VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (operacao, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, normalize_text(user.nome) or user.username),
+                    "INSERT INTO dbo.wfm_calendario_especial (operacao, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, gera_servico, servico_json, atualizado_por) "
+                    "OUTPUT INSERTED.id_item VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (operacao, tipo, data_ini, data_fim, descricao, id_turno, entrada, saida, ativo, gera_servico, _json(servico), normalize_text(user.nome) or user.username),
                 )
                 resolved = int(cursor.fetchone()[0])
             self.wfm_audit(
                 cursor, user, operacao=operacao, acao="salvar_calendario_especial", entidade="calendario_especial", entidade_id=resolved,
-                antes=anterior, depois={"tipo": tipo, "data_ini": str(data_ini), "data_fim": str(data_fim), "descricao": descricao, "ativo": bool(ativo)}, ip=ip,
+                antes=anterior, depois={"tipo": tipo, "data_ini": str(data_ini), "data_fim": str(data_fim), "descricao": descricao, "ativo": bool(ativo),
+                                        "gera_servico": bool(gera_servico), "servico": servico}, ip=ip,
             )
             conn.commit()
-            return {"success": True, "id_item": resolved}
         finally:
             conn.close()
+        resposta = {"success": True, "id_item": resolved}
+        if tipo == "FERIADO" and ativo:
+            resposta["aplicacao"] = self._wfm_aplicar_feriado(user, operacao, data_ini, data_fim, descricao, servico, ip=ip)
+        return resposta
+
+    def _wfm_aplicar_feriado(self, user, operacao: str, data_ini, data_fim, descricao: str, servico: dict | None, *, ip: str = "") -> dict:
+        """Aplica o feriado na escala assim que ele é salvo: sem serviço, Folga para todos; com serviço, quem foi escolhido
+        trabalha no turno/horário informado e os demais ficam de Folga. Só mexe em quem o usuário pode editar e em meses não
+        fechados. A edição invalida a aprovação (a escala volta a rascunho e precisa ser reenviada). Nunca derruba o salvamento
+        do feriado: o que não puder ser aplicado volta em `avisos`, com o motivo."""
+        from datetime import timedelta
+
+        avisos: list[str] = []
+        try:
+            dias = [data_ini + timedelta(days=i) for i in range((data_fim - data_ini).days + 1)]
+            conn = self._connect()
+            try:
+                cursor = conn.cursor()
+                todos = self._wfm_todos_operadores(cursor, operacao)
+                equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+                editaveis = [
+                    op for op in todos
+                    if wfm_scope.pode_editar_escala_de(
+                        perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
+                        operacao=operacao, id_operador=op["id_usuario"], equipe_supervisor=equipe,
+                    )
+                ]
+                if not todos:
+                    return {"aplicados": 0, "ignorados": 0, "avisos": ["A escala ainda não tem colaboradores: nada a aplicar no feriado."]}
+                if not editaveis:
+                    return {"aplicados": 0, "ignorados": len(todos), "avisos": ["O feriado foi salvo, mas o seu perfil não edita a escala dos colaboradores: peça a quem monta a escala para aplicar."]}
+                cursor.execute(
+                    "SELECT TOP 1 id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND tipo = 'FOLGA' AND ativo = 1 AND excluido = 0 "
+                    "ORDER BY CASE WHEN codigo = 'FOLGA' THEN 0 ELSE 1 END, id_turno",
+                    (operacao,),
+                )
+                linha = cursor.fetchone()
+                if not linha:
+                    return {"aplicados": 0, "ignorados": 0, "avisos": ["Não há turno de Folga ativo nesta escala: cadastre ou ative um turno do tipo Folga e salve o feriado de novo."]}
+                id_folga = int(linha[0])
+                meses = sorted({d.strftime("%Y-%m") for d in dias})
+                abertos = []
+                for mes in meses:
+                    if self._wfm_cabecalho(cursor, operacao, mes)["fechada"]:
+                        avisos.append(f"O mês {mes[5:]}/{mes[:4]} está fechado: o feriado não foi aplicado nele.")
+                    else:
+                        abertos.append(mes)
+                ids = [op["id_usuario"] for op in editaveis]
+                marcas = ",".join("?" for _ in ids)
+                cursor.execute(
+                    f"SELECT id_operador, data, versao_linha FROM dbo.wfm_escala_itens WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marcas})",
+                    (operacao, dias[0], dias[-1], *ids),
+                )
+                versoes = {(int(r[0]), r[1]): int(r[2]) for r in cursor.fetchall()}
+            finally:
+                conn.close()
+            ignorados = len(todos) - len(editaveis)
+            if ignorados:
+                avisos.append(f"{ignorados} colaborador(es) fora da sua equipe/escopo não foram alterados.")
+            aplicados = 0
+            for mes in abertos:
+                # Escala aguardando aprovação não aceita edição: cancela o envio (volta a rascunho) para aplicar o feriado.
+                conn = self._connect()
+                try:
+                    em_aprovacao = self._wfm_cabecalho(conn.cursor(), operacao, mes)["aprovacao"]["estado"] == "EM_APROVACAO"
+                finally:
+                    conn.close()
+                if em_aprovacao:
+                    try:
+                        self.wfm_cancelar_envio(user, operacao, mes, ip=ip)
+                        avisos.append(f"O envio para aprovação de {mes[5:]}/{mes[:4]} foi cancelado para aplicar o feriado: reenvie a escala para aprovação.")
+                    except HTTPException as exc:
+                        avisos.append(f"{mes[5:]}/{mes[:4]} está em aprovação e não foi alterado: {exc.detail}")
+                        continue
+                itens = _itens_do_feriado([d for d in dias if d.strftime("%Y-%m") == mes], [op["id_usuario"] for op in editaveis], servico, id_folga, versoes)
+                for inicio in range(0, len(itens), 1000):
+                    aplicados += self.wfm_salvar_itens(
+                        user, operacao, mes, itens[inicio:inicio + 1000], justificativa=f"Feriado: {descricao}"[:400], ip=ip
+                    )["alteradas"]
+            if aplicados:
+                avisos.append("A escala foi alterada: se ela já estava aprovada ou publicada, envie novamente para aprovação e publique a nova versão.")
+            return {"aplicados": aplicados, "ignorados": ignorados, "avisos": avisos}
+        except HTTPException as exc:
+            motivo = exc.detail.get("mensagem") if isinstance(exc.detail, dict) else exc.detail
+            return {"aplicados": 0, "ignorados": 0, "avisos": [f"O feriado foi salvo, mas não foi possível aplicá-lo na escala: {motivo}"]}
 
     # ------------------------------------------------------------------
     # Auditoria (Gestor/RH e Adm)

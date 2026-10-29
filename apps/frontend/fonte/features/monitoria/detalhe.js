@@ -345,6 +345,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
                 <div><dt>Data do contato</dt><dd>${formatarData(d.data_contato)}</dd></div>
                 <div><dt>Data da monitoria</dt><dd>${formatarDataHoraCurta(d.data_monitoria)}</dd></div>
                 <div><dt>Canal / tipo</dt><dd>${d.canal || d.tipo_atendimento ? `${d.canal || '—'} · ${d.tipo_atendimento || '—'}` : '—'}</dd></div>
+                <div><dt>Cliente (nome / CPF)</dt><dd>${d.nome_cliente || '—'} / ${d.cpf_cliente || '—'}</dd></div>
                 <div><dt>Telefone / interação</dt><dd>${d.telefone || '—'} / ${d.id_interacao || '—'}</dd></div>
                 <div><dt>Blocos avaliados / nulos</dt><dd>${d.blocos_avaliados} / ${d.blocos_nulos}</dd></div>
               </dl>

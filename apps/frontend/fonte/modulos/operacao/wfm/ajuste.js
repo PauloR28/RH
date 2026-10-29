@@ -6,7 +6,7 @@ import {
   salvarItensEscalaWfm,
   salvarPausasWfm,
 } from '../../../services/api/wfm.js?v=20261026-trocas';
-import { minutosParaHoras } from './comum.js';
+import { falhaAo, minutosParaHoras } from './comum.js';
 import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js';
 import { LinhaTempo } from './minha.js?v=20261026-trocas';
 
@@ -164,7 +164,7 @@ export function GavetaAjusteDia({ alvo, dados, operacao, anoMes, fechada, bloque
     try {
       if (itensEnviar.length) {
         try { await salvarItensEscalaWfm({ operacao, ano_mes: anoMes, itens: itensEnviar, justificativa }); passo(); }
-        catch (e) { showToast?.(e?.message || 'Não foi possível salvar o turno.', 'error'); setFalhas([e?.message || 'Não foi possível salvar o turno.']); aoSalvo(false); return; }
+        catch (e) { showToast?.(falhaAo('salvar o turno', e), 'error'); setFalhas([falhaAo('salvar o turno', e)]); aoSalvo(false); return; }
       }
       for (const data of diasPausa) {
         try {

@@ -3,12 +3,12 @@ import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-comp
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { usePendenciasPresenca } from './pendencias.js?v=20261015-modulo8';
+import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261029-aprovacoes';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { TelaHistorico } from './historico.js?v=20261015-modulo8';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261023-ajustes';
 import { TelaEscala } from './escala.js?v=20261023-ajustes';
-import { TelaPresenca } from './presenca.js?v=20261028-ausencias';
+import { TelaPresenca } from './presenca.js?v=20261029-presenca';
 import { TelaCadastros } from './cadastros.js?v=20261020-dias';
 import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261023-ajustes';
 import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
@@ -97,7 +97,10 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   const [totalSemanaPresenca, setTotalSemanaPresenca] = useState(null); // na tela Presença, o total da semana mostrada
   const { total: pendenciasServidor } = usePendenciasPresenca(operacao, Boolean(contexto) && controlador.possuiPermissao('wfm.presenca.lancar') && operacoesComEscala.some((o) => o.chave === operacao), telaAtual);
   const pendenciasPresenca = telaAtual === 'screen-wfm-presenca' && totalSemanaPresenca !== null ? totalSemanaPresenca : pendenciasServidor;
-  const itensAbas = abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone, selo: a.tela === 'screen-wfm-presenca' ? pendenciasPresenca : 0 }));
+  // Selo da aba Escala: escalas aguardando a aprovação deste usuário (Supervisor, Gestor...). Só quem aprova consulta.
+  const podeAprovar = controlador.possuiPermissao('wfm.escala.aprovar') && !soParticipante;
+  const aprovacoes = usePendenciasAprovacao(podeAprovar, `${telaAtual}:${versaoLista}`);
+  const itensAbas = abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone, selo: a.tela === 'screen-wfm-presenca' ? pendenciasPresenca : a.tela === 'screen-wfm' ? aprovacoes.total : 0 }));
 
   // Lista de escalas: layout novo (cabeçalho, abas, resumo e lista numa tela só); as demais telas do WFM seguem como estão.
   if (telaAtual === 'screen-wfm' && visaoEscala === 'lista' && contexto && !erro) {
@@ -105,6 +108,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${ListaEscalas} controlador=${controlador} anoMes=${anoMes} aoMudarMes=${setAnoMes} versao=${versaoLista} showToast=${showToast}
+          aprovacoes=${aprovacoes.itens} aoRecarregarAprovacoes=${aprovacoes.recarregar}
           titulo=${titulo} descricao=${descricao}
           abas=${itensAbas} abaAtiva=${abaAtiva} aoMudarAba=${(tela) => controlador.irParaTelaProtegida(tela)}
           aoAbrir=${(chave, modo) => { setOperacao(chave); setVisaoEscala(modo); }}

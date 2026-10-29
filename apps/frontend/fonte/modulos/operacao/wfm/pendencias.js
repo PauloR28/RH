@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
-import { pendenciasPresencaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
+import { aprovacoesPendentesWfm, pendenciasPresencaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
 
 // Total de presenças pendentes de confirmação (escalados até hoje, sem lançamento) da semana, vindo do servidor.
 // Alimenta o selo da aba Presença. Sem permissão de lançar presença ou sem operação, não consulta.
@@ -24,4 +24,23 @@ export function usePendenciasPresenca(operacao, habilitado, gatilho = '') {
   }, [operacao, habilitado, gatilho, versao]);
   const recarregar = useCallback(() => setVersao((v) => v + 1), []);
   return { total, recarregar };
+}
+
+// Escalas (de qualquer mês) aguardando a decisão do usuário. Alimenta a bolinha da lista de escalas, o selo da aba Escala e o
+// painel "Aprovações pendentes". Sem a permissão de aprovar, não consulta. Atualiza ao voltar para a aba e a cada 60 s.
+export function usePendenciasAprovacao(habilitado, gatilho = '') {
+  const [itens, setItens] = useState([]);
+  const [versao, setVersao] = useState(0);
+  useEffect(() => {
+    if (!habilitado) { setItens([]); return undefined; }
+    let ativo = true;
+    const buscar = () => aprovacoesPendentesWfm().then((r) => { if (ativo) setItens(r?.itens || []); }, () => {});
+    buscar();
+    const silencioso = () => { if (!document.hidden) buscar(); };
+    const timer = setInterval(silencioso, 60000);
+    document.addEventListener('visibilitychange', silencioso);
+    return () => { ativo = false; clearInterval(timer); document.removeEventListener('visibilitychange', silencioso); };
+  }, [habilitado, gatilho, versao]);
+  const recarregar = useCallback(() => setVersao((v) => v + 1), []);
+  return { itens, total: itens.length, recarregar };
 }

@@ -18,6 +18,9 @@ export function useContextoWfm() {
   return { contexto, erro, recarregar };
 }
 
+// Mensagem de falha sempre com o motivo: "Falha ao salvar a escala: Ana já tem 4 escalas...". Nunca só "falha".
+export const falhaAo = (acao, erro) => `Falha ao ${acao}: ${erro?.message || 'o servidor não informou o motivo. Tente de novo; se continuar, avise o suporte.'}`;
+
 export function mesAtual() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -69,5 +72,10 @@ export const ROTULO_STATUS_PRESENCA = {
   FOLGA: 'Folga',
   FERIAS: 'Férias',
 };
+
+// Status desconhecido (ex.: o servidor passou a aceitar um novo e a tela ainda não) nunca derruba a tela: mostra o código legível.
+const legivel = (codigo) => String(codigo || '').toLowerCase().replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+export const rotuloPresenca = (status) => ROTULO_STATUS_PRESENCA[status] || legivel(status);
+export const siglaPresenca = (status) => SIGLA_PRESENCA[status] || String(status || '').slice(0, 2).toUpperCase();
 
 export const SIGLA_PRESENCA = { PRESENTE: 'P', FALTA: 'F', FALTA_JUSTIFICADA: 'FJ', ATESTADO: 'AT', SERVICO_EXTERNO: 'SE', DAY_OFF: 'DO', FOLGA_COMP_BH: 'FB', FOLGA: 'FL', FERIAS: 'FE' };

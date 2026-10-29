@@ -24,7 +24,7 @@ import {
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
 } from '../../../services/api/wfm.js?v=20261026-trocas';
-import { ROTULO_TIPO_EVENTO, minutosParaHoras } from './comum.js';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js';
 import { descreverTurno } from './escala.js';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
@@ -35,8 +35,9 @@ import { TIPOS_PAUSA } from './jornadas.js';
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
 
 const CATEGORIAS_SKILL = { IDIOMA: 'Idioma', PRODUTO: 'Produto', RETENCAO: 'Retenção', OUTRO: 'Outro' };
-export const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', id_contrato: '', id_supervisor: '', pausas: [], weekdays: [0, 1, 2, 3, 4], ativo: true };
-const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '' };
+export const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', id_contrato: '', id_supervisor: '', pausas: [], weekdays: [0, 1, 2, 3, 4], especial: false, ativo: true };
+const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '', gera_servico: false, servico: null };
+const SERVICO_VAZIO = { id_turno: '', entrada: '', saida: '', ids_operadores: [] };
 
 const paraMin = (hhmm) => { const [h, m] = (hhmm || '00:00').split(':').map(Number); return h * 60 + m; };
 const horaDe = (min) => `${String(Math.floor((((min % 1440) + 1440) % 1440) / 60)).padStart(2, '0')}:${String((((min % 1440) + 1440) % 1440) % 60).padStart(2, '0')}`;
@@ -84,7 +85,8 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
   const comJornada = !!edit.id_contrato;
   const saida = comJornada ? saidaCalculada(edit, contratos) : edit.saida;
   const dias = edit.weekdays || [];
-  const semDias = trabalho && dias.length === 0;
+  const especial = trabalho && !!edit.especial; // Escala Especial vale em qualquer dia: não escolhe dias da semana
+  const semDias = trabalho && !especial && dias.length === 0;
   const supervisor = supervisores.find((s) => String(s.id_usuario) === String(edit.id_supervisor)) || {};
 
   useEffect(() => {
@@ -109,20 +111,20 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
     setSalvando(true);
     try {
       const pausas = (edit.pausas || []).map((p) => ({ offset_min: offsetDe(edit.entrada, p.inicio), duracao_min: Math.max(Number(p.duracao_min) || 1, 1), tipo: p.tipo }));
-      await salvarTurnoWfm({ ...edit, pausas, operacao, saida, weekdays: dias, id_contrato: comJornada ? Number(edit.id_contrato) : null, id_supervisor: edit.id_supervisor ? Number(edit.id_supervisor) : null }, edit.id_turno);
-      showToast?.('Turno salvo.', 'success');
+      await salvarTurnoWfm({ ...edit, pausas, operacao, saida, weekdays: especial ? [0, 1, 2, 3, 4, 5, 6] : dias, especial, id_contrato: comJornada ? Number(edit.id_contrato) : null, id_supervisor: edit.id_supervisor ? Number(edit.id_supervisor) : null }, edit.id_turno);
+      showToast?.(edit.id_turno ? 'Turno salvo.' : 'Turno salvo.', 'success');
       onSalvo();
-    } catch (err) { setErro(err?.message || 'Não foi possível salvar o turno.'); } finally { setSalvando(false); }
+    } catch (err) { setErro(falhaAo('salvar o turno', err)); } finally { setSalvando(false); }
   };
 
   const salvar = async (ev) => {
     ev.preventDefault();
-    if (!edit.codigo.trim() || !edit.nome.trim()) return setErro('Informe o código e o nome do turno.');
+    if (!edit.nome.trim()) return setErro('Informe o nome do turno.');
     if (trabalho && (!edit.entrada || !saida)) return setErro('Informe o horário de entrada e de saída.');
     if (trabalho && edit.entrada === saida) return setErro('Entrada e saída não podem ser iguais.');
     if (semDias) return setErro('Escolha pelo menos um dia da semana.');
     setErro('');
-    if (edit.id_turno && trabalho && !impacto && !mesmosDias(dias, inicial.weekdays || [])) {
+    if (edit.id_turno && trabalho && !especial && !inicial.especial && !impacto && !mesmosDias(dias, inicial.weekdays || [])) {
       setSalvando(true);
       try {
         const r = await impactoDiasTurnoWfm(edit.id_turno, { operacao, weekdays: dias });
@@ -139,7 +141,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
     <form class="wfm-pt-form" noValidate onSubmit=${salvar}>
       <div class="wfm-pt-corpo">
         <div class="wfm-pt-grade">
-          <${Campo} rotulo="Código" span=${1}><input class="form-control" maxlength="20" disabled=${!!edit.id_turno} value=${edit.codigo} onInput=${(e) => set('codigo', e.target.value)} /></${Campo}>
+          <${Campo} rotulo="Código" span=${1} dica=${edit.id_turno ? undefined : 'Gerado automaticamente a partir do nome'}><input class="form-control" maxlength="20" disabled value=${edit.codigo} placeholder="Automático" /></${Campo}>
           <${Campo} rotulo="Nome" span=${1}><input class="form-control" maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /></${Campo}>
           <${Campo} rotulo="Tipo" span=${1}><select class="form-select" value=${edit.tipo} disabled=${!!edit.id_turno} onChange=${(e) => set('tipo', e.target.value)}><option value="TRABALHO">Trabalho</option><option value="FOLGA">Folga</option><option value="DSR">DSR</option></select></${Campo}>
           <${Campo} rotulo="Cor" span=${1}><input class="form-control form-control-color wfm-cor" type="color" value=${edit.cor} onInput=${(e) => set('cor', e.target.value)} /></${Campo}>
@@ -151,11 +153,14 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
             <${Campo} rotulo="Supervisor · Equipe" span=${2} dica="A equipe vem do supervisor escolhido"><span class="wfm-pt-sup">
               <select class="form-select" aria-label="Supervisor (opcional)" value=${edit.id_supervisor || ''} onChange=${(e) => set('id_supervisor', e.target.value)}><option value="">Nenhum</option>${supervisores.map((s) => html`<option key=${s.id_usuario} value=${s.id_usuario}>${s.nome}</option>`)}</select>
               <input class="form-control" aria-label="Equipe" disabled value=${supervisor.equipe || '—'} /></span></${Campo}>` : null}
-          <${Marca} rotulo="Ativo" span=${2} checked=${edit.ativo} onChange=${(v) => set('ativo', v)} />
+          <${Marca} rotulo="Ativo" span=${trabalho ? 1 : 2} checked=${edit.ativo} onChange=${(v) => set('ativo', v)} />
+          ${trabalho ? html`<${Marca} rotulo="Escala Especial" span=${1} checked=${!!edit.especial} onChange=${(v) => { setImpacto(null); set('especial', v); }} />` : null}
         </div>
 
-        <${BlocoDiasSemana} dias=${dias} aoMudar=${(v) => { setImpacto(null); setEdit((e) => ({ ...e, weekdays: typeof v === 'function' ? v(e.weekdays || []) : v })); }} obrigatorio=${trabalho} />
-        <p class="wfm-pt-nota">Cada colaborador pode ter até 4 turnos, em dias diferentes. Pausas e outras configurações seguem esses dias.</p>
+        ${especial
+          ? html`<p class="wfm-pt-nota">Escala Especial: para dias fora da escala tradicional, com horário e rotina próprios. Vale em qualquer dia da semana e não conta no limite de escalas por colaborador.</p>`
+          : html`<${BlocoDiasSemana} dias=${dias} aoMudar=${(v) => { setImpacto(null); setEdit((e) => ({ ...e, weekdays: typeof v === 'function' ? v(e.weekdays || []) : v })); }} obrigatorio=${trabalho} />
+        <p class="wfm-pt-nota">Cada colaborador pode ter até o limite de escalas definido em Configurações da escala (padrão 4), em dias diferentes. Pausas e outras configurações seguem esses dias.</p>`}
 
         ${trabalho ? html`
           <div class="wfm-sub-cab"><h4>Pausas do turno</h4><${BotaoAdicionar} rotulo="Pausa" onClick=${() => setEdit({ ...edit, pausas: [...edit.pausas, { inicio: edit.entrada ? horaDe(paraMin(edit.entrada) + 90) : '09:00', duracao_min: 10, tipo: 'DESCANSO' }] })} /></div>
@@ -245,7 +250,7 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
   const excluir = async (t) => {
     if (!window.confirm(`Excluir o turno ${t.codigo} (${t.nome})? Só é possível se ele nunca foi usado em uma escala.`)) return;
     try { await excluirTurnoWfm(operacao, t.id_turno); showToast?.('Turno excluído.', 'success'); recarregar(); }
-    catch (err) { showToast?.(err?.message || 'Não foi possível excluir o turno.', 'error'); }
+    catch (err) { showToast?.(falhaAo('excluir o turno', err), 'error'); }
   };
   return html`
     <${CardRecolhivel} titulo="Turnos" contador=${turnos.length} className="mo-cartao-turnos"
@@ -257,7 +262,7 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
           ${turnos.length ? turnos.map((t) => html`<tr key=${t.id_turno}>
             <td><span class="mo-chip mo-chip--lg" style=${{ '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) }} title=${t.nome}>${t.codigo}</span></td>
             <td><span class="mo-trunca" title=${t.nome}>${t.nome}</span>${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td>
-            <td><span class="mo-tipo">${t.tipo}</span></td>
+            <td><span class="mo-tipo">${t.especial ? 'ESPECIAL' : t.tipo}</span></td>
             <td><span class="mo-num">${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</span><small class="mo-sub2" title="Dias da semana em que o turno vale">${t.dias_rotulo || '—'}</small></td>
             <td><span class="mo-num">${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}</span>${t.id_contrato ? html`<small class="mo-sub2">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td>
             <td>${t.supervisor ? html`<span class="mo-trunca" title=${t.supervisor}>${t.supervisor}</span>${t.equipe ? html`<small class="mo-sub2 mo-trunca" title=${`Equipe ${t.equipe}`}>Equipe ${t.equipe}</small>` : html`<small class="mo-sub2">—</small>`}` : '—'}</td>
@@ -276,25 +281,47 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
     ${personalizar ? html`<${ModalPersonalizarTurno} operacao=${operacao} turno=${personalizar} operadores=${operadores} showToast=${showToast} onClose=${() => setPersonalizar(null)} onMudou=${recarregar} />` : null}`;
 }
 
-function ModalEvento({ operacao, inicial, turnos, onClose, onSalvo, showToast }) {
-  const [form, setForm] = useState(inicial);
+function ModalEvento({ operacao, inicial, turnos, operadores = [], onClose, onSalvo, showToast }) {
+  const [form, setForm] = useState({ ...inicial, servico: { ...SERVICO_VAZIO, ...(inicial.servico || {}), id_turno: inicial.servico?.id_turno ? String(inicial.servico.id_turno) : '', entrada: inicial.servico?.entrada || '', saida: inicial.servico?.saida || '' } });
+  const [busca, setBusca] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const trabalho = turnos.filter((t) => t.tipo === 'TRABALHO' && t.ativo);
   const usaTurno = ['DIA_ESPECIAL', 'HORARIO_ESPECIAL'].includes(form.tipo);
+  const feriado = form.tipo === 'FERIADO';
+  const servico = form.servico;
+  const setServico = (k, v) => setForm((f) => ({ ...f, servico: { ...f.servico, [k]: v } }));
+  const marcados = new Set(servico.ids_operadores);
+  const normaliza = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const filtrados = operadores.filter((o) => !busca.trim() || normaliza(o.nome).includes(normaliza(busca.trim())));
+  const alternarOp = (id) => setServico('ids_operadores', marcados.has(id) ? servico.ids_operadores.filter((x) => x !== id) : [...servico.ids_operadores, id]);
+  const todosFiltrados = filtrados.length > 0 && filtrados.every((o) => marcados.has(o.id_usuario));
+  const alternarTodos = () => setServico('ids_operadores', todosFiltrados
+    ? servico.ids_operadores.filter((id) => !filtrados.some((o) => o.id_usuario === id))
+    : [...new Set([...servico.ids_operadores, ...filtrados.map((o) => o.id_usuario)])]);
   const salvar = async (ev) => {
     ev.preventDefault();
     if (!form.data_ini || !form.data_fim || !form.descricao.trim()) return setErro('Informe as datas e a descrição.');
     if (usaTurno && !form.id_turno) return setErro('Selecione o turno.');
     if (form.tipo === 'HORARIO_ESPECIAL' && (!form.entrada || !form.saida)) return setErro('Informe a nova entrada e saída.');
+    if (feriado && form.gera_servico) {
+      if (!servico.ids_operadores.length) return setErro('Feriado com serviço: marque quem vai trabalhar.');
+      if (!servico.id_turno) return setErro('Feriado com serviço: escolha o turno de quem vai trabalhar.');
+      if (!!servico.entrada !== !!servico.saida) return setErro('Informe a entrada e a saída do serviço, ou deixe as duas em branco para usar o horário do turno.');
+    }
     setErro('');
     setSalvando(true);
     try {
-      await salvarEventoWfm({ ...form, operacao, id_turno: form.id_turno ? Number(form.id_turno) : null }, form.id_item);
-      showToast?.('Item do calendário salvo.', 'success');
+      const corpo = { ...form, operacao, id_turno: form.id_turno ? Number(form.id_turno) : null };
+      if (feriado && form.gera_servico) corpo.servico = { ...servico, id_turno: Number(servico.id_turno) };
+      else { corpo.gera_servico = false; corpo.servico = null; }
+      const r = await salvarEventoWfm(corpo, form.id_item);
+      const ap = r?.aplicacao;
+      showToast?.(ap?.aplicados ? `Feriado salvo e aplicado na escala (${ap.aplicados} lançamento(s)).` : 'Item do calendário salvo.', 'success');
+      (ap?.avisos || []).forEach((aviso) => showToast?.(aviso, 'warning'));
       onSalvo();
-    } catch (err) { setErro(err?.message || 'Não foi possível salvar.'); } finally { setSalvando(false); }
+    } catch (err) { setErro(falhaAo('salvar o item do calendário', err)); } finally { setSalvando(false); }
   };
   return html`<${ModalForm} titulo=${form.id_item ? 'Editar item do calendário' : 'Novo item do calendário'} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando}>
     <div class="wfm-grade-form">
@@ -303,15 +330,36 @@ function ModalEvento({ operacao, inicial, turnos, onClose, onSalvo, showToast })
       <${Campo} rotulo="Data final" span=${4}><input class="form-control" type="date" value=${form.data_fim} onInput=${(e) => set('data_fim', e.target.value)} /></${Campo}>
       <${Campo} rotulo="Descrição" span=${usaTurno ? 6 : 12}><input class="form-control" maxlength="200" value=${form.descricao} onInput=${(e) => set('descricao', e.target.value)} /></${Campo}>
       ${usaTurno ? html`<${Campo} rotulo="Turno" span=${form.tipo === 'HORARIO_ESPECIAL' ? 2 : 6}><select class="form-select" value=${form.id_turno} onChange=${(e) => set('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}</select></${Campo}>` : null}
+      ${feriado ? html`<fieldset class="wfm-feriado" style=${{ gridColumn: 'span 12' }}>
+        <legend>Neste feriado, a escala…</legend>
+        <label class="wfm-check"><input type="radio" name="gera-servico" checked=${!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: false })} /> Não gera serviço — todos ficam de Folga nesse(s) dia(s)</label>
+        <label class="wfm-check"><input type="radio" name="gera-servico" checked=${!!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: true })} /> Gera serviço — escolho quem trabalha e o horário (os demais ficam de Folga)</label>
+        ${form.gera_servico ? html`<div class="wfm-feriado-servico">
+          <div class="wfm-grade-form">
+            <${Campo} rotulo="Turno de quem trabalha" span=${6}><select class="form-select" value=${servico.id_turno} onChange=${(e) => setServico('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` (${t.entrada}–${t.saida})` : ''}</option>`)}</select></${Campo}>
+            <${Campo} rotulo="Entrada (opcional)" span=${3} dica="Em branco = horário do turno"><input class="form-control" type="time" value=${servico.entrada} onInput=${(e) => setServico('entrada', e.target.value)} /></${Campo}>
+            <${Campo} rotulo="Saída (opcional)" span=${3}><input class="form-control" type="time" value=${servico.saida} onInput=${(e) => setServico('saida', e.target.value)} /></${Campo}>
+          </div>
+          <div class="wfm-feriado-pessoas" role="group" aria-label="Quem vai trabalhar">
+            <div class="wfm-feriado-cab">
+              <input class="form-control" type="search" aria-label="Buscar colaborador" placeholder="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} />
+              <label class="wfm-check"><input type="checkbox" checked=${todosFiltrados} onChange=${alternarTodos} /> Marcar todos</label>
+              <span class="mon-muted">${servico.ids_operadores.length} de ${operadores.length} vão trabalhar</span>
+            </div>
+            <ul class="wfm-feriado-lista">${filtrados.length ? filtrados.map((o) => html`<li key=${o.id_usuario}><label class="wfm-check"><input type="checkbox" checked=${marcados.has(o.id_usuario)} onChange=${() => alternarOp(o.id_usuario)} /> ${o.nome}</label></li>`) : html`<li class="mon-muted">Nenhum colaborador encontrado.</li>`}</ul>
+          </div>
+        </div>` : null}
+        <p class="mon-muted">O que for definido aqui é aplicado na escala assim que você salvar o feriado. Se a escala já estava aprovada, ela volta a rascunho e precisa ser aprovada de novo.</p>
+      </fieldset>` : null}
       ${form.tipo === 'HORARIO_ESPECIAL' ? html`<${Campo} rotulo="Nova entrada" span=${2}><input class="form-control" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /></${Campo}><${Campo} rotulo="Nova saída" span=${2}><input class="form-control" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>` : null}
     </div>
   </${ModalForm}>`;
 }
 
-function Calendario({ operacao, eventos, turnos, podeEditar, recarregar, showToast }) {
+function Calendario({ operacao, eventos, turnos, operadores = [], podeEditar, recarregar, showToast }) {
   const [edit, setEdit] = useState(null);
   const remover = async (ev) => {
-    try { await salvarEventoWfm({ ...ev, operacao, ativo: false }, ev.id_item); recarregar(); } catch (err) { showToast?.(err?.message || 'Não foi possível remover.', 'error'); }
+    try { await salvarEventoWfm({ ...ev, operacao, ativo: false }, ev.id_item); recarregar(); } catch (err) { showToast?.(falhaAo('remover o item do calendário', err), 'error'); }
   };
   return html`
     <${CardRecolhivel} titulo="Calendário especial" contador=${eventos.length} descricao="Feriado · Data especial (informativa) · Dia especial (o dia todo usa um turno) · Horário especial (muda entrada e saída de um turno)."
@@ -320,7 +368,7 @@ function Calendario({ operacao, eventos, turnos, podeEditar, recarregar, showToa
         ${eventos.length ? eventos.map((ev) => {
           const curta = (iso) => iso.split('-').reverse().slice(0, 2).join('/');
           const turno = ev.id_turno ? (turnos.find((t) => t.id_turno === ev.id_turno)?.codigo || '') : '';
-          const extra = [turno, ev.entrada ? `${ev.entrada}–${ev.saida}` : ''].filter(Boolean).join(' ');
+          const extra = [turno, ev.entrada ? `${ev.entrada}–${ev.saida}` : '', ev.tipo === 'FERIADO' ? (ev.gera_servico ? `serviço: ${(ev.servico?.ids_operadores || []).length} pessoa(s)` : 'folga para todos') : ''].filter(Boolean).join(' · ');
           return html`<li key=${ev.id_item} class="mo-cal-lin">
             <span class="mo-cal-data">${curta(ev.data_ini)}${ev.data_fim !== ev.data_ini ? ` a ${curta(ev.data_fim)}` : ''}</span>
             <span class="mo-cal-meio"><span class="mo-trunca mo-cal-nome" title=${`${ev.descricao}${extra ? ` · ${extra}` : ''}`}>${ev.descricao}${extra ? html` <small class="mo-sub2">${extra}</small>` : null}</span>
@@ -330,7 +378,7 @@ function Calendario({ operacao, eventos, turnos, podeEditar, recarregar, showToa
         : html`<li class="mo-vazio">Nenhum item neste mês.</li>`}
       </ul>
     </${CardRecolhivel}>
-    ${edit ? html`<${ModalEvento} operacao=${operacao} inicial=${edit} turnos=${turnos} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}`;
+    ${edit ? html`<${ModalEvento} operacao=${operacao} inicial=${edit} turnos=${turnos} operadores=${operadores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}`;
 }
 
 function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToast }) {
@@ -444,7 +492,7 @@ export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToa
         ${operacao ? html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />` : null}
       </div>
       ${operacao ? html`<div class="mo-cad-dir">
-        <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} podeEditar=${podeCadastros} />
+        <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} operadores=${dados.operadores} podeEditar=${podeCadastros} />
         <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />
       </div>` : null}
     </div>`;
