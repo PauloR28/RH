@@ -141,8 +141,8 @@ function Indicador({ k }) {
   return html`<div class="wfm-rel-kpi" title=${k.dica}>
     <span>${k.rotulo}</span>
     <strong>${valor}${k.valor !== null && k.unidade ? html`<small>${k.unidade === 'h' ? '' : k.unidade}</small>` : null}</strong>
-    <em class=${`wfm-rel-delta ${tom}`}>${k.variacao === null ? 'sem base de comparação' : html`<span aria-hidden="true">${sobe ? '▲' : desce ? '▼' : '='}</span> ${k.variacao > 0 ? '+' : ''}${fmt(k.variacao, 1)}% vs. anterior`}</em>
-    <small class="wfm-rel-anterior">${k.anterior === null || k.anterior === undefined ? '' : `Anterior: ${k.unidade === 'h' ? fmtHoras(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade}`}`}</small>
+    ${k.chave === 'horas_trabalhadas' ? null : html`<em class=${`wfm-rel-delta ${tom}`}>${k.variacao === null ? 'sem base de comparação' : html`<span aria-hidden="true">${sobe ? '▲' : desce ? '▼' : '='}</span> ${k.variacao > 0 ? '+' : ''}${fmt(k.variacao, 1)}% vs. anterior`}</em>
+    <small class="wfm-rel-anterior">${k.anterior === null || k.anterior === undefined ? '' : `Anterior: ${k.unidade === 'h' ? fmtHoras(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade}`}`}</small>`}
   </div>`;
 }
 
@@ -152,32 +152,41 @@ function Painel({ painel, resumido = false }) {
   return html`
     <div class="wfm-p">
       ${semDados ? html`<div class="mon-alerta mon-alerta--info" role="status">Não há dias de trabalho de escala publicada neste período. Os indicadores ficam zerados até uma escala ser publicada.</div>` : null}
-      <div class="wfm-rel-kpis wfm-p-kpis">${painel.kpis.map((k) => html`<${Indicador} key=${k.chave} k=${k} />`)}</div>
-      <p class="wfm-p-apoio">Comparado com ${br(painel.anterior.ini)} a ${br(painel.anterior.fim)} (período imediatamente anterior, mesma duração).</p>
-      <div class="wfm-p-fileira wfm-p-fileira--1">
-        <${CartaoGrafico} compacto=${true} titulo="Escalados × presentes por dia" subtitulo="Barras: escalados · linha: presentes · vermelho: faltas" acoes=${html`<${LegendaSerieDiaria} />`}>
-          <${GraficoSerieDiaria} serie=${g.serie_diaria} compacto=${true} /></${CartaoGrafico}>
-        <${CartaoGrafico} compacto=${true} titulo="Situação da presença" subtitulo="Dias de trabalho do período">
-          <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} /></${CartaoGrafico}>
-        <${CartaoGrafico} compacto=${true} titulo="Absenteísmo por dia da semana" subtitulo="Faltas ÷ dias apurados">
-          <${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} /></${CartaoGrafico}>
-      </div>
-      ${resumido ? null : html`<div class="wfm-p-fileira wfm-p-fileira--2">
-        <${CartaoGrafico} compacto=${true} titulo="Horas por operador" subtitulo="Trabalhadas / escaladas (top 10)"
-          rodape=${html`<${LegendaSimples} itens=${[{ rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }, { rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }]} />`}>
-          <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h"
-            principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} /></${CartaoGrafico}>
-        <div class="wfm-p-coluna">
-          <${CartaoGrafico} compacto=${true} titulo="Horas escaladas por turno" subtitulo="Distribuição entre os turnos">
+
+      <section class="wfm-p-sessao" aria-label="Indicadores do período">
+        <div class="wfm-rel-kpis wfm-p-kpis">${painel.kpis.map((k) => html`<${Indicador} key=${k.chave} k=${k} />`)}</div>
+        <p class="wfm-p-apoio">Comparado com ${br(painel.anterior.ini)} a ${br(painel.anterior.fim)} (período imediatamente anterior, mesma duração).</p>
+      </section>
+
+      <section class="wfm-p-sessao" aria-label="Presença no período">
+        <div class="wfm-p-grade wfm-p-grade--2">
+          <${CartaoGrafico} titulo="Escalados × presentes por dia" subtitulo="Barras: escalados · linha: presentes · vermelho: faltas">
+            <${GraficoSerieDiaria} serie=${g.serie_diaria} /></${CartaoGrafico}>
+          <${CartaoGrafico} titulo="Absenteísmo por dia da semana" subtitulo="Faltas ÷ dias apurados">
+            <${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} /></${CartaoGrafico}>
+          <${CartaoGrafico} titulo="Situação da presença" subtitulo="Dias de trabalho do período">
+            <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" /></${CartaoGrafico}>
+          ${resumido ? null : html`<${CartaoGrafico} titulo="Horas por operador" subtitulo="Trabalhadas / escaladas (10 com mais horas)"
+            rodape=${html`<${LegendaSimples} itens=${[{ rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }, { rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }]} />`}>
+            <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h"
+              principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: 'var(--wfm-g-marca)' }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} /></${CartaoGrafico}>`}
+        </div>
+      </section>
+
+      ${resumido ? null : html`<section class="wfm-p-sessao" aria-label="Turnos, trocas e equipes">
+        <div class="wfm-p-grade wfm-p-grade--2">
+          <${CartaoGrafico} titulo="Horas escaladas por turno" subtitulo="Distribuição entre os turnos">
             <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: 'var(--wfm-g-marca-clara)' }]} unidade="h" /></${CartaoGrafico}>
-          <${CartaoGrafico} compacto=${true} titulo="Trocas por situação" subtitulo="Pedidos do período">
+          <${CartaoGrafico} titulo="Trocas por situação" subtitulo="Pedidos do período">
             ${g.trocas_estado.length ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : html`<p class="mon-muted">Nenhum pedido de troca no período.</p>`}</${CartaoGrafico}>
         </div>
-        <${CartaoGrafico} compacto=${true} titulo="Comparação entre equipes" subtitulo="Horas trabalhadas e absenteísmo">
-          ${g.equipes.length ? html`<div class="wfm-p-equipes"><table class="mon-tabela wfm-rel-t"><thead><tr><th>Equipe</th><th class="wfm-rel-num">Dias escalados</th><th class="wfm-rel-num">Faltas</th><th class="wfm-rel-num">Horas trabalhadas</th><th>Absenteísmo</th></tr></thead>
-            <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td>${e.rotulo}</td><td class="wfm-rel-num">${fmt(e.escalados)}</td><td class="wfm-rel-num">${fmt(e.faltas)}</td><td class="wfm-rel-num">${fmtHoras(e.horas)}</td>
-              <td><span class="wfm-rel-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span><span class="wfm-rel-num-inline">${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</span></td></tr>`)}</tbody></table></div>` : html`<p class="mon-muted">Sem dados de equipes no período.</p>`}</${CartaoGrafico}>
-      </div>`}
+        <div class="wfm-p-grade wfm-p-grade--1">
+          <${CartaoGrafico} titulo="Comparação entre equipes" subtitulo="Horas trabalhadas e absenteísmo">
+            ${g.equipes.length ? html`<div class="wfm-p-equipes"><table class="mon-tabela wfm-rel-t"><thead><tr><th>Equipe</th><th class="wfm-rel-num">Dias escalados</th><th class="wfm-rel-num">Faltas</th><th class="wfm-rel-num">Horas trabalhadas</th><th>Absenteísmo</th></tr></thead>
+              <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td>${e.rotulo}</td><td class="wfm-rel-num">${fmt(e.escalados)}</td><td class="wfm-rel-num">${fmt(e.faltas)}</td><td class="wfm-rel-num">${fmtHoras(e.horas)}</td>
+                <td><span class="wfm-rel-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span><span class="wfm-rel-num-inline">${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</span></td></tr>`)}</tbody></table></div>` : html`<p class="mon-muted">Sem dados de equipes no período.</p>`}</${CartaoGrafico}>
+        </div>
+      </section>`}
     </div>`;
 }
 

@@ -347,12 +347,12 @@ class WfmRelatoriosRepositoryMixin:
         atual, antes = self._wfm_rel_totais(dado), self._wfm_rel_totais(anterior)
         # (chave, rótulo, unidade, melhor quando, dica) — "melhor" só orienta a cor da variação.
         definicao = [
-            ("horas_trabalhadas", "Horas trabalhadas", "h", "alta", "Presenças + horas extras."),
-            ("horas_escaladas", "Horas escaladas", "h", "neutra", "Jornada líquida da escala publicada."),
+            ("horas_escaladas", "Horas escaladas", "h", "neutra", "Total de horas atribuídas aos operadores no período (jornada líquida da escala publicada)."),
+            ("horas_trabalhadas", "Horas trabalhadas", "h", "alta", "Horas dos dias com presença confirmada, do início do período até hoje, mais horas extras."),
             ("absenteismo", "Absenteísmo", "%", "baixa", "Faltas ÷ dias com presença apurada."),
-            ("faltas", "Faltas", "", "baixa", "Injustificadas e justificadas."),
             ("cobertura", "Presenças apuradas", "%", "alta", "Dias de trabalho com presença lançada ÷ dias escalados."),
-            ("trocas", "Trocas aprovadas", "", "neutra", "Pedidos aprovados no período."),
+            ("faltas", "Faltas", "", "baixa", "Injustificadas e justificadas."),
+            ("sem_lancamento", "Dias sem presença lançada", "", "baixa", "Dias de trabalho já escalados em que ninguém lançou a presença (pendentes de confirmação)."),
         ]
         kpis = []
         for chave, rotulo, unidade, melhor, dica in definicao:

@@ -1359,3 +1359,22 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .wfm-feriado-lista { list-style: none; margin: 0; padding: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; max-height: 192px; overflow-y: auto; border: 1px solid var(--line, #d9dee7); border-radius: 6px; }
 @media (max-width: 599.98px) { .wfm-feriado-lista { grid-template-columns: minmax(0, 1fr); } }
 .wfm-pt-excluir { margin-right: auto; }
+
+/* Painel: sessões em fluxo normal (sem alturas fixas), cada gráfico com espaço próprio e a página rola */
+.wfm-p { flex: none; gap: 24px; }
+.wfm-p-sessao { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wfm-p-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.wfm-p-kpis .wfm-rel-kpi { padding: 16px; gap: 4px; min-height: 96px; }
+.wfm-p-kpis .wfm-rel-kpi > span { font-size: var(--text-sm); }
+.wfm-p-kpis .wfm-rel-kpi strong { font-size: 1.75rem; line-height: 32px; }
+.wfm-p-grade { display: grid; gap: 16px; min-width: 0; }
+.wfm-p-grade--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wfm-p-grade--1 { grid-template-columns: minmax(0, 1fr); }
+.wfm-p-grade .wfm-g-cartao { min-height: 280px; min-width: 0; }
+.wfm-p-grade .wfm-g-cartao > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.wfm-p-grade .wfm-g-barras { max-height: 336px; overflow-y: auto; }
+.wfm-p-grade--1 .wfm-g-cartao { min-height: 0; }
+.wfm-p-grade .wfm-p-equipes { overflow-x: auto; }
+.wfm-p-grade .wfm-p-equipes td { height: 48px; }
+@media (max-width: 1100px) { .wfm-p-grade--2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 599.98px) { .wfm-p-kpis { grid-template-columns: minmax(0, 1fr); } }
