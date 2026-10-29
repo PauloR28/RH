@@ -1358,3 +1358,4 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .wfm-feriado-cab .form-control { max-width: 240px; height: 32px; }
 .wfm-feriado-lista { list-style: none; margin: 0; padding: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; max-height: 192px; overflow-y: auto; border: 1px solid var(--line, #d9dee7); border-radius: 6px; }
 @media (max-width: 599.98px) { .wfm-feriado-lista { grid-template-columns: minmax(0, 1fr); } }
+.wfm-pt-excluir { margin-right: auto; }

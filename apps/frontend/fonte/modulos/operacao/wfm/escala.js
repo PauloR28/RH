@@ -11,14 +11,14 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261026-trocas';
-import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js';
-import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
-import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261007-admin-escala';
-import { ModalConfigEscala } from './configuracao.js';
-import { OutrasEscalas } from './outras.js';
-import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261023-ajustes';
+} from '../../../services/api/wfm.js?v=20261029-fix';
+import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261029-fix';
+import { PainelAprovacao } from './aprovacao.js?v=20261029-fix';
+import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261029-fix';
+import { ModalConfigEscala } from './configuracao.js?v=20261029-fix';
+import { OutrasEscalas } from './outras.js?v=20261029-fix';
+import { GavetaAjusteDia } from './ajuste.js?v=20261029-fix';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261029-fix';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;

@@ -1,4 +1,4 @@
-import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261026-trocas';
+import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261029-fix';
 import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js';
 import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js';
 import { lerHistoricoPaginado } from '../../services/api/history.js';
@@ -161,7 +161,7 @@ export const RELATORIOS = [
       {
         id: 'rh.processos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Processos seletivos', descricao: 'Processos abertos no período, vagas, aprovados e eliminados.', permissao: 'relhub.rh.processos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261026-ajustes');
+          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261029-fix');
           const procs = await operacaoDosProcessos(f);
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
           const linhas = procs.filter((p) => !f.operacao || p.operacao === f.operacao).map((p) => ({ ...montarLinhaProcessoRelatorio(p), operacao_relatorio: p.operacao || '' }));
@@ -171,7 +171,7 @@ export const RELATORIOS = [
       {
         id: 'rh.candidatos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Candidatos', descricao: 'Candidatos por processo, notas, aprovação e eliminação.', permissao: 'relhub.rh.candidatos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261026-ajustes');
+          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261029-fix');
           const [procs, cands] = await Promise.all([operacaoDosProcessos(f), lerRelatorioCandidatos({ dataInicial: f.ini, dataFinal: f.fim })]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
@@ -182,7 +182,7 @@ export const RELATORIOS = [
       {
         id: 'rh.ranking', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Ranking analítico', descricao: 'Nota final, afinidade e recomendação por candidato.', permissao: 'relhub.rh.ranking', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261026-ajustes');
+          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261029-fix');
           const [procs, analises] = await Promise.all([operacaoDosProcessos(f), lerAnalisesCandidatos()]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);

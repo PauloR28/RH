@@ -17,15 +17,15 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261026-trocas';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js';
-import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261020-dias';
-import { PainelAprovacao } from './aprovacao.js?v=20261007-admin-escala';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261007-admin-escala';
-import { ModalConfigEscala } from './configuracao.js';
-import { GavetaAjusteDia } from './ajuste.js';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261023-ajustes';
-import { LinhaTempo } from './minha.js?v=20261026-trocas';
+} from '../../../services/api/wfm.js?v=20261029-fix';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261029-fix';
+import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261029-fix';
+import { PainelAprovacao } from './aprovacao.js?v=20261029-fix';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261029-fix';
+import { ModalConfigEscala } from './configuracao.js?v=20261029-fix';
+import { GavetaAjusteDia } from './ajuste.js?v=20261029-fix';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261029-fix';
+import { LinhaTempo } from './minha.js?v=20261029-fix';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser

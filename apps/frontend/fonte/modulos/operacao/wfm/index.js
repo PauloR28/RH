@@ -3,22 +3,22 @@ import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-comp
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261029-aprovacoes';
+import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261029-fix';
 import { useToast } from '../../../shared/hooks/use-toast.js';
-import { TelaHistorico } from './historico.js?v=20261015-modulo8';
-import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261023-ajustes';
-import { TelaEscala } from './escala.js?v=20261023-ajustes';
-import { TelaPresenca } from './presenca.js?v=20261029-presenca';
-import { TelaCadastros } from './cadastros.js?v=20261020-dias';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261023-ajustes';
-import { TelaJornadas } from './jornadas.js?v=20261015-modulo8';
-import { TelaEscalaPausas } from './pausas.js?v=20261023-ajustes';
-import { TelaEscalaTabela } from './tabela.js?v=20261023-ajustes';
-import { TelaMinhaEscala } from './minha.js?v=20261026-trocas';
-import { ListaEscalas } from './escalas.js?v=20261027-publicar';
-import { ModalConfigEscala } from './configuracao.js?v=20261005-redesign16';
-import { TelaTrocas } from './trocas.js?v=20261026-trocas';
-import { TelaRelatorios } from './relatorios.js?v=20261028-hms';
+import { TelaHistorico } from './historico.js?v=20261029-fix';
+import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261029-fix';
+import { TelaEscala } from './escala.js?v=20261029-fix';
+import { TelaPresenca } from './presenca.js?v=20261029-fix';
+import { TelaCadastros } from './cadastros.js?v=20261029-fix';
+import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261029-fix';
+import { TelaJornadas } from './jornadas.js?v=20261029-fix';
+import { TelaEscalaPausas } from './pausas.js?v=20261029-fix';
+import { TelaEscalaTabela } from './tabela.js?v=20261029-fix';
+import { TelaMinhaEscala } from './minha.js?v=20261029-fix';
+import { ListaEscalas } from './escalas.js?v=20261029-fix';
+import { ModalConfigEscala } from './configuracao.js?v=20261029-fix';
+import { TelaTrocas } from './trocas.js?v=20261029-fix';
+import { TelaRelatorios } from './relatorios.js?v=20261029-fix';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;

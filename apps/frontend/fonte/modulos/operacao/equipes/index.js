@@ -14,12 +14,12 @@ import {
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261028-ausencias';
-import { TelaEscala } from '../wfm/escala.js?v=20261023-ajustes';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261026-trocas';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261028-ausencias';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261020-dias';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261023-ajustes';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261029-fix';
+import { TelaEscala } from '../wfm/escala.js?v=20261029-fix';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261029-fix';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261029-fix';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261029-fix';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261029-fix';
 
 // Controle de Equipes e Turnos (Supervisor): visão macro da própria equipe. Presença, escala e horários reaproveitam as telas do
 // WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural usam as rotas /equipes.
@@ -37,7 +37,7 @@ const DESCRICAO = {
   equipe: 'Operadores da sua equipe e o seu turno. Adicionar ou remover aqui atualiza o cadastro do operador.',
   presenca: 'Presença, falta e atestado da sua equipe, por semana.',
   monitorias: 'Notas das monitorias dos operadores da sua equipe.',
-  escala: 'Escala mensal da sua equipe. Para montar ou alterar, use Turnos e Plantões.',
+  escala: 'Escala mensal da sua equipe, ou de todas as equipes (escolha ao lado). Para montar ou alterar, use Turnos e Plantões.',
   horarios: 'Turnos, horários e pausas aplicados à sua equipe.',
   mural: 'Publique avisos direto nas intranets das operações da sua equipe.',
 };
@@ -291,7 +291,7 @@ export function TelaEquipesControle({ controlador }) {
         ${aba === 'horarios' ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
       </div>` : null}
       ${aba === 'presenca' ? html`<${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`
-        : aba === 'escala' ? html`<${CalendarioEquipe} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
+        : aba === 'escala' ? html`<${CalendarioEquipe} ehSupervisor=${controlador.estado?.perfilUsuario === 'supervisor'} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
           : html`<${TelaCadastros} ...${props} />`}`;
   };
 

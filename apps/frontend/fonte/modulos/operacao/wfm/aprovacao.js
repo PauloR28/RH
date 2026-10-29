@@ -5,8 +5,8 @@ import {
   cancelarEnvioEscalaWfm,
   declinarEscalaWfm,
   enviarAprovacaoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261026-trocas';
-import { dataHora } from './comum.js';
+} from '../../../services/api/wfm.js?v=20261029-fix';
+import { dataHora } from './comum.js?v=20261029-fix';
 
 // Aprovação da escala antes de publicar: Rascunho -> Em aprovação -> Aprovada -> (publicar).
 // Gestor ou Supervisor aprovam (nunca a própria escala; o Analista de TI é o gestor único do TI e aprova a sua).

@@ -57,12 +57,12 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261002-wfm10';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261026-trocas';
+} from './monitoria-config.js?v=20261029-fix';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261029-fix';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261026-ajustes';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261029-fix';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261007-perfis';
 
 const ABAS = [
