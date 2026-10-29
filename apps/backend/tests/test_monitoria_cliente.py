@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
-
 from rh_api.repositories.monitoria import _cpf_formatado
 from rh_api.repositories.monitoria_schema import (
     render_migration_cliente_sql,

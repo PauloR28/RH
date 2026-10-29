@@ -8,10 +8,13 @@ from pathlib import Path
 os.environ.setdefault("RH_SESSION_SECRET_KEY", "teste")
 
 import pytest
-
 from rh_api.repositories.wfm import _abreviar_nome_turno
 from rh_api.repositories.wfm_escala import _mensagem_conflito
-from rh_api.repositories.wfm_schema_v066 import render_migration_sql, render_rollback_sql, schema_statements
+from rh_api.repositories.wfm_schema_v066 import (
+    render_migration_sql,
+    render_rollback_sql,
+    schema_statements,
+)
 from rh_api.services import wfm_dias_semana as d
 
 MIGRATIONS = Path(__file__).resolve().parents[3] / "infra" / "sql" / "migrations"
