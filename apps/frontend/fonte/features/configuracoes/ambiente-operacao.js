@@ -13,7 +13,7 @@ import {
   salvarEquipeMonitoria,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
-import { CartaoLista } from './monitoria-config.js';
+import { CartaoLista } from './monitoria-config.js?v=20261029-fix';
 
 // Aba "Configurar ambiente" da operação (Configurações > Operações): quem trabalha nela
 // (supervisores, Qualidade), se ela tem Qualidade, turnos/equipes e as intranets (ambientes

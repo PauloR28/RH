@@ -1,0 +1,10 @@
+<!doctype html><html><head><link rel="stylesheet" href="/estilos/estilos.css"></head><body><div id="root"></div><script type="module">
+window.RUNTIME_CONFIG={API_BASE_URL:''};sessionStorage.setItem('rh_api_access_token','x');
+const d=new Date();const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const r=(o)=>new Response(JSON.stringify(o),{status:200,headers:{'content-type':'application/json'}});
+const turnos=[{id_turno:1,tipo:'TRABALHO',codigo:'MAN',nome:'Manhã',cor:'#1f5fbf',entrada:'08:00',saida:'14:00',pausas:[],ativo:true,weekdays:[0,1,2,3,4,5,6],dias_rotulo:'Todos',especial:false,minutos:360}];
+window.fetch=async(url,o={})=>{const p=new URL(url,location.origin).pathname;if(p==='/wfm/turnos'&&(!o.method||o.method==='GET'))return r({itens:turnos});if(p==='/wfm/escala')return r({operadores:[]});return r({itens:[]});};
+const {html,createRoot}=await import('/fonte/infraestrutura-react.js');
+const {TelaCadastros}=await import('/fonte/modulos/operacao/wfm/cadastros.js');
+createRoot(document.getElementById('root')).render(html`<${TelaCadastros} controlador=${{possuiPermissao:()=>true}} contexto=${{}} operacao="SAC" anoMes=${ym} showToast=${()=>{}} />`);
+</script></body></html>

@@ -1,7 +1,8 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
+import { useVisaoEquipes } from './escala-ui.js?v=20261029-fix';
+import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261029-fix';
 
 // Escala da equipe em calendário (visão do Supervisor): versão reduzida do calendário do operador. Cada dia mostra quantos
 // estão escalados e, ao selecionar, quem trabalha, em que horário e com quais pausas. Somente leitura.
@@ -18,7 +19,9 @@ const hhmm = (min) => `${pad(Math.floor(min / 60) % 24)}:${pad(min % 60)}`;
 const tituloDia = (d) => `${SEMANA[diaSemana(d)]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 const fimPausa = (p) => hhmm((aMin(p.inicio) + p.duracao_min) % 1440);
 
-export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, aoTrocarEscala }) {
+export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, aoTrocarEscala, ehSupervisor = false }) {
+  // Supervisor: alterna entre a própria equipe e TODAS as equipes (sábado, domingo e feriado ele responde pela operação toda).
+  const [todasEquipes, setTodasEquipes] = useVisaoEquipes(ehSupervisor);
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [sel, setSel] = useState(null);
@@ -28,17 +31,18 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
   useEffect(() => {
     let ativo = true;
     setDados(null); setErro('');
-    lerEscalaWfm(operacao, anoMes)
+    lerEscalaWfm(operacao, anoMes, false, todasEquipes)
       .then((r) => { if (ativo) setDados(r); })
       .catch((e) => { if (ativo) setErro(e?.message || 'Não foi possível carregar a escala da equipe.'); });
     return () => { ativo = false; };
-  }, [operacao, anoMes]);
+  }, [operacao, anoMes, todasEquipes]);
 
   // dia (ISO) -> { trabalham: [{ id, nome, entrada, saida, codigo, cor, pausas }], folgas: [nome] }
   const porDia = useMemo(() => {
     if (!dados) return {};
     const turnos = Object.fromEntries((dados.turnos || []).map((t) => [t.id_turno, t]));
     const nomes = Object.fromEntries((dados.operadores || []).map((o) => [o.id_usuario, o.nome]));
+    const equipes = Object.fromEntries((dados.operadores || []).map((o) => [o.id_usuario, o.equipe || '']));
     const pausas = {};
     (dados.pausas_equipe || []).forEach((p) => { (pausas[`${p.id_operador}|${p.data}`] = pausas[`${p.id_operador}|${p.data}`] || []).push(p); });
     const mapa = {};
@@ -48,7 +52,7 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
       const dia = (mapa[i.data] = mapa[i.data] || { trabalham: [], folgas: [] });
       if (t.tipo !== 'TRABALHO') { dia.folgas.push(nomes[i.id_operador]); return; }
       dia.trabalham.push({
-        id: i.id_operador, nome: nomes[i.id_operador], codigo: t.codigo, cor: t.cor,
+        id: i.id_operador, nome: nomes[i.id_operador], equipe: equipes[i.id_operador], codigo: t.codigo, cor: t.cor,
         entrada: i.entrada_ajuste || t.entrada, saida: i.saida_ajuste || t.saida, pausas: pausas[`${i.id_operador}|${i.data}`] || [],
       });
     });
@@ -104,12 +108,14 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
           <button type="button" class="mc-btn mc-btn-icone" aria-label="Próximo mês" onClick=${() => mover(1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
         </div>
       </div>
+      ${ehSupervisor ? html`<label class="ce-escala"><span class="visually-hidden">Equipes exibidas</span>
+        <select class="form-select form-select-sm" value=${todasEquipes ? 'todas' : 'minha'} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="minha">Minha equipe</option><option value="todas">Todas as equipes</option></select></label>` : null}
       ${opcoesEscala?.length > 1 ? html`<label class="ce-escala"><span class="visually-hidden">Escala</span>
         <select class="form-select form-select-sm" value=${operacao} onChange=${(e) => aoTrocarEscala?.(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select></label>` : null}
     </div>
     ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
       : !dados ? html`<${LoadingState} titulo="Carregando a escala da equipe" />`
-      : !(dados.itens || []).length ? html`<${EmptyState} icon="calendar_month" title="Escala sem colaboradores" text="Não há colaboradores escalados da sua equipe neste mês." />`
+      : !(dados.itens || []).length ? html`<${EmptyState} icon="calendar_month" title="Escala sem colaboradores" text=${todasEquipes ? 'Não há colaboradores escalados neste mês.' : 'Não há colaboradores escalados da sua equipe neste mês.'} />`
       : html`<div class="ce-corpo">
         <div class="ce-grade-col">
           <div class="ce-cab" aria-hidden="true">${SEMANA.map((s) => html`<span key=${s}>${s.slice(0, 3).toUpperCase()}</span>`)}</div>
@@ -119,12 +125,12 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
         <aside class="ce-painel" aria-label="Dia selecionado">
           ${sel ? html`<p class="mc-eyebrow">DIA SELECIONADO</p><h4 class="ce-painel-titulo">${tituloDia(doIso(sel))}</h4>` : null}
           ${diaSel?.trabalham.length ? html`<ul class="ce-lista">${diaSel.trabalham.map((t) => html`<li key=${t.id} class="ce-pessoa">
-              <div class="ce-pessoa-topo"><strong>${t.nome}</strong><span class="ce-horario">${t.entrada}–${t.saida}</span></div>
+              <div class="ce-pessoa-topo"><strong>${t.nome}${todasEquipes && t.equipe ? html` <small class="mon-muted">· Equipe ${t.equipe}</small>` : ''}</strong><span class="ce-horario">${t.entrada}–${t.saida}</span></div>
               <div class="ce-pessoa-sub"><span class="ce-cod" style=${t.cor ? { '--ce-cor': t.cor } : undefined}>${t.codigo}</span>
                 ${t.pausas.length ? t.pausas.map((p, i) => html`<span key=${i} class="ce-pausa" title=${ROTULO_PAUSA[p.tipo] || 'Pausa'}>${(ROTULO_PAUSA[p.tipo] || 'Pausa')} ${p.inicio}–${fimPausa(p)}</span>`) : html`<span class="ce-pausa is-vazio">Pausas a programar</span>`}
               </div>
             </li>`)}</ul>`
-            : html`<p class="mc-ajuda">${sel ? 'Ninguém da equipe escalado neste dia.' : 'Selecione um dia para ver quem trabalha.'}</p>`}
+            : html`<p class="mc-ajuda">${sel ? (todasEquipes ? 'Ninguém escalado neste dia.' : 'Ninguém da equipe escalado neste dia.') : 'Selecione um dia para ver quem trabalha.'}</p>`}
           ${diaSel?.folgas.length ? html`<p class="ce-folgas"><b>Folga/DSR (${diaSel.folgas.length}):</b> ${diaSel.folgas.join(', ')}</p>` : null}
         </aside>
       </div>`}

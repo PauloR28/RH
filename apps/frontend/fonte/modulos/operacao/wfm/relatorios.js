@@ -3,8 +3,8 @@ import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-c
 import { IconeSvg } from '../../../ui/icone.js';
 import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261023-ajustes';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261026-trocas';
+import { Icone } from './escala-ui.js?v=20261029-fix';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261029-fix';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261028-hms';
 

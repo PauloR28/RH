@@ -23,14 +23,14 @@ import {
   impactoDiasTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261026-trocas';
-import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js';
-import { descreverTurno } from './escala.js';
+} from '../../../services/api/wfm.js?v=20261029-fix';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261029-fix';
+import { descreverTurno } from './escala.js?v=20261029-fix';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261023-ajustes';
-import { textoLegivel } from './compartilhar.js?v=20261015-modulo8';
-import { TIPOS_PAUSA } from './jornadas.js';
+import { Icone } from './escala-ui.js?v=20261029-fix';
+import { textoLegivel } from './compartilhar.js?v=20261029-fix';
+import { TIPOS_PAUSA } from './jornadas.js?v=20261029-fix';
 
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
 
@@ -76,6 +76,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
   const [edit, setEdit] = useState(inicial);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [impacto, setImpacto] = useState(null);   // regra 8: números mostrados antes de confirmar a mudança de dias de um turno em uso
   const caixa = useRef(null);
   const set = (k, v) => setEdit((e) => ({ ...e, [k]: v }));
@@ -115,6 +116,15 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
       showToast?.(edit.id_turno ? 'Turno salvo.' : 'Turno salvo.', 'success');
       onSalvo();
     } catch (err) { setErro(falhaAo('salvar o turno', err)); } finally { setSalvando(false); }
+  };
+
+  // Excluir o turno direto da edição (Folga e DSR são fixos). Turno em uso de hoje em diante é recusado pelo servidor, com o motivo.
+  const podeExcluir = !!edit.id_turno && ['TRABALHO', 'SOBREAVISO'].includes(edit.tipo);
+  const excluir = async () => {
+    if (!window.confirm(`Excluir o turno ${edit.codigo} (${edit.nome})? Se ele já foi usado só em datas passadas, o histórico é preservado.`)) return;
+    setExcluindo(true); setErro('');
+    try { await excluirTurnoWfm(operacao, edit.id_turno); showToast?.('Turno excluído.', 'success'); onSalvo(); }
+    catch (err) { setErro(falhaAo('excluir o turno', err)); } finally { setExcluindo(false); }
   };
 
   const salvar = async (ev) => {
@@ -181,6 +191,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
         ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
       </div>
       <footer class="wfm-pt-rodape">
+        ${podeExcluir ? html`<button type="button" class="btn btn-outline-danger wfm-pt-excluir" disabled=${excluindo || !!salvando} onClick=${excluir}>${excluindo ? 'Excluindo…' : 'Excluir turno'}</button>` : null}
         <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
         <button type="submit" class="btn btn-primary" disabled=${!!salvando || semDias}>${salvando ? 'Salvando…' : impacto ? 'Confirmar e salvar turno' : 'Salvar turno'}</button>
       </footer>
@@ -271,7 +282,7 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
               acoes=${[
                 { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
                 t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
-                t.tipo === 'TRABALHO' ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
+                ['TRABALHO', 'SOBREAVISO'].includes(t.tipo) ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
               ]} />` : null}</td></tr>`)
           : html`<tr><td colspan="8" class="mo-vazio">Nenhum turno cadastrado.${podeEditar ? html` <button type="button" class="mo-btn mo-btn--sec mo-btn--30" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}</td></tr>`}
         </tbody>
