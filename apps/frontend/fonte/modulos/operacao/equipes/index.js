@@ -18,7 +18,7 @@ import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261029-fix';
 import { TelaEscala } from '../wfm/escala.js?v=20261029-fix';
 import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261029-fix';
 import { TelaPresenca } from '../wfm/presenca.js?v=20261029-fix';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261029-fix';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261030-folga';
 import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261029-fix';
 
 // Controle de Equipes e Turnos (Supervisor): visão macro da própria equipe. Presença, escala e horários reaproveitam as telas do

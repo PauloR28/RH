@@ -1,4 +1,4 @@
-import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261029-fix';
+import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261030-folga';
 import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js';
 import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js';
 import { lerHistoricoPaginado } from '../../services/api/history.js';

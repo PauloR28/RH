@@ -6,7 +6,7 @@ import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
-import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261029-fix';
+import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261030-folga';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261029-fix';
 import { ModalDetalheMonitoria } from './detalhe.js?v=20261029-fix';

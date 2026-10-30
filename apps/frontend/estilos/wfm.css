@@ -699,6 +699,10 @@ button.mc-dia:hover { background: color-mix(in srgb, var(--paper-sunken) 70%, va
 .mc-presenca.is-falta strong, .mc-presenca.is-atestado strong, .mc-presenca.is-falta_justificada strong { color: var(--danger, #b42318); }
 .mc-presenca small { color: var(--ink-soft); }
 .mc-dsr { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-soft); }
+.mc-dsr { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-dsr.is-longo { font-size: 0.7rem; letter-spacing: 0.02em; }
+.mc-dia.is-dsr.is-sel { background: var(--brand-soft); }
+button.mc-dia.is-dsr:hover { background: color-mix(in srgb, var(--brand-soft) 60%, var(--paper-sunken)); }
 
 .mc-chip { display: inline-block; min-width: 0; max-width: 100%; padding: 2px 6px; border: 1px solid var(--mc-cor, var(--ink)); border-radius: 4px; background: color-mix(in srgb, var(--mc-cor, var(--paper)) 16%, var(--paper)); color: var(--ink); font-size: 0.667rem; letter-spacing: 0.04em; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-chip.is-solido { background: var(--ink); color: var(--paper); }

@@ -149,10 +149,10 @@ def test_regras_de_elegibilidade(ctx):
     ctx.relogio["agora"] = SEGUNDA
     e = _erro(ctx.repo.wfm_solicitar_troca, ctx.a, ctx.op, ctx.id_b, "2027-03-08", "2027-03-08")  # semana seguinte
     assert e.status_code == 422 or e.status_code == 409
-    assert "escala" in str(e.detail).lower() or "semana corrente" in str(e.detail)
+    assert "escala" in str(e.detail).lower() or "semana corrente" in str(e.detail) or "folga" in str(e.detail).lower()  # 08/03: os dois sem escala = folga
     assert "aprendiz" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_d, 6).detail).lower()   # jovem aprendiz nunca participa
     assert _erro(_solicitar, ctx, ctx.a, ctx.id_a, 6).status_code == 400                     # consigo mesmo
-    assert "trabalhar" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 3).detail)              # A não trabalha no dia 03
+    assert "folga" in str(_erro(_solicitar, ctx, ctx.a, ctx.id_b, 1).detail).lower()          # dia 01: nenhum dos dois trabalha, não há o que trocar
     assert _erro(ctx.repo.wfm_solicitar_troca, ctx.sup, ctx.op, ctx.id_b, "2027-03-06", "2027-03-06").status_code == 403  # só Operador pede
 
 
@@ -295,3 +295,70 @@ def test_exportacao_em_planilha_respeita_o_escopo(ctx):
     vazia = list(load_workbook(io.BytesIO(ctx.repo.wfm_exportar_escala(ctx.sup_fora, ctx.op, MES)[0]))["Escala"].iter_rows(values_only=True))
     assert len(vazia) == 1                                          # só o cabeçalho
     assert "wfm.escala.visualizar" not in ctx.a.permissions    # a rota de exportação exige essa permissão: o Operador não exporta
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Troca de folga (quem está de folga assume o turno de quem trabalha) e tipos de turno Férias/Escalado
+# ---------------------------------------------------------------------------------------------------------------
+def _escala(ctx, id_op, dia):
+    return next((i for i in ctx.repo.wfm_get_escala(ctx.cd, ctx.op, MES)["itens"] if i["id_operador"] == id_op and i["data"] == f"{MES}-{dia:02d}"), None)
+
+
+def test_troca_de_folga_o_colega_que_trabalha_fica_com_a_folga(ctx):
+    ctx.relogio["agora"] = SEGUNDA
+    ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [_item(ctx.id_b, 7, ctx.P)])   # domingo 07: B trabalha (P), A está de folga (sem lançamento)
+    b = next(c for c in ctx.repo.wfm_list_colegas_troca(ctx.a, ctx.op) if c["id_usuario"] == ctx.id_b)
+    assert "2027-03-07" in b["dias"] and "2027-03-07" not in b["folgas"]     # o dia de trabalho do colega
+    assert "2027-03-01" in b["folgas"]                                        # dia sem lançamento em mês publicado = folga
+    r = _solicitar(ctx, ctx.a, ctx.id_b, 7)                                   # A (de folga) quer o turno do B
+    assert ctx.repo.wfm_responder_troca(ctx.b, r["id_troca"], True)["estado"] == "AGUARDANDO_APROVACAO"
+    assert ctx.repo.wfm_decidir_troca(ctx.sup, r["id_troca"], True, "ok")["estado"] == "APROVADA"
+    assert _escala(ctx, ctx.id_a, 7)["id_turno"] == ctx.P                     # A passa a trabalhar
+    assert _escala(ctx, ctx.id_b, 7) is None                                  # B fica com a folga de A
+    assert ctx.repo.wfm_desfazer_troca(ctx.sup, r["id_troca"], "teste")["estado"] == "DESFEITA"
+    assert _escala(ctx, ctx.id_a, 7) is None and _escala(ctx, ctx.id_b, 7)["id_turno"] == ctx.P
+
+
+def test_quem_trabalha_tambem_pode_pedir_a_folga_do_colega(ctx):
+    ctx.relogio["agora"] = SEGUNDA
+    # B trabalha no 07 (P); A pede... aqui o contrário: B (trabalha) troca com A (folga)
+    r = _solicitar(ctx, ctx.b, ctx.id_a, 7)
+    assert ctx.repo.wfm_cancelar_troca(ctx.b, r["id_troca"])["success"]
+
+
+def test_ferias_e_escalado_nao_entram_em_troca_e_nao_exigem_horario(ctx):
+    ctx.relogio["agora"] = SEGUNDA
+    for codigo, tipo in (("FER", "FERIAS"), ("ESC", "ESCALADO")):
+        salvo = ctx.repo.wfm_save_turno(ctx.cd, {"operacao": ctx.op, "codigo": codigo, "nome": codigo, "tipo": tipo, "entrada": "08:00", "saida": "17:00", "id_contrato": None})
+        assert salvo["saida"] is None                                           # sem horário nem jornada, mesmo que a tela mande
+    t = {x["codigo"]: x for x in ctx.repo.wfm_list_turnos(ctx.cd, ctx.op)}
+    assert t["FER"]["tipo"] == "FERIAS" and t["FER"]["entrada"] is None and t["ESC"]["tipo"] == "ESCALADO" and t["ESC"]["minutos"] == 0
+    assert _erro(ctx.repo.wfm_save_turno, ctx.cd, {"operacao": ctx.op, "codigo": "XX", "nome": "XX", "tipo": "INEXISTENTE"}).status_code == 400
+    ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [_item(ctx.id_a, 10, t["FER"]["id_turno"]), _item(ctx.id_a, 11, t["FER"]["id_turno"]), _item(ctx.id_b, 10, t["ESC"]["id_turno"]), _item(ctx.id_b, 11, ctx.M)])
+    erro = _erro(_solicitar, ctx, ctx.a, ctx.id_b, 10)                          # A de férias x B escalado: nenhum dos dois pode
+    assert erro.status_code == 422 and "folga" in str(erro.detail).lower()
+    erro = _erro(_solicitar, ctx, ctx.a, ctx.id_b, 11)                          # A de férias não troca com B que trabalha
+    assert erro.status_code == 422
+    b = next(c for c in ctx.repo.wfm_list_colegas_troca(ctx.a, ctx.op) if c["id_usuario"] == ctx.id_b)
+    assert "2027-03-10" not in b["dias"] and "2027-03-10" not in b["folgas"]   # escalado não é folga nem trabalho
+    # tipos fixos (Folga/DSR) continuam não excluíveis; Férias/Escalado nunca usados são
+    assert _erro(ctx.repo.wfm_excluir_turno, ctx.cd, ctx.op, t["ESC"]["id_turno"]).status_code == 409   # ainda em uso (dia 10): só exclui depois
+
+
+def test_mudar_o_tipo_de_um_turno_em_uso_exige_confirmacao_e_invalida_pedidos_de_troca(ctx):
+    ctx.relogio["agora"] = SEGUNDA
+    idt = ctx.repo.wfm_save_turno(ctx.cd, {"operacao": ctx.op, "codigo": "X1", "nome": "X1", "entrada": "09:00", "saida": "15:00"})["id_turno"]
+    ctx.repo.wfm_salvar_itens(ctx.cd, ctx.op, MES, [_item(ctx.id_b, 13, idt)])
+    r = _solicitar(ctx, ctx.a, ctx.id_b, 13)                                    # A (folga) pede o X1 do B
+    imp = ctx.repo.wfm_impacto_tipo_turno(ctx.cd, ctx.op, idt, "ESCALADO")
+    assert imp["em_uso"] and imp["operadores"] == 1 and imp["dias_futuros"] == 1 and imp["trocas_em_andamento"] == 1
+    base = {"operacao": ctx.op, "codigo": "X1", "nome": "X1", "tipo": "ESCALADO"}
+    assert _erro(ctx.repo.wfm_save_turno, ctx.cd, base, idt).status_code == 409   # sem confirmação não muda
+    assert ctx.repo.wfm_save_turno(ctx.cd, {**base, "confirmar_mudanca_tipo": True}, idt)["success"]
+    x1 = next(x for x in ctx.repo.wfm_list_turnos(ctx.cd, ctx.op) if x["id_turno"] == idt)
+    assert x1["tipo"] == "ESCALADO" and x1["entrada"] is None
+    troca = next(t for t in ctx.repo.wfm_list_trocas(ctx.a, ctx.op) if t["id_troca"] == r["id_troca"])
+    assert troca["estado"] == "INVALIDADA"
+    # e volta a ser trabalho com horário (Escalado -> Trabalho quando o horário é definido)
+    assert ctx.repo.wfm_save_turno(ctx.cd, {**base, "tipo": "TRABALHO", "entrada": "10:00", "saida": "16:00", "confirmar_mudanca_tipo": True, "weekdays": [0, 1, 2, 3, 4, 5, 6]}, idt)["success"]
+    assert next(x for x in ctx.repo.wfm_list_turnos(ctx.cd, ctx.op) if x["id_turno"] == idt)["entrada"] == "10:00"

@@ -38,6 +38,7 @@ from ..schemas.wfm import (
     AplicarPausasRequest,
     ReplicarPausasRequest,
     ImpactoDiasTurnoRequest,
+    ImpactoTipoTurnoRequest,
     SalvarItensRequest,
     SkillRequest,
     SkillsOperadorRequest,
@@ -339,6 +340,11 @@ def desfazer_troca(id_troca: int, payload: TrocaDesfazerRequest, request: Reques
 @router.post("/turnos/{id_turno}/impacto-dias", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
 def impacto_dias_turno(id_turno: int, payload: ImpactoDiasTurnoRequest, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_impacto_dias_turno(user, payload.operacao, id_turno, payload.weekdays)
+
+
+@router.post("/turnos/{id_turno}/impacto-tipo", dependencies=[Depends(require_permissions("wfm.cadastros.editar"))])
+def impacto_tipo_turno(id_turno: int, payload: ImpactoTipoTurnoRequest, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_impacto_tipo_turno(user, payload.operacao, id_turno, payload.tipo)
 
 
 @router.get("/turnos/{id_turno}/personalizacoes", dependencies=[Depends(require_permissions("wfm.cadastros.visualizar"))])

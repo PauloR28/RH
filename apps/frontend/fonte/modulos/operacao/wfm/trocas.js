@@ -7,7 +7,7 @@ import {
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261029-fix';
+} from '../../../services/api/wfm.js?v=20261030-folga';
 import { dataHora } from './comum.js?v=20261029-fix';
 import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js';
 

@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { PaginaConsole, CardDados, EsqueletoLinhas, EstadoConsole, IconeCx, MenuExportar, SeletorPeriodoCx } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ModuleHeader } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261029-fix';
+import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261030-folga';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 
 // Histórico (antiga "Auditoria de Plantões"): quem fez o quê, quando, e o valor antes e depois.

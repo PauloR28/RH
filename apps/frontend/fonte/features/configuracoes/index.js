@@ -58,7 +58,7 @@ import {
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
 } from './monitoria-config.js?v=20261029-fix';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261029-fix';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261030-folga';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
