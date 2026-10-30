@@ -146,6 +146,36 @@ class WfmTrocasRepositoryMixin:
         turno = modelos.get(celula["id_turno"])
         return bool(turno and turno.tipo == "TRABALHO")
 
+    def _tr_descansa(self, cursor, operacao: str, id_operador: int, data: date, celula: dict | None) -> bool:
+        """Dia de folga que pode entrar numa troca: turno Folga/DSR lançado, ou dia sem lançamento num mês em que a pessoa
+        está escalada. Férias, Escalado (horário por definir) e outros tipos não entram."""
+        if celula:
+            turno = self._wfm_turnos_modelo(cursor, operacao).get(celula["id_turno"])
+            return bool(turno and turno.tipo in regras.TIPOS_DESCANSO)
+        cursor.execute(
+            "SELECT TOP 1 1 FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_operador = ? AND ano_mes = ?",
+            (operacao, int(id_operador), f"{data.year}-{data.month:02d}"),
+        )
+        return cursor.fetchone() is not None
+
+    def _tr_validar_dias(self, cursor, operacao: str, id_a: int, id_b: int, data_a: date, data_b: date, celulas: dict) -> None:
+        """Quem pode trocar o quê. Dias diferentes ("o dia inteiro"): os dois trabalham nos dias envolvidos. Mesmo dia: cada um
+        trabalha ou está de folga, e pelo menos um trabalha (troca de folga: quem está de folga assume o turno de quem trabalha)."""
+        ca, cb = celulas.get((id_a, data_a)), celulas.get((id_b, data_b))
+        trabalha_a, trabalha_b = self._tr_trabalha(cursor, operacao, ca), self._tr_trabalha(cursor, operacao, cb)
+        if data_a != data_b:
+            if not trabalha_a:
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Você não está escalado para trabalhar no dia que quer ceder.")
+            if not trabalha_b:
+                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O colega não está escalado para trabalhar no dia que você quer assumir.")
+            return
+        if not trabalha_a and not self._tr_descansa(cursor, operacao, id_a, data_a, ca):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Você não está escalado para trabalhar nem de folga neste dia: só dá para trocar dia de trabalho ou de folga.")
+        if not trabalha_b and not self._tr_descansa(cursor, operacao, id_b, data_b, cb):
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O colega não está escalado para trabalhar nem de folga neste dia.")
+        if not trabalha_a and not trabalha_b:
+            raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Vocês dois estão de folga neste dia: não há o que trocar.")
+
     def _tr_simular(self, cursor, operacao: str, id_a: int, id_b: int, datas: tuple[date, ...]) -> tuple[list[dict], list[dict]]:
         """(bloqueios novos, alertas) provocados pela troca, comparando com a escala atual."""
         celulas = self._tr_celulas(cursor, operacao, [id_a, id_b], datas)
@@ -291,20 +321,39 @@ class WfmTrocasRepositoryMixin:
                 (operacao, seg, dom, *ids),
             )
             dias: dict[int, dict] = {}
+            folgas: dict[int, dict] = {}   # dias de folga (Folga/DSR lançados ou dia sem lançamento) que o colega pode trocar
+            lancados: dict[int, set] = {}
             for id_op, data, id_turno, e_aj, s_aj in cursor.fetchall():
+                lancados.setdefault(int(id_op), set()).add(data)
                 modelo = modelos.get(int(id_turno))
                 if not modelo:
                     continue
                 h = horario_efetivo(data, modelo, modelos, eventos, (e_aj, s_aj) if e_aj and s_aj else None)
                 if h["trabalha"]:
                     dias.setdefault(int(id_op), {})[data.isoformat()] = {"codigo": h["codigo"], "entrada": h["entrada"], "saida": h["saida"]}
+                elif modelo.tipo in regras.TIPOS_DESCANSO:
+                    folgas.setdefault(int(id_op), {})[data.isoformat()] = {"codigo": h["codigo"], "tipo": modelo.tipo}
+            # Dia sem lançamento, em mês publicado e aberto em que o colega está escalado, também é folga.
+            abertos: dict[str, bool] = {}
+            for id_op, datas_lancadas in lancados.items():
+                meses_do_colega = {f"{d.year}-{d.month:02d}" for d in datas_lancadas}
+                for n in range((dom - seg).days + 1):
+                    d = seg + timedelta(days=n)
+                    ano_mes = f"{d.year}-{d.month:02d}"
+                    if d in datas_lancadas or ano_mes not in meses_do_colega:
+                        continue
+                    if ano_mes not in abertos:
+                        cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
+                        abertos[ano_mes] = cab["versao_publicada"] >= 1 and not cab["fechada"]
+                    if abertos[ano_mes]:
+                        folgas.setdefault(id_op, {})[d.isoformat()] = {"codigo": "FOLGA", "tipo": "SEM_LANCAMENTO"}
             minhas = self._tr_skills(cursor, operacao, user.id_usuario)
             cursor.execute(f"SELECT id_usuario, id_skill FROM dbo.wfm_usuario_skills WHERE operacao = ? AND id_usuario IN ({marc})", (operacao, *ids))
             skills: dict[int, set] = {}
             for id_op, id_skill in cursor.fetchall():
                 skills.setdefault(int(id_op), set()).add(int(id_skill))
             return [
-                {"id_usuario": c["id_usuario"], "nome": c["nome"], "dias": dias.get(c["id_usuario"], {}),
+                {"id_usuario": c["id_usuario"], "nome": c["nome"], "dias": dias.get(c["id_usuario"], {}), "folgas": folgas.get(c["id_usuario"], {}),
                  "compativel": regras.skills_compativeis(minhas, frozenset(skills.get(c["id_usuario"], set())))}
                 for c in colegas
             ]
@@ -339,10 +388,7 @@ class WfmTrocasRepositoryMixin:
                 if cab["fechada"]:
                     raise _http(status.HTTP_409_CONFLICT, f"O período {ano_mes} está fechado.")
             celulas = self._tr_celulas(cursor, operacao, [id_a, id_b], datas)
-            if not self._tr_trabalha(cursor, operacao, celulas.get((id_a, data_a))):
-                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Você não está escalado para trabalhar no dia que quer ceder.")
-            if not self._tr_trabalha(cursor, operacao, celulas.get((id_b, data_b))):
-                raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O colega não está escalado para trabalhar no dia que você quer assumir.")
+            self._tr_validar_dias(cursor, operacao, id_a, id_b, data_a, data_b, celulas)
             erros = regras.validar_janela(agora, data_a, data_b, self._tr_inicios(cursor, operacao, celulas, datas, [id_a, id_b]), _params_da_escala(cursor, operacao))
             if not regras.skills_compativeis(self._tr_skills(cursor, operacao, id_a), self._tr_skills(cursor, operacao, id_b)):
                 erros.append("Os dois operadores precisam ter as mesmas skills (idioma, produto, retenção).")

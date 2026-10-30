@@ -23,12 +23,16 @@ from fastapi import HTTPException, status
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES, WFM_PERFIS_TI
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
+from ..services import wfm_trocas as troca_regras
 from ..services.helpers import normalize_text, rows_to_dicts
 from .wfm_schema_v066 import ensure_wfm_v066
 
 CATEGORIAS_SKILL = ("IDIOMA", "PRODUTO", "RETENCAO", "OUTRO")
 TIPOS_CONTRATO = ("ESTAGIARIO", "CLT", "TERCEIRO", "APRENDIZ")
-TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR", "SOBREAVISO")
+TIPOS_TURNO = ("TRABALHO", "FOLGA", "DSR", "SOBREAVISO", "FERIAS", "ESCALADO")
+# Tipos sem horário nem jornada: Férias e Escalado (horário ainda por definir) nunca guardam entrada/saída/pausas.
+# Folga e DSR são turnos fixos da operação; os demais podem ser excluídos quando nunca usados.
+TIPOS_TURNO_EXCLUIVEIS = ("TRABALHO", "SOBREAVISO", "FERIAS", "ESCALADO")
 # Perfis que participam (aparecem na grade) de uma escala: Operador nas operações comuns; Técnicos e
 # Analista de TI nos tipos de escala do setor de TI.
 PERFIS_ESCALA_COMUM = (ROLE_OPERATOR,)
@@ -691,12 +695,28 @@ class WfmRepositoryMixin:
                 except ValueError as exc:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
                 weekdays_txt = dias_semana.texto_de_dias(weekdays)
+                mudou_tipo = normalize_text(anterior["tipo"]) != tipo
+                if mudou_tipo:
+                    # Mudar o tipo de um turno em uso muda a escala de todo mundo que está nele: o servidor só aceita com a confirmação.
+                    impacto_tipo = self._wfm_impacto_tipo(cursor, operacao, int(id_turno))
+                    if impacto_tipo["em_uso"] and not data.get("confirmar_mudanca_tipo"):
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"O turno {codigo} está em uso por {impacto_tipo['operadores']} colaborador(es). Confirme a mudança de tipo para aplicá-la a toda a escala.",
+                        )
                 cursor.execute(
                     "UPDATE dbo.wfm_turnos SET nome = ?, tipo = ?, cor = ?, entrada = ?, saida = ?, pausas_json = ?, ativo = ?, id_contrato = ?, id_supervisor = ?, "
                     "weekdays = ?, especial = ?, atualizado_por = ?, atualizado_em = GETDATE() WHERE id_turno = ? AND operacao = ?",
                     (nome, tipo, cor, entrada, saida, _json(pausas), ativo, id_contrato, id_supervisor, weekdays_txt, especial, normalize_text(user.nome) or user.username, int(id_turno), operacao),
                 )
                 resolved = int(id_turno)
+                if mudou_tipo:
+                    # Pedidos de troca em andamento sobre dias deste turno deixam de valer (o dia mudou de natureza).
+                    for id_troca in self._wfm_trocas_ativas_do_turno(cursor, operacao, resolved):
+                        self._tr_mudar_estado(
+                            cursor, user, self._tr_linha(cursor, id_troca), troca_regras.INVALIDADA,
+                            "O tipo do turno foi alterado depois do pedido. Os dois operadores foram avisados.",
+                        )
                 if tipo == "TRABALHO" and dias_semana.dias_de_texto(anterior.get("weekdays")) != weekdays:
                     # Os dias já lançados de hoje em diante não somem: os que ficam fora dos novos dias passam a contar
                     # como "configurados à mão" (o ajuste manual vence o padrão). Passado e versões publicadas não mudam.
@@ -751,6 +771,58 @@ class WfmRepositoryMixin:
             (operacao, int(id_turno), date.today()),
         )
         return [{"id_item": int(r[0]), "id_operador": int(r[1]), "data": r[2], "manual": bool(r[3])} for r in cursor.fetchall() if r[2].weekday() not in ok]
+
+    def _wfm_trocas_ativas_do_turno(self, cursor, operacao: str, id_turno: int) -> list[int]:
+        """Pedidos de troca em andamento que mexem num dia (de hoje em diante) lançado com este turno."""
+        cursor.execute("SELECT id_operador, data FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ? AND data >= ?", (operacao, int(id_turno), date.today()))
+        celulas = {(int(r[0]), r[1]) for r in cursor.fetchall()}
+        if not celulas:
+            return []
+        cursor.execute(
+            "SELECT id_troca, id_solicitante, id_alvo, data_a, data_b FROM dbo.wfm_trocas WHERE operacao = ? AND estado IN ('AGUARDANDO_B', 'AGUARDANDO_APROVACAO')",
+            (operacao,),
+        )
+        return [int(t[0]) for t in cursor.fetchall() if any((int(op), d) in celulas for op in (t[1], t[2]) for d in (t[3], t[4]))]
+
+    def _wfm_impacto_tipo(self, cursor, operacao: str, id_turno: int) -> dict:
+        """Quem é afetado ao mudar o TIPO de um turno: colaboradores e dias lançados (futuros e passados), calendário especial e trocas."""
+        hoje = date.today()
+        cursor.execute(
+            "SELECT COUNT(DISTINCT id_operador), COUNT(*), COUNT(DISTINCT CASE WHEN data >= ? THEN id_operador END), SUM(CASE WHEN data >= ? THEN 1 ELSE 0 END) "
+            "FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ?",
+            (hoje, hoje, operacao, int(id_turno)),
+        )
+        r = cursor.fetchone()
+        operadores, dias_total, operadores_futuros, dias_futuros = (int(r[0] or 0), int(r[1] or 0), int(r[2] or 0), int(r[3] or 0))
+        cursor.execute("SELECT COUNT(*) FROM dbo.wfm_calendario_especial WHERE operacao = ? AND id_turno = ? AND ativo = 1 AND data_fim >= ?", (operacao, int(id_turno), hoje))
+        eventos = int(cursor.fetchone()[0])
+        return {
+            "em_uso": dias_total > 0 or eventos > 0, "operadores": operadores, "operadores_futuros": operadores_futuros,
+            "dias_futuros": dias_futuros, "dias_passados": dias_total - dias_futuros, "eventos_calendario": eventos,
+            "trocas_em_andamento": len(self._wfm_trocas_ativas_do_turno(cursor, operacao, id_turno)),
+        }
+
+    def wfm_impacto_tipo_turno(self, user, operacao: str, id_turno: int, tipo: str) -> dict:
+        """Mostrado antes de confirmar a mudança de tipo de um turno já usado nas escalas."""
+        if not wfm_scope.pode_editar_cadastros(user.perfil):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar turnos.")
+        tipo = normalize_text(tipo).upper()
+        if tipo not in TIPOS_TURNO:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de turno inválido.")
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
+            cursor.execute("SELECT tipo FROM dbo.wfm_turnos WHERE id_turno = ? AND operacao = ? AND excluido = 0", (int(id_turno), operacao))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
+            return {
+                **self._wfm_impacto_tipo(cursor, operacao, int(id_turno)), "tipo_atual": normalize_text(row[0]), "tipo_novo": tipo,
+                "aviso": "A mudança vale para todos os dias já lançados com este turno, inclusive nas escalas publicadas e nos relatórios; o histórico de versões não é reescrito.",
+            }
+        finally:
+            conn.close()
 
     def wfm_impacto_dias_turno(self, user, operacao: str, id_turno: int, weekdays) -> dict:
         """Regra 8: antes de salvar novos dias de um turno em uso, quantos operadores, dias e pausas serão afetados."""
@@ -808,7 +880,7 @@ class WfmRepositoryMixin:
             row = cursor.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turno não encontrado nesta operação.")
-            if normalize_text(row[2]) not in ("TRABALHO", "SOBREAVISO"):
+            if normalize_text(row[2]) not in TIPOS_TURNO_EXCLUIVEIS:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Folga e DSR são turnos fixos e não podem ser excluídos.")
             cursor.execute("SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE operacao = ? AND id_turno = ? AND data >= ?", (operacao, int(id_turno), hoje))
             futuro_escala = int(cursor.fetchone()[0])

@@ -21,9 +21,10 @@ import {
   salvarTurnoWfm,
   excluirTurnoWfm,
   impactoDiasTurnoWfm,
+  impactoTipoTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261029-fix';
+} from '../../../services/api/wfm.js?v=20261030-folga';
 import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261029-fix';
 import { descreverTurno } from './escala.js?v=20261029-fix';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
@@ -35,6 +36,10 @@ import { TIPOS_PAUSA } from './jornadas.js?v=20261029-fix';
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
 
 const CATEGORIAS_SKILL = { IDIOMA: 'Idioma', PRODUTO: 'Produto', RETENCAO: 'Retenção', OUTRO: 'Outro' };
+// Tipos de turno. Férias e Escalado não exigem horário nem jornada (Escalado = horário ainda por definir).
+export const TIPOS_TURNO = { TRABALHO: 'Trabalho', FOLGA: 'Folga', DSR: 'DSR', FERIAS: 'Férias', ESCALADO: 'Escalado', SOBREAVISO: 'Sobreaviso' };
+const TIPOS_SEM_HORARIO = ['FERIAS', 'ESCALADO'];
+const AVISO_TIPO = { FERIAS: 'Férias não exigem horário nem jornada.', ESCALADO: 'Escalado não exige horário nem jornada: use quando o horário ainda não foi definido e depois mude o tipo para Trabalho.' };
 export const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', id_contrato: '', id_supervisor: '', pausas: [], weekdays: [0, 1, 2, 3, 4], especial: false, ativo: true };
 const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '', gera_servico: false, servico: null };
 const SERVICO_VAZIO = { id_turno: '', entrada: '', saida: '', ids_operadores: [] };
@@ -78,11 +83,18 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [impacto, setImpacto] = useState(null);   // regra 8: números mostrados antes de confirmar a mudança de dias de um turno em uso
+  const [impactoTipo, setImpactoTipo] = useState(null);   // idem para a mudança de TIPO de um turno em uso (afeta toda a escala)
   const caixa = useRef(null);
   const set = (k, v) => setEdit((e) => ({ ...e, [k]: v }));
-  useEffect(() => { if (impacto) caixa.current?.querySelector('.wfm-pt-impacto')?.scrollIntoView({ block: 'nearest' }); }, [impacto]);
+  useEffect(() => { if (impacto || impactoTipo) caixa.current?.querySelector('.wfm-pt-impacto')?.scrollIntoView({ block: 'nearest' }); }, [impacto, impactoTipo]);
+  const mudarTipo = (tipo) => {
+    setImpactoTipo(null); setImpacto(null); setErro('');
+    setEdit((e) => ({ ...e, tipo, ...(tipo === 'TRABALHO' && !e.entrada ? { entrada: '08:00', saida: '16:00' } : {}) }));
+  };
   const setPausa = (i, k, v) => setEdit((e) => ({ ...e, pausas: e.pausas.map((p, j) => (j === i ? { ...p, [k]: ['tipo', 'inicio'].includes(k) ? v : Number(v) } : p)) }));
   const trabalho = edit.tipo === 'TRABALHO';
+  const semHorario = TIPOS_SEM_HORARIO.includes(edit.tipo);
+  const mudouTipo = !!edit.id_turno && edit.tipo !== inicial.tipo;
   const comJornada = !!edit.id_contrato;
   const saida = comJornada ? saidaCalculada(edit, contratos) : edit.saida;
   const dias = edit.weekdays || [];
@@ -112,14 +124,14 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
     setSalvando(true);
     try {
       const pausas = (edit.pausas || []).map((p) => ({ offset_min: offsetDe(edit.entrada, p.inicio), duracao_min: Math.max(Number(p.duracao_min) || 1, 1), tipo: p.tipo }));
-      await salvarTurnoWfm({ ...edit, pausas, operacao, saida, weekdays: especial ? [0, 1, 2, 3, 4, 5, 6] : dias, especial, id_contrato: comJornada ? Number(edit.id_contrato) : null, id_supervisor: edit.id_supervisor ? Number(edit.id_supervisor) : null }, edit.id_turno);
+      await salvarTurnoWfm({ ...edit, pausas, operacao, saida: trabalho ? saida : '', entrada: trabalho ? edit.entrada : '', confirmar_mudanca_tipo: mudouTipo, weekdays: especial ? [0, 1, 2, 3, 4, 5, 6] : dias, especial, id_contrato: comJornada ? Number(edit.id_contrato) : null, id_supervisor: edit.id_supervisor ? Number(edit.id_supervisor) : null }, edit.id_turno);
       showToast?.(edit.id_turno ? 'Turno salvo.' : 'Turno salvo.', 'success');
       onSalvo();
     } catch (err) { setErro(falhaAo('salvar o turno', err)); } finally { setSalvando(false); }
   };
 
   // Excluir o turno direto da edição (Folga e DSR são fixos). Turno em uso de hoje em diante é recusado pelo servidor, com o motivo.
-  const podeExcluir = !!edit.id_turno && ['TRABALHO', 'SOBREAVISO'].includes(edit.tipo);
+  const podeExcluir = !!edit.id_turno && ['TRABALHO', 'SOBREAVISO', 'FERIAS', 'ESCALADO'].includes(edit.tipo);
   const excluir = async () => {
     if (!window.confirm(`Excluir o turno ${edit.codigo} (${edit.nome})? Se ele já foi usado só em datas passadas, o histórico é preservado.`)) return;
     setExcluindo(true); setErro('');
@@ -134,7 +146,16 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
     if (trabalho && edit.entrada === saida) return setErro('Entrada e saída não podem ser iguais.');
     if (semDias) return setErro('Escolha pelo menos um dia da semana.');
     setErro('');
-    if (edit.id_turno && trabalho && !especial && !inicial.especial && !impacto && !mesmosDias(dias, inicial.weekdays || [])) {
+    if (mudouTipo && !impactoTipo) {
+      // Mudar o tipo de um turno em uso muda a escala de todos os colaboradores nele: mostra o impacto e só salva depois da confirmação.
+      setSalvando(true);
+      try {
+        const r = await impactoTipoTurnoWfm(edit.id_turno, { operacao, tipo: edit.tipo });
+        if (r.em_uso) { setImpactoTipo(r); setSalvando(false); return undefined; }
+      } catch (err) { setErro(err?.message || 'Não foi possível calcular o impacto da mudança de tipo.'); setSalvando(false); return undefined; }
+      setSalvando(false);
+    }
+    if (edit.id_turno && trabalho && !mudouTipo && !especial && !inicial.especial && !impacto && !mesmosDias(dias, inicial.weekdays || [])) {
       setSalvando(true);
       try {
         const r = await impactoDiasTurnoWfm(edit.id_turno, { operacao, weekdays: dias });
@@ -153,7 +174,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
         <div class="wfm-pt-grade">
           <${Campo} rotulo="Código" span=${1} dica=${edit.id_turno ? undefined : 'Gerado automaticamente a partir do nome'}><input class="form-control" maxlength="20" disabled value=${edit.codigo} placeholder="Automático" /></${Campo}>
           <${Campo} rotulo="Nome" span=${1}><input class="form-control" maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /></${Campo}>
-          <${Campo} rotulo="Tipo" span=${1}><select class="form-select" value=${edit.tipo} disabled=${!!edit.id_turno} onChange=${(e) => set('tipo', e.target.value)}><option value="TRABALHO">Trabalho</option><option value="FOLGA">Folga</option><option value="DSR">DSR</option></select></${Campo}>
+          <${Campo} rotulo="Tipo" span=${1}><select class="form-select" value=${edit.tipo} onChange=${(e) => mudarTipo(e.target.value)}>${['TRABALHO', 'FOLGA', 'DSR', 'FERIAS', 'ESCALADO', ...(inicial.tipo === 'SOBREAVISO' ? ['SOBREAVISO'] : [])].map((t) => html`<option key=${t} value=${t}>${TIPOS_TURNO[t]}</option>`)}</select></${Campo}>
           <${Campo} rotulo="Cor" span=${1}><input class="form-control form-control-color wfm-cor" type="color" value=${edit.cor} onInput=${(e) => set('cor', e.target.value)} /></${Campo}>
           ${trabalho ? html`
             <${Campo} rotulo="Horário (entrada – saída)" span=${1} dica=${comJornada ? 'Saída calculada: entrada + jornada' : 'A saída atravessa a meia-noite se for menor que a entrada'}>
@@ -169,6 +190,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
 
         ${especial
           ? html`<p class="wfm-pt-nota">Escala Especial: para dias fora da escala tradicional, com horário e rotina próprios. Vale em qualquer dia da semana e não conta no limite de escalas por colaborador.</p>`
+          : semHorario ? html`<p class="wfm-pt-nota" role="note">${AVISO_TIPO[edit.tipo]}</p>`
           : html`<${BlocoDiasSemana} dias=${dias} aoMudar=${(v) => { setImpacto(null); setEdit((e) => ({ ...e, weekdays: typeof v === 'function' ? v(e.weekdays || []) : v })); }} obrigatorio=${trabalho} />
         <p class="wfm-pt-nota">Cada colaborador pode ter até o limite de escalas definido em Configurações da escala (padrão 4), em dias diferentes. Pausas e outras configurações seguem esses dias.</p>`}
 
@@ -184,6 +206,9 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
             </div>`)}
           </div>` : html`<p class="mon-muted wfm-vazio-txt">Nenhuma pausa neste turno.</p>`}` : null}
 
+        ${impactoTipo ? html`<div class="wfm-pt-impacto" role="alert"><strong>Esta mudança afeta toda a escala que usa o turno ${edit.codigo}.</strong>
+          <span>${`O tipo muda de ${TIPOS_TURNO[impactoTipo.tipo_atual] || impactoTipo.tipo_atual} para ${TIPOS_TURNO[impactoTipo.tipo_novo] || impactoTipo.tipo_novo} para ${impactoTipo.operadores} colaborador(es): ${impactoTipo.dias_futuros} dia(s) de hoje em diante e ${impactoTipo.dias_passados} dia(s) já passados${impactoTipo.eventos_calendario ? `, além de ${impactoTipo.eventos_calendario} item(ns) do calendário especial` : ''}.${impactoTipo.trocas_em_andamento ? ` ${impactoTipo.trocas_em_andamento} pedido(s) de troca em andamento serão invalidados.` : ''}`}</span>
+          <span>${impactoTipo.aviso}</span></div>` : null}
         ${impacto ? html`<div class="wfm-pt-impacto" role="alert"><strong>Esta mudança afeta escalas já lançadas.</strong>
           <span>${impacto.operadores} operador(es) e ${impacto.dias_fora} dia(s) de hoje em diante ficam fora dos novos dias e passam a contar como configurados à mão.
           Pausas nesses dias: ${impacto.pausas_automaticas} automática(s) e ${impacto.pausas_manuais} manual(is).</span>
@@ -193,7 +218,7 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
       <footer class="wfm-pt-rodape">
         ${podeExcluir ? html`<button type="button" class="btn btn-outline-danger wfm-pt-excluir" disabled=${excluindo || !!salvando} onClick=${excluir}>${excluindo ? 'Excluindo…' : 'Excluir turno'}</button>` : null}
         <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
-        <button type="submit" class="btn btn-primary" disabled=${!!salvando || semDias}>${salvando ? 'Salvando…' : impacto ? 'Confirmar e salvar turno' : 'Salvar turno'}</button>
+        <button type="submit" class="btn btn-primary" disabled=${!!salvando || semDias}>${salvando ? 'Salvando…' : impacto || impactoTipo ? 'Confirmar e salvar turno' : 'Salvar turno'}</button>
       </footer>
     </form>
   </aside>`;
@@ -273,7 +298,7 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
           ${turnos.length ? turnos.map((t) => html`<tr key=${t.id_turno}>
             <td><span class="mo-chip mo-chip--lg" style=${{ '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) }} title=${t.nome}>${t.codigo}</span></td>
             <td><span class="mo-trunca" title=${t.nome}>${t.nome}</span>${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td>
-            <td><span class="mo-tipo">${t.especial ? 'ESPECIAL' : t.tipo}</span></td>
+            <td><span class="mo-tipo">${t.especial ? 'ESPECIAL' : (TIPOS_TURNO[t.tipo] || t.tipo)}</span></td>
             <td><span class="mo-num">${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</span><small class="mo-sub2" title="Dias da semana em que o turno vale">${t.dias_rotulo || '—'}</small></td>
             <td><span class="mo-num">${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}</span>${t.id_contrato ? html`<small class="mo-sub2">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td>
             <td>${t.supervisor ? html`<span class="mo-trunca" title=${t.supervisor}>${t.supervisor}</span>${t.equipe ? html`<small class="mo-sub2 mo-trunca" title=${`Equipe ${t.equipe}`}>Equipe ${t.equipe}</small>` : html`<small class="mo-sub2">—</small>`}` : '—'}</td>
@@ -282,7 +307,7 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
               acoes=${[
                 { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
                 t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
-                ['TRABALHO', 'SOBREAVISO'].includes(t.tipo) ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
+                ['TRABALHO', 'SOBREAVISO', 'FERIAS', 'ESCALADO'].includes(t.tipo) ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
               ]} />` : null}</td></tr>`)
           : html`<tr><td colspan="8" class="mo-vazio">Nenhum turno cadastrado.${podeEditar ? html` <button type="button" class="mo-btn mo-btn--sec mo-btn--30" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}</td></tr>`}
         </tbody>

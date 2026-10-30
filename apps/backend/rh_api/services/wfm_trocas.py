@@ -33,6 +33,9 @@ DESFEITA = "DESFEITA"
 ESTADOS_ATIVOS = (AGUARDANDO_B, AGUARDANDO_APROVACAO)
 ESTADOS = (AGUARDANDO_B, AGUARDANDO_APROVACAO, APROVADA, REPROVADA, RECUSADA, CANCELADA, EXPIRADA, INVALIDADA, BLOQUEADA, DESFEITA)
 
+# Tipos de turno que contam como folga numa troca de mesmo dia (Férias e Escalado não entram).
+TIPOS_DESCANSO = ("FOLGA", "DSR")
+
 # Tipo de contrato que nunca participa de trocas.
 TIPO_CONTRATO_APRENDIZ = "APRENDIZ"
 

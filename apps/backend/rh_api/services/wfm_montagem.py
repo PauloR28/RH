@@ -114,9 +114,9 @@ def horario_efetivo(
     """Horário que o operador realmente cumpre no dia (para exibição): entrada, saída e minutos líquidos."""
     feriado, efetivo, entrada, saida = _aplicar_eventos(data, turno, turnos, eventos, ajuste)
     if efetivo.tipo != TIPO_TURNO_TRABALHO or not entrada or not saida:
-        return {"trabalha": False, "codigo": efetivo.codigo, "entrada": None, "saida": None, "minutos": 0, "feriado": feriado}
+        return {"trabalha": False, "codigo": efetivo.codigo, "tipo": efetivo.tipo, "entrada": None, "saida": None, "minutos": 0, "feriado": feriado}
     dia = dia_de_turno(data, _CONTRATO_EXIBICAO, entrada=entrada, saida=saida, pausas=efetivo.pausas)
-    return {"trabalha": True, "codigo": efetivo.codigo, "entrada": entrada, "saida": saida, "minutos": dia.jornada_liquida_min(), "feriado": feriado}
+    return {"trabalha": True, "codigo": efetivo.codigo, "tipo": efetivo.tipo, "entrada": entrada, "saida": saida, "minutos": dia.jornada_liquida_min(), "feriado": feriado}
 
 
 # Contrato fictício só para reaproveitar o cálculo de jornada líquida na exibição (não valida nada).

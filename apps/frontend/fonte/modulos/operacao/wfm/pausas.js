@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
-import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261029-fix';
+import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261030-folga';
 import { ModalForm } from './formulario.js';
 import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento } from './escala-ui.js?v=20261029-fix';
 

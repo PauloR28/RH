@@ -5,10 +5,10 @@ import {
   listarHorasExtrasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261029-fix';
+} from '../../../services/api/wfm.js?v=20261030-folga';
 import { falhaAo, minutosParaHoras } from './comum.js?v=20261029-fix';
 import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js?v=20261029-fix';
-import { LinhaTempo } from './minha.js?v=20261029-fix';
+import { LinhaTempo } from './minha.js?v=20261030-folga';
 
 // Gaveta "Ajustar dia": turno, horário, hora extra e pausas de UM colaborador em UM dia, com a opção de repetir o
 // ajuste em outros dias do mês. Salva direto na API existente (itens da escala, pausas e hora extra); regras de negócio,

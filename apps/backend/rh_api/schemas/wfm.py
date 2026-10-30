@@ -58,11 +58,17 @@ class TurnoRequest(BaseSchema):
     weekdays: list[int] | None = None  # 0 = segunda ... 6 = domingo; None = Seg a Sex (turno de trabalho novo)
     especial: bool = False  # Escala Especial: dias fora da escala tradicional; vale em qualquer dia e não conta no limite de escalas
     ativo: bool = True
+    confirmar_mudanca_tipo: bool = False  # obrigatório para mudar o tipo de um turno já usado em escalas
 
 
 class ImpactoDiasTurnoRequest(BaseSchema):
     operacao: str = Field(default="", max_length=60)
     weekdays: list[int] = Field(default_factory=list, max_length=7)
+
+
+class ImpactoTipoTurnoRequest(BaseSchema):
+    operacao: str = Field(default="", max_length=60)
+    tipo: str = Field(default="", max_length=12)
 
 
 class SkillRequest(BaseSchema):
