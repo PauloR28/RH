@@ -922,7 +922,7 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Presença e atestados
     # ------------------------------------------------------------------
-    def wfm_list_presencas(self, user, operacao: str, ano_mes: str) -> list[dict]:
+    def wfm_list_presencas(self, user, operacao: str, ano_mes: str, *, todas_equipes: bool = False) -> list[dict]:
         ano_mes = _exigir_ano_mes(ano_mes)
         dias = dias_do_mes(ano_mes)
         conn = self._connect()
@@ -930,7 +930,9 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
-            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)]
+            # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
             if not ids:
                 return []
             marcadores = ",".join("?" for _ in ids)
@@ -1076,7 +1078,7 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Hora extra (lançamento simples: minutos por operador/dia; sem aprovação)
     # ------------------------------------------------------------------
-    def wfm_list_horas_extras(self, user, operacao: str, ano_mes: str) -> list[dict]:
+    def wfm_list_horas_extras(self, user, operacao: str, ano_mes: str, *, todas_equipes: bool = False) -> list[dict]:
         ano_mes = _exigir_ano_mes(ano_mes)
         dias = dias_do_mes(ano_mes)
         conn = self._connect()
@@ -1084,7 +1086,9 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
-            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao)]
+            # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
             if not ids:
                 return []
             cursor.execute(

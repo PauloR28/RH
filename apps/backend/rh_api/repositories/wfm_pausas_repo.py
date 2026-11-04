@@ -109,7 +109,7 @@ class WfmPausasRepositoryMixin:
             prog[id_op] = [regras.PausaProgramada(p["ordem"], p["tipo"], regras.desenrolar(p["inicio"], ini), p["duracao_min"]) for p in pausas]
         return prog
 
-    def wfm_get_pausas_dia(self, user, operacao: str, data: Any) -> dict:
+    def wfm_get_pausas_dia(self, user, operacao: str, data: Any, *, todas_equipes: bool = False) -> dict:
         dia = _data(data)
         conn = self._connect()
         try:
@@ -120,7 +120,9 @@ class WfmPausasRepositoryMixin:
             escalados = self._wfm_escalados_do_dia(cursor, operacao, dia)
             programadas = self._wfm_pausas_programadas(cursor, operacao, dia)
             prog = self._wfm_programacao(escalados, programadas)
-            cadastro = {o["id_usuario"]: o for o in self._wfm_operadores_visiveis(cursor, user, operacao)}
+            # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            cadastro = {o["id_usuario"]: o for o in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)}
             visiveis = {i: o["nome"] for i, o in cadastro.items()}
             cursor.execute("SELECT codigo, weekdays FROM dbo.wfm_turnos WHERE operacao = ? AND excluido = 0", (operacao,))
             dias_por_codigo = {normalize_text(r[0]): dias_semana.dias_de_texto(r[1]) for r in cursor.fetchall()}

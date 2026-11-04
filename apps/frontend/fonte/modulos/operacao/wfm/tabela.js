@@ -17,15 +17,15 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261030-folga';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261029-fix';
-import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261030-folga';
-import { PainelAprovacao } from './aprovacao.js?v=20261029-fix';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261029-fix';
-import { ModalConfigEscala } from './configuracao.js?v=20261029-fix';
-import { GavetaAjusteDia } from './ajuste.js?v=20261029-fix';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261029-fix';
-import { LinhaTempo } from './minha.js?v=20261030-folga';
+} from '../../../services/api/wfm.js?v=20261104-leitura';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
+import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261104-leitura';
+import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261104-leitura';
+import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
+import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { LinhaTempo } from './minha.js?v=20261104-leitura';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser
@@ -86,8 +86,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
   const carregarPausas = useCallback(async () => {
     if (!operacao) return;
-    try { const p = await lerPausasDiaWfm(operacao, dia); setPausasDia(p); setCapacidade(String(p.capacidade)); } catch { setPausasDia(null); }
-  }, [operacao, dia]);
+    try { const p = await lerPausasDiaWfm(operacao, dia, todasEquipes); setPausasDia(p); setCapacidade(String(p.capacidade)); } catch { setPausasDia(null); }
+  }, [operacao, dia, todasEquipes]);
 
   const carregar = useCallback(async () => {
     if (!operacao) return;
@@ -95,8 +95,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     try {
       const [d, e, pr, c, sv] = await Promise.all([
         lerEscalaWfm(operacao, anoMes, false, todasEquipes),
-        listarHorasExtrasWfm(operacao, anoMes).catch(() => ({ itens: [] })),
-        listarPresencasWfm(operacao, anoMes).catch(() => ({ itens: [] })),
+        listarHorasExtrasWfm(operacao, anoMes, todasEquipes).catch(() => ({ itens: [] })),
+        listarPresencasWfm(operacao, anoMes, todasEquipes).catch(() => ({ itens: [] })),
         listarContratosWfm(operacao).catch(() => ({ itens: [] })),
         listarSupervisoresWfm(operacao).catch(() => ({ itens: [] })),
       ]);
