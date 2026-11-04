@@ -412,6 +412,28 @@ def test_escala_de_pausas_capacidade_distribuicao_e_alerta(ctx):
     assert {o["id_operador"] for o in repo.wfm_get_pausas_dia(ctx.sup, ctx.op, dia)["operadores"]} == {ctx.id_a, ctx.id_b}
 
 
+# ------------------------------------------------------------------ Supervisor: "Todas as equipes" nas leituras da Escala do dia
+def test_supervisor_todas_equipes_le_pausas_presencas_e_extras_de_outras_equipes(ctx):
+    repo, dia = ctx.repo, f"{MES}-10"
+
+    def ids_pausas(user, **kw):
+        d = repo.wfm_get_pausas_dia(user, ctx.op, dia, **kw)
+        return {o["id_operador"] for o in d["operadores"]} | {o["id_operador"] for o in d["sem_escala"]}
+
+    # padrão: só a própria equipe; com o flag: a operação toda (Op C é de outro supervisor)
+    assert ids_pausas(ctx.sup) == {ctx.id_a, ctx.id_b}
+    assert {ctx.id_a, ctx.id_b, ctx.id_c} <= ids_pausas(ctx.sup, todas_equipes=True)
+    # o flag só vale para Supervisor: Qualidade/Operador continuam com o escopo de sempre
+    assert ids_pausas(ctx.op_b, todas_equipes=True) == ids_pausas(ctx.op_b)
+    # presença e horas extras aceitam o flag sem quebrar (e sem ampliar para quem não é Supervisor)
+    assert isinstance(repo.wfm_list_presencas(ctx.sup, ctx.op, MES, todas_equipes=True), list)
+    assert isinstance(repo.wfm_list_horas_extras(ctx.sup, ctx.op, MES, todas_equipes=True), list)
+    assert {p["id_operador"] for p in repo.wfm_list_presencas(ctx.op_b, ctx.op, MES, todas_equipes=True)} <= {ctx.id_b}
+    # leitura apenas: continua sem poder programar pausa de outra equipe
+    outra = [{"id_operador": ctx.id_c, "pausas": [{"ordem": 1, "tipo": "DESCANSO", "inicio": "10:30", "duracao_min": 10}]}]
+    assert _erro(repo.wfm_salvar_pausas, ctx.sup, ctx.op, dia, outra).status_code in (403, 422)
+
+
 # ------------------------------------------------------------------ V061: turno personalizado e limite semanal
 def test_turno_personalizado_vale_so_para_o_colaborador_e_o_modelo_nao_muda(ctx):
     r = ctx.repo

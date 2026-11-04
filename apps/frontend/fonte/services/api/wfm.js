@@ -48,7 +48,7 @@ export const publicarEscalaWfm = (dados) => enviar('/wfm/escala/publicar', 'POST
 export const fecharPeriodoWfm = (dados) => enviar('/wfm/escala/fechar', 'POST', dados);
 export const listarVersoesEscalaWfm = (operacao, anoMes) => requisitar(`/wfm/escala/versoes${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
 
-export const listarPresencasWfm = (operacao, anoMes) => requisitar(`/wfm/presencas${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
+export const listarPresencasWfm = (operacao, anoMes, todasEquipes = false) => requisitar(`/wfm/presencas${consulta({ operacao, ano_mes: anoMes, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const pendenciasPresencaWfm = (operacao, dataIni, dataFim) => requisitar(`/wfm/presencas/pendencias${consulta({ operacao, data_ini: dataIni, data_fim: dataFim })}`, { method: 'GET' });
 export const lancarPresencaWfm =(dados) => enviar('/wfm/presencas', 'PUT', dados);
 export const listarAtestadosWfm = (operacao, anoMes) => requisitar(`/wfm/atestados${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
@@ -75,7 +75,7 @@ export const cancelarTrocaWfm = (id) => enviar(`/wfm/trocas/${id}/cancelar`, 'PO
 export const decidirTrocaWfm = (id, aprovar, justificativa = '') => enviar(`/wfm/trocas/${id}/decidir`, 'POST', { aprovar, justificativa });
 export const desfazerTrocaWfm = (id, justificativa) => enviar(`/wfm/trocas/${id}/desfazer`, 'POST', { justificativa });
 
-export const listarHorasExtrasWfm = (operacao, anoMes) => requisitar(`/wfm/horas-extras${consulta({ operacao, ano_mes: anoMes })}`, { method: 'GET' });
+export const listarHorasExtrasWfm = (operacao, anoMes, todasEquipes = false) => requisitar(`/wfm/horas-extras${consulta({ operacao, ano_mes: anoMes, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const lancarHoraExtraWfm = (dados) => enviar('/wfm/horas-extras', 'PUT', dados);
 export const listarOperadoresContratoWfm = (operacao, id) => requisitar(`/wfm/contratos/${id}/operadores${consulta({ operacao })}`, { method: 'GET' });
 export const desvincularOperadorContratoWfm = (operacao, id, idOperador) => requisitar(`/wfm/contratos/${id}/operadores/${idOperador}${consulta({ operacao })}`, { method: 'DELETE' });
@@ -85,7 +85,7 @@ export const excluirTurnoWfm =(operacao, id) => requisitar(`/wfm/turnos/${id}${c
 export const lerContratoOperadorWfm = (operacao, idOperador) => requisitar(`/wfm/operadores/${idOperador}/contrato${consulta({ operacao })}`, { method: 'GET' });
 export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'PUT', dados);
 
-export const lerPausasDiaWfm = (operacao, data) => requisitar(`/wfm/pausas${consulta({ operacao, data })}`, { method: 'GET' });
+export const lerPausasDiaWfm = (operacao, data, todasEquipes = false) => requisitar(`/wfm/pausas${consulta({ operacao, data, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);
 export const distribuirPausasWfm = (dados) => enviar('/wfm/pausas/distribuir', 'POST', dados);
 export const replicarPausasWfm = (dados) => enviar('/wfm/pausas/replicar', 'POST', dados);

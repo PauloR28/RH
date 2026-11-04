@@ -225,8 +225,8 @@ def obter_versao(versao: int, operacao: str, ano_mes: str, user: AuthenticatedUs
 
 # ---- Presença ----------------------------------------------------------
 @router.get("/presencas", dependencies=[Depends(require_permissions(*_LER_ESCALA))])
-def listar_presencas(operacao: str, ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return {"itens": repository.wfm_list_presencas(user, operacao, ano_mes)}
+def listar_presencas(operacao: str, ano_mes: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_presencas(user, operacao, ano_mes, todas_equipes=todas_equipes)}
 
 
 @router.get("/presencas/pendencias", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
@@ -376,8 +376,8 @@ def contrato_do_operador(id_operador: int, operacao: str, user: AuthenticatedUse
 
 # ---- Hora extra ----------------------------------------------------------------
 @router.get("/horas-extras", dependencies=[Depends(require_permissions(*_LER_ESCALA))])
-def listar_horas_extras(operacao: str, ano_mes: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return {"itens": repository.wfm_list_horas_extras(user, operacao, ano_mes)}
+def listar_horas_extras(operacao: str, ano_mes: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return {"itens": repository.wfm_list_horas_extras(user, operacao, ano_mes, todas_equipes=todas_equipes)}
 
 
 @router.put("/horas-extras", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
@@ -393,8 +393,8 @@ def lancar_presenca_lote(payload: PresencaLoteRequest, request: Request, user: A
 
 # ---- Escala de pausas --------------------------------------------------------
 @router.get("/pausas", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
-def pausas_do_dia(operacao: str, data: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return repository.wfm_get_pausas_dia(user, operacao, data)
+def pausas_do_dia(operacao: str, data: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_get_pausas_dia(user, operacao, data, todas_equipes=todas_equipes)
 
 
 @router.put("/pausas", dependencies=[Depends(require_permissions("wfm.escala.editar"))])
