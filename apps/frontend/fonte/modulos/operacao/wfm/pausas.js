@@ -2,7 +2,7 @@ import { html, useCallback, useEffect, useMemo, useState } from '../../../infrae
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { ModalForm } from './formulario.js';
-import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento } from './escala-ui.js?v=20261104-leitura';
+import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
 
 // Aba "Pausas" da escala: as 3 pausas de cada colaborador escalado no dia (2 de 10 min e 1 de 20 min, todas contadas
 // como jornada). Define horários à mão — por colaborador, em lote, por equipe ou por turno — e aplica ao dia, à semana ou
@@ -53,7 +53,9 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
   const [visao, setVisao] = useState('tabela');        // 'tabela' | 'gantt'
   const [ocupado, setOcupado] = useState(false);
   const [duplicando, setDuplicando] = useState(null);  // colaborador de origem
-  const podeEditar = controlador.possuiPermissao('wfm.escala.editar');
+  const ehSupervisor = controlador.estado?.perfilUsuario === 'supervisor';
+  const [todasEquipes, setTodasEquipes] = useVisaoEquipes(ehSupervisor); // Supervisor: ver as pausas de todas as equipes (somente leitura)
+  const podeEditar = controlador.possuiPermissao('wfm.escala.editar') && !todasEquipes;
   const podeCapacidade = controlador.possuiPermissao('wfm.cadastros.editar');
 
   useEffect(() => { if (!dia.startsWith(anoMes)) setDia(`${anoMes}-01`); }, [anoMes]);
@@ -62,10 +64,10 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
     if (!operacao) return;
     setErro('');
     try {
-      const d = await lerPausasDiaWfm(operacao, dia);
+      const d = await lerPausasDiaWfm(operacao, dia, todasEquipes);
       setDados(d); setEdicao({}); setSel({});
     } catch (e) { setDados(null); setErro(e?.message || 'Não foi possível carregar as pausas.'); }
-  }, [operacao, dia]);
+  }, [operacao, dia, todasEquipes]);
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
   useEffect(() => {
     let vivo = true;
@@ -214,9 +216,10 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
       </div>
 
       <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca}
-        contagem=${`${visiveis.length + visiveisSem.length} de ${totalColab} colaborador(es)`}
+        contagem=${`${visiveis.length + visiveisSem.length} de ${totalColab} colaborador(es)${todasEquipes ? ' · todas as equipes, somente leitura' : ''}`}
         meio=${html`<div class="ea-visao pa-rapido" role="group" aria-label="Filtro rápido">${FILTROS_RAPIDOS.map(([id, rotulo]) => html`<button key=${id} type="button" class=${rapido === id ? 'is-ativo' : ''} aria-pressed=${rapido === id} onClick=${() => setRapido(id)}>${rotulo} (${id === 'todos' ? baseEscalados.length + baseSem.length : id === 'sem' ? nSem : nNao})</button>`)}</div>`}
         selects=${[
+          ...(ehSupervisor ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
           { rotulo: 'Turno', padrao: 'Turno: todos', valor: filtroTurno, aoMudar: setFiltroTurno, largura: 'm', opcoes: turnos.map((t) => [t.codigo, t.codigo]) },
           { rotulo: 'Horário da pausa', padrao: 'Horário: todos', valor: filtroHora, aoMudar: setFiltroHora, largura: 'm', opcoes: horas.map((h) => [h, `${h}h`]) },
           { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },

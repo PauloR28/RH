@@ -42,7 +42,7 @@ const diaSemanaSegunda = (iso) => (doIso(iso).getDay() + 6) % 7; // 0 = segunda
 const chave = (id, data) => `${id}:${data}`;
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa', INTERVALO: 'Intervalo' };
 
-export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoPausas, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
+export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoPausas, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null, somenteLeitura = false }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
   const [dados, setDados] = useState(null);
   const [extras, setExtras] = useState([]);
@@ -78,9 +78,11 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [editHor, setEditHor] = useState(null); // id do colaborador com o horário em edição inline
   const ehSupervisor = controlador.estado?.perfilUsuario === 'supervisor';
   const [todasEquipes, setTodasEquipes] = useVisaoEquipes(ehSupervisor);
-  const podePublicar = controlador.possuiPermissao('wfm.escala.publicar');
-  const podePresenca = controlador.possuiPermissao('wfm.presenca.lancar');
-  const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar');
+  // Somente leitura: Supervisor sem 'criar escala' (só consulta) ou vendo 'Todas as equipes' (o servidor também recusa a escrita).
+  const leitura = somenteLeitura || todasEquipes;
+  const podePublicar = controlador.possuiPermissao('wfm.escala.publicar') && !leitura;
+  const podePresenca = controlador.possuiPermissao('wfm.presenca.lancar') && !leitura;
+  const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar') && !leitura;
 
   useEffect(() => { if (!dia.startsWith(anoMes)) setDia(`${anoMes}-01`); }, [anoMes]);
 
@@ -121,7 +123,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   if (!dados) return html`<section class="mo-card-escala" aria-busy="true" aria-label="Carregando a escala"><${EsqueletoLinhas} linhas=${10} altura=${40} /></section>`;
   if (!dados.operadores.length) return html`<section class="mo-card-escala cx-cresce"><div class="mo-corpo-vazio cx-cresce"><${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." /></div></section>`;
 
-  const editavel = dados.pode_editar;
+  const editavel = dados.pode_editar && !leitura;
   const fechada = dados.status.fechada;
   const d0 = doIso(dia);
   const turnosSelecionaveis = dados.turnos.filter((t) => t.tipo !== 'DSR' && t.ativo !== false);
