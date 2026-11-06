@@ -12,7 +12,7 @@ import {
   salvarItensEscalaWfm,
   validarEscalaWfm,
 } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261104-leitura';
+import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261104-leitura';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { OutrasEscalas } from './outras.js?v=20261104-leitura';
@@ -440,7 +440,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     </tr></thead>
     <tbody>${visiveis.map((op, r) => {
     const tot = totalDe(op.id_usuario);
-    const horas = html`<td class=${`c-num ${visao === 'semana' ? 'c-total-ini' : ''}`} title=${`${tot.dias} dia(s) de trabalho`}>${minutosParaHoras(tot.min)}</td>`;
+    const horas = html`<td class=${`c-num ${visao === 'semana' ? 'c-total-ini' : ''}`} title=${`${tot.dias} dia(s) de trabalho`}>${horasMin(tot.min)}</td>`;
     return html`<tr key=${op.id_usuario} aria-selected=${selecionados[op.id_usuario] ? 'true' : null}>
         <td class="c-forte c-col-nome">${editavel ? html`<label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} /><span>${op.nome}</span></label>` : op.nome}</td>
         ${visao === 'mes' ? horas : null}
@@ -455,7 +455,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const n = visiveis.filter((o) => turnosPorId[idTurnoDe(o.id_usuario, d)]?.tipo === 'TRABALHO').length;
     return html`<td key=${d} class=${visao === 'semana' ? 'c-dia-sem' : 'c-dia'}>${n}${visao === 'semana' ? html`<small> de ${visiveis.length}</small>` : null}</td>`;
   })}
-      ${visao === 'semana' ? html`<td class="c-num c-total-ini">${minutosParaHoras(visiveis.reduce((s, o) => s + totalDe(o.id_usuario).min, 0))}</td>` : null}
+      ${visao === 'semana' ? html`<td class="c-num c-total-ini">${horasMin(visiveis.reduce((s, o) => s + totalDe(o.id_usuario).min, 0))}</td>` : null}
     </tr></tfoot>
   </table>`;
 

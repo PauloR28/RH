@@ -4,6 +4,7 @@ import { IconeSvg } from '../../../ui/icone.js';
 import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { Icone } from './escala-ui.js?v=20261104-leitura';
+import { horasDec } from './comum.js?v=20261104-leitura';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela } from '../../../ui/components/ds.js?v=20261106-wfm';
@@ -197,7 +198,7 @@ function Painel({ painel, resumido = false }) {
 function notaIndicador(k) {
   if (k.chave === 'horas_trabalhadas') return '';
   if (k.variacao === null || k.variacao === undefined) return 'sem base de comparação';
-  const anterior = k.anterior === null || k.anterior === undefined ? '' : ` · antes: ${k.unidade === 'h' ? fmtHoras(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade || ''}`}`;
+  const anterior = k.anterior === null || k.anterior === undefined ? '' : ` · antes: ${k.unidade === 'h' ? horasDec(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade || ''}`}`;
   return `${k.variacao > 0 ? '▲ +' : k.variacao < 0 ? '▼ ' : '= '}${fmt(k.variacao, 1)}% vs. anterior${anterior}`;
 }
 function tomIndicador(k) {
@@ -207,7 +208,7 @@ function tomIndicador(k) {
 }
 function valorIndicador(k) {
   if (k.valor === null || k.valor === undefined) return '—';
-  if (k.unidade === 'h') return fmtHoras(k.valor);
+  if (k.unidade === 'h') return horasDec(k.valor);
   return html`${fmt(k.valor, k.unidade === '%' ? 1 : 0)}${k.unidade ? html`<small>${k.unidade}</small>` : null}`;
 }
 function Figura({ titulo, nota = '', legenda = null, children }) {
@@ -232,7 +233,7 @@ function PainelNovo({ painel, resumido = false }) {
       ${kpis.map((k) => html`<div key=${k.chave} class="c-indicador" title=${k.dica || ''}>
         <span class="c-ind-rotulo">${k.rotulo}</span>
         <span class="c-ind-valor">${valorIndicador(k)}</span>
-        <span class=${`c-ind-nota ${tomIndicador(k)}`.trim()}>${k.chave === 'horas_trabalhadas' && escaladas ? `de ${fmtHoras(escaladas.valor || 0)} escaladas${pct}` : notaIndicador(k)}</span>
+        <span class=${`c-ind-nota ${tomIndicador(k)}`.trim()}>${k.chave === 'horas_trabalhadas' && escaladas ? `de ${horasDec(escaladas.valor || 0)} escaladas${pct}` : notaIndicador(k)}</span>
       </div>`)}
     </div>
     <div class="c-graficos c-graficos-wfm">
@@ -245,10 +246,10 @@ function PainelNovo({ painel, resumido = false }) {
         <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} /><//>
       ${resumido ? null : html`<${Figura} titulo="Horas por operador" nota="Trabalhadas / escaladas · 10 com mais horas"
         legenda=${leg([['Trabalhadas', cor(1)], ['Escaladas', 'var(--wfm-g-neutro)']])}>
-        <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h"
+        <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h" fmtH=${horasDec}
           principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: cor(1) }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} /><//>`}
       ${resumido ? null : html`<${Figura} titulo="Horas escaladas por turno" nota="Distribuição entre os turnos">
-        <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: cor(1) }]} unidade="h" /><//>`}
+        <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: cor(1) }]} unidade="h" fmtH=${horasDec} /><//>`}
       ${resumido ? null : html`<${Figura} titulo="Trocas por situação" nota="Pedidos do período">
         ${g.trocas_estado.length ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : html`<p class="c-nota">Nenhum pedido de troca no período.</p>`}<//>`}
     </div>
@@ -256,7 +257,7 @@ function PainelNovo({ painel, resumido = false }) {
       <div class="c-cartao-cab"><h2 id="wfm-painel-equipes">Comparação entre equipes</h2></div>
       <div class="c-tabela-caixa"><table class="c-tabela">
         <thead><tr><th scope="col">Equipe</th><th scope="col" class="c-num">Dias escalados</th><th scope="col" class="c-num">Faltas</th><th scope="col" class="c-num">Horas trabalhadas</th><th scope="col" class="c-estica">Absenteísmo</th></tr></thead>
-        <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td class="c-forte">${e.rotulo}</td><td class="c-num">${fmt(e.escalados)}</td><td class="c-num">${fmt(e.faltas)}</td><td class="c-num">${fmtHoras(e.horas)}</td>
+        <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td class="c-forte">${e.rotulo}</td><td class="c-num">${fmt(e.escalados)}</td><td class="c-num">${fmt(e.faltas)}</td><td class="c-num">${horasDec(e.horas)}</td>
           <td class="c-estica"><span class="c-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span> ${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</td></tr>`)}</tbody>
       </table></div>
     </section>`}

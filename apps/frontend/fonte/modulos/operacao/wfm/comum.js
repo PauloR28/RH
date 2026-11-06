@@ -35,6 +35,9 @@ export function infoDia(iso) {
 }
 
 export const minutosParaHoras = (min) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`;
+// Formato do redesign (DEC-069): "1.234 h 30" — sem segundos, ponto de milhar. Só exibição; exportações seguem como hoje.
+export const horasMin = (min) => { const t = Math.round(Number(min) || 0); return `${Math.floor(t / 60).toLocaleString('pt-BR')} h ${String(t % 60).padStart(2, '0')}`; };
+export const horasDec = (h) => horasMin((Number(h) || 0) * 60);
 
 export const dataHora = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '');
 

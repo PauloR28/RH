@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { textoTrocaOperador } from './trocas-texto.js?v=20261106-wfm';
-import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
+import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Minha escala (redesign Fase 15, amostras "Minha escala" e "Pedir troca" da Fase 14). Só a própria escala PUBLICADA.
@@ -99,7 +99,7 @@ function PainelDia({ data, itens, eventos, presenca, podeTrocar, folga, onTrocar
         return html`<div key=${item.operacao} class="c-dia-bloco">
           <table class="c-diario-ficha"><tbody>
             <tr><td>Turno</td><td><${Turno} item=${item} /></td></tr>
-            <tr><td>Horário</td><td><b>${faixa(item)}</b> · ${minutosParaHoras(item.minutos)} de jornada</td></tr>
+            <tr><td>Horário</td><td><b>${faixa(item)}</b> · ${horasMin(item.minutos)} de jornada</td></tr>
           </tbody></table>
           <div>
             <h3>Pausas ${pausas.length ? `(${pausas.length})` : ''}</h3>
@@ -177,9 +177,9 @@ function JanelaTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, show
 
   return html`<${Janela} titulo=${`${ehFolga ? 'Pedir troca de folga' : 'Pedir troca'} · ${rotuloDia(iso)}`} onClose=${onClose}
     rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${onClose}>Cancelar</button>
-      <button type="button" class="c-botao c-botao--principal" aria-busy=${enviando ? 'true' : null} disabled=${!pronto || !ciente || enviando || null} onClick=${enviar}><${Ic} nome="arrows-left-right" />${enviando ? 'Enviando…' : 'Enviar pedido'}</button>`}>
+      <button type="button" class="c-botao c-botao--principal" aria-busy=${enviando ? 'true' : null} disabled=${!pronto || !ciente || !motivo.trim() || enviando || null} onClick=${enviar}><${Ic} nome="arrows-left-right" />${enviando ? 'Enviando…' : 'Enviar pedido'}</button>`}>
     <div class="c-janela-corpo">
-      <p>${ehFolga ? 'Sua folga neste dia.' : html`Seu turno neste dia: <b>${meuHorario}</b> · ${minutosParaHoras(item.minutos)}.`}</p>
+      <p>${ehFolga ? 'Sua folga neste dia.' : html`Seu turno neste dia: <b>${meuHorario}</b> · ${horasMin(item.minutos)}.`}</p>
       ${ehFolga ? html`<p class="c-ajuda">${ajudaModo}</p>` : html`<div class="c-campo">
         <span class="c-rotulo">O que você quer trocar?</span>
         <${Segmento} rotulo="O que trocar" valor=${modo} aoMudar=${trocarModo} opcoes=${opcoesModo} />
@@ -207,7 +207,7 @@ function JanelaTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, show
             <tr><td class="c-forte">${primeiroNome(colega.nome)}</td><td>${resumo.colega[0]}</td><td class="c-forte">${resumo.colega[1]}</td></tr>
           </tbody>
         </table></div>
-        <${Campo} rotulo="Motivo" opcional=${true} ajuda=${`${primeiroNome(colega.nome)} e o supervisor leem este texto.`}>
+        <${Campo} rotulo="Motivo" erro=${motivo.trim() ? '' : 'Escreva o motivo'} ajuda=${`Obrigatório. ${primeiroNome(colega.nome)} e o supervisor leem este texto.`}>
           <textarea class="c-entrada" rows="2" maxlength="300" placeholder="Ex.: consulta médica de manhã" value=${motivo} onInput=${(e) => setMotivo(e.target.value)}></textarea>
         <//>
         <pre class="c-texto-formal">${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${meuHorario} (${nomeUsuario ? primeiroNome(nomeUsuario) : 'você'}) e ${rotuloHorario(horarioB)} (${primeiroNome(colega.nome)})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })}</pre>
@@ -327,7 +327,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
         <td class="c-acoes">${troca ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setTrocando({ item: troca, data: d })}><${Ic} nome="arrows-left-right" />Pedir troca</button>` : null}</td>
       </tr>`;
   })}</tbody>
-    <tfoot><tr><td>Mês</td><td>${diasTrabalho} dias</td><td class="c-num">${minutosParaHoras(totalMin)}</td><td>${diasDsr} DSR</td><td></td><td></td></tr></tfoot>
+    <tfoot><tr><td>Mês</td><td>${diasTrabalho} dias</td><td class="c-num">${horasMin(totalMin)}</td><td>${diasDsr} DSR</td><td></td><td></td></tr></tfoot>
   </table>`;
 
   const calendario = () => html`<table class="c-cal">
@@ -364,7 +364,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
           <${Segmento} rotulo="Visão" valor=${visao} aoMudar=${setVisao} opcoes=${[['planilha', 'Planilha'], ['calendario', 'Calendário']]} />
           <${Navegar} grupo="Mês" rotulo=${rotuloPeriodo} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => mover(-1)} aoProximo=${() => mover(1)} />
           <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => { setAncora(new Date()); }}>Hoje</button>
-          ${dados?.publicada ? html`<span class="c-contador">${diasTrabalho} dias de trabalho · ${minutosParaHoras(totalMin)} no mês · ${diasDsr} DSR</span>` : null}
+          ${dados?.publicada ? html`<span class="c-contador">${diasTrabalho} dias de trabalho · ${horasMin(totalMin)} no mês · ${diasDsr} DSR</span>` : null}
         </div>
         ${corpo()}
         ${dados?.publicada && podeTrocar ? html`<div class="c-legenda"><span>Pedir troca aparece só nos dias que ainda vão chegar e respeitam a antecedência da escala · clique no dia para ver pausas e presença</span></div>` : null}

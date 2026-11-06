@@ -138,10 +138,15 @@ test.describe('WFM · Minha escala · troca de folga', () => {
     await expect(modal.locator('table')).toContainText('Folga');
     await expect(modal.locator('table')).toContainText('14:00–20:00');
     await modal.getByLabel('Estou ciente').check();
+    // motivo obrigatório (DEC-086): sem ele o envio fica desligado
+    await expect(modal.getByText('Escreva o motivo')).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Enviar pedido' })).toBeDisabled();
+    await modal.getByLabel('Motivo').fill('Consulta médica');
     await modal.getByRole('button', { name: 'Enviar pedido' }).click();
     await expect.poll(() => corpo && corpo.data_a).toBe('2026-10-19');
     expect(corpo.data_b).toBe('2026-10-19');
     expect(corpo.id_alvo).toBe(2);
+    expect(corpo.motivo).toBe('Consulta médica');
   });
 
   test('quem trabalha também vê colegas de folga no mesmo dia', async ({ page }) => {

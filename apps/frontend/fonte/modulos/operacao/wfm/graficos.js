@@ -91,7 +91,7 @@ export function GraficoRosca({ dados, cores, centro, rotuloCentro, compacto = fa
 }
 
 // 3 e 6. Barras horizontais, simples ou agrupadas (séries). `series`: [{ chave, rotulo, cor }].
-export function GraficoBarrasH({ dados, series, unidade = '' }) {
+export function GraficoBarrasH({ dados, series, unidade = '', fmtH = hms }) {
   if (!dados.length) return null;
   const max = Math.max(1, ...dados.flatMap((d) => series.map((s) => d[s.chave] || 0)));
   return html`
@@ -99,8 +99,8 @@ export function GraficoBarrasH({ dados, series, unidade = '' }) {
       <ul class="wfm-g-barras">
         ${dados.map((d) => html`<li key=${d.rotulo}>
           <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${unidade === 'h' ? hms(d[s.chave]) : `${nf(d[s.chave] || 0, 2)}${unidade}`}`}></span>`)}</span>
-          <span class="wfm-g-barras-valor">${series.map((s) => (unidade === 'h' ? hms(d[s.chave]) : nf(d[s.chave] || 0, 0))).join(' / ')}${unidade === 'h' ? '' : unidade}</span>
+          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${unidade === 'h' ? fmtH(d[s.chave]) : `${nf(d[s.chave] || 0, 2)}${unidade}`}`}></span>`)}</span>
+          <span class="wfm-g-barras-valor">${series.map((s) => (unidade === 'h' ? fmtH(d[s.chave]) : nf(d[s.chave] || 0, 0))).join(' / ')}${unidade === 'h' ? '' : unidade}</span>
         </li>`)}
       </ul>
       ${series.length > 1 ? html`<${Legenda} itens=${series.map((s) => ({ rotulo: s.rotulo, cor: s.cor }))} />` : null}
@@ -108,17 +108,17 @@ export function GraficoBarrasH({ dados, series, unidade = '' }) {
 }
 
 // 3b. Barra fina sobreposta: o valor principal (azul) sobre o total de referência (cinza). Mostra "6,3 / 171,0h" em texto.
-export function GraficoBarrasSobrepostas({ dados, unidade = '', principal, referencia }) {
+export function GraficoBarrasSobrepostas({ dados, unidade = '', principal, referencia, fmtH = hms }) {
   if (!dados.length) return null;
   const max = Math.max(1, ...dados.map((d) => d[referencia.chave] || 0), ...dados.map((d) => d[principal.chave] || 0));
   return html`
     <ul class="wfm-g-barras wfm-g-barras--finas">
       ${dados.map((d) => html`<li key=${d.rotulo}>
         <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${unidade === 'h' ? hms(d[principal.chave]) : `${nf(d[principal.chave] || 0, 2)}${unidade}`} · ${referencia.rotulo}: ${unidade === 'h' ? hms(d[referencia.chave]) : `${nf(d[referencia.chave] || 0, 2)}${unidade}`}`}>
+        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${unidade === 'h' ? fmtH(d[principal.chave]) : `${nf(d[principal.chave] || 0, 2)}${unidade}`} · ${referencia.rotulo}: ${unidade === 'h' ? fmtH(d[referencia.chave]) : `${nf(d[referencia.chave] || 0, 2)}${unidade}`}`}>
           <span class="wfm-g-sobre-ref" style=${{ width: `${Math.max(2, ((d[referencia.chave] || 0) / max) * 100)}%`, background: referencia.cor }}></span>
           <span class="wfm-g-sobre-princ" style=${{ width: `${Math.max(1, ((d[principal.chave] || 0) / max) * 100)}%`, background: principal.cor }}></span></span>
-        <span class="wfm-g-barras-valor">${unidade === 'h' ? `${hms(d[principal.chave])} / ${hms(d[referencia.chave])}` : `${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}`}</span>
+        <span class="wfm-g-barras-valor">${unidade === 'h' ? `${fmtH(d[principal.chave])} / ${fmtH(d[referencia.chave])}` : `${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}`}</span>
       </li>`)}
     </ul>`;
 }
