@@ -27,7 +27,8 @@ const br = (iso) => iso.split('-').reverse().join('/');
 const TOM_SIGLA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'atencao', ATESTADO: 'informacao' };
 const PRINCIPAIS = ['PRESENTE', 'FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'];
 
-export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias }) {
+// `embutido`: dentro de outra página (Equipes) — sem <main> nem título próprio; os botões ficam numa linha à direita.
+export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias, embutido = false }) {
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [presencas, setPresencas] = useState({});
@@ -79,13 +80,14 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
 
   const nomes = useMemo(() => Object.fromEntries((dados?.operadores || []).map((o) => [o.id_usuario, o.nome])), [dados]);
   const semana = `${br(dias[0]).slice(0, 5)} a ${br(dias[6])}`;
-  const cabecalho = html`<div class="c-cab-linha"><h1>Presença</h1>
+  const pagina = (conteudo, extra = {}) => (embutido ? html`<div class="c-embutido" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</div>` : html`<main class="c-pagina c-conteudo" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</main>`);
+  const cabecalho = html`<div class="c-cab-linha">${embutido ? null : html`<h1>Presença</h1>`}
     ${pode && dados ? html`<div class="c-cab-dir">
       <button type="button" class="c-botao c-botao--secundario" aria-expanded=${verAtestados ? 'true' : 'false'} onClick=${() => { setVerAtestados(true); setVerLote(false); }}><${Ic} nome="file-text" />Atestados${atestados.length ? ` (${atestados.length})` : ''}</button>
       <button type="button" class="c-botao c-botao--principal" aria-expanded=${verLote ? 'true' : 'false'} onClick=${() => { setVerLote(true); setVerAtestados(false); }}><${Ic} nome="list-checks" />Presença em lote</button>
     </div>` : null}</div>`;
-  if (erro) return html`<main class="c-pagina c-conteudo">${cabecalho}<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div></main>`;
-  if (!dados) return html`<main class="c-pagina c-conteudo" aria-busy="true">${cabecalho}<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div></main>`;
+  if (erro) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div>`);
+  if (!dados) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div>`, { ocupado: true });
 
   const escalado = (id, d) => dados.turnos[dados.itens[`${id}:${d}`]?.id_turno]?.tipo === 'TRABALHO';
   const statusDe = (id, d) => presencas[`${id}:${d}`] || '';
@@ -143,7 +145,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
     } catch (err) { showToast?.(err?.message || 'Não foi possível registrar o atestado.', 'error'); }
   };
 
-  if (!dados.operadores.length) return html`<main class="c-pagina c-conteudo">${cabecalho}<div class="c-tabela-caixa"><${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." /></div></main>`;
+  if (!dados.operadores.length) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." /></div>`);
   const contagemExc = Object.values(lote.excecoes).filter(Boolean).length;
 
   // Célula: sigla (lançado), "—" âmbar (escalado, dia já chegou, sem lançamento), "—"/"DSR" apagado (futuro / sem escala).
@@ -160,7 +162,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
   };
 
   return html`
-    <main class="c-pagina c-conteudo">
+    ${pagina(html`
       ${cabecalho}
       ${pode && pend.total ? html`<${Faixa} tom="atencao" icone="warning"
         acao=${html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-expanded=${verPendencias ? 'true' : 'false'} onClick=${() => setVerPendencias((v) => !v)}>${verPendencias ? 'Esconder' : 'Resolver pendências'}</button>`}>
@@ -214,8 +216,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
           <span><span class="c-pendente">—</span>Sem lançamento</span>
           ${pode ? html`<span class="c-legenda-fim">Clique no dia para lançar · outras ${Object.keys(SIGLA_PRESENCA).length - PRINCIPAIS.length} siglas no menu</span>` : null}
         </div>
-      </div>
-    </main>
+      </div>`)}
 
     ${pode && verLote ? html`<${Janela} titulo="Presença em lote" tamanho="grande" onClose=${() => setVerLote(false)}
       rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setVerLote(false)}>Fechar</button>

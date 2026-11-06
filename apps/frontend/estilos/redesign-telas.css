@@ -134,3 +134,11 @@
 .c-minibarra i { display: block; height: 100%; background: var(--cor-status-atencao-texto); }
 .c-lista-calculo { margin: 0; padding-left: var(--espaco-4); display: flex; flex-direction: column; gap: var(--espaco-2); }
 .c-graficos-wfm .c-grafico > svg, .c-graficos-wfm .wfm-g-fill > svg { max-height: 220px; }
+
+/* Equipes */
+.c-embutido { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
+.c-embutido > .c-cab-linha:empty { display: none; }
+.c-indicadores--embutido { border: 0; border-radius: 0; }
+.c-pagina .c-tom-atencao { color: var(--cor-status-atencao-texto); }
+.c-filtros--solto { padding: 0; }
+.c-turno-linha .c-traco:only-child { display: none; }
