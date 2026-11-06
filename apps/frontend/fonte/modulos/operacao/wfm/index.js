@@ -6,6 +6,7 @@ import { ContextField, ModuleHeader, Stepper } from '../../../ui/components/modu
 import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261104-leitura';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { definirSelos } from '../../../ui/components/selos-subbarra.js';
+import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { TelaHistorico } from './historico.js?v=20261104-leitura';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
 import { TelaEscala } from './escala.js?v=20261104-leitura';
@@ -150,6 +151,21 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
           <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />
         <//>
+      </${PainelRh}>`;
+  }
+
+  // Minha escala: redesign Fase 15. Quem enxerga a equipe alterna entre a própria escala e a da equipe (somente leitura).
+  if (telaAtual === 'screen-wfm-minha-escala' && contexto && !erro && operacao && operacoesComEscala.length) {
+    const equipe = podeVerEquipe && visaoMinha === 'equipe';
+    const alternar = podeVerEquipe ? html`<${Segmento} rotulo="Escala exibida" valor=${visaoMinha} aoMudar=${setVisaoMinha} opcoes=${[['minha', 'Minha escala'], ['equipe', 'Minha equipe']]} />` : null;
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        ${equipe ? html`<main class="c-pagina c-conteudo">
+            <div class="c-cab-linha"><h1>Minha equipe</h1><div class="c-cab-dir">${alternar}</div></div>
+            <${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} opcoesEscala=${operacoesComEscala.length > 1 ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null} />
+          </main>`
+          : html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} nomeUsuario=${controlador.estado?.nomeUsuarioAutenticado || ''} acessorio=${alternar} />`}
       </${PainelRh}>`;
   }
 
