@@ -50,3 +50,16 @@
 .c-painel-lateral .c-ic > svg { display: block; width: 100%; height: 100%; }
 .c-painel-lateral h3 { margin: 0 0 var(--espaco-2); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); }
 .c-legenda-fim { margin-left: auto; }
+
+/* Presença: a célula inteira abre o menu de siglas (select transparente por cima da sigla) */
+.c-presenca td.c-celula-lanca { position: relative; }
+.c-celula-sel { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; font: inherit; }
+.c-presenca td.c-celula-lanca:hover { background: var(--cor-acao-suave); }
+.c-presenca td.c-celula-lanca:focus-within { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-foco-anel); }
+.c-presenca tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); text-align: center; }
+.c-presenca tfoot td:first-child { text-align: left; color: var(--cor-texto-secundario); }
+.c-presenca tfoot small { font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+/* Presença em lote: lista de exceções em colunas */
+.c-lote-excecoes { margin: 0; padding: 0; border: 0; min-width: 0; }
+.c-lote-excecoes legend { margin-bottom: var(--espaco-2); }
+.c-lote-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: var(--espaco-1) var(--espaco-4); max-height: 320px; overflow: auto; }

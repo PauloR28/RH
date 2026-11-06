@@ -9,7 +9,7 @@ import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { TelaHistorico } from './historico.js?v=20261104-leitura';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
 import { TelaEscala } from './escala.js?v=20261104-leitura';
-import { TelaPresenca } from './presenca.js?v=20261104-leitura';
+import { TelaPresenca } from './presenca.js?v=20261106-wfm';
 import { TelaCadastros } from './cadastros.js?v=20261104-leitura';
 import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261104-leitura';
 import { TelaJornadas } from './jornadas.js?v=20261104-leitura';
@@ -162,15 +162,12 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       </${PainelRh}>`;
   }
 
-  // Presença: quadro da semana e pendências lado a lado, numa tela só.
+  // Presença: redesign Fase 15 (a própria TelaPresenca monta a página).
   if (telaAtual === 'screen-wfm-presenca' && contexto && !erro && operacao && operacoesComEscala.length) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
-          <${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} aoMudarPendencias=${setTotalSemanaPresenca} />
-        <//>
+        <${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} aoMudarPendencias=${setTotalSemanaPresenca} />
       </${PainelRh}>`;
   }
 
