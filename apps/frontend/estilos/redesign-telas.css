@@ -119,3 +119,18 @@
 @media (max-width: 599.98px) { .c-padrao-regra { grid-template-columns: minmax(0, 1fr); } }
 .c-legenda .c-ic { width: 14px; height: 14px; color: var(--cor-status-sucesso-texto); }
 .c-legenda .c-ic > svg { display: block; width: 100%; height: 100%; }
+
+/* Painel do WFM: figuras em grade e cores dos gráficos vindas do kit (só dentro desta tela) */
+.c-graficos-wfm .wfm-g-coluna, .c-graficos-wfm .wfm-g-faltas { fill: var(--cor-grafico-2); }
+@media (max-width: 1179.98px) { .c-graficos-wfm { grid-template-columns: minmax(0, 1fr); } }
+.c-graficos-wfm {
+  --wfm-g-marca: var(--cor-grafico-1); --wfm-g-marca-clara: color-mix(in srgb, var(--cor-grafico-1) 45%, var(--cor-fundo-painel));
+  --wfm-g-ok: var(--cor-grafico-3); --wfm-g-aviso: var(--cor-grafico-4); --wfm-g-perigo: var(--cor-grafico-8); --wfm-g-neutro: var(--cor-borda-padrao);
+}
+.c-graficos-wfm .c-grafico { margin: 0; display: flex; flex-direction: column; }
+.c-graficos-wfm .wfm-g-legenda { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-graficos-wfm .wfm-g-eixo, .c-graficos-wfm .wfm-g-valor { fill: var(--cor-texto-secundario); font-family: inherit; }
+.c-minibarra { display: inline-block; width: 96px; height: 8px; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); vertical-align: middle; overflow: hidden; }
+.c-minibarra i { display: block; height: 100%; background: var(--cor-status-atencao-texto); }
+.c-lista-calculo { margin: 0; padding-left: var(--espaco-4); display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-graficos-wfm .c-grafico > svg, .c-graficos-wfm .wfm-g-fill > svg { max-height: 220px; }

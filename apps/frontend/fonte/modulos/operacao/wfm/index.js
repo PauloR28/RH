@@ -20,7 +20,7 @@ import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
 import { ListaEscalas } from './escalas.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { TelaTrocas } from './trocas.js?v=20261106-wfm';
-import { TelaRelatorios } from './relatorios.js?v=20261104-leitura';
+import { TelaRelatorios } from './relatorios.js?v=20261106-wfm';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
@@ -144,15 +144,12 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       </${PainelRh}>`;
   }
 
-  // Relatórios: cabeçalho do módulo, linha de filtros e card com abas de nível 2, sem rolagem da página.
+  // Painel: redesign Fase 15 (TelaRelatorios com somentePainel monta a página no desenho novo).
   if (telaAtual === 'screen-wfm-painel' && contexto && !erro && operacao && contexto.operacoes.length) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
-          <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />
-        <//>
+        <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />
       </${PainelRh}>`;
   }
 
