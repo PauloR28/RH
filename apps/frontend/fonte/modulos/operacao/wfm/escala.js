@@ -1,10 +1,10 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { EmptyState } from '../../../ui/componentes-compartilhados.js';
-import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { IconeSvg } from '../../../ui/icone.js';
 import {
+  aprovarEscalaWfm,
+  cancelarEnvioEscalaWfm,
+  declinarEscalaWfm,
   distribuirPausasWfm,
+  enviarAprovacaoEscalaWfm,
   fecharPeriodoWfm,
   lerEscalaWfm,
   listarVersoesEscalaWfm,
@@ -13,20 +13,21 @@ import {
   validarEscalaWfm,
 } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
-import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261104-leitura';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { OutrasEscalas } from './outras.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
-// escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
-// a tela só exibe o resultado. Conflito de edição concorrente volta como 409 e recarrega.
+// Escala aberta (redesign Fase 15, amostra "Escala padrão" da Fase 12): visões Semana e Mês. Supervisor/Control Desk/
+// Gestor editam; Qualidade lê; o Operador lê a própria escala PUBLICADA. Toda validação (jornada, interjornada, pausas,
+// DSR) roda no servidor; a tela só exibe o resultado. Conflito de edição concorrente volta como 409 e recarrega.
 
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa' };
 const DIAS_SEMANA_LONGO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const SEMANA_NOME = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+const SEMANA_CURTA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 function horaMais(entrada, minutos) {
   const [h, m] = entrada.split(':').map(Number);
@@ -41,28 +42,99 @@ export function descreverTurno(t) {
   return [`${t.entrada}–${t.saida}`, ...pausas].join(' · ');
 }
 
-// Dropdown com caixinhas dos dias da semana + "Todos os dias".
-function SeletorDias({ dias, aoMudar }) {
-  const [aberto, setAberto] = useState(false);
-  const todos = dias.every(Boolean);
-  const marcados = DIAS_SEMANA_LONGO.filter((_, i) => dias[i]);
-  const rotulo = todos ? 'Todos os dias' : marcados.length ? marcados.join(', ') : 'Escolher dias';
-  useEffect(() => {
-    if (!aberto) return undefined;
-    const fora = (e) => { if (!e.target.closest?.('.wfm-dias-dd')) setAberto(false); };
-    document.addEventListener('mousedown', fora);
-    return () => document.removeEventListener('mousedown', fora);
-  }, [aberto]);
-  return html`<div class="wfm-dias-dd">
-    <button type="button" class="form-select wfm-dias-btn" aria-haspopup="true" aria-expanded=${aberto} onClick=${() => setAberto(!aberto)}><span class="wfm-trunca">${rotulo}</span></button>
-    ${aberto ? html`<div class="wfm-dias-menu" role="group" aria-label="Dias da semana">
-      <label class="wfm-dias-item wfm-dias-todos"><input type="checkbox" checked=${todos} onChange=${() => aoMudar(dias.map(() => !todos))} /> Atribuir a todos os dias</label>
-      ${DIAS_SEMANA_LONGO.map((nome, i) => html`<label class="wfm-dias-item" key=${nome}><input type="checkbox" checked=${dias[i]} onChange=${() => aoMudar(dias.map((v, j) => (j === i ? !v : v)))} /> ${nome}</label>`)}
-    </div>` : null}
-  </div>`;
+// Estado da escala no cabeçalho (o caminho é Rascunho › Aprovação › Publicada › Fechada).
+function estadoEscala(dados) {
+  const ap = dados.aprovacao;
+  const v = dados.status.versao_publicada;
+  if (dados.status.fechada) return ['Fechada', 'neutro', 'lock', ''];
+  if (ap?.declinada) return ['Declinada', 'perigo', 'x-circle', 'Próximo passo: corrigir e enviar de novo'];
+  if (ap?.estado === 'EM_APROVACAO') return ['Aguardando aprovação', 'atencao', 'hourglass', 'Edição bloqueada até a decisão'];
+  if (ap?.estado === 'APROVADA') return [v ? `Publicada · v${v}` : 'Aprovada', 'sucesso', 'check-circle', ''];
+  if (v) return [`Publicada · v${v}`, 'sucesso', 'check-circle', ap?.exige ? 'Alterações pedem nova aprovação' : ''];
+  return ['Rascunho', 'neutro', 'pencil-simple', ap?.exige ? 'Próximo passo: aprovação' : 'Próximo passo: publicar'];
 }
 
-export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoPausas, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null }) {
+// Aprovação no cabeçalho: Enviar / Aprovar / Declinar (justificativa em janela) / Cancelar envio. Mesmas rotas de antes.
+function AcoesAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado }) {
+  const [declinando, setDeclinando] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  if (!aprovacao?.exige) return null;
+  const corpo = { operacao, ano_mes: anoMes };
+  const executar = async (fn, sucesso) => {
+    setOcupado(true);
+    try {
+      const r = await fn();
+      // Aprovar já publica; se a publicação não coube ao aprovador, o servidor devolve o aviso.
+      if (r && r.estado === 'APROVADA') {
+        if (r.publicada) showToast?.(`Escala aprovada e publicada (v${r.versao}).`, 'success');
+        else showToast?.(`Escala aprovada. Não foi publicada automaticamente: ${r.aviso || 'publique manualmente.'}`, 'warning');
+      } else showToast?.(sucesso, 'success');
+      setDeclinando(false); setMotivo('');
+      await onMudou?.();
+    } catch (e) {
+      showToast?.(e?.message || 'Não foi possível concluir.', 'error');
+      await onMudou?.();
+    } finally { setOcupado(false); }
+  };
+  const bloq = ocupado || desabilitado || null;
+  return html`
+    ${aprovacao.pode_cancelar ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${bloq} onClick=${() => executar(() => cancelarEnvioEscalaWfm(corpo), 'Envio cancelado. A escala voltou a rascunho.')}>Cancelar envio</button>` : null}
+    ${aprovacao.pode_declinar ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${bloq} onClick=${() => setDeclinando(true)}>Declinar</button>` : null}
+    ${aprovacao.pode_aprovar ? html`<button type="button" class="c-botao c-botao--principal" disabled=${bloq} aria-busy=${ocupado ? 'true' : null} onClick=${() => executar(() => aprovarEscalaWfm(corpo), 'Escala aprovada. Já pode ser publicada.')}><${Ic} nome="check" />Aprovar</button>` : null}
+    ${aprovacao.pode_enviar ? html`<button type="button" class="c-botao c-botao--principal" disabled=${bloq} aria-busy=${ocupado ? 'true' : null} title=${desabilitado ? 'Salve as alterações antes de enviar.' : null} onClick=${() => executar(() => enviarAprovacaoEscalaWfm(corpo), 'Escala enviada para aprovação.')}><${Ic} nome="send" />Enviar para aprovação</button>` : null}
+    ${declinando ? html`<${Janela} titulo="Declinar escala" tamanho="pequena" onClose=${() => setDeclinando(false)}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setDeclinando(false)}>Voltar</button>
+        <button type="button" class="c-botao c-botao--perigo" disabled=${bloq || motivo.trim().length < 3 || null} onClick=${() => executar(() => declinarEscalaWfm({ ...corpo, justificativa: motivo }), 'Escala declinada e devolvida para edição.')}>Confirmar declínio</button>`}>
+      <div class="c-janela-corpo">
+        <p>A escala volta para a edição de quem a enviou.</p>
+        <${Campo} rotulo="O que precisa ser corrigido?" ajuda="Obrigatório (mínimo 3 letras).">
+          <textarea class="c-entrada" maxlength="400" autofocus value=${motivo} onInput=${(e) => setMotivo(e.target.value)}></textarea>
+        <//>
+      </div>
+    <//>` : null}`;
+}
+
+// Padrão semanal: turno + dias da semana (vários turnos possíveis). Fica pendente até "Salvar".
+function JanelaPadrao({ padrao, setPadrao, turnos, alvoTexto, diasDoTurno, programarPausas, setProgramarPausas, aoAplicar }) {
+  const mudarRegra = (i, campo, valor) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)) });
+  return html`<${Janela} titulo="Padrão semanal" tamanho="grande" onClose=${() => setPadrao(null)}
+    rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setPadrao(null)}>Cancelar</button>
+      <button type="button" class="c-botao c-botao--principal" onClick=${aoAplicar}>Aplicar ao mês</button>`}>
+    <div class="c-janela-corpo">
+      <p>Vale para ${alvoTexto}. Escolha o turno e marque os dias da semana em que ele vale; adicione outro turno para os demais dias. Depois você ainda ajusta dia a dia.</p>
+      ${padrao.regras.map((r, i) => html`<div key=${i} class="c-padrao-regra">
+        <${Campo} rotulo="Turno">
+          <select class="c-entrada" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurno(e.target.value, x.dias) } : x)) })}>
+            <option value="">Escolher turno</option>${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}
+          </select>
+        <//>
+        <fieldset class="c-padrao-dias">
+          <legend class="c-rotulo">Dias da semana</legend>
+          <label class="c-marcar"><input type="checkbox" checked=${r.dias.every(Boolean)} onChange=${() => mudarRegra(i, 'dias', r.dias.map(() => !r.dias.every(Boolean)))} /><span>Todos</span></label>
+          ${DIAS_SEMANA_LONGO.map((nome, k) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${r.dias[k]} onChange=${() => mudarRegra(i, 'dias', r.dias.map((v, j) => (j === k ? !v : v)))} /><span>${nome}</span></label>`)}
+        </fieldset>
+        ${padrao.regras.length > 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Remover este turno" title="Remover este turno" onClick=${() => setPadrao({ ...padrao, regras: padrao.regras.filter((_, j) => j !== i) })}><${Ic} nome="x" /></button>` : null}
+      </div>`)}
+      <div><button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setPadrao({ ...padrao, regras: [...padrao.regras, { turno: '', dias: Array(7).fill(false) }] })}><${Ic} nome="plus" />Outro turno</button></div>
+      <label class="c-marcar"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /><span>Programar também as pausas dos dias aplicados (ao salvar)</span></label>
+      <label class="c-marcar"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /><span>Sobrescrever dias que já têm turno</span></label>
+    </div>
+  <//>`;
+}
+
+// Semanas (seg–dom) do mês, para a visão Semana.
+function semanasDoMes(dias) {
+  const semanas = [];
+  dias.forEach((d) => {
+    const seg = (doIso(d).getDay() + 6) % 7;
+    if (!semanas.length || seg === 0) semanas.push([]);
+    semanas[semanas.length - 1].push(d);
+  });
+  return semanas;
+}
+
+export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoPausas, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null, acessorio = null }) {
   const [dados, setDados] = useState(null);
   const [configurando, setConfigurando] = useState(false);
   const [erro, setErro] = useState('');
@@ -84,6 +156,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [busca, setBusca] = useState('');
   const [selecionados, setSelecionados] = useState({});
   const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
+  const [visao, setVisao] = useState('semana'); // semana | mes
+  const [semanaIdx, setSemanaIdx] = useState(null); // null = a semana de hoje (ou a 1ª do mês)
 
   const pode = (p) => controlador.possuiPermissao(p);
   const [todasEquipes, setTodasEquipes] = useVisaoEquipes(!somentePropria && controlador.estado?.perfilUsuario === 'supervisor');
@@ -106,6 +180,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   }, [operacao, anoMes, somentePropria, todasEquipes]);
 
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
+  useEffect(() => { setSemanaIdx(null); }, [anoMes]);
   const turnosPorId = useMemo(() => Object.fromEntries((dados?.turnos || []).map((t) => [t.id_turno, t])), [dados]);
   const itensPorChave = useMemo(() => Object.fromEntries((dados?.itens || []).map((i) => [`${i.id_operador}:${i.data}`, i])), [dados]);
   const eventosPorDia = useMemo(() => {
@@ -121,8 +196,10 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     return mapa;
   }, [validacao]);
 
-  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<section class="mo-card-escala" aria-busy="true" aria-label="Carregando a escala"><${EsqueletoLinhas} linhas=${10} altura=${34} /></section>`;
+  const nomeOperacao = dados?.nome_escala || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
+  const voltar = aoVoltarLista ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Voltar para Escalas" title="Voltar para Escalas" onClick=${aoVoltarLista}><${Ic} nome="arrow-left" /></button>` : null;
+  if (erro) return html`<main class="c-pagina c-conteudo"><div class="c-cab-linha">${voltar}<h1>${nomeOperacao}</h1></div><div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div></main>`;
+  if (!dados) return html`<main class="c-pagina c-conteudo" aria-busy="true"><div class="c-cab-linha">${voltar}<h1>${nomeOperacao}</h1></div><div class="c-tabela-caixa"><${Esqueleto} linhas=${10} /></div></main>`;
 
   const fechada = dados.status.fechada;
   const editavel = dados.pode_editar && !somentePropria && !somenteLeitura;
@@ -140,7 +217,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     });
   };
 
-  // Operadores exibidos depois dos filtros (equipe, supervisor, nome).
+  // Operadores exibidos depois dos filtros (equipe, supervisor, cargo, nome).
   const visiveis = dados.operadores.filter((op) => (!filtroEquipe || String(op.id_equipe || '') === filtroEquipe)
     && (!filtroSup || (op.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
     && (!filtroCargo || (op.cargo || '') === filtroCargo)
@@ -176,7 +253,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       if (alvo === '' || (!padrao.sobrescrever && idTurnoDe(op.id_usuario, d) !== null)) return;
       mudar(op.id_usuario, d, Number(alvo));
     }));
-    showToast?.(`Padrão aplicado a ${alvos.length} operador(es). Revise e clique em "Salvar alterações".`, 'success');
+    showToast?.(`Padrão aplicado a ${alvos.length} operador(es). Revise e clique em "Salvar".`, 'success');
     setPadrao(null);
   };
   const limparTabela = () => {
@@ -186,7 +263,6 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     alvos.forEach((o) => dados.dias.forEach((d) => { if (idTurnoDe(o.id_usuario, d) !== null) mudar(o.id_usuario, d, null); }));
   };
   const alternarSel = (id) => setSelecionados((s0) => ({ ...s0, [id]: !s0[id] }));
-  const todosSel = visiveis.length > 0 && visiveis.every((o) => selecionados[o.id_usuario]);
 
   const executar = async (fn, sucesso, acao = 'concluir a operação') => {
     setOcupado(true);
@@ -243,11 +319,13 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     || ((bloqueio || exigeJustFechada) && !justificativa.trim())
     || (!fechada && dados.aprovacao?.estado !== 'APROVADA');
 
-  // ---- apresentação (administração da escala): totais, seleção, legenda e navegação da matriz ----
+  // ---- apresentação: semana/mês, seleção, legenda e navegação da grade ----
   const selecionadosVis = visiveis.filter((o) => selecionados[o.id_usuario]);
-  const mostradas = visiveis;
   const hojeIso = paraIso(new Date());
-  const nomeOperacao = dados.nome_escala || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
+  const semanas = semanasDoMes(dados.dias);
+  const idxHoje = semanas.findIndex((s) => s.includes(hojeIso));
+  const idx = Math.min(semanaIdx ?? (idxHoje >= 0 ? idxHoje : 0), semanas.length - 1);
+  const diasMostrados = visao === 'semana' ? semanas[idx] : dados.dias;
   const operadoresEscalados = dados.operadores.filter((o) => dados.dias.some((d) => turnosPorId[idTurnoDe(o.id_usuario, d)]?.tipo === 'TRABALHO')).length;
   const turnosOrdenados = dados.turnos.filter((t) => t.tipo !== 'DSR' && t.ativo !== false && t.tipo !== 'FOLGA');
   const padraoDisponivel = editavel && dados.turnos.some((t) => t.ativo !== false && t.tipo !== 'FOLGA' && t.tipo !== 'DSR');
@@ -255,10 +333,10 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   dados.operadores.forEach((o) => dados.dias.forEach((d) => { const id = idTurnoDe(o.id_usuario, d); if (id !== null && id !== undefined) idsUsados.add(id); }));
   const turnosDoMes = dados.turnos.filter((t) => idsUsados.has(t.id_turno) && t.tipo !== 'DSR');
   const alternarTodos = () => setSelecionados(selecionadosVis.length === visiveis.length ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
-  const focoR = Math.min(foco.r, Math.max(mostradas.length - 1, 0));
+  const focoR = Math.min(foco.r, Math.max(visiveis.length - 1, 0));
   const abrirGaveta = (op, d) => setGaveta({ id: op.id_usuario, nome: op.nome, data: d });
 
-  // Aplicar turno (barra em massa): troca o turno dos dias de TRABALHO dos selecionados; DSR/folga ficam como estão. Fica pendente até salvar.
+  // Aplicar turno (barra de seleção): troca o turno dos dias de TRABALHO dos selecionados; DSR/folga ficam como estão. Fica pendente até salvar.
   const aplicarTurnoMassa = () => {
     if (turnoMassa === '') { showToast?.('Escolha o turno que será atribuído.', 'info'); return; }
     let dias = 0; let fora = 0;
@@ -270,9 +348,9 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       mudar(op.id_usuario, d, Number(turnoMassa));
       dias += 1;
     }));
-    showToast?.(`Turno aplicado a ${selecionadosVis.length} operador(es) em ${dias} dia(s) de trabalho (DSR preservado)${fora ? `; ${fora} dia(s) fora dos dias do turno (${alvo?.dias_rotulo || ''}) ficaram como estavam` : ''}. Revise e clique em "Salvar alterações".`, 'success');
+    showToast?.(`Turno aplicado a ${selecionadosVis.length} operador(es) em ${dias} dia(s) de trabalho (DSR preservado)${fora ? `; ${fora} dia(s) fora dos dias do turno (${alvo?.dias_rotulo || ''}) ficaram como estavam` : ''}. Revise e clique em "Salvar".`, 'success');
   };
-  // Setas movem o foco entre as células (tabindex móvel); Enter/Espaço abrem a gaveta pelo próprio botão.
+  // Setas movem o foco entre as células (tabindex móvel); Enter/Espaço abrem o ajuste pelo próprio botão.
   const aoTeclarGrade = (e) => {
     const alvo = e.target.closest?.('[data-r]');
     if (!alvo) return;
@@ -282,17 +360,14 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     else if (e.key === 'ArrowDown') r += 1;
     else if (e.key === 'ArrowUp') r -= 1;
     else if (e.key === 'Home') c = 0;
-    else if (e.key === 'End') c = dados.dias.length - 1;
+    else if (e.key === 'End') c = diasMostrados.length - 1;
     else return;
     e.preventDefault();
-    r = Math.max(0, Math.min(mostradas.length - 1, r)); c = Math.max(0, Math.min(dados.dias.length - 1, c));
+    r = Math.max(0, Math.min(visiveis.length - 1, r)); c = Math.max(0, Math.min(diasMostrados.length - 1, c));
     e.currentTarget.querySelector(`[data-r="${r}"][data-c="${c}"]`)?.focus();
   };
-  const menuAcoes = !somentePropria && pode('wfm.escala.visualizar')
-    ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
-    : null;
 
-  // ---- faixa de ajuste do dia: a célula escolhida aceita um turno (fica pendente até "Salvar alterações") ----
+  // ---- ajuste do dia: a célula escolhida aceita um turno (fica pendente até "Salvar") ----
   const celulaEl = (c) => document.querySelector(`[data-id="${c.id}"][data-d="${c.data}"]`);
   const cancelarAjuste = () => { const c = celSel; setCelSel(null); if (c) setTimeout(() => celulaEl(c)?.focus(), 0); };
   const escolherTurno = (idTurno) => { if (celSel) mudar(celSel.id, celSel.data, idTurno); };
@@ -300,157 +375,190 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
 
   const aprov = dados.aprovacao;
   const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
-  const algumaAcaoAprov = !!(aprov && (aprov.pode_enviar || aprov.pode_aprovar || aprov.pode_declinar || aprov.pode_cancelar));
-  const mostrarFaixaAprov = !somentePropria && aprov?.exige && (!aprovada || algumaAcaoAprov);
   const precisaJust = (bloqueio && podePublicarComViolacao) || exigeJustFechada || (totalPend > 0 && fechada);
   const abrirPadrao = () => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false });
-  const mostrarRodape = editavel || (!somentePropria && pode('wfm.escala.publicar'));
+  const [rotuloEstado, tomEstado, iconeEstado, proximoPasso] = estadoEscala(dados);
+  const podePublicarAqui = pode('wfm.escala.publicar') && !somenteLeitura && !(aprovada && dados.status.versao_publicada > 0 && totalPend === 0);
+  const extrasMenu = [
+    !somentePropria && versoes.length ? { label: `Histórico de versões (${versoes.length})`, icon: 'clock-counter-clockwise', onClick: () => setVerVersoes(true) } : null,
+    pode('wfm.escala.fechar') && !fechada && !somenteLeitura ? { label: 'Fechar período', icon: 'lock', disabled: ocupado || !dados.status.versao_publicada, onClick: fechar } : null,
+    padraoDisponivel ? { label: 'Aplicar padrão semanal', icon: 'calendar-dots', onClick: abrirPadrao } : null,
+  ];
+  const menuAcoes = !somentePropria && pode('wfm.escala.visualizar')
+    ? html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
+    : null;
+
+  const moverSemana = (n) => {
+    const novo = idx + n;
+    if (novo < 0) { if (aoMudarMes) { aoMudarMes(somarMes(anoMes, -1)); setSemanaIdx(99); } return; }
+    if (novo >= semanas.length) { if (aoMudarMes) { aoMudarMes(somarMes(anoMes, 1)); setSemanaIdx(0); } return; }
+    setSemanaIdx(novo);
+  };
+  const rotuloPeriodo = visao === 'semana'
+    ? `${diasMostrados[0].slice(8)}/${diasMostrados[0].slice(5, 7)} a ${diasMostrados[diasMostrados.length - 1].slice(8)}/${diasMostrados[diasMostrados.length - 1].slice(5, 7)}`
+    : `${doIso(dados.dias[0]).toLocaleDateString('pt-BR', { month: 'long' })} de ${anoMes.slice(0, 4)}`;
+
+  // Célula da grade: botão (quem edita) ou texto. Pendente = contorno tracejado; violação = canto vermelho.
+  const celula = (op, d, r, c) => {
+    const chave = `${op.id_usuario}:${d}`;
+    const pend = chave in pendentes;
+    const viol = violacoesPorCelula[chave];
+    const t = turnosPorId[idTurnoDe(op.id_usuario, d)];
+    const dsr = !t || t.tipo === 'DSR';
+    const evs = eventosPorDia[d] || [];
+    const manual = !dsr && (pend ? !diaDoTurno(t, d) : !!itensPorChave[chave]?.manual);
+    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${infoDia(d).dia}, ${dsr ? 'DSR' : t.nome}${manual ? ', configurado à mão fora dos dias do turno' : ''}${pend ? ', alteração não salva' : ''}${viol ? `, ${viol.length} violação(ões)` : ''}`;
+    const sel = celSel?.id === op.id_usuario && celSel?.data === d;
+    const conteudo = visao === 'semana'
+      ? (dsr ? html`<span class="c-folga">DSR</span>` : html`<span class="c-bloco" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}><b>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</b><small>${t.codigo}</small></span>`)
+      : (dsr ? html`<span class="c-turno c-turno--dsr">DSR</span>` : html`<span class="c-turno c-turno--cor" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}>${t.codigo}</span>`);
+    const classeTd = [visao === 'semana' ? 'c-dia-sem' : 'c-dia', d === hojeIso ? 'c-hoje' : '', evs.length ? 'c-feriado' : '', infoDia(d).fimDeSemana && visao === 'mes' ? 'c-fds' : '',
+      pend ? 'c-cel-pendente' : '', viol ? 'c-cel-violacao' : '', manual ? 'c-cel-manual' : '', sel ? 'c-cel-sel' : ''].filter(Boolean).join(' ');
+    return html`<td key=${d} class=${classeTd} title=${viol ? viol.map((v) => v.mensagem).join('\n') : (dsr ? (evs.map((e) => e.descricao).join(' · ') || undefined) : descreverTurno(t))}>
+      ${editavel
+        ? html`<button type="button" class="c-cel-botao" data-r=${r} data-c=${c} data-id=${op.id_usuario} data-d=${d} tabIndex=${r === focoR && c === Math.min(foco.c, diasMostrados.length - 1) ? 0 : -1} aria-label=${rotulo} aria-pressed=${sel ? 'true' : 'false'}
+            onFocus=${() => setFoco({ r, c })} onClick=${() => { setCelSel({ id: op.id_usuario, nome: op.nome, data: d }); setTimeout(() => document.querySelector('[data-faixa-primeiro]')?.focus(), 0); }}>${conteudo}</button>`
+        : html`<span title=${rotulo}>${conteudo}</span>`}
+    </td>`;
+  };
+
+  const tabela = () => html`<table class=${`c-tabela c-tabela--fixa ${visao === 'semana' ? 'c-semana' : 'c-tabela--compacta c-grade-mes'} c-escala-grade`}
+      onKeyDown=${(e) => { if (e.key === 'Escape' && celSel) { e.stopPropagation(); cancelarAjuste(); return; } if (editavel) aoTeclarGrade(e); }}>
+    <thead><tr>
+      <th scope="col" class="c-col-nome">${editavel ? html`<label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os operadores" checked=${visiveis.length > 0 && selecionadosVis.length === visiveis.length}
+        ref=${(el) => { if (el) el.indeterminate = selecionadosVis.length > 0 && selecionadosVis.length < visiveis.length; }} onChange=${alternarTodos} /><span>Colaborador</span></label>` : 'Colaborador'}</th>
+      ${visao === 'mes' ? html`<th scope="col" class="c-num">Horas</th>` : null}
+      ${diasMostrados.map((d) => {
+    const evs = eventosPorDia[d] || [];
+    const sem = SEMANA_CURTA[doIso(d).getDay()];
+    return visao === 'semana'
+      ? html`<th key=${d} scope="col" class=${`c-dia-sem ${d === hojeIso ? 'c-hoje' : ''} ${evs.length ? 'c-feriado' : ''}`} title=${evs.map((e) => e.descricao).join(' · ') || undefined}>${sem} ${d.slice(8)}/${d.slice(5, 7)}</th>`
+      : html`<th key=${d} scope="col" class=${`c-dia ${d === hojeIso ? 'c-hoje' : ''} ${evs.length ? 'c-feriado' : ''} ${infoDia(d).fimDeSemana ? 'c-fds' : ''}`} title=${evs.map((e) => e.descricao).join(' · ') || undefined}>${infoDia(d).dia}<small>${sem.slice(0, 1)}</small></th>`;
+  })}
+      ${visao === 'semana' ? html`<th scope="col" class="c-num c-total-ini" title="Horas de trabalho no mês (inclui o que ainda não foi salvo)">Horas no mês</th>` : null}
+    </tr></thead>
+    <tbody>${visiveis.map((op, r) => {
+    const tot = totalDe(op.id_usuario);
+    const horas = html`<td class=${`c-num ${visao === 'semana' ? 'c-total-ini' : ''}`} title=${`${tot.dias} dia(s) de trabalho`}>${minutosParaHoras(tot.min)}</td>`;
+    return html`<tr key=${op.id_usuario} aria-selected=${selecionados[op.id_usuario] ? 'true' : null}>
+        <td class="c-forte c-col-nome">${editavel ? html`<label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} /><span>${op.nome}</span></label>` : op.nome}</td>
+        ${visao === 'mes' ? horas : null}
+        ${diasMostrados.map((d, c) => celula(op, d, r, c))}
+        ${visao === 'semana' ? horas : null}
+      </tr>`;
+  })}</tbody>
+    <tfoot><tr>
+      <td>Escalados no dia</td>
+      ${visao === 'mes' ? html`<td></td>` : null}
+      ${diasMostrados.map((d) => {
+    const n = visiveis.filter((o) => turnosPorId[idTurnoDe(o.id_usuario, d)]?.tipo === 'TRABALHO').length;
+    return html`<td key=${d} class=${visao === 'semana' ? 'c-dia-sem' : 'c-dia'}>${n}${visao === 'semana' ? html`<small> de ${visiveis.length}</small>` : null}</td>`;
+  })}
+      ${visao === 'semana' ? html`<td class="c-num c-total-ini">${minutosParaHoras(visiveis.reduce((s, o) => s + totalDe(o.id_usuario).min, 0))}</td>` : null}
+    </tr></tfoot>
+  </table>`;
 
   return html`
-    <${LinhaContexto} nome=${nomeOperacao} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes} ocultarEscala=${(contexto?.operacoes || []).length <= 1}
-      escalados=${operadoresEscalados} emDsr=${dados.operadores.length - operadoresEscalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista}
-      aoPadrao=${padraoDisponivel ? abrirPadrao : undefined} padraoAtivo=${!!padrao} menu=${menuAcoes} />
-
-    <section class="mo-card-escala cx-cresce" aria-label="Escala do mês">
-      <div class="mo-barra cx-fixo">
-        <${SeletorVisao} visao="mes" aoDia=${aoVoltarDia} aoPausas=${somentePropria ? undefined : aoPausas} />
-        <${FiltrosCompactos} rotuloBusca="Buscar operador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} operador(es)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}`}
-          selects=${[
-            ...(controlador.estado?.perfilUsuario === 'supervisor' && !somentePropria ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
-            { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
-            { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
-            { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },
-          ]} />
+    <main class="c-pagina c-conteudo">
+      <div class="c-cab-linha c-cab-escala">
+        ${voltar}
+        <h1 title=${nomeOperacao}>${nomeOperacao}</h1>
+        ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+        <${Selo} tom=${tomEstado} icone=${iconeEstado} title="Caminho: Rascunho › Aprovação › Publicada › Fechada">${rotuloEstado}<//>
+        ${proximoPasso ? html`<span class="c-ajuda">${proximoPasso}</span>` : null}
+        <div class="c-cab-dir">
+          ${acessorio}
+          ${totalPend ? html`<span class="c-ajuda c-pendencias" role="status">${totalPend} alteração(ões) não salva(s)</span>` : null}
+          ${menuAcoes}
+          ${totalPend ? html`<button type="button" class="c-botao c-botao--texto" onClick=${() => setPendentes({})}>Descartar</button>` : null}
+          ${editavel ? html`<button type="button" class="c-botao c-botao--secundario" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || totalPend === 0 || (fechada && !justificativa.trim()) || null} onClick=${salvar}>Salvar${totalPend ? ` (${totalPend})` : ''}</button>` : null}
+          ${!somentePropria ? html`<${AcoesAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${aprov} onMudou=${carregar} showToast=${showToast} desabilitado=${totalPend > 0} />` : null}
+          ${podePublicarAqui ? html`<button type="button" class=${`c-botao ${aprov?.pode_enviar || aprov?.pode_aprovar ? 'c-botao--secundario' : 'c-botao--principal'}`} disabled=${publicarBloqueado || null}
+            title=${totalPend ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : null} onClick=${publicar}><${Ic} nome="send" />Publicar nova versão</button>` : null}
+        </div>
       </div>
 
-      ${semItens ? html`<div class="mo-corpo-vazio cx-cresce"><${EmptyState} icon="calendar_month" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." /></div>` : html`
-        ${editavel && padraoDisponivel ? html`<${BarraSelecao} n=${selecionadosVis.length} aoLimpar=${() => setSelecionados({})}>
-          <label class="visually-hidden" for="ea-turno-massa-mes">Turno a atribuir</label>
-          <select id="ea-turno-massa-mes" class="ea-campo ea-select ea-select--turno ea-campo--massa" value=${turnoMassa} onChange=${(e) => setTurnoMassa(e.target.value)}>
-            <option value="">Atribuir turno…</option>${turnosOrdenados.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select>
-          <button type="button" class="ea-btn-sol" disabled=${turnoMassa === ''} onClick=${aplicarTurnoMassa}>Aplicar turno</button>
-          <button type="button" class=${`ea-btn-ctn ${padrao ? 'is-ativo' : ''}`} aria-expanded=${!!padrao} onClick=${abrirPadrao}>Aplicar padrão semanal</button>
-        <//>` : null}
-
-        <${LegendaTurnos} turnos=${turnosDoMes} />
-
-        <div class="mo-mat cx-cresce">
-          <div class="ea-mat-rolagem" role="region" aria-label="Escala do mês" tabindex="0">
-            <div class="ea-grade" role="grid" aria-label="Escala do mês" aria-rowcount=${mostradas.length + 1} style=${{ '--ea-dias': dados.dias.length }}
-              onKeyDown=${(e) => { if (e.key === 'Escape' && celSel) { e.stopPropagation(); cancelarAjuste(); return; } if (editavel) aoTeclarGrade(e); }}>
-              <div class="ea-g-lin ea-g-cab" role="row">
-                <div class="ea-g-op" role="columnheader">
-                  ${editavel ? html`<${CheckTodos} rotulo="Selecionar todos os operadores" total=${visiveis.length} marcados=${selecionadosVis.length} aoAlternar=${alternarTodos} />` : null}
-                  <span class="ea-rotulo">OPERADOR</span>
-                </div>
-                <div class="ea-g-horas" role="columnheader"><span class="ea-rotulo" title="Horas de trabalho no mês (inclui o que você ainda não salvou)">HORAS</span></div>
-                ${dados.dias.map((d) => {
-                  const inf = infoDia(d);
-                  const evs = eventosPorDia[d] || [];
-                  return html`<div key=${d} role="columnheader" class=${`ea-g-dia ${inf.fimDeSemana ? 'is-fds' : ''} ${d === hojeIso ? 'is-hoje' : ''}`} title=${evs.map((e) => e.descricao).join(' · ') || undefined}>
-                    <span class="ea-dia-num">${inf.dia}</span><span class="ea-dia-let">${inf.semana}</span>${evs.length ? html`<i class="wfm-ponto" aria-hidden="true"></i>` : null}
-                  </div>`;
-                })}
-              </div>
-              ${mostradas.map((op, r) => { const tot = totalDe(op.id_usuario); return html`
-                <div key=${op.id_usuario} role="row" class=${`ea-g-lin ${selecionados[op.id_usuario] ? 'is-sel' : ''}`}>
-                  <div class="ea-g-op" role="rowheader">
-                    ${editavel ? html`<input type="checkbox" class="ea-check" aria-label=${`Selecionar ${op.nome}`} checked=${!!selecionados[op.id_usuario]} onChange=${() => alternarSel(op.id_usuario)} />` : null}
-                    <span class="ea-nome" title=${op.nome}>${op.nome}</span>
-                  </div>
-                  <div class="ea-g-horas" role="gridcell" title=${`${tot.dias} dia(s) de trabalho`}><strong class="ea-num">${minutosParaHoras(tot.min)}</strong><small>${tot.dias} dias</small></div>
-                  ${dados.dias.map((d, c) => {
-                    const chave = `${op.id_usuario}:${d}`;
-                    const pend = chave in pendentes;
-                    const viol = violacoesPorCelula[chave];
-                    const t = turnosPorId[idTurnoDe(op.id_usuario, d)];
-                    const dsr = !t || t.tipo === 'DSR';
-                    const inf = infoDia(d);
-                    const manual = !dsr && (pend ? !diaDoTurno(t, d) : !!itensPorChave[chave]?.manual);
-                    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${inf.dia}, ${dsr ? 'DSR' : t.nome}${manual ? ', configurado à mão fora dos dias do turno' : ''}${pend ? ', alteração não salva' : ''}`;
-                    const sel = celSel?.id === op.id_usuario && celSel?.data === d;
-                    const aberta = gaveta?.id === op.id_usuario && gaveta?.data === d;
-                    const classe = `ea-cel ${dsr ? 'is-dsr' : ''} ${manual ? 'is-manual' : ''} ${aberta || sel ? 'is-aberta' : ''}`;
-                    const estilo = !dsr && t.cor ? { '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) } : undefined;
-                    return html`<div key=${d} role="gridcell" aria-selected=${editavel ? sel : undefined} class=${`ea-g-cel ${inf.fimDeSemana ? 'is-fds' : ''} ${d === hojeIso ? 'is-hoje' : ''} ${pend ? 'is-pendente' : ''} ${viol ? 'is-violacao' : ''}`.trim()} title=${viol ? viol.map((v) => v.mensagem).join('\n') : (dsr ? undefined : t.nome)}>
-                      ${editavel
-                        ? html`<button type="button" class=${classe} style=${estilo} data-r=${r} data-c=${c} data-id=${op.id_usuario} data-d=${d} tabIndex=${r === focoR && c === Math.min(foco.c, dados.dias.length - 1) ? 0 : -1} aria-label=${rotulo} onFocus=${() => setFoco({ r, c })} onClick=${() => { setCelSel({ id: op.id_usuario, nome: op.nome, data: d }); setTimeout(() => document.querySelector('[data-faixa-primeiro]')?.focus(), 0); }}>${dsr ? 'DSR' : t.codigo}</button>`
-                        : html`<span class=${classe} style=${estilo} title=${rotulo}>${dsr ? 'DSR' : t.codigo}</span>`}
-                    </div>`;
-                  })}
-                </div>`; })}
-            </div>
-          </div>
-        </div>
-
-        <div class=${`mo-ajuste cx-fixo ${celSel ? 'is-ativa' : ''}`} role="status" aria-live="polite">
-          ${celSel ? html`
-            <span class="mo-ajuste-txt">Ajustar dia ${Number(celSel.data.slice(8))} · ${celSel.nome} — escolha o turno:</span>
-            <span class="mo-ajuste-turnos">
-              ${turnosOrdenados.map((t, i) => html`<button key=${t.id_turno} type="button" class=${`mo-ajuste-turno ${turnoDaSel === t.id_turno ? 'is-ativo' : ''}`} data-faixa-primeiro=${i === 0 ? '' : undefined} aria-pressed=${turnoDaSel === t.id_turno} title=${t.nome} onClick=${() => escolherTurno(t.id_turno)}>
-                <span class="mo-chip mo-chip--sm" style=${{ '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) }}>${t.codigo}</span></button>`)}
-              <button type="button" class=${`mo-ajuste-turno ${turnoDaSel === null || turnoDaSel === undefined ? 'is-ativo' : ''}`} aria-pressed=${turnoDaSel === null || turnoDaSel === undefined} title="Descanso semanal" data-faixa-primeiro=${turnosOrdenados.length ? undefined : ''} onClick=${() => escolherTurno(null)}><span class="mo-chip mo-chip--sm">DSR</span></button>
-            </span>
-            <span class="mo-ajuste-fim">
-              <button type="button" class="mo-btn mo-btn--neutro mo-btn--34" onClick=${() => { const c = celSel; setCelSel(null); abrirGaveta({ id_usuario: c.id, nome: c.nome }, c.data); }}>Mais opções</button>
-              <button type="button" class="mo-btn mo-btn--neutro mo-btn--34" onClick=${cancelarAjuste}>Cancelar</button>
-            </span>`
-          : html`<span class="mo-ajuste-txt mo-ajuste-txt--suave">Mostrando ${mostradas.length} de ${visiveis.length} operadores${editavel ? ' · clique numa célula para ajustar o dia' : ''}</span>`}
-        </div>`}
-
-      ${mostrarFaixaAprov || precisaJust ? html`<div class="mo-faixa cx-fixo">
-        ${mostrarFaixaAprov ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${totalPend > 0} semTexto=${aprovada} compacto />` : null}
-        ${precisaJust ? html`<label class="mo-just"><span>Justificativa ${exigeJustFechada || bloqueio ? '(obrigatória)' : ''}</span>
-          <input class="form-control" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} placeholder=${exigeJustFechada ? 'Motivo da correção após o fechamento' : 'Motivo para publicar com violação pendente'} /></label>` : null}
-      </div>` : null}
-
-      ${mostrarRodape || aprovada ? html`<footer class="mo-rodape cx-fixo">
-        <div class="mo-rodape-esq">
-          ${aprovada ? html`<span class="mo-aprovada"><${Icone} nome="check_circle" />Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}. A aprovação publica a escala.</span>` : null}
-          ${totalPend ? html`<span class="mo-rodape-txt">${totalPend} alteração(ões) não salva(s)</span>` : null}
-          ${!somentePropria && validacao?.violacoes?.length ? html`<button type="button" class=${`mo-btn mo-btn--atencao mo-btn--34 ${bloqueio ? 'is-bloqueio' : ''}`} aria-expanded=${verViolacoes} aria-controls="mo-painel-violacoes" onClick=${() => setVerViolacoes(!verViolacoes)}>${validacao.violacoes.length} violação(ões) de jornada</button>` : null}
-        </div>
-        <div class="mo-rodape-dir">
-          ${!somentePropria && versoes.length ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" aria-expanded=${verVersoes} aria-controls="mo-painel-versoes" onClick=${() => setVerVersoes(!verVersoes)}>Histórico de versões (${versoes.length})</button>` : null}
-          ${pode('wfm.escala.fechar') && !fechada && !somenteLeitura ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" disabled=${ocupado || !dados.status.versao_publicada} onClick=${fechar}><${Icone} nome="lock" />Fechar período</button>` : null}
-          ${totalPend ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" onClick=${() => setPendentes({})}>Descartar</button>` : null}
-          ${pode('wfm.escala.publicar') && !somenteLeitura && !(aprovada && dados.status.versao_publicada > 0 && totalPend === 0) ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--38" disabled=${publicarBloqueado} title=${totalPend ? 'Salve as alterações antes de publicar.' : (!fechada && dados.aprovacao?.estado !== 'APROVADA') ? 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.' : ''} onClick=${publicar}><${Icone} nome="send" />Publicar nova versão</button>` : null}
-          ${editavel ? html`<button type="button" class="mo-btn mo-btn--prim mo-btn--38" disabled=${ocupado || totalPend === 0 || (fechada && !justificativa.trim())} onClick=${salvar}>Salvar alterações${totalPend ? ` (${totalPend})` : ''}</button>` : null}
-        </div>
-      </footer>` : null}
-
-      ${verVersoes ? html`<${PainelFlutuante} id="mo-painel-versoes" titulo=${`Histórico de versões (${versoes.length})`} aoFechar=${() => setVerVersoes(false)}>
-        <table class="mo-tabela"><thead><tr><th scope="col">Versão</th><th scope="col">Aprovada por</th><th scope="col">Publicada por</th><th scope="col">Em</th><th scope="col">Violação</th><th scope="col">Justificativa</th></tr></thead>
-          <tbody>${versoes.map((v) => html`<tr key=${v.versao}><td>v${v.versao}</td><td>${v.aprovado_por || '—'}</td><td>${v.publicado_por || '—'}</td><td>${dataHora(v.publicado_em)}</td><td>${v.com_violacao ? 'Sim' : 'Não'}</td><td class="mo-trunca" title=${v.justificativa || ''}>${v.justificativa || '—'}</td></tr>`)}</tbody></table>
+      ${aprov?.declinada && aprov.motivo ? html`<${Faixa} tom="perigo" icone="x-circle"><b>Declinada por ${aprov.decidido_por || '—'}${aprov.decidido_em ? ` em ${dataHora(aprov.decidido_em)}` : ''}:</b> ${aprov.motivo}<//>` : null}
+      ${aprov?.invalidada && !aprov?.declinada ? html`<${Faixa} tom="atencao" icone="warning">A escala foi alterada depois do envio/aprovação: envie novamente para aprovação.<//>` : null}
+      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
+      ${!somentePropria && validacao?.violacoes?.length ? html`<${Faixa} tom=${bloqueio ? 'perigo' : 'atencao'} icone="warning"
+        acao=${html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setVerViolacoes(true)}>Ver violações</button>`}>
+        <b>${validacao.violacoes.length} violação(ões) de jornada.</b> ${duro ? 'Bloqueio duro: corrija a escala para publicar.' : bloqueio ? (podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir.') : 'Confira antes de publicar.'}
       <//>` : null}
+      ${precisaJust ? html`<div class="c-cartao c-cartao-corpo"><${Campo} rotulo=${`Justificativa${exigeJustFechada || bloqueio ? ' (obrigatória)' : ''}`}>
+        <input class="c-entrada" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} placeholder=${exigeJustFechada ? 'Motivo da correção após o fechamento' : 'Motivo para publicar com violação pendente'} />
+      <//></div>` : null}
 
-      ${verViolacoes && validacao?.violacoes?.length ? html`<${PainelFlutuante} id="mo-painel-violacoes" largura=${720} titulo=${`${validacao.violacoes.length} violação(ões) de jornada`} aoFechar=${() => setVerViolacoes(false)}>
-        <div class=${`wfm-validacao ${bloqueio ? 'is-bloqueio' : 'is-alerta'}`} role="status">
-          ${duro ? html`<p>Bloqueio duro: corrija a escala para publicar.</p>` : bloqueio ? html`<p>${podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir. Somente o Gestor/RH publica com violação pendente.'}</p>` : null}
-          <ul>${validacao.violacoes.slice(0, 40).map((v, i) => html`<li key=${i}><b>${v.operador}</b> · ${v.data.split('-').reverse().join('/')} · ${v.mensagem}${v.permite_override ? '' : ' (bloqueio duro)'}</li>`)}</ul>
+      <div class="c-tabela-caixa">
+        ${editavel && padraoDisponivel && selecionadosVis.length ? html`<div class="c-selecao">
+          <span>${selecionadosVis.length} selecionado(s)</span>
+          <select class="c-entrada c-entrada--compacta" aria-label="Turno para atribuir" value=${turnoMassa} onChange=${(e) => setTurnoMassa(e.target.value)}>
+            <option value="">Atribuir turno…</option>${turnosOrdenados.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select>
+          <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${turnoMassa === '' || null} onClick=${aplicarTurnoMassa}>Aplicar turno</button>
+          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${abrirPadrao}>Aplicar padrão semanal</button>
+          <button type="button" class="c-botao c-botao--texto c-botao--compacto c-fim" onClick=${() => setSelecionados({})}>Limpar seleção</button>
+        </div>` : null}
+        <div class="c-filtros c-filtros--suave">
+          <${Segmento} rotulo="Visão" valor=${visao} aoMudar=${(v) => { if (v === 'dia') aoVoltarDia?.(); else if (v === 'pausas') aoPausas?.(); else setVisao(v); }}
+            opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoVoltarDia ? [['dia', 'Do dia']] : []), ...(aoPausas && !somentePropria ? [['pausas', 'Pausas']] : [])]} />
+          ${visao === 'semana'
+            ? html`<${Navegar} grupo="Semana" rotulo=${rotuloPeriodo} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => moverSemana(-1)} aoProximo=${() => moverSemana(1)} />`
+            : html`<${Navegar} grupo="Mês" rotulo=${rotuloPeriodo} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes?.(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes?.(somarMes(anoMes, 1))} />`}
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+          ${controlador.estado?.perfilUsuario === 'supervisor' && !somentePropria ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipes exibidas" value=${todasEquipes ? 'todas' : ''} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="">Minha equipe</option><option value="todas">Todas as equipes</option></select>` : null}
+          ${equipes.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Equipe: todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${supervisores.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Supervisor" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Supervisor: todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${cargos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Cargo" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Cargo: todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select>` : null}
+          <span class="c-contador" aria-live="polite">${visiveis.length} de ${dados.operadores.length} · ${operadoresEscalados} escalado(s)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}</span>
         </div>
-      <//>` : null}
 
-      ${padrao ? html`<${PainelFlutuante} id="mo-painel-padrao" posicao="cima" largura=${760} titulo=${`Padrão semanal — ${selecionadosVis.length ? `${selecionadosVis.length} operador(es) selecionado(s)` : `todos os ${visiveis.length} operador(es) exibidos`}`} aoFechar=${() => setPadrao(null)}>
-        <div class="wfm-form mo-padrao">
-          <p class="mon-muted">Escolha o turno e marque os dias da semana em que ele vale (ou "Atribuir a todos os dias"). Adicione outro turno para os demais dias. Depois você ainda ajusta dia a dia.</p>
-          <div class="wfm-regras">
-            ${padrao.regras.map((r, i) => html`<div class="wfm-regra" key=${i}>
-              <label class="mon-campo"><span>Turno</span>
-                <select class="form-select" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurnoSelecionado(e.target.value, x.dias) } : x)) })}>
-                  <option value="">Escolher turno</option>${dados.turnos.filter((t) => t.ativo !== false).map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select></label>
-              <div class="mon-campo"><span>Dias da semana</span>
-                <${SeletorDias} dias=${r.dias} aoMudar=${(dias) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, dias } : x)) })} /></div>
-              ${padrao.regras.length > 1 ? html`<button type="button" class="btn btn-outline-secondary btn-sm wfm-regra-rm" aria-label="Remover este turno" onClick=${() => setPadrao({ ...padrao, regras: padrao.regras.filter((_, j) => j !== i) })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span></button>` : null}
-            </div>`)}
-          </div>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao({ ...padrao, regras: [...padrao.regras, { turno: '', dias: Array(7).fill(false) }] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Outro turno</button>
-          <label class="wfm-check"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /> Programar também as pausas dos dias aplicados (ao salvar)</label>
-          <label class="wfm-check"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /> Sobrescrever dias que já têm turno</label>
-          <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${aplicarPadrao}>Aplicar ao mês</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setPadrao(null)}>Cancelar</button></div>
-        </div>
-      <//>` : null}
-    </section>
+        ${semItens ? html`<${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." />`
+          : !visiveis.length ? html`<${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltroEquipe(''); setFiltroSup(''); setFiltroCargo(''); }} />`
+          : tabela()}
+
+        ${celSel ? html`<div class="c-ajuste-dia" role="status" aria-live="polite">
+          <span class="c-forte">Dia ${Number(celSel.data.slice(8))} · ${celSel.nome}</span>
+          <span class="c-sec">escolha o turno:</span>
+          <span class="c-ajuste-turnos">
+            ${turnosOrdenados.map((t, i) => html`<button key=${t.id_turno} type="button" class="c-botao c-botao--secundario c-botao--compacto" data-faixa-primeiro=${i === 0 ? '' : undefined} aria-pressed=${turnoDaSel === t.id_turno ? 'true' : 'false'} title=${descreverTurno(t)} onClick=${() => escolherTurno(t.id_turno)}>
+              <span class="c-turno c-turno--cor" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}>${t.codigo}</span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</button>`)}
+            <button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-pressed=${turnoDaSel === null || turnoDaSel === undefined ? 'true' : 'false'} title="Descanso semanal" data-faixa-primeiro=${turnosOrdenados.length ? undefined : ''} onClick=${() => escolherTurno(null)}><span class="c-turno c-turno--dsr">DSR</span></button>
+          </span>
+          <span class="c-fim c-grupo">
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => { const c = celSel; setCelSel(null); abrirGaveta({ id_usuario: c.id, nome: c.nome }, c.data); }}>Mais opções</button>
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${cancelarAjuste}>Fechar</button>
+          </span>
+        </div>` : null}
+
+        ${!semItens ? html`<div class="c-legenda">
+          ${turnosDoMes.map((t) => html`<span key=${t.id_turno} title=${descreverTurno(t)}><span class="c-traco" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}></span>${t.codigo} · ${t.nome}</span>`)}
+          <span>DSR · descanso semanal</span>
+          ${aprovada ? html`<span><${Ic} nome="check-circle" />Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}</span>` : null}
+          <span class="c-legenda-fim">${editavel ? 'Clique numa célula para ajustar o dia · tracejado = não salvo' : 'Somente leitura'}</span>
+        </div>` : null}
+      </div>
+    </main>
+
+    ${verVersoes ? html`<${Janela} titulo=${`Histórico de versões (${versoes.length})`} tamanho="grande" onClose=${() => setVerVersoes(false)}>
+      <div class="c-janela-corpo"><div class="c-tabela-caixa"><table class="c-tabela">
+        <thead><tr><th scope="col">Versão</th><th scope="col">Aprovada por</th><th scope="col">Publicada por</th><th scope="col">Em</th><th scope="col">Violação</th><th scope="col" class="c-estica">Justificativa</th></tr></thead>
+        <tbody>${versoes.map((v) => html`<tr key=${v.versao}><td class="c-forte">v${v.versao}</td><td>${v.aprovado_por || '—'}</td><td>${v.publicado_por || '—'}</td><td>${dataHora(v.publicado_em)}</td><td>${v.com_violacao ? html`<${Selo} tom="atencao">Sim<//>` : 'Não'}</td><td class="c-estica c-quebra c-secundario">${v.justificativa || '—'}</td></tr>`)}</tbody>
+      </table></div></div>
+    <//>` : null}
+
+    ${verViolacoes && validacao?.violacoes?.length ? html`<${Janela} titulo=${`${validacao.violacoes.length} violação(ões) de jornada`} tamanho="grande" onClose=${() => setVerViolacoes(false)}>
+      <div class="c-janela-corpo">
+        ${duro ? html`<${Faixa} tom="perigo" icone="lock">Bloqueio duro: corrija a escala para publicar.<//>` : bloqueio ? html`<${Faixa} tom="atencao" icone="warning">${podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir. Somente o Gestor/RH publica com violação pendente.'}<//>` : null}
+        <div class="c-tabela-caixa"><table class="c-tabela">
+          <thead><tr><th scope="col">Colaborador</th><th scope="col">Dia</th><th scope="col" class="c-estica">Regra</th><th scope="col">Tipo</th></tr></thead>
+          <tbody>${validacao.violacoes.slice(0, 40).map((v, i) => html`<tr key=${i}><td class="c-forte">${v.operador}</td><td>${v.data.split('-').reverse().join('/')}</td><td class="c-estica c-quebra">${v.mensagem}</td><td>${v.permite_override ? html`<${Selo} tom="atencao">Alerta<//>` : html`<${Selo} tom="perigo">Bloqueio duro<//>`}</td></tr>`)}</tbody>
+        </table></div>
+      </div>
+    <//>` : null}
+
+    ${padrao ? html`<${JanelaPadrao} padrao=${padrao} setPadrao=${setPadrao} turnos=${dados.turnos.filter((t) => t.ativo !== false)}
+      alvoTexto=${selecionadosVis.length ? `${selecionadosVis.length} colaborador(es) selecionado(s)` : `todos os ${visiveis.length} colaborador(es) exibidos`}
+      diasDoTurno=${diasDoTurnoSelecionado} programarPausas=${programarPausas} setProgramarPausas=${setProgramarPausas} aoAplicar=${aplicarPadrao} />` : null}
     ${somenteLeitura && !somentePropria ? html`<${OutrasEscalas} anoMes=${anoMes} operacao=${operacao} versao=${`${dados.aprovacao?.estado}:${dados.status?.versao_publicada}`} onEscolher=${(chave) => aoTrocarEscala?.(chave)} />` : null}
     ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
       bloqueio=${totalPend > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}

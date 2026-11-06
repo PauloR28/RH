@@ -9,7 +9,7 @@ import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { TelaHistorico } from './historico.js?v=20261104-leitura';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
-import { TelaEscala } from './escala.js?v=20261104-leitura';
+import { TelaEscala } from './escala.js?v=20261106-wfm';
 import { TelaPresenca } from './presenca.js?v=20261106-wfm';
 import { TelaCadastros } from './cadastros.js?v=20261104-leitura';
 import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261104-leitura';
@@ -128,14 +128,16 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
+        ${visaoEscala === 'mes'
+          ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
+          : html`<${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
           <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           ${visaoEscala === 'pausas'
             ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoMes=${() => setVisaoEscala('mes')} />`
             : visaoEscala === 'mes'
               ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
               : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVerMes=${() => setVisaoEscala('mes')} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
-        <//>
+        <//>`}
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
           onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}
@@ -161,10 +163,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        ${equipe ? html`<main class="c-pagina c-conteudo">
-            <div class="c-cab-linha"><h1>Minha equipe</h1><div class="c-cab-dir">${alternar}</div></div>
-            <${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} opcoesEscala=${operacoesComEscala.length > 1 ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null} />
-          </main>`
+        ${equipe ? html`<${TelaEscala} ...${props} somenteLeitura=${true} aoMudarMes=${setAnoMes} acessorio=${alternar} opcoesEscala=${operacoesComEscala.length > 1 ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null} />`
           : html`<${TelaMinhaEscala} contexto=${contexto} operacao=${operacao} showToast=${showToast} podeTrocar=${controlador.possuiPermissao('wfm.troca.solicitar')} nomeUsuario=${controlador.estado?.nomeUsuarioAutenticado || ''} acessorio=${alternar} />`}
       </${PainelRh}>`;
   }
