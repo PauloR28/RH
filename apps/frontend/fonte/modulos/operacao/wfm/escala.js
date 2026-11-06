@@ -106,7 +106,7 @@ function JanelaPadrao({ padrao, setPadrao, turnos, alvoTexto, diasDoTurno, progr
       ${padrao.regras.map((r, i) => html`<div key=${i} class="c-padrao-regra">
         <${Campo} rotulo="Turno">
           <select class="c-entrada" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurno(e.target.value, x.dias) } : x)) })}>
-            <option value="">Escolher turno</option>${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}
+            <option value="">Escolher turno</option>${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}${t.nome && t.nome !== t.codigo ? ` · ${t.nome}` : ''}</option>`)}
           </select>
         <//>
         <fieldset class="c-padrao-dias">
@@ -423,6 +423,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   };
 
   const tabela = () => html`<table class=${`c-tabela c-tabela--fixa ${visao === 'semana' ? 'c-semana' : 'c-tabela--compacta c-grade-mes'} c-escala-grade`}
+      role="grid" aria-label=${visao === 'semana' ? `Escala do mês · semana de ${rotuloPeriodo}` : 'Escala do mês'}
       onKeyDown=${(e) => { if (e.key === 'Escape' && celSel) { e.stopPropagation(); cancelarAjuste(); return; } if (editavel) aoTeclarGrade(e); }}>
     <thead><tr>
       <th scope="col" class="c-col-nome">${editavel ? html`<label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os operadores" checked=${visiveis.length > 0 && selecionadosVis.length === visiveis.length}
@@ -492,8 +493,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
       <div class="c-tabela-caixa">
         ${editavel && padraoDisponivel && selecionadosVis.length ? html`<div class="c-selecao">
           <span>${selecionadosVis.length} selecionado(s)</span>
-          <select class="c-entrada c-entrada--compacta" aria-label="Turno para atribuir" value=${turnoMassa} onChange=${(e) => setTurnoMassa(e.target.value)}>
-            <option value="">Atribuir turno…</option>${turnosOrdenados.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select>
+          <select class="c-entrada c-entrada--compacta" aria-label="Turno a atribuir" value=${turnoMassa} onChange=${(e) => setTurnoMassa(e.target.value)}>
+            <option value="">Atribuir turno…</option>${turnosOrdenados.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}</option>`)}</select>
           <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${turnoMassa === '' || null} onClick=${aplicarTurnoMassa}>Aplicar turno</button>
           <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${abrirPadrao}>Aplicar padrão semanal</button>
           <button type="button" class="c-botao c-botao--texto c-botao--compacto c-fim" onClick=${() => setSelecionados({})}>Limpar seleção</button>

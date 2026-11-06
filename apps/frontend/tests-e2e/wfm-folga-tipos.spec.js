@@ -100,20 +100,25 @@ test.describe('WFM · Minha escala · troca de folga', () => {
     await page.route('**/wfm/escala?**', (r) => r.fulfill({ json: new URL(r.request().url()).searchParams.get('ano_mes') === '2026-10' ? ESCALA : { ...ESCALA, itens: [], status: { versao_publicada: 0, fechada: false } } })); // só outubro tem escala
     await page.route('**/wfm/trocas/colegas?**', (r) => r.fulfill({ json: { itens: COLEGAS } }));
     await page.goto('/__wfm-minha');
-    await expect(page.locator('.mc-grade')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('table.c-minha')).toBeVisible({ timeout: 30_000 });
   });
 
+  // Redesign Fase 15: a Minha escala abre na Planilha (um dia por linha). "Pedir troca" na linha = dia trocável.
+  const linha = (page, dia) => page.locator('table.c-minha tbody tr', { hasText: `${dia}/10` });
+
   test('dia de folga futuro é clicável; férias e escalado são só informativos e cabem na célula', async ({ page }) => {
-    const folga = page.locator('button.mc-dia', { hasText: '19' }).first();
-    await expect(folga).toContainText('FOLGA');
-    await expect(page.locator('.mc-dia', { hasText: 'FÉRIAS' })).toBeVisible();
-    await expect(page.locator('button.mc-dia', { hasText: 'FÉRIAS' })).toHaveCount(0);
-    await expect(page.locator('button.mc-dia', { hasText: 'ESCALADO' })).toHaveCount(0);
-    // o rótulo não passa da célula
-    for (const rotulo of ['FÉRIAS', 'ESCALADO', 'FOLGA']) {
+    await expect(linha(page, '19')).toContainText('Folga');
+    await expect(linha(page, '19').getByRole('button', { name: 'Pedir troca' })).toBeVisible();
+    await expect(linha(page, '20')).toContainText('Férias');
+    await expect(linha(page, '20').getByRole('button', { name: 'Pedir troca' })).toHaveCount(0);
+    await expect(linha(page, '21')).toContainText('Escalado');
+    await expect(linha(page, '21').getByRole('button', { name: 'Pedir troca' })).toHaveCount(0);
+    // no Calendário o rótulo não passa da célula
+    await page.getByRole('button', { name: 'Calendário' }).click();
+    for (const rotulo of ['Férias', 'Escalado', 'Folga']) {
       const sobra = await page.evaluate((r) => {
-        const el = [...document.querySelectorAll('.mc-dsr')].find((e) => e.textContent === r);
-        const cel = el && el.closest('.mc-dia');
+        const el = [...document.querySelectorAll('.c-cal-folga')].find((e) => e.textContent === r);
+        const cel = el && el.closest('td');
         return el && cel ? el.getBoundingClientRect().right - cel.getBoundingClientRect().right : -1;
       }, rotulo);
       expect(sobra).toBeLessThanOrEqual(0);
@@ -123,27 +128,27 @@ test.describe('WFM · Minha escala · troca de folga', () => {
   test('pedir a troca de uma folga: a pessoa assume o turno de um colega que trabalha no dia', async ({ page }) => {
     let corpo = null;
     await page.route('**/wfm/trocas', (r) => { corpo = JSON.parse(r.request().postData() || '{}'); r.fulfill({ json: { success: true, id_troca: 1 } }); });
-    await page.locator('button.mc-dia', { hasText: '19' }).first().click();
-    await expect(page.getByText('sua folga neste dia')).toBeVisible();
+    await linha(page, '19').locator('td').first().click();                          // abre o detalhe do dia
+    await expect(page.getByText('Você está de folga neste dia.')).toBeVisible();
     await page.getByRole('button', { name: 'Pedir troca de folga', exact: true }).click();
-    const modal = page.getByRole('dialog');
-    await expect(modal.getByText('Pedir troca de folga')).toBeVisible();
+    const modal = page.getByRole('dialog', { name: /Pedir troca de folga/ });
+    await expect(modal).toBeVisible();
     await expect(modal.getByText('O dia inteiro')).toHaveCount(0);                  // folga só troca no mesmo dia
-    await modal.getByText('Bia Souza').click();
-    await expect(modal.getByText('Folga').first()).toBeVisible();
-    await expect(modal.locator('.mc-resumo')).toContainText('14:00 – 20:00');
+    await modal.getByLabel('Trocar com').selectOption({ label: 'Bia Souza · 14:00–20:00' });
+    await expect(modal.locator('table')).toContainText('Folga');
+    await expect(modal.locator('table')).toContainText('14:00–20:00');
     await modal.getByLabel('Estou ciente').check();
-    await modal.getByRole('button', { name: 'Enviar solicitação' }).click();
+    await modal.getByRole('button', { name: 'Enviar pedido' }).click();
     await expect.poll(() => corpo && corpo.data_a).toBe('2026-10-19');
     expect(corpo.data_b).toBe('2026-10-19');
     expect(corpo.id_alvo).toBe(2);
   });
 
   test('quem trabalha também vê colegas de folga no mesmo dia', async ({ page }) => {
-    await page.locator('button.mc-dia', { hasText: '22' }).first().click();
+    await linha(page, '22').locator('td').first().click();
     await page.getByRole('button', { name: 'Pedir troca de plantão' }).click();
-    const modal = page.getByRole('dialog');
+    const modal = page.getByRole('dialog', { name: /Pedir troca/ });
     await expect(modal.getByText('O dia inteiro')).toBeVisible();
-    await expect(modal.getByText('Bia Souza')).toBeVisible();
+    await expect(modal.getByLabel('Trocar com')).toContainText('Bia Souza');
   });
 });
