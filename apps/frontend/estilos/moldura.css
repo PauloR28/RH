@@ -1,0 +1,89 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Moldura do app (Fase 15, DEC-063) · moldura.css
+ * Encaixa no topo/sub-barra do kit (conecta-telas.css + conecta-responsivo.css)
+ * as peças que já existiam no app: seletor de módulo, busca global e menu do
+ * usuário. Só tokens. Carregar depois de conecta-responsivo.css.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* Topo: o antigo ficava acima de tudo (z-index 1000); mantém a mesma pilha. */
+.c-moldura-topo { z-index: 1000; font-family: var(--fonte-familia-texto); font-size: var(--texto-padrao-tamanho); line-height: var(--texto-padrao-altura-linha); }
+.c-moldura-topo *, .c-moldura-subbarra *, .c-gaveta-menu * { box-sizing: border-box; }
+.c-moldura-topo .c-ic > svg, .c-moldura-subbarra .c-ic > svg, .c-gaveta-menu .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-moldura-topo .c-ic, .c-gaveta-menu .c-ic { display: inline-block; }
+.c-moldura-topo a, .c-gaveta-menu a, .c-moldura-subbarra a { text-decoration: none; }
+.c-moldura-logo-texto { color: var(--cor-texto-topo-atual); font-weight: var(--fonte-peso-negrito); }
+.c-gaveta-cab .c-topo-logo img { height: 20px; width: auto; display: block; }
+
+/* Configurações (engrenagem): item atual leva o traço ouro, como as seções. */
+.c-topo-config { text-decoration: none; }
+.c-topo-config[aria-current='page'] { color: var(--cor-texto-topo-atual); box-shadow: inset 0 -3px 0 var(--cor-marca-traco-menu); border-radius: var(--raio-pequeno) var(--raio-pequeno) 0 0; }
+
+/* Sub-barra: abas são links (navegam); a atual usa aria-current. */
+.c-moldura-subbarra { font-family: var(--fonte-familia-texto); font-size: var(--texto-padrao-tamanho); }
+.c-moldura-subbarra .c-subbarra-secao:hover { color: var(--cor-texto-link); }
+.c-moldura-subbarra .c-aba { text-decoration: none; }
+.c-moldura-subbarra .c-aba[aria-current='page'] { color: var(--cor-texto-link); box-shadow: inset 0 -2px 0 var(--cor-acao-fundo); }
+
+/* Seletor de módulo no topo escuro */
+.c-moldura-topo .mod-seletor { margin-left: 0; margin-right: var(--espaco-2); }
+.c-moldura-topo .mod-seletor-btn {
+  height: var(--altura-controle-compacto); padding: 0 var(--espaco-2); gap: var(--espaco-1);
+  border: var(--borda-fina) solid color-mix(in srgb, var(--cor-texto-topo) 35%, transparent);
+  border-radius: var(--raio-pequeno); background: transparent; color: var(--cor-texto-topo);
+  font-weight: var(--fonte-peso-semi);
+}
+.c-moldura-topo .mod-seletor-btn:hover { color: var(--cor-texto-topo-atual); border-color: var(--cor-texto-topo); }
+.c-moldura-topo .mod-seletor-btn .material-symbols-outlined { width: var(--icone-pequeno); height: var(--icone-pequeno); font-size: var(--icone-pequeno); }
+.c-moldura-topo .mod-seletor-menu { top: calc(100% + var(--espaco-1)); left: auto; right: 0; color: var(--cor-texto-padrao); }
+
+/* Busca global no topo escuro (mesma busca de antes, novo visual do kit) */
+.c-topo-busca-app { position: relative; width: 240px; margin-right: var(--espaco-2); }
+.c-topo-busca-app .rh-global-search { width: 100%; }
+.c-topo-busca-app .rh-modern-search-shell {
+  min-width: 0; min-height: 0; height: var(--altura-controle-compacto); padding: 0 var(--espaco-2); gap: var(--espaco-2);
+  border: var(--borda-fina) solid color-mix(in srgb, var(--cor-texto-topo) 35%, transparent);
+  border-radius: var(--raio-pequeno); background: color-mix(in srgb, #fff 8%, transparent); box-shadow: none;
+  color: var(--cor-texto-topo);
+}
+.c-topo-busca-app .rh-modern-search-shell .material-symbols-outlined { width: var(--icone-pequeno); height: var(--icone-pequeno); font-size: var(--icone-pequeno); color: var(--cor-texto-topo); }
+.c-topo-busca-app .rh-modern-search-shell input { color: var(--cor-texto-topo-atual); background: transparent; font: inherit; }
+.c-topo-busca-app .rh-modern-search-shell input::placeholder { color: var(--cor-texto-topo); opacity: 1; }
+.c-topo-busca-app .rh-global-search-shortcut { display: none; }
+.c-topo-busca-app .rh-global-search-panel { left: auto; right: 0; width: min(420px, 92vw); color: var(--cor-texto-padrao); }
+
+/* Menu do usuário: avatar redondo de 32 px (c-avatar) */
+.c-moldura-topo .c24-user-menu-wrap { position: relative; margin-left: var(--espaco-2); }
+.c-moldura-topo .c24-user-menu {
+  width: var(--altura-controle); height: var(--altura-controle); min-height: 0; max-width: none; padding: 0;
+  border: 0; border-radius: var(--raio-cheio); background: transparent; box-shadow: none;
+}
+.c-moldura-topo .c24-user-menu:hover .c24-user-avatar { box-shadow: 0 0 0 2px color-mix(in srgb, #fff 35%, transparent); }
+.c-moldura-topo .c24-user-avatar {
+  width: 32px; height: 32px; border-radius: var(--raio-cheio);
+  background: var(--cor-marinho-100); color: var(--cor-marinho-700);
+  font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-negrito);
+}
+.c-moldura-topo .c24-user-menu-badge {
+  top: var(--espaco-1); right: var(--espaco-1); width: 8px; height: 8px; border: 0;
+  background: var(--cor-status-perigo-texto); box-shadow: 0 0 0 2px var(--cor-fundo-topo);
+}
+.c-moldura-topo .c24-user-dropdown,
+.c-moldura-topo .c24-notif-side-panel { color: var(--cor-texto-padrao); }
+
+/* Compacto (< 1180 px): a busca vira lupa e abre ao receber o foco */
+@media (max-width: 1179.98px) {
+  .c-topo-busca-app { width: var(--altura-controle); margin-right: 0; }
+  .c-topo-busca-app .rh-global-search { position: absolute; top: 50%; right: 0; width: var(--altura-controle); transform: translateY(-50%); }
+  .c-topo-busca-app .rh-modern-search-shell { width: var(--altura-controle); height: var(--altura-controle); padding: 0 0 0 var(--espaco-3); border-color: transparent; background: transparent; overflow: hidden; }
+  .c-topo-busca-app .rh-modern-search-shell input { position: absolute; inset: 0; width: 100%; padding: 0; opacity: 0; cursor: pointer; }
+  .c-topo-busca-app .rh-global-search:focus-within { z-index: 2; width: min(280px, calc(100vw - 32px)); }
+  .c-topo-busca-app .rh-global-search:focus-within .rh-modern-search-shell { width: 100%; height: var(--altura-controle-compacto); padding: 0 var(--espaco-2); overflow: visible; background: var(--cor-fundo-painel); border-color: var(--cor-borda-padrao); }
+  .c-topo-busca-app .rh-global-search:focus-within .rh-modern-search-shell input { position: static; opacity: 1; cursor: text; color: var(--cor-texto-padrao); }
+  .c-topo-busca-app .rh-global-search:focus-within .rh-modern-search-shell .material-symbols-outlined { color: var(--cor-texto-secundario); }
+}
+/* Celular (< 600 px): seções e Configurações vão para a gaveta do "Menu"; módulo só com ícone */
+@media (max-width: 599.98px) {
+  .c-moldura-topo .c-topo-config { display: none; }
+  .c-moldura-topo .mod-seletor-btn > span:not(:first-child) { display: none; }
+  .c-moldura-topo .mod-seletor { margin-right: 0; }
+}

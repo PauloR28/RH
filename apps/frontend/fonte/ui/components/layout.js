@@ -11,6 +11,7 @@ import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
 import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261026-ajustes';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261026-ajustes';
+import { MolduraConecta } from './moldura.js?v=20261106-redesign';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -438,6 +439,89 @@ export function BarraLateral({
       </button>
     `;
   };
+
+  // ── Moldura nova (Fase 15, DEC-063) ─────────────────────────────────────
+  // Mesmas regras de visibilidade de antes (permissão, sessão, módulo, área
+  // inativa); só muda o desenho: seções no topo e telas da seção na sub-barra.
+  // O módulo Tecnologia continua com o menu próprio (desenho antigo, abaixo).
+  if (!emTecnologia) {
+    const irPara = (tela) => {
+      setGrupoAberto(null);
+      controlador.irParaTelaProtegida(tela);
+    };
+    const abasDe = (lista, ehAtivo) =>
+      lista.map((subitem) => ({
+        tela: subitem.tela,
+        label: subitem.label,
+        ativo: ehAtivo(subitem),
+        desativado: Boolean(subitem.desativado),
+      }));
+    const secaoDeGrupo = (chave, label, icone, lista, ehAtivo, grupoAtivo) => {
+      if (!lista.length) return null;
+      const abas = abasDe(lista, ehAtivo);
+      return { chave, label, icone, tela: lista[0].tela, abas, ativo: Boolean(grupoAtivo || abas.some((aba) => aba.ativo)) };
+    };
+    const secaoDeItem = (chave, label, icone, item) => {
+      if (!item || item.visivel === false || !possuiPermissao(item.permissao) || !sessaoOk(item.tela) || telaEmAreaInativa(item.tela)) return null;
+      const ativo = itemAtivo(item);
+      return { chave, label, icone, tela: item.tela, abas: [], ativo };
+    };
+    const itemEquipes = sublinksWfm.find((subitem) => subitem.tela === 'screen-equipes-controle');
+    const itemMural = sublinksGestao.find((subitem) => subitem.tela === 'screen-mural');
+    const wfmSemEquipes = sublinksWfmVisiveis.filter((subitem) => subitem.tela !== 'screen-equipes-controle');
+    const gestaoSemMural = sublinksGestaoVisiveis.filter((subitem) => subitem.tela !== 'screen-mural');
+    const secoesMoldura = [
+      // Ordem aprovada (DEC-063): Início · Turnos e Plantões · Monitoria · Equipes · Relatórios · Mural.
+      secaoDeItem('inicio', 'Início', 'house', itensPrincipais[0]),
+      noModulo('wfm')
+        ? secaoDeGrupo('wfm', 'Turnos e Plantões', 'calendar-dots', wfmSemEquipes, subitemWfmAtivo, grupoWfmAtivo && navAtiva !== 'screen-equipes-controle')
+        : null,
+      noModulo('monitoria')
+        ? secaoDeGrupo('monitoria', 'Monitoria', 'clipboard-text', sublinksMonitoriaVisiveis, subitemMonitoriaAtivo, grupoMonitoriaAtivo)
+        : null,
+      noModulo('wfm') && itemEquipes && possuiSub(itemEquipes) ? secaoDeItem('equipes', 'Equipes', 'users', itemEquipes) : null,
+      secaoDeItem('relatorios', 'Relatórios', 'presentation-chart', { tela: 'screen-relatorios', permissao: 'sessao.relatorios.acessar' }),
+      noModulo('gestao') && itemMural && possuiSub(itemMural) ? secaoDeItem('mural', 'Mural', 'megaphone', itemMural) : null,
+      // Demais áreas que o perfil já via no menu antigo continuam alcançáveis (vão para "Mais" se não couberem).
+      noModulo('cx-curriculos') ? secaoDeItem('cx-curriculos', 'Cx de Currículos', 'mail', itensPrincipais[1]) : null,
+      noModulo('processos')
+        ? secaoDeGrupo('processos', 'Processos', 'business_center', sublinksProcessosVisiveis, (subitem) => navAtiva === subitem.tela, grupoProcessosAtivo)
+        : null,
+      noModulo('provas')
+        ? secaoDeGrupo('provas', 'Conecta Provas', 'assignment_turned_in', sublinksProvasVisiveis, subitemProvaAtivo, grupoProvasAtivo)
+        : null,
+      noModulo('gestao')
+        ? secaoDeGrupo('gestao', 'Gestão', 'manage_accounts', gestaoSemMural, subitemGestaoAtivo, grupoGestaoAtivo && navAtiva !== 'screen-mural')
+        : null,
+      noModulo('drive') ? secaoDeItem('drive', 'Drive', 'cloud', itensDriveConecta[0]) : null,
+      noModulo('treinamentos')
+        ? secaoDeGrupo('treinamentos', 'Treinamentos', 'school', sublinksTreinamentosVisiveis, subitemTreinamentoAtivo, grupoTreinamentosAtivo)
+        : null,
+    ].filter(Boolean);
+    const secaoConfiguracoes = secaoDeGrupo(
+      'configuracoes',
+      'Configurações',
+      'gear-six',
+      sublinksConfiguracoesVisiveis,
+      subitemConfiguracaoAtivo,
+      grupoConfiguracoesAtivo,
+    );
+    const secaoAtiva = [...secoesMoldura, secaoConfiguracoes].filter(Boolean).find((secao) => secao.ativo) || null;
+    return html`
+      <${MolduraConecta}
+        secoes=${secoesMoldura}
+        configuracoes=${secaoConfiguracoes}
+        secaoAtual=${secaoAtiva ? { ...secaoAtiva, telaAtual: navAtiva } : null}
+        logoUrl=${logoOperacao}
+        irPara=${irPara}
+        irParaInicio=${() => controlador.irParaMenu()}
+        sair=${() => controlador.sair()}
+        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
+        busca=${html`<${BuscaGlobalTopbar} placeholderBusca=${placeholderBusca || 'Buscar no Conecta'} controlador=${controlador} />`}
+        usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
+      />
+    `;
+  }
 
   return html`
     <header
