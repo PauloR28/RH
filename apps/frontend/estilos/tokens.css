@@ -1,287 +1,323 @@
+/* =====================================================================
+ * Conecta — tokens de interface (GERADO — não editar à mão)
+ * Fonte: conecta.tokens.json · Gerador: gerar_css.js · Fase 08 v0.1
+ * Regra: telas usam a camada 2 (e 3 em componentes). Nunca hex direto.
+ * ===================================================================== */
+
+/* ── 1. PRIMITIVOS (não usar nas telas) ── */
+:root {
+  --cor-marinho-50: #EEF1F8;
+  --cor-marinho-100: #DCE2F0;
+  --cor-marinho-200: #B9BEDB; /* Texto das seções no topo (Fase 07, seção 7) */
+  --cor-marinho-300: #9DA7C5;
+  --cor-marinho-600: #263C7D; /* Cor da marca (logo oficial) */
+  --cor-marinho-700: #1F3168;
+  --cor-marinho-800: #18275A; /* Fundo do topo */
+  --cor-marinho-900: #111B38;
+  --cor-ouro: #E7A026; /* Só logo, selo e traço do menu. Nunca texto, nunca status. */
+  --cor-neutro-branco: #FFFFFF;
+  --cor-neutro-fundo: #F6F7FA;
+  --cor-neutro-fundo-2: #EEF0F4;
+  --cor-neutro-linha: #E3E6EE;
+  --cor-neutro-borda: #C9CDDA;
+  --cor-neutro-apagado: #868BA2; /* Ajustado na DEC-042 (era #8A8FA6) para 3:1 em borda de campo */
+  --cor-neutro-texto-2: #565B73;
+  --cor-neutro-texto-forte-2: #3D4258;
+  --cor-neutro-texto: #1A1D2E;
+  --cor-estado-neutro-tinta: #4B5064;
+  --cor-estado-neutro-fundo: #EEF0F4;
+  --cor-estado-informacao-tinta: #0B6477;
+  --cor-estado-informacao-fundo: #E2F3F6;
+  --cor-estado-sucesso-tinta: #1C6E43;
+  --cor-estado-sucesso-fundo: #E5F3EA;
+  --cor-estado-atencao-tinta: #A34A06;
+  --cor-estado-atencao-fundo: #FDEEDF;
+  --cor-estado-perigo-tinta: #B42318;
+  --cor-estado-perigo-fundo: #FCE9E7;
+}
+
+/* ── 2. SEMÂNTICOS ── */
 :root {
   color-scheme: light;
-  --font-sans: 'Inter', sans-serif;
-  --font-mono: 'DM Mono', monospace;
-  --font-xs: 0.72rem;
-  --font-sm: 0.82rem;
-  --font-md: 0.92rem;
-  --font-lg: 1rem;
-  --font-xl: 1.48rem;
-  --sidebar-width: 272px;
-  --sidebar-width-compact: 88px;
-  --color-bg: #f4f7fb;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f6f8fc;
-  --color-surface-strong: #e9eef7;
-  --color-border: #dbe4f0;
-  --color-border-strong: #c7d3e3;
-  --color-text: #101d33;
-  --color-text-soft: #4d5f79;
-  --color-text-muted: #7a8aa3;
-  --color-primary: #086fca;
-  --color-primary-strong: #014a8a;
-  --color-primary-soft: #eaf3fb;
-  --color-success: #13795b;
-  --color-success-soft: #e7f7f1;
-  --color-danger: #c23b4d;
-  --color-danger-soft: #fdecef;
-  --color-warning: #b97810;
-  --color-warning-soft: #fff4de;
-  --color-info: #0c6d9d;
-  --color-info-soft: #eaf7fd;
-  --color-accent: #e2921a;
-  --color-accent-strong: #a8650a;
-  --color-accent-soft: #fdf1de;
-  --color-scheduled: #6f42c1;
-  --color-scheduled-soft: #f0eafd;
-  --shadow-sm: 0 1px 2px rgba(15, 33, 57, 0.04);
-  --shadow-md: 0 4px 16px rgba(14, 33, 61, 0.06);
-  --shadow-lg: 0 8px 32px rgba(12, 31, 58, 0.08);
-  --radius-xs: 6px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 999px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 40px;
-  --space-8: 48px;
-  --transition-xs: 140ms ease;
-  --transition-sm: 160ms ease;
-  --transition-md: 180ms ease;
-  --transition-lg: 200ms ease;
-  --ring-primary: 0 0 0 0.18rem rgba(8, 111, 202, 0.16);
-
-  /*
-   * Camada semântica (redesign Slack-inspired, ver DESIGN.md).
-   * Alias das cores/escalas acima: nada foi removido, componentes antigos
-   * continuam funcionando; componentes novos/migrados consomem estes tokens.
-   */
-  --font-display: 1.75rem;
-  --space-9: 64px;
-  --radius-subtle: 6px;
-  --radius-standard: 8px;
-  --radius-prominent: 14px;
-  --radius-pill: 999px;
-  --elevation-1: var(--shadow-sm);
-  --elevation-2: var(--shadow-md);
-  --elevation-3: var(--shadow-lg);
-  --elevation-overlay: 0 12px 40px rgba(12, 31, 58, 0.14);
-  --color-surface-sunken: var(--color-surface-soft);
-  --color-surface-elevated: var(--color-surface);
-  --color-border-subtle: rgba(219, 228, 240, 0.7);
-  --color-border-default: var(--color-border);
-  --color-text-primary: var(--color-text);
-  --color-text-secondary: var(--color-text-soft);
-  --color-text-tertiary: var(--color-text-muted);
-  --color-action-primary: var(--color-primary);
-  --color-action-primary-hover: var(--color-primary-strong);
-  --color-action-primary-soft: var(--color-primary-soft);
-  --color-action-primary-text: #ffffff;
-  --color-action-secondary: var(--color-primary);
-  --color-action-secondary-soft: var(--color-primary-soft);
-  --color-focus-ring: 0 0 0 3px rgba(8, 111, 202, 0.28);
-  --state-disabled-opacity: 0.55;
-  --state-hover-overlay: rgba(16, 29, 51, 0.04);
-
-  /*
-   * Fase 3 do redesign completo (promt.txt, rodada de 10/set/2026, ver
-   * design/wireframes/README.md). Aditivo: nenhum token abaixo é consumido
-   * por nenhuma tela ainda — só passa a existir para as telas que forem
-   * implementadas depois de wireframe aprovado (Fase 5).
-   */
-  --font-tabular: 'tnum' 1; /* usar via font-feature-settings + font-variant-numeric: tabular-nums em qualquer número que precise alinhar (nota, score, contadores, moeda) */
-  --color-chart-sequential-1: #014a8a;
-  --color-chart-sequential-2: #0d64ad;
-  --color-chart-sequential-3: #1a7fc4;
-  --color-chart-sequential-4: #4b9cd6;
-  --color-chart-sequential-5: #8dc0e6;
-  --color-chart-sequential-6: #c6dff2;
-
-  /*
-   * Camada de tokens "DESIGN_SYSTEM.md" (rodada de sistema de design
-   * central, 14/set/2026 — ver DESIGN_SYSTEM.md na raiz do projeto).
-   * Esta é a fonte da verdade para NOVO trabalho e para componentes
-   * migrados. As variáveis semânticas antigas acima (--color-primary,
-   * --color-surface, --color-border, --color-text, --color-success etc.)
-   * passam a ser ALIAS destas, então todo o app (~15 800 linhas de
-   * screens.css inclusive) herda qualquer ajuste automaticamente sem
-   * precisar editar tela por tela.
-   */
-  --brand: #0a4b8c;
-  --brand-ink: #00274d;
-  --brand-soft: #e8f0f9;
-  --ink: #14181f;
-  --ink-soft: #5b6472;
-  --ink-faint: #8b93a1;
-  --paper: #ffffff;
-  --paper-sunken: #f7f8fa;
-  --line: #e4e7ec;
-  --line-strong: #c9ced8;
-  --status-success: #0f7b4a;
-  --status-success-bg: #e7f6ef;
-  --status-warning: #b7791f;
-  --status-warning-bg: #fbf0dd;
-  --status-danger: #c0392b;
-  --status-danger-bg: #faeae8;
-  --status-info: #0a4b8c;
-  --status-info-bg: #e8f0f9;
-  --status-neutral: #6b7280;
-  --status-neutral-bg: #f1f2f4;
-  /* Módulo Turnos e Plantões: bordas semânticas, texto de atenção legível, índigo (skills), trilho das abas e destaques do quadro. */
-  --status-success-line: #9bd4b6;
-  --status-warning-ink: #8a5a00;
-  --status-warning-line: #e0b15c;
-  --status-danger-line: #e6a9a1;
-  --status-neutral-line: #d5d9e0;
-  --status-info-line: #a9c8ea;
-  --status-indigo: #3b5bb5;
-  --status-indigo-bg: #e8eefb;
-  --status-indigo-line: #b4c3ec;
-  --wfm-trilho: #e9eef5;
-  --wfm-trilho-borda: #dde4ee;
-  --wfm-hoje-bg: #e3effb;
-  --wfm-fds-bg: #f3f5f8;
-
-  /* Escala tipográfica nomeada (px fixo, base do sistema = 14px). */
-  --text-xs: 0.8rem;
-  --text-sm: 0.867rem;
-  --text-base: 0.933rem;
-  --text-md: 1.067rem;
-  --text-lg: 1.333rem;
-  --text-xl: 1.6rem;
-  --text-2xl: 2.133rem;
-
-  /* Radius do novo sistema (badges usam --radius-sm; o resto, --radius). */
-  --radius: var(--radius-subtle);
-  --radius-sm: 4px;
-
-  /* Aliases: tokens semânticos antigos agora resolvem para a camada nova. */
-  --color-primary: var(--brand);
-  --color-primary-strong: var(--brand-ink);
-  --color-primary-soft: var(--brand-soft);
-  --color-surface: var(--paper);
-  --color-surface-soft: var(--paper-sunken);
-  --color-border: var(--line);
-  --color-border-strong: var(--line-strong);
-  --color-text: var(--ink);
-  --color-text-soft: var(--ink-soft);
-  --color-text-muted: var(--ink-faint);
-  --color-success: var(--status-success);
-  --color-success-soft: var(--status-success-bg);
-  --color-danger: var(--status-danger);
-  --color-danger-soft: var(--status-danger-bg);
-  --color-warning: var(--status-warning);
-  --color-warning-soft: var(--status-warning-bg);
-  --color-info: var(--status-info);
-  --color-info-soft: var(--status-info-bg);
+  --cor-fundo-pagina: var(--cor-neutro-fundo);
+  --cor-fundo-painel: var(--cor-neutro-branco);
+  --cor-fundo-sutil: var(--cor-neutro-fundo-2); /* Cabeçalho de tabela, selo neutro */
+  --cor-fundo-selecionado: var(--cor-marinho-50);
+  --cor-fundo-topo: var(--cor-marinho-800);
+  --cor-fundo-desligado: var(--cor-neutro-fundo-2);
+  --cor-fundo-sobreposicao: rgba(17, 27, 56, 0.48); /* Fundo atrás de janela */
+  --cor-texto-padrao: var(--cor-neutro-texto);
+  --cor-texto-subtitulo: var(--cor-neutro-texto-forte-2);
+  --cor-texto-secundario: var(--cor-neutro-texto-2);
+  --cor-texto-desligado: var(--cor-neutro-apagado); /* Só em controle desligado */
+  --cor-texto-inverso: var(--cor-neutro-branco);
+  --cor-texto-link: var(--cor-marinho-600);
+  --cor-texto-topo: var(--cor-marinho-200);
+  --cor-texto-topo-atual: var(--cor-neutro-branco);
+  --cor-linha-divisoria: var(--cor-neutro-linha);
+  --cor-borda-padrao: var(--cor-neutro-borda);
+  --cor-borda-campo: var(--cor-neutro-apagado); /* 3,37:1 no branco (WCAG 1.4.11) */
+  --cor-acao-fundo: var(--cor-marinho-600);
+  --cor-acao-fundo-hover: var(--cor-marinho-700);
+  --cor-acao-fundo-pressionado: var(--cor-marinho-900);
+  --cor-acao-texto: var(--cor-neutro-branco);
+  --cor-acao-suave: var(--cor-marinho-50);
+  --cor-foco-anel: var(--cor-marinho-600);
+  --cor-foco-anel-inverso: var(--cor-marinho-300);
+  --cor-marca-ouro: var(--cor-ouro);
+  --cor-marca-traco-menu: var(--cor-ouro);
+  --cor-status-neutro-texto: var(--cor-estado-neutro-tinta);
+  --cor-status-neutro-fundo: var(--cor-estado-neutro-fundo);
+  --cor-status-informacao-texto: var(--cor-estado-informacao-tinta);
+  --cor-status-informacao-fundo: var(--cor-estado-informacao-fundo);
+  --cor-status-sucesso-texto: var(--cor-estado-sucesso-tinta);
+  --cor-status-sucesso-fundo: var(--cor-estado-sucesso-fundo);
+  --cor-status-atencao-texto: var(--cor-estado-atencao-tinta);
+  --cor-status-atencao-fundo: var(--cor-estado-atencao-fundo);
+  --cor-status-perigo-texto: var(--cor-estado-perigo-tinta);
+  --cor-status-perigo-fundo: var(--cor-estado-perigo-fundo);
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 24px;
+  --espaco-6: 32px;
+  --espaco-7: 40px;
+  --espaco-8: 48px;
+  --espaco-9: 64px;
+  --altura-controle: 36px; /* Botões e campos (ajuste do Paulo, 04/11: era 40) */
+  --altura-controle-compacto: 32px;
+  --altura-toque: 44px; /* Celular */
+  --altura-linha: 40px; /* Linha de tabela */
+  --altura-linha-compacta: 32px; /* Escala mensal, Presença */
+  --altura-topo: 56px;
+  --icone-pequeno: 16px;
+  --icone-medio: 20px;
+  --icone-grande: 24px;
+  --raio-nenhum: 0px;
+  --raio-pequeno: 4px;
+  --raio-medio: 8px;
+  --raio-cheio: 999px;
+  --borda-fina: 1px;
+  --borda-foco: 2px;
+  --borda-traco-menu: 3px;
+  --borda-foco-afastamento: 2px;
+  --sombra-menu: 0px 1px 4px 0px rgba(17, 27, 56, 0.08); /* Lista suspensa, menu de ações, dica */
+  --sombra-aviso: 0px 2px 10px 0px rgba(17, 27, 56, 0.1); /* Aviso no canto (toast) */
+  --sombra-janela: 0px 8px 24px 0px rgba(17, 27, 56, 0.14); /* Janela, painel lateral */
+  --duracao-rapida: 120ms;
+  --duracao-padrao: 200ms;
+  --duracao-carregamento: 1200ms; /* Uma volta do selo no carregamento inicial */
+  --curva-padrao: cubic-bezier(0.2, 0, 0, 1);
+  --fonte-familia-texto: 'Nunito Sans', system-ui, sans-serif;
+  --fonte-familia-logo: Poppins, sans-serif; /* Só no wordmark */
+  --fonte-peso-normal: 400;
+  --fonte-peso-semi: 600;
+  --fonte-peso-negrito: 700;
+  --texto-numero-chave-tamanho: 40px;
+  --texto-numero-chave-altura-linha: 1.2;
+  --texto-numero-chave-peso: 700;
+  --texto-titulo-pagina-tamanho: 28px;
+  --texto-titulo-pagina-altura-linha: 1.2857;
+  --texto-titulo-pagina-peso: 700;
+  --texto-titulo-janela-tamanho: 24px;
+  --texto-titulo-janela-altura-linha: 1.3333;
+  --texto-titulo-janela-peso: 700;
+  --texto-titulo-secao-tamanho: 20px;
+  --texto-titulo-secao-altura-linha: 1.4;
+  --texto-titulo-secao-peso: 600;
+  --texto-grande-tamanho: 16px;
+  --texto-grande-altura-linha: 1.5;
+  --texto-grande-peso: 400;
+  --texto-padrao-tamanho: 14px;
+  --texto-padrao-altura-linha: 1.4286;
+  --texto-padrao-peso: 400;
+  --texto-rotulo-tamanho: 12px;
+  --texto-rotulo-altura-linha: 1.3333;
+  --texto-rotulo-peso: 600;
 }
 
+/* ── 3. COMPONENTES ── */
+:root {
+  --botao-primario-fundo: var(--cor-acao-fundo);
+  --botao-primario-texto: var(--cor-acao-texto);
+  --botao-secundario-borda: var(--cor-borda-padrao);
+  --botao-secundario-texto: var(--cor-acao-fundo);
+  --botao-raio: var(--raio-pequeno);
+  --botao-altura: var(--altura-controle);
+  --campo-borda: var(--cor-borda-campo);
+  --campo-fundo: var(--cor-fundo-painel);
+  --campo-raio: var(--raio-pequeno);
+  --campo-altura: var(--altura-controle);
+  --tabela-cabecalho-fundo: var(--cor-fundo-sutil);
+  --tabela-linha: var(--cor-linha-divisoria);
+  --selo-raio: var(--raio-cheio);
+  --painel-raio: var(--raio-medio);
+  --painel-borda: var(--cor-linha-divisoria);
+  --janela-raio: var(--raio-medio);
+  --janela-sombra: var(--sombra-janela);
+}
+
+/* Foco visível só com teclado (DEC-042) */
+:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: var(--borda-foco-afastamento); }
+.c24-topo :focus-visible { outline-color: var(--cor-foco-anel-inverso); }
+
+/* Movimento zerado se a pessoa pediu */
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --transition-xs: 0ms;
-    --transition-sm: 0ms;
-    --transition-md: 0ms;
-    --transition-lg: 0ms;
-  }
+  :root { --duracao-rapida: 0ms; --duracao-padrao: 0ms; --duracao-carregamento: 0ms; }
 }
 
-/*
- * Modo escuro
- * ------------------------------------------------------------------
- * O tema claro é o padrão do sistema para todo mundo. O escuro só é
- * aplicado quando a pessoa escolhe explicitamente em Configurações
- * (persistido em localStorage, aplicado via atributo data-theme na
- * tag <html>, ver fonte/shared/tema.js e o script inline em
- * index.html que aplica isso antes do primeiro paint) — o app não
- * segue a preferência do sistema operacional.
- */
-
+/* ── MODO ESCURO (DEC-039 = B). Primitivos escuros + troca só da camada 2. ──
+ * Ativado pela escolha da pessoa (data-theme='dark' no <html>, ver fonte/tema-inicial.js). */
+:root {
+  --cor-escuro-fundo: #0D1222;
+  --cor-escuro-painel: #151A2B;
+  --cor-escuro-painel-2: #1C2338;
+  --cor-escuro-selecionado: #1F2A4D;
+  --cor-escuro-topo: #0A0F1E;
+  --cor-escuro-linha: #2A3350;
+  --cor-escuro-borda: #3A4463;
+  --cor-escuro-apagado: #6B7390; /* 3,7:1 no painel: borda de campo */
+  --cor-escuro-texto-2: #A9B0C6;
+  --cor-escuro-texto-forte-2: #C9CEDD;
+  --cor-escuro-texto: #E8EBF4;
+  --cor-escuro-acao: #8FA3E6;
+  --cor-escuro-acao-hover: #A9B8EE;
+  --cor-escuro-acao-pressionado: #C2CDF4;
+  --cor-escuro-neutro-tinta: #B4BACB;
+  --cor-escuro-neutro-fundo: #262D42;
+  --cor-escuro-informacao-tinta: #5FC1D4;
+  --cor-escuro-informacao-fundo: #12313A;
+  --cor-escuro-sucesso-tinta: #5CC98A;
+  --cor-escuro-sucesso-fundo: #13311F;
+  --cor-escuro-atencao-tinta: #F0A35E;
+  --cor-escuro-atencao-fundo: #3A2610;
+  --cor-escuro-perigo-tinta: #F2877C;
+  --cor-escuro-perigo-fundo: #3D1C1A;
+}
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --color-bg: #0f1520;
-  --color-surface: #171f2e;
-  --color-surface-soft: #1c2536;
-  --color-surface-strong: #232e42;
-  --color-border: #2c3a52;
-  --color-border-strong: #3a4a67;
-  --color-text: #e8edf6;
-  --color-text-soft: #b6c2d6;
-  --color-text-muted: #8a97b0;
-  --color-primary: #3d8bdb;
-  --color-primary-strong: #7fb8ff;
-  --color-primary-soft: #16273f;
-  --color-success: #3fc793;
-  --color-success-soft: #123227;
-  --color-danger: #ea6a7c;
-  --color-danger-soft: #3a1b22;
-  --color-warning: #f0ac4f;
-  --color-warning-soft: #3a2b12;
-  --color-info: #4fb8e6;
-  --color-info-soft: #12303d;
-  --color-accent: #f0ac4f;
-  --color-accent-strong: #f5c785;
-  --color-accent-soft: #3a2b12;
-  --color-scheduled: #b79bf0;
-  --color-scheduled-soft: #2a1f42;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.38);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.46);
+  --cor-fundo-pagina: var(--cor-escuro-fundo);
+  --cor-fundo-painel: var(--cor-escuro-painel);
+  --cor-fundo-sutil: var(--cor-escuro-painel-2);
+  --cor-fundo-selecionado: var(--cor-escuro-selecionado);
+  --cor-fundo-topo: var(--cor-escuro-topo);
+  --cor-fundo-desligado: var(--cor-escuro-painel-2);
+  --cor-fundo-sobreposicao: rgba(0, 0, 0, 0.6);
+  --cor-texto-padrao: var(--cor-escuro-texto);
+  --cor-texto-subtitulo: var(--cor-escuro-texto-forte-2);
+  --cor-texto-secundario: var(--cor-escuro-texto-2);
+  --cor-texto-desligado: var(--cor-escuro-apagado);
+  --cor-texto-inverso: var(--cor-marinho-900);
+  --cor-texto-link: var(--cor-escuro-acao);
+  --cor-texto-topo: var(--cor-escuro-texto-2);
+  --cor-texto-topo-atual: var(--cor-neutro-branco);
+  --cor-linha-divisoria: var(--cor-escuro-linha);
+  --cor-borda-padrao: var(--cor-escuro-borda);
+  --cor-borda-campo: var(--cor-escuro-apagado);
+  --cor-acao-fundo: var(--cor-escuro-acao);
+  --cor-acao-fundo-hover: var(--cor-escuro-acao-hover);
+  --cor-acao-fundo-pressionado: var(--cor-escuro-acao-pressionado);
+  --cor-acao-texto: var(--cor-marinho-900);
+  --cor-acao-suave: var(--cor-escuro-selecionado);
+  --cor-foco-anel: var(--cor-escuro-acao);
+  --cor-foco-anel-inverso: var(--cor-escuro-acao);
+  --cor-status-neutro-texto: var(--cor-escuro-neutro-tinta);
+  --cor-status-neutro-fundo: var(--cor-escuro-neutro-fundo);
+  --cor-status-informacao-texto: var(--cor-escuro-informacao-tinta);
+  --cor-status-informacao-fundo: var(--cor-escuro-informacao-fundo);
+  --cor-status-sucesso-texto: var(--cor-escuro-sucesso-tinta);
+  --cor-status-sucesso-fundo: var(--cor-escuro-sucesso-fundo);
+  --cor-status-atencao-texto: var(--cor-escuro-atencao-tinta);
+  --cor-status-atencao-fundo: var(--cor-escuro-atencao-fundo);
+  --cor-status-perigo-texto: var(--cor-escuro-perigo-tinta);
+  --cor-status-perigo-fundo: var(--cor-escuro-perigo-fundo);
+  --sombra-menu: 0px 1px 4px 0px rgba(0, 0, 0, 0.3);
+  --sombra-aviso: 0px 2px 10px 0px rgba(0, 0, 0, 0.35);
+  --sombra-janela: 0px 8px 24px 0px rgba(0, 0, 0, 0.45);
+}
 
-  --elevation-overlay: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --color-surface-sunken: var(--color-surface-soft);
-  --color-surface-elevated: var(--color-surface);
-  --color-border-subtle: rgba(44, 58, 82, 0.7);
-  --color-border-default: var(--color-border);
-  --color-text-primary: var(--color-text);
-  --color-text-secondary: var(--color-text-soft);
-  --color-text-tertiary: var(--color-text-muted);
-  --color-action-primary: var(--color-primary);
-  --color-action-primary-hover: var(--color-primary-strong);
-  --color-action-primary-soft: var(--color-primary-soft);
-  --color-action-primary-text: #ffffff;
-  --color-action-secondary: var(--color-primary);
-  --color-action-secondary-soft: var(--color-primary-soft);
-  --color-focus-ring: 0 0 0 3px rgba(61, 139, 219, 0.34);
-  --state-disabled-opacity: 0.5;
-  --state-hover-overlay: rgba(232, 237, 246, 0.06);
+/* ── 4. COMPATIBILIDADE: nomes antigos apontam para os novos ──────────
+ * Apagar cada linha quando nenhum CSS usar mais o nome antigo.
+ * Lista vinda do tokens.css do GitHub; conferir o rebrand.css do localhost. */
+:root {
+  --font-sans: var(--fonte-familia-texto);
+  --font-mono: var(--fonte-familia-texto); /* DM Mono sai (DEC-030) */
+  --font-tabular: 'tnum' 1;
+  --text-xs: var(--texto-rotulo-tamanho);   --font-xs: var(--texto-rotulo-tamanho);
+  --text-sm: var(--texto-padrao-tamanho);   --font-sm: var(--texto-padrao-tamanho);
+  --text-base: var(--texto-padrao-tamanho); --font-md: var(--texto-padrao-tamanho);
+  --text-md: var(--texto-grande-tamanho);   --font-lg: var(--texto-grande-tamanho);
+  --text-lg: var(--texto-titulo-secao-tamanho);
+  --text-xl: var(--texto-titulo-janela-tamanho); --font-xl: var(--texto-titulo-janela-tamanho);
+  --text-2xl: var(--texto-titulo-pagina-tamanho); --font-display: var(--texto-titulo-pagina-tamanho);
 
-  /* Camada DESIGN_SYSTEM.md — equivalentes escuros dos tokens novos. */
-  --brand: #3d8bdb;
-  --brand-ink: #7fb8ff;
-  --brand-soft: #16273f;
-  --ink: #e8edf6;
-  --ink-soft: #b6c2d6;
-  --ink-faint: #8a97b0;
-  --paper: #171f2e;
-  --paper-sunken: #1c2536;
-  --line: #2c3a52;
-  --line-strong: #3a4a67;
-  --status-success: #3fc793;
-  --status-success-bg: #123227;
-  --status-warning: #f0ac4f;
-  --status-warning-bg: #3a2b12;
-  --status-danger: #ea6a7c;
-  --status-danger-bg: #3a1b22;
-  --status-info: #4fb8e6;
-  --status-info-bg: #12303d;
-  --status-neutral: #9aa4b2;
-  --status-neutral-bg: #232e42;
-  --status-success-line: #2a6a50;
-  --status-warning-ink: #f0ac4f;
-  --status-warning-line: #7a5a22;
-  --status-danger-line: #7a3340;
-  --status-neutral-line: #3a4a67;
-  --status-info-line: #2b5f85;
-  --status-indigo: #9db4f2;
-  --status-indigo-bg: #1d2848;
-  --status-indigo-line: #3d4f86;
-  --wfm-trilho: #1c2536;
-  --wfm-trilho-borda: #2c3a52;
-  --wfm-hoje-bg: #17304f;
-  --wfm-fds-bg: #1a2333;
+  --brand: var(--cor-acao-fundo);  --brand-ink: var(--cor-acao-fundo-hover);  --brand-soft: var(--cor-acao-suave);
+  --ink: var(--cor-texto-padrao);  --ink-soft: var(--cor-texto-secundario);  --ink-faint: var(--cor-texto-desligado);
+  --paper: var(--cor-fundo-painel); --paper-sunken: var(--cor-fundo-pagina);
+  --line: var(--cor-linha-divisoria); --line-strong: var(--cor-borda-padrao);
+
+  --color-bg: var(--cor-fundo-pagina);
+  --color-surface: var(--cor-fundo-painel); --color-surface-soft: var(--cor-fundo-pagina);
+  --color-surface-strong: var(--cor-fundo-sutil); --color-surface-sunken: var(--cor-fundo-pagina);
+  --color-surface-elevated: var(--cor-fundo-painel);
+  --color-border: var(--cor-linha-divisoria); --color-border-strong: var(--cor-borda-padrao);
+  --color-border-subtle: var(--cor-linha-divisoria); --color-border-default: var(--cor-linha-divisoria);
+  --color-text: var(--cor-texto-padrao); --color-text-primary: var(--cor-texto-padrao);
+  --color-text-soft: var(--cor-texto-secundario); --color-text-secondary: var(--cor-texto-secundario);
+  --color-text-muted: var(--cor-texto-secundario); --color-text-tertiary: var(--cor-texto-secundario); /* muted era texto de leitura: sobe para 6,7:1 (B13) */
+  --color-primary: var(--cor-acao-fundo); --color-primary-strong: var(--cor-acao-fundo-hover); --color-primary-soft: var(--cor-acao-suave);
+  --color-action-primary: var(--cor-acao-fundo); --color-action-primary-hover: var(--cor-acao-fundo-hover);
+  --color-action-primary-soft: var(--cor-acao-suave); --color-action-primary-text: var(--cor-acao-texto);
+  --color-action-secondary: var(--cor-acao-fundo); --color-action-secondary-soft: var(--cor-acao-suave);
+  --color-accent: var(--cor-status-atencao-texto); --color-accent-strong: var(--cor-status-atencao-texto); --color-accent-soft: var(--cor-status-atencao-fundo); /* "accent" laranja virava enfeite: agora é atenção */
+  --color-scheduled: var(--cor-status-informacao-texto); --color-scheduled-soft: var(--cor-status-informacao-fundo);
+  --color-focus-ring: 0 0 0 var(--borda-foco) var(--cor-foco-anel);
+  --ring-primary: 0 0 0 var(--borda-foco) var(--cor-foco-anel);
+  --state-hover-overlay: rgba(17, 27, 56, 0.04);
+  --state-disabled-opacity: 0.55;
+
+  --color-success: var(--cor-status-sucesso-texto);   --color-success-soft: var(--cor-status-sucesso-fundo);
+  --color-danger: var(--cor-status-perigo-texto);     --color-danger-soft: var(--cor-status-perigo-fundo);
+  --color-warning: var(--cor-status-atencao-texto);   --color-warning-soft: var(--cor-status-atencao-fundo);
+  --color-info: var(--cor-status-informacao-texto);   --color-info-soft: var(--cor-status-informacao-fundo);
+  --status-success: var(--cor-status-sucesso-texto);  --status-success-bg: var(--cor-status-sucesso-fundo);  --status-success-line: var(--cor-status-sucesso-texto);
+  --status-warning: var(--cor-status-atencao-texto);  --status-warning-bg: var(--cor-status-atencao-fundo);  --status-warning-ink: var(--cor-status-atencao-texto); --status-warning-line: var(--cor-status-atencao-texto);
+  --status-danger: var(--cor-status-perigo-texto);    --status-danger-bg: var(--cor-status-perigo-fundo);    --status-danger-line: var(--cor-status-perigo-texto);
+  --status-info: var(--cor-status-informacao-texto);  --status-info-bg: var(--cor-status-informacao-fundo);  --status-info-line: var(--cor-status-informacao-texto);
+  --status-neutral: var(--cor-status-neutro-texto);   --status-neutral-bg: var(--cor-status-neutro-fundo);   --status-neutral-line: var(--cor-borda-padrao);
+  --status-indigo: var(--cor-status-informacao-texto); --status-indigo-bg: var(--cor-status-informacao-fundo); --status-indigo-line: var(--cor-status-informacao-texto);
+
+  --space-1: var(--espaco-1); --space-2: var(--espaco-2); --space-3: var(--espaco-3); --space-4: var(--espaco-4); --space-5: var(--espaco-5);
+  --space-6: var(--espaco-6); --space-7: var(--espaco-7); --space-8: var(--espaco-8); --space-9: var(--espaco-9);
+
+  --radius-xs: var(--raio-pequeno); --radius-sm: var(--raio-pequeno); --radius-subtle: var(--raio-pequeno); --radius: var(--raio-pequeno);
+  --radius-md: var(--raio-medio); --radius-standard: var(--raio-medio); --radius-lg: var(--raio-medio); --radius-prominent: var(--raio-medio);
+  --radius-full: var(--raio-cheio); --radius-pill: var(--raio-cheio);
+
+  --shadow-sm: none; /* painel parado não tem sombra (DEC-030) */
+  --shadow-md: var(--sombra-menu); --shadow-lg: var(--sombra-janela);
+  --elevation-1: none; --elevation-2: var(--sombra-menu); --elevation-3: var(--sombra-janela); --elevation-overlay: var(--sombra-janela);
+
+  --transition-xs: var(--duracao-rapida) var(--curva-padrao); --transition-sm: var(--duracao-rapida) var(--curva-padrao);
+  --transition-md: var(--duracao-padrao) var(--curva-padrao); --transition-lg: var(--duracao-padrao) var(--curva-padrao);
+
+  --color-chart-sequential-1: var(--cor-marinho-900); --color-chart-sequential-2: var(--cor-marinho-800);
+  --color-chart-sequential-3: var(--cor-marinho-600); --color-chart-sequential-4: var(--cor-marinho-300);
+  --color-chart-sequential-5: var(--cor-marinho-200); --color-chart-sequential-6: var(--cor-marinho-100); /* provisório até a Fase 11 */
+
+  --wfm-trilho: var(--cor-fundo-sutil); --wfm-trilho-borda: var(--cor-linha-divisoria);
+  --wfm-hoje-bg: var(--cor-fundo-selecionado); --wfm-fds-bg: var(--cor-fundo-pagina);
+}
+
+/* ── 5. ADIÇÕES LOCAIS (Fase 15, fora do gerador) ─────────────────────
+ * Nomes do app que o kit não trazia + o "apagado legível" (DEC-081),
+ * que no kit estava em conecta-responsivo.css. */
+:root {
+  --sidebar-width: 272px;
+  --sidebar-width-compact: 88px;
+  --cor-texto-apagado: #666B82; /* 5,26 branco · 4,91 página · 4,61 sutil */
+}
+:root[data-theme='dark'] {
+  --cor-texto-apagado: #8D95AF; /* 5,81 painel · 5,23 painel-2 · 6,26 fundo */
 }

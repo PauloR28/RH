@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Design System (Fase 11) · conecta-ds.css
+ * Componentes. Depende de 08_FUNDAMENTOS_UI/tokens/tokens.css (carregar antes).
+ * Sem biblioteca. Sem JavaScript obrigatório. Modo escuro sai sozinho dos tokens.
+ * Prefixo "c-" em tudo: não colide com as classes antigas (lição da Fase 09).
+ * Régua de montagem (DEC-061): 4 · 8 · 16 · 24. Nada fora dela.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 0. Base ─────────────────────────────────────────────────────────── */
+.c-ds, .c-ds * { box-sizing: border-box; }
+.c-ds {
+  font-family: var(--fonte-familia-texto);
+  font-size: var(--texto-padrao-tamanho);
+  line-height: var(--texto-padrao-altura-linha);
+  color: var(--cor-texto-padrao);
+  font-variant-numeric: tabular-nums;
+}
+.c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); flex: none; display: inline-block; vertical-align: middle; }
+.c-ic--20 { width: var(--icone-medio); height: var(--icone-medio); }
+.c-oculto { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ── 1. Botão (DEC-058) ──────────────────────────────────────────────── */
+.c-botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--espaco-2);
+  height: var(--botao-altura); padding: 0 var(--espaco-3); /* 12 px: compacto */
+  border: var(--borda-fina) solid transparent; border-radius: var(--botao-raio);
+  font: inherit; font-size: var(--texto-padrao-tamanho); font-weight: var(--fonte-peso-semi); line-height: 1;
+  white-space: nowrap; cursor: pointer; text-decoration: none; user-select: none;
+  transition: background-color var(--duracao-rapida) var(--curva-padrao), border-color var(--duracao-rapida) var(--curva-padrao), color var(--duracao-rapida) var(--curva-padrao);
+}
+.c-botao .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-botao--principal { background: var(--botao-primario-fundo); color: var(--botao-primario-texto); }
+.c-botao--principal:hover { background: var(--cor-acao-fundo-hover); }
+.c-botao--principal:active { background: var(--cor-acao-fundo-pressionado); }
+.c-botao--secundario { background: var(--cor-fundo-painel); color: var(--botao-secundario-texto); border-color: var(--botao-secundario-borda); }
+.c-botao--secundario:hover { background: var(--cor-acao-suave); border-color: var(--cor-acao-fundo); }
+.c-botao--texto { background: transparent; color: var(--cor-texto-link); padding: 0 var(--espaco-2); }
+.c-botao--texto:hover { background: var(--cor-acao-suave); }
+.c-botao--perigo { background: var(--cor-status-perigo-texto); color: var(--cor-texto-inverso); }
+.c-botao--perigo:hover { background: color-mix(in srgb, var(--cor-status-perigo-texto) 86%, #000); }
+/* Tamanho compacto: barra de filtros, linha de tabela, cabeçalho de cartão */
+.c-botao--compacto { height: var(--altura-controle-compacto); padding: 0 var(--espaco-2); }
+/* Só ícone: quadrado. Precisa de aria-label + dica (lista fechada da DEC-047) */
+.c-botao--icone { width: var(--botao-altura); padding: 0; }
+.c-botao--icone .c-ic { width: var(--icone-medio); height: var(--icone-medio); }
+.c-botao--icone.c-botao--compacto { width: var(--altura-controle-compacto); }
+.c-botao--icone.c-botao--compacto .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-botao--icone.c-botao--texto { color: var(--cor-texto-secundario); }
+.c-botao--icone.c-botao--texto:hover { color: var(--cor-texto-padrao); background: var(--cor-fundo-sutil); }
+/* Estados */
+.c-botao:disabled, .c-botao[aria-disabled='true'] { opacity: .55; cursor: not-allowed; pointer-events: none; }
+.c-botao[aria-busy='true'] { cursor: progress; pointer-events: none; }
+.c-botao[aria-busy='true'] .c-ic { animation: c-gira 900ms linear infinite; }
+/* Grupo: sempre 8 px entre botões. Rodapé/janela: alinhado à direita, Cancelar antes do principal */
+.c-grupo { display: flex; align-items: center; gap: var(--espaco-2); flex-wrap: wrap; }
+.c-grupo--fim { justify-content: flex-end; }
+/* Decidir (DEC-055): ✓ Aprovar e ✕ Reprovar colados, 32 px */
+.c-decidir { display: inline-flex; }
+.c-decidir .c-botao { width: var(--altura-controle-compacto); height: var(--altura-controle-compacto); padding: 0; background: var(--cor-fundo-painel); border-color: var(--cor-borda-padrao); border-radius: 0; }
+.c-decidir .c-botao:first-child { border-radius: var(--raio-pequeno) 0 0 var(--raio-pequeno); }
+.c-decidir .c-botao:last-child { border-radius: 0 var(--raio-pequeno) var(--raio-pequeno) 0; margin-left: calc(-1 * var(--borda-fina)); }
+.c-decidir .c-botao--aprovar { color: var(--cor-status-sucesso-texto); }
+.c-decidir .c-botao--reprovar { color: var(--cor-status-perigo-texto); }
+.c-decidir .c-botao--aprovar:hover { background: var(--cor-status-sucesso-texto); border-color: var(--cor-status-sucesso-texto); color: var(--cor-texto-inverso); position: relative; }
+.c-decidir .c-botao--reprovar:hover { background: var(--cor-status-perigo-texto); border-color: var(--cor-status-perigo-texto); color: var(--cor-texto-inverso); position: relative; }
+
+/* ── 2. Campos (DEC-059) ─────────────────────────────────────────────── */
+.c-campo { display: flex; flex-direction: column; gap: var(--espaco-1); min-width: 0; }
+.c-rotulo { font-size: var(--texto-rotulo-tamanho); line-height: var(--texto-rotulo-altura-linha); font-weight: var(--texto-rotulo-peso); color: var(--cor-texto-subtitulo); }
+.c-rotulo .c-opcional { font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+.c-entrada {
+  width: 100%; min-width: 0; height: var(--campo-altura); padding: 0 var(--espaco-3);
+  background: var(--campo-fundo); color: var(--cor-texto-padrao);
+  border: var(--borda-fina) solid var(--campo-borda); border-radius: var(--campo-raio);
+  font: inherit; font-size: var(--texto-padrao-tamanho); font-variant-numeric: tabular-nums;
+  transition: border-color var(--duracao-rapida) var(--curva-padrao);
+}
+.c-entrada::placeholder { color: var(--cor-texto-desligado); }
+.c-entrada:hover { border-color: var(--cor-texto-secundario); }
+.c-entrada:focus-visible { border-color: var(--cor-acao-fundo); outline-offset: 0; }
+.c-entrada:disabled { background: var(--cor-fundo-desligado); color: var(--cor-texto-desligado); border-color: var(--cor-borda-padrao); cursor: not-allowed; }
+.c-entrada[type='number'], .c-entrada--numero { text-align: right; }
+textarea.c-entrada { height: auto; min-height: 72px; padding: var(--espaco-2) var(--espaco-3); resize: vertical; line-height: var(--texto-padrao-altura-linha); }
+select.c-entrada {
+  appearance: none; padding-right: var(--espaco-6); cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath fill='%23565B73' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right var(--espaco-3) center; background-size: var(--icone-pequeno);
+}
+:root[data-theme='dark'] select.c-entrada { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath fill='%23A9B0C6' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E"); }
+.c-entrada--compacta { height: var(--altura-controle-compacto); padding: 0 var(--espaco-2); }
+select.c-entrada--compacta { padding-right: var(--espaco-6); background-position: right var(--espaco-2) center; }
+/* Ícone dentro do campo (busca, data) */
+.c-com-icone { position: relative; display: flex; align-items: center; min-width: 0; }
+.c-com-icone > .c-ic { position: absolute; left: var(--espaco-3); color: var(--cor-texto-secundario); pointer-events: none; }
+.c-com-icone > .c-entrada { padding-left: calc(var(--espaco-3) + var(--icone-pequeno) + var(--espaco-2)); }
+.c-com-icone > .c-entrada--compacta { padding-left: calc(var(--espaco-2) + var(--icone-pequeno) + var(--espaco-2)); }
+.c-com-icone--compacta > .c-ic { left: var(--espaco-2); }
+/* Ajuda e erro: sempre embaixo, 12 px */
+.c-ajuda { font-size: var(--texto-rotulo-tamanho); line-height: var(--texto-rotulo-altura-linha); color: var(--cor-texto-secundario); }
+.c-erro { display: flex; align-items: center; gap: var(--espaco-1); font-size: var(--texto-rotulo-tamanho); line-height: var(--texto-rotulo-altura-linha); font-weight: var(--fonte-peso-semi); color: var(--cor-status-perigo-texto); }
+.c-erro .c-ic { width: 14px; height: 14px; }
+.c-campo--erro .c-entrada { border-color: var(--cor-status-perigo-texto); }
+/* Caixa de seleção e opção: nativas, só a cor muda (leve) */
+.c-marcar { display: inline-flex; align-items: center; gap: var(--espaco-2); min-height: var(--altura-controle-compacto); cursor: pointer; }
+.c-marcar input { width: var(--icone-pequeno); height: var(--icone-pequeno); margin: 0; accent-color: var(--cor-acao-fundo); cursor: pointer; flex: none; }
+/* Interruptor: liga/desliga com efeito imediato */
+.c-interruptor { display: inline-flex; align-items: center; gap: var(--espaco-2); cursor: pointer; min-height: var(--altura-controle-compacto); }
+.c-interruptor input { appearance: none; margin: 0; width: 32px; height: 18px; border-radius: var(--raio-cheio); background: var(--cor-borda-campo); position: relative; cursor: pointer; flex: none; transition: background-color var(--duracao-rapida) var(--curva-padrao); }
+.c-interruptor input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: var(--raio-cheio); background: var(--cor-fundo-painel); transition: transform var(--duracao-rapida) var(--curva-padrao); }
+.c-interruptor input:checked { background: var(--cor-acao-fundo); }
+.c-interruptor input:checked::after { transform: translateX(14px); }
+/* Formulário em grade: 16 px entre campos, nas duas direções */
+.c-form { display: grid; grid-template-columns: repeat(var(--colunas, 3), minmax(0, 1fr)); gap: var(--espaco-4); }
+.c-form .c-cheio { grid-column: 1 / -1; }
+
+/* ── 3. Barra de filtros (DEC-055 + DEC-059) ─────────────────────────── */
+.c-filtros { display: flex; align-items: center; gap: var(--espaco-2); flex-wrap: wrap; }
+.c-filtros .c-busca { flex: 0 1 240px; }
+.c-filtros .c-entrada { width: auto; }
+.c-filtros .c-busca .c-entrada { width: 100%; }
+.c-filtros .c-contador { margin-left: auto; font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); white-space: nowrap; }
+
+/* ── 4. Selo de status (DEC-046/047/056) ─────────────────────────────── */
+.c-selo { display: inline-flex; align-items: center; gap: var(--espaco-1); height: 20px; padding: 0 var(--espaco-2) 0 6px; border-radius: var(--selo-raio); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); line-height: 1; white-space: nowrap; vertical-align: middle; }
+.c-selo .c-ic { width: 14px; height: 14px; }
+.c-selo--sucesso    { background: var(--cor-status-sucesso-fundo);    color: var(--cor-status-sucesso-texto); }
+.c-selo--atencao    { background: var(--cor-status-atencao-fundo);    color: var(--cor-status-atencao-texto); }
+.c-selo--perigo     { background: var(--cor-status-perigo-fundo);     color: var(--cor-status-perigo-texto); }
+.c-selo--informacao { background: var(--cor-status-informacao-fundo); color: var(--cor-status-informacao-texto); }
+.c-selo--neutro     { background: var(--cor-status-neutro-fundo);     color: var(--cor-status-neutro-texto); }
+/* Sigla da grade de Presença (DEC-056, 8.3): 24 × 20, a sigla carrega o sentido */
+.c-sigla { display: inline-grid; place-items: center; min-width: 24px; height: 20px; padding: 0 var(--espaco-1); border-radius: var(--raio-pequeno); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-negrito); line-height: 1; }
+.c-sigla.c-selo--sucesso, .c-sigla.c-selo--atencao, .c-sigla.c-selo--perigo, .c-sigla.c-selo--informacao, .c-sigla.c-selo--neutro { padding: 0 var(--espaco-1); }
+
+/* ── 5. Tabela densa (DEC-060) ───────────────────────────────────────── */
+.c-tabela-caixa { background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); overflow: auto; max-width: 100%; }
+.c-tabela-caixa > .c-filtros { padding: var(--espaco-2) var(--espaco-3); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-tabela { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--texto-padrao-tamanho); font-variant-numeric: tabular-nums; }
+.c-tabela th {
+  position: sticky; top: 0; z-index: 1; height: var(--altura-controle-compacto); padding: 0 var(--espaco-3);
+  background: var(--tabela-cabecalho-fundo); border-bottom: var(--borda-fina) solid var(--tabela-linha);
+  font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario);
+  text-align: left; white-space: nowrap; vertical-align: middle;
+}
+.c-tabela td { height: var(--altura-linha); padding: 0 var(--espaco-3); border-bottom: var(--borda-fina) solid var(--tabela-linha); vertical-align: middle; white-space: nowrap; }
+.c-tabela tbody tr:last-child td { border-bottom: 0; }
+.c-tabela tbody tr:hover td { background: var(--cor-fundo-pagina); }
+.c-tabela tbody tr[aria-selected='true'] td { background: var(--cor-fundo-selecionado); }
+.c-tabela tbody tr.c-clicavel { cursor: pointer; }
+/* Alinhamento: número e ações à direita, título junto (ajuste do Paulo, DEC-051/055) */
+.c-tabela .c-num { text-align: right; }
+.c-tabela .c-centro { text-align: center; }
+.c-tabela .c-acoes { text-align: right; width: 1%; padding-right: var(--espaco-2); }
+.c-tabela .c-acoes > .c-grupo { justify-content: flex-end; flex-wrap: nowrap; gap: var(--espaco-1); }
+.c-tabela .c-marca { width: 1%; padding-right: 0; }
+/* A coluna de texto mais longa (Nome, Observação) fica com o espaço que sobrar. Nunca Ações nem números. */
+.c-tabela .c-estica { width: 100%; }
+.c-tabela .c-quebra { white-space: normal; min-width: 200px; }
+.c-tabela .c-secundario { color: var(--cor-texto-secundario); }
+.c-tabela .c-forte { font-weight: var(--fonte-peso-semi); }
+/* Duas linhas na célula (nome + matrícula) cabem nos 40 px */
+.c-tabela .c-duas { display: flex; flex-direction: column; line-height: 16px; }
+.c-tabela .c-duas small { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+/* Compacta: Escala mensal, Presença */
+.c-tabela--compacta th, .c-tabela--compacta td { padding: 0 var(--espaco-2); }
+.c-tabela--compacta td { height: var(--altura-linha-compacta); }
+/* 1ª coluna fixa quando a tabela rola para o lado */
+.c-tabela--fixa th:first-child, .c-tabela--fixa td:first-child { position: sticky; left: 0; z-index: 1; background: var(--cor-fundo-painel); box-shadow: inset -1px 0 0 var(--tabela-linha); }
+.c-tabela--fixa th:first-child { z-index: 2; background: var(--tabela-cabecalho-fundo); }
+/* Ordenar pelo título */
+.c-tabela th button.c-ordenar { all: unset; display: inline-flex; align-items: center; gap: var(--espaco-1); cursor: pointer; }
+.c-tabela th button.c-ordenar:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: 2px; }
+.c-tabela th[aria-sort] { color: var(--cor-texto-padrao); }
+/* Seleção de várias linhas: barra no topo */
+.c-selecao { display: flex; align-items: center; gap: var(--espaco-2); height: 40px; padding: 0 var(--espaco-3); background: var(--cor-fundo-selecionado); border-bottom: var(--borda-fina) solid var(--tabela-linha); font-weight: var(--fonte-peso-semi); }
+/* Rodapé: "Mostrando 50 de 214" + "Mostrar mais 50" */
+.c-tabela-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-2); height: 40px; padding: 0 var(--espaco-2) 0 var(--espaco-3); border-top: var(--borda-fina) solid var(--tabela-linha); font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+
+/* ── 6. Montagem da tela (DEC-061) ───────────────────────────────────── */
+.c-pagina { display: flex; flex-direction: column; gap: var(--espaco-5); padding: var(--espaco-5); min-width: 0; }
+.c-pagina-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--espaco-4); flex-wrap: wrap; }
+.c-pagina-cab h1 { margin: 0; font-size: var(--texto-titulo-secao-tamanho); line-height: var(--texto-titulo-secao-altura-linha); font-weight: var(--fonte-peso-negrito); }
+.c-pagina-cab p { margin: 0; color: var(--cor-texto-secundario); }
+.c-caminho { font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); margin-bottom: var(--espaco-1); }
+/* Cartão: 1 nível só (DEC-030), sem sombra */
+.c-cartao { background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); min-width: 0; }
+.c-cartao-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-2); min-height: 48px; padding: var(--espaco-2) var(--espaco-2) var(--espaco-2) var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-cartao-cab h2 { margin: 0; font-size: var(--texto-grande-tamanho); line-height: 24px; font-weight: var(--fonte-peso-negrito); }
+.c-cartao-corpo { padding: var(--espaco-4); }
+.c-cartao > .c-tabela-caixa { border: 0; border-radius: 0 0 var(--painel-raio) var(--painel-raio); }
+/* Faixa de indicadores: até 5, 4 linhas fixas cada (Direção 5.7) */
+.c-indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); }
+.c-indicador { display: grid; grid-template-rows: 16px 36px 16px; row-gap: var(--espaco-1); padding: var(--espaco-3) var(--espaco-4); min-width: 0; }
+.c-indicador + .c-indicador { border-left: var(--borda-fina) solid var(--tabela-linha); }
+.c-indicador .c-ind-rotulo { font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 16px; }
+.c-indicador .c-ind-valor { font-size: var(--texto-titulo-pagina-tamanho); line-height: 36px; font-weight: var(--fonte-peso-negrito); }
+.c-indicador .c-ind-valor small { font-size: var(--texto-padrao-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); margin-left: var(--espaco-1); }
+.c-indicador .c-ind-nota { font-size: var(--texto-rotulo-tamanho); line-height: 16px; color: var(--cor-texto-secundario); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-ind-nota.c-tom-perigo { color: var(--cor-status-perigo-texto); font-weight: var(--fonte-peso-semi); }
+.c-ind-nota.c-tom-atencao { color: var(--cor-status-atencao-texto); font-weight: var(--fonte-peso-semi); }
+.c-ind-nota.c-tom-sucesso { color: var(--cor-status-sucesso-texto); font-weight: var(--fonte-peso-semi); }
+/* Duas colunas de blocos */
+.c-colunas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--espaco-5); }
+
+/* ── 7. Abas e etapas (DEC-062) ──────────────────────────────────────── */
+.c-abas { display: flex; gap: var(--espaco-1); border-bottom: var(--borda-fina) solid var(--tabela-linha); overflow-x: auto; }
+.c-aba { all: unset; display: inline-flex; align-items: center; gap: var(--espaco-2); height: 40px; padding: 0 var(--espaco-3); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); cursor: pointer; white-space: nowrap; box-shadow: inset 0 -2px 0 transparent; }
+.c-aba:hover { color: var(--cor-texto-padrao); }
+.c-aba[aria-selected='true'] { color: var(--cor-texto-link); box-shadow: inset 0 -2px 0 var(--cor-acao-fundo); }
+.c-aba:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: -2px; }
+.c-aba .c-conta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); font-size: var(--texto-rotulo-tamanho); display: inline-grid; place-items: center; }
+.c-etapas { display: flex; align-items: center; gap: var(--espaco-2); list-style: none; margin: 0; padding: 0; counter-reset: etapa; overflow-x: auto; }
+.c-etapa { display: inline-flex; align-items: center; gap: var(--espaco-2); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); counter-increment: etapa; white-space: nowrap; }
+.c-etapa::before { content: counter(etapa); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: var(--raio-cheio); border: var(--borda-fina) solid var(--cor-borda-campo); font-size: var(--texto-rotulo-tamanho); }
+.c-etapa + .c-etapa::after { order: -1; content: ''; width: 16px; height: 1px; background: var(--cor-borda-padrao); }
+.c-etapa[aria-current='step'] { color: var(--cor-texto-padrao); }
+.c-etapa[aria-current='step']::before { background: var(--cor-acao-fundo); border-color: var(--cor-acao-fundo); color: var(--cor-acao-texto); }
+.c-etapa.c-feita::before { content: '✓'; background: var(--cor-acao-suave); border-color: var(--cor-acao-fundo); color: var(--cor-texto-link); }
+
+/* ── 8. Sobreposições: menu, dica, janela, painel lateral (DEC-062) ──── */
+.c-menu { min-width: 200px; padding: var(--espaco-1); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--raio-medio); box-shadow: var(--sombra-menu); display: flex; flex-direction: column; }
+.c-menu-item { all: unset; display: flex; align-items: center; gap: var(--espaco-2); height: var(--altura-controle-compacto); padding: 0 var(--espaco-3) 0 var(--espaco-2); border-radius: var(--raio-pequeno); cursor: pointer; white-space: nowrap; }
+.c-menu-item .c-ic { color: var(--cor-texto-secundario); }
+.c-menu-item:hover, .c-menu-item:focus-visible { background: var(--cor-fundo-sutil); outline: none; }
+.c-menu-item--perigo, .c-menu-item--perigo .c-ic { color: var(--cor-status-perigo-texto); }
+.c-menu-separador { height: 1px; margin: var(--espaco-1) 0; background: var(--tabela-linha); }
+.c-dica { display: inline-block; padding: var(--espaco-1) var(--espaco-2); border-radius: var(--raio-pequeno); background: var(--cor-marinho-900); color: var(--cor-neutro-branco); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); line-height: 16px; white-space: nowrap; box-shadow: var(--sombra-menu); }
+:root[data-theme='dark'] .c-dica { background: var(--cor-escuro-texto); color: var(--cor-marinho-900); }
+/* Janela: 3 larguras. Título 20 px. Rodapé com botões à direita */
+.c-fundo-janela { position: fixed; inset: 0; background: var(--cor-fundo-sobreposicao); display: grid; place-items: center; padding: var(--espaco-4); z-index: 50; }
+.c-janela { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--cor-fundo-painel); border-radius: var(--janela-raio); box-shadow: var(--janela-sombra); border: var(--borda-fina) solid var(--painel-borda); }
+.c-janela--pequena { max-width: 400px; }
+.c-janela--grande { max-width: 800px; }
+.c-janela-cab { display: flex; align-items: flex-start; gap: var(--espaco-2); padding: var(--espaco-4) var(--espaco-2) 0 var(--espaco-5); }
+.c-janela-cab h2 { flex: 1; margin: 6px 0 0; font-size: var(--texto-titulo-secao-tamanho); line-height: 28px; font-weight: var(--fonte-peso-negrito); }
+.c-janela-corpo { padding: var(--espaco-2) var(--espaco-5) var(--espaco-5); overflow: auto; color: var(--cor-texto-subtitulo); }
+.c-janela-corpo p { margin: 0 0 var(--espaco-2); }
+.c-janela-rodape { display: flex; justify-content: flex-end; gap: var(--espaco-2); padding: var(--espaco-4) var(--espaco-5); border-top: var(--borda-fina) solid var(--tabela-linha); }
+.c-painel-lateral { position: fixed; top: var(--altura-topo); right: 0; bottom: 0; width: min(480px, 100%); background: var(--cor-fundo-painel); border-left: var(--borda-fina) solid var(--painel-borda); box-shadow: var(--sombra-janela); display: flex; flex-direction: column; z-index: 40; }
+
+/* ── 9. Retorno: aviso rápido, faixa, esqueleto, estado (DEC-051/053) ── */
+.c-aviso { display: flex; align-items: flex-start; gap: var(--espaco-2); width: 360px; max-width: 100%; padding: var(--espaco-3) var(--espaco-2) var(--espaco-3) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--raio-medio); box-shadow: var(--sombra-aviso); }
+.c-aviso > .c-ic { width: var(--icone-medio); height: var(--icone-medio); color: var(--cor-status-sucesso-texto); }
+.c-aviso p { flex: 1; margin: 0; padding-top: 1px; }
+.c-faixa { display: flex; align-items: flex-start; gap: var(--espaco-2); padding: var(--espaco-3) var(--espaco-2) var(--espaco-3) var(--espaco-4); border-radius: var(--raio-medio); border: var(--borda-fina) solid currentColor; }
+.c-faixa > .c-ic { width: var(--icone-medio); height: var(--icone-medio); }
+.c-faixa .c-faixa-txt { flex: 1; display: flex; align-items: center; gap: var(--espaco-2) var(--espaco-4); flex-wrap: wrap; color: var(--cor-texto-padrao); }
+.c-faixa .c-faixa-txt p { margin: 0; flex: 1 1 240px; }
+.c-faixa--perigo { background: var(--cor-status-perigo-fundo); color: var(--cor-status-perigo-texto); }
+.c-faixa--atencao { background: var(--cor-status-atencao-fundo); color: var(--cor-status-atencao-texto); }
+.c-faixa--informacao { background: var(--cor-status-informacao-fundo); color: var(--cor-status-informacao-texto); }
+.c-faixa .c-botao--secundario { background: var(--cor-fundo-painel); }
+.c-esqueleto { display: block; height: 12px; border-radius: var(--raio-pequeno); background: linear-gradient(90deg, var(--cor-fundo-sutil) 0%, var(--cor-fundo-pagina) 50%, var(--cor-fundo-sutil) 100%) 0 0 / 200% 100%; animation: c-brilho 1.5s linear infinite; }
+.c-estado { display: flex; flex-direction: column; align-items: center; gap: var(--espaco-2); padding: var(--espaco-6) var(--espaco-4); text-align: center; color: var(--cor-texto-secundario); }
+.c-estado .c-estado-titulo { margin: 0; color: var(--cor-texto-padrao); font-weight: var(--fonte-peso-semi); }
+@keyframes c-brilho { to { background-position: -200% 0; } }
+@keyframes c-gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .c-esqueleto, .c-botao[aria-busy='true'] .c-ic { animation: none; } }
+
+/* ── 10. Celular e toque (DEC-040: 44 px) ────────────────────────────── */
+@media (pointer: coarse) {
+  .c-botao, .c-entrada, .c-botao--compacto, .c-entrada--compacta { height: var(--altura-toque); }
+  .c-botao--icone, .c-botao--icone.c-botao--compacto, .c-decidir .c-botao { width: var(--altura-toque); height: var(--altura-toque); }
+  .c-menu-item { height: var(--altura-toque); }
+}
+@media (max-width: 599.98px) {
+  .c-pagina { padding: var(--espaco-4); gap: var(--espaco-4); }
+  .c-form { grid-template-columns: minmax(0, 1fr); }
+  .c-filtros .c-busca { flex: 1 1 100%; }
+}

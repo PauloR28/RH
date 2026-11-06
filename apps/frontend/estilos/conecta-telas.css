@@ -1,0 +1,406 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Telas (Fase 12) · conecta-telas.css
+ * Moldura do sistema (topo + sub-barra) e peças de tela que faltavam no
+ * conecta-ds.css. Depende de tokens.css e conecta-ds.css (carregar antes).
+ * Mesmas regras: prefixo "c-", só tokens, régua 4 · 8 · 16 · 24.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Moldura (DEC-063) ─────────────────────────────────────────────── */
+.c-app { display: flex; flex-direction: column; min-height: 100%; background: var(--cor-fundo-pagina); min-width: 0; }
+/* Topo: 56 px, marinho escuro. Seções com nome (DEC-025/045). Atual = branco + traço ouro 3 px (DEC-038) */
+.c-topo { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: var(--espaco-5); height: var(--altura-topo); padding: 0 var(--espaco-4) 0 var(--espaco-5); background: var(--cor-fundo-topo); color: var(--cor-texto-topo); }
+.c-topo-logo { display: flex; align-items: center; flex: none; height: 24px; }
+.c-topo-logo img, .c-topo-logo svg { height: 24px; width: auto; display: block; }
+.c-topo-nav { display: flex; align-self: stretch; gap: var(--espaco-5); min-width: 0; overflow: hidden; }
+.c-topo-nav a { display: flex; align-items: center; color: inherit; text-decoration: none; font-weight: var(--fonte-peso-semi); white-space: nowrap; box-shadow: inset 0 -3px 0 transparent; }
+.c-topo-nav a:hover { color: var(--cor-texto-topo-atual); }
+.c-topo-nav a[aria-current='page'] { color: var(--cor-texto-topo-atual); box-shadow: inset 0 -3px 0 var(--cor-marca-traco-menu); }
+.c-topo-dir { margin-left: auto; display: flex; align-items: center; gap: var(--espaco-1); flex: none; }
+/* Busca no topo: 32 px, fundo translúcido */
+.c-topo-busca { position: relative; display: flex; align-items: center; width: 240px; margin-right: var(--espaco-2); }
+.c-topo-busca .c-ic { position: absolute; left: var(--espaco-2); color: var(--cor-texto-topo); pointer-events: none; }
+.c-topo-busca input { width: 100%; height: var(--altura-controle-compacto); padding: 0 var(--espaco-2) 0 calc(var(--espaco-2) + var(--icone-pequeno) + var(--espaco-2)); border-radius: var(--raio-pequeno); border: var(--borda-fina) solid color-mix(in srgb, var(--cor-texto-topo) 35%, transparent); background: color-mix(in srgb, #fff 8%, transparent); color: var(--cor-texto-topo-atual); font: inherit; }
+.c-topo-busca input::placeholder { color: var(--cor-texto-topo); }
+/* Botões de ícone do topo: 36 px, sem fundo */
+.c-topo-icone { all: unset; position: relative; display: inline-grid; place-items: center; width: var(--altura-controle); height: var(--altura-controle); border-radius: var(--raio-pequeno); color: var(--cor-texto-topo); cursor: pointer; }
+.c-topo-icone .c-ic { width: var(--icone-medio); height: var(--icone-medio); }
+.c-topo-icone:hover { color: var(--cor-texto-topo-atual); background: color-mix(in srgb, #fff 10%, transparent); }
+.c-topo-icone:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); }
+.c-topo-icone .c-ponto { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: var(--raio-cheio); background: var(--cor-status-perigo-texto); box-shadow: 0 0 0 2px var(--cor-fundo-topo); }
+.c-avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-left: var(--espaco-2); border-radius: var(--raio-cheio); background: var(--cor-marinho-100); color: var(--cor-marinho-700); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-negrito); flex: none; }
+/* Sub-barra: 40 px, clara. Nome da seção é link (B1) + abas da seção */
+.c-subbarra { display: flex; align-items: stretch; gap: var(--espaco-4); height: 40px; padding: 0 var(--espaco-5); background: var(--cor-fundo-painel); border-bottom: var(--borda-fina) solid var(--tabela-linha); overflow: hidden; }
+.c-subbarra-secao { display: flex; align-items: center; gap: var(--espaco-1); padding-right: var(--espaco-4); border-right: var(--borda-fina) solid var(--tabela-linha); margin: var(--espaco-2) 0; font-weight: var(--fonte-peso-negrito); color: var(--cor-texto-padrao); text-decoration: none; white-space: nowrap; }
+.c-subbarra .c-abas { border-bottom: 0; overflow: visible; }
+/* Faixas de tela: só 600 e 1180 px (Fase 15). A rolagem das abas da sub-barra e o topo
+   compacto ficam em conecta-responsivo.css. */
+/* Conteúdo: largura toda até 1600 px, alinhado à esquerda (tabelas densas aproveitam a tela) */
+.c-conteudo { width: 100%; max-width: 1600px; }
+
+/* ── 2. Cabeçalho de página compacto ──────────────────────────────────── */
+/* Título 20 + no máximo 1 linha curta. Ações à direita, mesma linha, 8 px entre botões */
+.c-pagina-cab { align-items: center; }
+.c-pagina-cab .c-titulo { display: flex; align-items: baseline; gap: var(--espaco-3); flex-wrap: wrap; min-width: 0; }
+.c-pagina-cab .c-titulo p { font-size: var(--texto-padrao-tamanho); }
+
+
+/* ── 3. Início (DEC-064) ──────────────────────────────────────────────── */
+/* Atalhos: mesma largura, ícone 20 + nome, 40 px. Sem cartão grande nem ícone em quadrado (B4) */
+.c-atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--espaco-2); }
+.c-atalho { display: flex; align-items: center; gap: var(--espaco-2); height: 40px; padding: 0 var(--espaco-3); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); font-weight: var(--fonte-peso-semi); text-decoration: none; white-space: nowrap; }
+.c-atalho .c-ic { width: var(--icone-medio); height: var(--icone-medio); color: var(--cor-texto-link); }
+.c-atalho:hover { border-color: var(--cor-acao-fundo); background: var(--cor-acao-suave); }
+/* Lista simples dentro de cartão (avisos do Mural): linhas de 40+ px com divisória */
+.c-lista { list-style: none; margin: 0; padding: 0; }
+.c-lista li { display: flex; align-items: center; gap: var(--espaco-3); min-height: 40px; padding: var(--espaco-2) var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-lista li:last-child { border-bottom: 0; }
+.c-lista .c-lista-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 20px; }
+.c-lista .c-lista-txt small { font-size: var(--texto-rotulo-tamanho); line-height: 16px; color: var(--cor-texto-secundario); }
+/* Grade 2:1 (bloco principal + lateral) */
+.c-colunas--21 { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); align-items: start; }
+/* Botões de ação de uma coluna: mesma largura, para alinharem (pedido do Paulo) */
+.c-tabela .c-acoes--iguais .c-botao:not(.c-botao--icone) { min-width: 96px; }
+@media (max-width: 1179.98px) { .c-colunas--21 { grid-template-columns: minmax(0, 1fr); } }
+
+
+/* ── 4. Escala aberta (DEC-065) ───────────────────────────────────────── */
+/* Seletor de visão (Mensal · Do dia · Pausas): botões colados de 32 px. Não é aba, para não ter "aba dentro de aba" (B2) */
+.c-segmento { display: inline-flex; flex: none; }
+.c-segmento .c-botao { height: var(--altura-controle-compacto); padding: 0 var(--espaco-3); border-radius: 0; background: var(--cor-fundo-painel); border-color: var(--cor-borda-padrao); color: var(--cor-texto-secundario); }
+.c-segmento .c-botao + .c-botao { margin-left: calc(-1 * var(--borda-fina)); }
+.c-segmento .c-botao:first-child { border-radius: var(--raio-pequeno) 0 0 var(--raio-pequeno); }
+.c-segmento .c-botao:last-child { border-radius: 0 var(--raio-pequeno) var(--raio-pequeno) 0; }
+.c-segmento .c-botao[aria-pressed='true'] { background: var(--cor-acao-suave); border-color: var(--cor-acao-fundo); color: var(--cor-texto-link); position: relative; z-index: 1; }
+/* Caminho de publicação: Rascunho › Aprovação › Publicada › Fechada (usa .c-etapas do DS) */
+.c-caminho-pub { font-size: var(--texto-rotulo-tamanho); }
+.c-caminho-pub .c-etapa::before { width: 16px; height: 16px; font-size: 10px; }
+/* Grade do mês: dias com 32 px, turno em sigla 24 × 20 */
+.c-grade-mes th.c-dia, .c-grade-mes td.c-dia { width: 32px; min-width: 32px; padding: 0; text-align: center; }
+.c-grade-mes th.c-dia { line-height: 14px; }
+.c-grade-mes th.c-dia small { display: block; font-size: 10px; font-weight: var(--fonte-peso-normal); }
+.c-grade-mes .c-fds { background: var(--cor-fundo-pagina); }
+.c-grade-mes th.c-hoje { background: var(--cor-acao-fundo); color: var(--cor-acao-texto); }
+.c-grade-mes td.c-hoje { background: var(--cor-fundo-selecionado); }
+.c-grade-mes .c-feriado { background: var(--cor-status-informacao-fundo); }
+.c-grade-mes th.c-feriado { color: var(--cor-status-informacao-texto); box-shadow: inset 0 -2px 0 var(--cor-status-informacao-texto); }
+.c-turno { display: inline-grid; place-items: center; min-width: 24px; height: 20px; padding: 0 var(--espaco-1); border-radius: var(--raio-pequeno); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-negrito); line-height: 1; }
+.c-turno--m { background: var(--cor-marinho-50); color: var(--cor-marinho-700); }
+.c-turno--t { background: var(--cor-marinho-200); color: var(--cor-marinho-800); }
+.c-turno--n { background: var(--cor-marinho-600); color: var(--cor-neutro-branco); }
+.c-turno--dsr { color: var(--cor-texto-secundario); font-weight: var(--fonte-peso-semi); font-size: 10px; }
+:root[data-theme='dark'] .c-turno--m { background: color-mix(in srgb, var(--cor-marinho-300) 22%, transparent); color: var(--cor-marinho-100); }
+:root[data-theme='dark'] .c-turno--t { background: color-mix(in srgb, var(--cor-marinho-300) 45%, transparent); color: var(--cor-neutro-branco); }
+/* Legenda em 1 linha */
+.c-legenda { display: flex; align-items: center; gap: var(--espaco-2) var(--espaco-4); flex-wrap: wrap; padding: var(--espaco-2) var(--espaco-3); border-top: var(--borda-fina) solid var(--tabela-linha); font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-legenda > span { display: inline-flex; align-items: center; gap: var(--espaco-1); white-space: nowrap; }
+/* Turno do cadastro: sigla de até 3 letras sobre um tom claro da cor escolhida no cadastro (--t).
+   A cor vira só um fundo leve: a sigla carrega o sentido e a grade fica limpa. */
+.c-turno--cor { background: color-mix(in srgb, var(--t) 18%, var(--cor-fundo-painel)); color: color-mix(in srgb, var(--t) 70%, var(--cor-texto-padrao)); font-size: 10px; letter-spacing: .02em; }
+:root[data-theme='dark'] .c-turno--cor { background: color-mix(in srgb, var(--t) 30%, transparent); color: color-mix(in srgb, var(--t) 35%, var(--cor-neutro-branco)); }
+/* Cabeçalho da escala aberta: 1 linha só, nunca quebra no computador */
+.c-cab-linha { display: flex; align-items: center; gap: var(--espaco-2); min-width: 0; }
+.c-cab-linha h1 { margin: 0 var(--espaco-1) 0 0; font-size: var(--texto-titulo-secao-tamanho); line-height: var(--texto-titulo-secao-altura-linha); font-weight: var(--fonte-peso-negrito); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-cab-linha .c-cab-dir { margin-left: auto; display: flex; align-items: center; gap: var(--espaco-2); flex: none; }
+/* Barra de seleção: aparece no lugar dos filtros quando há linha marcada (mesma altura, nada pula) */
+.c-tabela-caixa > .c-selecao { height: 48px; padding: 0 var(--espaco-3); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-selecao .c-entrada { width: auto; }
+.c-selecao .c-fim { margin-left: auto; }
+.c-tabela-caixa > .c-filtros { min-height: 48px; flex-wrap: nowrap; }
+.c-filtros .c-busca { flex: 1 1 200px; }
+/* Ajustes: nada encolhe a ponto de cortar texto; só a busca cede espaço */
+[hidden] { display: none !important; }
+.c-selecao > span:first-child { white-space: nowrap; }
+.c-selecao > *, .c-filtros > * { flex: none; }
+.c-filtros > .c-busca { flex: 1 1 160px; min-width: 140px; }
+.c-turno--cor { padding: 0 2px; }
+
+/* ── 5. Escala em semana com totais (DEC-065, Modelo 4 + 1) ───────────── */
+/* Dia = coluna larga com bloco: horário em cima, sigla · pausas embaixo. Barra à esquerda na cor do cadastro (--t). */
+.c-semana td { height: 44px; }
+.c-semana th.c-dia-sem, .c-semana td.c-dia-sem { width: 120px; min-width: 88px; padding: 0 var(--espaco-1); }
+
+.c-semana th.c-dia-sem.c-hoje { color: var(--cor-texto-link); box-shadow: inset 0 -2px 0 var(--cor-acao-fundo); }
+.c-semana td.c-dia-sem.c-hoje { background: var(--cor-fundo-selecionado); }
+.c-semana .c-feriado { background: var(--cor-status-informacao-fundo); }
+.c-bloco { display: flex; flex-direction: column; justify-content: center; height: 32px; padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); border-left: 3px solid var(--t); background: color-mix(in srgb, var(--t) 10%, var(--cor-fundo-painel)); line-height: 14px; cursor: pointer; }
+.c-bloco b { font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-negrito); }
+.c-bloco small { font-size: 11px; color: var(--cor-texto-secundario); white-space: nowrap; }
+.c-bloco:hover { background: color-mix(in srgb, var(--t) 20%, var(--cor-fundo-painel)); }
+.c-folga { display: flex; align-items: center; height: 32px; padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); background: repeating-linear-gradient(135deg, var(--cor-fundo-sutil) 0 3px, transparent 3px 7px); font-size: 11px; font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); }
+:root[data-theme='dark'] .c-bloco { background: color-mix(in srgb, var(--t) 22%, var(--cor-fundo-painel)); }
+/* Totais à direita (linha divisória) e linha de escalados embaixo */
+.c-tabela .c-total-ini { border-left: var(--borda-fina) solid var(--tabela-linha); }
+.c-tabela tfoot td { height: 36px; font-weight: var(--fonte-peso-negrito); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); }
+.c-tabela tfoot td small { font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); margin-left: var(--espaco-1); }
+.c-tabela tfoot td.c-falta { color: var(--cor-status-perigo-texto); background: var(--cor-status-perigo-fundo); }
+/* Mês (visão geral, Modelo 1): sigla em texto + traço da cor; folga hachurada */
+.c-grade-mes td.c-mes-t { font-size: 10px; font-weight: var(--fonte-peso-negrito); color: color-mix(in srgb, var(--t) 70%, var(--cor-texto-padrao)); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--t) 45%, transparent); }
+.c-grade-mes td.c-mes-f { background: repeating-linear-gradient(135deg, var(--cor-fundo-sutil) 0 3px, transparent 3px 7px); }
+.c-grade-mes tfoot td.c-falta { color: var(--cor-status-perigo-texto); background: var(--cor-status-perigo-fundo); }
+
+/* ── 6. Versão suave (ajuste do Paulo, 05/11) ─────────────────────────── */
+/* Bloco em 1 linha: horário + sigla pequena. Pausas vão para a dica. Sem fundo forte. */
+.c-semana td { height: 40px; }
+.c-bloco { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--espaco-1); height: 28px; padding: 0 6px 0 var(--espaco-2); border-left-width: 2px; background: var(--cor-fundo-pagina); }
+.c-bloco b { font-weight: var(--fonte-peso-semi); font-size: 12px; white-space: nowrap; }
+.c-bloco small { font-size: 10px; font-weight: var(--fonte-peso-semi); color: color-mix(in srgb, var(--t) 65%, var(--cor-texto-secundario)); }
+.c-bloco:hover { background: color-mix(in srgb, var(--t) 10%, var(--cor-fundo-painel)); }
+:root[data-theme='dark'] .c-bloco { background: color-mix(in srgb, var(--t) 10%, var(--cor-fundo-painel)); }
+.c-folga { height: 28px; background: none; font-weight: var(--fonte-peso-normal); color: var(--cor-texto-desligado); padding-left: 10px; }
+.c-semana .c-feriado { background: color-mix(in srgb, var(--cor-status-informacao-fundo) 55%, transparent); }
+/* Filtros suaves: sem borda, fundo leve, 28 px, largura do conteúdo */
+.c-filtros--suave { gap: var(--espaco-1); }
+.c-filtros--suave select.c-entrada, .c-filtros--suave .c-busca .c-entrada { height: 28px; border-color: transparent; background-color: var(--cor-fundo-pagina); font-size: 12px; }
+.c-filtros--suave select.c-entrada { padding-left: var(--espaco-2); padding-right: 24px; background-position: right 6px center; background-size: 12px; }
+.c-filtros--suave select.c-entrada:hover, .c-filtros--suave .c-busca .c-entrada:hover { border-color: var(--cor-borda-padrao); }
+.c-filtros--suave .c-busca { flex: 0 1 180px; min-width: 120px; }
+.c-filtros--suave .c-segmento .c-botao, .c-filtros--suave .c-navegar .c-botao { height: 28px; font-size: 12px; }
+.c-filtros--suave .c-navegar .c-botao--icone { width: 28px; }
+.c-semana th.c-dia-sem, .c-semana td.c-dia-sem { width: auto; min-width: 92px; }
+.c-legenda .c-traco { display: inline-block; width: 3px; height: 14px; border-radius: 2px; background: var(--t); }
+
+/* ── 7. Presença (DEC-066) — mesma grade suave da escala ─────────────── */
+.c-presenca td.c-dia-sem, .c-presenca th.c-dia-sem { text-align: center; min-width: 72px; }
+.c-presenca td.c-dia-sem.c-hoje, .c-semana td.c-dia-sem.c-hoje { background: color-mix(in srgb, var(--cor-fundo-selecionado) 70%, transparent); }
+.c-presenca .c-sigla { min-width: 28px; cursor: pointer; }
+.c-presenca .c-pendente { color: var(--cor-status-atencao-texto); font-weight: var(--fonte-peso-negrito); cursor: pointer; }
+.c-presenca .c-futuro { color: var(--cor-texto-desligado); font-size: 11px; }
+.c-turno-linha { display: inline-flex; align-items: center; gap: var(--espaco-2); color: var(--cor-texto-secundario); font-size: 12px; white-space: nowrap; }
+/* Ajuste do Paulo (05/11): sem linha vertical depois da caixa de marcar; Colaborador só com a largura do nome.
+   A sobra de espaço vai para os dias, divididos por igual. */
+.c-tabela--fixa th.c-marca, .c-tabela--fixa td.c-marca { box-shadow: none; }
+.c-semana th.c-col-nome, .c-semana td.c-forte { width: 1%; white-space: nowrap; padding-right: var(--espaco-4); }
+
+/* Tabela justa (Trocas): menos respiro lateral para caber tudo em 1 linha a 1180 px */
+.c-tabela--justa th, .c-tabela--justa td { padding-left: var(--espaco-2); padding-right: var(--espaco-2); }
+.c-tabela--justa th:first-child, .c-tabela--justa td:first-child { padding-left: var(--espaco-4); }
+
+/* ── 8. Monitoria (DEC-068) ─────────────────────────────────────────── */
+/* Prazo: só texto colorido, sem selo (o selo já é a situação) */
+.c-tabela td.c-prazo { white-space: nowrap; font-weight: var(--fonte-peso-semi); }
+.c-prazo--atencao { color: var(--cor-status-atencao-texto); }
+.c-prazo--perigo { color: var(--cor-status-perigo-texto); }
+/* Faixa da etapa: etapas à esquerda, nota ao vivo à direita, 1 linha */
+.c-etapa-faixa { display: flex; align-items: center; gap: var(--espaco-4); padding: var(--espaco-2) var(--espaco-4); border-bottom: var(--borda-fina) solid var(--cor-borda-padrao); white-space: nowrap; }
+.c-etapa-faixa .c-etapas { overflow: hidden; font-size: var(--texto-rotulo-tamanho, 12px); }
+.c-nota-viva { margin-left: auto; display: inline-flex; align-items: baseline; gap: var(--espaco-2); }
+.c-nota-viva b { font-size: 20px; line-height: 24px; font-variant-numeric: tabular-nums; }
+.c-nota-viva small { color: var(--cor-texto-secundario); }
+/* Linha de contexto do contato (dados da etapa 1, sempre à vista) */
+.c-contexto { display: flex; gap: var(--espaco-4); padding: var(--espaco-2) var(--espaco-4); color: var(--cor-texto-secundario); font-size: 12px; white-space: nowrap; border-bottom: var(--borda-fina) solid var(--cor-borda-padrao); }
+.c-contexto b { color: var(--cor-texto-padrao); font-weight: var(--fonte-peso-semi); }
+/* Resposta Sim / Não / N/A: botões colados pequenos */
+.c-segmento--mini .c-botao { height: 24px; min-width: 40px; padding: 0 var(--espaco-2); font-size: 12px; }
+.c-segmento--mini .c-botao[aria-pressed='true']:nth-child(2) { background: var(--cor-status-perigo-fundo); border-color: var(--cor-status-perigo-texto); color: var(--cor-status-perigo-texto); }
+.c-entrada--suave { border-color: transparent; background: var(--cor-fundo-sutil); width: 100%; }
+tr.c-falta-resp td:first-child { box-shadow: inset 2px 0 0 var(--cor-status-atencao-texto); }
+/* Rodapé de etapas: Voltar à esquerda; Salvar rascunho + Continuar à direita */
+.c-etapa-rodape { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-4); border-top: var(--borda-fina) solid var(--cor-borda-padrao); }
+.c-etapa-rodape .c-salvo { margin-left: auto; color: var(--cor-texto-secundario); font-size: 12px; }
+
+/* ── 9. Gráficos (DEC-069) ──────────────────────────────────────────── */
+/* Cores dos gráficos: substituem os --color-chart-* provisórios.
+ * Categóricas em ORDEM FIXA (nunca em rodízio). Validadas: daltonismo ΔE ≥ 8,4
+ * entre vizinhas e visão normal ≥ 19,3, no claro (#FFFFFF) e no escuro (#151A2B).
+ * Status (sucesso/atenção/perigo) NUNCA viram série. */
+:root {
+  --cor-grafico-1: #3A5FCD; --cor-grafico-2: #EB6834; --cor-grafico-3: #1BAF7A; --cor-grafico-4: #EDA100;
+  --cor-grafico-5: #E87BA4; --cor-grafico-6: #008300; --cor-grafico-7: #8A5CD6; --cor-grafico-8: #E34948;
+  /* Sequencial (quantidade): um tom só, marinho, do claro ao escuro */
+  --cor-grafico-seq-1: var(--cor-marinho-100); --cor-grafico-seq-2: var(--cor-marinho-200); --cor-grafico-seq-3: var(--cor-marinho-300);
+  --cor-grafico-seq-4: #5E73B4; --cor-grafico-seq-5: var(--cor-marinho-600); --cor-grafico-seq-6: var(--cor-marinho-800);
+  --cor-grafico-grade: var(--cor-linha-divisoria);
+  --cor-grafico-eixo: var(--cor-borda-padrao);
+  --cor-grafico-referencia: var(--cor-texto-secundario);
+  /* Apelidos antigos (código atual continua funcionando) */
+  --color-chart-sequential-1: var(--cor-grafico-seq-6); --color-chart-sequential-2: var(--cor-grafico-seq-5);
+  --color-chart-sequential-3: var(--cor-grafico-seq-4); --color-chart-sequential-4: var(--cor-grafico-seq-3);
+  --color-chart-sequential-5: var(--cor-grafico-seq-2); --color-chart-sequential-6: var(--cor-grafico-seq-1);
+}
+:root[data-theme='dark'] {
+  --cor-grafico-1: #5B7FE0; --cor-grafico-2: #D95926; --cor-grafico-3: #199E70; --cor-grafico-4: #C98500;
+  --cor-grafico-5: #D55181; --cor-grafico-6: #008300; --cor-grafico-7: #9085E9; --cor-grafico-8: #E66767;
+  --cor-grafico-seq-1: #1F2A4D; --cor-grafico-seq-2: #2C3C70; --cor-grafico-seq-3: #3F5596;
+  --cor-grafico-seq-4: #5B72BC; --cor-grafico-seq-5: #8FA3E6; --cor-grafico-seq-6: #C2CDF4;
+}
+.c-grafico { background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); padding: var(--espaco-3) var(--espaco-4); min-width: 0; }
+.c-grafico-cab { display: flex; align-items: center; gap: var(--espaco-4); white-space: nowrap; margin-bottom: var(--espaco-2); }
+.c-grafico-cab h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: var(--fonte-peso-semi); }
+.c-grafico-legenda { margin-left: auto; display: inline-flex; gap: var(--espaco-3); font-size: 12px; color: var(--cor-texto-secundario); }
+.c-grafico-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.c-grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
+.c-grafico svg text { fill: var(--cor-texto-secundario); font-size: 11px; font-family: inherit; }
+.c-grafico svg .c-g-forte { fill: var(--cor-texto-padrao); font-weight: 600; }
+.c-grafico svg .c-g-grade { stroke: var(--cor-grafico-grade); stroke-width: 1; }
+.c-grafico svg .c-g-eixo { stroke: var(--cor-grafico-eixo); stroke-width: 1; }
+.c-grafico svg .c-g-ref { stroke: var(--cor-grafico-referencia); stroke-width: 1; stroke-dasharray: 4 3; }
+.c-grafico svg [data-dica] { cursor: default; }
+.c-grafico svg .c-g-alvo { fill: transparent; }
+.c-grafico svg g.c-g-col:hover .c-g-alvo { fill: var(--cor-fundo-sutil); }
+.c-grafico-dica { position: fixed; z-index: 50; pointer-events: none; background: var(--cor-fundo-painel); color: var(--cor-texto-padrao); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--raio-pequeno); box-shadow: var(--sombra-menu); padding: 6px 8px; font-size: 12px; line-height: 16px; white-space: nowrap; }
+.c-grafico-rodape { margin-top: var(--espaco-2); font-size: 12px; color: var(--cor-texto-secundario); display: flex; gap: var(--espaco-3); white-space: nowrap; }
+.c-grafico-rodape a { margin-left: auto; color: var(--cor-texto-link); }
+.c-graficos { display: grid; grid-template-columns: 3fr 2fr; gap: var(--espaco-4); }
+/* Relatórios: lista lateral fina agrupada por seção */
+.c-rel { display: grid; grid-template-columns: 200px 1fr; gap: var(--espaco-4); align-items: start; }
+.c-rel-lista { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.c-rel-lista h3 { margin: var(--espaco-3) 0 var(--espaco-1); font-size: 12px; color: var(--cor-texto-secundario); font-weight: var(--fonte-peso-semi); }
+.c-rel-lista h3:first-child { margin-top: 0; }
+.c-rel-lista a { display: flex; align-items: center; gap: var(--espaco-2); height: 28px; padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); text-decoration: none; white-space: nowrap; }
+.c-rel-lista a:hover { background: var(--cor-fundo-sutil); }
+.c-rel-lista a[aria-current] { background: var(--cor-fundo-selecionado); color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); }
+.c-rel-lista a small { margin-left: auto; color: var(--cor-texto-secundario); font-size: 11px; }
+/* Filtros dentro da caixa (igual ao Histórico): faixa de filtros em cima, conteúdo embaixo */
+.c-tabela-caixa > .c-indicadores { border: 0; border-radius: 0; }
+.c-tabela-caixa > .c-filtros .c-fim { margin-left: auto; }
+
+/* ── 10. Login (DEC-070) — zona de marca (DEC-022) ──────────────────── */
+.c-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 640px; background: var(--cor-fundo-painel); }
+.c-login-marca { position: relative; overflow: hidden; background: var(--cor-marinho-600); color: var(--cor-texto-inverso); display: flex; flex-direction: column; justify-content: flex-start; padding: var(--espaco-8, 48px); }
+.c-login-topo { display: flex; flex-direction: column; gap: var(--espaco-6); }
+.c-login-topo > svg { width: 220px; height: auto; display: block; }
+.c-login-marca p { margin: 0; max-width: 320px; font-size: 16px; line-height: 24px; color: var(--cor-marinho-100); }
+/* Órbita: arco ouro fino saindo pelo canto (só aqui e no carregamento) */
+.c-login-orbita { position: absolute; right: -170px; top: -170px; width: 420px; height: 420px; border: 2px solid var(--cor-ouro); border-radius: 50%; border-right-color: transparent; border-top-color: transparent; transform: rotate(-10deg); pointer-events: none; }
+.c-login-orbita::after { content: ''; position: absolute; inset: 48px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; }
+.c-login-form { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--espaco-8, 48px); }
+.c-login-caixa { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: var(--espaco-4); }
+.c-login-caixa h1 { margin: 0; font-size: 16px; line-height: 24px; font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); }
+.c-login-caixa .c-botao { width: 100%; justify-content: center; height: 44px; }
+.c-login-ms { width: 18px; height: 18px; flex: none; }
+.c-login-ou { display: flex; align-items: center; gap: var(--espaco-3); font-size: 12px; color: var(--cor-texto-secundario); }
+.c-login-ou::before, .c-login-ou::after { content: ''; flex: 1; height: 1px; background: var(--cor-linha-divisoria); }
+.c-login-link { align-self: center; color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); text-decoration: none; }
+.c-login-link:hover { text-decoration: underline; }
+.c-login-campo { display: flex; flex-direction: column; gap: var(--espaco-1); }
+.c-login-campo label { font-size: 13px; font-weight: var(--fonte-peso-semi); }
+.c-login-campo .c-entrada { height: 40px; }
+.c-login-campo-cab { display: flex; justify-content: space-between; align-items: baseline; }
+.c-login-campo-cab a { font-size: 12px; color: var(--cor-texto-link); text-decoration: none; }
+.c-login-rodape { margin-top: var(--espaco-6, 32px); display: flex; gap: var(--espaco-3); font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; }
+.c-login-rodape a { color: inherit; text-decoration: none; }
+.c-login-rodape a:hover { text-decoration: underline; }
+:root[data-theme='dark'] .c-login-marca { background: var(--cor-marinho-800); }
+/* Login: logo acima de "Entrar" e mural de novidades no lado azul (ajuste do Paulo, 05/11) */
+.c-login-logo svg { width: 200px; height: auto; display: block; margin-bottom: var(--espaco-2); }
+.c-login-simbolo svg { width: 56px; height: auto; display: block; }
+.c-novidades { position: relative; z-index: 1; margin-top: auto; width: 360px; display: flex; flex-direction: column; gap: var(--espaco-2); padding: var(--espaco-3) var(--espaco-4); border-radius: var(--raio-medio); background: rgba(255,255,255,.06); }
+.c-novidades-cab { display: flex; align-items: baseline; }
+.c-novidades-cab h2 { margin: 0; font-size: 12px; line-height: 16px; color: var(--cor-marinho-200); font-weight: var(--fonte-peso-semi); }
+.c-novidades-cab a { margin-left: auto; font-size: 12px; color: var(--cor-marinho-200); }
+.c-novidades ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-novidades li > div { display: flex; align-items: baseline; gap: var(--espaco-2); font-size: 13px; line-height: 20px; white-space: nowrap; }
+.c-novidades li b { color: var(--cor-ouro); font-size: 12px; font-weight: var(--fonte-peso-semi); width: 28px; flex: none; }
+.c-novidades li span { color: var(--cor-marinho-50); font-weight: var(--fonte-peso-semi); overflow: hidden; text-overflow: ellipsis; }
+.c-novidades li small { margin-left: auto; color: var(--cor-marinho-300); font-size: 12px; }
+.c-novidades li p { margin: 0 0 0 36px; font-size: 12px; line-height: 16px; color: var(--cor-marinho-200); }
+
+/* ── 11. Diário do operador (Equipes, DEC-071) ─────────────────────── */
+.c-diario { width: 480px; }
+.c-diario .c-janela-cab small { display: block; font-size: 12px; font-weight: 400; color: var(--cor-texto-secundario); }
+.c-diario .c-janela-corpo { display: flex; flex-direction: column; gap: var(--espaco-4); overflow: auto; }
+.c-diario-numeros { display: grid; grid-template-columns: repeat(4, 1fr); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--raio-medio); }
+.c-diario-numeros > div { padding: var(--espaco-2) var(--espaco-3); display: flex; flex-direction: column; gap: 2px; }
+.c-diario-numeros > div + div { border-left: var(--borda-fina) solid var(--tabela-linha); }
+.c-diario-numeros small { font-size: 11px; color: var(--cor-texto-secundario); white-space: nowrap; }
+.c-diario-numeros b { font-size: 18px; line-height: 24px; }
+.c-diario-numeros em { font-style: normal; font-size: 11px; color: var(--cor-texto-secundario); white-space: nowrap; }
+.c-diario h3 { margin: 0 0 var(--espaco-2); font-size: 12px; font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); display: flex; align-items: center; gap: var(--espaco-2); }
+.c-diario h3 .c-segmento { margin-left: auto; }
+.c-diario-ficha { width: 100%; border-collapse: collapse; font-size: 13px; }
+.c-diario-ficha td { padding: 4px 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); white-space: nowrap; }
+.c-diario-ficha td:first-child { color: var(--cor-texto-secundario); width: 88px; padding-right: var(--espaco-2); }
+.c-linha-tempo { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.c-linha-tempo li { display: grid; grid-template-columns: 44px 20px 1fr auto; align-items: center; gap: var(--espaco-2); min-height: 32px; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-linha-tempo time { font-size: 12px; color: var(--cor-texto-secundario); font-variant-numeric: tabular-nums; }
+.c-linha-tempo .c-ic { color: var(--cor-texto-secundario); }
+.c-linha-tempo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-linha-tempo .c-selo { font-size: 11px; }
+tr[aria-selected='true'] td { background: var(--cor-fundo-selecionado); }
+
+/* ── 12. Perfis e permissões (DEC-073) ─────────────────────────────── */
+.c-tabela tr.c-grupo-linha td { background: var(--cor-fundo-sutil); height: 32px; font-size: 12px; }
+.c-cadeado { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-4); font-size: 12px; color: var(--cor-texto-secundario); border-bottom: var(--borda-fina) solid var(--tabela-linha); white-space: nowrap; }
+.c-cadeado .c-fim { margin-left: auto; }
+
+/* ── 13. Janela de usuário (DEC-072) ───────────────────────────────── */
+.c-janela-cab small { display: block; font-size: 12px; font-weight: 400; line-height: 16px; color: var(--cor-texto-secundario); }
+.c-fichas { display: flex; flex-wrap: wrap; gap: var(--espaco-1); align-items: center; min-height: 36px; padding: 4px; border: var(--borda-fina) solid var(--cor-borda-campo); border-radius: var(--raio-pequeno); }
+.c-ficha { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 4px 0 8px; border-radius: var(--raio-pequeno); background: var(--cor-fundo-selecionado); color: var(--cor-texto-link); font-size: 12px; font-weight: var(--fonte-peso-semi); }
+.c-ficha button { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 16px; height: 16px; }
+.c-ficha .c-ic { width: 12px; height: 12px; }
+.c-fichas input { border: 0; outline: 0; flex: 1; min-width: 80px; font: inherit; font-size: 13px; background: transparent; color: inherit; }
+.c-janela-rodape .c-esq { margin-right: auto; display: flex; gap: var(--espaco-1); }
+
+/* ── 14. Relatórios genéricos (DEC-074) ─────────────────────────────── */
+.c-rel-corpo { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
+.c-abre-menu { position: relative; }
+.c-menu--solto { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; }
+.c-menu--colunas { max-height: 320px; overflow-y: auto; scrollbar-width: thin; }
+.c-menu--colunas .c-menu-item { gap: var(--espaco-2); font-size: 13px; }
+.c-menu--colunas input { margin: 0; accent-color: var(--cor-acao-principal, #263C7D); }
+.c-menu-nota { padding: var(--espaco-1) var(--espaco-2); font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; }
+.c-tabela td.c-tom-perigo { color: var(--cor-status-perigo-texto); font-weight: var(--fonte-peso-semi); }
+.c-tabela .c-estica.c-secundario { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-tabela th .c-ordenar .c-ic { width: 12px; height: 12px; }
+.c-rel-corpo .c-indicadores { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.c-rel-corpo .c-ind-valor { white-space: nowrap; }
+
+/* ── 15. Perfis e permissões v2 (DEC-073): fichas por módulo ────────── */
+.c-perm td { vertical-align: top; padding-top: 6px; padding-bottom: 6px; height: auto; }
+.c-perm .c-perm-mod { width: 1%; white-space: nowrap; padding-top: 9px; padding-right: var(--espaco-4); font-size: 13px; color: var(--cor-texto-padrao); font-weight: var(--fonte-peso-semi); }
+.c-perm .c-perm-n { width: 1%; white-space: nowrap; padding-top: 9px; font-size: 12px; }
+.c-perm-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.c-perm-chip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: var(--raio-pequeno); border: 1px solid var(--tabela-linha); font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; cursor: default; }
+.c-perm-chip .c-ic { width: 12px; height: 12px; display: none; }
+.c-perm-chip[aria-pressed='true'] { background: var(--cor-fundo-selecionado); border-color: transparent; color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); }
+.c-perm-chip[aria-pressed='true'] .c-ic { display: inline-block; }
+.c-perm-chip--critica::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--cor-status-perigo-texto); margin-left: 2px; }
+.c-perm-chip:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: 1px; }
+.c-perm--editando .c-perm-chip { cursor: pointer; }
+.c-perm--editando .c-perm-chip:hover { border-color: var(--cor-texto-link); }
+.c-perm-chip.c-mudou { box-shadow: 0 0 0 2px var(--cor-status-atencao-texto); }
+.c-perm-area-bt { all: unset; display: inline-flex; align-items: center; gap: var(--espaco-2); cursor: pointer; }
+.c-perm-area-bt .c-ic { width: 12px; height: 12px; transition: transform .15s; }
+.c-perm-area-bt[aria-expanded='false'] .c-ic { transform: rotate(-90deg); }
+.c-perm-area-bt .c-secundario { font-weight: var(--fonte-peso-normal); }
+.c-perm-area[data-fechada] tr:not(.c-grupo-linha) { display: none; }
+.c-perm tr[hidden] { display: none; }
+.c-perm-barra { display: flex; align-items: center; gap: var(--espaco-2); min-height: 48px; padding: 0 var(--espaco-3); background: var(--cor-fundo-selecionado); border-bottom: var(--borda-fina) solid var(--tabela-linha); font-size: 13px; }
+.c-perm-barra .c-fim { margin-left: auto; display: flex; gap: var(--espaco-2); }
+.c-legenda .c-ponto-critica { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--cor-status-perigo-texto); }
+
+/* ── 16. Perfis e permissões v3 (DEC-073): Área → Módulo → Permissões, 1 tela ── */
+.c-pv { display: grid; grid-template-columns: 190px 1fr; min-height: 380px; }
+.c-pv-abas { padding: 0 var(--espaco-2); overflow: hidden; }
+.c-pv-abas .c-aba { height: 40px; padding: 0 10px; gap: 6px; font-size: 13px; }
+.c-pv-abas .c-aba small { font-size: 11px; font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+.c-pv-mods { display: flex; flex-direction: column; gap: 2px; padding: var(--espaco-2); border-right: var(--borda-fina) solid var(--tabela-linha); font-size: 13px; }
+.c-pv-mods a { display: flex; align-items: center; height: 30px; padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); text-decoration: none; white-space: nowrap; }
+.c-pv-mods a[hidden] { display: none; }
+.c-pv-mods a:hover { background: var(--cor-fundo-sutil); }
+.c-pv-mods a[aria-current] { background: var(--cor-fundo-selecionado); color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); }
+.c-pv-mods small { margin-left: auto; font-size: 11px; color: var(--cor-texto-secundario); font-weight: var(--fonte-peso-normal); }
+.c-pv-painel { padding: var(--espaco-3) var(--espaco-4); }
+.c-pv-cab { display: flex; align-items: center; gap: var(--espaco-2); height: 32px; margin-bottom: var(--espaco-2); font-size: 14px; }
+.c-pv-cab .c-secundario { font-size: 12px; }
+.c-pv-todas { margin-left: auto; display: none; gap: var(--espaco-1); }
+.c-pv--editando .c-pv-todas { display: flex; }
+.c-pv-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--espaco-6, 24px); }
+.c-pv-item { height: 34px; font-size: 13px; border-bottom: var(--borda-fina) solid var(--tabela-linha); min-width: 0; }
+.c-pv-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-pv-item input:disabled { cursor: default; opacity: .9; }
+.c-pv-item input:disabled + span { cursor: default; }
+.c-pv-critica { width: 6px; height: 6px; border-radius: 50%; background: var(--cor-status-perigo-texto); flex: none; }
+.c-pv-item.c-mudou span { color: var(--cor-status-atencao-texto); font-weight: var(--fonte-peso-semi); }
+.c-pv-item[hidden], .c-pv-painel[hidden] { display: none; }
+.c-rel-lista--caixa { padding: var(--espaco-2); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); }
+.c-rel-lista--caixa h3 { padding: 0 var(--espaco-2); margin-top: var(--espaco-1); }
+.c-pv-faixa { display: flex; align-items: center; gap: var(--espaco-4); min-height: 44px; padding: 0 var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); background: var(--cor-fundo-sutil); font-size: 13px; }
+.c-pv-faixa[hidden] { display: none; }
+.c-pv-faixa .c-pv-sec span { font-weight: var(--fonte-peso-semi); }
+.c-pv-faixa .c-pv-sec.c-mudou span { color: var(--cor-status-atencao-texto); }
+.c-pv-off { display: none; margin-left: auto; font-size: 12px; color: var(--cor-texto-secundario); }
+.c-pv-faixa--off .c-pv-off { display: inline; }
+.c-pv--off .c-pv { opacity: .45; pointer-events: none; }
+.c-aba.c-aba--off { color: var(--cor-texto-desabilitado, #9AA3B5); text-decoration: line-through; text-decoration-thickness: 1px; }
