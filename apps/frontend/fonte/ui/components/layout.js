@@ -173,7 +173,7 @@ export function BarraLateral({
   const sublinksWfm = [
     { tela: 'screen-equipes-controle', icone: 'groups', label: 'Equipes e Turnos', permissao: 'equipes.controle.visualizar' },
     { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minhas escalas', permissao: 'wfm.escala.propria' },
-    { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
+    { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escalas', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
     { tela: 'screen-wfm-painel', icone: 'monitoring', label: 'Painel', permissao: 'relhub.wfm.painel' },
@@ -517,7 +517,7 @@ export function BarraLateral({
         irParaInicio=${() => controlador.irParaMenu()}
         sair=${() => controlador.sair()}
         seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
-        busca=${html`<${BuscaGlobalTopbar} placeholderBusca=${placeholderBusca || 'Buscar no Conecta'} controlador=${controlador} />`}
+        busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
         usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
       />
     `;

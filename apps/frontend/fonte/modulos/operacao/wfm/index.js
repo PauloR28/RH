@@ -2,9 +2,10 @@ import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
+import { ContextField, ModuleHeader, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261104-leitura';
 import { useToast } from '../../../shared/hooks/use-toast.js';
+import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { TelaHistorico } from './historico.js?v=20261104-leitura';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
 import { TelaEscala } from './escala.js?v=20261104-leitura';
@@ -15,7 +16,7 @@ import { TelaJornadas } from './jornadas.js?v=20261104-leitura';
 import { TelaEscalaPausas } from './pausas.js?v=20261104-dia';
 import { TelaEscalaTabela } from './tabela.js?v=20261104-dia';
 import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
-import { ListaEscalas } from './escalas.js?v=20261104-leitura';
+import { ListaEscalas } from './escalas.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { TelaTrocas } from './trocas.js?v=20261104-leitura';
 import { TelaRelatorios } from './relatorios.js?v=20261104-leitura';
@@ -81,9 +82,6 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   }, [contexto, telaAtual, operacao]);
 
   // "Minhas escalas" segue a permissão wfm.escala.propria: quem pode ser escalado (Operador, Técnicos e Analista de TI).
-  // Jornadas vive dentro de Cadastros (alternador no topo da tela): uma aba a menos na barra.
-  const abas = ABAS_WFM.filter((a) => controlador.possuiPermissao(a.permissao) && a.tela !== 'screen-wfm-jornadas' && !(soParticipante && a.tela === 'screen-wfm'));
-  const abaAtiva = telaAtual === 'screen-wfm-jornadas' ? 'screen-wfm-cadastros' : telaAtual;
   const emConfig = ['screen-wfm-cadastros', 'screen-wfm-jornadas'].includes(telaAtual);
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-wfm'];
   const podeCriarEscala = controlador.possuiPermissao('wfm.escala.criar');
@@ -102,17 +100,18 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   // Selo da aba Escala: escalas aguardando a aprovação deste usuário (Supervisor, Gestor...). Só quem aprova consulta.
   const podeAprovar = controlador.possuiPermissao('wfm.escala.aprovar') && !soParticipante;
   const aprovacoes = usePendenciasAprovacao(podeAprovar, `${telaAtual}:${versaoLista}`);
-  const itensAbas = abas.map((a) => ({ id: a.tela, rotulo: a.rotulo, icone: a.icone, selo: a.tela === 'screen-wfm-presenca' ? pendenciasPresenca : a.tela === 'screen-wfm' ? aprovacoes.total : 0 }));
+  // Contagens das telas (Presença: pendências da semana; Escalas: aprovações) vão para a sub-barra da moldura (Fase 15).
+  useEffect(() => {
+    definirSelos({ 'screen-wfm-presenca': Number(pendenciasPresenca) || 0, 'screen-wfm': Number(aprovacoes.total) || 0 });
+  }, [pendenciasPresenca, aprovacoes.total]);
 
-  // Lista de escalas: layout novo (cabeçalho, abas, resumo e lista numa tela só); as demais telas do WFM seguem como estão.
+  // Lista de escalas: redesign Fase 15 (a própria ListaEscalas monta a página).
   if (telaAtual === 'screen-wfm' && visaoEscala === 'lista' && contexto && !erro) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${ListaEscalas} controlador=${controlador} anoMes=${anoMes} aoMudarMes=${setAnoMes} versao=${versaoLista} showToast=${showToast}
           aprovacoes=${aprovacoes.itens} aoRecarregarAprovacoes=${aprovacoes.recarregar}
-          titulo=${titulo} descricao=${descricao}
-          abas=${itensAbas} abaAtiva=${abaAtiva} aoMudarAba=${(tela) => controlador.irParaTelaProtegida(tela)}
           aoAbrir=${(chave, modo) => { setOperacao(chave); setVisaoEscala(modo); }}
           aoConfigurar=${(item) => setConfigurandoItem(item)}
           aoMudou=${() => { recarregarContexto(); setVersaoLista((v) => v + 1); }} />
@@ -129,8 +128,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-            abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
+          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           ${visaoEscala === 'pausas'
             ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoMes=${() => setVisaoEscala('mes')} />`
             : visaoEscala === 'mes'
@@ -149,8 +147,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-            abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
+          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />
         <//>
       </${PainelRh}>`;
@@ -162,8 +159,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-            abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
+          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           <${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} aoMudarPendencias=${setTotalSemanaPresenca} />
         <//>
       </${PainelRh}>`;
@@ -176,8 +172,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         <${PaginaConsole} className="cx-pagina--modulo cx-pagina--rolavel">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-            abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} />
+          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           <div class="mo-contexto cx-fixo">
             <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${contexto.operacoes.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} ocultar=${contexto.operacoes.length <= 1} />
             ${noCadastros ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
@@ -241,8 +236,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca=${telaAtual === 'screen-wfm-auditoria' ? 'Auditoria de Plantões' : 'Turnos e Plantões'} placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
       <div class="wfm-toast"><${ToastHost} /></div>
       <${PageShell}>
-      <div class="mo-cab-solto"><${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-        abas=${html`<${ModuleTabs} itens=${itensAbas} ativa=${abaAtiva} aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />`} /></div>
+      <div class="mo-cab-solto"><${ModuleHeader} titulo=${titulo} subtitulo=${descricao} /></div>
       <div class="mon-shell">
         ${contexto && (contexto.operacoes.length || telaAtual === 'screen-wfm') && !semPeriodo ? html`<${SeletorPeriodo} contexto=${contexto} operacao=${operacao} setOperacao=${setOperacao} anoMes=${anoMes} setAnoMes=${setAnoMes} semMes=${telaAtual === 'screen-wfm-jornadas'} semOperacao=${semOperacao} soEscalasAtivas=${telaAtual === 'screen-wfm'} />` : null}
         ${emConfig && contexto ? html`<div class="wfm-segmento" role="tablist" aria-label="Cadastros e jornadas">

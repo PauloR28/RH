@@ -1,6 +1,7 @@
 import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
 import { IconeSvg } from '../icone.js';
 import { montarCaminhoDaTela } from '../../rotas.js';
+import { useSelosSubbarra } from './selos-subbarra.js';
 
 // Moldura do redesign (Fase 15, DEC-063): topo escuro de 56 px com o logo e as
 // seções, engrenagem de Configurações à direita, e sub-barra clara de 40 px com
@@ -53,6 +54,7 @@ export function MolduraConecta({
   const gavetaRef = useRef(null);
   const menuBotaoRef = useRef(null);
   const subbarraRef = useRef(null);
+  const selos = useSelosSubbarra();
 
   // Seções que podem ir para o "Mais": nunca a atual (DEC-076), sempre do fim para o começo.
   const moviveis = secoes.filter((secao) => !secao.ativo);
@@ -256,7 +258,7 @@ export function MolduraConecta({
                           aria-current=${aba.ativo ? 'page' : null}
                           title=${aba.desativado ? `${aba.label} (em construção)` : null}
                           onClick=${(evento) => aoClicarLink(evento, () => irPara(aba.tela))}
-                        >${aba.label}</a>
+                        >${aba.label}${Number(selos[aba.tela]) > 0 ? html`<span class="c-conta" aria-label=${`${selos[aba.tela]} pendente(s)`}>${selos[aba.tela]}</span>` : null}</a>
                       `,
                     )}
                   </div>

@@ -1,0 +1,43 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Peças do app que o kit não trazia (Fase 15) · redesign-telas.css
+ * Só tokens e régua 4·8·16·24. Usado pelas telas redesenhadas (classes c-).
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* A tela redesenhada traz o próprio respiro (.c-pagina, 24 px); a casca antiga não soma o dela. */
+.rh-modern-page:has(> .c-pagina), .rh-modern-page:has(> .wfm-toast + .c-pagina) { padding: 0; }
+.c-pagina { font-family: var(--fonte-familia-texto); color: var(--cor-texto-padrao); font-variant-numeric: tabular-nums; }
+.c-pagina *, .c-fundo-janela * { box-sizing: border-box; }
+.c-pagina .c-ic > svg, .c-fundo-janela .c-ic > svg, .c-menu .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-pagina h1, .c-pagina h2, .c-pagina h3 { color: var(--cor-texto-padrao); }
+
+/* Navegar período: ‹ rótulo › colados */
+.c-navegar { display: inline-flex; flex: none; }
+.c-navegar > .c-botao { border-radius: 0; }
+.c-navegar > .c-botao + .c-botao { margin-left: calc(-1 * var(--borda-fina)); }
+.c-navegar > .c-botao:first-child { border-radius: var(--raio-pequeno) 0 0 var(--raio-pequeno); }
+.c-navegar > .c-botao:last-child { border-radius: 0 var(--raio-pequeno) var(--raio-pequeno) 0; }
+.c-navegar-rotulo { min-width: 136px; cursor: default; pointer-events: none; }
+
+/* Contagem dentro de segmento e da sub-barra */
+.c-segmento .c-conta, .c-moldura-subbarra .c-conta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); font-size: var(--texto-rotulo-tamanho); display: inline-grid; place-items: center; }
+.c-moldura-subbarra .c-aba .c-conta { margin-left: var(--espaco-1); }
+
+/* Esqueleto em lista */
+.c-esqueleto-lista { display: flex; flex-direction: column; gap: var(--espaco-4); padding: var(--espaco-4); }
+.c-esqueleto-lista .c-esqueleto:nth-child(3n+2) { width: 80%; }
+.c-esqueleto-lista .c-esqueleto:nth-child(3n) { width: 60%; }
+
+/* Janela de formulário: o corpo rola, o rodapé fica */
+.c-janela-form { display: flex; flex-direction: column; min-height: 0; }
+.c-janela-corpo { display: flex; flex-direction: column; gap: var(--espaco-4); }
+.c-janela-corpo > .c-faixa { margin-top: 0; }
+.c-fundo-janela { z-index: 1100; }
+
+/* Menu de ações aberto por cima da tabela */
+.c-tabela-caixa:has(.c-menu--solto) { overflow: visible; }
+.c-menu-item[aria-disabled='true'] { opacity: .55; cursor: not-allowed; }
+
+/* Pequenos utilitários de texto */
+.c-pagina .c-sec { color: var(--cor-texto-secundario); }
+.c-pagina .c-nota { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); margin: 0; }
+.c-pagina .c-bolinha { display: inline-block; width: 8px; height: 8px; margin-right: var(--espaco-2); border-radius: var(--raio-cheio); background: var(--cor-status-atencao-texto); vertical-align: middle; }

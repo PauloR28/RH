@@ -1,22 +1,20 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { Campo, ModalForm } from './formulario.js';
 import { dataHora, falhaAo } from './comum.js?v=20261104-leitura';
-import { AvisoConsole, BotaoTracejado, CardResumo, EsqueletoLinhas, EstadoConsole, IconeCx, PaginaConsole, PilulaStatus } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ModuleHeader, ModuleTabs } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
+import { CabPagina, Campo, Esqueleto, Estado, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Tela inicial da aba Escala: a lista de escalas do mês.
+// Tela inicial da aba Escalas: a lista de escalas do mês (redesign Fase 15, amostra "Escalas" da Fase 12).
 //  - Quem cria escalas (Supervisor, Control Desk, Analista de TI): vê todas (ativas e inativas), abre a escala para montar,
 //    visualiza o mês inteiro, configura (⚙) e cria novas.
-//  - Gestor: tela simples; só as escalas ativas que já saíram de rascunho, com "Visualizar escala".
-//  - Demais perfis de leitura: só as escalas ativas, com "Visualizar escala".
+//  - Gestor: tela simples; só as escalas ativas que já saíram de rascunho.
+//  - Demais perfis de leitura: só as escalas ativas.
 // O que cada perfil pode fazer é decidido no servidor; aqui só se escolhe o que mostrar.
 
+// Situação no mês → [rótulo, tom do selo, ícone]. A cor nunca vem sozinha (DEC-046).
 const ESTADO = {
-  RASCUNHO: ['Rascunho', 'rascunho'],
-  EM_APROVACAO: ['Em aprovação', 'troca'],
-  APROVADA: ['Aprovada', 'ativo'],
+  RASCUNHO: ['Rascunho', 'neutro', 'pencil-simple'],
+  EM_APROVACAO: ['Aguardando aprovação', 'atencao', 'hourglass'],
+  APROVADA: ['Aprovada', 'sucesso', 'check-circle'],
 };
 
 // Escala "sai de rascunho" quando foi enviada, aprovada ou publicada, ou o período já foi fechado.
@@ -38,19 +36,17 @@ function ModalCriarEscala({ operacoes, operacaoInicial, onClose, onCriada, showT
       onCriada(r.chave);
     } catch (e) { setErro(e?.message || 'Não foi possível criar a escala.'); } finally { setSalvando(false); }
   };
-  return html`<${ModalForm} titulo="Criar escala" onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo="Criar escala">
-    <div class="wfm-grade-form">
-      <${Campo} rotulo="Nome da escala" span=${12} dica="Ex.: Plantão de sábado, Escala 6x1 manhã.">
-        <input class="form-control" maxlength="120" autofocus value=${nome} onInput=${(e) => setNome(e.target.value)} />
-      </${Campo}>
-      <${Campo} rotulo="Operação" span=${12}>
-        <select class="form-select" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>
-          ${operacoes.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}
-        </select>
-      </${Campo}>
-    </div>
-    <p class="mon-muted">Depois de criar, use o botão de configurações da escala para definir quem aprova, a jornada e outras opções.</p>
-  </${ModalForm}>`;
+  return html`<${JanelaForm} titulo="Criar escala" onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo="Criar escala">
+    <${Campo} rotulo="Nome da escala" ajuda="Ex.: Plantão de sábado, Escala 6x1 manhã.">
+      <input class="c-entrada" maxlength="120" autofocus value=${nome} onInput=${(e) => setNome(e.target.value)} />
+    <//>
+    <${Campo} rotulo="Operação">
+      <select class="c-entrada" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>
+        ${operacoes.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}
+      </select>
+    <//>
+    <p class="c-ajuda">Depois de criar, use as configurações da escala para definir quem aprova, a jornada e outras opções.</p>
+  <//>`;
 }
 
 const nomeMes = (anoMes) => {
@@ -76,10 +72,10 @@ const motivoSemPublicar = (e) => {
   return '';
 };
 
-// Painel "Aprovações pendentes": o aprovador decide aqui mesmo (Aprovar / Declinar com justificativa), sem abrir a escala inteira.
+// Aprovações pendentes: o aprovador decide aqui mesmo (Aprovar / Declinar com justificativa), sem abrir a escala inteira.
 // "Ver escala" abre o mês para conferir antes de decidir. Quem pode aprovar e o que acontece ao aprovar é decidido no servidor.
-function PainelAprovacoes({ itens, aoVer, aoDecidiu, showToast }) {
-  const [declinando, setDeclinando] = useState(''); // `${chave}|${ano_mes}` em declínio
+function CartaoAprovacoes({ itens, aoVer, aoDecidiu, showToast }) {
+  const [declinando, setDeclinando] = useState(null); // item em declínio (abre a janela)
   const [motivo, setMotivo] = useState('');
   const [ocupado, setOcupado] = useState('');
   const idDe = (e) => `${e.chave}|${e.ano_mes}`;
@@ -93,47 +89,62 @@ function PainelAprovacoes({ itens, aoVer, aoDecidiu, showToast }) {
       aoDecidiu();
     } catch (err) { showToast?.(falhaAo(`aprovar a escala "${e.nome}"`, err), 'error'); aoDecidiu(); } finally { setOcupado(''); }
   };
-  const declinar = async (e) => {
+  const declinar = async (ev) => {
+    ev?.preventDefault?.();
+    const e = declinando;
+    if (!e || motivo.trim().length < 3) return;
     setOcupado(idDe(e));
     try {
       await declinarEscalaWfm({ operacao: e.chave, ano_mes: e.ano_mes, justificativa: motivo });
       showToast?.(`Escala "${e.nome}" declinada e devolvida para correção.`, 'success');
-      setDeclinando(''); setMotivo('');
+      setDeclinando(null); setMotivo('');
       aoDecidiu();
     } catch (err) { showToast?.(falhaAo(`declinar a escala "${e.nome}"`, err), 'error'); aoDecidiu(); } finally { setOcupado(''); }
   };
-  return html`<section class="cx-card cx-aprovacoes" aria-labelledby="cx-aprov-titulo">
-    <div class="cx-card-cab"><div class="cx-card-titulo"><p class="cx-sobre">Precisa da sua decisão</p>
-      <h2 class="cx-h2" id="cx-aprov-titulo">Aprovações pendentes${itens.length ? html` <span class="cx-bolinha-n" aria-label=${`${itens.length} pendente(s)`}>${itens.length}</span>` : null}</h2></div></div>
-    <div class="cx-card-corpo cx-aprov-corpo">
-      ${itens.length ? html`<ul class="cx-aprov-lista">${itens.map((e) => html`<li key=${idDe(e)} class="cx-aprov-item">
-        <div class="cx-aprov-info">
-          <strong class="cx-trunca" title=${e.nome}>${e.nome}</strong>
-          <small>${rotuloMesAno(e.ano_mes)} · ${e.colaboradores} colaborador(es)</small>
-          <small>Enviada por ${e.enviado_por || '—'}${e.enviado_em ? ` em ${dataHora(e.enviado_em)}` : ''}</small>
-        </div>
-        <div class="cx-aprov-acoes">
-          <button type="button" class="cx-btn cx-btn--sm" onClick=${() => aoVer(e)}>Ver escala</button>
-          <button type="button" class="cx-btn cx-btn--sm cx-btn--primario" disabled=${ocupado === idDe(e)} onClick=${() => aprovar(e)}>Aprovar</button>
-          ${e.pode_declinar ? html`<button type="button" class="cx-btn cx-btn--sm" aria-expanded=${declinando === idDe(e)} disabled=${ocupado === idDe(e)} onClick=${() => { setDeclinando(declinando === idDe(e) ? '' : idDe(e)); setMotivo(''); }}>Declinar</button>` : null}
-        </div>
-        ${declinando === idDe(e) ? html`<div class="cx-aprov-declinar">
-          <label class="visually-hidden" for=${`cx-motivo-${idDe(e)}`}>Justificativa do declínio</label>
-          <input id=${`cx-motivo-${idDe(e)}`} class="form-control" maxlength="400" autofocus value=${motivo} onInput=${(ev) => setMotivo(ev.target.value)} placeholder="O que precisa ser corrigido? (obrigatório)" />
-          <button type="button" class="cx-btn cx-btn--sm cx-btn--primario" disabled=${ocupado === idDe(e) || motivo.trim().length < 3} onClick=${() => declinar(e)}>Confirmar declínio</button>
-        </div>` : null}
-      </li>`)}</ul>` : html`<p class="cx-legenda cx-aprov-vazio">Nenhuma escala aguardando a sua aprovação.</p>`}
+  return html`<section class="c-cartao" aria-labelledby="wfm-aprov-titulo">
+    <div class="c-cartao-cab"><h2 id="wfm-aprov-titulo">Aguardando a sua aprovação</h2><span class="c-nota">${itens.length} escala(s)</span></div>
+    <div class="c-tabela-caixa">
+      <table class="c-tabela">
+        <thead><tr><th scope="col">Escala</th><th scope="col">Mês</th><th scope="col" class="c-num">Colaboradores</th><th scope="col" class="c-estica">Enviada por</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+        <tbody>${itens.map((e) => html`<tr key=${idDe(e)}>
+          <td class="c-forte">${e.nome}</td>
+          <td class="c-secundario">${rotuloMesAno(e.ano_mes)}</td>
+          <td class="c-num">${e.colaboradores}</td>
+          <td class="c-estica c-secundario">${e.enviado_por || '—'}${e.enviado_em ? ` · ${dataHora(e.enviado_em)}` : ''}</td>
+          <td class="c-acoes"><div class="c-grupo">
+            <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => aoVer(e)}>Ver escala</button>
+            ${e.pode_declinar ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${ocupado === idDe(e) || null} onClick=${() => { setDeclinando(e); setMotivo(''); }}>Declinar</button>` : null}
+            <button type="button" class="c-botao c-botao--principal c-botao--compacto" aria-busy=${ocupado === idDe(e) ? 'true' : null} disabled=${ocupado === idDe(e) || null} onClick=${() => aprovar(e)}><${Ic} nome="check" />Aprovar</button>
+          </div></td>
+        </tr>`)}</tbody>
+      </table>
     </div>
+    ${declinando ? html`<${Janela} titulo="Declinar escala" tamanho="pequena" onClose=${() => setDeclinando(null)}>
+      <form class="c-janela-form" onSubmit=${declinar}>
+        <div class="c-janela-corpo">
+          <p>A escala "${declinando.nome}" de ${rotuloMesAno(declinando.ano_mes)} volta para correção.</p>
+          <${Campo} rotulo="O que precisa ser corrigido?" ajuda="Obrigatório (mínimo 3 letras).">
+            <textarea class="c-entrada" maxlength="400" autofocus value=${motivo} onInput=${(ev) => setMotivo(ev.target.value)}></textarea>
+          <//>
+        </div>
+        <div class="c-janela-rodape">
+          <button type="button" class="c-botao c-botao--secundario" onClick=${() => setDeclinando(null)}>Cancelar</button>
+          <button type="submit" class="c-botao c-botao--perigo" disabled=${ocupado === idDe(declinando) || motivo.trim().length < 3 || null}>Confirmar declínio</button>
+        </div>
+      </form>
+    <//>` : null}
   </section>`;
 }
 
-export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou, titulo, descricao, abas, abaAtiva, aoMudarAba, aprovacoes = [], aoRecarregarAprovacoes }) {
+export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToast, aoAbrir, aoConfigurar, aoMudou, aprovacoes = [], aoRecarregarAprovacoes }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [tentativa, setTentativa] = useState(0);
   const [criando, setCriando] = useState(false);
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState('todas');
+  const [operacaoFiltro, setOperacaoFiltro] = useState('');
+  const [verAprovacoes, setVerAprovacoes] = useState(false);
   const [publicando, setPublicando] = useState('');
   useEffect(() => {
     let ativo = true;
@@ -151,17 +162,17 @@ export function ListaEscalas({ controlador, anoMes, aoMudarMes, versao, showToas
   const ehGestor = controlador?.estado?.perfilUsuario === 'gestor';
   const podePublicar = controlador?.possuiPermissao?.('wfm.escala.publicar');
   const base = dados ? dados.itens.filter((e) => (gere || e.ativa) && (!ehGestor || foraDeRascunho(e))) : [];
+  const operacoesLista = [...new Set(base.map((e) => e.operacao).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const termo = busca.trim().toLowerCase();
   const itens = base.filter((e) => (filtro === 'todas' || (filtro === 'aprovacao' ? pendenteNoMes.has(e.chave) : filtro === 'rascunho' ? ehRascunho(e) : ehPublicada(e)))
+    && (!operacaoFiltro || e.operacao === operacaoFiltro)
     && (!termo || `${e.nome} ${e.operacao}`.toLowerCase().includes(termo)));
   const totais = {
     todas: base.length,
     rascunho: base.filter(ehRascunho).length,
     publicadas: base.filter(ehPublicada).length,
-    colaboradores: base.reduce((soma, e) => soma + (Number(e.escalados) || 0), 0),
   };
   const mes = nomeMes(anoMes);
-  const semColaboradores = base.filter(semEscala);
 
   const publicar = async (e) => {
     if (!window.confirm(`Publicar a escala "${e.nome}" de ${rotuloMesAno(anoMes)}?`)) return;
@@ -189,90 +200,72 @@ Os colaboradores, turnos e horários combinados são copiados pelo mesmo dia da 
     }
   };
 
-  const botaoNova = gere ? html`<button type="button" class="cx-btn cx-btn--primario" onClick=${() => setCriando(true)}><${IconeCx} nome="add" />Nova escala</button>` : null;
+  const limpar = () => { setBusca(''); setFiltro('todas'); setOperacaoFiltro(''); };
   const corpoTabela = () => {
-    if (erro) return html`<${EstadoConsole} mensagem=${erro} rotuloAcao="Tentar de novo" aoAcao=${() => setTentativa((t) => t + 1)} />`;
-    if (!dados) return html`<${EsqueletoLinhas} linhas=${5} altura=${62} />`;
-    if (!base.length) return html`<${EstadoConsole} mensagem=${gere ? `Nenhuma escala em ${mes}` : ehGestor ? 'Quando uma escala for enviada para aprovação ou publicada, ela aparece aqui.' : `Não há escalas ativas em ${mes}.`} rotuloAcao=${gere ? 'Nova escala' : undefined} aoAcao=${() => setCriando(true)} />`;
-    if (!itens.length) return html`<${EstadoConsole} mensagem="Nenhuma escala encontrada." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltro('todas'); }} />`;
+    if (erro) return html`<${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${() => setTentativa((t) => t + 1)} />`;
+    if (!dados) return html`<${Esqueleto} linhas=${5} />`;
+    if (!base.length) return html`<${Estado} icone="calendar-blank" titulo=${gere ? `Nenhuma escala em ${mes}` : ehGestor ? 'Quando uma escala for enviada para aprovação ou publicada, ela aparece aqui.' : `Não há escalas ativas em ${mes}.`} rotuloAcao=${gere ? 'Nova escala' : undefined} aoAcao=${() => setCriando(true)} />`;
+    if (!itens.length) return html`<${Estado} titulo="Nenhuma escala encontrada." rotuloAcao="Limpar filtros" aoAcao=${limpar} />`;
     return html`
-      <table class="cx-tabela">
+      <table class="c-tabela">
         <thead><tr>
-          <th scope="col">Escala</th><th scope="col" class="cx-col-situacao">Situação no mês</th>
-          <th scope="col" class="cx-col-num">Colaboradores</th><th scope="col" class="cx-col-pub">Publicação</th>
-          <th scope="col" class="cx-col-num cx-col-acoes">Ações</th>
+          <th scope="col">Escala</th><th scope="col">Operação</th><th scope="col">Situação no mês</th>
+          <th scope="col" class="c-num">Colaboradores</th><th scope="col" class="c-estica">Publicação</th>
+          <th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th>
         </tr></thead>
         <tbody>${itens.map((e) => {
-    const [rotulo, variante] = e.declinada ? ['Declinada', 'falta'] : semEscala(e) ? ['Sem escala', 'inativo'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
+    const [rotulo, tom, icone] = e.declinada ? ['Declinada', 'perigo', 'x-circle'] : semEscala(e) ? ['Sem colaboradores', 'neutro', 'circle'] : (ESTADO[e.aprovacao] || ESTADO.RASCUNHO);
     const motivo = motivoSemPublicar(e);
-    return html`<tr key=${e.chave}>
-            <td><div class="cx-linha-nome cx-trunca" title=${e.nome}>${pendenteNoMes.has(e.chave) ? html`<span class="cx-bolinha" role="img" aria-label="Aprovação pendente" title="Aguardando a sua aprovação"></span>` : null}${e.nome}</div>
-              <div class="cx-linha-sub cx-trunca" title=${e.operacao}>${e.operacao}${e.principal ? ' · principal' : ''}${e.jornada ? ` · jornada ${e.jornada}` : ''}${gere && !e.ativa ? ' · inativa' : ''}</div></td>
-            <td><${PilulaStatus} variante=${e.fechada ? 'inativo' : variante}>${e.fechada ? 'Fechada' : rotulo}</${PilulaStatus}></td>
-            <td class="cx-col-num">${e.escalados}</td>
-            <td>${e.versao_publicada ? `Versão ${e.versao_publicada}` : 'Não publicada'}</td>
-            <td class="cx-col-num"><span class="cx-linha-acoes">
-              <button type="button" class="cx-btn cx-btn--sm cx-btn--suave" title="Visualizar a escala do mês inteiro" onClick=${() => aoAbrir(e.chave, 'mes')}><${IconeCx} nome="calendar_month" />Visualizar</button>
-              ${podePublicar && !(e.aprovacao === 'APROVADA' && e.versao_publicada > 0) ? html`<span title=${motivo || undefined}><button type="button" class="cx-btn cx-btn--sm" disabled=${Boolean(motivo) || publicando === e.chave} onClick=${() => publicar(e)}>${publicando === e.chave ? 'Publicando...' : 'Publicar'}</button></span>` : null}
-              ${gere ? html`<${MenuAcoesProcesso} ariaLabel=${`Mais ações de ${e.nome}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
+    const extras = [e.principal ? 'principal' : '', e.jornada ? `jornada ${e.jornada}` : '', gere && !e.ativa ? 'inativa' : ''].filter(Boolean).join(' · ');
+    return html`<tr key=${e.chave} class="c-clicavel" onClick=${(ev) => { if (!ev.target.closest('button, a, .c-abre-menu')) aoAbrir(e.chave, 'mes'); }}>
+            <td><div class="c-duas"><span class="c-forte">${pendenteNoMes.has(e.chave) ? html`<span class="c-bolinha" role="img" aria-label="Aguardando a sua aprovação" title="Aguardando a sua aprovação"></span>` : null}${e.nome}</span>${extras ? html`<small>${extras}</small>` : null}</div></td>
+            <td class="c-secundario">${e.operacao}</td>
+            <td>${e.fechada ? html`<${Selo} tom="neutro" icone="lock">Fechada<//>` : html`<${Selo} tom=${tom} icone=${icone}>${rotulo}<//>`}</td>
+            <td class="c-num">${e.escalados}</td>
+            <td class="c-estica c-secundario">${e.versao_publicada ? `Versão ${e.versao_publicada}` : 'Não publicada'}</td>
+            <td class="c-acoes"><div class="c-grupo">
+              <button type="button" class="c-botao c-botao--secundario c-botao--compacto" title="Ver a escala do mês inteiro" onClick=${() => aoAbrir(e.chave, 'mes')}>Abrir</button>
+              ${podePublicar && !(e.aprovacao === 'APROVADA' && e.versao_publicada > 0) ? html`<span title=${motivo || undefined}><button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-busy=${publicando === e.chave ? 'true' : null} disabled=${Boolean(motivo) || publicando === e.chave || null} onClick=${() => publicar(e)}>${publicando === e.chave ? 'Publicando…' : 'Publicar'}</button></span>` : null}
+              ${gere ? html`<${MenuAcoes} rotulo=${`Mais ações de ${e.nome}`}
                 acoes=${[
-        { label: 'Abrir escala', icon: 'edit_note', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'mes') },
-        { label: 'Duplicar para o mês seguinte', icon: 'content_copy', disabled: !e.ativa || !e.escalados, onClick: () => duplicarMes(e) },
-        { label: 'Configurações da escala', icon: 'settings', onClick: () => aoConfigurar(e) },
+        { label: 'Abrir escala', icon: 'pencil-simple', disabled: !e.ativa, onClick: () => aoAbrir(e.chave, 'mes') },
+        { label: 'Duplicar para o mês seguinte', icon: 'copy', disabled: !e.ativa || !e.escalados, onClick: () => duplicarMes(e) },
+        { label: 'Configurações da escala', icon: 'gear-six', onClick: () => aoConfigurar(e) },
       ]} />` : null}
-            </span></td>
+            </div></td>
           </tr>`;
   })}</tbody>
       </table>`;
   };
 
-  const chips = [['todas', 'Todas', totais.todas], ['rascunho', 'Rascunho', totais.rascunho], ['publicadas', 'Publicadas', totais.publicadas],
-    ...(podeAprovar && pendenteNoMes.size ? [['aprovacao', 'Aguardando aprovação', pendenteNoMes.size]] : [])];
+  const opcoesSituacao = [['todas', `Todas as situações (${totais.todas})`], ['rascunho', `Rascunho (${totais.rascunho})`], ['publicadas', `Publicadas (${totais.publicadas})`],
+    ...(podeAprovar && pendenteNoMes.size ? [['aprovacao', `Aguardando aprovação (${pendenteNoMes.size})`]] : [])];
   return html`
-    <${PaginaConsole} className="cx-escala cx-pagina--modulo">
-      <${ModuleHeader} titulo=${titulo} subtitulo=${descricao}
-        abas=${abas?.length ? html`<${ModuleTabs} itens=${abas} ativa=${abaAtiva} aoMudar=${aoMudarAba} />` : null} />
-      <div class="cx-resumos" aria-busy=${!dados && !erro}>
-        <${CardResumo} icone="calendar_month" rotulo=${`Escalas em ${mes}`} valor=${dados ? totais.todas : '—'} />
-        <${CardResumo} icone="edit_note" rotulo="Em rascunho" valor=${dados ? totais.rascunho : '—'} />
-        <${CardResumo} icone="event_available" tom="sucesso" rotulo="Publicadas" valor=${dados ? totais.publicadas : '—'} />
-        <${CardResumo} icone="groups" rotulo="Colaboradores escalados" valor=${dados ? totais.colaboradores : '—'} />
+    <main class="c-pagina c-conteudo">
+      <${CabPagina} titulo="Escalas" descricao="Dia sem turno é DSR. Turnos, pausas, presença e hora extra ficam dentro de cada escala."
+        acoes=${gere ? html`<button type="button" class="c-botao c-botao--principal" onClick=${() => setCriando(true)}><${Ic} nome="plus" />Nova escala</button>` : null} />
+      ${podeAprovar && aprovacoes.length ? html`<${Faixa} tom="atencao" icone="hourglass"
+        acao=${html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-expanded=${verAprovacoes ? 'true' : 'false'} onClick=${() => setVerAprovacoes((v) => !v)}>${verAprovacoes ? 'Esconder' : 'Ver escalas'}</button>`}>
+        <b>${aprovacoes.length} ${aprovacoes.length === 1 ? 'escala aguarda' : 'escalas aguardam'}</b> a sua aprovação.
+      <//>` : null}
+      ${podeAprovar && aprovacoes.length && verAprovacoes ? html`<${CartaoAprovacoes} itens=${aprovacoes} showToast=${showToast}
+        aoVer=${(e) => { aoMudarMes?.(e.ano_mes); aoAbrir(e.chave, 'mes'); }}
+        aoDecidiu=${() => { aoRecarregarAprovacoes?.(); aoMudou?.(); }} />` : null}
+      <div class="c-tabela-caixa" aria-busy=${!dados && !erro ? 'true' : null}>
+        <div class="c-filtros" role="search">
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" value=${busca} placeholder="Buscar escala" aria-label="Buscar escala" onInput=${(ev) => setBusca(ev.target.value)} /></div>
+          <${Navegar} grupo="Mês" rotulo=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes?.(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes?.(somarMes(anoMes, 1))} />
+          <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${filtro} onChange=${(ev) => setFiltro(ev.target.value)}>
+            ${opcoesSituacao.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}
+          </select>
+          ${operacoesLista.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Operação" value=${operacaoFiltro} onChange=${(ev) => setOperacaoFiltro(ev.target.value)}>
+            <option value="">Todas as operações</option>
+            ${operacoesLista.map((o) => html`<option key=${o} value=${o}>${o}</option>`)}
+          </select>` : null}
+          <span class="c-contador" aria-live="polite">${dados ? `${itens.length} ${itens.length === 1 ? 'escala' : 'escalas'}` : ''}</span>
+        </div>
+        ${corpoTabela()}
       </div>
-      <div class="cx-escala-corpo cx-cresce">
-        <section class="cx-card">
-          <div class="cx-toolbar" role="search">
-            <label class="cx-busca"><${IconeCx} nome="search" /><input type="search" value=${busca} placeholder="Buscar escala" aria-label="Buscar escala" onInput=${(ev) => setBusca(ev.target.value)} /></label>
-            <div class="cx-mes" role="group" aria-label="Mês">
-              <button type="button" class="cx-icone-btn" aria-label="Mês anterior" onClick=${() => aoMudarMes?.(somarMes(anoMes, -1))}><${IconeCx} nome="chevron_left" /></button>
-              <span class="cx-mes-rotulo" aria-live="polite">${rotuloMesAno(anoMes)}</span>
-              <button type="button" class="cx-icone-btn" aria-label="Próximo mês" onClick=${() => aoMudarMes?.(somarMes(anoMes, 1))}><${IconeCx} nome="chevron_right" /></button>
-            </div>
-            <div class="cx-chips" role="group" aria-label="Filtrar por situação">
-              ${chips.map(([id, rotulo, n]) => html`<button key=${id} type="button" class="cx-chip" aria-pressed=${filtro === id} onClick=${() => setFiltro(id)}>${rotulo} <span class="cx-chip-n">${n}</span></button>`)}
-            </div>
-            ${botaoNova ? html`<span class="cx-toolbar-fim">${botaoNova}</span>` : null}
-          </div>
-          <div class="cx-card-corpo">${corpoTabela()}</div>
-          ${gere && dados ? html`<div class="cx-card-rodape cx-card-rodape--solto"><${BotaoTracejado} onClick=${() => setCriando(true)}>Criar outra escala para ${mes}</${BotaoTracejado}></div>` : null}
-        </section>
-        <aside class="cx-escala-lateral">
-          ${podeAprovar ? html`<${PainelAprovacoes} itens=${aprovacoes} showToast=${showToast}
-            aoVer=${(e) => { aoMudarMes?.(e.ano_mes); aoAbrir(e.chave, 'mes'); }}
-            aoDecidiu=${() => { aoRecarregarAprovacoes?.(); aoMudou?.(); }} />` : null}
-          <section class="cx-card">
-            <div class="cx-card-cab"><div class="cx-card-titulo"><p class="cx-sobre">Próximos passos</p><h2 class="cx-h2">Para publicar o mês</h2></div></div>
-            <div class="cx-card-corpo cx-passos-corpo">
-              ${!dados ? html`<${EsqueletoLinhas} linhas=${3} altura=${40} />` : base.length && totais.publicadas === base.length
-      ? html`<p class="cx-legenda">Todas as escalas de ${mes} já estão publicadas.</p>`
-      : html`<ol class="cx-passos">
-                ${semColaboradores.map((e) => html`<li key=${e.chave}><button type="button" class="cx-passo-link" onClick=${() => aoAbrir(e.chave, 'mes')}><strong title=${e.nome}>${e.nome}</strong> está sem colaboradores.</button></li>`)}
-                <li><span>Depois, use Publicar em cada escala.</span></li>
-              </ol>`}
-            </div>
-          </section>
-          <${AvisoConsole} suave=${true}>Dia sem turno é DSR. Turnos, horários, pausas, presença e hora extra ficam dentro de cada escala aberta.</${AvisoConsole}>
-        </aside>
-      </div>
-    </${PaginaConsole}>
+    </main>
     ${criando ? html`<${ModalCriarEscala} operacoes=${dados?.operacoes_criacao || []} showToast=${showToast} onClose=${() => setCriando(false)} onCriada=${(chave) => { setCriando(false); aoMudou?.(chave); }} />` : null}`;
 }
