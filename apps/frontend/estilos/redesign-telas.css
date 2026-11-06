@@ -41,3 +41,12 @@
 .c-pagina .c-sec { color: var(--cor-texto-secundario); }
 .c-pagina .c-nota { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); margin: 0; }
 .c-pagina .c-bolinha { display: inline-block; width: 8px; height: 8px; margin-right: var(--espaco-2); border-radius: var(--raio-cheio); background: var(--cor-status-atencao-texto); vertical-align: middle; }
+
+/* Texto formal (troca de escala): mantém as quebras de linha, letra da interface */
+.c-texto-formal { margin: 0; padding: var(--espaco-3) var(--espaco-4); white-space: pre-wrap; font: inherit; background: var(--cor-fundo-pagina); border: var(--borda-fina) solid var(--tabela-linha); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); }
+/* Painel lateral do detalhe: acima da moldura e com corpo rolando */
+.c-painel-lateral { z-index: 1050; font-family: var(--fonte-familia-texto); color: var(--cor-texto-padrao); }
+.c-painel-lateral .c-janela-corpo { flex: 1; min-height: 0; }
+.c-painel-lateral .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-painel-lateral h3 { margin: 0 0 var(--espaco-2); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); }
+.c-legenda-fim { margin-left: auto; }

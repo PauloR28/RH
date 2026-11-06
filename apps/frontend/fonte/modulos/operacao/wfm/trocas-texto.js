@@ -1,4 +1,5 @@
 import { html, useState } from '../../../infraestrutura-react.js';
+import { Janela } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Textos formais da troca de escala (pedido do operador e resumo do supervisor) e o diálogo de confirmação.
 // Troca em sábado/domingo usa o texto de final de semana (jornada e folgas 100% trocadas).
@@ -45,19 +46,17 @@ export function ModalResumoTroca({ texto, onConfirmar, onClose, ocupado }) {
   const copiar = async () => {
     try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); } catch { /* sem permissão da área de transferência */ }
   };
-  return html`<div class="rh-modal-overlay" onClick=${(e) => e.target === e.currentTarget && onClose()}>
-    <div class="mc-modal c24-fade-in" role="dialog" aria-modal="true" aria-labelledby="tr-resumo-titulo">
-      <header class="mc-modal-cab"><div><h3 id="tr-resumo-titulo">Resumo e confirmação da troca</h3><p>Confira a mensagem antes de aprovar.</p></div>
-        <button type="button" class="mc-fechar" aria-label="Fechar" onClick=${onClose}>×</button></header>
-      <pre class="tr-resumo-texto">${texto}</pre>
-      <div class="wfm-acoes">
-        <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => abrirWhatsapp(texto)}>Compartilhar no WhatsApp</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${copiar}>${copiado ? 'Mensagem copiada' : 'Copiar mensagem'}</button>
+  return html`<${Janela} titulo="Resumo e confirmação da troca" onClose=${onClose}
+    rodape=${html`
+      <button type="button" class="c-botao c-botao--secundario" onClick=${onClose}>Voltar</button>
+      <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || null} onClick=${onConfirmar}>${ocupado ? 'Aprovando…' : 'Confirmar aprovação'}</button>`}>
+    <div class="c-janela-corpo">
+      <p>Confira a mensagem antes de aprovar.</p>
+      <pre class="c-texto-formal">${texto}</pre>
+      <div class="c-grupo">
+        <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => abrirWhatsapp(texto)}>Compartilhar no WhatsApp</button>
+        <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${copiar}>${copiado ? 'Mensagem copiada' : 'Copiar mensagem'}</button>
       </div>
-      <footer class="mc-modal-rodape">
-        <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Voltar</button>
-        <button type="button" class="btn btn-primary" disabled=${ocupado} onClick=${onConfirmar}>${ocupado ? 'Aprovando…' : 'Confirmar aprovação'}</button>
-      </footer>
     </div>
-  </div>`;
+  <//>`;
 }

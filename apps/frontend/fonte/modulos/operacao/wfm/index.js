@@ -18,7 +18,7 @@ import { TelaEscalaTabela } from './tabela.js?v=20261104-dia';
 import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
 import { ListaEscalas } from './escalas.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
-import { TelaTrocas } from './trocas.js?v=20261104-leitura';
+import { TelaTrocas } from './trocas.js?v=20261106-wfm';
 import { TelaRelatorios } from './relatorios.js?v=20261104-leitura';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
@@ -150,6 +150,15 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
           <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
           <${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />
         <//>
+      </${PainelRh}>`;
+  }
+
+  // Trocas: redesign Fase 15 (a própria TelaTrocas monta a página).
+  if (telaAtual === 'screen-wfm-trocas' && contexto && !erro && operacao && operacoesComEscala.length) {
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        <${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />
       </${PainelRh}>`;
   }
 
