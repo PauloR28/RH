@@ -21,7 +21,7 @@ def get_email_inbox_status(repository: DatabaseRepository = Depends(get_reposito
 def list_email_inbox_messages(
     limit: int = Query(default=50),
     unread_only: bool = Query(default=False),
-    with_attachments_only: bool = Query(default=True),
+    with_attachments_only: bool = Query(default=False),
     refresh: bool = Query(default=True),
     query: str = Query(default=""),
     include_ignored: bool = Query(default=False),

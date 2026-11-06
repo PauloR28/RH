@@ -679,7 +679,7 @@ class EmailInboxService:
         *,
         limit: int = 50,
         unread_only: bool = False,
-        with_attachments_only: bool = True,
+        with_attachments_only: bool = False,
         query: str = "",
     ) -> list[dict]:
         safe_limit = clamp_limit(

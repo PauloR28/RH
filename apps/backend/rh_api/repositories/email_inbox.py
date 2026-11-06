@@ -544,7 +544,7 @@ class EmailInboxRepositoryMixin:
         *,
         limit: int = 50,
         unread_only: bool = False,
-        with_attachments_only: bool = True,
+        with_attachments_only: bool = False,
         refresh: bool = True,
         query: str = "",
         include_ignored: bool = False,

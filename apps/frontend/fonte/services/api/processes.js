@@ -596,7 +596,7 @@ export async function analisarCvEmailRecebido(idProcesso, payload) {
 export async function lerEmailsRecebidos({
   limite = 50,
   mostrarIgnorados = false,
-  apenasComAnexos = true,
+  apenasComAnexos = false,
   refresh = false,
   query = '',
 } = {}) {

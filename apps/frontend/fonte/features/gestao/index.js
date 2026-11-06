@@ -316,7 +316,7 @@ function montarChaveCacheSecaoEmail({ mostrarIgnorados = false, query = '' } = {
     limite: LIMITE_CACHE_EMAILS_RECEBIDOS,
     mostrarIgnorados: Boolean(mostrarIgnorados),
     query: normalizarTextoPainel(query),
-    apenasComAnexos: true,
+    apenasComAnexos: false,
   });
 }
 
@@ -924,7 +924,7 @@ function SecaoCurriculosRecebidosEmail({ modo = 'resumo', controlador = null } =
           limite: LIMITE_CACHE_EMAILS_RECEBIDOS,
           mostrarIgnorados,
           query,
-          apenasComAnexos: true,
+          apenasComAnexos: false,
           refresh: forcar,
         }),
         lerProcessos({ forcar }),
