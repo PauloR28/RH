@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   security-events: write
 
 jobs:
@@ -32,6 +33,9 @@ jobs:
         run: bandit -q -r apps/backend -x apps/backend/tests -b .github/bandit-baseline.json
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
+        env:
+          # Exigido pela gitleaks-action para varrer pull requests (lê a lista de commits da PR).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   codeql:
     runs-on: ubuntu-latest
