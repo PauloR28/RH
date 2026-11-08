@@ -9,6 +9,7 @@ import {
 import { dataHora } from './comum.js?v=20261104-leitura';
 import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js?v=20261106-wfm';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { tomarFocoPessoa } from './foco-pessoa.js';
 
 // Trocas de plantão (redesign Fase 15, amostra "Trocas" da Fase 12). Nenhuma troca é automática: mesmo com o colega
 // de acordo, um Supervisor, Control Desk ou Gestor/RH aprova. Todas as regras (janela, prazo, skills, motor) rodam
@@ -132,7 +133,7 @@ export function TelaTrocas({ controlador, operacao, showToast }) {
   const [itens, setItens] = useState(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState('andamento');
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(() => tomarFocoPessoa('trocas')); // vindo do Painel do dia: já filtrado pela pessoa
   const [situacao, setSituacao] = useState('');
   const [aberta, setAberta] = useState(null); // id da troca no painel lateral
   const [resumo, setResumo] = useState(null); // troca sendo aprovada (janela de resumo)

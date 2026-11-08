@@ -10,6 +10,7 @@ import {
 } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { tomarFocoPessoa } from './foco-pessoa.js';
 
 // Presença (redesign Fase 15, amostra "Presença" da Fase 12): Supervisor (própria equipe) e Control Desk (operações
 // vinculadas). Trabalha-se por SEMANA. Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria.
@@ -37,7 +38,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
   const [pend, setPend] = useState({ total: 0, itens: [] });
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState('todos'); // todos | pendentes | faltas | atestados
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(() => tomarFocoPessoa('presenca')); // vindo do Painel do dia: já filtrado pela pessoa
   const [form, setForm] = useState({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
   const [lote, setLote] = useState({ data: '', status: 'PRESENTE', excecoes: {}, marcar: '' });
   const [ocupado, setOcupado] = useState(false);

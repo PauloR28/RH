@@ -17,6 +17,7 @@ import { TelaPresenca } from '../wfm/presenca.js?v=20261106-wfm';
 import { TelaCadastros } from '../wfm/cadastros.js?v=20261104-leitura';
 import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { tomarFocoPessoa } from '../wfm/foco-pessoa.js';
 
 // Equipes (redesign Fase 15, amostra "Equipe" da Fase 12): visão macro da própria equipe do Supervisor. Presença, escala e
 // horários reaproveitam as telas do WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural
@@ -126,7 +127,7 @@ function JanelaSaida({ operador, transferir, aoFechar, aoConfirmar }) {
 
 function SecaoEquipe({ contexto, setContexto, showToast, adicionando, setAdicionando }) {
   const [saida, setSaida] = useState(null); // { operador, transferir }
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(() => tomarFocoPessoa('equipes')); // vindo do Painel do dia ("Ver diário")
   const [turno, setTurno] = useState('');
   const [operacao, setOperacao] = useState('');
   const sup = contexto.supervisor;

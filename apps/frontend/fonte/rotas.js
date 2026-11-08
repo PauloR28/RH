@@ -81,6 +81,7 @@ export const ROTAS_POR_TELA = {
   'screen-wfm-jornadas': 'turnos-plantoes/jornadas',
   'screen-wfm-auditoria': 'turnos-plantoes/auditoria',
   'screen-wfm-trocas': 'turnos-plantoes/trocas',
+  'screen-wfm-dia': 'turnos-plantoes/dia',
   'screen-chamados': 'suporte-ti',
   'screen-chamados-novo': 'suporte-ti/novo',
   'screen-chamados-fila': 'suporte-ti/fila',

@@ -235,6 +235,7 @@ export const PERMISSOES_TELAS = {
   'screen-wfm-jornadas': 'wfm.cadastros.visualizar',
   'screen-wfm-auditoria': 'wfm.auditoria',
   'screen-wfm-trocas': 'wfm.troca.visualizar',
+  'screen-wfm-dia': 'wfm.presenca.lancar',
   // Suporte TI (Chamados): lista = basta uma. O detalhe não tem entrada: o servidor decide (quem abriu nunca fica órfão).
   'screen-chamados': ['chamados.abrir', 'chamados.ver_operacao'],
   'screen-chamados-novo': 'chamados.abrir',
@@ -298,6 +299,7 @@ export const SESSAO_DA_TELA = {
   'screen-wfm-jornadas': 'wfm',
   'screen-wfm-auditoria': 'wfm',
   'screen-wfm-trocas': 'wfm',
+  'screen-wfm-dia': 'wfm',
 };
 const logger = criarLogger('controlador-aplicacao');
 

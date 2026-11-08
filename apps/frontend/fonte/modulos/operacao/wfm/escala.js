@@ -19,6 +19,7 @@ import { OutrasEscalas } from './outras.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
 import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { tomarFocoPessoa } from './foco-pessoa.js';
 
 // Escala aberta (redesign Fase 15, amostra "Escala padrão" da Fase 12): visões Semana e Mês. Supervisor/Control Desk/
 // Gestor editam; Qualidade lê; o Operador lê a própria escala PUBLICADA. Toda validação (jornada, interjornada, pausas,
@@ -153,7 +154,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [filtroEquipe, setFiltroEquipe] = useState('');
   const [filtroCargo, setFiltroCargo] = useState('');
   const [filtroSup, setFiltroSup] = useState('');
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(() => tomarFocoPessoa('escala-mes')); // vindo do Painel do dia: já filtrado pela pessoa
   const [selecionados, setSelecionados] = useState({});
   const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
   const [visao, setVisao] = useState('semana'); // semana | mes

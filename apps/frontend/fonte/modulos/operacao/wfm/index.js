@@ -21,33 +21,38 @@ import { ListaEscalas } from './escalas.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { TelaTrocas } from './trocas.js?v=20261106-wfm';
 import { TelaRelatorios } from './relatorios.js?v=20261106-wfm';
+import { TelaPainelDia } from './painel-dia.js?v=20261108-painel-dia';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;
 // a tela só esconde o que o perfil não pode usar.
 
 export const ABAS_WFM = [
+  { tela: 'screen-wfm-dia', rotulo: 'Painel', icone: 'today', permissao: 'wfm.presenca.lancar' },
   { tela: 'screen-wfm', rotulo: 'Escala', icone: 'calendar_month', permissao: 'wfm.escala.visualizar' },
   { tela: 'screen-wfm-minha-escala', rotulo: 'Minhas escalas', icone: 'today', permissao: 'wfm.escala.propria' },
   { tela: 'screen-wfm-trocas', rotulo: 'Trocas', icone: 'compare_arrows', permissao: 'wfm.troca.visualizar' },
   { tela: 'screen-wfm-presenca', rotulo: 'Presença', icone: 'fact_check', permissao: 'wfm.presenca.lancar' },
-  { tela: 'screen-wfm-painel', rotulo: 'Painel', icone: 'monitoring', permissao: 'relhub.wfm.painel' },
+  { tela: 'screen-wfm-painel', rotulo: 'Indicadores', icone: 'monitoring', permissao: 'relhub.wfm.painel' },
   { tela: 'screen-wfm-jornadas', rotulo: 'Jornadas', icone: 'schedule', permissao: 'wfm.cadastros.visualizar' },
   { tela: 'screen-wfm-cadastros', rotulo: 'Cadastros', icone: 'settings', permissao: 'wfm.cadastros.visualizar' },
 ];
 
 const TITULOS = {
+  'screen-wfm-dia': ['Painel', 'O dia da operação numa tela: quem está escalado, quem logou, pausas previstas, trocas e presença.'],
   'screen-wfm': ['Escala', 'Crie, configure e acompanhe as escalas. Turnos, horários, pausas, presença e hora extra do dia ficam na escala aberta. Dia sem turno é DSR.'],
   'screen-wfm-minha-escala': ['Minhas escalas', 'Seus turnos em todas as escalas, conforme a última versão publicada.'],
   'screen-wfm-trocas': ['Trocas de plantão', 'Solicite, responda e aprove trocas entre operadores.'],
   'screen-wfm-presenca': ['Presença', 'Lançamento de presença, falta e atestado da sua equipe.'],
-  'screen-wfm-painel': ['Painel', 'Indicadores e gráficos do período, com comparação ao período anterior. Os relatórios em planilha ficam em Relatórios e Históricos.'],
+  'screen-wfm-painel': ['Indicadores', 'Indicadores e gráficos do período, com comparação ao período anterior. Os relatórios em planilha ficam em Relatórios e Históricos.'],
   'screen-wfm-jornadas': ['Jornadas', 'Limites de jornada, interjornada e pausas obrigatórias.'],
   'screen-wfm-cadastros': ['Cadastros', 'Turnos, calendário especial, skills e jornadas.'],
   'screen-wfm-auditoria': ['Histórico', 'Quem fez o quê, quando, e o valor antes e depois.'],
 };
 
 export function abaInicialWfm(controlador) {
+  // Supervisor abre no Painel do dia (amostra aprovada em 08/11/2026); os demais seguem a ordem de antes.
+  if (controlador.estado?.perfilUsuario === 'supervisor' && controlador.podeAcessarTela('screen-wfm-dia')) return 'screen-wfm-dia';
   const ordem = ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-trocas', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros', 'screen-wfm-auditoria'];
   return ordem.find((t) => controlador.podeAcessarTela(t)) || 'screen-wfm';
 }
@@ -77,7 +82,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   }, [contexto, operacao]);
 
   useEffect(() => {
-    if (!contexto || !['screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual)) return;
+    if (!contexto || !['screen-wfm-dia', 'screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual)) return;
     const ativas = contexto.operacoes.filter((o) => o.escala_ativa !== false);
     if (ativas.length && !ativas.some((o) => o.chave === operacao)) setOperacao(ativas[0].chave);
   }, [contexto, telaAtual, operacao]);
@@ -91,7 +96,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   const aoVerPausas = controlador.possuiPermissao('wfm.escala.visualizar') ? () => setVisaoEscala('pausas') : undefined;
   const voltarParaLista = () => { setVisaoEscala('lista'); setVersaoLista((v) => v + 1); recarregarContexto(); };
   // Presença, Trocas e Minha escala só fazem sentido com escala ativa; Cadastros e Jornadas seguem a operação.
-  const dependeDeEscala = ['screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual);
+  const dependeDeEscala = ['screen-wfm-dia', 'screen-wfm-presenca', 'screen-wfm-trocas', 'screen-wfm-minha-escala'].includes(telaAtual);
   const operacoesComEscala = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false);
   const props = { controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala: setOperacao };
   // Selo da aba Presença: total de pendências de confirmação da semana, vindo do servidor.
@@ -144,7 +149,18 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       </${PainelRh}>`;
   }
 
-  // Painel: redesign Fase 15 (TelaRelatorios com somentePainel monta a página no desenho novo).
+  // Painel do dia (aba "Painel", 1ª de Turnos e Plantões): a própria TelaPainelDia monta a página.
+  if (telaAtual === 'screen-wfm-dia' && contexto && !erro && operacao && operacoesComEscala.length) {
+    // "Ver escala do mês" abre a escala mensal desta escala, no mês do dia mostrado (somente leitura sem 'criar escala').
+    const aoVerEscalaMes = controlador.podeAcessarTela('screen-wfm') ? (mes) => { setAnoMes(mes); setVisaoEscala('mes'); controlador.irParaTelaProtegida('screen-wfm'); } : undefined;
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+        <div class="wfm-toast"><${ToastHost} /></div>
+        <${TelaPainelDia} key=${operacao} controlador=${controlador} contexto=${contexto} operacao=${operacao} showToast=${showToast} aoTrocarEscala=${setOperacao} aoVerEscalaMes=${aoVerEscalaMes} />
+      </${PainelRh}>`;
+  }
+
+  // Indicadores (antiga aba Painel): redesign Fase 15 (TelaRelatorios com somentePainel monta a página no desenho novo).
   if (telaAtual === 'screen-wfm-painel' && contexto && !erro && operacao && contexto.operacoes.length) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
@@ -249,7 +265,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
 
   // A lista de escalas é a navegação da aba Escala; sem permissão de criar (ex.: Gestor) não há troca de escala pelo seletor.
   const semOperacao = telaAtual === 'screen-wfm' && (visaoEscala === 'lista' || !podeCriarEscala);
-  const semPeriodo = (telaAtual === 'screen-wfm' && visaoEscala === 'lista') || ['screen-wfm-auditoria', 'screen-wfm-painel', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca'].includes(telaAtual);
+  const semPeriodo = (telaAtual === 'screen-wfm' && visaoEscala === 'lista') || ['screen-wfm-dia', 'screen-wfm-auditoria', 'screen-wfm-painel', 'screen-wfm-minha-escala', 'screen-wfm-trocas', 'screen-wfm-presenca'].includes(telaAtual);
   return html`
     <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca=${telaAtual === 'screen-wfm-auditoria' ? 'Auditoria de Plantões' : 'Turnos e Plantões'} placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
       <div class="wfm-toast"><${ToastHost} /></div>
