@@ -160,16 +160,17 @@ export function BarraLateral({
     },
   ];
   const sublinksMonitoria = [
-    { tela: 'screen-monitoria-nova', icone: 'add', label: 'Nova monitoria', permissao: 'monitoria.criar' },
+    // Redesign (DEC-068): abas finas Feedback · Contestações · Histórico · Painel · Planos de ação; o Operador vê
+    // Minhas monitorias · Histórico. "Nova monitoria" saiu das abas e virou o botão principal do cabeçalho.
     { tela: 'screen-monitoria-feedback', icone: 'rate_review', label: 'Feedback', permissao: 'monitoria.feedback_aplicar' },
     { tela: 'screen-monitoria-contestacoes', icone: 'verified', label: 'Contestações', permissao: 'monitoria.reanalisar' },
     { tela: 'screen-monitoria-minhas', icone: 'assignment_ind', label: 'Minhas monitorias', permissao: 'monitoria.contestar' },
     { tela: 'screen-monitoria', icone: 'history', label: 'Histórico', permissao: 'monitoria.visualizar' },
-    { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Dashboard', permissao: 'monitoria.dashboard' },
+    { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Painel', permissao: 'monitoria.dashboard' },
     { tela: 'screen-monitoria-planos', icone: 'task_alt', label: 'Planos de ação', permissao: 'monitoria.plano_acao_visualizar' },
     { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
   ];
-  const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
+  const telasRelacionadasMonitoria = [...sublinksMonitoria.map((item) => item.tela), 'screen-monitoria-nova'];
   const sublinksWfm = [
     { tela: 'screen-equipes-controle', icone: 'groups', label: 'Equipes e Turnos', permissao: 'equipes.controle.visualizar' },
     // Painel do dia: 1ª aba de Turnos e Plantões (amostra aprovada em 08/11/2026); o antigo Painel virou Indicadores.
@@ -388,7 +389,10 @@ export function BarraLateral({
     possuiSub(subitem),
   );
   const grupoTreinamentosAtivo = telasRelacionadasTreinamentos.includes(navAtiva);
-  const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
+  const itemNovaMonitoria = { tela: 'screen-monitoria-nova', icone: 'add', label: 'Nova monitoria', permissao: 'monitoria.criar' };
+  const sublinksMonitoriaFiltrados = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
+  // Quem só pode criar monitoria (sem nenhuma lista) continua com a aba "Nova monitoria" para chegar à tela.
+  const sublinksMonitoriaVisiveis = sublinksMonitoriaFiltrados.length || !possuiSub(itemNovaMonitoria) ? sublinksMonitoriaFiltrados : [itemNovaMonitoria];
   const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
   // "Minhas escalas" segue a permissão wfm.escala.propria (Operador, Técnicos de TI e Analista de TI; Adm/Gestão não têm escala própria).
