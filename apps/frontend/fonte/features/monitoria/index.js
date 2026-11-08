@@ -1,6 +1,7 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261106-redesign';
+import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261108-painel-dia';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -131,7 +132,7 @@ const SESSOES = [
   { id: 'treinamentos', titulo: 'Central de Treinamento', icone: 'school', desc: 'Treinamentos, trilhas e atribuições.', telas: ['screen-training', 'screen-training-mine', 'screen-training-trilhas'] },
   { id: 'monitoria', titulo: 'Monitorias', icone: 'fact_check', desc: 'Avaliações de qualidade, feedback e indicadores.', telas: ['__monitoria__'] },
   { id: 'equipe', titulo: 'Equipes e Turnos', icone: 'groups', desc: 'Sua equipe, presença, monitorias, escala, horários e mural.', telas: ['screen-equipes-controle'] },
-  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
+  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-dia', 'screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
   { id: 'relatorios', titulo: 'Relatórios e Históricos', icone: 'table_chart', desc: 'Relatórios, históricos e exportações em um só lugar.', telas: ['screen-relatorios'] },
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];
@@ -194,6 +195,10 @@ export function TelaInicioPorSessoes({ controlador }) {
   const sessoes = sessoesDoUsuario(controlador, {
     ocultarTreinamentosSemAgenda: ehOperador && !temTreinamentoAgendado,
   });
+  // Supervisor: Início no desenho novo (atalhos, Escala de hoje, Precisa de você e Mural) — amostra de 08/11/2026.
+  if (estado.perfilUsuario === 'supervisor') {
+    return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} />`;
+  }
   return html`
     <${PainelRh} screenId="screen-menu" navAtiva="screen-menu" subtituloMarca="Início" placeholderBusca="Conecta" controlador=${controlador}>
       <div class="mon-inicio">
