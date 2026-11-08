@@ -7,11 +7,6 @@ import re
 from datetime import datetime
 
 import pyodbc
-from fastapi import HTTPException, status
-
-from ..auth import AuthenticatedUser
-from ..passwords import hash_password, verify_password
-from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
 from conecta.infrastructure.security.encryption import (
     SecretEncryptionError,
     decrypt_secret,
@@ -22,21 +17,25 @@ from conecta.infrastructure.security.totp import (
     provisioning_uri,
     verify_code,
 )
+from fastapi import HTTPException, status
+
+from ..auth import AuthenticatedUser
+from ..passwords import hash_password, verify_password
 from ..rbac import (
-    aplicar_restricao_wfm_em_teste,
     PERMISSION_DEFINITIONS,
     ROLE_ADMIN,
     ROLE_DEFINITIONS,
     ROLE_EMPLOYEE,
     ROLE_INTERN,
     SETTINGS_CATALOGS,
+    aplicar_restricao_wfm_em_teste,
     get_role_definition,
     get_role_permissions,
     normalize_role_id,
     sanitize_permissions,
 )
 from ..services.helpers import normalize_compare_text, normalize_text, rows_to_dicts, safe_json_loads
-
+from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
 
 AUTH_PROVIDER_LOCAL = "local"
 AUTH_PROVIDER_MICROSOFT = "microsoft"

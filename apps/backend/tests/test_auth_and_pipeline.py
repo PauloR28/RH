@@ -29,8 +29,8 @@ from rh_api.routers.pipeline import (
 from rh_api.schemas.auth import LoginRequest
 from rh_api.schemas.interviews import InterviewCreateRequest, InterviewUpdateRequest
 from rh_api.schemas.pipeline import PipelineCardCreateRequest, PipelineCardMoveRequest
-from rh_api.services.process_flow import CANDIDATE_STATUS_PENDING_CONFIRMATION
 from rh_api.services.pipeline import map_pipeline_stage_to_status, normalize_pipeline_stage
+from rh_api.services.process_flow import CANDIDATE_STATUS_PENDING_CONFIRMATION
 
 
 class FakeRepository:

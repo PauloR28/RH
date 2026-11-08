@@ -77,18 +77,35 @@ def render_rollback_modulos_sql() -> str:
 
 
 # ---------------------------------------------------------------- V056
-def _grupos_de_seed() -> dict[tuple[str, int], list[str]]:
+# V056 e V057 já estão aplicadas e são imutáveis: o arquivo .sql guarda o catálogo daquela data. Permissões criadas
+# depois ficam fora do texto das migrations (o dono delas é gravado pela sincronização do catálogo em security.py).
+PERMISSOES_POSTERIORES_A_V056 = frozenset({
+    "ambiente.seguranca",
+    "equipes.controle.visualizar", "equipes.membros.editar", "equipes.mural.publicar",
+    "relhub.monitoria.dashboard", "relhub.monitoria.historico", "relhub.monitoria.logs", "relhub.monitoria.planos",
+    "relhub.monitoria.qualidade",
+    "relhub.rh.candidatos", "relhub.rh.exames", "relhub.rh.funil", "relhub.rh.processos", "relhub.rh.ranking",
+    "relhub.sistema.logs",
+    "relhub.wfm.aprovacoes", "relhub.wfm.escalas", "relhub.wfm.historico", "relhub.wfm.painel", "relhub.wfm.presencas",
+    "relhub.wfm.resumo", "relhub.wfm.trocas",
+    "sessao.equipe.acessar", "sessao.relatorios.acessar",
+})
+
+
+def _grupos_de_seed(*, congelado: bool = False) -> dict[tuple[str, int], list[str]]:
     from ..rbac import PERMISSION_DEFINITIONS
 
     grupos: dict[tuple[str, int], list[str]] = defaultdict(list)
     for chave, definicao in PERMISSION_DEFINITIONS.items():
         if chave.startswith("chamados."):
             continue  # V056 já está aplicada e é imutável: as permissões de Chamados são semeadas pela própria V059
+        if congelado and chave in PERMISSOES_POSTERIORES_A_V056:
+            continue
         grupos[(modulo_dono_padrao(chave, definicao.module), 1 if abre_modulo_padrao(chave) else 0)].append(chave)
     return {k: sorted(v) for k, v in sorted(grupos.items())}
 
 
-def schema_modulo_dono_statements() -> list[str]:
+def schema_modulo_dono_statements(*, congelado: bool = False) -> list[str]:
     instrucoes = [
         "IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL AND COL_LENGTH('dbo.permissoes', 'modulo_dono') IS NULL\n"
         "BEGIN\n    ALTER TABLE dbo.permissoes ADD modulo_dono NVARCHAR(30) NULL;\nEND;",
@@ -97,7 +114,7 @@ def schema_modulo_dono_statements() -> list[str]:
     ]
     # Seed só onde modulo_dono ainda é NULL: nunca sobrescreve uma reatribuição feita em Tecnologia.
     # Dinâmico (EXEC) porque a coluna acaba de ser criada no mesmo lote.
-    for (dono, abre), chaves in _grupos_de_seed().items():
+    for (dono, abre), chaves in _grupos_de_seed(congelado=congelado).items():
         lista = ", ".join(f"''{_lit(c)}''" for c in chaves)
         instrucoes.append(
             "IF COL_LENGTH('dbo.permissoes', 'modulo_dono') IS NOT NULL\n"
@@ -112,7 +129,7 @@ def render_migration_modulo_dono_sql() -> str:
         "-- Conecta - Modularizacao (V056): dono de cada permissao (modulo_dono) e se ela abre o modulo (abre_modulo).\n"
         "-- Aditiva e idempotente; o seed nao sobrescreve valores ja definidos. Gerada de rh_api/repositories/modulos_schema.py.\n\n"
     )
-    return cabecalho + "\n\n".join(schema_modulo_dono_statements()) + "\n"
+    return cabecalho + "\n\n".join(schema_modulo_dono_statements(congelado=True)) + "\n"
 
 
 def render_rollback_modulo_dono_sql() -> str:
@@ -133,7 +150,8 @@ def render_rollback_modulo_dono_sql() -> str:
 def _grants_ti() -> list[tuple[str, str]]:
     from ..rbac import PERMISSOES_ADMINISTRACAO_TI
 
-    return [(perfil, chave) for perfil in PERFIS_TI_IDS for chave in sorted(PERMISSOES_ADMINISTRACAO_TI)]
+    chaves = sorted(PERMISSOES_ADMINISTRACAO_TI - PERMISSOES_POSTERIORES_A_V056)  # V057 aplicada e imutável
+    return [(perfil, chave) for perfil in PERFIS_TI_IDS for chave in chaves]
 
 
 def schema_perfis_ti_statements() -> list[str]:

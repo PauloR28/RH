@@ -6,7 +6,6 @@ import msal
 
 from ..config import Settings, get_settings
 
-
 MICROSOFT_SCOPES = ("User.Read",)
 _DISALLOWED_TENANTS = {"common", "organizations", "consumers"}
 

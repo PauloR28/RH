@@ -17,7 +17,6 @@ from datetime import date
 from typing import Any
 
 import pyodbc
-
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES, WFM_PERFIS_TI

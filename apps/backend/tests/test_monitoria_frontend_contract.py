@@ -12,12 +12,12 @@ if str(API_DIR) not in sys.path:
 
 from rh_api.rbac import (
     ROLE_ADMIN,
+    ROLE_CONTROL_DESK,
     ROLE_MANAGER,
     ROLE_OPERATOR,
-    ROLE_SUPERVISOR,
-    ROLE_QUALIDADE,
-    ROLE_CONTROL_DESK,
     ROLE_PERMISSIONS,
+    ROLE_QUALIDADE,
+    ROLE_SUPERVISOR,
     SCREEN_PERMISSIONS,
 )
 
@@ -78,7 +78,8 @@ def test_gestor_e_admin_tem_acesso_a_central_de_monitoria():
 def test_login_nao_menciona_mais_rh_na_marca():
     gestao = _ler(FONTE / "features" / "gestao" / "index.js")
     assert "Sistema Interno RH" not in gestao and "Acesso ao ambiente RH" not in gestao
-    assert "Acesse sua conta" in gestao and "Esqueci a senha" in gestao
+    # Redesenho do Login (DEC-070): o título passou a ser "Entrar"; "Esqueci a senha" continua.
+    assert "<h1>Entrar</h1>" in gestao and "Esqueci a senha" in gestao
 
 
 def test_caddy_encaminha_a_api_da_monitoria_ao_backend():

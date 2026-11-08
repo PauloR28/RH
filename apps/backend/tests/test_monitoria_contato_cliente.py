@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
+
 from rh_api.repositories.monitoria import _contato_cliente
 from rh_api.repositories.monitoria_schema import (
     ensure_monitoria_schema,

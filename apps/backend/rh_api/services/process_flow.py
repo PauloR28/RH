@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 
 from .helpers import normalize_compare_text, normalize_text
 
-
 _LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 

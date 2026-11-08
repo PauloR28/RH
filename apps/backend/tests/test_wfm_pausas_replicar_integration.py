@@ -5,11 +5,10 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
-
 from test_wfm_trocas_integration import MES, _erro, _item, _pausas, ctx  # noqa: F401  (ctx é o fixture do módulo de trocas)
 
 
-def _horas(ctx, id_op, dia):
+def _horas(ctx, id_op, dia):  # noqa: F811  (parâmetro com o mesmo nome do fixture importado)
     d = ctx.repo.wfm_get_pausas_dia(ctx.cd, ctx.op, f"{MES}-{dia:02d}")
     item = next((i for i in d["operadores"] if i["id_operador"] == id_op), None)
     return [p["inicio"] for p in (item["pausas"] if item else [])]

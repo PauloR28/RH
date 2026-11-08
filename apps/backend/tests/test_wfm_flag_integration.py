@@ -4,9 +4,9 @@ Remove a linha ao final: o ambiente volta ao estado em que estava."""
 from __future__ import annotations
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.services import acesso
 
 

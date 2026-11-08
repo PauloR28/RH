@@ -11,7 +11,6 @@ if str(API_DIR) not in sys.path:
 from rh_api.repositories.analytics import AnalyticsRepositoryMixin
 from rh_api.routers.analytics import get_funnel_dashboard
 
-
 _PROCESS_COLUMNS = [
     "id_processo",
     "vaga",

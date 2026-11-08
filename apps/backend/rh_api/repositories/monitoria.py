@@ -16,13 +16,6 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from .monitoria_schema import (
-    schema_cliente_statements,
-    schema_contato_cliente_statements,
-    SQL_MONITORIA_NAO_EXCLUIDA,
-    schema_formularios_exclusao_statements,
-    schema_situacao_formularios_statements,
-)
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -41,6 +34,13 @@ from ..services.monitoria_scope import (
     operacoes_permitidas,
     pode_ver_detalhe_monitoria,
     pode_ver_operacao,
+)
+from .monitoria_schema import (
+    SQL_MONITORIA_NAO_EXCLUIDA,
+    schema_cliente_statements,
+    schema_contato_cliente_statements,
+    schema_formularios_exclusao_statements,
+    schema_situacao_formularios_statements,
 )
 
 logger = logging.getLogger(__name__)

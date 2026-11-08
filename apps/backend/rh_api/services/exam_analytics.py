@@ -9,7 +9,6 @@ import unicodedata
 from collections.abc import Iterable
 from typing import Any
 
-
 ANALYTICS_ALGORITHM_VERSION = "exam-analytics-1.0.0"
 TELEMETRY_VERSION = "1.0"
 MINIMUM_COMPARABLE_SAMPLE = 5

@@ -12,39 +12,39 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from ..auth import AuthenticatedUser
-from ..dependencies import get_current_user, get_repository, require_permissions, exigir_relatorio_hub
+from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services.http_cache import aplicar_cache_http
 from ..schemas.monitoria import (
     AmbienteOperacaoRequest,
     CalcularRequest,
     CatalogoRequest,
-    TipoAtendimentoRequest,
+    CompartilharRequest,
+    ConfigMonitoriaRequest,
     ContestacaoRequest,
-    EquipeRequest,
-    FeedbackRequest,
     DuplicarFormularioRequest,
+    EquipeRequest,
     ExcluirMonitoriaRequest,
+    FeedbackRequest,
+    GuiaRequest,
+    IdentidadeOperacaoRequest,
     MatrizConfigRequest,
-    RestaurarMonitoriaRequest,
-    RestaurarVersaoRequest,
     MonitoriaCriarRequest,
     PlanoAcaoRequest,
     PlanoAcaoRevisaoRequest,
-    CompartilharRequest,
-    ConfigMonitoriaRequest,
-    GuiaRequest,
-    IdentidadeOperacaoRequest,
     RascunhoRequest,
     ReanaliseRequest,
-    RiscoRequest,
     ReplicaRequest,
+    RestaurarMonitoriaRequest,
+    RestaurarVersaoRequest,
+    RiscoRequest,
     TemaRequest,
+    TipoAtendimentoRequest,
     TransferirOperacaoRequest,
     TransferirSupervisaoRequest,
     UsuarioMonitoriaRequest,
     VinculosMonitoriaRequest,
 )
+from ..services.http_cache import aplicar_cache_http
 
 router = APIRouter(prefix="/monitoria", tags=["monitoria"], dependencies=[Depends(get_current_user)])
 

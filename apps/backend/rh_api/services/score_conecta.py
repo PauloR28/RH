@@ -4,7 +4,6 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
-
 CLASSIFICACOES = (
     (85, "Forte indicação"),
     (70, "Indicado"),

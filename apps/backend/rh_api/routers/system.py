@@ -3,10 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from ..config import Settings, get_settings
+from ..db import get_connection
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..db import get_connection
-
 
 router = APIRouter(tags=["system"])
 

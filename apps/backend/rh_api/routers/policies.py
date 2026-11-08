@@ -7,7 +7,6 @@ from ..dependencies import audit_action, get_current_user, get_repository, requi
 from ..repositories import DatabaseRepository
 from ..schemas.policies import PolicyCreateRequest, PolicyUpdateRequest
 
-
 router = APIRouter(prefix="/policies", tags=["policies"], dependencies=[Depends(get_current_user)])
 
 

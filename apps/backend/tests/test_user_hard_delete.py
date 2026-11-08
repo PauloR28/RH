@@ -1,8 +1,8 @@
 import pytest
 from fastapi import HTTPException
 
-from rh_api.repositories.security import SecurityRepositoryMixin
 from rh_api.config import get_settings
+from rh_api.repositories.security import SecurityRepositoryMixin
 
 
 class _Cursor:

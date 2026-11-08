@@ -48,7 +48,6 @@ from .bootstrap import (
     insert_candidate_process_record,
 )
 
-
 EMAIL_INBOX_QUEUE_PROCESS_ID = "EMAIL_INBOX"
 EMAIL_INBOX_RETENTION_DAYS = 60
 

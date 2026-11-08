@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .helpers import normalize_compare_text, normalize_text
 
-
 DEFAULT_PUBLIC_JOB_TEXTS = {
     "default": {
         "descricao": (

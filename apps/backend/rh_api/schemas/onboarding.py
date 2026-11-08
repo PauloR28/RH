@@ -7,7 +7,6 @@ from pydantic import field_validator, model_validator
 from ..services.cv import is_valid_email
 from .common import BaseSchema
 
-
 DEFAULT_TEXTO_ENCERRAMENTO = (
     "Chegamos ao final deste treinamento. Agradecemos sua participação e atenção — o conteúdo "
     "apresentado é parte importante do seu desenvolvimento e do trabalho realizado no dia a dia. "

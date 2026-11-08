@@ -21,12 +21,13 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
-from ..services import wfm_scope, wfm_trocas as regras
-from .wfm_aprovacao import hash_snapshot
+from ..rbac import ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..services import wfm_scope
+from ..services import wfm_trocas as regras
 from ..services.helpers import normalize_text
-from ..services.wfm_montagem import EventoCalendario, TurnoModelo, horario_efetivo
+from ..services.wfm_montagem import EventoCalendario, horario_efetivo
 from ..services.wfm_regras import CONTEXTO_TROCA, SEVERIDADE_BLOQUEIO
+from .wfm_aprovacao import hash_snapshot
 
 PARAMS = regras.ParametrosTroca()
 ANTECEDENCIA_PADRAO_DIAS = 3

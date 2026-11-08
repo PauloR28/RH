@@ -7,7 +7,7 @@ imutável que o fluxo de trocas já grava). Não há coluna nova nem mudança no
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterator
+from typing import Any, Iterator
 
 from ..services import wfm_historico as hist
 from ..services import wfm_scope
