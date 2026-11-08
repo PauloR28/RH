@@ -166,7 +166,7 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
     ${erroAcao ? html`<div class="c-db-faixa"><div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erroAcao}</p></div></div></div>` : null}
     <div class="c-db-corpo">
       <div>
-        <table class="c-tabela c-tabela--compacta c-db-tab">
+        <table class="c-tabela c-tabela--compacta c-db-tab c-db-fixa">
           <thead><tr><th class="c-col-nome" scope="col">Tipo de demanda</th><th class="c-num" scope="col">Início do turno</th><th class="c-num" scope="col">Fim do turno</th><th class="c-num" scope="col">Tratadas</th><th class="c-estica" scope="col"><span class="c-oculto">Aviso</span></th></tr></thead>
           <tbody>${demandas.map((c) => {
             const l = linhas.find((x) => x.id_item === c.id_item); const tr = tratadas(l.inicio, l.fim); const av = avisoDe[c.id_item];
@@ -258,15 +258,15 @@ function CorpoDia({ dados, cons, pode, abrir, recarregar, operacao }) {
   return html`<div class="c-db-dia">
     <div>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Fluxo de demandas do dia</h3></div>
-        <table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col">Tipo</th><th class="c-num" scope="col">Início do dia</th><th class="c-num" scope="col">Tratadas</th><th class="c-num" scope="col">Pendente no fim</th></tr></thead>
+        <div class="c-db-rolar"><table class="c-tabela c-tabela--compacta c-db-fixa"><thead><tr><th scope="col">Tipo</th><th class="c-num" scope="col">Início do dia</th><th class="c-num" scope="col">Tratadas</th><th class="c-num" scope="col">Pendente no fim</th></tr></thead>
           <tbody>${cons.demandas.map((d) => html`<tr key=${d.id_item}><td class="c-forte">${cad[d.id_item]?.nome}</td><td class="c-num">${nf(d.inicio)}</td><td class="c-num">${nf(d.tratadas)}</td>
             <td class="c-num">${nf(d.pendente)}${deTurno(d.pendente_de, ultimoTurno)}</td></tr>`)}</tbody>
-          <tfoot><tr><td>Total</td><td class="c-num">${nf(cons.totais.inicio)}</td><td class="c-num">${nf(cons.totais.tratadas)}</td><td class="c-num">${nf(cons.totais.pendente)}</td></tr></tfoot></table></section>
+          <tfoot><tr><td>Total</td><td class="c-num">${nf(cons.totais.inicio)}</td><td class="c-num">${nf(cons.totais.tratadas)}</td><td class="c-num">${nf(cons.totais.pendente)}</td></tr></tfoot></table></div></section>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Nível de serviço</h3><small>vale o último turno preenchido, não a média</small></div>
-        <table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col">Canal</th>${TURNOS.map((t) => html`<th key=${t} class="c-num" scope="col">${t === 'intermediario' ? 'Interm.' : ROTULO_TURNO[t]}</th>`)}<th class="c-num" scope="col">Final do dia</th></tr></thead>
+        <div class="c-db-rolar"><table class="c-tabela c-tabela--compacta c-db-fixa"><thead><tr><th scope="col">Canal</th>${TURNOS.map((t) => html`<th key=${t} class="c-num" scope="col">${t === 'intermediario' ? 'Interm.' : ROTULO_TURNO[t]}</th>`)}<th class="c-num" scope="col">Final do dia</th></tr></thead>
           <tbody>${cons.ns.map((n) => html`<tr key=${n.id_item}><td class="c-forte">${cad[n.id_item]?.nome}</td>
             ${TURNOS.map((t) => { const v = dados.vivos?.[t]?.ns?.[n.id_item] ?? dados.turnos.find((x) => x.turno === t)?.ns?.[n.id_item]; return html`<td key=${t} class="c-num">${v === null || v === undefined ? html`<span class="c-db-nada" title="Não informado">—</span>` : pct(v)}</td>`; })}
-            <td class="c-num c-forte">${pct(n.valor)}${deTurno(n.de, 'fechamento')}</td></tr>`)}</tbody></table></section>
+            <td class="c-num c-forte">${pct(n.valor)}${deTurno(n.de, 'fechamento')}</td></tr>`)}</tbody></table></div></section>
     </div>
     <div>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Absenteísmo (ABS)</h3>
@@ -356,8 +356,8 @@ export function AbaHoje({ contexto, operacao, setOperacao, data, setData, showTo
   if (dados.so_intercorrencias) {
     return html`${cab}<div class="c-tabela-caixa"><div class="c-filtros c-filtros--suave">${navDia}${selOperacao}<span class="c-db-quem c-fim">Você vê só as intercorrências</span></div>
       ${dados.intercorrencias.length ? html`<table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col">Começou</th><th scope="col">Terminou</th><th scope="col">Ferramenta</th><th scope="col">Canal</th><th scope="col">Turno</th><th class="c-estica" scope="col">O que aconteceu</th><th scope="col">Situação</th></tr></thead>
-        <tbody>${dados.intercorrencias.map((f) => html`<tr key=${f.id_intercorrencia}><td>${dataHoraBr(f.inicio)}</td><td>${f.fim ? dataHoraBr(f.fim) : '—'}</td><td class="c-forte">${f.ferramenta}</td><td>${ROTULO_CANAL[f.canal] || f.canal}</td><td>${ROTULO_TURNO[f.turno]}</td>
-          <td class="c-estica">${f.descricao}${f.acao ? html`<br /><small class="c-secundario">Feito: ${f.acao}</small>` : null}</td><td>${f.fim ? html`<${Selo} tom="sucesso" icone="check-circle">Encerrada<//>` : html`<${Selo} tom="perigo" icone="warning-octagon">Em aberto<//>`}</td></tr>`)}</tbody></table>`
+        <tbody>${dados.intercorrencias.map((f) => html`<tr key=${f.id_intercorrencia}><td data-papel="info" data-prioridade="1" data-primeira="">${dataHoraBr(f.inicio)}</td><td data-papel="info" data-prioridade="1">${f.fim ? dataHoraBr(f.fim) : 'em aberto'}</td><td class="c-forte" data-papel="titulo">${f.ferramenta}</td><td data-papel="info" data-prioridade="2">${ROTULO_CANAL[f.canal] || f.canal}</td><td data-papel="info" data-prioridade="2">${ROTULO_TURNO[f.turno]}</td>
+          <td class="c-estica" data-papel="info" data-prioridade="1">${f.descricao}${f.acao ? html`<br /><small class="c-secundario">Feito: ${f.acao}</small>` : null}</td><td data-papel="selo">${f.fim ? html`<${Selo} tom="sucesso" icone="check-circle">Encerrada<//>` : html`<${Selo} tom="perigo" icone="warning-octagon">Em aberto<//>`}</td></tr>`)}</tbody></table>`
         : html`<${Estado} icone="check-circle" titulo="Nenhuma intercorrência neste dia" />`}</div>`;
   }
 

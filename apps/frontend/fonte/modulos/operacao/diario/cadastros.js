@@ -66,10 +66,10 @@ function Importacao({ operacao }) {
       ${feito ? html`<div class="c-faixa c-faixa--informacao" role="status"><${Ic} nome="check-circle" /><div class="c-faixa-txt"><p><b>${feito.gravados} dia(s) importado(s).</b> ${feito.ignorados ? `${feito.ignorados} já existiam e ficaram como estavam.` : ''} Veja no Histórico (aparecem como "importado").</p></div></div>` : null}
     </div>
     ${previa ? html`<table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col">Dia</th><th scope="col">Turnos</th><th class="c-num" scope="col">Intercorr.</th><th class="c-num" scope="col">Parciais</th><th scope="col">ABS</th><th scope="col">Encerramento</th><th class="c-estica" scope="col">Atenção</th><th scope="col">Situação</th></tr></thead>
-      <tbody>${previa.dias.map((d) => html`<tr key=${d.data}><td class="c-forte">${diaHist(d.data)}/${d.data.slice(0, 4)}</td><td>${d.turnos.length} de 3</td><td class="c-num">${d.intercorrencias}</td><td class="c-num">${d.parciais}</td>
+      <tbody>${previa.dias.map((d) => html`<tr key=${d.data}><td class="c-forte" data-papel="titulo">${diaHist(d.data)}/${d.data.slice(0, 4)}</td><td data-papel="info" data-prioridade="1" data-primeira="">${d.turnos.length} de 3 turnos</td><td class="c-num">${d.intercorrencias}</td><td class="c-num">${d.parciais}</td>
         <td>${d.tem_abs ? 'sim' : '—'}</td><td>${d.tem_encerramento ? 'sim' : '—'}</td>
         <td class="c-estica c-secundario">${[d.repetido_nos_arquivos ? 'veio em mais de um arquivo (vale o mais recente de cada turno)' : '', d.nao_reconhecidos.length ? `não reconhecidos: ${d.nao_reconhecidos.join(', ')}` : ''].filter(Boolean).join(' · ') || '—'}</td>
-        <td>${d.ja_existe ? html`<${Selo} tom="neutro">Já existe: ignorado<//>` : html`<${Selo} tom="informacao" icone="plus">Novo<//>`}</td></tr>`)}</tbody></table>
+        <td data-papel="selo">${d.ja_existe ? html`<${Selo} tom="neutro">Já existe: ignorado<//>` : html`<${Selo} tom="informacao" icone="plus">Novo<//>`}</td></tr>`)}</tbody></table>
       <div class="c-tabela-rodape"><span>${previa.novos} novo(s) · ${previa.ja_existem} já existe(m)</span>
         <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${!previa.novos || ocupado || null} onClick=${gravar}>Gravar ${previa.novos} dia(s)</button></div>` : null}
   </section>`;
@@ -90,8 +90,8 @@ export function AbaCadastros({ contexto, operacao, setOperacao }) {
       ${contexto.operacoes.length > 1 ? html`<select class="c-entrada c-entrada--compacta c-fim" aria-label="Operação" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>${contexto.operacoes.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select>` : null}</div>
     <div class="c-tabela-caixa">${erro ? html`<${Estado} titulo=${erro} />` : !itens ? html`<${Esqueleto} linhas=${5} />` : html`<table class="c-tabela c-tabela--compacta">
       <thead><tr><th class="c-col-nome" scope="col">Nome</th><th scope="col">Situação</th><th class="c-estica" scope="col"></th><th class="c-acoes" scope="col"><span class="c-oculto">Ações</span></th></tr></thead>
-      <tbody>${daLista.map((i) => html`<tr key=${i.id_item}><td class="c-col-nome c-forte">${i.nome}</td><td>${i.ativo ? html`<${Selo} tom="sucesso" icone="check-circle">Ligado<//>` : html`<${Selo} tom="neutro">Desligado<//>`}</td><td class="c-estica"></td>
-        <td class="c-acoes"><button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setJanela({ item: i })}><${Ic} nome="pencil-simple" />Editar</button></td></tr>`)}</tbody></table>
+      <tbody>${daLista.map((i) => html`<tr key=${i.id_item}><td class="c-col-nome c-forte" data-papel="titulo">${i.nome}</td><td data-papel="selo">${i.ativo ? html`<${Selo} tom="sucesso" icone="check-circle">Ligado<//>` : html`<${Selo} tom="neutro">Desligado<//>`}</td><td class="c-estica"></td>
+        <td class="c-acoes" data-papel="acoes"><button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setJanela({ item: i })}><${Ic} nome="pencil-simple" />Editar</button></td></tr>`)}</tbody></table>
       <div class="c-tabela-rodape"><span>${daLista.length} ${daLista.length === 1 ? 'item' : 'itens'}</span></div>`}</div>
     <${Importacao} operacao=${operacao} />
     ${janela ? html`<${JanelaItem} operacao=${operacao} tipo=${janela.item?.tipo || lista} item=${janela.item} onClose=${() => setJanela(null)} onSalvo=${carregar} />` : null}`;

@@ -79,19 +79,19 @@ export function AbaHistorico({ contexto, operacao, setOperacao, irParaDia }) {
       </div>
       ${erro ? html`<${Estado} titulo=${erro} /> ` : !itens ? html`<${Esqueleto} linhas=${6} />` : !filtrados.length ? html`<${Estado} icone="notebook" titulo=${itens.length ? 'Nenhum dia com esses filtros' : 'Nenhum dia registrado neste mês'} />`
         : html`<table class="c-tabela c-tabela--compacta">
-          <thead><tr><th scope="col">Dia</th><th scope="col" title="Abertura · Intermediário · Fechamento">Turnos</th><th class="c-num" scope="col">Tratadas</th><th class="c-num" scope="col">Pendentes</th>
-            ${canais.map((c) => html`<th key=${c} class="c-num" scope="col">NS ${c}</th>`)}<th class="c-num" scope="col">ABS</th><th class="c-num" scope="col">Intercorr.</th><th scope="col">Encerramento</th><th scope="col">Envio ao grupo</th><th class="c-estica" scope="col"></th><th class="c-acoes" scope="col"><span class="c-oculto">Ações</span></th></tr></thead>
+          <thead><tr><th scope="col">Dia</th><th scope="col" title="Abertura · Intermediário · Fechamento">Turnos</th><th class="c-num" scope="col">Tratadas</th><th class="c-num c-db-opc" scope="col">Pendentes</th>
+            ${canais.map((c) => html`<th key=${c} class="c-num" scope="col">NS ${c}</th>`)}<th class="c-num" scope="col">ABS</th><th class="c-num c-db-opc" scope="col">Intercorr.</th><th scope="col">Encerramento</th><th scope="col">Envio ao grupo</th><th class="c-estica c-db-opc" scope="col"></th><th class="c-acoes" scope="col"><span class="c-oculto">Ações</span></th></tr></thead>
           <tbody>${filtrados.map((i) => {
             const [tomE, rotE, icE] = SELO_ENVIO[i.envio] || SELO_ENVIO.nao_marcado;
             return html`<tr key=${i.id_dia} class="c-clicavel" aria-selected=${aberto?.id_dia === i.id_dia ? 'true' : null} onClick=${() => setAberto(i)}>
-              <td class="c-forte">${diaHist(i.data)}${i.importado ? html` <small class="c-secundario" title="Importado do diário antigo">(importado)</small>` : null}</td>
-              <td><span class="c-db-tres">${i.turnos.map((t, k) => html`<${SinalTurno} key=${k} estado=${t} />`)}</span></td>
-              <td class="c-num">${nf(i.tratadas)}</td><td class="c-num">${nf(i.pendentes)}</td>
+              <td class="c-forte" data-papel="titulo">${diaHist(i.data)}${i.importado ? html` <small class="c-secundario" title="Importado do diário antigo">(importado)</small>` : null}</td>
+              <td data-papel="acoes"><span class="c-db-tres">${i.turnos.map((t, k) => html`<${SinalTurno} key=${k} estado=${t} />`)}</span></td>
+              <td class="c-num" data-papel="info" data-prioridade="1" data-primeira=""><span class="c-db-so-cel">Tratadas </span>${nf(i.tratadas)}</td><td class="c-num c-db-opc">${nf(i.pendentes)}</td>
               ${canais.map((c) => html`<td key=${c} class=${`c-num${i.ns[c] === null || i.ns[c] === undefined ? ' c-db-nada' : ''}`}>${pct(i.ns[c])}</td>`)}
-              <td class="c-num" title=${i.abs_origem === 'correcao' ? 'Corrigido' : 'Da Presença'}>${pct(i.abs)}${i.abs_origem === 'correcao' ? '*' : ''}</td>
-              <td class="c-num">${i.intercorrencias || html`<span class="c-db-nada">0</span>`}</td>
-              <td>${i.encerramento_tipo ? html`<${Selo} tom=${i.encerramento_tipo === 'sem_pendencias' ? 'sucesso' : 'atencao'}>${i.encerramento_tipo === 'com_pendencias' ? 'Com pendências' : ROTULO_ENCERRAMENTO[i.encerramento_tipo]}<//>` : html`<span class="c-db-nada">—</span>`}</td>
-              <td><${Selo} tom=${tomE} icone=${icE}>${rotE}<//></td><td class="c-estica"></td>
+              <td class="c-num" data-papel="info" data-prioridade="1" title=${i.abs_origem === 'correcao' ? 'Corrigido' : 'Da Presença'}><span class="c-db-so-cel">ABS </span>${pct(i.abs)}${i.abs_origem === 'correcao' ? '*' : ''}</td>
+              <td class="c-num c-db-opc">${i.intercorrencias || html`<span class="c-db-nada">0</span>`}</td>
+              <td data-papel="info" data-prioridade="1">${i.encerramento_tipo ? html`<${Selo} tom=${i.encerramento_tipo === 'sem_pendencias' ? 'sucesso' : 'atencao'}>${i.encerramento_tipo === 'com_pendencias' ? 'Com pendências' : ROTULO_ENCERRAMENTO[i.encerramento_tipo]}<//>` : html`<span class="c-db-nada">—</span>`}</td>
+              <td data-papel="selo"><${Selo} tom=${tomE} icone=${icE}>${rotE}<//></td><td class="c-estica c-db-opc"></td>
               <td class="c-acoes" onClick=${(e) => e.stopPropagation()}><${MenuAcoes} rotulo=${`Ações de ${diaHist(i.data)}`} acoes=${[
                 { label: 'Abrir o dia', icon: 'arrow-right', onClick: () => irParaDia(i.data) },
                 { label: 'Ver alterações', icon: 'clock-counter-clockwise', onClick: () => setAberto(i) },

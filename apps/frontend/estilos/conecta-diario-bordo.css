@@ -147,11 +147,37 @@
 
 /* Faixa larga → coluna única (mesma faixa de 1180 px do responsivo) */
 @media (max-width: 1179px) {
+  .c-db .c-filtros { flex-wrap: wrap; row-gap: var(--espaco-2); }
+  .c-db .c-filtros .c-db-quem { white-space: normal; }
   .c-db-corpo, .c-db-dia, .c-db-fech { grid-template-columns: minmax(0, 1fr); }
   .c-db-corpo > .c-db-lado, .c-db-dia > div + div { border-left: 0; border-top: var(--borda-fina) solid var(--tabela-linha); }
   .c-db-previa { min-height: 0; }
 }
+@media (max-width: 1023px) {
+  .c-db .c-db-opc { display: none; }
+}
+.c-db-so-cel { display: none; }
+.c-db-rolar { overflow-x: auto; }
 @media (max-width: 599px) {
   .c-db-abs { grid-template-columns: repeat(3, auto); gap: var(--espaco-2) var(--espaco-4); }
+  .c-db-campo, .c-db-pct .c-db-campo { height: 44px; }
+  .c-db-rodape { flex-wrap: wrap; }
+  .c-db-rodape .c-grupo { margin-left: 0; flex-wrap: wrap; }
+  .c-db-reg { flex-wrap: wrap; }
+  /* Tabelas de digitação e de números curtos continuam tabela no celular (o padrão do DS vira cartão) */
+  .c-db .c-tabela.c-db-fixa { display: table; width: 100%; }
+  .c-db .c-tabela.c-db-fixa thead { display: table-header-group; }
+  .c-db .c-tabela.c-db-fixa tbody { display: table-row-group; }
+  .c-db .c-tabela.c-db-fixa tfoot { display: table-footer-group; }
+  .c-db .c-tabela.c-db-fixa tbody tr, .c-db .c-tabela.c-db-fixa tfoot tr { display: table-row; min-height: 0; padding: 0; }
+  .c-db .c-tabela.c-db-fixa tbody tr::after { display: none; }
+  .c-db .c-tabela.c-db-fixa tbody td, .c-db .c-tabela.c-db-fixa tfoot td { display: table-cell; padding: var(--espaco-1) var(--espaco-2); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+  .c-db .c-tabela.c-db-fixa .c-estica { display: none; }
+  .c-db .c-tabela.c-db-fixa .c-col-nome { white-space: normal; padding-right: var(--espaco-2); }
+  .c-db .c-db-campo { width: 52px; padding: 0 var(--espaco-1); }
+  .c-db .c-tabela.c-db-fixa th { white-space: normal; }
+  .c-db-so-cel { display: inline; color: var(--cor-texto-secundario); }
+  .c-db-resumo { flex-wrap: wrap; }
+  .c-db-resumo .c-pd-num { flex: 1 1 33%; flex-direction: column; gap: 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
   .c-db-img { width: 100%; }
 }
