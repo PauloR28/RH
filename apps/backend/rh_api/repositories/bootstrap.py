@@ -12,18 +12,16 @@ from fastapi import HTTPException, status
 from ..config import Settings
 from ..db import get_connection
 from ..passwords import hash_password
-from .monitoria_schema import ensure_monitoria_schema
-from .modulos_schema import ensure_modulos_schema
-from .chamados_schema import ensure_chamados_schema
-from .chamados_schema_v060 import ensure_chamados_v060
-from .wfm_schema_v061 import ensure_wfm_v061
-from .wfm_schema_v064 import ensure_wfm_v064
-from .wfm_schema_v066 import ensure_wfm_v066
-from .modulos_funcoes_schema import ensure_modulos_funcoes
-from .wfm_schema import ensure_wfm_schema
 from ..rbac import (
-    PERMISSION_DEFINITIONS, RELHUB_PERMISSAO_BASE, ROLE_ADMIN, ROLE_CANDIDATE, ROLE_DEFINITIONS, ROLE_EMPLOYEE, ROLE_OPERATOR,
-    ROLE_PERMISSIONS, SETTINGS_CATALOGS,
+    PERMISSION_DEFINITIONS,
+    RELHUB_PERMISSAO_BASE,
+    ROLE_ADMIN,
+    ROLE_CANDIDATE,
+    ROLE_DEFINITIONS,
+    ROLE_EMPLOYEE,
+    ROLE_OPERATOR,
+    ROLE_PERMISSIONS,
+    SETTINGS_CATALOGS,
 )
 from ..services.helpers import (
     normalize_compare_text,
@@ -37,8 +35,16 @@ from ..services.process_flow import (
     normalize_process_status,
     resolve_effective_process_status,
 )
+from .chamados_schema import ensure_chamados_schema
+from .chamados_schema_v060 import ensure_chamados_v060
 from .exam_analytics_schema import ensure_exam_analytics_tables
-
+from .modulos_funcoes_schema import ensure_modulos_funcoes
+from .modulos_schema import ensure_modulos_schema
+from .monitoria_schema import ensure_monitoria_schema
+from .wfm_schema import ensure_wfm_schema
+from .wfm_schema_v061 import ensure_wfm_v061
+from .wfm_schema_v064 import ensure_wfm_v064
+from .wfm_schema_v066 import ensure_wfm_v066
 
 logger = logging.getLogger(__name__)
 _SCHEMA_BOOTSTRAP_LOCK = threading.Lock()

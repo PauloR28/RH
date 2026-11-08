@@ -4,7 +4,6 @@ from pydantic import field_validator
 
 from .common import BaseSchema
 
-
 TIPOS_VALIDOS = {"sequencia_logica", "interpretacao_numerica", "problema_matematico"}
 DIFICULDADES_VALIDAS = {"facil", "medio", "dificil"}
 

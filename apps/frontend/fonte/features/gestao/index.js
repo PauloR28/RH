@@ -138,7 +138,7 @@ import {
   WizardStepper,
   WizardSummaryStrip,
 } from '../../ui/componentes-compartilhados.js';
-import { BotaoAjudaTour, TourGuiado } from '../../ui/tour-guiado.js?v=20261022-guia';
+import { TourGuiado } from '../../ui/tour-guiado.js?v=20261022-guia';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';
@@ -1656,6 +1656,15 @@ function salvarEmailLoginCache(valor) {
   }
 }
 
+// Novidades do Login (DEC-070): as 3 mais recentes aparecem no lado azul.
+// Enquanto não existe o cadastro de novidades (ADM/TI), a lista mora aqui.
+// Para trocar: edite os itens abaixo (o mais novo primeiro). `versao` é opcional.
+const NOVIDADES_LOGIN = [
+  { versao: '', titulo: 'Supervisor vê todas as equipes', data: '04/11', descricao: 'Pausas, presença e horas extras das outras equipes na Escala do dia.' },
+  { versao: '', titulo: 'Férias e troca de folga', data: '30/10', descricao: 'Novos tipos Férias e Escalado e troca de folga na escala.' },
+  { versao: '', titulo: 'Painel em sessões', data: '29/10', descricao: 'Indicadores 3 por linha e gráficos organizados.' },
+];
+
 export function TelaLogin({ controlador }) {
   const [usuario, setUsuario] = useState(() => lerEmailLoginCacheado());
   const [senha, setSenha] = useState('');
@@ -1701,154 +1710,124 @@ export function TelaLogin({ controlador }) {
     }
   };
 
+  const abrirLoginLocal = (evento) => {
+    evento?.preventDefault?.();
+    setMensagemErro('');
+    setExibirLoginLocal(true);
+  };
+
+  const botaoMicrosoft = (secundario) => html`
+    <a
+      class=${`c-botao ${secundario ? 'c-botao--secundario' : 'c-botao--principal'} c-login-ms-botao`}
+      data-tour-id="login-submit"
+      href="/auth/microsoft/login"
+      aria-busy=${autenticandoMicrosoft}
+    >
+      <svg aria-hidden="true" class="c-login-ms" viewBox="0 0 24 24">
+        <path fill="#f35325" d="M1 1h10v10H1z"></path>
+        <path fill="#81bc06" d="M13 1h10v10H13z"></path>
+        <path fill="#05a6f0" d="M1 13h10v10H1z"></path>
+        <path fill="#ffba08" d="M13 13h10v10H13z"></path>
+      </svg>
+      ${autenticandoMicrosoft ? 'Validando conta Microsoft...' : 'Entrar com a Microsoft'}
+    </a>
+  `;
+
+  // Login no desenho do rebranding (DEC-070): metade marca (marinho, símbolo, órbita
+  // e Novidades discretas) e metade formulário (logo, "Entrar", Microsoft em destaque).
   return html`
-    <section class="active screen" id="screen-login">
-      <div class="rh-login-page">
-        <div class="rh-login-hero" data-tour-id="login-hero">
-          <div class="rh-login-hero-badge">Conecta</div>
-          <h1 class="rh-login-hero-title">Uma plataforma para todos.</h1>
-          <p class="rh-login-hero-text">
-            Monitorias, escalas e controles históricos conectados num só lugar, para a
-            rotina de toda a empresa.
-          </p>
-          <div class="rh-login-hero-points">
-            <span>Monitorias</span>
-            <span>Escalas</span>
-            <span>Controles históricos</span>
-          </div>
+    <section class="active screen c-login-tela" id="screen-login">
+      <div class="c-login">
+        <div class="c-login-marca" data-tour-id="login-hero">
+          <span class="c-login-simbolo">
+            <img alt="" src="/estilos/marca/conecta_simbolo_branco.svg" />
+          </span>
+          ${NOVIDADES_LOGIN.length
+      ? html`
+                <section class="c-novidades" aria-label="Novidades">
+                  <div class="c-novidades-cab"><h2>Novidades</h2></div>
+                  <ul>
+                    ${NOVIDADES_LOGIN.slice(0, 3).map((item) => html`
+                      <li key=${item.titulo}>
+                        <div>${item.versao ? html`<b>${item.versao}</b>` : null}<span>${item.titulo}</span><small>${item.data}</small></div>
+                        <p class=${item.versao ? '' : 'c-novidades-sem-versao'}>${item.descricao}</p>
+                      </li>
+                    `)}
+                  </ul>
+                </section>
+              `
+      : null}
+          <span class="c-login-orbita" aria-hidden="true"></span>
         </div>
 
-        <div
-          class="rh-login-panel rh-login-panel-modern"
-          data-tour-id="login-panel"
-        >
-          <div class="rh-login-brand-block rh-login-brand-block-centered">
-            <img
-              alt="Central 24h"
-              class="rh-login-brand-image"
-              src="/estilos/logo_conecta_padrao.png"
-            />
-          </div>
-
-          <div class="rh-login-copy-block">
-            <h2 class="rh-login-welcome-title">Acesse sua conta</h2>
-            <p class="rh-login-welcome-text">
-              ${mensagemErro
-      ? 'A autenticação Microsoft não foi concluída. Use seu acesso local para continuar.'
-      : exibirLoginLocal
-        ? 'Use seu login e senha para continuar.'
-        : 'Entre com sua conta Microsoft para continuar.'}
-            </p>
-          </div>
-
-          ${mensagemErro
-      ? html`<div class="alert alert-danger mb-3">${mensagemErro}</div>`
-      : null}
-
-          <a
-            class="rh-login-microsoft-btn"
-            data-tour-id="login-submit"
-            href="/auth/microsoft/login"
-            aria-busy=${autenticandoMicrosoft}
+        <div class="c-login-form" data-tour-id="login-panel">
+          <form
+            class="c-login-caixa"
+            onSubmit=${(evento) => {
+      evento.preventDefault();
+      enviar();
+    }}
           >
-            <svg aria-hidden="true" class="rh-login-microsoft-icon" viewBox="0 0 24 24">
-              <path fill="#f35325" d="M1 1h10v10H1z"></path>
-              <path fill="#81bc06" d="M13 1h10v10H13z"></path>
-              <path fill="#05a6f0" d="M1 13h10v10H1z"></path>
-              <path fill="#ffba08" d="M13 13h10v10H13z"></path>
-            </svg>
-            <span>${autenticandoMicrosoft ? 'Validando conta Microsoft...' : 'Entrar com a Microsoft'}</span>
-          </a>
+            <span class="c-login-logo">
+              <img alt="Conecta, da Central 24 Horas" src="/estilos/marca/conecta_colorido_assinatura.svg" />
+            </span>
+            <h1>Entrar</h1>
 
-          ${!exibirLoginLocal
+            ${mensagemErro
       ? html`
-                <div class="rh-login-alt-row">
-                  <button
-                    class="rh-login-link-btn rh-login-alt-btn"
-                    type="button"
-                    onClick=${() => {
-          setMensagemErro('');
-          setExibirLoginLocal(true);
-        }}
-                  >
-                    Entrar com login e senha
-                  </button>
-                </div>
-              `
+                  <div class="c-faixa c-faixa--perigo" role="alert">
+                    <span class="c-ic" aria-hidden="true">${IconeSvg('warning-octagon')}</span>
+                    <div class="c-faixa-txt"><p>${mensagemErro}</p></div>
+                  </div>
+                `
       : null}
 
-          ${exibirLoginLocal
+            ${!exibirLoginLocal
       ? html`
-                <div class="rh-login-local-fallback">
-                  <div class="rh-login-divider" role="separator" aria-label="ou">
-                    <span>ou</span>
+                  ${botaoMicrosoft(false)}
+                  <a class="c-login-link" href="#" onClick=${abrirLoginLocal}>Entrar com login e senha</a>
+                `
+      : html`
+                  <div class="c-login-campo">
+                    <label for="login-usuario">Usuário</label>
+                    <input
+                      id="login-usuario"
+                      class="c-entrada"
+                      autocomplete="username"
+                      placeholder="nome@empresa.com.br"
+                      value=${usuario}
+                      onInput=${(event) => atualizarUsuario(event.target.value)}
+                      type="text"
+                    />
                   </div>
-
-                  <div class="mb-3">
-                    <label class="form-label rh-login-label">Login</label>
-                    <div class="rh-login-input-wrap">
-                      <span class="material-symbols-outlined rh-login-input-icon">${IconeSvg('alternate_email')}</span>
-                      <input
-                        autocomplete="username"
-                        class="form-control rh-login-input rh-login-input-modern"
-                        placeholder="nome@empresa.com.br"
-                        value=${usuario}
-                        onInput=${(event) => atualizarUsuario(event.target.value)}
-                        type="text"
-                      />
+                  <div class="c-login-campo">
+                    <div class="c-login-campo-cab">
+                      <label for="login-senha">Senha</label>
+                      <span class="c-login-em-breve" title="Recurso em breve">Esqueci a senha</span>
                     </div>
+                    <input
+                      id="login-senha"
+                      class="c-entrada"
+                      autocomplete="current-password"
+                      value=${senha}
+                      onInput=${(event) => setSenha(event.target.value)}
+                      type="password"
+                    />
                   </div>
+                  <button class="c-botao c-botao--principal" type="submit">Entrar</button>
+                  <div class="c-login-ou">ou</div>
+                  ${botaoMicrosoft(true)}
+                `}
+          </form>
 
-                  <div class="mb-2">
-                    <div class="rh-login-label-row">
-                      <label class="form-label rh-login-label mb-0">Senha</label>
-                      <button
-                        class="rh-login-link-btn"
-                        type="button"
-                        disabled
-                        aria-disabled="true"
-                        title="Recurso em breve"
-                      >
-                        Esqueci a senha
-                      </button>
-                    </div>
-                    <div class="rh-login-input-wrap">
-                      <span class="material-symbols-outlined rh-login-input-icon">${IconeSvg('lock')}</span>
-                      <input
-                        autocomplete="current-password"
-                        class="form-control rh-login-input rh-login-input-modern"
-                        placeholder="••••••••"
-                        value=${senha}
-                        onInput=${(event) => setSenha(event.target.value)}
-                        type="password"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    class="btn rh-login-btn rh-login-btn-modern w-100"
-                    onClick=${enviar}
-                  >
-                    <span>Acessar sistema</span>
-                    <span class="material-symbols-outlined">${IconeSvg('arrow_forward')}</span>
-                  </button>
-                </div>
-              `
-      : null}
-
-          <div class="rh-login-help-row">
-            <${BotaoAjudaTour}
-              compact=${true}
-              label="Ver orientações"
-              onClick=${() => setTourReopenSignal((valor) => valor + 1)}
-            />
-          </div>
-
-          <div class="rh-login-footer-meta">
-            <span>© 2026 Central 24h</span>
+          <div class="c-login-rodape">
+            <span>© 2026 Central 24 Horas</span>
             <span>Privacidade</span>
             <span>Termos</span>
-            <span>Suporte</span>
+            <a href="#" onClick=${(evento) => {
+      evento.preventDefault();
+      setTourReopenSignal((valor) => valor + 1);
+    }}>Precisa de ajuda?</a>
           </div>
         </div>
       </div>

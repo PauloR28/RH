@@ -26,6 +26,7 @@
  "GET /runtime-config.js",
  "GET /settings/health",
  "GET /settings/tela-inicial/minha",
+ "GET /sistema/orientacoes",
  "GET /version",
  "GET /{frontend_path:path}",
  "POST /auth/app/login-email",
@@ -68,5 +69,6 @@
  "PUT /auth/me/provedor-autenticacao",
  "PUT /auth/me/senha",
  "PUT /auth/me/sobrenome",
- "PUT /monitoria/tema"
+ "PUT /monitoria/tema",
+ "PUT /sistema/orientacoes"
 ]

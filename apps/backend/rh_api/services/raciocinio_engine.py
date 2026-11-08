@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Motor de correcao do teste de raciocinio logico/numerico.
 
 Questoes de multipla escolha com gabarito fixo, dificuldade
@@ -21,8 +19,9 @@ Isoladas em funcoes puras e testadas separadamente para nao interferir na
 logica de embaralhamento/correcao ja existente em `generated_exams.py`.
 """
 
-import random
+from __future__ import annotations
 
+import random
 
 ORDEM_DIFICULDADE = ["facil", "medio", "dificil"]
 

@@ -11,7 +11,6 @@ from ..schemas.fit_cultural import (
     ValorEmpresaUpdateRequest,
 )
 
-
 router = APIRouter(prefix="/fit-cultural", tags=["fit-cultural"], dependencies=[Depends(get_current_user)])
 public_router = APIRouter(prefix="/fit-cultural-api", tags=["fit-cultural-public"])
 

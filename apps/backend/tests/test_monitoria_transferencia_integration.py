@@ -8,6 +8,7 @@ import uuid
 import pytest
 from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
+
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_permissions
 

@@ -19,9 +19,9 @@ test.describe('Tela de login', () => {
     const telaLogin = page.locator('#screen-login');
     await expect(telaLogin).toBeVisible({ timeout: 20_000 });
 
-    await expect(page.getByRole('heading', { name: 'Acesse sua conta' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible();
 
-    const botaoMicrosoft = page.locator('a.rh-login-microsoft-btn');
+    const botaoMicrosoft = page.locator('a.c-login-ms-botao');
     await expect(botaoMicrosoft).toBeVisible();
     await expect(botaoMicrosoft).toHaveAttribute('href', '/auth/microsoft/login');
     await expect(botaoMicrosoft).toContainText('Entrar com a Microsoft');

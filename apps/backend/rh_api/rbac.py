@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from .modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, modulo_dono_padrao
 
-
 ROLE_INTERN = "estagiario"
 ROLE_DP = "dp"
 ROLE_MANAGER = "gestor"

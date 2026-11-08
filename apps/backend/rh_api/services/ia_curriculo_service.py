@@ -9,7 +9,6 @@ import httpx
 from ..config import Settings
 from .ia_schema_validator import IaSchemaValidationError, validar_resultado_ia
 
-
 PROMPT_VERSION = "curriculo_ia_v1"
 AVISO_REVISAO_HUMANA = (
     "Esta análise é um apoio automatizado ao RH. A decisão final deve ser feita "

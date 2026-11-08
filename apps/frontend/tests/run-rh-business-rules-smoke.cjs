@@ -155,9 +155,11 @@ async function main() {
   assertSemSigiloVisivel(jovemPersonalizada.questoes, 'Jovem Aprendiz personalizada');
 
   const operador = gerar(perguntas, 'Operador', '2', 'Operação');
-  assert.equal(operador.questoes.length, 14, 'Operador neutra deve usar Word/Redação reformulados.');
-  assert.equal(operador.questoes.filter((q) => q.questaoReformulada).length, 8);
-  assertGrupoCompacto(operador.questoes, [15, 20], 'Operador neutra');
+  // A Questão 6 do Word do Operador ("utilizando sua espontaneidade", sem gabarito) é comportamental no banco
+  // reformulado e não entra na etapa de Word: ficam 5 múltiplas + o grupo de 20.
+  assert.equal(operador.questoes.length, 13, 'Operador neutra deve usar Word/Redação reformulados.');
+  assert.equal(operador.questoes.filter((q) => q.questaoReformulada).length, 7);
+  assertGrupoCompacto(operador.questoes, [20], 'Operador neutra');
   assertExcelPreservado(operador.questoes, 'qualid_exam', 'Operador');
   assertSemSigiloVisivel(operador.questoes, 'Operador neutra');
 
@@ -172,23 +174,24 @@ async function main() {
     usuario: 'smoke-test',
   });
   assert.ok(
-    operadorPersonalizada.questoes.filter((q) => q.questaoReformulada && q.personalizacaoInteligente?.mecanismo === 'banco_personalizado').length >= 8,
+    operadorPersonalizada.questoes.filter((q) => q.questaoReformulada && q.personalizacaoInteligente?.mecanismo === 'banco_personalizado').length >= 7,
     'Operador personalizada deve usar blocos por cliente do DOCX.',
   );
   assertSemSigiloVisivel(operadorPersonalizada.questoes, 'Operador personalizada');
 
   const estagiario = gerar(perguntas, 'Estagiário', '2', 'TI');
-  assert.equal(estagiario.questoes.length, 29, 'Estagiário TI neutra deve incluir Word, Gerais, Técnicos e Redação reformulados.');
-  assert.equal(estagiario.questoes.filter((q) => q.questaoReformulada).length, 28);
+  // Idem Operador: a Questão 6 do Word (espontaneidade) é comportamental e sai da prova (writing_logic fica só com o grupo de 20).
+  assert.equal(estagiario.questoes.length, 28, 'Estagiário TI neutra deve incluir Word, Gerais, Técnicos e Redação reformulados.');
+  assert.equal(estagiario.questoes.filter((q) => q.questaoReformulada).length, 27);
   assert.deepEqual(contarPor(estagiario.questoes, (q) => q.stageKey), {
     word_basic: 5,
     excel_basic: 1,
     general_basic: 10,
     tech_ti_basic: 10,
-    writing_logic: 2,
+    writing_logic: 1,
     professional_essay: 1,
   });
-  assertGrupoCompacto(estagiario.questoes, [15, 20], 'Estagiário TI neutra');
+  assertGrupoCompacto(estagiario.questoes, [20], 'Estagiário TI neutra');
   assertExcelPreservado(estagiario.questoes, 'qualid_exam', 'Estagiário TI');
   assertSemSigiloVisivel(estagiario.questoes, 'Estagiário TI neutra');
 
@@ -203,7 +206,7 @@ async function main() {
     usuario: 'smoke-test',
   });
   assert.ok(
-    estagiarioPersonalizada.questoes.filter((q) => q.questaoReformulada && q.personalizacaoInteligente?.mecanismo === 'banco_personalizado').length >= 8,
+    estagiarioPersonalizada.questoes.filter((q) => q.questaoReformulada && q.personalizacaoInteligente?.mecanismo === 'banco_personalizado').length >= 7,
     'Estagiário personalizada deve usar variações por área do DOCX.',
   );
   assertSemSigiloVisivel(estagiarioPersonalizada.questoes, 'Estagiário personalizada');

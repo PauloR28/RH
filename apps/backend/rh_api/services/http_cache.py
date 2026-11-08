@@ -20,7 +20,7 @@ DEFAULT_MAX_AGE = 300
 
 def _etag_de(payload) -> str:
     corpo = json.dumps(payload, default=str, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    return f'W/"{hashlib.sha1(corpo).hexdigest()}"'
+    return f'W/"{hashlib.sha1(corpo, usedforsecurity=False).hexdigest()}"'
 
 
 def aplicar_cache_http(request: Request, response: Response, payload, *, max_age: int = DEFAULT_MAX_AGE) -> bool:

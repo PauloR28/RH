@@ -87,3 +87,14 @@
   .c-moldura-topo .mod-seletor-btn > span:not(:first-child) { display: none; }
   .c-moldura-topo .mod-seletor { margin-right: 0; }
 }
+
+/* Sub-barra com "Mais ▾" (Tecnologia › Administração, DEC-072): as telas menos usadas
+   ficam num menu, sem setas de rolagem. A tela atual sempre aparece na faixa. */
+.c-subbarra-mais { position: relative; display: flex; align-self: stretch; }
+.c-subbarra-mais > .c-aba { display: inline-flex; align-items: center; gap: var(--espaco-1); background: none; border: 0; cursor: pointer; font: inherit; }
+.c-subbarra-mais > .c-aba .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-subbarra-mais > .c-menu { position: absolute; top: 100%; left: 0; z-index: 1001; }
+.c-subbarra-mais > .c-menu[hidden] { display: none; }
+.c-subbarra-mais .c-menu-item { color: var(--cor-texto-padrao); }
+/* A sub-barra corta o que passa da borda; com o "Mais" aberto o menu precisa aparecer. */
+.c-moldura-subbarra:has(.c-subbarra-mais > [aria-expanded='true']) { overflow: visible; }

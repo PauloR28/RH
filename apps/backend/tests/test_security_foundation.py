@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pytest
-
 from conecta.domain.candidatos import CandidateStatus, decide_candidate_status
 from conecta.domain.permissoes import AuthorizationPolicy
 from conecta.infrastructure.security.rate_limit import InMemoryRateLimiter
 from conecta.infrastructure.security.totp import generate_code, verify_code
+
 from rh_api.config import (
     ConfigurationError,
     get_settings,

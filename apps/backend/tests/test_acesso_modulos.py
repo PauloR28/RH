@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 
+import _matriz_acesso as m
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import _matriz_acesso as m
 from rh_api.auth import AuthenticatedUser
 from rh_api.dependencies import get_current_user
 from rh_api.modulos_catalogo import (

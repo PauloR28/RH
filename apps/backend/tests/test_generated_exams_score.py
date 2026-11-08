@@ -9,6 +9,12 @@ API_DIR = Path(__file__).resolve().parents[1]
 if str(API_DIR) not in sys.path:
     sys.path.insert(0, str(API_DIR))
 
+from rh_api.repositories.generated_exams import (
+    GeneratedExamRepositoryMixin,
+    _is_public_answer_complete,
+    _map_rh_decision_to_candidate_status,
+    _public_question_payload,
+)
 from rh_api.routers.generated_exams import (
     create_generated_exam,
     delete_generated_exam,
@@ -16,12 +22,6 @@ from rh_api.routers.generated_exams import (
     public_access_email,
     public_finalize_exam,
     update_generated_exam,
-)
-from rh_api.repositories.generated_exams import (
-    GeneratedExamRepositoryMixin,
-    _is_public_answer_complete,
-    _map_rh_decision_to_candidate_status,
-    _public_question_payload,
 )
 from rh_api.schemas.generated_exams import (
     GeneratedExamCreateRequest,

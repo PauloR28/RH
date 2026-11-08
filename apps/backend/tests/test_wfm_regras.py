@@ -5,8 +5,6 @@ from __future__ import annotations
 import inspect
 from datetime import date, timedelta
 
-import pytest
-
 from rh_api.services import wfm_regras as r
 from rh_api.services.wfm_regras import (
     ExigenciaPausa,

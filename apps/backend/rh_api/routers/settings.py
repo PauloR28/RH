@@ -7,7 +7,6 @@ from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
-from ..services.http_cache import aplicar_cache_http
 from ..schemas.auth import DecideEmailChangeRequest
 from ..schemas.common import SuccessResponse
 from ..schemas.security import (
@@ -16,14 +15,15 @@ from ..schemas.security import (
     LgpdRetencaoConfigRequest,
     LgpdRetencaoExecutarRequest,
     NotificationAutomationSettingsRequest,
+    QuickTrainingUserCreateRequest,
     RolePermissionsUpdateRequest,
     TelaInicialConfigRequest,
-    QuickTrainingUserCreateRequest,
     UserCreateRequest,
     UserPasswordRequest,
     UserStatusRequest,
     UserUpdateRequest,
 )
+from ..services.http_cache import aplicar_cache_http
 
 
 def _require_catalog_write_access(tipo: str, user: AuthenticatedUser) -> None:

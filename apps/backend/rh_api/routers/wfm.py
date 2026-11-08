@@ -14,41 +14,41 @@ from fastapi.responses import Response, StreamingResponse
 from ..auth import AuthenticatedUser
 from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services import wfm_historico as historico
 from ..schemas.wfm import (
+    AplicarPausasRequest,
     AtestadoRequest,
     CapacidadePausasRequest,
     ConfigEscalaRequest,
-    CriarEscalaRequest,
-    DuplicarEscalaMesRequest,
-    DuplicarEscalaRequest,
-    DeclinarRequest,
-    DistribuirPausasRequest,
-    ExportarHistoricoRequest,
-    PersonalizacaoTurnoRequest,
-    PresencaLoteRequest,
-    SalvarPausasRequest,
     ContratoOperadorRequest,
     ContratoRequest,
+    CriarEscalaRequest,
+    DeclinarRequest,
+    DistribuirPausasRequest,
+    DuplicarEscalaMesRequest,
+    DuplicarEscalaRequest,
     EventoRequest,
+    ExportarHistoricoRequest,
     FecharRequest,
     HoraExtraRequest,
-    PresencaRequest,
-    PublicarRequest,
-    AplicarPausasRequest,
-    ReplicarPausasRequest,
     ImpactoDiasTurnoRequest,
     ImpactoTipoTurnoRequest,
+    PersonalizacaoTurnoRequest,
+    PresencaLoteRequest,
+    PresencaRequest,
+    PublicarRequest,
+    ReplicarPausasRequest,
     SalvarItensRequest,
+    SalvarPausasRequest,
     SkillRequest,
     SkillsOperadorRequest,
+    TipoEscalaRequest,
     TrocaDecidirRequest,
     TrocaDesfazerRequest,
     TrocaResponderRequest,
     TrocaSolicitarRequest,
-    TipoEscalaRequest,
     TurnoRequest,
 )
+from ..services import wfm_historico as historico
 
 router = APIRouter(prefix="/wfm", tags=["wfm"], dependencies=[Depends(get_current_user)])
 

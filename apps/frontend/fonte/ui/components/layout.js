@@ -9,9 +9,9 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261026-ajustes';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia } from '../../modulos/registro.js?v=20261026-ajustes';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261026-ajustes';
-import { MolduraConecta } from './moldura.js?v=20261106-redesign';
+import { MolduraConecta } from './moldura.js?v=20261108-admin';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -450,6 +450,69 @@ export function BarraLateral({
   // Mesmas regras de visibilidade de antes (permissão, sessão, módulo, área
   // inativa); só muda o desenho: seções no topo e telas da seção na sub-barra.
   // O módulo Tecnologia continua com o menu próprio (desenho antigo, abaixo).
+  // Módulo Tecnologia na moldura nova (DEC-072): Início · Administração (sub-barra com
+  // Usuários · Perfis e permissões · Operações · Registro de alterações · Parâmetros · demais)
+  // e as entradas soltas de antes (Relatórios, Escalas e Plantões, Suporte TI).
+  if (emTecnologia) {
+    const irParaTec = (tela) => {
+      setGrupoAberto(null);
+      controlador.irParaTelaProtegida(tela);
+    };
+    const menuTec = montarMenuTecnologia(controlador.podeAcessarTela, possuiPermissao);
+    const ehWfm = (tela) => String(tela || '').startsWith('screen-wfm') && tela !== 'screen-wfm-auditoria';
+    const ativaTec = (tela) => navAtiva === tela
+      || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
+      || (ehWfm(tela) && ehWfm(navAtiva));
+    const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const soltas = [];
+    const itensAdm = [];
+    menuTec.forEach((entrada) => {
+      if (entrada.tipo === 'grupo') {
+        entrada.itens.forEach((item) => {
+          if (item.tela === 'screen-relatorios' || ehWfm(item.tela)) soltas.push({ ...item, id: item.tela });
+          else itensAdm.push(item);
+        });
+      } else if (entrada.id !== 'inicio') {
+        soltas.push(entrada);
+      }
+    });
+    const posicao = (tela) => (ORDEM_ADM.includes(tela) ? ORDEM_ADM.indexOf(tela) : ORDEM_ADM.length);
+    const abasAdm = itensAdm
+      .map((item, indice) => ({ ...item, indice }))
+      .sort((a, b) => posicao(a.tela) - posicao(b.tela) || a.indice - b.indice)
+      .map((item, indice) => ({ tela: item.tela, label: ROTULO_ADM[item.tela] || item.label, ativo: ativaTec(item.tela), desativado: false, mais: indice >= 5 }));
+    const ICONE_SOLTA = { relatorios: 'presentation-chart', escalas: 'calendar-dots', suporte: 'headset' };
+    const inicioTec = menuTec.find((entrada) => entrada.id === 'inicio');
+    const secoesTec = [
+      inicioTec ? { chave: 'inicio', label: 'Início', icone: 'house', tela: inicioTec.tela, abas: [], ativo: navAtiva === inicioTec.tela } : null,
+      abasAdm.length ? { chave: 'administracao', label: 'Administração', icone: 'user-gear', tela: abasAdm[0].tela, abas: abasAdm, ativo: abasAdm.some((aba) => aba.ativo) } : null,
+      ...soltas.map((entrada) => ({
+        chave: entrada.id,
+        label: entrada.label,
+        icone: ICONE_SOLTA[entrada.id] || 'squares-four',
+        tela: entrada.tela,
+        abas: [],
+        ativo: ativaTec(entrada.tela),
+      })),
+    ].filter(Boolean);
+    const secaoAtivaTec = secoesTec.find((secao) => secao.ativo) || null;
+    return html`
+      <${MolduraConecta}
+        secoes=${secoesTec}
+        configuracoes=${null}
+        secaoAtual=${secaoAtivaTec && secaoAtivaTec.abas.length ? { ...secaoAtivaTec, telaAtual: navAtiva } : null}
+        logoUrl=${logoOperacao}
+        irPara=${irParaTec}
+        irParaInicio=${() => irParaTec(inicioTec?.tela || TELA_INICIO_TECNOLOGIA)}
+        sair=${() => controlador.sair()}
+        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
+        busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
+        usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
+      />
+    `;
+  }
+
   if (!emTecnologia) {
     const irPara = (tela) => {
       setGrupoAberto(null);

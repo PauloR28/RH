@@ -10,7 +10,6 @@ import csv
 import io
 from typing import Any, Iterable
 
-
 _PERIGOSOS = ("=", "+", "-", "@", "\t", "\r")
 
 

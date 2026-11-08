@@ -40,8 +40,6 @@ from ..services.wfm_montagem import (
 from ..services.wfm_regras import (
     ExigenciaPausa,
     ParametrosContrato,
-    tem_bloqueio,
-    tem_bloqueio_duro,
     validar_escala,
 )
 

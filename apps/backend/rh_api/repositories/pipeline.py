@@ -24,7 +24,6 @@ from .bootstrap import (
     resolve_process_row_for_related_record,
 )
 
-
 logger = logging.getLogger(__name__)
 
 

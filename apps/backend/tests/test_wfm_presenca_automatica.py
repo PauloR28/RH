@@ -1,6 +1,7 @@
 """Presença automática no 1º login do dia (WFM): grava só para escalado em turno de TRABALHO sem presença; nunca derruba o login."""
 from types import SimpleNamespace
 
+from rh_api.repositories import wfm_escala
 from rh_api.repositories.wfm_escala import PRESENCA_AUTOMATICA, WfmEscalaRepositoryMixin
 
 
@@ -31,6 +32,8 @@ class _Conn:
 
 
 def _repo(cursor):
+    # Cada teste começa sem a marca de "já gravada hoje" deixada pelo teste anterior (mesmo usuário 7).
+    wfm_escala._PRESENCA_AUTOMATICA_FEITA.clear()
     conn = _Conn(cursor)
 
     class Repo(WfmEscalaRepositoryMixin):

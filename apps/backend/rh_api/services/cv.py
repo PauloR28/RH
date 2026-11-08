@@ -14,7 +14,6 @@ from zipfile import BadZipFile
 
 from .helpers import normalize_compare_text, normalize_text
 
-
 logger = logging.getLogger(__name__)
 
 CV_MAX_BYTES = 10 * 1024 * 1024

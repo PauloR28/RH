@@ -7,9 +7,9 @@ import io
 import uuid
 
 import pytest
+from _integracao_dev import repositorio_dev
 from openpyxl import Workbook, load_workbook
 
-from _integracao_dev import repositorio_dev
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import ROLE_ADMIN, ROLE_SUPERVISOR, get_role_permissions
 from rh_api.repositories.usuarios_massa import ABA_DADOS, COLUNAS

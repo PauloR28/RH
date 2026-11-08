@@ -5,7 +5,6 @@ from fastapi import HTTPException, status
 from ..services.helpers import normalize_text, rows_to_dicts
 from .bootstrap import ensure_policies_tables
 
-
 _POLICY_COLUMNS = """
     id_politica,
     titulo,

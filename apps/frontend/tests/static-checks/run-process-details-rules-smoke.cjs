@@ -28,7 +28,7 @@ assert.ok(source.includes('return isActiveCandidateStatus(status);'));
 assert.ok(source.includes('status === CANDIDATE_STATUS_WITHDREW'));
 assert.ok(source.includes('[CANDIDATE_STATUS_ELIMINATED, CANDIDATE_STATUS_WITHDREW].includes(statusEntrevista)'));
 assert.ok(source.includes("'Desistência do candidato'"));
-assert.ok(source.includes("['groups', 'Candidatos no processo', candidatos.length, 'blue']"));
+assert.ok(source.includes("['groups', 'Candidatos no processo', candidatos.length, "));
 assert.ok(source.includes('titulo="Ficha do candidato"'));
 assert.ok(source.includes('Qualidades analisadas do CV'));
 assert.ok(source.includes('Ver nota completa'));

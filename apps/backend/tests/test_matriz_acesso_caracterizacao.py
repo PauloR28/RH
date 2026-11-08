@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 import _matriz_acesso as m
+import pytest
 
 # Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
 # tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
