@@ -118,6 +118,7 @@ const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralM
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261104-leitura'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261104-leitura'), 'TelaEquipesControle');
+const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261108-diario'), 'TelaDiario');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261104-dia'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes3'), 'TelaTecnologia');
@@ -390,6 +391,10 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
   if (telaResolvida === 'screen-equipes-controle') {
     return html`<${TelaEquipesControle} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida.startsWith('screen-diario')) {
+    return html`<${TelaDiario} controlador=${controlador} telaAtual=${telaResolvida} />`;
   }
 
   if (telaResolvida.startsWith('screen-wfm')) {

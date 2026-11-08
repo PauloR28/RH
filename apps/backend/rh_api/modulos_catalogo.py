@@ -82,6 +82,7 @@ _DONO_POR_CHAVE = {
     "sessao.monitoria.acessar": MODULO_OPERACAO,
     "sessao.wfm.acessar": MODULO_OPERACAO,
     "sessao.equipe.acessar": MODULO_OPERACAO,
+    "sessao.diario.acessar": MODULO_OPERACAO,
     "sessao.configuracoes.acessar": MODULO_TECNOLOGIA,
 }
 

@@ -290,6 +290,16 @@ IF NOT EXISTS (SELECT 1 FROM dbo.diario_cadastro WHERE operacao = 'CRF' AND tipo
 
 IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'sessao.diario.acessar')
+        INSERT INTO dbo.permissoes (chave, modulo, descricao, critica, criado_em)
+        VALUES ('sessao.diario.acessar', N'Sess' + NCHAR(245) + N'es', N'Acessar a sess' + NCHAR(227) + N'o Di' + NCHAR(225) + N'rio de bordo.', 0, GETDATE());
+END;
+
+IF COL_LENGTH('dbo.permissoes', 'modulo_dono') IS NOT NULL
+    EXEC(N'UPDATE dbo.permissoes SET modulo_dono = ''operacao'', abre_modulo = 0 WHERE chave = ''sessao.diario.acessar'' AND modulo_dono IS NULL;');
+
+IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
+BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'diario.visualizar')
         INSERT INTO dbo.permissoes (chave, modulo, descricao, critica, criado_em)
         VALUES ('diario.visualizar', N'Di' + NCHAR(225) + N'rio de bordo', N'Abrir o Di' + NCHAR(225) + N'rio de bordo e consultar dias, turnos, intercorr' + NCHAR(234) + N'ncias e hist' + NCHAR(243) + N'rico das suas opera' + NCHAR(231) + NCHAR(245) + N'es.', 0, GETDATE());
@@ -404,6 +414,15 @@ END;
 
 IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
 BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'administrador')
+       AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'sessao.diario.acessar')
+       AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'administrador' AND chave_permissao = 'sessao.diario.acessar')
+        INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+        VALUES ('administrador', 'sessao.diario.acessar', 1, GETDATE(), GETDATE());
+END;
+
+IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
+BEGIN
     IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'gestor')
        AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'diario.exportar')
        AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'gestor' AND chave_permissao = 'diario.exportar')
@@ -431,11 +450,29 @@ END;
 
 IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
 BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'gestor')
+       AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'sessao.diario.acessar')
+       AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'gestor' AND chave_permissao = 'sessao.diario.acessar')
+        INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+        VALUES ('gestor', 'sessao.diario.acessar', 1, GETDATE(), GETDATE());
+END;
+
+IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
+BEGIN
     IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'qualidade')
        AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'diario.intercorrencias')
        AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'qualidade' AND chave_permissao = 'diario.intercorrencias')
         INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
         VALUES ('qualidade', 'diario.intercorrencias', 1, GETDATE(), GETDATE());
+END;
+
+IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'qualidade')
+       AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'sessao.diario.acessar')
+       AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'qualidade' AND chave_permissao = 'sessao.diario.acessar')
+        INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+        VALUES ('qualidade', 'sessao.diario.acessar', 1, GETDATE(), GETDATE());
 END;
 
 IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
@@ -454,4 +491,13 @@ BEGIN
        AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'supervisor' AND chave_permissao = 'diario.visualizar')
         INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
         VALUES ('supervisor', 'diario.visualizar', 1, GETDATE(), GETDATE());
+END;
+
+IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = 'supervisor')
+       AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = 'sessao.diario.acessar')
+       AND NOT EXISTS (SELECT 1 FROM dbo.perfil_permissoes WHERE id_perfil = 'supervisor' AND chave_permissao = 'sessao.diario.acessar')
+        INSERT INTO dbo.perfil_permissoes (id_perfil, chave_permissao, permitido, criado_em, atualizado_em)
+        VALUES ('supervisor', 'sessao.diario.acessar', 1, GETDATE(), GETDATE());
 END;

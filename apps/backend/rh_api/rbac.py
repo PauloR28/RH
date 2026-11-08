@@ -451,6 +451,7 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("chamados.dashboard", "Chamados", "Ver o dashboard de chamados."),
         _permission("chamados.configurar", "Chamados", "Gerenciar categorias, prazos de SLA, encerramento automático e limites de anexo.", critical=True),
         # Diário de bordo (08/nov/2026): registro do dia da operação por turno. Valores iniciais editáveis em Perfis e Permissões.
+        _permission("sessao.diario.acessar", "Sessões", "Acessar a sessão Diário de bordo."),
         _permission("diario.visualizar", GRUPO_DIARIO, "Abrir o Diário de bordo e consultar dias, turnos, intercorrências e histórico das suas operações."),
         _permission("diario.preencher", GRUPO_DIARIO, "Preencher e concluir turnos, registrar intercorrências e parciais, corrigir o ABS e encerrar o dia.", critical=True),
         _permission("diario.reabrir", GRUPO_DIARIO, "Reabrir turno concluído ou dia encerrado do Diário de bordo, com motivo.", critical=True),
@@ -862,6 +863,10 @@ for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
 ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"diario.visualizar", "diario.preencher"})
 ROLE_PERMISSIONS.setdefault(ROLE_MANAGER, set()).update({"diario.visualizar", "diario.reabrir", "diario.exportar"})
 ROLE_PERMISSIONS.setdefault(ROLE_QUALIDADE, set()).update({"diario.intercorrencias"})
+# Chave-mestra da sessão (liga/desliga em Perfis e Permissões): quem recebe alguma chave do diário recebe a sessão.
+for _papel, _perms in ROLE_PERMISSIONS.items():
+    if any(p.startswith("diario.") for p in _perms):
+        _perms.add("sessao.diario.acessar")
 
 # Relatórios e Históricos: cada perfil recebe a chave do relatório SE já tem a permissão de base (nada some, nada novo aparece);
 # quem recebe ao menos um relatório recebe também a sessão. Roda por último de propósito: não entra na administração herdada da TI.

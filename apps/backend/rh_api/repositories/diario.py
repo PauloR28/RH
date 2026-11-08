@@ -82,6 +82,8 @@ def _json(valor: Any) -> str:
 
 
 def _vazio(v: Any) -> str:
+    if isinstance(v, float):
+        return f"{v:.2f}".rstrip("0").rstrip(".").replace(".", ",")
     return "—" if v is None or v == "" else str(v)
 
 
@@ -825,7 +827,7 @@ class DiarioRepositoryMixin:
                 envio = "enviado" if dia.get("envio_enviado_em") else "copiado" if dia.get("envio_copiado_em") else "baixado" if dia.get("envio_baixado_em") else "nao_marcado"
                 saida.append({
                     "id_dia": id_dia, "data": _iso(data), "status": dia["status"], "importado": dia["importado"],
-                    "turnos": [t["estado"] for t in d["turnos"]], "tratadas": d["consolidado"]["totais"]["tratadas"],
+                    "turnos": ["reaberto" if t["reaberto_vezes"] and t["estado"] != "vazio" else t["estado"] for t in d["turnos"]], "tratadas": d["consolidado"]["totais"]["tratadas"],
                     "pendentes": d["consolidado"]["totais"]["pendente"], "ns": ns, "abs": d["abs"]["vigente"]["abs"],
                     "abs_origem": d["abs"]["vigente"]["origem"],
                     "intercorrencias": len([i for i in d["intercorrencias"] if not i["excluida"] and not i["de_outro_dia"]]),

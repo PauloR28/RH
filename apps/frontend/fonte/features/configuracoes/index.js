@@ -92,6 +92,7 @@ const SESSOES_PERMISSAO = [
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
   { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
   { id: 'equipe', modulo: 'operacao', label: 'Equipes e Turnos', icon: 'groups', modulos: ['Equipes'] },
+  { id: 'diario', modulo: 'operacao', label: 'Diário de bordo', icon: 'notebook', modulos: ['Diário de bordo'] },
   { id: 'chamados', modulo: 'tecnologia', label: 'Suporte TI (Chamados)', icon: 'support_agent', modulos: ['Chamados'] },
   {
     id: 'configuracoes',

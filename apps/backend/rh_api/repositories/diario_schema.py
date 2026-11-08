@@ -253,7 +253,7 @@ def _nstr(texto: str) -> str:
 def _permissoes_diario() -> list:
     from ..rbac import PERMISSION_DEFINITIONS
 
-    return [d for chave, d in PERMISSION_DEFINITIONS.items() if chave.startswith("diario.")]
+    return [d for chave, d in PERMISSION_DEFINITIONS.items() if chave.startswith(("diario.", "sessao.diario."))]
 
 
 def _perfis_iniciais() -> list[tuple[str, str]]:
@@ -262,7 +262,7 @@ def _perfis_iniciais() -> list[tuple[str, str]]:
     pares = []
     for perfil, chaves in sorted(ROLE_PERMISSIONS.items()):
         for chave in sorted(chaves):
-            if chave.startswith("diario."):
+            if chave.startswith(("diario.", "sessao.diario.")):
                 pares.append((perfil, chave))
     return pares
 

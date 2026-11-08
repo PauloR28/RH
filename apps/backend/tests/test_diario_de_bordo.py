@@ -212,6 +212,7 @@ def test_permissoes_iniciais_do_diario():
     assert {"diario.visualizar", "diario.preencher"} <= sup and not {"diario.reabrir", "diario.administrar"} & sup
     assert {"diario.visualizar", "diario.reabrir", "diario.exportar"} <= ges and "diario.preencher" not in ges
     assert {p for p in qua if p.startswith("diario.")} == {"diario.intercorrencias"}
+    assert all("sessao.diario.acessar" in x for x in (sup, ges, qua, adm))
     assert "diario.administrar" in adm
     for ti in ("tecnico_junior", "tecnico_pleno", "tecnico_senior", "analista_ti"):
-        assert not {p for p in get_role_permissions(ti) if p.startswith("diario.")}, ti  # TI mantém o sistema sem ver o conteúdo
+        assert not {p for p in get_role_permissions(ti) if p.startswith(("diario.", "sessao.diario."))}, ti  # TI mantém o sistema sem ver o conteúdo
