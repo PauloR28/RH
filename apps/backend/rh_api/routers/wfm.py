@@ -234,6 +234,12 @@ def pendencias_presenca(operacao: str, data_ini: str, data_fim: str, user: Authe
     return repository.wfm_pendencias_presenca(user, operacao, data_ini, data_fim)
 
 
+# Painel do dia: 1º login do dia no Conecta de quem a pessoa vê (só leitura; sem dado de ponto nem de pausa real).
+@router.get("/painel-dia/logins", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def logins_do_dia(operacao: str, data: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_logins_dia(user, operacao, data, todas_equipes=todas_equipes)
+
+
 @router.put("/presencas", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
 def lancar_presenca(payload: PresencaRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_lancar_presenca(

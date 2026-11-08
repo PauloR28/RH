@@ -889,6 +889,7 @@ SCREEN_PERMISSIONS.update(
         "screen-wfm-trocas": "wfm.troca.visualizar",
         "screen-relatorios": "sessao.relatorios.acessar",
         "screen-wfm-painel": "relhub.wfm.painel",
+        "screen-wfm-dia": "wfm.presenca.lancar",
     }
 )
 

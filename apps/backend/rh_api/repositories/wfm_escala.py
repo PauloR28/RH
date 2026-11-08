@@ -980,6 +980,50 @@ class WfmEscalaRepositoryMixin:
         finally:
             conn.close()
 
+    def wfm_logins_dia(self, user, operacao: str, data: Any, *, todas_equipes: bool = False) -> dict:
+        """Primeiro login do dia NO CONECTA de cada participante visível (Painel do dia). Só leitura, mesmo escopo de presenças.
+
+        Fonte: a auditoria da presença automática (`wfm_auditoria`, acao='presenca_automatica'), gravada no 1º login do dia
+        de quem está escalado num turno de trabalho. Sem ela (presença já lançada antes do login, por exemplo), vale o último
+        acesso do dia (`usuarios.ultimo_acesso_em`). Não é ponto eletrônico nem login na plataforma de atendimento, e não há
+        registro de pausa real: o Painel mostra as pausas previstas.
+        """
+        dia = _parse_data(data)
+        seguinte = dia + timedelta(days=1)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
+            resposta = {"data": dia.isoformat(), "fonte": "login_conecta", "itens": []}
+            if not ids:
+                return resposta
+            marcadores = ",".join("?" for _ in ids)
+            cursor.execute(
+                f"SELECT id_usuario, MIN(criado_em) FROM dbo.wfm_auditoria "
+                f"WHERE acao = 'presenca_automatica' AND operacao = ? AND criado_em >= ? AND criado_em < ? AND id_usuario IN ({marcadores}) "
+                f"GROUP BY id_usuario",
+                (operacao, dia, seguinte, *ids),
+            )
+            primeiros = {int(r[0]): (r[1], "presenca_automatica") for r in cursor.fetchall() if r[1]}
+            cursor.execute(
+                f"SELECT id_usuario, ultimo_acesso_em FROM dbo.usuarios "
+                f"WHERE ultimo_acesso_em >= ? AND ultimo_acesso_em < ? AND id_usuario IN ({marcadores})",
+                (dia, seguinte, *ids),
+            )
+            for id_usuario, quando in cursor.fetchall():
+                if quando and int(id_usuario) not in primeiros:
+                    primeiros[int(id_usuario)] = (quando, "ultimo_acesso")
+            resposta["itens"] = [
+                {"id_operador": id_op, "primeiro_login": quando.isoformat(timespec="minutes"), "origem": origem}
+                for id_op, (quando, origem) in sorted(primeiros.items())
+            ]
+            return resposta
+        finally:
+            conn.close()
+
     def wfm_lancar_presenca(
         self, user, operacao: str, id_operador: int, data: Any, status_presenca: str, observacao: str = "", *, ip: str = ""
     ) -> dict:
