@@ -5,7 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from ..auth import AuthenticatedUser
-from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
+from ..dependencies import (
+    audit_action,
+    get_current_user,
+    get_repository,
+    require_permissions,
+)
 from ..repositories import DatabaseRepository
 from ..schemas.diario import (
     DiarioAbsRequest,

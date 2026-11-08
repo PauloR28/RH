@@ -6,8 +6,9 @@ O protótipo trocava campo vazio por 0; aqui `None` atravessa todas as contas e 
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 TURNOS: tuple[str, ...] = ("abertura", "intermediario", "fechamento")
 ROTULO_TURNO = {"abertura": "Abertura", "intermediario": "Intermediário", "fechamento": "Fechamento"}
@@ -229,7 +230,7 @@ def registros_do_arquivo(conteudo: Any) -> dict:
     if isinstance(conteudo, Mapping) and isinstance(conteudo.get("dados"), Mapping):
         conteudo = conteudo["dados"]
     if not isinstance(conteudo, Mapping):
-        raise ValueError("Arquivo sem registros do Diário de bordo.")
+        raise ValueError("Arquivo sem registros do Diário de bordo.")  # noqa: TRY004 (vira 422 com esta mensagem)
     return {k: v for k, v in conteudo.items() if _data_iso(k) and isinstance(v, Mapping)}
 
 

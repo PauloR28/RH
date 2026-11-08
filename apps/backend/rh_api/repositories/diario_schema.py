@@ -326,8 +326,10 @@ def render_migration_sql() -> str:
 def render_rollback_sql() -> str:
     linhas = [
         "-- Rollback da V068 (Diario de bordo). Recusa se houver dias registrados; remove tabelas e permissoes diario.*.\n",
-        "IF OBJECT_ID('dbo.diario_dia', 'U') IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.diario_dia)\n"
-        "    THROW 50000, 'Existem dias no Diario de bordo: exporte/remova os dados manualmente antes do rollback.', 1;\n",
+        (
+            "IF OBJECT_ID('dbo.diario_dia', 'U') IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.diario_dia)\n"
+            "    THROW 50000, 'Existem dias no Diario de bordo: exporte/remova os dados manualmente antes do rollback.', 1;\n"
+        ),
     ]
     for nome in ("diario_aceite", "diario_alteracao", "diario_abs_correcao", "diario_parcial", "diario_intercorrencia",
                  "diario_nivel_servico", "diario_demanda", "diario_turno", "diario_dia", "diario_cadastro"):

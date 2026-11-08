@@ -259,9 +259,9 @@ class DiarioRepositoryMixin:
 
     def _db_turno_saida(self, t: dict, user) -> dict:
         editando = None
-        if t.get("editando_id") and t["editando_id"] != getattr(user, "id_usuario", None) and t.get("editando_em"):
-            if t["editando_em"] >= _agora() - timedelta(minutes=MINUTOS_EDITANDO):
-                editando = {"nome": t["editando_por"], "desde": _iso(t["editando_em"])}
+        if (t.get("editando_id") and t["editando_id"] != getattr(user, "id_usuario", None) and t.get("editando_em")
+                and t["editando_em"] >= _agora() - timedelta(minutes=MINUTOS_EDITANDO)):
+            editando = {"nome": t["editando_por"], "desde": _iso(t["editando_em"])}
         estado = "concluido" if t["status"] == "concluido" else ("rascunho" if t.get("salvo_em") else "vazio")
         if estado == "rascunho" and t.get("reaberto_vezes"):
             estado = "reaberto"

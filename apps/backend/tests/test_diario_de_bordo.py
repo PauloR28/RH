@@ -4,14 +4,19 @@ importação dos .json do protótipo, permissões iniciais e migration gerada do
 from __future__ import annotations
 
 import os
-from datetime import datetime, time
+from datetime import date, datetime, time
 from pathlib import Path
 
 os.environ.setdefault("RH_SESSION_SECRET_KEY", "teste")
 
 import pytest
 
-from rh_api.repositories.diario_schema import CADASTROS_PADRAO, render_migration_sql, render_rollback_sql, schema_statements
+from rh_api.repositories.diario_schema import (
+    CADASTROS_PADRAO,
+    render_migration_sql,
+    render_rollback_sql,
+    schema_statements,
+)
 from rh_api.services import diario_regras as r
 
 MIGRATIONS = Path(__file__).resolve().parents[3] / "infra" / "sql" / "migrations"
@@ -150,7 +155,7 @@ def test_correcao_do_abs_vale_sobre_a_presenca():
                                         (time(17, 35), "fechamento"), (time(23, 50), "fechamento")])
 def test_turno_pela_hora_de_inicio(hora, turno):
     assert r.turno_pela_hora(hora) == turno
-    assert r.turno_pela_hora(datetime.combine(datetime(2026, 11, 5).date(), hora)) == turno
+    assert r.turno_pela_hora(datetime.combine(date(2026, 11, 5), hora)) == turno
 
 
 # ------------------------------------------------------------------ importação do protótipo (D7)
