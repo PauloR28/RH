@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261106-redesign';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261108-admin';
 import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261108-painel-dia';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';

@@ -54,6 +54,8 @@ export function MolduraConecta({
   const gavetaRef = useRef(null);
   const menuBotaoRef = useRef(null);
   const subbarraRef = useRef(null);
+  const subMaisRef = useRef(null);
+  const [subMaisAberto, setSubMaisAberto] = useState(false);
   const selos = useSelosSubbarra();
 
   // Seções que podem ir para o "Mais": nunca a atual (DEC-076), sempre do fim para o começo.
@@ -93,7 +95,16 @@ export function MolduraConecta({
 
   useEffect(() => {
     setMaisAberto(false);
+    setSubMaisAberto(false);
   }, [secaoAtual?.chave, secaoAtual?.telaAtual]);
+  useEffect(() => {
+    if (!subMaisAberto) return undefined;
+    const fora = (evento) => { if (subMaisRef.current && !subMaisRef.current.contains(evento.target)) setSubMaisAberto(false); };
+    const esc = (evento) => { if (evento.key === 'Escape') setSubMaisAberto(false); };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
+  }, [subMaisAberto]);
   useEffect(() => {
     if (!maisAberto) return undefined;
     const fecharFora = (evento) => {
@@ -249,7 +260,7 @@ export function MolduraConecta({
             ${(secaoAtual.abas || []).length > 1
               ? html`
                   <div class="c-abas">
-                    ${secaoAtual.abas.map(
+                    ${secaoAtual.abas.filter((aba) => !aba.mais || aba.ativo).map(
                       (aba) => html`
                         <a
                           key=${aba.tela}
@@ -261,6 +272,21 @@ export function MolduraConecta({
                         >${aba.label}${Number(selos[aba.tela]) > 0 ? html`<span class="c-conta" aria-label=${`${selos[aba.tela]} pendente(s)`}>${selos[aba.tela]}</span>` : null}</a>
                       `,
                     )}
+                    ${secaoAtual.abas.some((aba) => aba.mais && !aba.ativo)
+                      ? html`
+                          <div class="c-subbarra-mais" ref=${subMaisRef}>
+                            <button type="button" class="c-aba" aria-haspopup="menu" aria-expanded=${subMaisAberto ? 'true' : 'false'} onClick=${() => setSubMaisAberto((aberto) => !aberto)}>
+                              Mais<${Ic} nome="caret-down" />
+                            </button>
+                            <div class="c-menu" role="menu" hidden=${!subMaisAberto}>
+                              ${secaoAtual.abas.filter((aba) => aba.mais && !aba.ativo).map(
+                                (aba) => html`<a key=${aba.tela} class="c-menu-item" role="menuitem" href=${hrefDaTela(aba.tela)}
+                                  onClick=${(evento) => aoClicarLink(evento, () => { setSubMaisAberto(false); irPara(aba.tela); })}>${aba.label}</a>`,
+                              )}
+                            </div>
+                          </div>
+                        `
+                      : null}
                   </div>
                 `
               : null}
