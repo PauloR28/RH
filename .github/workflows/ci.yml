@@ -66,14 +66,14 @@ jobs:
       # revisar o baseline inicial e então promover para exit-code 1 (achado
       # SEC-015/DEVOPS-004 do programa de evolução).
       - name: Scan de vulnerabilidades da imagem backend (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # v0.24.0 (a tag sem "v" deixou de existir)
         with:
           image-ref: conecta-backend:ci
           format: table
           severity: CRITICAL,HIGH
           exit-code: "0"
       - name: Scan de vulnerabilidades da imagem frontend (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # v0.24.0 (a tag sem "v" deixou de existir)
         with:
           image-ref: conecta-frontend:ci
           format: table
