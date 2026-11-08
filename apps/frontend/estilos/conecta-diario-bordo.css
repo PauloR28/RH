@@ -134,8 +134,7 @@
 .c-db-vazio { margin: 0; padding-bottom: var(--espaco-2); }
 .c-db-itens .c-abre-menu { flex: none; }
 .c-db-itens li > .c-selo + .c-abre-menu { margin-left: 0; }
-.c-db-bloco-cab .c-db-origem { margin-left: auto; padding-right: var(--espaco-2); }
-.c-db-acoes-dia { justify-content: flex-end; }
+.c-db-bloco-corpo > .c-db-origem { align-self: flex-start; }
 .c-db-fech-esq, .c-db-fech-dir { display: flex; flex-direction: column; gap: var(--espaco-2); min-width: 0; }
 .c-db-fech-dir h3 { margin: 0; }
 .c-db-img-cab img { height: 18px; width: auto; }
@@ -163,6 +162,7 @@
   .c-db-campo, .c-db-pct .c-db-campo { height: 44px; }
   .c-db-rodape { flex-wrap: wrap; }
   .c-db-rodape .c-grupo { margin-left: 0; flex-wrap: wrap; }
+  .c-db-rodape .c-db-salvo { white-space: normal; }
   .c-db-reg { flex-wrap: wrap; }
   /* Tabelas de digitação e de números curtos continuam tabela no celular (o padrão do DS vira cartão) */
   .c-db .c-tabela.c-db-fixa { display: table; width: 100%; }

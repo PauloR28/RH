@@ -310,13 +310,13 @@ function CorpoDia({ dados, cons, pode, abrir, recarregar, operacao }) {
     </div>
     <div>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Absenteísmo (ABS)</h3>
-        <span class="c-db-origem">${abs?.origem === 'correcao' ? html`<${Ic} nome="pencil-simple" />Corrigido por ${corr?.corrigido_por} · ${dataHoraBr(corr?.corrigido_em)}` : html`<${Ic} nome="user-check" />Vem da Presença${presenca?.lancamentos ? '' : ' (sem lançamentos)'}`}</span></div>
+        ${podeEnc ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => abrir({ tipo: 'abs', atual: abs })}><${Ic} nome="pencil-simple" />Corrigir ABS</button>` : null}</div>
         <div class="c-db-bloco-corpo">
+          <span class="c-db-origem">${abs?.origem === 'correcao' ? html`<${Ic} nome="pencil-simple" />Corrigido por ${corr?.corrigido_por} · ${dataHoraBr(corr?.corrigido_em)}` : html`<${Ic} nome="user-check" />Vem da Presença${presenca?.lancamentos ? '' : ' (sem lançamentos)'}`}</span>
           <div class="c-db-abs"><span>Escalados<b>${abs?.escalados ?? 0}</b></span><span>Presentes<b>${abs?.presentes ?? 0}</b></span><span>Faltas<b>${abs?.faltas ?? 0}</b></span><span>Justificadas<b>${abs?.justificadas ?? 0}</b></span>
             <span>Folgas · Férias<b>${abs?.folgas ?? 0} · ${abs?.ferias ?? 0}</b></span><span class="c-db-abs-total">ABS<b>${pct(abs?.abs)}</b></span></div>
           ${abs?.origem === 'correcao' ? html`<span class="c-ajuda">Presença: ABS ${pct(presenca?.abs)} (${presenca?.escalados ?? 0} escalados). ${corr?.origem === 'importacao' ? 'Valor digitado no diário antigo.' : `Motivo: ${corr?.motivo}`}</span>`
             : html`<span class="c-ajuda">ABS = faltas ÷ escalados. Folga e férias não contam (são ausências planejadas). Vem da Presença; quem fecha pode corrigir com motivo.</span>`}
-          ${podeEnc ? html`<div><button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => abrir({ tipo: 'abs', atual: abs })}><${Ic} nome="pencil-simple" />Corrigir ABS</button></div>` : null}
         </div></section>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Encerramento do dia</h3><small>feito por quem fecha</small></div>
         <div class="c-db-bloco-corpo">
@@ -326,13 +326,16 @@ function CorpoDia({ dados, cons, pode, abrir, recarregar, operacao }) {
             <textarea class="c-entrada" id="db-pass" rows="2" maxLength="2000" readOnly=${!podeEnc || null} value=${passagem} onInput=${(e) => setPassagem(e.target.value)}></textarea>
             <span class="c-ajuda">A Abertura de amanhã vê este texto no topo do diário.</span></div>
           ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
-          ${podeEnc ? html`<div class="c-grupo c-db-acoes-dia">
-            ${ok ? html`<span class="c-db-salvo"><${Ic} nome="check-circle" />${ok}</span>` : null}
-            <button type="button" class="c-botao c-botao--secundario" disabled=${ocupado || null} onClick=${() => gravar(false)}><${Ic} nome="floppy-disk" />Salvar</button>
-            <button type="button" class="c-botao c-botao--principal" disabled=${ocupado || concluidos < 3 || null} title=${concluidos < 3 ? `Faltam ${3 - concluidos} turno(s) concluído(s)` : null} onClick=${() => gravar(true)}><${Ic} nome="lock" />Encerrar o dia</button></div>`
-            : !aberto && pode.reabrir ? html`<div class="c-grupo c-db-acoes-dia"><button type="button" class="c-botao c-botao--secundario" onClick=${() => abrir({ tipo: 'reabrir-dia' })}><${Ic} nome="lock-open" />Reabrir o dia</button></div>` : null}
         </div></section>
-    </div></div>`;
+    </div></div>
+    ${podeEnc || (!aberto && pode.reabrir) ? html`<div class="c-db-rodape">
+      <span class="c-db-salvo">${!aberto ? html`<${Ic} nome="lock" />Dia encerrado: só leitura.` : concluidos < 3 ? `${concluidos} de 3 turnos concluídos. Para encerrar o dia, conclua os 3.` : 'Os 3 turnos estão concluídos: o dia pode ser encerrado.'}</span>
+      <div class="c-grupo">
+        ${ok ? html`<span class="c-db-salvo" aria-live="polite"><${Ic} nome="check-circle" />${ok}</span>` : null}
+        ${podeEnc ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${ocupado || null} onClick=${() => gravar(false)}><${Ic} nome="floppy-disk" />Salvar encerramento</button>
+          <button type="button" class="c-botao c-botao--principal" disabled=${ocupado || concluidos < 3 || null} title=${concluidos < 3 ? `Faltam ${3 - concluidos} turno(s) concluído(s)` : null} onClick=${() => gravar(true)}><${Ic} nome="lock" />Encerrar o dia</button>`
+          : html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => abrir({ tipo: 'reabrir-dia' })}><${Ic} nome="lock-open" />Reabrir o dia</button>`}
+      </div></div>` : null}`;
 }
 
 // ── Aba Hoje ────────────────────────────────────────────────────────────
