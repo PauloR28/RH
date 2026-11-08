@@ -84,6 +84,8 @@ export const excluirContratoWfm = (operacao, id) => requisitar(`/wfm/contratos/$
 export const excluirTurnoWfm =(operacao, id) => requisitar(`/wfm/turnos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
 export const lerContratoOperadorWfm = (operacao, idOperador) => requisitar(`/wfm/operadores/${idOperador}/contrato${consulta({ operacao })}`, { method: 'GET' });
 export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'PUT', dados);
+// Painel do dia: 1º login do dia no Conecta (auditoria da presença automática; senão, último acesso do dia). Só leitura.
+export const lerLoginsDiaWfm = (operacao, data, todasEquipes = false) => requisitar(`/wfm/painel-dia/logins${consulta({ operacao, data, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 
 export const lerPausasDiaWfm = (operacao, data, todasEquipes = false) => requisitar(`/wfm/pausas${consulta({ operacao, data, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);
