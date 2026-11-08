@@ -17,7 +17,7 @@ const ACAO = {
 
 const baixarArquivo = ({ blob, filename }) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
 
-function descreverAlteracao(a) {
+export function descreverAlteracao(a) {
   const turno = a.turno ? ROTULO_TURNO[a.turno] : '';
   const curto = (v) => { if (v === null || v === undefined) return '—'; try { const o = JSON.parse(v); if (o && typeof o === 'object') return Object.entries(o).map(([k, x]) => `${k}: ${x ?? '—'}`).join(', '); } catch { /* texto simples */ } return v; };
   if (a.entidade === 'turno' && ['concluiu', 'reabriu'].includes(a.acao)) return `${turno} ${ACAO[a.acao]}`;
@@ -31,7 +31,7 @@ function descreverAlteracao(a) {
   return `${a.entidade} ${a.acao}`;
 }
 
-function GavetaAlteracoes({ dia, podeExportar, onClose }) {
+export function GavetaAlteracoes({ dia, podeExportar, onClose }) {
   const [itens, setItens] = useState(null);
   const [erro, setErro] = useState('');
   useEffect(() => { lerAlteracoesDiario(dia.id_dia).then((r) => setItens(r.itens || [])).catch((e) => setErro(e?.message || 'Não foi possível ler as alterações.')); }, [dia.id_dia]);
@@ -65,7 +65,7 @@ export function AbaHistorico({ contexto, operacao, setOperacao, irParaDia }) {
 
   return html`<div class="c-cab-linha"><h1>Histórico</h1><div class="c-cab-dir">
       ${contexto.pode.exportar ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${exportando || !itens?.length || null} onClick=${exportar}><${Ic} nome="tray-arrow-down" />${exportando ? 'Exportando…' : 'Exportar'}</button>` : null}</div></div>
-    <div class="c-tabela-caixa">
+    <div class="c-tabela-caixa c-db-caixa">
       <div class="c-filtros c-filtros--suave">
         <div class="c-grupo c-navegar" role="group" aria-label="Mês" style=${{ gap: 0, flexWrap: 'nowrap' }}>
           <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Mês anterior" title="Mês anterior" onClick=${() => setAnoMes(somarMes(anoMes, -1))}><${Ic} nome="caret-left" /></button>

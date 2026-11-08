@@ -7,6 +7,7 @@ import {
   encerrarDiaDiario,
   excluirIntercorrenciaDiario,
   excluirParcialDiario,
+  lerAlteracoesDiario,
   lerDiaDiario,
   marcarEdicaoTurno,
   reabrirDiaDiario,
@@ -18,6 +19,7 @@ import {
 import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial } from './janelas.js';
 import { JanelaFechamento } from './fechamento.js';
+import { GavetaAlteracoes, descreverAlteracao } from './historico.js';
 import {
   ENCERRAMENTOS, ROTULO_CANAL, ROTULO_TURNO, ROTULO_TURNO_CURTO, TURNOS, avisosDoTurno, consolidar, dataHoraBr, diaCurto, hhmm, nf,
   numeroOuVazio, pct, pctCampo, pctOuVazio, somarDias, tratadas,
@@ -179,8 +181,8 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
           <tfoot><tr><td class="c-col-nome">Total</td><td class="c-num">${soma('inicio')}</td><td class="c-num">${soma('fim')}</td><td class="c-num">${somaTrat}</td><td class="c-estica c-db-nada c-db-regra">Tratadas = início − fim (calcula sozinho)</td></tr></tfoot>
         </table>
         <div class="c-campo c-db-obs-turno"><label class="c-rotulo" for=${`db-obs-${turno.turno}`}>Observações do turno <span class="c-opcional">(${avisos.length ? 'obrigatório para concluir com avisos' : 'opcional'})</span></label>
-          <input class="c-entrada" id=${`db-obs-${turno.turno}`} readOnly=${!editavel || null} placeholder="Ex.: Reclame Aqui (portal) recebeu 4 novos às 18:20" value=${obs} maxLength="1000"
-            onInput=${(e) => { setObs(e.target.value); setSujo(true); }} /></div>
+          <textarea class="c-entrada c-db-obs-texto" id=${`db-obs-${turno.turno}`} rows="2" readOnly=${!editavel || null} placeholder="Ex.: Reclame Aqui (portal) recebeu 4 novos às 18:20" value=${obs} maxLength="1000"
+            onInput=${(e) => { setObs(e.target.value); setSujo(true); }}></textarea></div>
       </div>
       <div class="c-db-lado">
         <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Nível de serviço do turno</h3></div><div class="c-db-bloco-corpo"><div class="c-db-ns">
@@ -192,8 +194,46 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
         <${BlocoParciais} dados=${dados} pode=${pode} abrir=${abrir} />
         <${BlocoIntercorrencias} dados=${dados} pode=${pode} abrir=${abrir} ferramentas=${ferramentas} operacao=${operacao} />
       </div>
+      <${ColunaLarga} dados=${dados} abrir=${abrir} />
     </div>
     ${rodape}`;
+}
+
+// Tela larga (≥ 1440 px, amostra v4 quadro 1B): 3ª coluna com a passagem de ontem, os turnos de hoje e as últimas alterações.
+const LARGA = '(min-width: 1440px)';
+const ehLarga = () => { try { return window.matchMedia(LARGA).matches; } catch { return false; } };
+function ColunaLarga({ dados, abrir }) {
+  const [larga, setLarga] = useState(ehLarga);
+  const [alteracoes, setAlteracoes] = useState(null);
+  useEffect(() => {
+    let mq; try { mq = window.matchMedia(LARGA); } catch { return undefined; }
+    const mudou = () => setLarga(mq.matches);
+    mq.addEventListener?.('change', mudou);
+    return () => mq.removeEventListener?.('change', mudou);
+  }, []);
+  useEffect(() => {
+    if (!larga || !dados.dia) return undefined;
+    let vivo = true;
+    lerAlteracoesDiario(dados.dia.id_dia).then((r) => { if (vivo) setAlteracoes(r.itens || []); }).catch(() => { if (vivo) setAlteracoes([]); });
+    return () => { vivo = false; };
+  }, [larga, dados.dia?.id_dia, dados]);
+  if (!larga) return null;
+  const pass = dados.passagem_anterior;
+  return html`<div class="c-db-larga" aria-label="Resumo do dia">
+    <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>${dados.data === dados.hoje ? 'Passagem de ontem' : 'Passagem do dia anterior'}</h3></div><div class="c-db-bloco-corpo">
+      ${pass && pass.passagem ? html`<div class="c-faixa c-faixa--informacao" role="note"><${Ic} nome="moon" /><div class="c-faixa-txt"><p>${pass.passagem}<br /><small>${diaCurto(pass.data)} · ${pass.encerrado_por}, ${hhmm(pass.encerrado_em)}</small></p></div></div>`
+        : html`<p class="c-ajuda c-db-vazio">O dia anterior não deixou passagem.</p>`}
+    </div></section>
+    <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>${dados.data === dados.hoje ? 'Turnos de hoje' : 'Turnos do dia'}</h3></div><div class="c-db-bloco-corpo c-db-bloco-corpo--lista"><ul class="c-db-itens">
+      ${dados.turnos.map((t) => html`<li key=${t.turno}><${SinalTurno} estado=${t.estado} /><span class="c-db-txt"><b>${t.rotulo}</b>
+        <small>${t.status === 'concluido' ? `Concluído ${hhmm(t.concluido_em)} · ${t.concluido_por}` : t.estado === 'vazio' ? 'Não começou' : `${t.estado === 'reaberto' ? 'Reaberto' : 'Rascunho'} · salvo ${hhmm(t.salvo_em)} · ${t.salvo_por}`}</small></span></li>`)}
+    </ul></div></section>
+    <section class="c-db-bloco c-db-bloco--estica"><div class="c-db-bloco-cab"><h3>Últimas alterações</h3>
+      <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => abrir({ tipo: 'alteracoes' })}>Ver todas</button></div>
+      <div class="c-db-bloco-corpo">${alteracoes === null ? html`<${Esqueleto} linhas=${3} />` : !alteracoes.length ? html`<p class="c-ajuda c-db-vazio">Nenhuma alteração ainda.</p>`
+        : html`<ol class="c-db-linha-tempo">${alteracoes.slice(0, 5).map((a) => html`<li key=${a.id_alteracao} class=${['reabriu', 'editou_mesmo_assim', 'excluiu'].includes(a.acao) ? 'c-db-lt-alerta' : null}>${descreverAlteracao(a)}
+            <small>${hhmm(a.criado_em)} · ${a.usuario_nome || '—'}</small>${a.motivo ? html`<q>${a.motivo}</q>` : null}</li>`)}</ol>`}</div></section>
+  </div>`;
 }
 
 function BlocoParciais({ dados, pode, abrir }) {
@@ -403,12 +443,13 @@ export function AbaHoje({ contexto, operacao, setOperacao, data, setData, showTo
                 : j.tipo === 'reabrir-turno' ? html`<${JanelaMotivo} titulo=${`Reabrir ${j.turno.rotulo}`} texto="O turno volta a rascunho e o motivo fica no histórico do dia." salvarRotulo="Reabrir" onClose=${fechar}
                   onConfirmar=${(m) => depois(reabrirTurnoDiario(j.turno.id_turno, m), 'Turno reaberto.')} />`
                   : j.tipo === 'reabrir-dia' ? html`<${JanelaMotivo} titulo="Reabrir o dia" texto="O dia volta a aceitar mudanças e o motivo fica no histórico." salvarRotulo="Reabrir" onClose=${fechar}
-                    onConfirmar=${(m) => depois(reabrirDiaDiario(dados.dia.id_dia, m), 'Dia reaberto.')} />` : null;
+                    onConfirmar=${(m) => depois(reabrirDiaDiario(dados.dia.id_dia, m), 'Dia reaberto.')} />`
+                    : j.tipo === 'alteracoes' ? html`<${GavetaAlteracoes} dia=${dados.dia} podeExportar=${pode.exportar} onClose=${fechar} />` : null;
 
   const pass = dados.passagem_anterior;
   return html`${cab}
-    ${pass && pass.passagem ? html`<div class="c-faixa c-faixa--informacao c-db-passagem" role="status"><${Ic} nome="moon" /><div class="c-faixa-txt"><p><b>Passagem de ${diaCurto(pass.data)}</b> (${pass.encerrado_por}, ${hhmm(pass.encerrado_em)}): ${pass.passagem}</p></div></div>` : null}
-    <div class="c-tabela-caixa">
+    ${pass && pass.passagem && ver === 'abertura' ? html`<div class="c-faixa c-faixa--informacao c-db-passagem" role="status"><${Ic} nome="moon" /><div class="c-faixa-txt"><p><b>Passagem de ${diaCurto(pass.data)}</b> (${pass.encerrado_por}, ${hhmm(pass.encerrado_em)}): ${pass.passagem}</p></div></div>` : null}
+    <div class="c-tabela-caixa c-db-caixa">
       <div class="c-filtros c-filtros--suave">${navDia}${contexto.operacoes.length > 1 ? selOperacao : html`<span class="c-db-op">${contexto.operacoes[0]?.nome}</span>`}
         <div class="c-segmento c-db-reg" role="group" aria-label="Registro do dia">
           ${dados.turnos.map((t) => html`<button key=${t.turno} type="button" class="c-botao" aria-pressed=${ver === t.turno ? 'true' : 'false'} onClick=${() => setVer(t.turno)}><${SinalTurno} estado=${t.estado} />${t.rotulo}</button>`)}

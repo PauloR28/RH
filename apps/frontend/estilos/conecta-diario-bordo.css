@@ -181,3 +181,27 @@
   .c-db-resumo .c-pd-num { flex: 1 1 33%; flex-direction: column; gap: 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
   .c-db-img { width: 100%; }
 }
+
+/* ── Tela larga e altura cheia (aprovado em 08/11/2026, amostra v4 quadro 1B) ──
+   Hoje, Histórico e Cadastros: largura toda (sem o teto de 1600 px), alinhado à esquerda com 24 px;
+   a página ocupa a altura da tela (topo 56 px + sub-barra 40 px) e a caixa estica até o pé. */
+.c-db.c-conteudo { max-width: none; }
+.c-db { min-height: calc(100vh - var(--altura-topo) - 40px); }
+.c-db > .c-db-caixa { flex: 1 1 auto; display: flex; flex-direction: column; }
+.c-db-caixa > .c-db-corpo, .c-db-caixa > .c-db-dia { flex: 1 1 auto; }
+.c-db-caixa > table { flex: none; }
+.c-db-caixa > .c-tabela-rodape { margin-top: auto; }
+.c-db-corpo > div:first-child { display: flex; flex-direction: column; }
+.c-db-obs-turno { flex: 1 1 auto; display: flex; flex-direction: column; }
+.c-db-obs-texto { flex: 1 1 auto; min-height: 64px; resize: vertical; height: auto; padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); line-height: 20px; }
+.c-db-larga { display: none; }
+
+@media (min-width: 1440px) {
+  .c-db-corpo { grid-template-columns: minmax(0, 1fr) 360px 400px; }
+  .c-db-larga { display: flex; flex-direction: column; border-left: var(--borda-fina) solid var(--tabela-linha); min-width: 0; }
+  .c-db-larga .c-db-bloco--estica { flex: 1 1 auto; }
+  .c-db-larga .c-db-linha-tempo { padding-top: var(--espaco-1); }
+  .c-db-larga .c-faixa { margin: 0; }
+  .c-db-larga small { font-size: 12px; color: var(--cor-texto-secundario); }
+  .c-db .c-db-passagem { display: none; } /* na tela larga a passagem fica na 3ª coluna */
+}
