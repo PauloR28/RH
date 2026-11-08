@@ -6,20 +6,12 @@ import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261106-w
 import { AbaHoje } from './hoje.js';
 import { AbaHistorico } from './historico.js';
 import { AbaCadastros } from './cadastros.js';
+import { tomarDiaPedido } from './ligacoes.js';
 
 // Diário de bordo (seção própria na barra de cima, D1 aprovada em 08/11/2026): Hoje · Histórico · Cadastros.
 // O registro do DIA DA OPERAÇÃO por turno (não é o "Diário do operador" de Equipes, que é sobre uma pessoa).
 
-const CHAVE_DIA = 'conecta.diario.irParaDia';
-// Outras telas (Painel do dia, Início, Monitoria) abrem o diário num dia/operação: uso único.
-export const pedirDiaDiario = (operacao, data) => { try { window.sessionStorage.setItem(CHAVE_DIA, JSON.stringify({ operacao, data, em: Date.now() })); } catch { /* ignora */ } };
-const tomarDiaPedido = () => {
-  try {
-    const v = JSON.parse(window.sessionStorage.getItem(CHAVE_DIA) || 'null');
-    window.sessionStorage.removeItem(CHAVE_DIA);
-    return v && Date.now() - v.em < 60000 ? v : null;
-  } catch { return null; }
-};
+export { pedirDiaDiario } from './ligacoes.js';
 
 function Termos({ onAceitar }) {
   const [li, setLi] = useState(false);

@@ -29,6 +29,7 @@ import {
   formatarNota,
 } from './comum.js';
 import { AnswerBadge } from './nova-componentes.js?v=20261014-nova';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js';
 
 // Detalhe de UMA monitoria (somente leitura) + ações do fluxo. A monitoria original
 // nunca é editada: cada ação só acrescenta feedback, contestação, réplica ou reanálise.
@@ -247,6 +248,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
     <${Cartao} titulo="Reanálise da contestação">
       <div class="mon-form-feedback">
         <p class="mon-muted">Prazo de 72 horas. A monitoria original nunca é editada: ao dar baixa, ela segue para o histórico apenas para consulta.</p>
+        <${AvisoIntercorrencia} controlador=${controlador} operacao=${d.operacao} momento=${String(d.data_contato || '').slice(0, 10)} />
         <div class="mon-campo"><span>Decisão</span>
           <div class="mon-decisao mon-decisao--opcoes" role="radiogroup" aria-label="Decisão da reanálise">
             ${[['CONFIRMADA', 'Manter avaliação'], ['ANULADA', 'Anular monitoria']].map(([v, r]) => html`<button key=${v} type="button" role="radio" aria-checked=${reanalise.resultado === v}

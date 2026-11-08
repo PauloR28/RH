@@ -2,6 +2,8 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
+import { lerResumoHojeDiario } from '../../services/api/diario.js';
+import { pedirDiaDiario, pendenciasDiario } from '../../modulos/operacao/diario/ligacoes.js';
 import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261108-painel-dia';
 import { listarMural } from '../../services/api/mural.js';
 import { API_MURAL_EQUIPE } from '../../services/api/equipes.js';
@@ -90,6 +92,14 @@ function usePendencias(controlador, operacoes, alertasMonitoria, destinoMonitori
     (async () => {
       const hoje = new Date();
       const lista = [];
+      // Diário de bordo (08/11/2026): o turno da hora atual (ou um anterior) ainda sem concluir.
+      if (controlador.possuiPermissao('diario.preencher')) {
+        const r = await lerResumoHojeDiario().catch(() => ({ itens: [] }));
+        pendenciasDiario(r.itens, controlador).forEach((p) => lista.push({
+          id: p.chave, icone: 'notebook', texto: p.titulo, qtd: p.qtd, prazo: p.prazo.startsWith('Turno acaba') ? `${p.data}T${p.prazo.slice(-5)}:00` : null,
+          onde: 'Diário de bordo › Hoje', tela: 'screen-diario', antes: () => pedirDiaDiario(p.operacao, p.data),
+        }));
+      }
       if (controlador.possuiPermissao('wfm.troca.visualizar') && operacoes.length) {
         const trocas = (await Promise.all(operacoes.map((c) => listarTrocasWfm(c).then((r) => r.itens || [], () => [])))).flat().filter((t) => t.pode_responder || t.pode_decidir);
         if (trocas.length) {
@@ -171,11 +181,11 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
     : !pendencias.length ? html`<${Estado} icone="check-circle" titulo="Nada pendente agora." />`
       : html`<div class="c-tabela-caixa"><table class="c-tabela c-tabela--compacta">
               <thead><tr><th scope="col" class="c-estica">Pendência</th><th scope="col" class="c-num">Qtd.</th><th scope="col">Prazo</th><th scope="col" class="c-acoes"><span class="c-oculto">Ação</span></th></tr></thead>
-              <tbody>${pendencias.map((p) => html`<tr key=${p.id} class="c-clicavel" title=${p.onde} onClick=${() => irPara(p.tela)}>
+              <tbody>${pendencias.map((p) => html`<tr key=${p.id} class="c-clicavel" title=${p.onde} onClick=${() => { p.antes?.(); irPara(p.tela); }}>
                 <td class="c-estica"><span style=${{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><${Ic} nome=${p.icone} />${p.texto}</span></td>
                 <td class="c-num c-forte">${p.qtd}</td>
                 <td class=${p.prazo ? '' : 'c-secundario'}>${p.prazo ? prazoCurto(p.prazo) : 'Sem prazo'}</td>
-                <td class="c-acoes"><button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-label=${`Ver: ${p.texto} (${p.onde})`} onClick=${(ev) => { ev.stopPropagation(); irPara(p.tela); }}>Ver</button></td>
+                <td class="c-acoes"><button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-label=${`Ver: ${p.texto} (${p.onde})`} onClick=${(ev) => { ev.stopPropagation(); p.antes?.(); irPara(p.tela); }}>Ver</button></td>
               </tr>`)}</tbody></table></div>`}
           </section>
           ${mural.disponivel ? html`<section class="c-cartao c-mural" aria-labelledby="c-mural-titulo">

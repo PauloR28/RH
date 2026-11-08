@@ -712,8 +712,15 @@ class DiarioRepositoryMixin:
             conn.close()
 
     def diario_intercorrencias_no_horario(self, user, operacao: str, momento_txt: str) -> list[dict]:
-        """Monitoria: intercorrências (não excluídas) que estavam acontecendo no horário da ligação."""
-        momento = _momento(momento_txt, "Horário")
+        """Monitoria: intercorrências (não excluídas) que estavam acontecendo no horário da ligação. Só a data (AAAA-MM-DD,
+        a Monitoria guarda apenas o dia do contato) = todas as que tocaram aquele dia."""
+        texto = str(momento_txt or "").strip()
+        if len(texto) == 10:
+            ini = datetime.combine(_data(texto), time(0, 0))
+            janela = (ini + timedelta(days=1) - timedelta(seconds=1), ini)
+        else:
+            momento = _momento(texto, "Horário")
+            janela = (momento, momento)
         conn, cursor = self._db_abrir()
         try:
             chave = normalize_text(operacao)
@@ -722,7 +729,7 @@ class DiarioRepositoryMixin:
             cursor.execute(
                 "SELECT id_intercorrencia, id_dia, turno, ferramenta, canal, inicio, fim, descricao FROM dbo.diario_intercorrencia "
                 "WHERE operacao = ? AND excluida = 0 AND inicio <= ? AND (fim IS NULL OR fim >= ?) ORDER BY inicio",
-                (chave, momento, momento),
+                (chave, *janela),
             )
             return [{**_limpo(x), "aberta": x["fim"] is None} for x in rows_to_dicts(cursor, cursor.fetchall())]
         finally:
