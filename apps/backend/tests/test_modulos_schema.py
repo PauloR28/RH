@@ -39,6 +39,8 @@ def test_v056_semeia_todas_as_permissoes_so_onde_o_dono_esta_vazio():
     for chave in PERMISSION_DEFINITIONS:
         if chave.startswith("chamados."):
             continue  # semeadas pela V059 (a V056 já aplicada não muda)
+        if chave.startswith("diario."):
+            continue  # semeadas pela V068
         assert f"''{chave}''" in sql, chave
 
 

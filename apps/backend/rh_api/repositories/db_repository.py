@@ -26,6 +26,7 @@ from .monitoria_analise import MonitoriaAnaliseRepositoryMixin
 from .monitoria_fluxo import MonitoriaFluxoRepositoryMixin
 from .monitoria_planos import MonitoriaPlanosRepositoryMixin
 from .equipes_controle import EquipesControleRepositoryMixin
+from .diario import DiarioRepositoryMixin
 from .monitoria_org import MonitoriaOrgRepositoryMixin
 from .chamados import ChamadosRepositoryMixin
 from .chamados_admin import ChamadosAdminRepositoryMixin
@@ -89,6 +90,7 @@ class DatabaseRepository(
     MonitoriaAnaliseRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
     EquipesControleRepositoryMixin,
+    DiarioRepositoryMixin,
     TelaInicialRepositoryMixin,
     LgpdRetencaoRepositoryMixin,
     ChamadosRepositoryMixin,
