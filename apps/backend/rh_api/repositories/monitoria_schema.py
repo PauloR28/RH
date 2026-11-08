@@ -429,6 +429,7 @@ def ensure_monitoria_schema(cursor) -> None:
         + schema_formularios_exclusao_statements()
         + schema_situacao_formularios_statements()
         + schema_cliente_statements()
+        + schema_contato_cliente_statements()
     ):
         cursor.execute(instrucao)
 
@@ -609,6 +610,35 @@ def render_rollback_cliente_sql() -> str:
         "    ALTER TABLE dbo.monitorias DROP COLUMN nome_cliente;\n"
         "IF COL_LENGTH('dbo.monitorias', 'cpf_cliente') IS NOT NULL\n"
         "    ALTER TABLE dbo.monitorias DROP COLUMN cpf_cliente;\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Contato do cliente (redesign, DEC-095, nov/2026): gera a V067. Uma coluna; obrigatória só nas
+# monitorias novas (a API confere telefone com DDD ou e-mail). As antigas ficam com NULL.
+# ---------------------------------------------------------------------------
+_COLUNAS_CONTATO_CLIENTE: list[tuple[str, str, str]] = [
+    ("monitorias", "contato_cliente", "NVARCHAR(180)"),
+]
+
+
+def schema_contato_cliente_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_CONTATO_CLIENTE]
+
+
+def render_migration_contato_cliente_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: contato do cliente (telefone com DDD ou e-mail). Aditiva e idempotente.\n"
+        "-- Gerada a partir de rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_contato_cliente_statements()) + "\n"
+
+
+def render_rollback_contato_cliente_sql() -> str:
+    return (
+        "-- Rollback da V067: remove a coluna do contato do cliente. Os contatos ja gravados sao perdidos.\n"
+        "IF COL_LENGTH('dbo.monitorias', 'contato_cliente') IS NOT NULL\n"
+        "    ALTER TABLE dbo.monitorias DROP COLUMN contato_cliente;\n"
     )
 
 

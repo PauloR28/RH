@@ -150,7 +150,7 @@ def _pilares():
 def _dados(cenario, **extra):
     base = {
         "operacao": OP, "id_operador": cenario["op1"].id_usuario, "canal": "Telefone", "tipo_atendimento": "Dúvida",
-        "data_contato": "2026-09-19", "respostas": _respostas(), "pilares": _pilares(),
+        "data_contato": "2026-09-19", "contato_cliente": "(11) 98765-4321", "respostas": _respostas(), "pilares": _pilares(),
         "observacao": "Obs", "sugestao_feedback": "Elogiar a saudação",
     }
     base.update(extra)
