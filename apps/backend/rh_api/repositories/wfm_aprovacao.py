@@ -3,7 +3,8 @@
 Fluxo: RASCUNHO -> (enviar) EM_APROVACAO -> (aprovar) APROVADA -> (publicar). Declinar exige justificativa e
 devolve a escala a RASCUNHO para quem a montou. A aprovação vale para um conteúdo exato: guarda o hash do
 snapshot da escala; qualquer alteração depois (edição, troca aprovada) invalida e a escala volta a ser
-rascunho. Nunca se aprova a própria escala, exceto o Analista de TI (gestor único do setor, decisão do RH).
+rascunho. Aprova quem tem a chave wfm.escala.aprovar, inclusive quem enviou (decisão do Paulo, 09/11/2026); quem consta
+na escala como operador não aprova, exceto o Analista de TI (gestor único do setor, decisão do RH).
 Período fechado dispensa o fluxo: correção é publicada pelo Gestor/RH com justificativa (já auditada).
 """
 

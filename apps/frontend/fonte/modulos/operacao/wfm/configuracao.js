@@ -139,7 +139,7 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
                 ${total ? [
                   ...perfis.map((p) => chip(`p-${p}`, ROTULO_PLURAL[p] || p, '', podeEditar ? () => setPerfis(perfis.filter((x) => x !== p)) : null)),
                   ...usuarios.map((id) => { const c = nomeDe(id); return chip(`u-${id}`, c ? c.nome : `Usuário ${id}`, c ? (ROTULO_PERFIL[c.perfil] || c.perfil) : 'Usuário', podeEditar ? () => setUsuarios(usuarios.filter((x) => x !== id)) : null); }),
-                ] : html`<span class="c-ajuda">Padrão: qualquer Supervisor ou Gestor. Ninguém aprova a escala que enviou.</span>`}
+                ] : html`<span class="c-ajuda">Padrão: quem tem a permissão de aprovar escala. Quem consta na escala como operador não aprova.</span>`}
               </div>
               ${podeEditar ? html`<div class="c-grupo c-cfg-linha">
                 <${Campo} rotulo="Perfil"><select class="c-entrada" value=${perfilSel} onChange=${(e) => trocarPerfil(e.target.value)}>

@@ -134,9 +134,10 @@ def pode_aprovar_escala(
     *, perfil: str, id_usuario: int | None, operacoes_usuario: Iterable[str], operacao: str, id_enviou: int | None, ids_na_escala: Iterable[int] = (),
     aprovadores: dict | None = None,
 ) -> tuple[bool, str]:
-    """Aprovar/declinar a escala enviada: Gestor/RH e Supervisor (e o Analista de TI no setor de TI). Ninguém
-    aprova a própria escala (quem enviou, ou quem consta nela como operador) — exceto o Analista de TI, gestor
-    único do setor. Decide quem tem a chave wfm.escala.aprovar (conferida na rota)."""
+    """Aprovar/declinar a escala enviada: decide quem tem a chave wfm.escala.aprovar (conferida na rota e no
+    repositório). Quem enviou PODE aprovar a escala que enviou (decisão do Paulo, 09/11/2026; o histórico guarda
+    quem enviou e quem aprovou). Quem consta na escala como operador não aprova — exceto o Analista de TI, gestor
+    único do setor. `id_enviou` fica na assinatura por compatibilidade."""
     if perfil in WFM_PERFIS_PARTICIPANTES:
         return False, "Seu perfil não aprova escalas."
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
@@ -146,8 +147,6 @@ def pode_aprovar_escala(
         if perfil not in set(aprovadores.get("perfis") or ()) and id_usuario not in set(aprovadores.get("usuarios") or ()):
             return False, "Você não está entre os aprovadores configurados para esta escala."
     if perfil != ROLE_ANALISTA_TI:
-        if id_usuario is not None and id_usuario == id_enviou:
-            return False, "Você enviou esta escala e não pode aprová-la: peça a outra pessoa com permissão para aprovar."
         if id_usuario is not None and id_usuario in set(ids_na_escala):
             return False, "Você consta nesta escala como operador e não pode aprová-la."
     return True, ""
