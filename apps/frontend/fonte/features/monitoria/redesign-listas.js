@@ -302,7 +302,7 @@ function Resposta({ valor }) {
   return html`<span class=${`c-gab-r ${nao ? 'c-gab-r--nao' : ''}`.trim()}><${Ic} nome=${nao ? 'x-circle' : 'check-circle'} />${ROT_RESP[valor] || valor || '—'}</span>`;
 }
 
-function Gabarito({ d }) {
+export function Gabarito({ d }) {
   const [abertos, setAbertos] = useState({});
   const statusBloco = Object.fromEntries((d.blocos || []).map((b) => [b.id, b]));
   return html`<table class="c-tabela c-tabela--compacta c-gab">
@@ -389,7 +389,7 @@ export function PainelMinhaMonitoria({ referencia, controlador, showToast, onClo
 }
 
 const MOTIVOS = ['Fiz o que o procedimento pede', 'O critério não se aplica a este contato', 'Outro motivo'];
-function JanelaContestar({ d, showToast, onClose, onEnviado }) {
+export function JanelaContestar({ d, showToast, onClose, onEnviado }) {
   const candidatos = (d.config?.blocos || []).flatMap((b) => b.criterios.filter((c) => ['NAO', 'NCG'].includes(d.respostas?.[c.id])).map((c) => ({ ...c, bloco: b.nome })));
   const [marcados, setMarcados] = useState(candidatos.length === 1 ? [candidatos[0].id] : []);
   const [motivo, setMotivo] = useState(MOTIVOS[0]);

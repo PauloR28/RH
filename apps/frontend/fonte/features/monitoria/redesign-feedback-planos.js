@@ -287,7 +287,7 @@ function JanelaDetalhePlano({ id, acao, podeEditar, showToast, onClose, onAltero
 }
 
 // Novo plano (janela 560). Com `monitoria`, o plano nasce ligado a ela (operação e operador vêm da monitoria).
-function JanelaPlano({ contexto, monitoria = null, showToast, onClose, onCriado }) {
+export function JanelaPlano({ contexto, monitoria = null, showToast, onClose, onCriado }) {
   const operacoes = (contexto?.operacoes || []).filter((o) => o.ativo !== false);
   const [operacao, setOperacao] = useState(operacoes.length === 1 ? operacoes[0].chave : '');
   const [operadores, setOperadores] = useState([]);
