@@ -34,8 +34,10 @@
 .c-subbarra .c-abas { border-bottom: 0; overflow: visible; }
 /* Faixas de tela: só 600 e 1180 px (Fase 15). A rolagem das abas da sub-barra e o topo
    compacto ficam em conecta-responsivo.css. */
-/* Conteúdo: largura toda até 1600 px, alinhado à esquerda (tabelas densas aproveitam a tela) */
-.c-conteudo { width: 100%; max-width: 1600px; }
+/* Conteúdo: largura toda, alinhado à esquerda (tabelas, indicadores e blocos lado a lado esticam com a tela; 09/11/2026,
+   mesmo ajuste aprovado no Diário de bordo). Formulários na página mantêm o teto de antes para os campos não virarem linhas gigantes. */
+.c-conteudo { width: 100%; max-width: none; }
+.c-conteudo .c-form { max-width: 1600px; }
 
 /* ── 2. Cabeçalho de página compacto ──────────────────────────────────── */
 /* Título 20 + no máximo 1 linha curta. Ações à direita, mesma linha, 8 px entre botões */
