@@ -32,6 +32,7 @@ export const MODULO_DO_GRUPO = {
   treinamentos: MODULO_CORE,
   monitoria: MODULO_OPERACAO,
   wfm: MODULO_OPERACAO,
+  diario: MODULO_OPERACAO, // Diário de bordo (08/11/2026): seção própria da Operação
 };
 
 // Itens do grupo "Configurações" -> módulo. Em Tecnologia aparecem todos; em RH/Operação só os do próprio módulo.

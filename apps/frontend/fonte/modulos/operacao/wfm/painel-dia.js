@@ -10,6 +10,7 @@ import {
 import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261104-leitura';
 import { Esqueleto, Estado, Ic, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { pedirFocoPessoa, tomarFocoPessoa } from './foco-pessoa.js';
+import { FaixaDiarioPainel } from '../diario/ligacoes.js';
 
 // Turnos e Plantões › Painel (amostra "Painel do dia", aprovada em 08/11/2026): o dia inteiro do Supervisor numa tela.
 // Escala, turno, pausas PREVISTAS, trocas e presença vêm das rotas que já existem. "Logado" e a hora de entrada vêm do
@@ -469,6 +470,7 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
   return html`${pagina(html`
     <div class="c-tabela-caixa">
       ${filtros}
+      ${dia === hoje ? html`<${FaixaDiarioPainel} controlador=${controlador} operacao=${operacao} />` : null}
       ${resumo}
       ${vazio ? html`<${Estado} icone="calendar-blank" titulo=${linhas.length ? 'Ninguém com estes filtros.' : 'Ninguém escalado para trabalhar neste dia.'}
           rotuloAcao=${linhas.length ? 'Limpar filtros' : null} aoAcao=${linhas.length ? () => { setBusca(''); setEquipe(''); setTurno(''); setSoMinha(false); setFiltro('todos'); } : null} />`

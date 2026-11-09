@@ -37,6 +37,7 @@ from .routers.calendar import (
 )
 from .routers.chamados import router as chamados_router
 from .routers.core import router as core_router
+from .routers.diario import router as diario_router
 from .routers.document_templates import router as document_templates_router
 from .routers.documentos_biblioteca import router as documentos_biblioteca_router
 from .routers.email_send import router as email_send_router
@@ -473,6 +474,7 @@ def create_app() -> FastAPI:
     app.include_router(monitoria_router)
     app.include_router(wfm_router)
     app.include_router(equipes_router)
+    app.include_router(diario_router)
     app.include_router(relatorios_hub_router)
     app.include_router(monitoria_public_router)
     app.include_router(mural_public_router)

@@ -14,6 +14,7 @@ from .chamados import ChamadosRepositoryMixin
 from .chamados_admin import ChamadosAdminRepositoryMixin
 from .communications import CommunicationRepositoryMixin
 from .cv_analysis import CvAnalysisRepositoryMixin
+from .diario import DiarioRepositoryMixin
 from .disc import DiscRepositoryMixin
 from .document_templates import DocumentTemplateRepositoryMixin
 from .documentos_biblioteca import DocumentosBibliotecaRepositoryMixin
@@ -89,6 +90,7 @@ class DatabaseRepository(
     MonitoriaAnaliseRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
     EquipesControleRepositoryMixin,
+    DiarioRepositoryMixin,
     TelaInicialRepositoryMixin,
     LgpdRetencaoRepositoryMixin,
     ChamadosRepositoryMixin,

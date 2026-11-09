@@ -18,6 +18,7 @@ import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../
 import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js';
 import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261108-fatia2';
 import { JanelaPlano } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js';
 
 // Detalhe de UMA monitoria (redesign Fase 15, fatia 4, amostra Q1 do lote 2): painel lateral de 640 px (padrão c-diario da
 // Fase 14) em todas as listas. Cabeçalho com ID + situação, linha curta operador · operação · data · avaliador e ⋯ (Exportar,
@@ -245,6 +246,7 @@ export function DetalheMonitoria({ referencia, controlador, contexto, onClose, o
         <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !reanalise.observacao.trim() || null}
           onClick=${() => (reanalise.resultado === 'ANULADA' ? setConfirmarAnular(true) : executar(() => reanalisarContestacao(d.codigo, reanalise), 'Nota mantida. O operador foi avisado.'))}>Enviar decisão</button>`}>
       <div class="c-janela-corpo">
+        <${AvisoIntercorrencia} controlador=${controlador} operacao=${d.operacao} momento=${String(d.data_contato || '').slice(0, 10)} />
         <div class="c-campo"><span class="c-rotulo">Decisão</span><${Segmento} rotulo="Decisão" valor=${reanalise.resultado} aoMudar=${(v) => setReanalise({ ...reanalise, resultado: v })} opcoes=${[['CONFIRMADA', 'Manter a nota'], ['ANULADA', 'Anular a monitoria']]} /></div>
         <${Campo} rotulo="Explique a decisão" ajuda="O operador vai ler este texto."><textarea class="c-entrada" rows="3" value=${reanalise.observacao} onInput=${(e) => setReanalise({ ...reanalise, observacao: e.target.value })}></textarea><//>
       </div>

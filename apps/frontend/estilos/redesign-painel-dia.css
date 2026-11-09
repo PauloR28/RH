@@ -112,3 +112,7 @@ tr:hover .c-pd-nome .c-ic, .c-pd-nome:focus-visible .c-ic, .c-pd-nome[aria-expan
 .c-pd-menu--siglas .c-sigla { min-width: 28px; }
 .c-pd-aviso { position: absolute; right: var(--espaco-4); bottom: var(--espaco-4); z-index: 40; align-items: center; }
 .c-pd tr[hidden], .c-pd tbody[hidden] { display: none; }
+
+/* Precisa de você: linha de 40 px (o botão compacto de 32 px não encosta nas linhas) e ação com respiro à direita (ajuste do Paulo, 08/11) */
+.c-hoje-pend td { vertical-align: middle; }
+.c-hoje-pend td.c-acoes { width: 1%; padding-right: var(--espaco-3); text-align: right; white-space: nowrap; }

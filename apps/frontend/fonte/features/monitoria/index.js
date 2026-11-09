@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261108-admin';
-import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261108-painel-dia';
+import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261109-operacao';
 import { TelaInicioOperador } from './inicio-operador.js?v=20261109-lote3';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
@@ -11,13 +11,13 @@ import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260
 import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261104-leitura';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261029-fix';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20261109-telas-antigas';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20261109-operacao';
 import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261028-ausencias';
 import { TelaDashboard } from './painel.js?v=20261023-ajustes';
 import { TelaFormularios } from './admin.js?v=20261109-telas-antigas';
 import { TelaCentralMonitoria } from './central.js';
 import { ListaMonitoriasNova } from './redesign-listas.js?v=20261108-fatia2';
-import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261108-fatia2';
+import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261109-operacao';
 import { TelaPainelMonitoria } from './painel-redesign.js?v=20261108-fatia2';
 import { ListaFeedback, TelaPlanosNova } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
 import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';

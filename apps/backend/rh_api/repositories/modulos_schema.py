@@ -101,6 +101,8 @@ def _grupos_de_seed(*, congelado: bool = False) -> dict[tuple[str, int], list[st
             continue  # V056 já está aplicada e é imutável: as permissões de Chamados são semeadas pela própria V059
         if congelado and chave in PERMISSOES_POSTERIORES_A_V056:
             continue
+        if chave.startswith(("diario.", "sessao.diario.")):
+            continue  # idem: as do Diário de bordo são semeadas pela V068
         grupos[(modulo_dono_padrao(chave, definicao.module), 1 if abre_modulo_padrao(chave) else 0)].append(chave)
     return {k: sorted(v) for k, v in sorted(grupos.items())}
 

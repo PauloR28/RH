@@ -11,6 +11,7 @@ import {
 } from '../../services/api/monitoria.js';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento } from '../../ui/components/ds.js?v=20261106-wfm';
 import { RESPOSTAS, formatarNota, hoje } from './comum.js';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js';
 
 // Nova monitoria no desenho novo (amostra Fase 12, DEC-068): etapas no topo com a nota viva à direita,
 // dados do contato numa linha fina sempre à vista, critérios em tabela e "Finalizar" só na Revisão.
@@ -49,7 +50,7 @@ export const contatoValido = (valor) => {
 
 const ROTULO_RESP = { SIM: 'Sim', NAO: 'Não', NCG: 'NCG', NA: 'N/A' };
 
-export function TelaNovaMonitoriaRedesign({ contexto, aoConcluir, showToast }) {
+export function TelaNovaMonitoriaRedesign({ controlador, contexto, aoConcluir, showToast }) {
   const operacoesAtivas = (contexto?.operacoes || []).filter((op) => op.ativo);
   const [operacao, setOperacao] = useState(operacoesAtivas.length === 1 ? operacoesAtivas[0].chave : '');
   const [dados, setDados] = useState(ESTADO_INICIAL);
@@ -219,6 +220,7 @@ export function TelaNovaMonitoriaRedesign({ contexto, aoConcluir, showToast }) {
         <${Campo} rotulo="Telefone" opcional=${true}><input class="c-entrada" maxlength="40" value=${dados.telefone} onInput=${(e) => atualizar('telefone', e.target.value)} /><//>
         <${Campo} rotulo="ID da interação" opcional=${true}><input class="c-entrada" maxlength="120" value=${dados.id_interacao} onInput=${(e) => atualizar('id_interacao', e.target.value)} /><//>` : null}
     </div>
+    ${operacao && dados.data_contato ? html`<${AvisoIntercorrencia} controlador=${controlador} operacao=${operacao} momento=${dados.data_contato} />` : null}
     ${operacao && matriz ? html`<p class="c-ajuda" style=${{ margin: 0 }}>Formulário ${matriz.nome} · versão ${matriz.numero}. O ID é gerado ao finalizar.</p>` : null}
   </div>`;
 

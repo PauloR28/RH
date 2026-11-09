@@ -184,6 +184,12 @@ export function BarraLateral({
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
+  // Diário de bordo (D1, 08/11/2026): seção própria entre Equipes e Relatórios. Hoje · Histórico · Cadastros (só Administração).
+  const sublinksDiario = [
+    { tela: 'screen-diario', icone: 'notebook', label: 'Hoje', permissao: ['diario.visualizar', 'diario.intercorrencias'] },
+    { tela: 'screen-diario-historico', icone: 'history', label: 'Histórico', permissao: 'diario.visualizar' },
+    { tela: 'screen-diario-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'diario.administrar' },
+  ];
   const sublinksGestao = [
     {
       tela: 'screen-dashboard-funil',
@@ -347,7 +353,7 @@ export function BarraLateral({
     'screen-settings-monitoria',
   ];
   const possuiPermissao = (permissao) =>
-    !permissao || controlador?.possuiPermissao?.(permissao);
+    !permissao || (Array.isArray(permissao) ? permissao.some((p) => controlador?.possuiPermissao?.(p)) : controlador?.possuiPermissao?.(permissao));
   // Chave-mestra da sessão (Perfis e Permissões): só restringe quando o token a traz.
   const sessaoOk = (tela) => controlador?.sessaoDaTelaLiberada?.(tela) !== false;
   // "Minhas monitorias" também é do Supervisor (monitorias da equipe, com a etiqueta "Contestada").
@@ -397,6 +403,7 @@ export function BarraLateral({
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
   // "Minhas escalas" segue a permissão wfm.escala.propria (Operador, Técnicos de TI e Analista de TI; Adm/Gestão não têm escala própria).
   const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem));
+  const sublinksDiarioVisiveis = sublinksDiario.filter((subitem) => possuiSub(subitem));
   const grupoWfmAtivo = telasRelacionadasWfm.includes(navAtiva);
   const subitemWfmAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>
@@ -540,7 +547,7 @@ export function BarraLateral({
     const wfmSemEquipes = sublinksWfmVisiveis.filter((subitem) => subitem.tela !== 'screen-equipes-controle');
     const gestaoSemMural = sublinksGestaoVisiveis.filter((subitem) => subitem.tela !== 'screen-mural');
     const secoesMoldura = [
-      // Ordem aprovada (DEC-063): Início · Turnos e Plantões · Monitoria · Equipes · Relatórios · Mural.
+      // Ordem aprovada (DEC-063): Início · Turnos e Plantões · Monitoria · Equipes · Diário de bordo (D1) · Relatórios · Mural.
       secaoDeItem('inicio', 'Início', 'house', itensPrincipais[0]),
       noModulo('wfm')
         ? secaoDeGrupo('wfm', 'Turnos e Plantões', 'calendar-dots', wfmSemEquipes, subitemWfmAtivo, grupoWfmAtivo && navAtiva !== 'screen-equipes-controle')
@@ -549,6 +556,9 @@ export function BarraLateral({
         ? secaoDeGrupo('monitoria', 'Monitoria', 'clipboard-text', sublinksMonitoriaVisiveis, subitemMonitoriaAtivo, grupoMonitoriaAtivo)
         : null,
       noModulo('wfm') && itemEquipes && possuiSub(itemEquipes) ? secaoDeItem('equipes', 'Equipes', 'users', itemEquipes) : null,
+      noModulo('diario')
+        ? secaoDeGrupo('diario', 'Diário de bordo', 'notebook', sublinksDiarioVisiveis, (subitem) => navAtiva === subitem.tela, navAtiva.startsWith('screen-diario'))
+        : null,
       secaoDeItem('relatorios', 'Relatórios', 'presentation-chart', { tela: 'screen-relatorios', permissao: 'sessao.relatorios.acessar' }),
       noModulo('gestao') && itemMural && possuiSub(itemMural) ? secaoDeItem('mural', 'Mural', 'megaphone', itemMural) : null,
       // Demais áreas que o perfil já via no menu antigo continuam alcançáveis (vão para "Mais" se não couberem).
