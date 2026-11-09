@@ -53,8 +53,11 @@ export function abaInicialWfm(controlador) {
 }
 
 export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
-  // Operador/técnicos (só a própria escala, sem editar/criar) não veem a aba Escala: ficam com Minhas escalas e Trocas.
-  const soParticipante = controlador.possuiPermissao('wfm.escala.propria') && !controlador.possuiPermissao('wfm.escala.editar') && !controlador.possuiPermissao('wfm.escala.criar');
+  // Operador/técnicos (só a própria escala, sem ver/editar/criar escalas) não veem a aba Escala: ficam com Minhas escalas e
+  // Trocas. Quem também pode CONSULTAR escalas (wfm.escala.visualizar, ex.: Administrador com a própria escala liberada em
+  // Perfis) abre a aba Escala normalmente, em leitura.
+  const soParticipante = controlador.possuiPermissao('wfm.escala.propria') && !controlador.possuiPermissao('wfm.escala.visualizar')
+    && !controlador.possuiPermissao('wfm.escala.editar') && !controlador.possuiPermissao('wfm.escala.criar');
   const telaAtual = soParticipante && telaPedida === 'screen-wfm' ? 'screen-wfm-minha-escala' : telaPedida;
   const { showToast, ToastHost } = useToast();
   const { contexto, erro, recarregar: recarregarContexto } = useContextoWfm();
