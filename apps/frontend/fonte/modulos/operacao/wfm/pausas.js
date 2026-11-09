@@ -1,20 +1,20 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { ModalForm } from './formulario.js';
-import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { aMin, brData, deMin, doIso, paraIso, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { estadoEscala } from './escala.js?v=20261106-wfm';
+import { Campo, Esqueleto, Estado, Faixa, Ic, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Aba "Pausas" da escala: as 3 pausas de cada colaborador escalado no dia (2 de 10 min e 1 de 20 min, todas contadas
-// como jornada). Define horários à mão — por colaborador, em lote, por equipe ou por turno — e aplica ao dia, à semana ou
-// ao mês; mostra a tabela com filtros e a visão macro (Gantt). Exceder o limite de colaboradores em pausa ao mesmo tempo
-// é aviso (não bloqueio). Pausas emergenciais (banheiro, feedback...) não entram aqui. Estilos: bloco `.pa-*` em wfm.css.
+// Aba "Pausas" da escala (redesign Fase 15, amostra Q2 do lote 1): as 3 pausas de cada colaborador escalado no dia (2 de 10 min
+// e 1 de 20 min, todas contadas como jornada). Tabela com o horário editável na linha + painel de 300 px na mesma caixa
+// (1 Quem recebe · 2 Horários · 3 Máximo em pausa juntos, com o mini gráfico "Em pausa a cada 15 min"). Exceder o limite de
+// pessoas em pausa ao mesmo tempo é aviso (não bloqueio). Mesmas rotas e regras de antes; só a tela mudou.
 
-const SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const SEMANA_CURTA_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const SEMANA_CURTA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const TODOS_DIAS = [true, true, true, true, true, true, true];
 const ROTULO_TIPO = { DESCANSO: 'Descanso', REFEICAO: 'Refeição' };
 const PASSO = 5;
+const FAIXA_GRAFICO = 15;
 
 // Linha do tempo do turno em minutos desde 00:00 do dia em que ele começa (turno que vira a noite passa de 1440).
 const janela = (turno) => { const ini = aMin(turno.entrada); const fim = aMin(turno.saida); return [ini, fim <= ini ? fim + 1440 : fim]; };
@@ -35,9 +35,7 @@ function periodoDe(escopo, dia, anoMes) {
 
 const diasEscolhidos = (escopo, dias) => (escopo === 'dia' ? null : dias.map((v, i) => (v ? i : null)).filter((i) => i !== null));
 
-const FILTROS_RAPIDOS = [['todos', 'Todos'], ['sem', 'Sem pausas'], ['nao', 'Não salvas']];
-
-export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, showToast, aoDia, aoMes, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null }) {
+export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, showToast, aoDia, aoMes, aoVoltarLista, aoTrocarEscala, opcoesEscala = null }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
   const [dados, setDados] = useState(null);
   const [escala, setEscala] = useState(null);
@@ -50,7 +48,6 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
   const [filtroSup, setFiltroSup] = useState('');
   const [filtroHora, setFiltroHora] = useState('');
   const [rapido, setRapido] = useState('todos');       // 'todos' | 'sem' | 'nao'
-  const [visao, setVisao] = useState('tabela');        // 'tabela' | 'gantt'
   const [ocupado, setOcupado] = useState(false);
   const [duplicando, setDuplicando] = useState(null);  // colaborador de origem
   const ehSupervisor = controlador.estado?.perfilUsuario === 'supervisor';
@@ -110,11 +107,13 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
   const visiveis = baseEscalados.filter((o) => rapido === 'todos' || (rapido === 'sem' ? !(edicao[o.id_operador] || o.pausas).length : !!edicao[o.id_operador]));
   const visiveisSem = rapido === 'todos' ? baseSem : [];
 
-  // ---- ocupação (inclui o que está editado e ainda não salvo): alimenta o aviso, o Gantt e o anel de conflito ---------
-  const { ocup, excedentes, emConflito } = useMemo(() => {
+  // ---- ocupação (inclui o que está editado e ainda não salvo): alimenta o aviso, o mini gráfico e o selo de conflito ----
+  const { ocup, excedentes, emConflito, faixa } = useMemo(() => {
     const mapa = new Map();
+    let menor = Infinity; let maior = -Infinity;
     for (const o of operadores) {
-      const [ini] = janela(o.turno);
+      const [ini, fim] = janela(o.turno);
+      menor = Math.min(menor, ini); maior = Math.max(maior, fim);
       for (const p of (edicao[o.id_operador] || o.pausas)) {
         if (!p.inicio) continue;
         const i = desenrolar(p.inicio, ini);
@@ -137,12 +136,14 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
         for (let m = i - (i % PASSO); m < i + p.duracao_min; m += PASSO) if ((mapa.get(m) || 0) > lim) conflito.add(`${o.id_operador}:${p.ordem}`);
       }
     }
-    return { ocup: mapa, excedentes: faixas, emConflito: conflito };
+    return { ocup: mapa, excedentes: faixas, emConflito: conflito, faixa: Number.isFinite(menor) ? [Math.floor(menor / 60) * 60, Math.ceil(maior / 60) * 60] : null };
   }, [operadores, edicao, dados]);
   const opsEmConflito = new Set([...emConflito].map((k) => k.split(':')[0])).size;
 
-  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<${LoadingState} titulo="Carregando as pausas" />`;
+  const nomeEscala = escala?.nome_escala || opcoesEscala?.find(([c]) => c === operacao)?.[1] || (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
+  const voltar = aoVoltarLista ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Voltar para Escalas" title="Voltar para Escalas" onClick=${aoVoltarLista}><${Ic} nome="arrow-left" /></button>` : null;
+  if (erro) return html`<main class="c-pagina c-conteudo"><div class="c-cab-linha">${voltar}<h1>${nomeEscala}</h1></div><div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div></main>`;
+  if (!dados) return html`<main class="c-pagina c-conteudo" aria-busy="true"><div class="c-cab-linha">${voltar}<h1>${nomeEscala}</h1></div><div class="c-tabela-caixa"><${Esqueleto} linhas=${10} /></div></main>`;
 
   const mover = (n) => { const d = doIso(dia); d.setDate(d.getDate() + n); const iso = paraIso(d); if (iso.startsWith(anoMes)) setDia(iso); };
   const mudar = (op, ordem, valor) => {
@@ -162,15 +163,13 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
   const distribuirConflito = async () => {
     if (alteradas && !window.confirm('Há alterações não salvas: distribuir recarrega a tela e as descarta. Continuar?')) return;
     const ids = operadores.filter((o) => o.pausas.length).map((o) => o.id_operador);
-    await executar(() => distribuirPausasWfm({ operacao, data: dia, ids, sobrescrever: true }), 'Pausas distribuídas respeitando o limite de colaboradores em pausa ao mesmo tempo.');
+    await executar(() => distribuirPausasWfm({ operacao, data: dia, ids, sobrescrever: true }), 'Pausas distribuídas respeitando o limite de pessoas em pausa ao mesmo tempo.');
   };
   const marcados = visiveis.filter((o) => sel[o.id_operador]);
   const todosSel = visiveis.length > 0 && marcados.length === visiveis.length;
   const alternarTodos = () => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_operador, true])));
-  const nomeEscala = escala?.nome_escala || opcoesEscala?.find(([c]) => c === operacao)?.[1] || operacao;
   const d0 = doIso(dia);
   const hojeIso = paraIso(new Date());
-  const ultimoDia = paraIso(new Date(Number(anoMes.slice(0, 4)), Number(anoMes.slice(5)), 0));
   const totalColab = operadores.length + semEscala.length;
   const resumoAplicacao = (r) => `${r.pausas_gravadas} colaborador(es)/dia gravado(s) em ${r.dias_programados} dia(s)`
     + `${r.ignoradas ? `; ${r.ignoradas} fora do turno do dia (ignorado)` : ''}${r.mantidas ? `; ${r.mantidas} mantido(s) sem substituir` : ''}`
@@ -189,114 +188,113 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
     setEdicao(novo);
     showToast?.(`${ok} colaborador(es) com pausas definidas (não salvas)${fora ? `; ${fora} com horário fora do turno (ignorado)` : ''}${mantidas ? `; ${mantidas} mantido(s) sem substituir` : ''}.`, ok ? 'success' : 'error');
   };
-  const nTabelaCols = dados.pausas_padrao.length;
+  const nCols = dados.pausas_padrao.length;
+  const colunas = (podeEditar ? 1 : 0) + 2 + nCols + 1 + (podeEditar ? 1 : 0);
+  const [rotuloEstado, tomEstado, iconeEstado] = escala?.status ? estadoEscala(escala) : [];
+
+  const rotulosRapidos = [['todos', 'Todos', baseEscalados.length + baseSem.length], ['sem', 'Sem pausas', nSem], ['nao', 'Não salvas', nNao]];
 
   return html`
-    <${LinhaContexto} nome=${nomeEscala} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes} ocultarEscala=${(contexto?.operacoes || []).length <= 1}
-      escalados=${operadores.length} emDsr=${semEscala.length}
-      versao=${escala?.status?.versao_publicada || 0} aoVoltarLista=${aoVoltarLista} />
-
-    <section class="mo-card-escala cx-cresce pa-card" aria-label="Pausas">
-      <div class="mo-barra cx-fixo">
-        <${SeletorVisao} visao="pausas" aoDia=${aoDia} aoMes=${aoMes} />
-        <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
-          <button type="button" class="ea-icone-btn" aria-label="Dia anterior" title="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
-          <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA_CURTA_DIA[d0.getDay()]} · ${brData(dia)}</span>
-            <input class="ea-data-input" type="date" aria-label="Escolher data" onClick=${(e) => e.target.showPicker?.()} value=${dia} min=${`${anoMes}-01`} max=${ultimoDia} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} /></label>
-          <button type="button" class="ea-icone-btn" aria-label="Próximo dia" title="Próximo dia" disabled=${dia >= ultimoDia} onClick=${() => mover(1)}><${Icone} nome="chevron_right" /></button>
-          <button type="button" class="mo-btn mo-btn--neutro mo-btn--34" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso} onClick=${() => setDia(hojeIso)}>Hoje</button>
-        </div>
-        <div class="pa-barra-fim">
-          <span class="pa-ver-como" id="pa-ver-como">Ver como</span>
-          <div class="ea-visao" role="group" aria-labelledby="pa-ver-como">
-            <button type="button" class=${visao === 'tabela' ? 'is-ativo' : ''} aria-pressed=${visao === 'tabela'} onClick=${() => setVisao('tabela')}>Tabela</button>
-            <button type="button" class=${visao === 'gantt' ? 'is-ativo' : ''} aria-pressed=${visao === 'gantt'} onClick=${() => setVisao('gantt')}>Visão macro</button>
-          </div>
+    <main class="c-pagina c-conteudo">
+      <div class="c-cab-linha c-cab-escala">
+        ${voltar}
+        <h1 title=${nomeEscala}>${nomeEscala}</h1>
+        ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+        ${rotuloEstado ? html`<${Selo} tom=${tomEstado} icone=${iconeEstado}>${rotuloEstado}<//>` : null}
+        <div class="c-cab-dir">
+          <span class="c-ajuda">${operadores.length} escalado(s) · ${semEscala.length} sem escala no dia</span>
         </div>
       </div>
 
-      <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca}
-        contagem=${`${visiveis.length + visiveisSem.length} de ${totalColab} colaborador(es)${todasEquipes ? ' · todas as equipes, somente leitura' : ''}`}
-        meio=${html`<div class="ea-visao pa-rapido" role="group" aria-label="Filtro rápido">${FILTROS_RAPIDOS.map(([id, rotulo]) => html`<button key=${id} type="button" class=${rapido === id ? 'is-ativo' : ''} aria-pressed=${rapido === id} onClick=${() => setRapido(id)}>${rotulo} (${id === 'todos' ? baseEscalados.length + baseSem.length : id === 'sem' ? nSem : nNao})</button>`)}</div>`}
-        selects=${[
-          ...(ehSupervisor ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
-          { rotulo: 'Turno', padrao: 'Turno: todos', valor: filtroTurno, aoMudar: setFiltroTurno, largura: 'm', opcoes: turnos.map((t) => [t.codigo, t.codigo]) },
-          { rotulo: 'Horário da pausa', padrao: 'Horário: todos', valor: filtroHora, aoMudar: setFiltroHora, largura: 'm', opcoes: horas.map((h) => [h, `${h}h`]) },
-          { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
-          { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
-        ]} /></div>
+      ${excedentes.length ? html`<${Faixa} tom="atencao" icone="warning"
+        acao=${podeEditar ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${ocupado || null} onClick=${distribuirConflito}>Distribuir automático</button>` : null}>
+        <b>${opsEmConflito} pessoa(s)</b> em pausa ao mesmo tempo acima do limite de ${capacidade}. Ajuste os horários ou deixe o sistema distribuir.<//>` : null}
 
-      <div class="pa-corpo">
-        <div class="pa-principal">
-          ${excedentes.length ? html`<div class="pa-aviso" role="status">
-            <span class="pa-aviso-txt"><${Icone} nome="warning" /><span><strong>${opsEmConflito} colaborador(es)</strong> com pausa ao mesmo tempo (limite ${capacidade}). Ajuste os horários ou deixe o sistema distribuir.</span></span>
-            ${podeEditar ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--34" disabled=${ocupado} onClick=${distribuirConflito}>Distribuir automaticamente</button>` : null}</div>` : null}
+      <div class="c-tabela-caixa" role="region" aria-label="Pausas do dia">
+        <div class="c-filtros c-filtros--suave c-filtros--quebra">
+          <${Segmento} rotulo="Visão" valor="pausas" aoMudar=${(v) => { if (v === 'semana' || v === 'mes') aoMes?.(v); else if (v === 'dia') aoDia?.(); }}
+            opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoDia ? [['dia', 'Do dia']] : []), ['pausas', 'Pausas']]} />
+          <${Navegar} grupo="Dia" rotulo=${`${SEMANA_CURTA_DIA[d0.getDay()]}, ${brData(dia).slice(0, 5)}`} rotuloAnterior="Dia anterior" rotuloProximo="Próximo dia" aoAnterior=${() => mover(-1)} aoProximo=${() => mover(1)} />
+          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso || null} onClick=${() => setDia(hojeIso)}>Hoje</button>
+          <${Segmento} mini=${true} rotulo="Filtro rápido" valor=${rapido} aoMudar=${setRapido} opcoes=${rotulosRapidos} />
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+          ${ehSupervisor ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipes exibidas" value=${todasEquipes ? 'todas' : ''} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="">Minha equipe</option><option value="todas">Todas as equipes</option></select>` : null}
+          ${turnos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Turno" value=${filtroTurno} onChange=${(e) => setFiltroTurno(e.target.value)}><option value="">Turno: todos</option>${turnos.map((t) => html`<option key=${t.codigo} value=${t.codigo}>${t.codigo} ${t.entrada}–${t.saida}</option>`)}</select>` : null}
+          ${equipes.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Equipe: todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${supervisores.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Supervisor" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Supervisor: todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${horas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Horário da pausa" value=${filtroHora} onChange=${(e) => setFiltroHora(e.target.value)}><option value="">Horário: todos</option>${horas.map((h) => html`<option key=${h} value=${h}>${h}h</option>`)}</select>` : null}
+          <span class="c-contador" aria-live="polite">${visiveis.length + visiveisSem.length} de ${totalColab}${todasEquipes ? ' · todas as equipes, somente leitura' : ''}</span>
+        </div>
 
-          ${!operadores.length && !semEscala.length
-            ? html`<${EmptyState} icon="schedule" title="Ninguém neste dia" text="Não há colaboradores nesta escala. Monte a escala de turnos primeiro." />`
-            : visao === 'gantt'
-              ? html`<${Gantt} linhas=${visiveis} pausasDe=${pausasDe} ocup=${ocup} capacidade=${capacidade} emConflito=${emConflito} />`
-              : html`<div class="ea-rolagem mo-rolagem pa-rolagem" role="region" aria-label="Pausas do dia" tabindex="0">
-              <table class=${`ea-tab pa-tab ${podeEditar ? 'ea-tab--sel' : ''}`}>
-                <colgroup>${podeEditar ? html`<col style=${{ width: '44px' }} />` : null}<col /><col style=${{ width: '184px' }} />${dados.pausas_padrao.map((p) => html`<col key=${p.ordem} style=${{ width: '144px' }} />`)}${podeEditar ? html`<col style=${{ width: '96px' }} />` : null}</colgroup>
-                <thead><tr>
-                  ${podeEditar ? html`<th scope="col" class="ea-c-sel"><${CheckTodos} rotulo="Selecionar todos os colaboradores" total=${visiveis.length} marcados=${marcados.length} aoAlternar=${alternarTodos} /></th>` : null}
-                  <th scope="col" class="ea-c-nome">Colaborador</th><th scope="col">Turno</th>
-                  ${dados.pausas_padrao.map((p) => html`<th scope="col" key=${p.ordem}>Pausa ${p.ordem} · ${p.duracao_min} min</th>`)}
-                  ${podeEditar ? html`<th scope="col">Ações</th>` : null}
-                </tr></thead>
-                <tbody>
-                  ${visiveis.map((op) => { const pausas = pausasDe(op); const pend = !!edicao[op.id_operador]; const conf = pausas.some((p) => emConflito.has(`${op.id_operador}:${p.ordem}`));
-                    return html`<tr key=${op.id_operador} class=${`${pend ? 'is-pendente' : ''} ${conf ? 'is-conflito' : ''} ${sel[op.id_operador] ? 'is-sel' : ''}`}>
-                    ${podeEditar ? html`<td class="ea-c-sel"><input type="checkbox" class="ea-check" aria-label=${`Selecionar ${op.nome}`} checked=${!!sel[op.id_operador]} onChange=${() => setSel({ ...sel, [op.id_operador]: !sel[op.id_operador] })} /></td>` : null}
-                    <td class="ea-c-nome"><strong class="pa-nome">${op.nome}</strong><small class="pa-sub">${[op.equipe, (op.supervisores || []).map((s) => s.nome).join(', ')].filter(Boolean).join(' · ') || '—'}</small>${op.erros.length ? html`<small class="wfm-alerta-txt">${op.erros[0]}</small>` : null}</td>
-                    <td><span class="pa-turno"><strong>${op.turno.codigo}</strong><span class="ea-muted ea-num">${op.turno.entrada}–${op.turno.saida} · ${op.turno.dias_rotulo}</span></span></td>
+        ${!operadores.length && !semEscala.length
+          ? html`<${Estado} icone="pause-circle" titulo="Ninguém neste dia" texto="Não há colaboradores nesta escala. Monte a escala de turnos primeiro." />`
+          : html`<div class=${podeEditar ? 'c-pausas' : ''}>
+            <table class="c-tabela" aria-label=${`Pausas de ${brData(dia)}`}>
+              <thead><tr>
+                ${podeEditar ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel} disabled=${!visiveis.length || null}
+                  ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}
+                <th scope="col" class="c-estica">Colaborador</th><th scope="col">Turno</th>
+                ${dados.pausas_padrao.map((p, i) => html`<th scope="col" key=${p.ordem} title=${`${ROTULO_TIPO[p.tipo] || 'Pausa'} · ${p.duracao_min} min`}>${i + 1}ª pausa</th>`)}
+                <th scope="col">Situação</th>
+                ${podeEditar ? html`<th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th>` : null}
+              </tr></thead>
+              <tbody>
+                ${visiveis.map((op) => {
+                  const pausas = pausasDe(op); const pend = !!edicao[op.id_operador]; const conf = pausas.some((p) => emConflito.has(`${op.id_operador}:${p.ordem}`));
+                  return html`<tr key=${op.id_operador} class=${pend ? 'c-pausa-mudou' : ''} aria-selected=${sel[op.id_operador] ? 'true' : null}>
+                    ${podeEditar ? html`<td><label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!sel[op.id_operador]} onChange=${() => setSel({ ...sel, [op.id_operador]: !sel[op.id_operador] })} /></label></td>` : null}
+                    <td class="c-forte c-estica" title=${[op.equipe, (op.supervisores || []).map((s) => s.nome).join(', ')].filter(Boolean).join(' · ') || null}>${op.nome}${op.erros?.length ? html`<span class="c-ajuda c-tom-atencao" style=${{ display: 'block' }}>${op.erros[0]}</span>` : null}</td>
+                    <td class="c-num-esq" title=${op.turno.dias_rotulo || null}>${op.turno.codigo} <span class="c-secundario">${op.turno.entrada}–${op.turno.saida}</span></td>
                     ${dados.pausas_padrao.map((padrao) => { const p = pausas.find((x) => x.ordem === padrao.ordem);
                       return html`<td key=${padrao.ordem}>${p
-                        ? (podeEditar ? html`<input class="ea-campo pa-hora" type="time" step="300" aria-label=${`${op.nome}, pausa ${padrao.ordem}`} value=${p.inicio} onInput=${(e) => mudar(op, padrao.ordem, e.target.value)} />` : html`<strong class="ea-num">${p.inicio}</strong>`)
-                        : (podeEditar && padrao.ordem === 1 ? html`<button type="button" class="wfm-link" onClick=${() => iniciar(op)}>Definir manualmente</button>` : html`<span class="ea-muted">—</span>`)}</td>`; })}
-                    ${podeEditar ? html`<td><button type="button" class="ea-btn-ctn" disabled=${!pausas.length || pend} title=${pend ? 'Salve as alterações antes de duplicar.' : 'Copiar estas pausas para outros colaboradores'} onClick=${() => setDuplicando(op)}>Duplicar</button></td>` : null}
+                        ? (podeEditar ? html`<input class=${`c-entrada c-entrada--compacta c-pausa-hora ${p.inicio ? '' : 'c-pausa-hora--vazia'}`} type="time" step="300" aria-label=${`${op.nome}, ${padrao.ordem}ª pausa`} value=${p.inicio} onInput=${(e) => mudar(op, padrao.ordem, e.target.value)} />` : html`<span class="c-num-esq">${p.inicio}</span>`)
+                        : (podeEditar && padrao.ordem === 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-add" onClick=${() => iniciar(op)}>+ Definir</button>` : html`<span class="c-secundario">—</span>`)}</td>`; })}
+                    <td>${conf ? html`<${Selo} tom="perigo">Acima do limite<//>` : pend ? html`<${Selo} tom="informacao">Não salva<//>` : !pausas.length ? html`<${Selo} tom="atencao">Sem pausa<//>` : null}</td>
+                    ${podeEditar ? html`<td class="c-acoes"><${MenuAcoes} rotulo=${`Mais ações para ${op.nome}`} acoes=${[
+                      { label: 'Duplicar para outros colaboradores', icon: 'copy', disabled: !pausas.length || pend, onClick: () => setDuplicando(op) },
+                    ]} /></td>` : null}
                   </tr>`; })}
-                  ${visiveisSem.map((op) => html`<tr key=${`s${op.id_operador}`} class="is-sem-escala">
-                    ${podeEditar ? html`<td class="ea-c-sel"><input type="checkbox" class="ea-check" disabled aria-label=${`${op.nome} está sem escala neste dia`} /></td>` : null}
-                    <td class="ea-c-nome"><strong class="pa-nome">${op.nome}</strong><small class="pa-sub">${[op.equipe, (op.supervisores || []).map((s) => s.nome).join(', ')].filter(Boolean).join(' · ') || '—'}</small></td>
-                    <td><span class="pa-turno"><strong>SEM ESCALA</strong><span class="ea-muted">${op.motivo}</span></span></td>
-                    <td class="pa-sem-txt" colspan=${nTabelaCols}>Sem escala · sem pausa</td>
-                    ${podeEditar ? html`<td><span class="ea-muted">—</span></td>` : null}
-                  </tr>`)}
-                  ${visiveis.length + visiveisSem.length ? null : html`<tr><td class="ea-vazio" colspan=${(podeEditar ? 3 : 2) + nTabelaCols + (podeEditar ? 0 : 0)}>Nenhum colaborador encontrado com estes filtros.</td></tr>`}
-                </tbody>
-              </table>
-            </div>`}
-        </div>
+                ${visiveisSem.map((op) => html`<tr key=${`s${op.id_operador}`} data-sem-escala="">
+                  ${podeEditar ? html`<td></td>` : null}
+                  <td class="c-estica c-secundario">${op.nome}</td>
+                  <td class="c-secundario" title=${op.motivo || null}>Sem escala</td>
+                  <td class="c-secundario" colspan=${nCols}>${op.motivo || 'Sem escala · sem pausa'}</td>
+                  <td></td>
+                  ${podeEditar ? html`<td></td>` : null}
+                </tr>`)}
+                ${visiveis.length + visiveisSem.length ? null : html`<tr><td class="c-secundario" colspan=${colunas}>Nenhum colaborador com estes filtros.</td></tr>`}
+              </tbody>
+            </table>
+            ${podeEditar ? html`<${PainelDefinir} dia=${dia} anoMes=${anoMes} dados=${dados} operadores=${operadores} semEscala=${semEscala} marcados=${marcados} turnos=${turnos} equipes=${equipes}
+              ocupado=${ocupado} executar=${executar} operacao=${operacao} resumoAplicacao=${resumoAplicacao} enfileirar=${enfileirar}
+              capacidade=${capacidade} podeCapacidade=${podeCapacidade} aoCapacidade=${alterarCapacidade} ocup=${ocup} faixa=${faixa} />` : null}
+          </div>`}
 
-        ${podeEditar ? html`<${PainelDefinir} dia=${dia} anoMes=${anoMes} dados=${dados} operadores=${operadores} semEscala=${semEscala} marcados=${marcados} turnos=${turnos} equipes=${equipes}
-          ocupado=${ocupado} executar=${executar} operacao=${operacao} resumoAplicacao=${resumoAplicacao} enfileirar=${enfileirar}
-          capacidade=${capacidade} podeCapacidade=${podeCapacidade} aoCapacidade=${alterarCapacidade} />` : null}
+        ${podeEditar ? html`<div class="c-caixa-rodape">
+          <span class=${alteradas ? 'c-ajuda c-pendencias' : 'c-ajuda'} role="status">${alteradas ? `${alteradas} alteração(ões) não salva(s)` : 'Nenhuma alteração pendente'}</span>
+          <span class="c-fim">
+            <button type="button" class="c-botao c-botao--texto" disabled=${!alteradas || null} onClick=${() => setEdicao({})}>Descartar</button>
+            <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !alteradas || null} onClick=${salvar}>Salvar pausas (${alteradas})</button>
+          </span>
+        </div>` : null}
       </div>
-
-      ${podeEditar ? html`<footer class="mo-rodape cx-fixo pa-rodape">
-        <div class="mo-rodape-esq"><span class=${`pa-ponto ${alteradas ? 'is-pendente' : ''}`} aria-hidden="true"></span><span class="mo-rodape-txt">${alteradas ? `${alteradas} colaborador(es) com alteração não salva` : 'Nenhuma alteração pendente'}</span></div>
-        <div class="mo-rodape-dir">
-          <button type="button" class="btn btn-outline-secondary" disabled=${!alteradas} onClick=${() => setEdicao({})}>Descartar</button>
-          <button type="button" class="btn btn-primary" disabled=${ocupado || !alteradas} onClick=${salvar}>Salvar pausas (${alteradas})</button>
-        </div></footer>` : null}
-    </section>
+    </main>
 
     ${duplicando ? html`<${ModalDuplicar} origem=${duplicando} pausas=${pausasDe(duplicando)} dia=${dia} anoMes=${anoMes} operadores=${operadores} operacao=${operacao}
       executar=${executar} resumoAplicacao=${resumoAplicacao} aoFechar=${() => setDuplicando(null)} />` : null}`;
 }
 
 const QUANDO = {
-  escala: ['Aplicar na escala', 'Segue os dias do turno de cada colaborador', 'Cada colaborador recebe as pausas só nos dias do seu turno (no mês aberto).'],
-  dia: ['Só este dia', 'Apenas o dia aberto na tela', 'Fica como alteração não salva até você usar Salvar pausas.'],
-  semana: ['Toda a semana', 'Segunda a domingo, só onde há escala', 'Quem não tem escala em um dia da semana não recebe pausa nele.'],
-  mes: ['Todo o mês', 'Do dia 1 ao último, só onde há escala', 'Quem não tem escala em um dia não recebe pausa nele.'],
-  personalizar: ['Personalizar', 'Escolher os dias da semana', 'Só os dias marcados, no mês aberto e onde há escala.'],
+  escala: ['Aplicar na escala', 'Cada colaborador recebe as pausas só nos dias do seu turno (no mês aberto).'],
+  dia: ['Só este dia', 'Fica como alteração não salva até você usar Salvar pausas.'],
+  semana: ['Toda a semana', 'Segunda a domingo; quem não tem escala em um dia não recebe pausa nele.'],
+  mes: ['Todo o mês', 'Do dia 1 ao último; quem não tem escala em um dia não recebe pausa nele.'],
+  personalizar: ['Personalizar', 'Só os dias da semana marcados, no mês aberto e onde há escala.'],
 };
 
-// Painel lateral "Definir pausas" (sempre aberto): 1. Quem recebe · 2. Horários · 3. Quando. Quem está sem escala no dia fica fora.
-function PainelDefinir({ dia, anoMes, dados, operadores, semEscala, marcados, turnos, equipes, ocupado, executar, operacao, resumoAplicacao, enfileirar, capacidade, podeCapacidade, aoCapacidade }) {
+// Painel ao lado (300 px, na mesma caixa): 1 Quem recebe · 2 Horários (e quando aplicar) · 3 Máximo em pausa juntos, com o
+// mini gráfico "Em pausa a cada 15 min" (substitui a Visão macro). Quem está sem escala no dia fica fora.
+function PainelDefinir({ dia, anoMes, dados, operadores, semEscala, marcados, turnos, equipes, ocupado, executar, operacao, resumoAplicacao, enfileirar, capacidade, podeCapacidade, aoCapacidade, ocup, faixa }) {
   const [horarios, setHorarios] = useState(() => dados.pausas_padrao.map(() => ''));
   const [alvo, setAlvo] = useState('selecionados'); // 'selecionados' | 'equipe' | 'turno'
   const [equipe, setEquipe] = useState('');
@@ -322,61 +320,61 @@ function PainelDefinir({ dia, anoMes, dados, operadores, semEscala, marcados, tu
   };
   const distribuir = () => executar(
     () => distribuirPausasWfm({ operacao, data: periodo[0], ids, sobrescrever, ...(quando === 'dia' ? {} : { data_fim: periodo[1], dias_semana: diasSemana }) }),
-    'Pausas distribuídas respeitando o limite de colaboradores em pausa ao mesmo tempo.',
+    'Pausas distribuídas respeitando o limite de pessoas em pausa ao mesmo tempo.',
   );
-  const ajuda = alvo === 'selecionados' ? (marcados.length ? `${marcados.length} selecionado(s) com escala.` : 'Marque os colaboradores na tabela.')
-    : alvo === 'equipe' ? (equipe ? `${equipes.find(([id]) => String(id) === equipe)?.[1] || 'Equipe'} · ${ids.length} com escala${semNoAlvo ? ` (${semNoAlvo} sem escala ficam de fora)` : ''}.` : 'Escolha a equipe.')
-      : (turno ? `Turno ${turno} · ${ids.length} com escala.` : 'Escolha o turno.');
-  const aviso = alvo === 'selecionados' && !marcados.length;
-  return html`<aside class="pa-lado" aria-label="Definir pausas">
-    <div class="pa-lado-corpo">
-      <section class="pa-passo" aria-labelledby="pa-p1">
-        <h3 id="pa-p1"><span class="pa-num" aria-hidden="true">1</span>Quem recebe</h3>
-        <div class="ea-visao pa-seg" role="group" aria-label="Quem recebe os horários">
-          ${[['selecionados', `Selecionados (${marcados.length})`], ['equipe', 'Equipe'], ['turno', 'Turno']].map(([id, rotulo]) => html`<button key=${id} type="button" class=${alvo === id ? 'is-ativo' : ''} aria-pressed=${alvo === id} onClick=${() => setAlvo(id)}>${rotulo}</button>`)}
-        </div>
-        ${alvo === 'equipe' ? html`<select class="ea-campo pa-campo-cheio" aria-label="Equipe" value=${equipe} onChange=${(e) => setEquipe(e.target.value)}><option value="">Escolha…</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select>` : null}
-        ${alvo === 'turno' ? html`<select class="ea-campo pa-campo-cheio" aria-label="Turno" value=${turno} onChange=${(e) => setTurno(e.target.value)}><option value="">Escolha…</option>${turnos.map((t) => html`<option key=${t.codigo} value=${t.codigo}>${t.codigo} · ${t.entrada}–${t.saida}</option>`)}</select>` : null}
-        <p class=${`pa-ajuda ${aviso ? 'is-aviso' : ''}`}>${ajuda}</p>
-      </section>
+  const ajuda = alvo === 'selecionados' ? (marcados.length ? `${marcados.length} selecionado(s) com escala.` : 'Marque as pessoas na tabela.')
+    : alvo === 'equipe' ? (equipe ? `${ids.length} com escala${semNoAlvo ? ` (${semNoAlvo} sem escala ficam de fora)` : ''}.` : 'Escolha a equipe.')
+      : (turno ? `${ids.length} com escala.` : 'Escolha o turno.');
 
-      <section class="pa-passo" aria-labelledby="pa-p2">
-        <h3 id="pa-p2"><span class="pa-num" aria-hidden="true">2</span>Horários</h3>
-        ${dados.pausas_padrao.map((p, i) => html`<label key=${p.ordem} class="pa-linha-hora"><span>Pausa ${p.ordem} · ${ROTULO_TIPO[p.tipo]} ${p.duracao_min} min</span>
-          <input class="ea-campo pa-hora" type="time" step="300" value=${horarios[i]} onInput=${(e) => setHorarios(horarios.map((h, j) => (j === i ? e.target.value : h)))} /></label>`)}
-      </section>
+  // Mini gráfico: maior número de pessoas em pausa em cada faixa de 15 min do dia (com o que ainda não foi salvo).
+  const barras = [];
+  if (faixa) for (let m = faixa[0]; m < faixa[1]; m += FAIXA_GRAFICO) { let q = 0; for (let k = m; k < m + FAIXA_GRAFICO; k += PASSO) q = Math.max(q, ocup.get(k) || 0); barras.push([m, q]); }
+  const topo = Math.max(capacidade, ...barras.map(([, q]) => q), 1);
+  const pico = barras.reduce((a, b) => (b[1] > a[1] ? b : a), [0, 0]);
 
-      <section class="pa-passo" aria-labelledby="pa-p3">
-        <h3 id="pa-p3"><span class="pa-num" aria-hidden="true">3</span>Quando</h3>
-        <select class="ea-campo pa-campo-cheio" aria-label="Quando aplicar" value=${quando} onChange=${(e) => setQuando(e.target.value)}>
-          ${Object.entries(QUANDO).map(([id, [rotulo]]) => html`<option key=${id} value=${id}>${rotulo}</option>`)}</select>
-        <p class="pa-quando-desc"><strong>${QUANDO[quando][0]}</strong> · ${QUANDO[quando][1]}</p>
-        <p class="pa-ajuda">${QUANDO[quando][2]}</p>
-        ${quando === 'personalizar' ? html`<div class="pa-dias" role="group" aria-label="Dias da semana atingidos">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" role="checkbox" aria-checked=${dias[i]} class=${`pa-dia ${dias[i] ? 'is-marcado' : ''}`} onClick=${() => setDias(dias.map((v, j) => (j === i ? !v : v)))}>${nome}</button>`)}</div>` : null}
-        <label class="wfm-check pa-sobrescrever"><input type="checkbox" checked=${sobrescrever} onChange=${(e) => setSobrescrever(e.target.checked)} /> Substituir pausas já programadas</label>
-      </section>
+  return html`<aside class="c-pausas-painel" aria-label="Definir pausas">
+    <h3>Definir pausas</h3>
+    <div>
+      <p class="c-rotulo">1 · Quem recebe</p>
+      <${Segmento} mini=${true} rotulo="Quem recebe os horários" valor=${alvo} aoMudar=${setAlvo} opcoes=${[['selecionados', 'Selecionados', marcados.length], ['equipe', 'Equipe'], ['turno', 'Turno']]} />
+      ${alvo === 'equipe' ? html`<select class="c-entrada c-entrada--compacta" style=${{ width: '100%', marginTop: 'var(--espaco-2)' }} aria-label="Equipe" value=${equipe} onChange=${(e) => setEquipe(e.target.value)}><option value="">Escolha a equipe…</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}</select>` : null}
+      ${alvo === 'turno' ? html`<select class="c-entrada c-entrada--compacta" style=${{ width: '100%', marginTop: 'var(--espaco-2)' }} aria-label="Turno" value=${turno} onChange=${(e) => setTurno(e.target.value)}><option value="">Escolha o turno…</option>${turnos.map((t) => html`<option key=${t.codigo} value=${t.codigo}>${t.codigo} · ${t.entrada}–${t.saida}</option>`)}</select>` : null}
+      <p class=${`c-ajuda ${alvo === 'selecionados' && !marcados.length ? 'c-tom-atencao' : ''}`}>${ajuda}</p>
     </div>
 
-    <div class="pa-lado-fim">
-      <button type="button" class="btn btn-primary pa-aplicar" disabled=${ocupado || semAlvo || !completo || semDiasPersonalizados} onClick=${aplicar}>${semAlvo ? 'Escolha quem recebe os horários' : `Aplicar a ${ids.length} colaborador(es)`}</button>
-      ${!semAlvo && !completo ? html`<p class="pa-ajuda">Preencha os três horários.</p>` : null}
-      ${semDiasPersonalizados ? html`<p class="pa-ajuda is-aviso">Marque pelo menos um dia da semana.</p>` : null}
-      <button type="button" class="btn btn-outline-secondary pa-distribuir" disabled=${ocupado || semAlvo || semDiasPersonalizados} onClick=${distribuir} title="Em vez de horários fixos, distribui as pausas automaticamente respeitando o limite simultâneo">Distribuir automaticamente</button>
-      <div class="pa-limite-linha"><span id="pa-limite-r">Máx. de pessoas em pausa juntas</span>
-        <span class="pa-stepper" role="group" aria-labelledby="pa-limite-r">
-          <button type="button" aria-label="Diminuir o limite" disabled=${!podeCapacidade || capacidade <= 1} onClick=${() => aoCapacidade(capacidade - 1)}>−</button>
-          <output aria-live="polite">${capacidade}</output>
-          <button type="button" aria-label="Aumentar o limite" disabled=${!podeCapacidade || capacidade >= 200} onClick=${() => aoCapacidade(capacidade + 1)}>+</button></span></div>
+    <div>
+      <p class="c-rotulo">2 · Horários</p>
+      <div class="c-pausas-horas">
+        ${dados.pausas_padrao.map((p, i) => html`<label key=${p.ordem}><span title=${`${ROTULO_TIPO[p.tipo] || 'Pausa'} · ${p.duracao_min} min`}>${i + 1}ª · ${p.duracao_min} min</span>
+          <input class=${`c-entrada c-entrada--compacta c-pausa-hora ${horarios[i] ? '' : 'c-pausa-hora--vazia'}`} type="time" step="300" value=${horarios[i]} onInput=${(e) => setHorarios(horarios.map((h, j) => (j === i ? e.target.value : h)))} /></label>`)}
+      </div>
+      <select class="c-entrada c-entrada--compacta" style=${{ width: '100%', marginTop: 'var(--espaco-2)' }} aria-label="Quando aplicar" title=${QUANDO[quando][1]} value=${quando} onChange=${(e) => setQuando(e.target.value)}>
+        ${Object.entries(QUANDO).map(([id, [rotulo]]) => html`<option key=${id} value=${id}>${rotulo}</option>`)}</select>
+      ${quando === 'personalizar' ? html`<div class="c-padrao-dias" role="group" aria-label="Dias da semana atingidos">${SEMANA_CURTA.map((nome, i) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${dias[i]} onChange=${() => setDias(dias.map((v, j) => (j === i ? !v : v)))} /><span>${nome}</span></label>`)}</div>` : null}
+      <label class="c-marcar"><input type="checkbox" checked=${sobrescrever} onChange=${(e) => setSobrescrever(e.target.checked)} /><span>Substituir pausas já programadas</span></label>
+    </div>
+
+    <div>
+      <p class="c-rotulo">3 · Máximo em pausa juntos</p>
+      <span class="c-pausas-passo" role="group" aria-label="Máximo de pessoas em pausa ao mesmo tempo">
+        <button type="button" class="c-botao c-botao--secundario c-botao--icone c-botao--compacto" aria-label="Diminuir o limite" title=${podeCapacidade ? 'Diminuir o limite' : 'Sem permissão para alterar o limite'} disabled=${!podeCapacidade || capacidade <= 1 || null} onClick=${() => aoCapacidade(capacidade - 1)}>−</button>
+        <b aria-live="polite">${capacidade}</b>
+        <button type="button" class="c-botao c-botao--secundario c-botao--icone c-botao--compacto" aria-label="Aumentar o limite" title=${podeCapacidade ? 'Aumentar o limite' : 'Sem permissão para alterar o limite'} disabled=${!podeCapacidade || capacidade >= 200 || null} onClick=${() => aoCapacidade(capacidade + 1)}><${Ic} nome="plus" /></button>
+      </span>
+      ${barras.length ? html`<div class="c-pausas-ocup">
+        <small>Em pausa a cada 15 min</small>
+        <div class="c-pausas-barras" role="img" aria-label=${`Pico de ${pico[1]} pessoa(s) em pausa às ${deMin(pico[0])}; limite ${capacidade}`}>
+          ${barras.map(([m, q]) => html`<span key=${m} class=${q > capacidade ? 'c-pausas-cheio' : ''} style=${{ height: `${Math.max(q ? 8 : 0, (q / topo) * 100)}%` }} title=${`${deMin(m)}–${deMin(m + FAIXA_GRAFICO)}: ${q} em pausa${q > capacidade ? ' (acima do limite)' : ''}`}></span>`)}
+        </div>
+        <small>${deMin(faixa[0])} · pico ${pico[1]} às ${deMin(pico[0])} · ${deMin(faixa[1])}</small>
+      </div>` : null}
+    </div>
+
+    <div class="c-pausas-acoes">
+      <button type="button" class="c-botao c-botao--principal" disabled=${ocupado || semAlvo || !completo || semDiasPersonalizados || null} title=${semAlvo ? 'Escolha quem recebe os horários' : !completo ? 'Preencha os três horários' : null} onClick=${aplicar}>${alvo === 'selecionados' ? 'Aplicar aos selecionados' : `Aplicar a ${ids.length} colaborador(es)`}</button>
+      <button type="button" class="c-botao c-botao--secundario" disabled=${ocupado || semAlvo || semDiasPersonalizados || null} onClick=${distribuir} title="Em vez de horários fixos, distribui as pausas respeitando o limite de pessoas em pausa juntas">Distribuir automático</button>
     </div>
   </aside>`;
-}
-
-function SeletorPeriodo({ escopo, aoEscopo, dias, aoDias, rotuloDia }) {
-  return html`<div class="pa-periodo">
-    <label class="wfm-campo"><span>Aplicar em</span><select class="form-select" value=${escopo} onChange=${(e) => aoEscopo(e.target.value)}>
-      <option value="dia">Só ${rotuloDia}</option><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
-    ${escopo !== 'dia' ? html`<span class="wfm-dias-chips" role="group" aria-label="Dias da semana atingidos">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${dias[i] ? 'is-ativo' : ''}`} aria-pressed=${dias[i]} onClick=${() => aoDias(dias.map((v, j) => (j === i ? !v : v)))}>${nome}</button>`)}</span>` : null}
-  </div>`;
 }
 
 // Duplicar as pausas de um colaborador para outros (neste dia, na semana ou no mês).
@@ -402,51 +400,15 @@ function ModalDuplicar({ origem, pausas, dia, anoMes, operadores, operacao, exec
     setSalvando(false);
     if (ok) aoFechar();
   };
-  return html`<${ModalForm} titulo=${`Duplicar pausas de ${origem.nome}`} onClose=${aoFechar} onSubmit=${enviar} salvando=${salvando} salvarRotulo=${`Duplicar para ${ids.length} colaborador(es)`}>
-    <p class="mon-muted">Copia ${pausas.map((p) => `${p.inicio} (${p.duracao_min} min)`).join(' · ')} para os colaboradores escolhidos. Em cada dia, só quem trabalha e tem o horário dentro do turno recebe as pausas.</p>
-    <div class="pa-dup" role="group" aria-label="Colaboradores de destino">
-      <input type="search" class="ea-campo" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} />
-      <div class="pa-dup-itens">${candidatos.map((o) => html`<label key=${o.id_operador} class="wfm-check"><input type="checkbox" checked=${!!destinos[o.id_operador]} onChange=${() => setDestinos({ ...destinos, [o.id_operador]: !destinos[o.id_operador] })} />
-        <span>${o.nome}</span><span class="ea-muted ea-num">${o.turno.codigo} ${o.turno.entrada}–${o.turno.saida}</span></label>`)}
-        ${candidatos.length ? null : html`<span class="ea-muted">Nenhum colaborador encontrado.</span>`}</div>
-    </div>
-    <${SeletorPeriodo} escopo=${escopo} aoEscopo=${setEscopo} dias=${dias} aoDias=${setDias} rotuloDia=${`este dia (${brData(dia).slice(0, 5)})`} />
-    <label class="wfm-check"><input type="checkbox" checked=${sobrescrever} onChange=${(e) => setSobrescrever(e.target.checked)} /> Substituir pausas já programadas</label>
-  </${ModalForm}>`;
-}
-
-// Visão macro: uma linha por colaborador COM escala sobre o eixo de horas (a faixa vem do horário real dos turnos), as pausas como
-// blocos (1 azul, 2 âmbar, 3 índigo) e, no rodapé, quantos estão em pausa ao mesmo tempo por hora.
-function Gantt({ linhas, pausasDe, ocup, capacidade, emConflito }) {
-  if (!linhas.length) return html`<${EmptyState} icon="schedule" title="Nenhum colaborador com escala e estes filtros" text="Ajuste os filtros para ver as pausas no gráfico." />`;
-  const janelas = linhas.map((o) => janela(o.turno));
-  const inicio = Math.floor(Math.min(...janelas.map((j) => j[0])) / 60) * 60;
-  const fim = Math.ceil(Math.max(...janelas.map((j) => j[1])) / 60) * 60;
-  const span = fim - inicio;
-  const pct = (m) => `${((m - inicio) / span) * 100}%`;
-  const largura = (min) => `${(min / span) * 100}%`;
-  const horas = []; for (let m = inicio; m < fim; m += 60) horas.push(m);
-  const porHora = horas.map((m) => { let q = 0; for (let k = m; k < m + 60; k += PASSO) q = Math.max(q, ocup.get(k) || 0); return [m, q]; });
-  const rotuloOrdem = { 1: 'azul', 2: 'âmbar', 3: 'índigo' };
-  return html`<div class="pa-gantt cx-cresce" role="region" aria-label="Visão macro das pausas" tabindex="0">
-    <div class="pa-g-legenda"><span class="ea-rotulo">LEGENDA</span>
-      ${[1, 2, 3].map((o) => html`<span key=${o} class="pa-g-leg"><span class=${`pa-g-amostra pa-g-bloco--${o}`} aria-hidden="true"></span>Pausa ${o}</span>`)}
-      <span class="pa-g-leg"><span class="pa-g-amostra pa-g-amostra--faixa" aria-hidden="true"></span>Turno</span>
-      <span class="pa-g-leg"><span class="pa-g-amostra pa-g-amostra--conflito" aria-hidden="true"></span>Acima do limite (${capacidade})</span></div>
-    <div class="pa-g-grade">
-      <div class="pa-g-linha pa-g-linha--cab"><div class="pa-g-nome">Horário</div>
-        <div class="pa-g-trilha">${horas.map((m) => html`<span key=${m} class="pa-g-hora" style=${{ left: pct(m) }}>${deMin(m).slice(0, 2)}h</span>`)}</div></div>
-      ${linhas.map((o, i) => { const [ji, jf] = janelas[i]; return html`<div key=${o.id_operador} class="pa-g-linha">
-        <div class="pa-g-nome" title=${o.nome}>${o.nome}<small>${o.turno.codigo} ${o.turno.entrada}–${o.turno.saida}</small></div>
-        <div class="pa-g-trilha">
-          ${horas.map((m) => html`<span key=${m} class="pa-g-vao" style=${{ left: pct(m) }} aria-hidden="true"></span>`)}
-          <span class="pa-g-turno" style=${{ left: pct(ji), width: largura(jf - ji) }} aria-hidden="true"></span>
-          ${pausasDe(o).filter((p) => p.inicio).map((p) => { const m = desenrolar(p.inicio, ji); const conf = emConflito.has(`${o.id_operador}:${p.ordem}`); return html`<span key=${p.ordem} class=${`pa-g-bloco pa-g-bloco--${p.ordem} ${conf ? 'is-conflito' : ''}`} style=${{ left: pct(m), width: largura(p.duracao_min) }}
-            title=${`${o.nome} · Pausa ${p.ordem} (${ROTULO_TIPO[p.tipo] || p.tipo}, ${rotuloOrdem[p.ordem] || ''}) · ${p.inicio}–${deMin(m + p.duracao_min)} · ${p.duracao_min} min${conf ? ' · acima do limite' : ''}`}></span>`; })}
-        </div></div>`; })}
-      <div class="pa-g-linha pa-g-linha--ocup"><div class="pa-g-nome">Ao mesmo tempo<small>limite: ${capacidade}</small></div>
-        <div class="pa-g-trilha">${porHora.map(([m, q]) => html`<span key=${m} class=${`pa-g-ocup ${q > capacidade ? 'pa-g-ocup--excesso' : q ? 'pa-g-ocup--ok' : 'pa-g-ocup--zero'}`} style=${{ left: pct(m), width: largura(60) }}
-          title=${`${deMin(m)}–${deMin(m + 60)}: ${q} em pausa${q > capacidade ? ' (acima do limite)' : ''}`}>${q}</span>`)}</div></div>
-    </div>
-  </div>`;
+  return html`<${JanelaForm} titulo=${`Duplicar pausas de ${origem.nome}`} onClose=${aoFechar} onSubmit=${enviar} salvando=${salvando} salvarRotulo=${`Duplicar para ${ids.length} colaborador(es)`}>
+    <p class="c-ajuda">Copia ${pausas.map((p) => `${p.inicio} (${p.duracao_min} min)`).join(' · ')}. Em cada dia, só quem trabalha e tem o horário dentro do turno recebe as pausas.</p>
+    <div class="c-com-icone c-com-icone--compacta"><${Ic} nome="magnifying-glass" /><input type="search" class="c-entrada c-entrada--compacta" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+    <div class="c-lote-lista" role="group" aria-label="Colaboradores de destino">${candidatos.map((o) => html`<label key=${o.id_operador} class="c-marcar"><input type="checkbox" checked=${!!destinos[o.id_operador]} onChange=${() => setDestinos({ ...destinos, [o.id_operador]: !destinos[o.id_operador] })} />
+      <span>${o.nome} <span class="c-secundario">${o.turno.codigo} ${o.turno.entrada}–${o.turno.saida}</span></span></label>`)}
+      ${candidatos.length ? null : html`<span class="c-ajuda">Nenhum colaborador encontrado.</span>`}</div>
+    <${Campo} rotulo="Aplicar em"><select class="c-entrada" value=${escopo} onChange=${(e) => setEscopo(e.target.value)}>
+      <option value="dia">Só este dia (${brData(dia).slice(0, 5)})</option><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select><//>
+    ${escopo !== 'dia' ? html`<fieldset class="c-padrao-dias"><legend class="c-rotulo">Dias da semana atingidos</legend>${SEMANA_CURTA.map((nome, i) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${dias[i]} onChange=${() => setDias(dias.map((v, j) => (j === i ? !v : v)))} /><span>${nome}</span></label>`)}</fieldset>` : null}
+    <label class="c-marcar"><input type="checkbox" checked=${sobrescrever} onChange=${(e) => setSobrescrever(e.target.checked)} /><span>Substituir pausas já programadas</span></label>
+  <//>`;
 }

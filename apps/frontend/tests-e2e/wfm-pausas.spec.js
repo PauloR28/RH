@@ -42,13 +42,12 @@ test.describe('Aba Pausas da escala', () => {
     await expect(page.getByRole('region', { name: 'Pausas do dia' })).toBeVisible({ timeout: 30_000 });
   });
 
-  test('quem está sem escala aparece desativado, sem pausa e fora da seleção', async ({ page }) => {
-    const linha = page.locator('tr.is-sem-escala', { hasText: 'Iara Gomes' });
-    await expect(linha.getByRole('checkbox')).toBeDisabled();
-    await expect(linha).toContainText('SEM ESCALA');
+  test('quem está sem escala aparece sem caixa de seleção, sem pausa e fora da seleção', async ({ page }) => {
+    const linha = page.locator('tr[data-sem-escala]', { hasText: 'Iara Gomes' });
+    await expect(linha.getByRole('checkbox')).toHaveCount(0);
+    await expect(linha).toContainText('Sem escala');
     await expect(linha).toContainText('Hoje: sem turno (qui)');
-    await expect(linha).toContainText('Sem escala · sem pausa');
-    await expect(page.locator('tr.is-sem-escala', { hasText: 'João Pires' })).toContainText('Sem turno cadastrado');
+    await expect(page.locator('tr[data-sem-escala]', { hasText: 'João Pires' })).toContainText('Sem turno cadastrado');
     await expect(linha.locator('input[type="time"]')).toHaveCount(0);
   });
 
@@ -64,11 +63,11 @@ test.describe('Aba Pausas da escala', () => {
   });
 
   test('Aplicar ignora quem não tem escala', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Escolha quem recebe os horários' })).toBeDisabled();
+    const botao = page.getByRole('button', { name: 'Aplicar aos selecionados' });
+    await expect(botao).toBeDisabled();
     await page.getByRole('checkbox', { name: 'Selecionar todos os colaboradores' }).check();
-    const horarios = page.locator('.pa-linha-hora input');
+    const horarios = page.locator('.c-pausas-painel .c-pausas-horas input');
     await horarios.nth(0).fill('09:00'); await horarios.nth(1).fill('10:30'); await horarios.nth(2).fill('12:00');
-    const botao = page.getByRole('button', { name: 'Aplicar a 3 colaborador(es)' });
     await expect(botao).toBeEnabled();
     await botao.click();
     await expect.poll(() => aplicar.length).toBe(1);
