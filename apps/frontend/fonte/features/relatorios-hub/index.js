@@ -1,16 +1,20 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
+import { PainelRh } from '../../ui/componentes-compartilhados.js';
+import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { BotaoExportar, baixarArquivo } from '../monitoria/comum.js';
+import { baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
 import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261104-leitura';
 
-// Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Menu lateral por área,
-// filtros unificados, uma planilha e exportação XLSX/CSV/PDF. Cada relatório só aparece se o perfil tem a chave `relhub.*`
-// (Perfis e Permissões); o servidor continua aplicando escopo e permissão de origem em cada consulta.
+// Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
+// aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
+// origem em cada consulta.
+// Redesign Fase 15 (fatia 4, lote 3, amostra Fase 12 · quadro 12): 1 molde para todos — lista de relatórios à esquerda
+// (por área), título + Exportar, caixa com os filtros na faixa, números do resumo, tabela justa com ordenação e "Colunas"
+// (a tela abre com as colunas mais usadas; o arquivo exportado leva todas), rodapé com a contagem e a paginação.
+// Painel e Dashboard abrem na própria seção (↗); se a pessoa não abre a seção, continuam aqui dentro, como antes.
 
 const TAMANHOS = [25, 50, 100];
 const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao'];
@@ -22,6 +26,22 @@ const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
         : id === 'rh.exames' ? 'candidatos.consultar_historico'
           : id.startsWith('rh.') ? 'relatorios.exportar'
             : 'logs.exportar');
+// Relatórios com gráficos que têm tela própria na seção (abre lá; sem acesso à seção, fica embutido aqui).
+const DESTINO_SECAO = { 'wfm.painel': 'screen-wfm-painel', 'monitoria.dashboard': 'screen-monitoria-dashboard' };
+
+// Colunas que a tela abre DESLIGADAS (amostra aprovada da Fase 12). Os demais relatórios: até 10 colunas, todas; mais
+// que isso, as 8 primeiras. "Colunas" liga o resto e a escolha fica guardada neste navegador, por pessoa.
+const COLUNAS_DESLIGADAS = {
+  'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas', 'Trocas aprovadas'],
+  'wfm.escalas': ['Aprovada por'],
+  'wfm.presencas': ['Horas escaladas', 'Lançado por'],
+  'wfm.trocas': ['Turno (solicitante)', 'Horário (solicitante)', 'Pausas (solicitante)', 'Turno (colega)', 'Horário (colega)', 'Pausas (colega)', 'Decidido por', 'Decidido em', 'Justificativa da decisão'],
+  'monitoria.historico': ['Data do contato', 'Equipe', 'Operação', 'Contestação', 'Anulada', 'Confirmação'],
+  'monitoria.qualidade': ['Período inicial', 'Período final', 'Operação'],
+  'monitoria.planos': ['Operação', 'Origem', 'Critério', 'Objetivo', 'Data da revisão', 'Resultado', 'Observações', 'Vencido'],
+};
+const MAX_SEM_ESCOLHA = 10;
+const PADRAO_SEM_ESCOLHA = 8;
 
 // Colunas com nome de pessoa mostram só o primeiro e o segundo nome (o nome completo fica no balão e na exportação).
 const COLUNA_PESSOA = /^(operador|candidato|avaliad|monitor|supervisor|usu[aá]rio|solicitante|colega|alvo|aprovador|nome|quem|decidido)/i;
@@ -55,12 +75,13 @@ const comparar = (a, b, tipo) => {
   if (NUMERICOS.includes(tipo)) return Number(va) - Number(vb);
   return String(va).localeCompare(String(vb), 'pt-BR', { numeric: true, sensitivity: 'base' });
 };
+// Situação em selo: a cor nunca vem sozinha, sempre com a palavra.
 const tomEstado = (texto) => {
   const t = String(texto || '').toLowerCase();
-  if (t.includes('justificada') || t.includes('aguardando') || t.includes('enviada') || t.includes('andamento')) return 'mon-badge--pendente';
-  if (/^(falta|reprovada|declinada|recusada|bloqueada|invalidada)/.test(t) || t.includes('violação')) return 'mon-badge--critico';
-  if (/^(presente|aprovada|publicada|vigente)/.test(t)) return 'mon-badge--ok';
-  return 'mon-badge--nula';
+  if (t.includes('justificada') || t.includes('aguardando') || t.includes('enviada') || t.includes('andamento')) return 'atencao';
+  if (/^(falta|reprovada|declinada|recusada|bloqueada|invalidada)/.test(t) || t.includes('violação')) return 'perigo';
+  if (/^(presente|aprovada|publicada|vigente)/.test(t)) return 'sucesso';
+  return 'neutro';
 };
 
 // Filtros que dependem das colunas da planilha carregada (equipe, supervisor, operador, status): aparecem só se a coluna existe.
@@ -69,7 +90,76 @@ const COLUNA_DO_FILTRO = {
 };
 const ROTULO_FILTRO = { equipe: 'Equipe', supervisor: 'Supervisor', operador: 'Operador', status: 'Status' };
 
-function Planilha({ relatorio, dados, filtrosColuna, busca, onExportar, exportando, podeExportar }) {
+// Escolha de colunas guardada no navegador (conveniência; se o navegador não guardar, volta ao padrão).
+const chaveColunas = (usuario, id) => `c24_relhub_colunas:${usuario || 'anon'}:${id}`;
+const lerEscolha = (usuario, id) => { try { const v = JSON.parse(window.localStorage.getItem(chaveColunas(usuario, id)) || 'null'); return Array.isArray(v) ? v : null; } catch { return null; } };
+const gravarEscolha = (usuario, id, rotulos) => { try { window.localStorage.setItem(chaveColunas(usuario, id), JSON.stringify(rotulos)); } catch { /* sem storage */ } };
+function colunasPadrao(id, colunas) {
+  const desligadas = COLUNAS_DESLIGADAS[id];
+  if (desligadas) return colunas.filter((c, i) => i === 0 || !desligadas.includes(c.rotulo)).map((c) => c.rotulo);
+  return (colunas.length > MAX_SEM_ESCOLHA ? colunas.slice(0, PADRAO_SEM_ESCOLHA) : colunas).map((c) => c.rotulo);
+}
+
+// Menu solto (Exportar, Colunas): fecha com clique fora e Esc.
+function useMenu() {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef(null);
+  const botao = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (ev) => { if (raiz.current && !raiz.current.contains(ev.target)) setAberto(false); };
+    const esc = (ev) => { if (ev.key === 'Escape') { setAberto(false); botao.current?.focus(); } };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc); };
+  }, [aberto]);
+  return { aberto, setAberto, raiz, botao };
+}
+
+function MenuExportar({ desabilitado, exportando, totalColunas, aoExportar }) {
+  const m = useMenu();
+  return html`<div class="c-abre-menu" ref=${m.raiz}>
+    <button type="button" class="c-botao c-botao--secundario c-botao--compacto" ref=${m.botao} aria-haspopup="menu" aria-expanded=${m.aberto ? 'true' : 'false'}
+      disabled=${desabilitado || null} aria-busy=${exportando ? 'true' : null} onClick=${() => m.setAberto((v) => !v)}>
+      <${Ic} nome="tray-arrow-down" />${exportando ? 'Gerando…' : 'Exportar'}<${Ic} nome="caret-down" /></button>
+    ${m.aberto ? html`<div class="c-menu c-menu--solto" role="menu">
+      ${[['xlsx', 'Excel (XLSX)'], ['csv', 'CSV'], ['pdf', 'PDF']].map(([f, r]) => html`<button key=${f} type="button" role="menuitem" class="c-menu-item" onClick=${() => { m.setAberto(false); aoExportar(f); }}>${r}</button>`)}
+      <div class="c-menu-separador"></div><span class="c-menu-nota">O arquivo leva as ${totalColunas} colunas</span>
+    </div>` : null}
+  </div>`;
+}
+
+function MenuColunas({ colunas, visiveis, aoMudar }) {
+  const m = useMenu();
+  const ligadas = colunas.filter((c) => visiveis.includes(c.rotulo)).length;
+  return html`<div class="c-fim c-abre-menu" ref=${m.raiz}>
+    <button type="button" class="c-botao c-botao--texto c-botao--compacto" ref=${m.botao} aria-haspopup="true" aria-expanded=${m.aberto ? 'true' : 'false'} onClick=${() => m.setAberto((v) => !v)}>
+      <${Ic} nome="table" />Colunas · ${ligadas} de ${colunas.length}<${Ic} nome="caret-down" /></button>
+    ${m.aberto ? html`<div class="c-menu c-menu--solto c-menu--colunas" role="group" aria-label="Colunas da tabela">
+      ${colunas.map((c, i) => html`<label key=${c.chave} class="c-menu-item"><input type="checkbox" checked=${visiveis.includes(c.rotulo)} disabled=${i === 0 || null}
+        onChange=${(e) => aoMudar(e.target.checked ? [...visiveis, c.rotulo] : visiveis.filter((r) => r !== c.rotulo))} />${c.rotulo}</label>`)}
+    </div>` : null}
+  </div>`;
+}
+
+const Indicadores = ({ resumo }) => html`<div class="c-indicadores">${resumo.map((k) => html`<div key=${k.rotulo} class="c-indicador" title=${k.dica || null}>
+  <span class="c-ind-rotulo">${k.rotulo}</span>
+  <span class="c-ind-valor">${k.valor === null || k.valor === undefined ? '—' : Number(k.valor).toLocaleString('pt-BR', { maximumFractionDigits: Number.isInteger(k.valor) ? 0 : 2 })}${k.valor !== null && k.valor !== undefined && k.unidade ? html`<small>${k.unidade}</small>` : null}</span>
+  <span class="c-ind-nota">${k.dica || ' '}</span>
+</div>`)}</div>`;
+
+function Celula({ coluna: c, linha: l }) {
+  const v = l[c.chave];
+  const num = NUMERICOS.includes(c.tipo);
+  const longo = typeof v === 'string' && v.length > 40;
+  const balao = typeof v === 'string' && (longo || COLUNA_PESSOA.test(c.rotulo));
+  return html`<td class=${num ? 'c-num' : longo ? 'c-secundario c-rh-longo' : ''} title=${balao ? v : undefined}>
+    ${c.tipo === 'estado' ? (v === null || v === undefined || v === '' ? '—' : html`<${Selo} tom=${tomEstado(v)}>${valorTexto(v)}<//>`)
+    : num ? formatarNumero(v, c.tipo) : COLUNA_PESSOA.test(c.rotulo) && typeof v === 'string' ? (nomeCurto(v) || '—') : valorTexto(v)}</td>`;
+}
+
+// Tabela do relatório: ordenação, paginação, total e as colunas escolhidas. O arquivo exportado leva TODAS as colunas.
+function Planilha({ relatorio, dados, filtrosColuna, busca, visiveis, aoLinhas }) {
   const [ordem, setOrdem] = useState(null);
   const [pagina, setPagina] = useState(0);
   const [tamanho, setTamanho] = useState(TAMANHOS[0]);
@@ -87,52 +177,43 @@ function Planilha({ relatorio, dados, filtrosColuna, busca, onExportar, exportan
     const dir = ordem.dir === 'desc' ? -1 : 1;
     return [...linhas].sort((x, y) => dir * comparar(x[ordem.chave], y[ordem.chave], coluna?.tipo));
   }, [linhas, ordem, dados]);
+  useEffect(() => { aoLinhas(ordenadas); }, [ordenadas]);
   useEffect(() => { setPagina(0); }, [linhas, tamanho]);
   const paginas = Math.max(1, Math.ceil(ordenadas.length / tamanho));
   const atual = Math.min(pagina, paginas - 1);
   const fatia = ordenadas.slice(atual * tamanho, atual * tamanho + tamanho);
+  const colunas = dados.colunas.filter((c, i) => i === 0 || visiveis.includes(c.rotulo));
   const totais = useMemo(() => (relatorio.totais
     ? Object.fromEntries(dados.colunas.filter((c) => ['numero', 'horas'].includes(c.tipo)).map((c) => [c.chave, linhas.reduce((t, l) => t + (Number(l[c.chave]) || 0), 0)]))
     : null), [relatorio, dados, linhas]);
   const alternar = (chave) => setOrdem((o) => (o?.chave !== chave ? { chave, dir: 'asc' } : o.dir === 'asc' ? { chave, dir: 'desc' } : null));
+  const ordenadoPor = ordem ? dados.colunas.find((c) => c.chave === ordem.chave)?.rotulo : '';
 
+  if (!linhas.length) {
+    return html`<${Estado} icone="table" titulo="Sem dados" texto=${termo || Object.values(filtrosColuna).some(Boolean) ? 'Nenhuma linha corresponde aos filtros.' : 'Não há registros para os filtros escolhidos.'} />`;
+  }
   return html`
-    <div class="rhub-barra">
-      <span class="rhub-contagem" role="status">${linhas.length.toLocaleString('pt-BR')} linha(s)${dados.aviso ? ` · ${dados.aviso}` : ''}</span>
-      ${podeExportar ? html`<${BotaoExportar} desabilitado=${exportando || !linhas.length} rotulo=${exportando ? 'Gerando…' : 'Exportar'} opcoes=${[
-        { rotulo: 'Exportar XLSX', onSelecionar: () => onExportar('xlsx', ordenadas) },
-        { rotulo: 'Exportar CSV', onSelecionar: () => onExportar('csv', ordenadas) },
-        { rotulo: 'Exportar PDF', onSelecionar: () => onExportar('pdf', ordenadas) },
-      ]} />` : null}
-    </div>
-    ${(dados.resumo || []).length ? html`<div class="rhub-resumo">${dados.resumo.map((k) => html`<div key=${k.rotulo} class="rhub-kpi" title=${k.dica || ''}><span>${k.rotulo}</span><strong>${k.valor === null || k.valor === undefined ? '—' : Number(k.valor).toLocaleString('pt-BR', { maximumFractionDigits: Number.isInteger(k.valor) ? 0 : 2 })}${k.valor !== null && k.valor !== undefined && k.unidade ? html`<small>${k.unidade}</small>` : null}</strong></div>`)}</div>` : null}
-    ${!linhas.length ? html`<${EmptyState} icon="table_chart" title="Sem dados" text=${termo || Object.values(filtrosColuna).some(Boolean) ? 'Nenhuma linha corresponde aos filtros.' : 'Não há registros para os filtros escolhidos.'} />` : html`
-      <div class="rhub-tabela-wrap">
-        <table class="mon-tabela rhub-tabela">
-          <thead><tr>${dados.colunas.map((c) => {
+    <table class="c-tabela c-tabela--justa c-rh-tabela">
+      <thead><tr>${colunas.map((c) => {
     const ativo = ordem?.chave === c.chave;
-    return html`<th key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''} aria-sort=${ativo ? (ordem.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" class=${`rhub-ordenar ${ativo ? 'is-ativo' : ''}`} onClick=${() => alternar(c.chave)} title="Ordenar">${c.rotulo}<span aria-hidden="true">${ativo ? (ordem.dir === 'asc' ? '↑' : '↓') : '↕'}</span></button></th>`;
+    return html`<th key=${c.chave} scope="col" class=${NUMERICOS.includes(c.tipo) ? 'c-num' : ''} aria-sort=${ativo ? (ordem.dir === 'asc' ? 'ascending' : 'descending') : null}>
+          <button type="button" class="c-ordenar" title="Ordenar" onClick=${() => alternar(c.chave)}>${c.rotulo}${ativo ? html`<${Ic} nome=${ordem.dir === 'asc' ? 'caret-up' : 'caret-down'} />` : null}</button></th>`;
   })}</tr></thead>
-          <tbody>${fatia.map((l, i) => html`<tr key=${i}>${dados.colunas.map((c) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''} title=${typeof l[c.chave] === 'string' && (l[c.chave].length > 40 || COLUNA_PESSOA.test(c.rotulo)) ? l[c.chave] : undefined}>
-            ${c.tipo === 'estado' ? html`<span class=${`mon-badge ${tomEstado(l[c.chave])}`}>${valorTexto(l[c.chave])}</span>`
-    : NUMERICOS.includes(c.tipo) ? formatarNumero(l[c.chave], c.tipo) : COLUNA_PESSOA.test(c.rotulo) && typeof l[c.chave] === 'string' ? (nomeCurto(l[c.chave]) || '—') : valorTexto(l[c.chave])}</td>`)}</tr>`)}</tbody>
-          ${totais ? html`<tfoot><tr>${dados.colunas.map((c, i) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'is-num' : ''}>${i === 0 ? `Total (${linhas.length})` : c.chave in totais ? formatarNumero(totais[c.chave], c.tipo) : ''}</td>`)}</tr></tfoot>` : null}
-        </table>
-      </div>
-      <div class="rhub-paginacao">
-        <label>Linhas por página
-          <select class="form-select" value=${tamanho} onChange=${(e) => setTamanho(Number(e.target.value))}>${TAMANHOS.map((t) => html`<option key=${t} value=${t}>${t}</option>`)}</select></label>
-        <span>${ordenadas.length ? `${atual * tamanho + 1}–${Math.min(ordenadas.length, atual * tamanho + tamanho)} de ${ordenadas.length.toLocaleString('pt-BR')}` : '0 linhas'}</span>
-        <span class="rhub-paginacao-botoes">
-          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${atual === 0} onClick=${() => setPagina(atual - 1)} aria-label="Página anterior"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
-          <span>${atual + 1} / ${paginas}</span>
-          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${atual >= paginas - 1} onClick=${() => setPagina(atual + 1)} aria-label="Próxima página"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
-        </span>
-      </div>`}`;
+      <tbody>${fatia.map((l, i) => html`<tr key=${i}>${colunas.map((c) => html`<${Celula} key=${c.chave} coluna=${c} linha=${l} />`)}</tr>`)}</tbody>
+      ${totais ? html`<tfoot><tr>${colunas.map((c, i) => html`<td key=${c.chave} class=${NUMERICOS.includes(c.tipo) ? 'c-num c-forte' : 'c-forte'}>${i === 0 ? `Total (${linhas.length})` : c.chave in totais ? formatarNumero(totais[c.chave], c.tipo) : ''}</td>`)}</tr></tfoot>` : null}
+    </table>
+    <div class="c-tabela-rodape">
+      <span>${ordenadas.length > tamanho ? `${(atual * tamanho + 1).toLocaleString('pt-BR')}–${Math.min(ordenadas.length, atual * tamanho + tamanho).toLocaleString('pt-BR')} de ` : ''}${ordenadas.length.toLocaleString('pt-BR')} ${ordenadas.length === 1 ? 'linha' : 'linhas'}${ordenadoPor ? ` · ordenado por ${ordenadoPor}` : ''}${dados.aviso ? ` · ${dados.aviso}` : ''}</span>
+      <span class="c-rh-paginas">
+        <select class="c-entrada c-entrada--compacta" aria-label="Linhas por página" value=${tamanho} onChange=${(e) => setTamanho(Number(e.target.value))}>${TAMANHOS.map((t) => html`<option key=${t} value=${t}>${t} por página</option>`)}</select>
+        ${paginas > 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" disabled=${atual === 0 || null} aria-label="Página anterior" title="Página anterior" onClick=${() => setPagina(atual - 1)}><${Ic} nome="caret-left" /></button>
+        <span>${atual + 1} / ${paginas}</span>
+        <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" disabled=${atual >= paginas - 1 || null} aria-label="Próxima página" title="Próxima página" onClick=${() => setPagina(atual + 1)}><${Ic} nome="caret-right" /></button>` : null}
+      </span>
+    </div>`;
 }
 
-// Telas com gráficos, duplicadas da origem: carregadas sob demanda.
+// Telas com gráficos (Painel do WFM, Dashboard da Monitoria) quando a pessoa não abre a seção de origem; e atalhos.
 function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
@@ -141,52 +222,55 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261023-ajustes'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
-        if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-        if (!contexto) return html`<${LoadingState} titulo="Carregando" />`;
+        if (erro) return html`<${Estado} titulo=${erro} />`;
+        if (!contexto) return html`<${Esqueleto} linhas=${6} />`;
         return html`<${p.TelaDashboard} controlador=${controlador} contexto=${contexto} showToast=${showToast} />`;
       }));
     }
     return () => { ativo = false; };
   }, [relatorio.tela]);
   if (relatorio.tela === 'atalho') {
-    return html`<div class="rhub-atalho"><p>${relatorio.descricao}</p>
-      <button type="button" class="btn btn-primary" onClick=${() => controlador.irParaTelaProtegida(relatorio.destino)}>Abrir ${relatorio.rotulo}</button></div>`;
+    return html`<${Estado} icone="arrow-square-out" titulo=${relatorio.rotulo} texto=${relatorio.descricao} rotuloAcao=${`Abrir ${relatorio.rotulo}`} aoAcao=${() => controlador.irParaTelaProtegida(relatorio.destino)} />`;
   }
-  if (!Comp) return html`<${LoadingState} titulo="Carregando" />`;
+  if (!Comp) return html`<${Esqueleto} linhas=${6} />`;
   return html`<${Comp} operacao=${filtros.operacao} ini=${filtros.ini} fim=${filtros.fim} />`;
 }
 
-const Seletor = ({ rotulo, valor, opcoes, aoMudar, todos = 'Todos' }) => html`<label class="rhub-filtro"><span>${rotulo}</span>
-  <select class="form-select" value=${valor} onChange=${(e) => aoMudar(e.target.value)}>
-    ${todos === null ? null : html`<option value="">${todos}</option>`}${opcoes.map((o) => (Array.isArray(o) ? html`<option key=${o[0]} value=${o[0]}>${o[1]}</option>` : html`<option key=${o} value=${o}>${o}</option>`))}</select></label>`;
+const Seletor = ({ rotulo, valor, opcoes, aoMudar, todos = 'Todos' }) => html`<select class="c-entrada c-entrada--compacta" aria-label=${rotulo} title=${rotulo} value=${valor} onChange=${(e) => aoMudar(e.target.value)}>
+  ${todos === null ? null : html`<option value="">${todos}</option>`}${opcoes.map((o) => (Array.isArray(o) ? html`<option key=${o[0]} value=${o[0]}>${o[1]}</option>` : html`<option key=${o} value=${o}>${o}</option>`))}</select>`;
 
 const FILTROS_PADRAO = () => { const [ini, fim] = PERIODOS.mes.calc(); return { preset: 'mes', ini, fim, operacao: '', operador: '', equipe: '', supervisor: '', status: '', busca: '' }; };
 
 export function TelaRelatoriosHub({ controlador }) {
   const { showToast, ToastHost } = useToast();
+  const usuario = controlador.estado?.usuarioAutenticado || '';
   // Sem useMemo: a lista de áreas inativas chega depois (GET /core/acesso) e a de permissões pode mudar com o perfil.
   const disponiveis = RELATORIOS.filter((r) => controlador.possuiPermissao(r.permissao) && controlador.possuiPermissao(PERMISSAO_BASE[r.id]) && !telaEmAreaInativa(r.origem));
   const porArea = AREAS.map((a) => ({ ...a, itens: disponiveis.filter((r) => r.area === a.id) })).filter((a) => a.itens.length);
+  // Relatório com tela própria na seção: abre lá (se a pessoa abre a seção); senão, segue embutido aqui.
+  const naSecao = (r) => (DESTINO_SECAO[r.id] && controlador.podeAcessarTela(DESTINO_SECAO[r.id]) ? DESTINO_SECAO[r.id] : null);
   const [selecionado, setSelecionado] = useState(() => {
     // Vem do link (?r=) ou de um redirecionamento de tela antiga (guardado só até ser lido).
     let guardado = '';
     try { guardado = window.sessionStorage.getItem(CHAVE_SELECAO_RELATORIO) || ''; window.sessionStorage.removeItem(CHAVE_SELECAO_RELATORIO); } catch { /* sem storage */ }
     return new URLSearchParams(window.location.search).get('r') || guardado;
   });
-  const relatorio = disponiveis.find((r) => r.id === selecionado) || disponiveis[0] || null;
+  const relatorio = disponiveis.find((r) => r.id === selecionado && !naSecao(r)) || disponiveis.find((r) => !naSecao(r)) || null;
   const [filtros, setFiltros] = useState(FILTROS_PADRAO);
   const [operacoes, setOperacoes] = useState([]);
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [exportando, setExportando] = useState(false);
-  const [fechadas, setFechadas] = useState(() => new Set()); // áreas recolhidas no menu
+  const [visiveis, setVisiveis] = useState([]);
+  const linhasAtuais = useRef([]);
+  const [nLinhas, setNLinhas] = useState(0);
 
-  const escolher = (id) => {
-    const area = RELATORIOS.find((r) => r.id === id)?.area;
-    if (area) setFechadas((atual) => { if (!atual.has(area)) return atual; const novo = new Set(atual); novo.delete(area); return novo; });
-    setSelecionado(id);
+  const escolher = (r) => {
+    const destino = naSecao(r);
+    if (destino) { controlador.irParaTelaProtegida(destino); return; }
+    setSelecionado(r.id);
     setFiltros((f) => ({ ...FILTROS_PADRAO(), preset: f.preset, ini: f.ini, fim: f.fim }));
-    window.history.replaceState(null, '', `/relatorios-historicos?r=${encodeURIComponent(id)}`);
+    window.history.replaceState(null, '', `/relatorios-historicos?r=${encodeURIComponent(r.id)}`);
   };
   const mudar = (campo) => (valor) => setFiltros((f) => ({ ...f, [campo]: valor }));
 
@@ -219,6 +303,17 @@ export function TelaRelatoriosHub({ controlador }) {
     return () => { ativo = false; clearTimeout(espera); };
   }, [chaveCarga]);
 
+  // Colunas visíveis: a escolha guardada da pessoa (se ainda valer para as colunas de agora) ou o padrão do relatório.
+  const assinaturaColunas = dados ? dados.colunas.map((c) => c.rotulo).join('|') : '';
+  useEffect(() => {
+    if (!dados || !relatorio) return;
+    const guardada = lerEscolha(usuario, relatorio.id);
+    const rotulos = dados.colunas.map((c) => c.rotulo);
+    const valida = guardada && guardada.filter((r) => rotulos.includes(r));
+    setVisiveis(valida && valida.length ? [...new Set([...valida, ...rotulos.filter((r) => r === '_escala' || r === 'Escala')])] : colunasPadrao(relatorio.id, dados.colunas));
+  }, [relatorio?.id, assinaturaColunas]);
+  const mudarColunas = (lista) => { setVisiveis(lista); gravarEscolha(usuario, relatorio.id, lista); };
+
   const filtrosColuna = useMemo(() => ({ equipe: filtros.equipe, supervisor: filtros.supervisor, operador: relatorio?.area === 'wfm' ? '' : filtros.operador, status: filtros.status }), [filtros, relatorio]);
   const opcoesColuna = useCallback((campo) => {
     const coluna = dados?.colunas.find((c) => COLUNA_DO_FILTRO[campo].test(c.rotulo));
@@ -226,7 +321,8 @@ export function TelaRelatoriosHub({ controlador }) {
     return [...new Set(dados.linhas.map((l) => l[coluna.chave]).filter((v) => v !== '' && v !== null && v !== undefined).map(String))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [dados]);
 
-  const exportar = async (formato, linhas) => {
+  const exportar = async (formato) => {
+    const linhas = linhasAtuais.current;
     setExportando(true);
     try {
       const operacaoRotulo = (operacoes.find(([k]) => k === filtros.operacao) || [])[1];
@@ -244,49 +340,55 @@ export function TelaRelatoriosHub({ controlador }) {
   const usa = (campo) => relatorio?.filtros?.includes(campo);
   const opcoesOperador = relatorio?.area === 'wfm' ? dados?.operadores : null;
   const opcoesOperacao = relatorio?.operacoes || dados?.operacoes || operacoes;
-  const barraFiltros = relatorio ? html`
-    <div class="rhub-filtros">
+  const podeExportar = relatorio && !relatorio.tela && controlador.possuiPermissao(exportarPermissao(relatorio.id));
+  const ehPlanilha = relatorio && !relatorio.tela;
+
+  const faixaFiltros = relatorio && (relatorio.filtros || []).length ? html`
+    <div class="c-filtros c-filtros--suave c-filtros--quebra">
+      ${usa('operacao') && (opcoesOperacao.length > 1) ? html`<${Seletor} rotulo=${relatorio.area === 'wfm' ? 'Escala / operação' : 'Operação'} valor=${filtros.operacao} opcoes=${opcoesOperacao} aoMudar=${mudar('operacao')} todos=${relatorio.operacaoObrigatoria ? null : relatorio.area === 'wfm' ? 'Todas as escalas' : 'Todas as operações'} />` : null}
       ${usa('periodo') ? html`
         <${Seletor} rotulo="Período" valor=${filtros.preset} todos=${null} opcoes=${[...Object.entries(PERIODOS).map(([k, p]) => [k, p.rotulo]), ['personalizado', 'Personalizado']]}
           aoMudar=${(v) => setFiltros((f) => (v === 'personalizado' ? { ...f, preset: v } : { ...f, preset: v, ini: PERIODOS[v].calc()[0], fim: PERIODOS[v].calc()[1] }))} />
-        <label class="rhub-filtro rhub-filtro--data"><span>De</span><input class="form-control" type="date" value=${filtros.ini} max=${filtros.fim || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', ini: e.target.value }))} /></label>
-        <label class="rhub-filtro rhub-filtro--data"><span>Até</span><input class="form-control" type="date" value=${filtros.fim} min=${filtros.ini || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', fim: e.target.value }))} /></label>` : null}
-      ${usa('operacao') && (opcoesOperacao.length > 1) ? html`<${Seletor} rotulo=${relatorio.area === 'wfm' ? 'Escala / operação' : 'Operação'} valor=${filtros.operacao} opcoes=${opcoesOperacao} aoMudar=${mudar('operacao')} todos=${relatorio.operacaoObrigatoria ? null : relatorio.area === 'wfm' ? 'Todas as escalas' : 'Todas'} />` : null}
-      ${['equipe', 'supervisor'].map((campo) => (usa(campo) && opcoesColuna(campo)?.length ? html`<${Seletor} key=${campo} rotulo=${ROTULO_FILTRO[campo]} valor=${filtros[campo]} opcoes=${opcoesColuna(campo)} aoMudar=${mudar(campo)} />` : null))}
-      ${usa('operador') ? (opcoesOperador?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesOperador} aoMudar=${mudar('operador')} />`
-        : opcoesColuna('operador')?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesColuna('operador')} aoMudar=${mudar('operador')} />` : null) : null}
-      ${usa('status') && opcoesColuna('status')?.length ? html`<${Seletor} rotulo="Status" valor=${filtros.status} opcoes=${opcoesColuna('status')} aoMudar=${mudar('status')} />` : null}
-      ${usa('busca') ? html`<label class="rhub-filtro rhub-filtro--busca"><span>Buscar</span>
-        <span class="rhub-busca"><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('search')}</span>
-          <input class="form-control" type="search" placeholder="Filtrar linhas" value=${filtros.busca} onInput=${(e) => mudar('busca')(e.target.value)} aria-label="Buscar na planilha" /></span></label>` : null}
+        ${filtros.preset === 'personalizado' ? html`
+          <input class="c-entrada c-entrada--compacta" type="date" aria-label="De" title="De" value=${filtros.ini} max=${filtros.fim || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', ini: e.target.value }))} />
+          <input class="c-entrada c-entrada--compacta" type="date" aria-label="Até" title="Até" value=${filtros.fim} min=${filtros.ini || undefined} onInput=${(e) => setFiltros((f) => ({ ...f, preset: 'personalizado', fim: e.target.value }))} />` : null}` : null}
+      ${['equipe', 'supervisor'].map((campo) => (usa(campo) && opcoesColuna(campo)?.length ? html`<${Seletor} key=${campo} rotulo=${ROTULO_FILTRO[campo]} valor=${filtros[campo]} opcoes=${opcoesColuna(campo)} aoMudar=${mudar(campo)} todos=${campo === 'equipe' ? 'Todas as equipes' : 'Todos os supervisores'} />` : null))}
+      ${usa('operador') ? (opcoesOperador?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesOperador} aoMudar=${mudar('operador')} todos="Todos os operadores" />`
+        : opcoesColuna('operador')?.length ? html`<${Seletor} rotulo="Operador" valor=${filtros.operador} opcoes=${opcoesColuna('operador')} aoMudar=${mudar('operador')} todos="Todos os operadores" />` : null) : null}
+      ${usa('status') && opcoesColuna('status')?.length ? html`<${Seletor} rotulo="Status" valor=${filtros.status} opcoes=${opcoesColuna('status')} aoMudar=${mudar('status')} todos="Todas as situações" />` : null}
+      ${usa('busca') ? html`<div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar nas linhas" aria-label="Buscar nas linhas" value=${filtros.busca} onInput=${(e) => mudar('busca')(e.target.value)} /></div>` : null}
+      ${ehPlanilha && dados && dados.colunas.length > 1 ? html`<${MenuColunas} colunas=${dados.colunas} visiveis=${visiveis} aoMudar=${mudarColunas} />` : null}
     </div>` : null;
 
   let corpo;
-  if (!relatorio) corpo = html`<${EmptyState} icon="lock" title="Nenhum relatório liberado" text="Seu perfil ainda não tem acesso a nenhum relatório ou histórico. Fale com o Administrador." />`;
-  else if (relatorio.tela) corpo = html`<${TelaEmbutida} key=${relatorio.id} relatorio=${relatorio} controlador=${controlador} filtros=${filtros} showToast=${showToast} />`;
-  else if (erro) corpo = html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  else if (!dados) corpo = html`<${LoadingState} titulo="Gerando o relatório" />`;
-  else corpo = html`<${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} onExportar=${exportar} exportando=${exportando}
-    podeExportar=${controlador.possuiPermissao(exportarPermissao(relatorio.id))} />`;
+  if (!relatorio) corpo = html`<div class="c-tabela-caixa"><${Estado} icone="lock" titulo="Nenhum relatório liberado" texto="Seu perfil ainda não tem acesso a nenhum relatório ou histórico. Fale com o Administrador." /></div>`;
+  else if (relatorio.tela) corpo = html`${faixaFiltros ? html`<div class="c-tabela-caixa">${faixaFiltros}</div>` : null}<${TelaEmbutida} key=${relatorio.id} relatorio=${relatorio} controlador=${controlador} filtros=${filtros} showToast=${showToast} />`;
+  else {
+    corpo = html`<div class="c-tabela-caixa">
+      ${faixaFiltros}
+      ${erro ? html`<${Estado} icone="warning" titulo=${erro} />`
+    : !dados ? html`<${Esqueleto} linhas=${8} />`
+      : html`${(dados.resumo || []).length ? html`<${Indicadores} resumo=${dados.resumo} />` : null}
+        <${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} visiveis=${visiveis} aoLinhas=${(l) => { linhasAtuais.current = l; setNLinhas(l.length); }} />`}
+    </div>`;
+  }
 
   return html`
     <${PainelRh} screenId="screen-relatorios" navAtiva="screen-relatorios" subtituloMarca="Relatórios e Históricos" placeholderBusca="Relatórios e Históricos" controlador=${controlador} buscaGlobal=${false}>
       <${ToastHost} />
-      <div class="rhub">
-        <nav class="rhub-menu" aria-label="Relatórios e históricos">
-          ${porArea.map((a) => { const aberta = !fechadas.has(a.id); return html`<div key=${a.id} class="rhub-grupo">
-            <button type="button" class="rhub-grupo-titulo" aria-expanded=${aberta} onClick=${() => setFechadas((atual) => { const novo = new Set(atual); if (novo.has(a.id)) novo.delete(a.id); else novo.add(a.id); return novo; })}>
-              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(a.icone)}</span><span class="rhub-grupo-nome">${a.rotulo}</span>
-              <span class=${`material-symbols-outlined rhub-chevron ${aberta ? 'is-aberto' : ''}`} aria-hidden="true">${IconeSvg('expand_more')}</span></button>
-            ${aberta ? a.itens.map((r) => html`<button key=${r.id} type="button" class=${`rhub-item ${relatorio?.id === r.id ? 'is-ativo' : ''}`} aria-current=${relatorio?.id === r.id ? 'page' : undefined} onClick=${() => escolher(r.id)}>${r.rotulo}</button>`) : null}
-          </div>`; })}
-        </nav>
-        <section class="rhub-principal" aria-live="polite">
-          ${relatorio ? html`<header class="rhub-cab"><h1>${relatorio.rotulo}</h1><p>${relatorio.descricao}</p></header>` : null}
-          ${barraFiltros}
-          ${corpo}
-        </section>
-      </div>
+      <main class="c-pagina c-conteudo">
+        <div class="c-rel">
+          <nav class="c-rel-lista" aria-label="Relatórios e históricos">
+            ${porArea.map((a) => html`<h3 key=${`t-${a.id}`}>${a.rotulo}</h3>
+              ${a.itens.map((r) => { const destino = naSecao(r); return html`<a key=${r.id} href=${destino ? '#' : `/relatorios-historicos?r=${encodeURIComponent(r.id)}`} title=${r.descricao}
+                aria-current=${!destino && relatorio?.id === r.id ? 'page' : null} onClick=${(ev) => { ev.preventDefault(); escolher(r); }}>${r.rotulo}${destino ? html` <small>na seção ↗</small>` : null}</a>`; })}`)}
+          </nav>
+          <div class="c-rel-corpo" aria-live="polite">
+            ${relatorio ? html`<div class="c-cab-linha"><h1 title=${relatorio.descricao}>${relatorio.rotulo}</h1>
+              ${podeExportar && dados ? html`<div class="c-cab-dir"><${MenuExportar} desabilitado=${exportando || !nLinhas} exportando=${exportando} totalColunas=${dados.colunas.length} aoExportar=${exportar} /></div>` : null}</div>` : null}
+            ${corpo}
+          </div>
+        </div>
+      </main>
     </${PainelRh}>`;
 }
-

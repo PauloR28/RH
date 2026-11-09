@@ -284,3 +284,16 @@
 .c-mu-ferr .c-mu-tam { width: auto; margin-left: auto; height: 28px; }
 @media (pointer: coarse) { .c-mu-ferr .c-mu-tam { height: 44px; } }
 @media (min-width: 600px) { .c-mu-lista .c-estica { max-width: 0; } .c-mu-lista .c-estica .c-duas > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+/* Relatórios e Históricos (lote 3): rodapé com contagem à esquerda e paginação à direita; cabeçalhos quebram linha */
+.c-rh-paginas { display: inline-flex; align-items: center; gap: var(--espaco-2); flex: none; }
+.c-rh-paginas .c-entrada { width: auto; }
+.c-rel-corpo > .c-cab-linha { margin: 0; }
+.c-rh-tabela th, .c-rh-tabela th .c-ordenar { white-space: normal; }
+.c-rh-tabela th { vertical-align: bottom; line-height: 16px; padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
+.c-rh-tabela td.c-rh-longo { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1179.98px) {
+  .c-rh-tabela td { white-space: normal; }
+  .c-rh-tabela th, .c-rh-tabela td { padding-left: var(--espaco-1); padding-right: var(--espaco-1); }
+  .c-rh-tabela th:first-child, .c-rh-tabela td:first-child { padding-left: var(--espaco-3); }
+  .c-rh-tabela td.c-rh-longo { max-width: 160px; }
+}
