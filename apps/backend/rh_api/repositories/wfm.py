@@ -341,7 +341,7 @@ class WfmRepositoryMixin:
             "tipos_turno": list(TIPOS_TURNO),
             "tipos_evento": list(TIPOS_EVENTO),
             "tipos_pausa": list(TIPOS_PAUSA),
-            "pode_editar_tipos_escala": wfm_scope.pode_editar_tipos_escala(user.perfil),
+            "pode_editar_tipos_escala": wfm_scope.pode_editar_tipos_escala(user.perfil) and user.has_permission("wfm.tipos_escala.editar"),
         }
 
     # ------------------------------------------------------------------
@@ -376,7 +376,7 @@ class WfmRepositoryMixin:
             conn.close()
 
     def wfm_save_contrato(self, user, data: dict, id_contrato: int | None = None, *, ip: str = "") -> dict:
-        if not wfm_scope.pode_editar_contratos(user.perfil):
+        if not (wfm_scope.pode_editar_contratos(user.perfil) and user.has_permission("wfm.contratos.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente Administrador e Control Desk editam contratos.")
         tipo = normalize_text(data.get("tipo")).upper()
         if tipo not in TIPOS_CONTRATO:
@@ -533,7 +533,7 @@ class WfmRepositoryMixin:
 
     def wfm_desvincular_operador_contrato(self, user, operacao: str, id_contrato: int, id_operador: int, *, ip: str = "") -> dict:
         """Remove o vínculo do operador com a jornada. Sem outra jornada vigente, a escala dele deixa de validar até um novo vínculo."""
-        if not wfm_scope.pode_editar_contratos(user.perfil):
+        if not (wfm_scope.pode_editar_contratos(user.perfil) and user.has_permission("wfm.contratos.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente Administrador e Control Desk desvinculam operadores.")
         conn = self._connect()
         try:
@@ -558,7 +558,7 @@ class WfmRepositoryMixin:
 
     def wfm_excluir_contrato(self, user, operacao: str, id_contrato: int, *, ip: str = "") -> dict:
         """Exclui uma jornada (contrato) sem vínculos. Com operador ou turno vinculado só é possível desativar."""
-        if not wfm_scope.pode_editar_contratos(user.perfil):
+        if not (wfm_scope.pode_editar_contratos(user.perfil) and user.has_permission("wfm.contratos.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente Administrador e Control Desk excluem jornadas.")
         conn = self._connect()
         try:
@@ -623,7 +623,7 @@ class WfmRepositoryMixin:
             conn.close()
 
     def wfm_save_turno(self, user, data: dict, id_turno: int | None = None, *, ip: str = "") -> dict:
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar turnos.")
         tipo = normalize_text(data.get("tipo") or "TRABALHO").upper()
         if tipo not in TIPOS_TURNO:
@@ -803,7 +803,7 @@ class WfmRepositoryMixin:
 
     def wfm_impacto_tipo_turno(self, user, operacao: str, id_turno: int, tipo: str) -> dict:
         """Mostrado antes de confirmar a mudança de tipo de um turno já usado nas escalas."""
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar turnos.")
         tipo = normalize_text(tipo).upper()
         if tipo not in TIPOS_TURNO:
@@ -825,7 +825,7 @@ class WfmRepositoryMixin:
 
     def wfm_impacto_dias_turno(self, user, operacao: str, id_turno: int, weekdays) -> dict:
         """Regra 8: antes de salvar novos dias de um turno em uso, quantos operadores, dias e pausas serão afetados."""
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar turnos.")
         try:
             novos = dias_semana.normalizar_dias(weekdays, tipo_trabalho=True)
@@ -868,7 +868,7 @@ class WfmRepositoryMixin:
         turno que já foi usado só em datas passadas (escala, calendário especial) é excluído LOGICAMENTE, para o histórico
         e os relatórios continuarem mostrando o que foi escalado. Turno ainda em uso de hoje em diante não pode ser excluído
         (a escala ficaria sem definição): remova-o dessas datas antes. Folga e DSR são fixos."""
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para excluir turnos.")
         hoje = date.today()
         conn = self._connect()
@@ -957,7 +957,7 @@ class WfmRepositoryMixin:
             conn.close()
 
     def wfm_save_skill(self, user, data: dict, id_skill: int | None = None, *, ip: str = "") -> dict:
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar skills.")
         categoria = normalize_text(data.get("categoria")).upper()
         nome = normalize_text(data.get("nome"))
@@ -1014,6 +1014,13 @@ class WfmRepositoryMixin:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operador não encontrado nesta operação.")
         return {"id_usuario": int(row[0]), "nome": f"{normalize_text(row[1])} {normalize_text(row[2])}".strip()}
 
+    @staticmethod
+    def _wfm_exigir_chave(user, *chaves: str) -> None:
+        """Segunda barreira (a rota já exige a chave): o que antes era decidido pelo nome do perfil agora vale pela chave de
+        Perfis e Permissões (decisão do Paulo, 09/11/2026). Basta uma das chaves."""
+        if not any(user.has_permission(c) for c in chaves):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não tem permissão para esta ação.")
+
     def _wfm_exigir_edicao_do_operador(self, cursor, user, operacao: str, id_operador: int) -> None:
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
         if not wfm_scope.pode_editar_escala_de(
@@ -1029,6 +1036,7 @@ class WfmRepositoryMixin:
         self, user, operacao: str, id_operador: int, id_contrato: int, vigencia_ini, *, ip: str = ""
     ) -> dict:
         """Vincula um contrato ao operador a partir de `vigencia_ini`; encerra a vigência anterior no dia anterior."""
+        self._wfm_exigir_chave(user, "wfm.cadastros.editar")
         from datetime import timedelta
 
         conn = self._connect()
@@ -1070,6 +1078,7 @@ class WfmRepositoryMixin:
             conn.close()
 
     def wfm_set_skills_operador(self, user, operacao: str, id_operador: int, ids_skill: list[int], *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.cadastros.editar")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -1141,7 +1150,7 @@ class WfmRepositoryMixin:
     def wfm_save_evento(self, user, data: dict, id_item: int | None = None, *, ip: str = "") -> dict:
         from datetime import date
 
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão para editar o calendário especial.")
         tipo = normalize_text(data.get("tipo")).upper()
         descricao = normalize_text(data.get("descricao"))

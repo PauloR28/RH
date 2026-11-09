@@ -16,7 +16,7 @@ import unicodedata
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
+from ..rbac import ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from .wfm_escala import _exigir_ano_mes
@@ -63,7 +63,7 @@ class WfmAprovacaoRepositoryMixin:
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao,
             id_enviou=ap.get("enviado_por"), ids_na_escala=ids, aprovadores=aprovadores,
         )
-        tem_aprovar = user.has_permission("wfm.escala.aprovar") and user.perfil != ROLE_ADMIN
+        tem_aprovar = user.has_permission("wfm.escala.aprovar")
         fechada = cab["fechada"]
         estado = ap["estado"]
         return {
@@ -78,7 +78,7 @@ class WfmAprovacaoRepositoryMixin:
             "exige": not fechada,
             "aprovadores_configurados": bool(aprovadores and (aprovadores.get("perfis") or aprovadores.get("usuarios"))),
             "pode_enviar": (
-                not fechada and com_itens and estado == RASCUNHO and user.has_permission("wfm.escala.editar") and user.perfil != ROLE_ADMIN
+                not fechada and com_itens and estado == RASCUNHO and user.has_permission("wfm.escala.editar")
             ),
             "pode_aprovar": (
                 not fechada and com_itens and tem_aprovar and pode_aprovar_perfil
@@ -278,8 +278,6 @@ class WfmAprovacaoRepositoryMixin:
     # Ações do fluxo
     # ------------------------------------------------------------------
     def _wfm_aprov_contexto(self, user, operacao: str, ano_mes: str, *, escrita: bool = True):
-        if user.perfil == ROLE_ADMIN:
-            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não participa da aprovação de escalas.")
         ano_mes = _exigir_ano_mes(ano_mes)
         conn = self._connect()
         try:
@@ -326,6 +324,7 @@ class WfmAprovacaoRepositoryMixin:
             conn.close()
 
     def wfm_aprovar_escala(self, user, operacao: str, ano_mes: str, *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.aprovar")
         conn, cursor, operacao, ano_mes, cab, snapshot = self._wfm_aprov_contexto(user, operacao, ano_mes)
         try:
             permitido, motivo = wfm_scope.pode_aprovar_escala(
@@ -367,6 +366,7 @@ class WfmAprovacaoRepositoryMixin:
             return {"success": True, "estado": APROVADA, "publicada": False, "aviso": detalhe}
 
     def wfm_declinar_escala(self, user, operacao: str, ano_mes: str, justificativa: str, *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.aprovar")
         justificativa = normalize_text(justificativa)
         if len(justificativa) < 3:
             raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe a justificativa do declínio.")
@@ -486,8 +486,8 @@ class WfmAprovacaoRepositoryMixin:
             conn.close()
 
     def wfm_save_tipo_escala(self, user, data: dict, id_tipo: int | None = None, *, ip: str = "", autorizado: bool = False) -> dict:
-        if not autorizado and not wfm_scope.pode_editar_tipos_escala(user.perfil):
-            raise _http(status.HTTP_403_FORBIDDEN, "Somente o Analista de TI (Gestor de TI) cadastra tipos de escala.")
+        if not autorizado and not (wfm_scope.pode_editar_tipos_escala(user.perfil) and user.has_permission("wfm.tipos_escala.editar")):
+            raise _http(status.HTTP_403_FORBIDDEN, "Seu perfil não cadastra tipos de escala.")
         nome = normalize_text(data.get("nome"))
         if not nome:
             raise _http(status.HTTP_400_BAD_REQUEST, "Informe o nome da escala.")
@@ -554,8 +554,8 @@ class WfmAprovacaoRepositoryMixin:
     def wfm_excluir_tipo_escala(self, user, id_tipo: int, *, ip: str = "", autorizado: bool = False) -> dict:
         """Exclui o tipo de escala só se nunca foi usado (sem itens, versões publicadas, trocas ou presenças);
         com histórico, apenas desativa (o histórico publicado é imutável)."""
-        if not autorizado and not wfm_scope.pode_editar_tipos_escala(user.perfil):
-            raise _http(status.HTTP_403_FORBIDDEN, "Somente o Analista de TI (Gestor de TI) exclui tipos de escala.")
+        if not autorizado and not (wfm_scope.pode_editar_tipos_escala(user.perfil) and user.has_permission("wfm.tipos_escala.editar")):
+            raise _http(status.HTTP_403_FORBIDDEN, "Seu perfil não exclui tipos de escala.")
         conn = self._connect()
         try:
             cursor = conn.cursor()

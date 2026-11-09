@@ -24,7 +24,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..rbac import ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -324,7 +324,6 @@ class WfmEscalaRepositoryMixin:
                 not somente_propria
                 and not ver_todas
                 and user.has_permission("wfm.escala.editar")
-                and user.perfil != ROLE_ADMIN
                 and (not cab["fechada"] or user.has_permission("wfm.escala.corrigir_fechada"))
             )
             aprovacao = None
@@ -412,6 +411,7 @@ class WfmEscalaRepositoryMixin:
     def wfm_salvar_itens(
         self, user, operacao: str, ano_mes: str, itens: list[dict], *, justificativa: str = "", ip: str = ""
     ) -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.editar")
         ano_mes = _exigir_ano_mes(ano_mes)
         dias_validos = set(dias_do_mes(ano_mes))
         justificativa = normalize_text(justificativa)
@@ -751,10 +751,9 @@ class WfmEscalaRepositoryMixin:
         return None
 
     def wfm_publicar(self, user, operacao: str, ano_mes: str, *, justificativa: str = "", ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.publicar")
         ano_mes = _exigir_ano_mes(ano_mes)
         justificativa = normalize_text(justificativa)
-        if user.perfil == ROLE_ADMIN:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não publica escalas.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -835,9 +834,8 @@ class WfmEscalaRepositoryMixin:
         return {"violacoes": vistas, "violacoes_outras_equipes": len(resumo["violacoes"]) - len(vistas)}
 
     def wfm_fechar_periodo(self, user, operacao: str, ano_mes: str, *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.fechar")
         ano_mes = _exigir_ano_mes(ano_mes)
-        if user.perfil == ROLE_ADMIN:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não fecha períodos.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -1026,6 +1024,7 @@ class WfmEscalaRepositoryMixin:
         self, user, operacao: str, id_operador: int, data: Any, status_presenca: str, observacao: str = "", *, ip: str = ""
     ) -> dict:
         """Sem prazo para lançar ou corrigir (regra do RH): a alteração é sempre permitida, sempre auditada."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         status_presenca = normalize_text(status_presenca).upper()
         if status_presenca not in STATUS_PRESENCA:
@@ -1149,6 +1148,7 @@ class WfmEscalaRepositoryMixin:
     def wfm_lancar_hora_extra(
         self, user, operacao: str, id_operador: int, data: Any, minutos: int, observacao: str = "", *, ip: str = ""
     ) -> dict:
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         minutos = int(minutos)
         if minutos < 0 or minutos > 720:
@@ -1193,6 +1193,7 @@ class WfmEscalaRepositoryMixin:
         self, user, operacao: str, id_operador: int, data_ini: Any, data_fim: Any, tipo: str, *, ip: str = ""
     ) -> dict:
         """Guarda só período, tipo e quem validou. Nunca o arquivo do atestado nem CID (dado de saúde)."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data_ini, data_fim = _parse_data(data_ini), _parse_data(data_fim)
         tipo = normalize_text(tipo).upper()
         if tipo not in TIPOS_ATESTADO:
@@ -1328,6 +1329,7 @@ class WfmEscalaRepositoryMixin:
     ) -> dict:
         """Aplica o mesmo status a TODOS os operadores escalados do dia que o usuário pode editar, exceto
         os `excecoes` (ex.: "presença para todos, menos quem faltou"). Sem prazo; tudo auditado."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         status_presenca = normalize_text(status_presenca).upper()
         if status_presenca not in STATUS_PRESENCA:

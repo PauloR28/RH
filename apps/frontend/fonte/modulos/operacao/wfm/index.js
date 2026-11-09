@@ -91,8 +91,10 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   // "Minhas escalas" segue a permissão wfm.escala.propria: quem pode ser escalado (Operador, Técnicos e Analista de TI).
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-wfm'];
   const podeCriarEscala = controlador.possuiPermissao('wfm.escala.criar');
-  // Supervisor sem 'criar escala' ainda consulta a Escala do dia (somente leitura, sem montar nem publicar).
-  const podeAbrirDia = podeCriarEscala || (controlador.estado?.perfilUsuario === 'supervisor' && controlador.possuiPermissao('wfm.escala.visualizar'));
+  // Editar a escala aberta vale pela chave de EDITAR (decisão do Paulo, 09/11/2026: vale a chave de Perfis, não o nome do perfil).
+  const podeEditarEscala = podeCriarEscala || controlador.possuiPermissao('wfm.escala.editar');
+  // Quem só consulta escalas abre a Escala do dia em leitura (sem montar nem publicar).
+  const podeAbrirDia = podeEditarEscala || controlador.possuiPermissao('wfm.escala.visualizar');
   const aoVerPausas = controlador.possuiPermissao('wfm.escala.visualizar') ? () => setVisaoEscala('pausas') : undefined;
   const voltarParaLista = () => { setVisaoEscala('lista'); setVersaoLista((v) => v + 1); recarregarContexto(); };
   // Presença, Trocas e Minha escala só fazem sentido com escala ativa; Cadastros e Jornadas seguem a operação.
@@ -129,15 +131,15 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
 
   // Escala aberta (mensal ou do dia): cabeçalho do módulo, linha de contexto e card principal numa tela só.
   if (telaAtual === 'screen-wfm' && visaoEscala !== 'lista' && contexto && !erro && operacao) {
-    const opcoesEscala = podeCriarEscala ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null;
+    const opcoesEscala = podeEditarEscala ? operacoesComEscala.map((o) => [o.chave, o.nome]) : null;
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         ${visaoEscala === 'mes'
-          ? html`<${TelaEscala} key=${visaoGrade} ...${props} visaoInicial=${visaoGrade} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
+          ? html`<${TelaEscala} key=${visaoGrade} ...${props} visaoInicial=${visaoGrade} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeEditarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
           : visaoEscala === 'pausas'
             ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoMes=${verGrade} />`
-            : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVerMes=${verGrade} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
+            : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeEditarEscala} aoVerMes=${verGrade} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
           onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}
@@ -233,8 +235,8 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   else if (telaAtual === 'screen-wfm-jornadas') corpo = html`<${TelaCadastros} ...${props} itemInicial="jornadas" comJornadas=${true} />`;
   else if (telaAtual === 'screen-wfm-cadastros') corpo = html`<${TelaCadastros} ...${props} />`;
   else if (visaoEscala === 'mes') corpo = html`
-    <${TelaEscala} ...${props} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} />`;
-  else corpo = html`<${TelaEscalaTabela} ...${props} somenteLeitura=${!podeCriarEscala} aoVerMes=${() => setVisaoEscala('mes')} aoVoltarLista=${voltarParaLista} />`;
+    <${TelaEscala} ...${props} somenteLeitura=${!podeEditarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} />`;
+  else corpo = html`<${TelaEscalaTabela} ...${props} somenteLeitura=${!podeEditarEscala} aoVerMes=${() => setVisaoEscala('mes')} aoVoltarLista=${voltarParaLista} />`;
 
   // A lista de escalas é a navegação da aba Escala; sem permissão de criar (ex.: Gestor) não há troca de escala pelo seletor.
   const semOperacao = telaAtual === 'screen-wfm' && (visaoEscala === 'lista' || !podeCriarEscala);
