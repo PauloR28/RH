@@ -1,16 +1,16 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { LoadingState } from '../../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../../ui/icone.js';
 import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { Campo, Marca, ModalForm } from './formulario.js';
+import { Campo, Esqueleto, Ic, Janela } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Configurações da escala: nome, ativa/inativa, jornada (escala de trabalho), duplicar, excluir e QUEM aprova. Cada aprovador é escolhido em dois selects
-// lado a lado: o Perfil e o Usuário (a lista de usuários acompanha o perfil escolhido). "Todos do perfil" aprova
-// por perfil; escolhendo um usuário, só ele. Sem nenhum aprovador vale o padrão: Supervisor ou Gestor.
-// Quem decide é sempre o servidor.
+// Configurações da escala (redesign Fase 15, amostra Q4 do lote 1): janela de 560 px com Nome · Jornada · Escala ativa ·
+// Escalas por pessoa · Antecedência para pedir troca; "Quem aprova" em fichas com × e a linha Perfil + Usuário + Adicionar;
+// rodapé Excluir (vermelho, à esquerda, com confirmação forte) · Duplicar · Salvar. Sem nenhum aprovador vale o padrão:
+// Supervisor ou Gestor. Quem decide é sempre o servidor; mesmas rotas de antes.
 
 const ROTULO_PERFIL = { supervisor: 'Supervisor', gestor: 'Gestor', analista_ti: 'Analista de TI' };
 const ROTULO_PLURAL = { supervisor: 'Todos os Supervisores', gestor: 'Todos os Gestores', analista_ti: 'Analista de TI' };
+
+const Erro = ({ texto }) => (texto ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${texto}</p></div></div>` : null);
 
 export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMudouLista, showToast }) {
   const [cfg, setCfg] = useState(null);
@@ -27,14 +27,15 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
   const [maxEscalas, setMaxEscalas] = useState('4');
   const [destino, setDestino] = useState('');
   const [nomeCopia, setNomeCopia] = useState('');
-  const [confirmaExcluir, setConfirmaExcluir] = useState(false);
+  const [janela, setJanela] = useState(''); // '' | 'duplicar' | 'excluir'
+  const [confirmacao, setConfirmacao] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
   useEffect(() => {
     let ativo = true;
     lerConfigEscalaWfm(operacao).then((c) => {
       if (!ativo) return;
-      setCfg(c); setNome(c.nome_escala || ''); setPerfis(c.aprovadores.perfis || []); setUsuarios(c.aprovadores.usuarios || []);
+      setCfg(c); setNome(c.nome_escala || ''); setPerfis(c.aprovadores?.perfis || []); setUsuarios(c.aprovadores?.usuarios || []);
       setAtiva(c.ativa !== false); setIdContrato(c.id_contrato ? String(c.id_contrato) : ''); setTrocaDias(String(c.troca_antecedencia_dias ?? 3)); setMaxEscalas(String(c.max_escalas_operador ?? 4)); setDestino((c.operacoes_destino || [])[0]?.chave || '');
     }).catch((e) => ativo && setErro(e?.message || 'Não foi possível carregar as configurações.'));
     return () => { ativo = false; };
@@ -46,6 +47,7 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
   const usuariosDoPerfil = candidatos.filter((c) => (!perfilSel || c.perfil === perfilSel) && !usuarios.includes(c.id_usuario));
   const nomeDe = (id) => candidatos.find((c) => c.id_usuario === id);
   const podeEditar = cfg?.pode_editar;
+  const nomeEscala = (nome || nomePadrao || '').trim();
 
   const trocarPerfil = (valor) => {
     setPerfilSel(valor);
@@ -71,8 +73,8 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
     try {
       await salvarConfigEscalaWfm({
         operacao, nome_escala: nome, perfis, usuarios,
-        ...(podeEditar && trocaDias !== '' ? { troca_antecedencia_dias: Math.max(0, Math.min(30, Number(trocaDias))) } : {}),
-        ...(podeEditar && maxEscalas !== '' ? { max_escalas_operador: Math.max(1, Math.min(7, Number(maxEscalas))) } : {}),
+        ...(trocaDias !== '' ? { troca_antecedencia_dias: Math.max(0, Math.min(30, Number(trocaDias))) } : {}),
+        ...(maxEscalas !== '' ? { max_escalas_operador: Math.max(1, Math.min(7, Number(maxEscalas))) } : {}),
         ...(cfg.pode_gerir ? { ativa, alterar_jornada: true, id_contrato: idContrato ? Number(idContrato) : null } : {}),
       });
       showToast?.('Configurações da escala salvas.', 'success');
@@ -87,7 +89,7 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
       const r = await duplicarEscalaWfm({ operacao, operacao_destino: destino, nome: nomeCopia.trim() });
       showToast?.(`Escala duplicada como "${r.nome}".`, 'success');
       onMudouLista?.(r.chave);
-    } catch (e) { setErro(e?.message || 'Não foi possível duplicar a escala.'); } finally { setOcupado(false); }
+    } catch (e) { setErro(e?.message || 'Não foi possível duplicar a escala.'); setJanela(''); } finally { setOcupado(false); }
   };
   const excluir = async () => {
     setErro('');
@@ -96,92 +98,86 @@ export function ModalConfigEscala({ operacao, nomePadrao, onClose, onSalvo, onMu
       await excluirEscalaWfm(operacao);
       showToast?.('Escala excluída.', 'success');
       onMudouLista?.(null);
-    } catch (e) { setErro(e?.message || 'Não foi possível excluir a escala.'); setConfirmaExcluir(false); } finally { setOcupado(false); }
+    } catch (e) { setErro(e?.message || 'Não foi possível excluir a escala.'); setJanela(''); } finally { setOcupado(false); }
   };
 
   const total = perfis.length + usuarios.length;
-  return html`<${ModalForm} titulo="Configurações da escala" onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo=${podeEditar === false ? 'Fechar' : 'Salvar'}>
-    ${!cfg && !erro ? html`<${LoadingState} titulo="Carregando" />` : cfg ? html`
-      <div class="wfm-grade-form">
-        <${Campo} rotulo="Nome da escala" span=${12} dica="Aparece no título da tela e nos arquivos exportados.">
-          <input class="form-control" maxlength="120" disabled=${!podeEditar} value=${nome} onInput=${(e) => setNome(e.target.value)} placeholder=${nomePadrao} />
-        </${Campo}>
-        <${Campo} rotulo="Antecedência mínima para trocas (dias)" span=${12} dica="A troca de plantão pode ser pedida em qualquer dia, desde que falte pelo menos este número de dias para o turno. Padrão: 3.">
-          <input class="form-control" type="number" min="0" max="30" disabled=${!podeEditar} value=${trocaDias} onInput=${(e) => setTrocaDias(e.target.value)} />
-        </${Campo}>
-        <${Campo} rotulo="Escalas por operador (máximo)" span=${12} dica="Quantas escalas distintas (turnos em dias da semana diferentes) cada operador pode ter nesta escala. Padrão: 4. Turnos de Escala Especial não entram nessa conta.">
-          <input class="form-control" type="number" min="1" max="7" disabled=${!podeEditar} value=${maxEscalas} onInput=${(e) => setMaxEscalas(e.target.value)} />
-        </${Campo}>
-        ${cfg.pode_gerir ? html`
-          <${Campo} rotulo="Escala de trabalho (jornada)" span=${8} dica="Jornada aplicada a quem não tem contrato próprio nesta escala.">
-            <select class="form-select" value=${idContrato} onChange=${(e) => setIdContrato(e.target.value)}>
-              <option value="">Nenhuma</option>
-              ${(cfg.contratos || []).map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo} · ${c.nome}</option>`)}
-            </select>
-          </${Campo}>
-          <${Marca} rotulo="Escala ativa" span=${4} checked=${ativa} onChange=${setAtiva} />` : null}
-      </div>
-      ${cfg.pode_gerir && !ativa ? html`<p class="mon-muted">Escala inativa: some das telas de operação e não aceita alterações. Reative para voltar a editar.</p>` : null}
+  const chip = (chave, texto, sub, aoRemover) => html`<span key=${chave} class="c-cfg-chip"><${Ic} nome=${sub ? 'user' : 'users'} />${texto}${sub ? html` <span class="c-secundario">· ${sub}</span>` : null}
+    ${aoRemover ? html`<button type="button" aria-label=${`Remover ${texto}`} title=${`Remover ${texto}`} onClick=${aoRemover}><${Ic} nome="x" /></button>` : null}</span>`;
 
-      <section class="wfm-aprovadores" aria-label="Quem aprova esta escala">
-        <h4>Quem aprova esta escala</h4>
-        <p class="mon-muted">Escolha o perfil e/ou o usuário e clique em Adicionar. Sem nenhum aprovador, qualquer Supervisor ou Gestor aprova. Ninguém aprova a escala que enviou.</p>
-        ${podeEditar ? html`<div class="wfm-grade-form wfm-aprovadores-form">
-          <${Campo} rotulo="Perfil" span=${4}>
-            <select class="form-select" value=${perfilSel} onChange=${(e) => trocarPerfil(e.target.value)}>
-              <option value="">Selecione</option>
-              ${perfisDisponiveis.map((p) => html`<option key=${p} value=${p}>${ROTULO_PERFIL[p]}</option>`)}
-            </select>
-          </${Campo}>
-          <${Campo} rotulo="Usuário" span=${5} dica="A lista acompanha o perfil escolhido ao lado.">
-            <select class="form-select" value=${usuarioSel} onChange=${(e) => trocarUsuario(e.target.value)}>
-              <option value="">${perfilSel ? `Todos (${ROTULO_PERFIL[perfilSel]})` : 'Selecione'}</option>
-              ${usuariosDoPerfil.map((c) => html`<option key=${c.id_usuario} value=${c.id_usuario}>${c.nome}${perfilSel ? '' : ` · ${ROTULO_PERFIL[c.perfil] || c.perfil}`}</option>`)}
-            </select>
-          </${Campo}>
-          <div class="wfm-aprovadores-add" style=${{ gridColumn: 'span 3' }}>
-            <button type="button" class="btn btn-outline-primary" disabled=${!perfilSel && !usuarioSel} onClick=${adicionar}>
-              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Adicionar
-            </button>
-          </div>
-        </div>` : null}
-
-        <div class="wfm-aprovadores-chips" aria-live="polite">
-          ${total ? [
-            ...perfis.map((p) => html`<span key=${`p-${p}`} class="wfm-aprovador-chip"><span>${ROTULO_PLURAL[p] || p}</span>${podeEditar ? html`<button type="button" aria-label=${`Remover ${ROTULO_PLURAL[p] || p}`} onClick=${() => setPerfis(perfis.filter((x) => x !== p))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span></button>` : null}</span>`),
-            ...usuarios.map((id) => { const c = nomeDe(id); return html`<span key=${`u-${id}`} class="wfm-aprovador-chip"><span>${c ? c.nome : `Usuário ${id}`}${c ? html` <small>${ROTULO_PERFIL[c.perfil] || c.perfil}</small>` : null}</span>${podeEditar ? html`<button type="button" aria-label=${`Remover ${c ? c.nome : id}`} onClick=${() => setUsuarios(usuarios.filter((x) => x !== id))}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span></button>` : null}</span>`; }),
-          ] : html`<span class="mon-muted">Padrão: qualquer Supervisor ou Gestor.</span>`}
-        </div>
-      </section>
-
-      ${cfg.pode_gerir ? html`
-        <section class="wfm-aprovadores" aria-label="Duplicar escala">
-          <h4>Duplicar escala</h4>
-          <p class="mon-muted">Cria uma nova escala com o nome, a jornada, os turnos de trabalho e os aprovadores desta (não copia colaboradores nem lançamentos).</p>
-          <div class="wfm-grade-form wfm-aprovadores-form">
-            <${Campo} rotulo="Para a operação" span=${5}>
-              <select class="form-select" value=${destino} onChange=${(e) => setDestino(e.target.value)}>
-                ${(cfg.operacoes_destino || []).map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}
-              </select>
-            </${Campo}>
-            <${Campo} rotulo="Nome da cópia (opcional)" span=${4}>
-              <input class="form-control" maxlength="120" value=${nomeCopia} onInput=${(e) => setNomeCopia(e.target.value)} />
-            </${Campo}>
-            <div class="wfm-aprovadores-add" style=${{ gridColumn: 'span 3' }}>
-              <button type="button" class="btn btn-outline-primary" disabled=${ocupado || !destino} onClick=${duplicar}>
-                <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('content_copy')}</span>Duplicar
-              </button>
+  return html`
+    <${Janela} titulo="Configurações da escala" onClose=${() => { if (!janela) onClose(); }}>
+      <form class="c-janela-form" noValidate onSubmit=${salvar}>
+        <div class="c-janela-corpo">
+          ${!cfg && !erro ? html`<${Esqueleto} linhas=${5} />` : null}
+          ${cfg ? html`
+            <div class="c-form" style=${{ '--colunas': 2 }}>
+              <${Campo} rotulo="Nome" cheio=${true} ajuda="Aparece no título da tela e nos arquivos exportados.">
+                <input class="c-entrada" maxlength="120" disabled=${!podeEditar} value=${nome} onInput=${(e) => setNome(e.target.value)} placeholder=${nomePadrao} />
+              <//>
+              ${cfg.pode_gerir ? html`<${Campo} rotulo="Jornada" ajuda="Para quem não tem jornada própria.">
+                <select class="c-entrada" value=${idContrato} onChange=${(e) => setIdContrato(e.target.value)}>
+                  <option value="">Nenhuma</option>
+                  ${(cfg.contratos || []).map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo} · ${c.nome}</option>`)}
+                </select>
+              <//>
+              <div class="c-campo"><span class="c-rotulo">Situação</span>
+                <label class="c-interruptor"><input type="checkbox" role="switch" checked=${ativa} onChange=${(e) => setAtiva(e.target.checked)} />Escala ativa</label>
+                ${!ativa ? html`<span class="c-ajuda">Inativa: some das telas e não aceita alterações.</span>` : null}
+              </div>` : null}
+              <${Campo} rotulo="Escalas por pessoa" ajuda="Máximo; Escala Especial não conta. Padrão 4.">
+                <input class="c-entrada" type="number" min="1" max="7" disabled=${!podeEditar} value=${maxEscalas} onInput=${(e) => setMaxEscalas(e.target.value)} />
+              <//>
+              <${Campo} rotulo="Antecedência para pedir troca (dias)" ajuda="Padrão 3.">
+                <input class="c-entrada" type="number" min="0" max="30" disabled=${!podeEditar} value=${trocaDias} onInput=${(e) => setTrocaDias(e.target.value)} />
+              <//>
             </div>
-          </div>
-        </section>
 
-        <section class="wfm-aprovadores wfm-zona-risco" aria-label="Excluir escala">
-          <h4>Excluir escala</h4>
-          <p class="mon-muted">Escala sem lançamentos é apagada de vez. Escala com histórico (versões publicadas, presenças, trocas) sai das telas, mas o histórico é preservado.</p>
-          ${confirmaExcluir ? html`<div class="wfm-acoes"><span>Excluir esta escala?</span>
-            <button type="button" class="btn btn-danger btn-sm" disabled=${ocupado} onClick=${excluir}>Sim, excluir</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setConfirmaExcluir(false)}>Não</button></div>`
-            : html`<div><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => setConfirmaExcluir(true)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('delete')}</span>Excluir escala</button></div>`}
-        </section>` : null}` : null}
-  </${ModalForm}>`;
+            <section aria-label="Quem aprova esta escala">
+              <p class="c-rotulo" style=${{ margin: '0 0 var(--espaco-2)' }}>Quem aprova</p>
+              <div class="c-cfg-aprov" aria-live="polite">
+                ${total ? [
+                  ...perfis.map((p) => chip(`p-${p}`, ROTULO_PLURAL[p] || p, '', podeEditar ? () => setPerfis(perfis.filter((x) => x !== p)) : null)),
+                  ...usuarios.map((id) => { const c = nomeDe(id); return chip(`u-${id}`, c ? c.nome : `Usuário ${id}`, c ? (ROTULO_PERFIL[c.perfil] || c.perfil) : 'Usuário', podeEditar ? () => setUsuarios(usuarios.filter((x) => x !== id)) : null); }),
+                ] : html`<span class="c-ajuda">Padrão: qualquer Supervisor ou Gestor. Ninguém aprova a escala que enviou.</span>`}
+              </div>
+              ${podeEditar ? html`<div class="c-grupo c-cfg-linha">
+                <${Campo} rotulo="Perfil"><select class="c-entrada" value=${perfilSel} onChange=${(e) => trocarPerfil(e.target.value)}>
+                  <option value="">Selecione</option>${perfisDisponiveis.map((p) => html`<option key=${p} value=${p}>${ROTULO_PERFIL[p]}</option>`)}</select><//>
+                <${Campo} rotulo="Usuário"><select class="c-entrada" value=${usuarioSel} onChange=${(e) => trocarUsuario(e.target.value)}>
+                  <option value="">${perfilSel ? `Todos (${ROTULO_PERFIL[perfilSel]})` : 'Selecione'}</option>
+                  ${usuariosDoPerfil.map((c) => html`<option key=${c.id_usuario} value=${c.id_usuario}>${c.nome}${perfilSel ? '' : ` · ${ROTULO_PERFIL[c.perfil] || c.perfil}`}</option>`)}</select><//>
+                <button type="button" class="c-botao c-botao--secundario" disabled=${!perfilSel && !usuarioSel || null} onClick=${adicionar}><${Ic} nome="plus" />Adicionar</button>
+              </div>` : null}
+            </section>` : null}
+          <${Erro} texto=${erro} />
+        </div>
+        <div class="c-janela-rodape">
+          ${cfg?.pode_gerir ? html`<button type="button" class="c-botao c-botao--texto c-tom-perigo" style=${{ marginRight: 'auto' }} onClick=${() => { setConfirmacao(''); setJanela('excluir'); }}><${Ic} nome="trash" />Excluir</button>` : null}
+          ${cfg?.pode_gerir ? html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setJanela('duplicar')}><${Ic} nome="copy" />Duplicar</button>` : null}
+          ${podeEditar === false ? html`<button type="button" class="c-botao c-botao--secundario" onClick=${onClose}>Fechar</button>`
+            : html`<button type="submit" class="c-botao c-botao--principal" aria-busy=${salvando ? 'true' : null} disabled=${salvando || !cfg || null}>${salvando ? 'Salvando…' : 'Salvar'}</button>`}
+        </div>
+      </form>
+    <//>
+
+    ${janela === 'duplicar' ? html`<${Janela} titulo="Duplicar escala" tamanho="pequena" onClose=${() => setJanela('')}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setJanela('')}>Cancelar</button>
+        <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !destino || null} onClick=${duplicar}>Duplicar</button>`}>
+      <div class="c-janela-corpo">
+        <p class="c-ajuda">Cria uma escala nova com o nome, a jornada, os turnos de trabalho e os aprovadores desta. Não copia colaboradores nem lançamentos.</p>
+        <${Campo} rotulo="Para a operação"><select class="c-entrada" value=${destino} onChange=${(e) => setDestino(e.target.value)}>
+          ${(cfg?.operacoes_destino || []).map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select><//>
+        <${Campo} rotulo="Nome da cópia" opcional=${true}><input class="c-entrada" maxlength="120" value=${nomeCopia} onInput=${(e) => setNomeCopia(e.target.value)} /><//>
+      </div>
+    <//>` : null}
+
+    ${janela === 'excluir' ? html`<${Janela} titulo="Excluir escala" tamanho="pequena" onClose=${() => setJanela('')}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setJanela('')}>Cancelar</button>
+        <button type="button" class="c-botao c-botao--perigo" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || confirmacao.trim().toLowerCase() !== nomeEscala.toLowerCase() || null} onClick=${excluir}>Excluir escala</button>`}>
+      <div class="c-janela-corpo">
+        <p>Escala sem lançamentos é apagada de vez. Com histórico (versões publicadas, presenças, trocas), ela sai das telas e o histórico é preservado.</p>
+        <${Campo} rotulo=${`Para confirmar, digite o nome da escala: ${nomeEscala}`}><input class="c-entrada" autocomplete="off" value=${confirmacao} onInput=${(e) => setConfirmacao(e.target.value)} /><//>
+      </div>
+    <//>` : null}`;
 }

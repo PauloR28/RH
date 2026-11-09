@@ -271,3 +271,6 @@
   .c-tabela .c-botao.c-linha-nome { min-height: var(--altura-toque); }
   .c-tabela-digita .c-entrada, .c-pausas-painel .c-entrada { height: var(--altura-toque); }
 }
+.c-cfg-linha { align-items: flex-end; flex-wrap: nowrap; }
+.c-cfg-linha > .c-campo { flex: 1 1 0; }
+@media (max-width: 599.98px) { .c-cfg-linha { flex-wrap: wrap; } .c-cfg-linha > .c-campo { flex-basis: 100%; } }
