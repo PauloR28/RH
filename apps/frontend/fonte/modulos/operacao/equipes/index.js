@@ -12,7 +12,7 @@ import {
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
 import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261104-leitura';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261104-leitura';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261109-telas-antigas';
 import { TelaPresenca } from '../wfm/presenca.js?v=20261106-wfm';
 import { TelaCadastros } from '../wfm/cadastros.js?v=20261104-leitura';
 import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261104-leitura';
@@ -268,7 +268,7 @@ export function TelaEquipesControle({ controlador }) {
     return html`
       ${seletores}
       ${aba === 'presenca' ? html`<${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} embutido=${true} />`
-        : aba === 'escala' ? html`<${CalendarioEquipe} ehSupervisor=${controlador.estado?.perfilUsuario === 'supervisor'} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
+        : aba === 'escala' ? html`<${CalendarioEquipe} aoVerPainel=${controlador.podeAcessarTela('screen-wfm-dia') ? () => controlador.irParaTelaProtegida('screen-wfm-dia') : undefined} ehSupervisor=${controlador.estado?.perfilUsuario === 'supervisor'} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
           : html`<${TelaCadastros} ...${props} />`}`;
   };
 
