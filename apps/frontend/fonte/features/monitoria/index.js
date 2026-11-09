@@ -2,6 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261108-admin';
 import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261108-painel-dia';
+import { TelaInicioOperador } from './inicio-operador.js?v=20261109-lote3';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -248,6 +249,8 @@ export function TelaInicioPorSessoes({ controlador }) {
   if (estado.perfilUsuario === 'supervisor') {
     return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} />`;
   }
+  // Operador: Início no desenho novo (cabeçalho com "Seu dia", atalhos e Precisa de você) — amostra da Fase 14 (DEC-086).
+  if (ehOperador) return html`<${TelaInicioOperador} controlador=${controlador} sessoes=${sessoes} />`;
   return html`
     <${PainelRh} screenId="screen-menu" navAtiva="screen-menu" subtituloMarca="Início" placeholderBusca="Conecta" controlador=${controlador}>
       <div class="mon-inicio">

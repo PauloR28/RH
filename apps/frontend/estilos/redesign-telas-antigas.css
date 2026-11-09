@@ -297,3 +297,14 @@
   .c-rh-tabela th:first-child, .c-rh-tabela td:first-child { padding-left: var(--espaco-3); }
   .c-rh-tabela td.c-rh-longo { max-width: 160px; }
 }
+/* Início do Operador (lote 3): faixa "Seu dia" com o número de etapas do turno; no celular vai para baixo da saudação */
+.c-saudacao .c-meudia { grid-template-columns: repeat(var(--n, 5), 120px); }
+.c-io-meudia-carregando { display: block; width: 360px; padding: var(--espaco-3); }
+.c-io-rotulo { margin: 0 0 var(--espaco-2); }
+.c-io-pend { display: inline-flex; align-items: center; gap: var(--espaco-2); }
+@media (max-width: 1179.98px) { .c-io-tabela td { white-space: normal; } }
+@media (max-width: 899.98px) {
+  .c-saudacao { flex-direction: column; }
+  .c-saudacao .c-meudia { margin-left: 0; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); border-top: var(--borda-fina) solid var(--tabela-linha); }
+  .c-io-meudia-carregando { width: auto; }
+}

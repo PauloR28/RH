@@ -112,7 +112,7 @@ const TelaConfiguracoesSistema = carregarTela(
   () => import('../features/configuracoes/index.js?v=20261108-admin'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261104-leitura');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261109-lote3');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
