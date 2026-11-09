@@ -1,9 +1,4 @@
-import { html, useCallback, useEffect, useRef, useState, React } from '../../../infraestrutura-react.js';
-
-const Fragment = React.Fragment;
-import { LoadingState } from '../../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../../ui/components/menu-acoes.js?v=20260930-label';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
 import {
   definirSkillsOperadorWfm,
   lerEscalaWfm,
@@ -26,14 +21,15 @@ import {
   salvarTipoEscalaWfm,
 } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { descreverTurno } from './escala.js?v=20261104-leitura';
-import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
-import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261104-leitura';
-import { textoLegivel } from './compartilhar.js?v=20261104-leitura';
-import { TIPOS_PAUSA } from './jornadas.js?v=20261104-leitura';
+import { semAcento } from './escala-ui.js?v=20261104-leitura';
+import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261104-leitura';
+import { TabelaHistorico } from './historico.js?v=20261104-leitura';
+import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
+// Cadastros do WFM (redesign Fase 15, amostra Q3 do lote 1): lista lateral em caixa branca (como Relatórios) —
+// Escala › Turnos · Jornadas e limites · Calendário especial · Skills · Tipos de escala; Registro › Histórico de alterações.
+// Cada item é UMA tabela com título e filtros na faixa de cima e "Novo …" à direita; clique na linha abre a janela de 560 px;
+// ⋯ = Ver pessoas, Duplicar, Excluir (quando o item tem). Só o Calendário especial usa mês. Mesmas rotas e regras de antes.
 
 const CATEGORIAS_SKILL = { IDIOMA: 'Idioma', PRODUTO: 'Produto', RETENCAO: 'Retenção', OUTRO: 'Outro' };
 // Tipos de turno. Férias e Escalado não exigem horário nem jornada (Escalado = horário ainda por definir).
@@ -43,10 +39,14 @@ const AVISO_TIPO = { FERIAS: 'Férias não exigem horário nem jornada.', ESCALA
 export const TURNO_VAZIO = { codigo: '', nome: '', tipo: 'TRABALHO', cor: '#1f5fbf', entrada: '08:00', saida: '16:00', id_contrato: '', id_supervisor: '', pausas: [], weekdays: [0, 1, 2, 3, 4], especial: false, ativo: true };
 const EVENTO_VAZIO = { tipo: 'FERIADO', data_ini: '', data_fim: '', descricao: '', id_turno: '', entrada: '', saida: '', gera_servico: false, servico: null };
 const SERVICO_VAZIO = { id_turno: '', entrada: '', saida: '', ids_operadores: [] };
+const TOM_EVENTO = { FERIADO: 'atencao', DATA_ESPECIAL: 'neutro', DIA_ESPECIAL: 'informacao', HORARIO_ESPECIAL: 'informacao' };
 
 const paraMin = (hhmm) => { const [h, m] = (hhmm || '00:00').split(':').map(Number); return h * 60 + m; };
 const horaDe = (min) => `${String(Math.floor((((min % 1440) + 1440) % 1440) / 60)).padStart(2, '0')}:${String((((min % 1440) + 1440) % 1440) % 60).padStart(2, '0')}`;
 const offsetDe = (entrada, inicio) => (((paraMin(inicio) - paraMin(entrada)) % 1440) + 1440) % 1440;
+const curta = (iso) => (iso ? iso.split('-').reverse().slice(0, 2).join('/') : '');
+const somarMes = (anoMes, delta) => { const [a, m] = anoMes.split('-').map(Number); const d = new Date(a, m - 1 + delta, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const rotuloMes = (anoMes) => { const [a, m] = anoMes.split('-').map(Number); const nome = new Date(a, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long' }); return `${nome.charAt(0).toUpperCase()}${nome.slice(1)} de ${a}`; };
 
 // Turno atrelado a jornada: saída = entrada + jornada (+ intervalos não remunerados).
 const saidaCalculada = (t, contratos) => {
@@ -59,34 +59,27 @@ const DIAS_CURTOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const ATALHOS_DIAS = [['Todos os dias', [0, 1, 2, 3, 4, 5, 6]], ['Seg a Sex', [0, 1, 2, 3, 4]], ['Fim de semana', [5, 6]]];
 const mesmosDias = (a, b) => a.length === b.length && a.every((d) => b.includes(d));
 
-// Bloco "Dias da semana" do turno: sete botões de marcar, atalhos e resumo. Estado nunca só por cor (rótulo e aria-checked).
+// Dias da semana do turno: sete caixinhas, atalhos e resumo (estado nunca só por cor).
 function BlocoDiasSemana({ dias, aoMudar, obrigatorio }) {
   const alternar = (i) => aoMudar((atual) => (atual.includes(i) ? atual.filter((d) => d !== i) : [...atual, i].sort()));
   const vazio = dias.length === 0;
-  return html`<section class="wfm-pt-dias" aria-labelledby="wfm-pt-dias-t">
-    <header><h3 id="wfm-pt-dias-t">Dias da semana</h3><span class="wfm-pt-novo">NOVO</span></header>
-    <p class="wfm-pt-ajuda">Dias em que este turno vale. O colaborador só trabalha nesses dias; nos outros fica sem escala ou com outro turno.</p>
-    <div class="wfm-pt-dias-btns" role="group" aria-label="Dias da semana do turno">
-      ${DIAS_CURTOS.map((nome, i) => html`<button key=${nome} type="button" role="checkbox" aria-checked=${dias.includes(i)} class=${`wfm-pt-dia ${dias.includes(i) ? 'is-marcado' : ''}`} onClick=${() => alternar(i)}>${nome}</button>`)}
-    </div>
-    <div class="wfm-pt-atalhos">${ATALHOS_DIAS.map(([rotulo, valor]) => html`<button key=${rotulo} type="button" class="wfm-pt-atalho" onClick=${() => aoMudar(valor)}>${rotulo}</button>`)}</div>
-    ${vazio && obrigatorio ? html`<p class="wfm-pt-resumo is-erro" role="alert">Escolha pelo menos um dia.</p>`
-      : html`<p class="wfm-pt-resumo">${vazio ? 'Vale em: nenhum dia' : `Vale em: ${dias.map((d) => DIAS_CURTOS[d]).join(', ')}`}</p>`}
-  </section>`;
+  return html`<fieldset class="c-padrao-dias c-cheio" aria-label="Dias da semana do turno">
+    <legend class="c-rotulo">Dias da semana · em que este turno vale</legend>
+    ${DIAS_CURTOS.map((nome, i) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${dias.includes(i)} onChange=${() => alternar(i)} /><span>${nome}</span></label>`)}
+    <span class="c-grupo">${ATALHOS_DIAS.map(([rotulo, valor]) => html`<button key=${rotulo} type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => aoMudar(valor)}>${rotulo}</button>`)}</span>
+    ${vazio && obrigatorio ? html`<span class="c-erro" role="alert"><${Ic} nome="warning" />Escolha pelo menos um dia.</span>` : null}
+  </fieldset>`;
 }
 
-// Painel flutuante "Novo turno / Editar turno": 470 px, colado ao topo e ao rodapé do cartão (14 px de margem) e por cima da
-// coluna da direita; sem cartão por perto, ocupa a lateral da janela. O corpo rola por dentro.
+// Janela "Novo turno / Editar turno" (560 px). Mesmas validações e confirmações de impacto de antes.
 export function ModalTurno({ operacao, inicial, contratos, supervisores = [], onClose, onSalvo, showToast }) {
   const [edit, setEdit] = useState(inicial);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
-  const [impacto, setImpacto] = useState(null);   // regra 8: números mostrados antes de confirmar a mudança de dias de um turno em uso
+  const [impacto, setImpacto] = useState(null);   // números mostrados antes de confirmar a mudança de dias de um turno em uso
   const [impactoTipo, setImpactoTipo] = useState(null);   // idem para a mudança de TIPO de um turno em uso (afeta toda a escala)
-  const caixa = useRef(null);
   const set = (k, v) => setEdit((e) => ({ ...e, [k]: v }));
-  useEffect(() => { if (impacto || impactoTipo) caixa.current?.querySelector('.wfm-pt-impacto')?.scrollIntoView({ block: 'nearest' }); }, [impacto, impactoTipo]);
   const mudarTipo = (tipo) => {
     setImpactoTipo(null); setImpacto(null); setErro('');
     setEdit((e) => ({ ...e, tipo, ...(tipo === 'TRABALHO' && !e.entrada ? { entrada: '08:00', saida: '16:00' } : {}) }));
@@ -102,30 +95,12 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
   const semDias = trabalho && !especial && dias.length === 0;
   const supervisor = supervisores.find((s) => String(s.id_usuario) === String(edit.id_supervisor)) || {};
 
-  useEffect(() => {
-    const anterior = document.activeElement;
-    const posicionar = () => {
-      const el = caixa.current; if (!el) return;
-      const r = document.querySelector('.mo-card-escala')?.getBoundingClientRect();
-      const ok = r && r.width > 0 && r.height > 0;
-      el.style.top = `${(ok ? r.top : 0) + 14}px`;
-      el.style.bottom = `${ok ? Math.max(window.innerHeight - r.bottom, 0) + 14 : 14}px`;
-      el.style.right = `${ok ? Math.max(window.innerWidth - r.right, 0) + 14 : 14}px`;
-    };
-    posicionar();
-    caixa.current?.querySelector('input:not([disabled])')?.focus();
-    const aoTeclar = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
-    window.addEventListener('resize', posicionar);
-    document.addEventListener('keydown', aoTeclar);
-    return () => { window.removeEventListener('resize', posicionar); document.removeEventListener('keydown', aoTeclar); anterior?.focus?.(); };
-  }, []);
-
   const gravar = async () => {
     setSalvando(true);
     try {
       const pausas = (edit.pausas || []).map((p) => ({ offset_min: offsetDe(edit.entrada, p.inicio), duracao_min: Math.max(Number(p.duracao_min) || 1, 1), tipo: p.tipo }));
       await salvarTurnoWfm({ ...edit, pausas, operacao, saida: trabalho ? saida : '', entrada: trabalho ? edit.entrada : '', confirmar_mudanca_tipo: mudouTipo, weekdays: especial ? [0, 1, 2, 3, 4, 5, 6] : dias, especial, id_contrato: comJornada ? Number(edit.id_contrato) : null, id_supervisor: edit.id_supervisor ? Number(edit.id_supervisor) : null }, edit.id_turno);
-      showToast?.(edit.id_turno ? 'Turno salvo.' : 'Turno salvo.', 'success');
+      showToast?.('Turno salvo.', 'success');
       onSalvo();
     } catch (err) { setErro(falhaAo('salvar o turno', err)); } finally { setSalvando(false); }
   };
@@ -166,62 +141,56 @@ export function ModalTurno({ operacao, inicial, contratos, supervisores = [], on
     return gravar();
   };
 
-  return html`<aside class="wfm-pt" ref=${caixa} role="dialog" aria-modal="false" aria-label=${edit.id_turno ? `Editar turno ${edit.codigo}` : 'Novo turno'}>
-    <header class="wfm-pt-cab"><h2>${edit.id_turno ? `Editar turno ${edit.codigo}` : 'Novo turno'}</h2>
-      <button type="button" class="mo-painel-x" aria-label="Fechar" title="Fechar" onClick=${onClose}><${Icone} nome="close" /></button></header>
-    <form class="wfm-pt-form" noValidate onSubmit=${salvar}>
-      <div class="wfm-pt-corpo">
-        <div class="wfm-pt-grade">
-          <${Campo} rotulo="Código" span=${1} dica=${edit.id_turno ? undefined : 'Gerado automaticamente a partir do nome'}><input class="form-control" maxlength="20" disabled value=${edit.codigo} placeholder="Automático" /></${Campo}>
-          <${Campo} rotulo="Nome" span=${1}><input class="form-control" maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /></${Campo}>
-          <${Campo} rotulo="Tipo" span=${1}><select class="form-select" value=${edit.tipo} onChange=${(e) => mudarTipo(e.target.value)}>${['TRABALHO', 'FOLGA', 'DSR', 'FERIAS', 'ESCALADO', ...(inicial.tipo === 'SOBREAVISO' ? ['SOBREAVISO'] : [])].map((t) => html`<option key=${t} value=${t}>${TIPOS_TURNO[t]}</option>`)}</select></${Campo}>
-          <${Campo} rotulo="Cor" span=${1}><input class="form-control form-control-color wfm-cor" type="color" value=${edit.cor} onInput=${(e) => set('cor', e.target.value)} /></${Campo}>
+  const titulo = edit.id_turno ? `Editar turno ${edit.codigo}` : 'Novo turno';
+  return html`<${Janela} titulo=${titulo} onClose=${onClose}>
+    <form class="c-janela-form" noValidate onSubmit=${salvar}>
+      <div class="c-janela-corpo">
+        <div class="c-form" style=${{ '--colunas': 2 }}>
+          <${Campo} rotulo="Nome"><input class="c-entrada" maxlength="120" value=${edit.nome} onInput=${(e) => set('nome', e.target.value)} /><//>
+          <${Campo} rotulo="Código" ajuda=${edit.id_turno ? '' : 'Gerado a partir do nome'}><input class="c-entrada" maxlength="20" disabled value=${edit.codigo} placeholder="Automático" /><//>
+          <${Campo} rotulo="Tipo"><select class="c-entrada" value=${edit.tipo} onChange=${(e) => mudarTipo(e.target.value)}>${['TRABALHO', 'FOLGA', 'DSR', 'FERIAS', 'ESCALADO', ...(inicial.tipo === 'SOBREAVISO' ? ['SOBREAVISO'] : [])].map((t) => html`<option key=${t} value=${t}>${TIPOS_TURNO[t]}</option>`)}</select><//>
+          <${Campo} rotulo="Cor"><input class="c-entrada" type="color" value=${edit.cor} onInput=${(e) => set('cor', e.target.value)} /><//>
           ${trabalho ? html`
-            <${Campo} rotulo="Horário (entrada – saída)" span=${1} dica=${comJornada ? 'Saída calculada: entrada + jornada' : 'A saída atravessa a meia-noite se for menor que a entrada'}>
-              <span class="wfm-pt-horario"><input class="form-control" type="time" aria-label="Entrada" value=${edit.entrada} onInput=${(e) => set('entrada', e.target.value)} /><span aria-hidden="true">–</span><input class="form-control" type="time" aria-label="Saída" disabled=${comJornada} value=${saida} onInput=${(e) => set('saida', e.target.value)} /></span></${Campo}>
-            <${Campo} rotulo="Jornada (opcional)" span=${1}><select class="form-select" value=${edit.id_contrato || ''} onChange=${(e) => set('id_contrato', e.target.value)}>
-              <option value="">Sem jornada</option>${contratos.filter((c) => c.ativo).map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo} · ${minutosParaHoras(c.jornada_diaria_max_min)}</option>`)}</select></${Campo}>
-            <${Campo} rotulo="Supervisor · Equipe" span=${2} dica="A equipe vem do supervisor escolhido"><span class="wfm-pt-sup">
-              <select class="form-select" aria-label="Supervisor (opcional)" value=${edit.id_supervisor || ''} onChange=${(e) => set('id_supervisor', e.target.value)}><option value="">Nenhum</option>${supervisores.map((s) => html`<option key=${s.id_usuario} value=${s.id_usuario}>${s.nome}</option>`)}</select>
-              <input class="form-control" aria-label="Equipe" disabled value=${supervisor.equipe || '—'} /></span></${Campo}>` : null}
-          <${Marca} rotulo="Ativo" span=${trabalho ? 1 : 2} checked=${edit.ativo} onChange=${(v) => set('ativo', v)} />
-          ${trabalho ? html`<${Marca} rotulo="Escala Especial" span=${1} checked=${!!edit.especial} onChange=${(v) => { setImpacto(null); set('especial', v); }} />` : null}
+            <${Campo} rotulo="Entrada" ajuda="Se a saída for menor, atravessa a meia-noite"><input class="c-entrada" type="time" value=${edit.entrada} onInput=${(e) => set('entrada', e.target.value)} /><//>
+            <${Campo} rotulo="Saída" ajuda=${comJornada ? 'Calculada: entrada + jornada' : ''}><input class="c-entrada" type="time" disabled=${comJornada} value=${saida} onInput=${(e) => set('saida', e.target.value)} /><//>
+            <${Campo} rotulo="Jornada (opcional)"><select class="c-entrada" value=${edit.id_contrato || ''} onChange=${(e) => set('id_contrato', e.target.value)}>
+              <option value="">Sem jornada</option>${contratos.filter((c) => c.ativo).map((c) => html`<option key=${c.id_contrato} value=${c.id_contrato}>${c.codigo} · ${minutosParaHoras(c.jornada_diaria_max_min)}</option>`)}</select><//>
+            <${Campo} rotulo="Supervisor (opcional)" ajuda=${supervisor.equipe ? `Equipe ${supervisor.equipe}` : 'A equipe vem do supervisor'}><select class="c-entrada" value=${edit.id_supervisor || ''} onChange=${(e) => set('id_supervisor', e.target.value)}><option value="">Nenhum</option>${supervisores.map((s) => html`<option key=${s.id_usuario} value=${s.id_usuario}>${s.nome}</option>`)}</select><//>` : null}
+          <label class="c-interruptor"><input type="checkbox" role="switch" checked=${!!edit.ativo} onChange=${(e) => set('ativo', e.target.checked)} />Turno ativo</label>
+          ${trabalho ? html`<label class="c-interruptor" title="Para dias fora da escala tradicional; vale em qualquer dia e não conta no limite de escalas por pessoa"><input type="checkbox" role="switch" checked=${!!edit.especial} onChange=${(e) => { setImpacto(null); set('especial', e.target.checked); }} />Escala Especial</label>` : null}
+          ${especial
+            ? html`<p class="c-ajuda c-cheio">Escala Especial: vale em qualquer dia da semana e não conta no limite de escalas por pessoa.</p>`
+            : semHorario ? html`<p class="c-ajuda c-cheio" role="note">${AVISO_TIPO[edit.tipo]}</p>`
+            : html`<${BlocoDiasSemana} dias=${dias} aoMudar=${(v) => { setImpacto(null); setEdit((e) => ({ ...e, weekdays: typeof v === 'function' ? v(e.weekdays || []) : v })); }} obrigatorio=${trabalho} />`}
         </div>
 
-        ${especial
-          ? html`<p class="wfm-pt-nota">Escala Especial: para dias fora da escala tradicional, com horário e rotina próprios. Vale em qualquer dia da semana e não conta no limite de escalas por colaborador.</p>`
-          : semHorario ? html`<p class="wfm-pt-nota" role="note">${AVISO_TIPO[edit.tipo]}</p>`
-          : html`<${BlocoDiasSemana} dias=${dias} aoMudar=${(v) => { setImpacto(null); setEdit((e) => ({ ...e, weekdays: typeof v === 'function' ? v(e.weekdays || []) : v })); }} obrigatorio=${trabalho} />
-        <p class="wfm-pt-nota">Cada colaborador pode ter até o limite de escalas definido em Configurações da escala (padrão 4), em dias diferentes. Pausas e outras configurações seguem esses dias.</p>`}
+        ${trabalho ? html`<div class="c-tabela-caixa">
+          <div class="c-filtros"><h3 class="c-cad-titulo">Pausas do turno</h3>
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto c-cad-novo" style=${{ marginLeft: 'auto' }} onClick=${() => setEdit({ ...edit, pausas: [...edit.pausas, { inicio: edit.entrada ? horaDe(paraMin(edit.entrada) + 90) : '09:00', duracao_min: 10, tipo: 'DESCANSO' }] })}><${Ic} nome="plus" />Pausa</button></div>
+          ${edit.pausas.length ? html`<table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col">Tipo</th><th scope="col">Início</th><th scope="col">Duração (min)</th><th scope="col" class="c-acoes"><span class="c-oculto">Remover</span></th></tr></thead><tbody>
+            ${edit.pausas.map((p, i) => html`<tr key=${i}>
+              <td><select class="c-entrada c-entrada--compacta" aria-label="Tipo da pausa" value=${p.tipo} onChange=${(e) => setPausa(i, 'tipo', e.target.value)}>${Object.entries(TIPOS_PAUSA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></td>
+              <td><input class="c-entrada c-entrada--compacta" aria-label="Início da pausa" type="time" value=${p.inicio} onInput=${(e) => setPausa(i, 'inicio', e.target.value)} /></td>
+              <td><input class="c-entrada c-entrada--compacta c-entrada--numero" aria-label="Duração da pausa (min)" type="number" min="1" value=${p.duracao_min} onInput=${(e) => setPausa(i, 'duracao_min', e.target.value)} /></td>
+              <td class="c-acoes"><button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Remover pausa" title="Remover pausa" onClick=${() => setEdit({ ...edit, pausas: edit.pausas.filter((_, j) => j !== i) })}><${Ic} nome="trash" /></button></td>
+            </tr>`)}</tbody></table>` : html`<p class="c-ajuda" style=${{ padding: 'var(--espaco-2) var(--espaco-3)', margin: 0 }}>Nenhuma pausa neste turno.</p>`}
+        </div>` : null}
 
-        ${trabalho ? html`
-          <div class="wfm-sub-cab"><h4>Pausas do turno</h4><${BotaoAdicionar} rotulo="Pausa" onClick=${() => setEdit({ ...edit, pausas: [...edit.pausas, { inicio: edit.entrada ? horaDe(paraMin(edit.entrada) + 90) : '09:00', duracao_min: 10, tipo: 'DESCANSO' }] })} /></div>
-          ${edit.pausas.length ? html`<div class="wfm-linhas wfm-linhas--turno">
-            <div class="wfm-linhas-cab"><span>Tipo</span><span>Início</span><span>Duração min</span><span></span></div>
-            ${edit.pausas.map((p, i) => html`<div class="wfm-linhas-item" key=${i}>
-              <select class="form-select" aria-label="Tipo" value=${p.tipo} onChange=${(e) => setPausa(i, 'tipo', e.target.value)}>${Object.entries(TIPOS_PAUSA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select>
-              <input class="form-control" aria-label="Início" type="time" value=${p.inicio} onInput=${(e) => setPausa(i, 'inicio', e.target.value)} />
-              <input class="form-control" aria-label="Duração min" type="number" min="1" value=${p.duracao_min} onInput=${(e) => setPausa(i, 'duracao_min', e.target.value)} />
-              <${BotaoRemover} onClick=${() => setEdit({ ...edit, pausas: edit.pausas.filter((_, j) => j !== i) })} />
-            </div>`)}
-          </div>` : html`<p class="mon-muted wfm-vazio-txt">Nenhuma pausa neste turno.</p>`}` : null}
-
-        ${impactoTipo ? html`<div class="wfm-pt-impacto" role="alert"><strong>Esta mudança afeta toda a escala que usa o turno ${edit.codigo}.</strong>
-          <span>${`O tipo muda de ${TIPOS_TURNO[impactoTipo.tipo_atual] || impactoTipo.tipo_atual} para ${TIPOS_TURNO[impactoTipo.tipo_novo] || impactoTipo.tipo_novo} para ${impactoTipo.operadores} colaborador(es): ${impactoTipo.dias_futuros} dia(s) de hoje em diante e ${impactoTipo.dias_passados} dia(s) já passados${impactoTipo.eventos_calendario ? `, além de ${impactoTipo.eventos_calendario} item(ns) do calendário especial` : ''}.${impactoTipo.trocas_em_andamento ? ` ${impactoTipo.trocas_em_andamento} pedido(s) de troca em andamento serão invalidados.` : ''}`}</span>
-          <span>${impactoTipo.aviso}</span></div>` : null}
-        ${impacto ? html`<div class="wfm-pt-impacto" role="alert"><strong>Esta mudança afeta escalas já lançadas.</strong>
-          <span>${impacto.operadores} operador(es) e ${impacto.dias_fora} dia(s) de hoje em diante ficam fora dos novos dias e passam a contar como configurados à mão.
-          Pausas nesses dias: ${impacto.pausas_automaticas} automática(s) e ${impacto.pausas_manuais} manual(is).</span>
-          <span>${impacto.aviso}</span></div>` : null}
-        ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
+        ${impactoTipo ? html`<div class="c-faixa c-faixa--atencao" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p><b>Esta mudança afeta toda a escala que usa o turno ${edit.codigo}.</b>
+          ${` O tipo muda de ${TIPOS_TURNO[impactoTipo.tipo_atual] || impactoTipo.tipo_atual} para ${TIPOS_TURNO[impactoTipo.tipo_novo] || impactoTipo.tipo_novo} para ${impactoTipo.operadores} colaborador(es): ${impactoTipo.dias_futuros} dia(s) de hoje em diante e ${impactoTipo.dias_passados} dia(s) já passados${impactoTipo.eventos_calendario ? `, além de ${impactoTipo.eventos_calendario} item(ns) do calendário especial` : ''}.${impactoTipo.trocas_em_andamento ? ` ${impactoTipo.trocas_em_andamento} pedido(s) de troca em andamento serão invalidados.` : ''}`}
+          ${impactoTipo.aviso ? ` ${impactoTipo.aviso}` : ''}</p></div></div>` : null}
+        ${impacto ? html`<div class="c-faixa c-faixa--atencao" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p><b>Esta mudança afeta escalas já lançadas.</b>
+          ${` ${impacto.operadores} operador(es) e ${impacto.dias_fora} dia(s) de hoje em diante ficam fora dos novos dias e passam a contar como configurados à mão. Pausas nesses dias: ${impacto.pausas_automaticas} automática(s) e ${impacto.pausas_manuais} manual(is).`}
+          ${impacto.aviso ? ` ${impacto.aviso}` : ''}</p></div></div>` : null}
+        ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
       </div>
-      <footer class="wfm-pt-rodape">
-        ${podeExcluir ? html`<button type="button" class="btn btn-outline-danger wfm-pt-excluir" disabled=${excluindo || !!salvando} onClick=${excluir}>${excluindo ? 'Excluindo…' : 'Excluir turno'}</button>` : null}
-        <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
-        <button type="submit" class="btn btn-primary" disabled=${!!salvando || semDias}>${salvando ? 'Salvando…' : impacto || impactoTipo ? 'Confirmar e salvar turno' : 'Salvar turno'}</button>
-      </footer>
+      <div class="c-janela-rodape">
+        ${podeExcluir ? html`<button type="button" class="c-botao c-botao--texto c-tom-perigo" style=${{ marginRight: 'auto' }} disabled=${excluindo || !!salvando || null} onClick=${excluir}>${excluindo ? 'Excluindo…' : 'Excluir turno'}</button>` : null}
+        <button type="button" class="c-botao c-botao--secundario" onClick=${onClose}>Cancelar</button>
+        <button type="submit" class="c-botao c-botao--principal" aria-busy=${salvando ? 'true' : null} disabled=${!!salvando || semDias || null}>${salvando ? 'Salvando…' : impacto || impactoTipo ? 'Confirmar e salvar turno' : 'Salvar turno'}</button>
+      </div>
     </form>
-  </aside>`;
+  <//>`;
 }
 
 // Turno vindo da API -> estado do formulário (pausas com horário de início real).
@@ -264,57 +233,21 @@ function ModalPersonalizarTurno({ operacao, turno, operadores, onClose, onMudou,
     catch (e) { setErro(e?.message || 'Não foi possível remover.'); }
   };
   const livres = operadores.filter((o) => !(lista || []).some((p) => p.id_operador === o.id_usuario) || String(o.id_usuario) === form.id_operador);
-  return html`<${ModalForm} titulo=${`Personalizar turno ${turno.codigo}`} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo="Salvar horário">
-    <p class="mon-muted">Horário padrão do turno: <strong>${turno.entrada}–${turno.saida}</strong>. Quem já está no turno continua com o horário padrão; só o colaborador escolhido abaixo passa a ter horário próprio.</p>
-    <div class="wfm-grade-form">
-      <${Campo} rotulo="Colaborador" span=${6}><select class="form-select" value=${form.id_operador} onChange=${(e) => set('id_operador', e.target.value)}><option value="">Escolher colaborador</option>${livres.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}</select></${Campo}>
-      <${Campo} rotulo="Entrada" span=${3}><input class="form-control" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /></${Campo}>
-      <${Campo} rotulo="Saída" span=${3}><input class="form-control" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>
-      <${Marca} rotulo="Ajustar também os dias já lançados de hoje em diante" span=${12} checked=${form.aplicar_lancados} onChange=${(v) => set('aplicar_lancados', v)} />
+  return html`<${JanelaForm} titulo=${`Pessoas com horário próprio · ${turno.codigo}`} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando} salvarRotulo="Salvar horário">
+    <p class="c-ajuda">Horário padrão do turno: <b>${turno.entrada}–${turno.saida}</b>. Só a pessoa escolhida abaixo passa a ter horário próprio.</p>
+    <div class="c-form" style=${{ '--colunas': 3 }}>
+      <${Campo} rotulo="Colaborador" cheio=${true}><select class="c-entrada" value=${form.id_operador} onChange=${(e) => set('id_operador', e.target.value)}><option value="">Escolher colaborador</option>${livres.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}</select><//>
+      <${Campo} rotulo="Entrada"><input class="c-entrada" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /><//>
+      <${Campo} rotulo="Saída"><input class="c-entrada" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /><//>
     </div>
-    <div class="wfm-sub-cab"><h4>Colaboradores com horário próprio</h4></div>
-    ${lista === null ? html`<${LoadingState} />` : lista.length ? html`<div class="mon-tabela-wrap"><table class="mon-tabela wfm-tabela"><thead><tr><th>Colaborador</th><th>Horário</th><th></th></tr></thead><tbody>
-      ${lista.map((p) => html`<tr key=${p.id_operador}><td>${p.operador}</td><td>${p.entrada}–${p.saida}</td><td class="wfm-acoes-linha"><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setForm((f) => ({ ...f, id_operador: String(p.id_operador), entrada: p.entrada, saida: p.saida }))}>Editar</button><button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => remover(p)}>Remover</button></td></tr>`)}
-    </tbody></table></div>` : html`<p class="mon-muted wfm-vazio-txt">Ninguém com horário próprio neste turno.</p>`}
-  </${ModalForm}>`;
-}
-
-function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], podeEditar, recarregar, showToast }) {
-  const [edit, setEdit] = useState(null);
-  const [personalizar, setPersonalizar] = useState(null);
-  const abrirEdicao = (t) => setEdit(turnoParaEdicao(t));
-  const excluir = async (t) => {
-    if (!window.confirm(`Excluir o turno ${t.codigo} (${t.nome})? Só é possível se ele nunca foi usado em uma escala.`)) return;
-    try { await excluirTurnoWfm(operacao, t.id_turno); showToast?.('Turno excluído.', 'success'); recarregar(); }
-    catch (err) { showToast?.(falhaAo('excluir o turno', err), 'error'); }
-  };
-  return html`
-    <${CardRecolhivel} titulo="Turnos" contador=${turnos.length} className="mo-cartao-turnos"
-      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}>
-      <table class="mo-tabela mo-tabela--turnos">
-        <colgroup><col style=${{ width: '148px' }} /><col /><col style=${{ width: '84px' }} /><col style=${{ width: '124px' }} /><col style=${{ width: '64px' }} /><col style=${{ width: '150px' }} /><col style=${{ width: '54px' }} /><col style=${{ width: '92px' }} /></colgroup>
-        <thead><tr><th scope="col">Código</th><th scope="col">Nome</th><th scope="col">Tipo</th><th scope="col">Horário · Dias</th><th scope="col">Jornada</th><th scope="col">Supervisor · Equipe</th><th scope="col">Pausas</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead>
-        <tbody>
-          ${turnos.length ? turnos.map((t) => html`<tr key=${t.id_turno}>
-            <td><span class="mo-chip mo-chip--lg" style=${{ '--ea-cor': t.cor, '--ea-fg': textoLegivel(t.cor) }} title=${t.nome}>${t.codigo}</span></td>
-            <td><span class="mo-trunca" title=${t.nome}>${t.nome}</span>${t.ativo ? '' : html` <span class="mon-tag">Inativo</span>`}</td>
-            <td><span class="mo-tipo">${t.especial ? 'ESPECIAL' : (TIPOS_TURNO[t.tipo] || t.tipo)}</span></td>
-            <td><span class="mo-num">${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</span><small class="mo-sub2" title="Dias da semana em que o turno vale">${t.dias_rotulo || '—'}</small></td>
-            <td><span class="mo-num">${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}</span>${t.id_contrato ? html`<small class="mo-sub2">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</small>` : null}</td>
-            <td>${t.supervisor ? html`<span class="mo-trunca" title=${t.supervisor}>${t.supervisor}</span>${t.equipe ? html`<small class="mo-sub2 mo-trunca" title=${`Equipe ${t.equipe}`}>Equipe ${t.equipe}</small>` : html`<small class="mo-sub2">—</small>`}` : '—'}</td>
-            <td class="mo-num">${t.pausas.length ? html`<span title=${descreverTurno(t).split(' · ').slice(1).join(' · ')}>${t.pausas.length}</span>` : '—'}</td>
-            <td class="mo-acoes-celula">${podeEditar ? html`<${MenuAcoesProcesso} ariaLabel=${`Ações do turno ${t.codigo}`} label="Ações" mostrarLabel=${true} icon="expand_more" triggerClassName="mo-btn mo-btn--neutro mo-btn--30"
-              acoes=${[
-                { label: 'Editar', icon: 'edit', onClick: () => abrirEdicao(t) },
-                t.tipo === 'TRABALHO' && t.ativo ? { label: 'Personalizar', icon: 'tune', onClick: () => setPersonalizar(t) } : null,
-                ['TRABALHO', 'SOBREAVISO', 'FERIAS', 'ESCALADO'].includes(t.tipo) ? { label: 'Excluir', icon: 'delete', danger: true, onClick: () => excluir(t) } : null,
-              ]} />` : null}</td></tr>`)
-          : html`<tr><td colspan="8" class="mo-vazio">Nenhum turno cadastrado.${podeEditar ? html` <button type="button" class="mo-btn mo-btn--sec mo-btn--30" onClick=${() => setEdit({ ...TURNO_VAZIO, pausas: [] })}><${Icone} nome="add" />Novo turno</button>` : null}</td></tr>`}
-        </tbody>
-      </table>
-    </${CardRecolhivel}>
-    ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}
-    ${personalizar ? html`<${ModalPersonalizarTurno} operacao=${operacao} turno=${personalizar} operadores=${operadores} showToast=${showToast} onClose=${() => setPersonalizar(null)} onMudou=${recarregar} />` : null}`;
+    <label class="c-marcar"><input type="checkbox" checked=${form.aplicar_lancados} onChange=${(e) => set('aplicar_lancados', e.target.checked)} /><span>Ajustar também os dias já lançados de hoje em diante</span></label>
+    <div class="c-tabela-caixa">${lista === null ? html`<${Esqueleto} linhas=${2} />` : lista.length ? html`<table class="c-tabela c-tabela--compacta"><thead><tr><th scope="col" class="c-estica">Colaborador</th><th scope="col">Horário</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead><tbody>
+      ${lista.map((p) => html`<tr key=${p.id_operador}><td class="c-estica">${p.operador}</td><td class="c-num-esq">${p.entrada}–${p.saida}</td><td class="c-acoes"><${MenuAcoes} rotulo=${`Ações para ${p.operador}`} acoes=${[
+        { label: 'Editar', icon: 'pencil-simple', onClick: () => setForm((f) => ({ ...f, id_operador: String(p.id_operador), entrada: p.entrada, saida: p.saida })) },
+        { label: 'Voltar ao padrão', icon: 'trash', perigo: true, onClick: () => remover(p) },
+      ]} /></td></tr>`)}
+    </tbody></table>` : html`<${Estado} titulo="Ninguém com horário próprio neste turno." />`}</div>
+  <//>`;
 }
 
 function ModalEvento({ operacao, inicial, turnos, operadores = [], onClose, onSalvo, showToast }) {
@@ -329,8 +262,7 @@ function ModalEvento({ operacao, inicial, turnos, operadores = [], onClose, onSa
   const servico = form.servico;
   const setServico = (k, v) => setForm((f) => ({ ...f, servico: { ...f.servico, [k]: v } }));
   const marcados = new Set(servico.ids_operadores);
-  const normaliza = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const filtrados = operadores.filter((o) => !busca.trim() || normaliza(o.nome).includes(normaliza(busca.trim())));
+  const filtrados = operadores.filter((o) => !busca.trim() || semAcento(o.nome).includes(semAcento(busca.trim())));
   const alternarOp = (id) => setServico('ids_operadores', marcados.has(id) ? servico.ids_operadores.filter((x) => x !== id) : [...servico.ids_operadores, id]);
   const todosFiltrados = filtrados.length > 0 && filtrados.every((o) => marcados.has(o.id_usuario));
   const alternarTodos = () => setServico('ids_operadores', todosFiltrados
@@ -359,98 +291,195 @@ function ModalEvento({ operacao, inicial, turnos, operadores = [], onClose, onSa
       onSalvo();
     } catch (err) { setErro(falhaAo('salvar o item do calendário', err)); } finally { setSalvando(false); }
   };
-  return html`<${ModalForm} titulo=${form.id_item ? 'Editar item do calendário' : 'Novo item do calendário'} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando}>
-    <div class="wfm-grade-form">
-      <${Campo} rotulo="Tipo" span=${4}><select class="form-select" value=${form.tipo} onChange=${(e) => set('tipo', e.target.value)}>${Object.entries(ROTULO_TIPO_EVENTO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></${Campo}>
-      <${Campo} rotulo="Data inicial" span=${4}><input class="form-control" type="date" value=${form.data_ini} onInput=${(e) => setForm({ ...form, data_ini: e.target.value, data_fim: form.data_fim || e.target.value })} /></${Campo}>
-      <${Campo} rotulo="Data final" span=${4}><input class="form-control" type="date" value=${form.data_fim} onInput=${(e) => set('data_fim', e.target.value)} /></${Campo}>
-      <${Campo} rotulo="Descrição" span=${usaTurno ? 6 : 12}><input class="form-control" maxlength="200" value=${form.descricao} onInput=${(e) => set('descricao', e.target.value)} /></${Campo}>
-      ${usaTurno ? html`<${Campo} rotulo="Turno" span=${form.tipo === 'HORARIO_ESPECIAL' ? 2 : 6}><select class="form-select" value=${form.id_turno} onChange=${(e) => set('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}</select></${Campo}>` : null}
-      ${feriado ? html`<fieldset class="wfm-feriado" style=${{ gridColumn: 'span 12' }}>
-        <legend>Neste feriado, a escala…</legend>
-        <label class="wfm-check"><input type="radio" name="gera-servico" checked=${!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: false })} /> Não gera serviço — todos ficam de Folga nesse(s) dia(s)</label>
-        <label class="wfm-check"><input type="radio" name="gera-servico" checked=${!!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: true })} /> Gera serviço — escolho quem trabalha e o horário (os demais ficam de Folga)</label>
-        ${form.gera_servico ? html`<div class="wfm-feriado-servico">
-          <div class="wfm-grade-form">
-            <${Campo} rotulo="Turno de quem trabalha" span=${6}><select class="form-select" value=${servico.id_turno} onChange=${(e) => setServico('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` (${t.entrada}–${t.saida})` : ''}</option>`)}</select></${Campo}>
-            <${Campo} rotulo="Entrada (opcional)" span=${3} dica="Em branco = horário do turno"><input class="form-control" type="time" value=${servico.entrada} onInput=${(e) => setServico('entrada', e.target.value)} /></${Campo}>
-            <${Campo} rotulo="Saída (opcional)" span=${3}><input class="form-control" type="time" value=${servico.saida} onInput=${(e) => setServico('saida', e.target.value)} /></${Campo}>
-          </div>
-          <div class="wfm-feriado-pessoas" role="group" aria-label="Quem vai trabalhar">
-            <div class="wfm-feriado-cab">
-              <input class="form-control" type="search" aria-label="Buscar colaborador" placeholder="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} />
-              <label class="wfm-check"><input type="checkbox" checked=${todosFiltrados} onChange=${alternarTodos} /> Marcar todos</label>
-              <span class="mon-muted">${servico.ids_operadores.length} de ${operadores.length} vão trabalhar</span>
-            </div>
-            <ul class="wfm-feriado-lista">${filtrados.length ? filtrados.map((o) => html`<li key=${o.id_usuario}><label class="wfm-check"><input type="checkbox" checked=${marcados.has(o.id_usuario)} onChange=${() => alternarOp(o.id_usuario)} /> ${o.nome}</label></li>`) : html`<li class="mon-muted">Nenhum colaborador encontrado.</li>`}</ul>
-          </div>
-        </div>` : null}
-        <p class="mon-muted">O que for definido aqui é aplicado na escala assim que você salvar o feriado. Se a escala já estava aprovada, ela volta a rascunho e precisa ser aprovada de novo.</p>
-      </fieldset>` : null}
-      ${form.tipo === 'HORARIO_ESPECIAL' ? html`<${Campo} rotulo="Nova entrada" span=${2}><input class="form-control" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /></${Campo}><${Campo} rotulo="Nova saída" span=${2}><input class="form-control" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /></${Campo}>` : null}
+  return html`<${JanelaForm} titulo=${form.id_item ? 'Editar item do calendário' : 'Novo item do calendário'} onClose=${onClose} onSubmit=${salvar} erro=${erro} salvando=${salvando}>
+    <div class="c-form" style=${{ '--colunas': 3 }}>
+      <${Campo} rotulo="Tipo"><select class="c-entrada" value=${form.tipo} onChange=${(e) => set('tipo', e.target.value)}>${Object.entries(ROTULO_TIPO_EVENTO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select><//>
+      <${Campo} rotulo="De"><input class="c-entrada" type="date" value=${form.data_ini} onInput=${(e) => setForm({ ...form, data_ini: e.target.value, data_fim: form.data_fim || e.target.value })} /><//>
+      <${Campo} rotulo="Até"><input class="c-entrada" type="date" value=${form.data_fim} onInput=${(e) => set('data_fim', e.target.value)} /><//>
+      <${Campo} rotulo="Descrição" cheio=${true}><input class="c-entrada" maxlength="200" value=${form.descricao} onInput=${(e) => set('descricao', e.target.value)} /><//>
+      ${usaTurno ? html`<${Campo} rotulo="Turno"><select class="c-entrada" value=${form.id_turno} onChange=${(e) => set('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}</select><//>` : null}
+      ${form.tipo === 'HORARIO_ESPECIAL' ? html`<${Campo} rotulo="Nova entrada"><input class="c-entrada" type="time" value=${form.entrada} onInput=${(e) => set('entrada', e.target.value)} /><//><${Campo} rotulo="Nova saída"><input class="c-entrada" type="time" value=${form.saida} onInput=${(e) => set('saida', e.target.value)} /><//>` : null}
     </div>
-  </${ModalForm}>`;
+    ${feriado ? html`<fieldset class="c-padrao-dias" style=${{ flexDirection: 'column', alignItems: 'stretch' }}>
+      <legend class="c-rotulo">Neste feriado, a escala…</legend>
+      <label class="c-marcar"><input type="radio" name="gera-servico" checked=${!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: false })} /><span>Não gera serviço — todos ficam de Folga</span></label>
+      <label class="c-marcar"><input type="radio" name="gera-servico" checked=${!!form.gera_servico} onChange=${() => setForm({ ...form, gera_servico: true })} /><span>Gera serviço — escolho quem trabalha e o horário (os demais ficam de Folga)</span></label>
+    </fieldset>` : null}
+    ${feriado && form.gera_servico ? html`
+      <div class="c-form" style=${{ '--colunas': 3 }}>
+        <${Campo} rotulo="Turno de quem trabalha"><select class="c-entrada" value=${servico.id_turno} onChange=${(e) => setServico('id_turno', e.target.value)}><option value="">Selecione</option>${trabalho.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}${t.entrada ? ` (${t.entrada}–${t.saida})` : ''}</option>`)}</select><//>
+        <${Campo} rotulo="Entrada" opcional=${true} ajuda="Em branco = horário do turno"><input class="c-entrada" type="time" value=${servico.entrada} onInput=${(e) => setServico('entrada', e.target.value)} /><//>
+        <${Campo} rotulo="Saída" opcional=${true}><input class="c-entrada" type="time" value=${servico.saida} onInput=${(e) => setServico('saida', e.target.value)} /><//>
+      </div>
+      <div class="c-grupo" role="group" aria-label="Quem vai trabalhar">
+        <div class="c-com-icone c-com-icone--compacta"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" aria-label="Buscar colaborador" placeholder="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+        <label class="c-marcar"><input type="checkbox" checked=${todosFiltrados} onChange=${alternarTodos} /><span>Marcar todos</span></label>
+        <span class="c-ajuda">${servico.ids_operadores.length} de ${operadores.length} vão trabalhar</span>
+      </div>
+      <div class="c-lote-lista">${filtrados.length ? filtrados.map((o) => html`<label key=${o.id_usuario} class="c-marcar"><input type="checkbox" checked=${marcados.has(o.id_usuario)} onChange=${() => alternarOp(o.id_usuario)} /><span>${o.nome}</span></label>`) : html`<span class="c-ajuda">Nenhum colaborador encontrado.</span>`}</div>` : null}
+    ${feriado ? html`<p class="c-ajuda">É aplicado na escala ao salvar. Se a escala já estava aprovada, ela volta a rascunho e precisa ser aprovada de novo.</p>` : null}
+  <//>`;
 }
 
-function Calendario({ operacao, eventos, turnos, operadores = [], podeEditar, recarregar, showToast }) {
+// Faixa de cima de cada tabela: título, filtros e "Novo …" à direita.
+function FaixaItem({ titulo, children, novo = null, contagem = '' }) {
+  return html`<div class="c-filtros c-filtros--suave c-cad-faixa">
+    <h2 class="c-cad-titulo">${titulo}</h2>
+    ${children}
+    ${contagem ? html`<span class="c-contador">${contagem}</span>` : null}
+    ${novo ? html`<button type="button" class="c-botao c-botao--principal c-botao--compacto c-cad-novo" style=${contagem ? { marginLeft: 0 } : null} onClick=${novo.onClick}><${Ic} nome="plus" />${novo.rotulo}</button>` : null}
+  </div>`;
+}
+
+function Busca({ valor, aoMudar, rotulo }) {
+  return html`<div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder=${rotulo} aria-label=${rotulo} value=${valor} onInput=${(e) => aoMudar(e.target.value)} /></div>`;
+}
+
+function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], podeEditar, recarregar, showToast }) {
   const [edit, setEdit] = useState(null);
+  const [personalizar, setPersonalizar] = useState(null);
+  const [busca, setBusca] = useState('');
+  const [tipo, setTipo] = useState('');
+  const [situacao, setSituacao] = useState('');
+  const excluir = async (t) => {
+    if (!window.confirm(`Excluir o turno ${t.codigo} (${t.nome})? Só é possível se ele nunca foi usado em uma escala.`)) return;
+    try { await excluirTurnoWfm(operacao, t.id_turno); showToast?.('Turno excluído.', 'success'); recarregar(); }
+    catch (err) { showToast?.(falhaAo('excluir o turno', err), 'error'); }
+  };
+  // Duplicar abre a janela de Novo turno já preenchida (nome com "(cópia)"); só grava ao salvar.
+  const duplicar = (t) => { const e = turnoParaEdicao(t); delete e.id_turno; setEdit({ ...e, codigo: '', nome: `${t.nome} (cópia)` }); };
+  const visiveis = turnos.filter((t) => (!busca || semAcento(`${t.codigo} ${t.nome}`).includes(semAcento(busca)))
+    && (!tipo || t.tipo === tipo) && (!situacao || (situacao === 'ativo' ? t.ativo : !t.ativo)));
+  const tipos = [...new Set(turnos.map((t) => t.tipo))];
+  return html`
+    <div class="c-tabela-caixa">
+      <${FaixaItem} titulo="Turnos" contagem=${`${visiveis.length} de ${turnos.length}`} novo=${podeEditar ? { rotulo: 'Novo turno', onClick: () => setEdit({ ...TURNO_VAZIO, pausas: [] }) } : null}>
+        <${Busca} valor=${busca} aoMudar=${setBusca} rotulo="Buscar turno" />
+        ${tipos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Tipo" value=${tipo} onChange=${(e) => setTipo(e.target.value)}><option value="">Tipo: todos</option>${tipos.map((t) => html`<option key=${t} value=${t}>${TIPOS_TURNO[t] || t}</option>`)}</select>` : null}
+        <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${situacao} onChange=${(e) => setSituacao(e.target.value)}><option value="">Situação: todas</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select>
+      <//>
+      ${!turnos.length ? html`<${Estado} icone="clock" titulo="Nenhum turno cadastrado." rotuloAcao=${podeEditar ? 'Novo turno' : undefined} aoAcao=${podeEditar ? () => setEdit({ ...TURNO_VAZIO, pausas: [] }) : undefined} />`
+        : !visiveis.length ? html`<${Estado} titulo="Nenhum turno com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setTipo(''); setSituacao(''); }} />`
+        : html`<table class="c-tabela">
+          <thead><tr><th scope="col">Código</th><th scope="col" class="c-estica">Nome</th><th scope="col">Tipo</th><th scope="col">Horário</th><th scope="col">Dias</th><th scope="col" class="c-col-opc">Jornada</th><th scope="col" class="c-col-opc">Supervisor</th><th scope="col" class="c-num c-col-opc">Pausas</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+          <tbody>${visiveis.map((t) => html`<tr key=${t.id_turno} class=${podeEditar ? 'c-clicavel' : ''} onClick=${podeEditar ? (ev) => { if (!ev.target.closest('button, .c-abre-menu')) setEdit(turnoParaEdicao(t)); } : undefined}>
+            <td class="c-forte" data-papel="info" data-prioridade="1" data-primeira=""><span class="c-cor-turno" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }} aria-hidden="true"></span>${t.codigo}</td>
+            <td class="c-estica" data-papel="titulo">${podeEditar ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-linha-nome" onClick=${() => setEdit(turnoParaEdicao(t))}>${t.nome}</button>` : t.nome}</td>
+            <td>${t.especial ? 'Especial' : (TIPOS_TURNO[t.tipo] || t.tipo)}</td>
+            <td class="c-num-esq" data-papel="info" data-prioridade="1">${t.entrada ? `${t.entrada}–${t.saida}` : '—'}</td>
+            <td class="c-secundario" data-papel="info" data-prioridade="1">${t.dias_rotulo || '—'}</td>
+            <td class="c-num-esq c-col-opc">${t.entrada ? minutosParaHoras(t.minutos || 0) : '—'}${t.id_contrato ? html` <span class="c-secundario">${(contratos.find((c) => c.id_contrato === t.id_contrato) || {}).codigo || ''}</span>` : null}</td>
+            <td class="c-secundario c-col-opc">${t.supervisor ? `${t.supervisor}${t.equipe ? ` · ${t.equipe}` : ''}` : '—'}</td>
+            <td class="c-num c-col-opc">${(t.pausas || []).length || '—'}</td>
+            <td data-papel="selo">${t.ativo ? html`<${Selo} tom="sucesso">Ativo<//>` : html`<${Selo} tom="neutro">Inativo<//>`}</td>
+            <td class="c-acoes" data-papel="acoes">${podeEditar ? html`<${MenuAcoes} rotulo=${`Ações do turno ${t.codigo}`} acoes=${[
+              t.tipo === 'TRABALHO' && t.ativo ? { label: 'Ver pessoas com horário próprio', icon: 'users', onClick: () => setPersonalizar(t) } : null,
+              ['TRABALHO', 'SOBREAVISO', 'FERIAS', 'ESCALADO'].includes(t.tipo) ? { label: 'Duplicar', icon: 'copy', onClick: () => duplicar(t) } : null,
+              ['TRABALHO', 'SOBREAVISO', 'FERIAS', 'ESCALADO'].includes(t.tipo) ? { label: 'Excluir', icon: 'trash', perigo: true, onClick: () => excluir(t) } : null,
+            ]} />` : null}</td>
+          </tr>`)}</tbody>
+        </table>`}
+    </div>
+    ${edit ? html`<${ModalTurno} operacao=${operacao} inicial=${edit} contratos=${contratos} supervisores=${supervisores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}
+    ${personalizar ? html`<${ModalPersonalizarTurno} operacao=${operacao} turno=${personalizar} operadores=${operadores} showToast=${showToast} onClose=${() => setPersonalizar(null)} onMudou=${recarregar} />` : null}`;
+}
+
+function Calendario({ operacao, anoMes, aoMudarMes, eventos, turnos, operadores = [], podeEditar, recarregar, showToast }) {
+  const [edit, setEdit] = useState(null);
+  const [tipo, setTipo] = useState('');
   const remover = async (ev) => {
+    if (!window.confirm(`Excluir "${ev.descricao}" do calendário especial?`)) return;
     try { await salvarEventoWfm({ ...ev, operacao, ativo: false }, ev.id_item); recarregar(); } catch (err) { showToast?.(falhaAo('remover o item do calendário', err), 'error'); }
   };
+  const abrir = (ev) => setEdit({ ...ev, id_turno: ev.id_turno || '', entrada: ev.entrada || '', saida: ev.saida || '' });
+  const duplicar = (ev) => { const { id_item: _id, ...resto } = ev; setEdit({ ...resto, id_turno: ev.id_turno || '', entrada: ev.entrada || '', saida: ev.saida || '', descricao: `${ev.descricao} (cópia)` }); };
+  const visiveis = eventos.filter((e) => !tipo || e.tipo === tipo);
   return html`
-    <${CardRecolhivel} titulo="Calendário especial" contador=${eventos.length} descricao="Feriado · Data especial (informativa) · Dia especial (o dia todo usa um turno) · Horário especial (muda entrada e saída de um turno)."
-      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setEdit({ ...EVENTO_VAZIO })}><${Icone} nome="add" />Novo item</button>` : null}>
-      <ul class="mo-cal-lista">
-        ${eventos.length ? eventos.map((ev) => {
-          const curta = (iso) => iso.split('-').reverse().slice(0, 2).join('/');
-          const turno = ev.id_turno ? (turnos.find((t) => t.id_turno === ev.id_turno)?.codigo || '') : '';
-          const extra = [turno, ev.entrada ? `${ev.entrada}–${ev.saida}` : '', ev.tipo === 'FERIADO' ? (ev.gera_servico ? `serviço: ${(ev.servico?.ids_operadores || []).length} pessoa(s)` : 'folga para todos') : ''].filter(Boolean).join(' · ');
-          return html`<li key=${ev.id_item} class="mo-cal-lin">
-            <span class="mo-cal-data">${curta(ev.data_ini)}${ev.data_fim !== ev.data_ini ? ` a ${curta(ev.data_fim)}` : ''}</span>
-            <span class="mo-cal-meio"><span class="mo-trunca mo-cal-nome" title=${`${ev.descricao}${extra ? ` · ${extra}` : ''}`}>${ev.descricao}${extra ? html` <small class="mo-sub2">${extra}</small>` : null}</span>
-              <span class="mo-pilula mo-pilula--info">${ROTULO_TIPO_EVENTO[ev.tipo] || ev.tipo}</span></span>
-            ${podeEditar ? html`<span class="mo-cal-acoes"><button type="button" class="mo-btn mo-btn--neutro mo-btn--30" onClick=${() => setEdit({ ...ev, id_turno: ev.id_turno || '', entrada: ev.entrada || '', saida: ev.saida || '' })}>Editar</button><button type="button" class="mo-btn mo-btn--erro mo-btn--30" onClick=${() => remover(ev)}>Remover</button></span>` : null}
-          </li>`; })
-        : html`<li class="mo-vazio">Nenhum item neste mês.</li>`}
-      </ul>
-    </${CardRecolhivel}>
+    <div class="c-tabela-caixa">
+      <${FaixaItem} titulo="Calendário especial" contagem=${`${visiveis.length} no mês`} novo=${podeEditar ? { rotulo: 'Novo item', onClick: () => setEdit({ ...EVENTO_VAZIO }) } : null}>
+        <${Navegar} grupo="Mês" rotulo=${rotuloMes(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes(somarMes(anoMes, 1))} />
+        <select class="c-entrada c-entrada--compacta" aria-label="Tipo" value=${tipo} onChange=${(e) => setTipo(e.target.value)}><option value="">Tipo: todos</option>${Object.entries(ROTULO_TIPO_EVENTO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select>
+      <//>
+      ${!visiveis.length ? html`<${Estado} icone="calendar-blank" titulo=${eventos.length ? 'Nenhum item deste tipo no mês.' : 'Nenhum item neste mês.'} texto="Feriado · Data especial (informativa) · Dia especial (o dia todo usa um turno) · Horário especial (muda entrada e saída de um turno)." />`
+        : html`<table class="c-tabela">
+          <thead><tr><th scope="col">Data</th><th scope="col" class="c-estica">Descrição</th><th scope="col">Tipo</th><th scope="col" class="c-col-opc">Turno e horário</th><th scope="col">Na escala</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+          <tbody>${visiveis.map((ev) => {
+            const turno = ev.id_turno ? (turnos.find((t) => t.id_turno === ev.id_turno)?.codigo || '') : '';
+            return html`<tr key=${ev.id_item} class=${podeEditar ? 'c-clicavel' : ''} onClick=${podeEditar ? (e) => { if (!e.target.closest('button, .c-abre-menu')) abrir(ev); } : undefined}>
+              <td class="c-num-esq c-forte" data-papel="info" data-prioridade="1" data-primeira="">${curta(ev.data_ini)}${ev.data_fim !== ev.data_ini ? ` a ${curta(ev.data_fim)}` : ''}</td>
+              <td class="c-estica" data-papel="titulo">${ev.descricao}</td>
+              <td data-papel="selo"><${Selo} tom=${TOM_EVENTO[ev.tipo] || 'neutro'}>${ROTULO_TIPO_EVENTO[ev.tipo] || ev.tipo}<//></td>
+              <td class="c-num-esq c-secundario c-col-opc">${[turno, ev.entrada ? `${ev.entrada}–${ev.saida}` : ''].filter(Boolean).join(' · ') || '—'}</td>
+              <td class="c-secundario" data-papel="info" data-prioridade="1">${ev.tipo === 'FERIADO' ? (ev.gera_servico ? `Serviço: ${(ev.servico?.ids_operadores || []).length} pessoa(s)` : 'Folga para todos') : '—'}</td>
+              <td class="c-acoes" data-papel="acoes">${podeEditar ? html`<${MenuAcoes} rotulo=${`Ações de ${ev.descricao}`} acoes=${[
+                ev.tipo === 'FERIADO' && ev.gera_servico ? { label: 'Ver pessoas', icon: 'users', onClick: () => abrir(ev) } : null,
+                { label: 'Duplicar', icon: 'copy', onClick: () => duplicar(ev) },
+                { label: 'Excluir', icon: 'trash', perigo: true, onClick: () => remover(ev) },
+              ]} />` : null}</td>
+            </tr>`; })}</tbody>
+        </table>`}
+    </div>
     ${edit ? html`<${ModalEvento} operacao=${operacao} inicial=${edit} turnos=${turnos} operadores=${operadores} showToast=${showToast} onClose=${() => setEdit(null)} onSalvo=${() => { setEdit(null); recarregar(); }} />` : null}`;
 }
 
+// Skills: catálogo (Skill · Categoria · Pessoas) e, em "Por pessoa", quem tem cada skill (editar abre a janela).
 function Skills({ operacao, skills, operadores, podeEditar, recarregar, showToast }) {
-  const [form, setForm] = useState({ categoria: 'IDIOMA', nome: '' });
+  const [visao, setVisao] = useState('skills');
+  const [nova, setNova] = useState(null);
   const [editandoOp, setEditandoOp] = useState(null);
-  const [verForm, setVerForm] = useState(false);
+  const [verPessoas, setVerPessoas] = useState(null);
+  const [busca, setBusca] = useState('');
+  const [salvando, setSalvando] = useState(false);
   const adicionar = async (e) => {
     e.preventDefault();
-    try { await salvarSkillWfm({ ...form, operacao }); setForm({ ...form, nome: '' }); recarregar(); showToast?.('Skill adicionada.', 'success'); } catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); }
+    if (!nova.nome.trim()) return;
+    setSalvando(true);
+    try { await salvarSkillWfm({ ...nova, operacao }); setNova(null); recarregar(); showToast?.('Skill adicionada.', 'success'); } catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); } finally { setSalvando(false); }
   };
-  const salvarOp = async () => {
-    try { await definirSkillsOperadorWfm(editandoOp.id_usuario, { operacao, ids_skill: editandoOp.skills }); setEditandoOp(null); recarregar(); showToast?.('Skills do operador salvas.', 'success'); } catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); }
+  const salvarOp = async (e) => {
+    e.preventDefault();
+    setSalvando(true);
+    try { await definirSkillsOperadorWfm(editandoOp.id_usuario, { operacao, ids_skill: editandoOp.skills }); setEditandoOp(null); recarregar(); showToast?.('Skills salvas.', 'success'); } catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); } finally { setSalvando(false); }
   };
   const alternar = (id) => setEditandoOp({ ...editandoOp, skills: editandoOp.skills.includes(id) ? editandoOp.skills.filter((s) => s !== id) : [...editandoOp.skills, id] });
   const ativas = skills.filter((s) => s.ativo);
+  const pessoasDe = (id) => operadores.filter((o) => (o.skills || []).includes(id));
+  const ops = operadores.filter((o) => !busca || semAcento(o.nome).includes(semAcento(busca)));
+  const sks = skills.filter((s) => !busca || semAcento(s.nome).includes(semAcento(busca)));
   return html`
-    <${CardRecolhivel} titulo="Skills" contador=${skills.length} className="mo-cartao-skills"
-      acoes=${podeEditar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" aria-expanded=${verForm} onClick=${() => setVerForm(!verForm)}><${Icone} nome="add" />Adicionar</button>` : null}>
-      <div class="mo-skills">
-        <div class="wfm-chips">${skills.length ? skills.map((s) => html`<span key=${s.id_skill} class="mo-skill">${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</span>`) : html`<span class="mon-muted">Nenhuma skill cadastrada.</span>`}</div>
-        ${podeEditar && verForm ? html`<form class="wfm-linha-form" onSubmit=${adicionar}>
-          <label class="wfm-campo"><span>Categoria</span><select class="form-select" value=${form.categoria} onChange=${(e) => setForm({ ...form, categoria: e.target.value })}>${Object.entries(CATEGORIAS_SKILL).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
-          <label class="wfm-campo"><span>Nome</span><input class="form-control" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /></label>
-          <button type="submit" class="btn btn-primary btn-sm">Adicionar</button></form>` : null}
-        <h3 class="mo-skills-sub">Skills por operador</h3>
-        <table class="mo-tabela"><thead><tr><th scope="col">Operador</th><th scope="col">Skills</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
-          ${operadores.map((o) => html`<${Fragment} key=${o.id_usuario}>
-            <tr><td><span class="mo-trunca" title=${o.nome}>${o.nome}</span></td><td>${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
-              <td class="mo-acoes-celula">${podeEditar ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--30" onClick=${() => setEditandoOp(editandoOp?.id_usuario === o.id_usuario ? null : { id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>${editandoOp?.id_usuario === o.id_usuario ? 'Fechar' : 'Editar'}</button>` : null}</td></tr>
-            ${editandoOp?.id_usuario === o.id_usuario ? html`<tr class="wfm-linha-edicao"><td colspan="3">
-              ${ativas.length ? html`<div class="wfm-chips">${ativas.map((s) => html`<label key=${s.id_skill} class="wfm-check"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /> ${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</label>`)}</div>` : html`<span class="mon-muted">Cadastre ao menos uma skill acima para atribuir ao operador.</span>`}
-              <div class="wfm-acoes"><button type="button" class="btn btn-primary btn-sm" onClick=${salvarOp}>Salvar skills</button><button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setEditandoOp(null)}>Cancelar</button></div></td></tr>` : null}
-          </${Fragment}>`)}
-        </tbody></table>
+    <div class="c-tabela-caixa">
+      <${FaixaItem} titulo="Skills" novo=${podeEditar && visao === 'skills' ? { rotulo: 'Nova skill', onClick: () => setNova({ categoria: 'IDIOMA', nome: '' }) } : null}>
+        <${Segmento} mini=${true} rotulo="Ver" valor=${visao} aoMudar=${setVisao} opcoes=${[['skills', 'Skills', skills.length], ['pessoas', 'Por pessoa', operadores.length]]} />
+        <${Busca} valor=${busca} aoMudar=${setBusca} rotulo=${visao === 'skills' ? 'Buscar skill' : 'Buscar pessoa'} />
+      <//>
+      ${visao === 'skills'
+        ? (!sks.length ? html`<${Estado} icone="star" titulo=${skills.length ? 'Nenhuma skill com esta busca.' : 'Nenhuma skill cadastrada.'} />`
+          : html`<table class="c-tabela"><thead><tr><th scope="col" class="c-estica">Skill</th><th scope="col">Categoria</th><th scope="col" class="c-num">Pessoas</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead><tbody>
+            ${sks.map((s) => html`<tr key=${s.id_skill} class="c-clicavel" onClick=${(ev) => { if (!ev.target.closest('button, .c-abre-menu')) setVerPessoas(s); }}>
+              <td class="c-estica c-forte" data-papel="titulo">${s.nome}</td><td data-papel="info" data-prioridade="1" data-primeira="">${CATEGORIAS_SKILL[s.categoria] || s.categoria || '—'}</td><td class="c-num" data-papel="info" data-prioridade="1">${pessoasDe(s.id_skill).length}</td>
+              <td data-papel="selo">${s.ativo === false ? html`<${Selo} tom="neutro">Inativa<//>` : html`<${Selo} tom="sucesso">Ativa<//>`}</td>
+              <td class="c-acoes" data-papel="acoes"><${MenuAcoes} rotulo=${`Ações da skill ${s.nome}`} acoes=${[{ label: 'Ver pessoas', icon: 'users', onClick: () => setVerPessoas(s) }]} /></td>
+            </tr>`)}</tbody></table>`)
+        : (!ops.length ? html`<${Estado} icone="users" titulo="Ninguém com esta busca." />`
+          : html`<table class="c-tabela"><thead><tr><th scope="col">Colaborador</th><th scope="col" class="c-estica">Skills</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead><tbody>
+            ${ops.map((o) => html`<tr key=${o.id_usuario} class=${podeEditar ? 'c-clicavel' : ''} onClick=${podeEditar ? (ev) => { if (!ev.target.closest('button, .c-abre-menu')) setEditandoOp({ id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] }); } : undefined}>
+              <td class="c-forte" data-papel="titulo">${o.nome}</td><td class="c-estica c-secundario" data-papel="info" data-prioridade="1" data-primeira="">${(o.skills || []).map((id) => skills.find((s) => s.id_skill === id)?.nome).filter(Boolean).join(', ') || '—'}</td>
+              <td class="c-acoes" data-papel="acoes">${podeEditar ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setEditandoOp({ id_usuario: o.id_usuario, nome: o.nome, skills: [...(o.skills || [])] })}>Editar</button>` : null}</td>
+            </tr>`)}</tbody></table>`)}
+    </div>
+    ${nova ? html`<${JanelaForm} titulo="Nova skill" onClose=${() => setNova(null)} onSubmit=${adicionar} salvando=${salvando} salvarRotulo="Adicionar">
+      <div class="c-form" style=${{ '--colunas': 2 }}>
+        <${Campo} rotulo="Categoria"><select class="c-entrada" value=${nova.categoria} onChange=${(e) => setNova({ ...nova, categoria: e.target.value })}>${Object.entries(CATEGORIAS_SKILL).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select><//>
+        <${Campo} rotulo="Nome"><input class="c-entrada" required maxlength="120" value=${nova.nome} onInput=${(e) => setNova({ ...nova, nome: e.target.value })} /><//>
       </div>
-    </${CardRecolhivel}>`;
+    <//>` : null}
+    ${editandoOp ? html`<${JanelaForm} titulo=${`Skills de ${editandoOp.nome}`} onClose=${() => setEditandoOp(null)} onSubmit=${salvarOp} salvando=${salvando} salvarRotulo="Salvar skills">
+      ${ativas.length ? html`<div class="c-lote-lista">${ativas.map((s) => html`<label key=${s.id_skill} class="c-marcar"><input type="checkbox" checked=${editandoOp.skills.includes(s.id_skill)} onChange=${() => alternar(s.id_skill)} /><span>${CATEGORIAS_SKILL[s.categoria]} · ${s.nome}</span></label>`)}</div>`
+        : html`<p class="c-ajuda">Cadastre ao menos uma skill para atribuir.</p>`}
+    <//>` : null}
+    ${verPessoas ? html`<${Janela} titulo=${`Pessoas com ${verPessoas.nome}`} onClose=${() => setVerPessoas(null)} rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setVerPessoas(null)}>Fechar</button>`}>
+      <div class="c-janela-corpo">${pessoasDe(verPessoas.id_skill).length ? html`<ul class="c-lote-lista" style=${{ listStyle: 'none', margin: 0, padding: 0 }}>${pessoasDe(verPessoas.id_skill).map((o) => html`<li key=${o.id_usuario}>${o.nome}</li>`)}</ul>` : html`<p class="c-ajuda">Ninguém com esta skill.</p>`}</div>
+    <//>` : null}`;
 }
 
 function TiposEscala({ recarregarContexto, showToast }) {
@@ -464,6 +493,7 @@ function TiposEscala({ recarregarContexto, showToast }) {
   const depois = async (msg) => { showToast?.(msg, 'success'); setForm(null); await carregar(); recarregarContexto?.(); };
   const salvar = async (e) => {
     e.preventDefault();
+    if (!form.nome.trim()) return;
     setSalvando(true);
     try { await salvarTipoEscalaWfm({ operacao_base: 'TI', nome: form.nome, descricao: form.descricao || '', ativo: form.ativo }, form.id_tipo); await depois('Tipo de escala salvo.'); }
     catch (err) { showToast?.(err?.message || 'Não foi possível salvar.', 'error'); } finally { setSalvando(false); }
@@ -478,58 +508,91 @@ function TiposEscala({ recarregarContexto, showToast }) {
     catch (err) { showToast?.(err?.message || 'Não foi possível excluir.', 'error'); await carregar(); recarregarContexto?.(); }
   };
   return html`
-    <${CardRecolhivel} titulo="Tipos de escala (setor de TI)" descricao="Cada tipo é uma escala própria do setor de Tecnologia (ex.: Plantão de sábado, Sobreaviso), com turnos, calendário e aprovação independentes." className="mo-cartao-tipos" aberta=${false}
-      acoes=${html`<button type="button" class="mo-btn mo-btn--sec mo-btn--34" onClick=${() => setForm({ nome: '', descricao: '', ativo: true })}><${Icone} nome="add" />Nova escala</button>`}>
-      <div class="wfm-tipos">
-        ${form ? html`<form class="wfm-tipo-form" onSubmit=${salvar}>
-          <label class="mon-campo"><span>Nome da escala</span><input class="form-control" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /></label>
-          <label class="mon-campo"><span>Descrição</span><input class="form-control" maxlength="200" value=${form.descricao} onInput=${(e) => setForm({ ...form, descricao: e.target.value })} /></label>
-          <button type="submit" class="btn btn-primary btn-sm" disabled=${salvando || !form.nome.trim()}>Salvar</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setForm(null)}>Cancelar</button>
-        </form>` : null}
-        <div class="wfm-tipos-lista">
-          ${!itens ? html`<div class="wfm-tipo-linha mon-muted">Carregando…</div>` : itens.length ? itens.map((t) => html`<div key=${t.id_tipo} class="wfm-tipo-linha">
-            <span class="wfm-tipo-nome">${t.nome}${t.descricao ? html`<small>${t.descricao}</small>` : null}</span>
-            <span class=${`mon-badge ${t.ativo ? 'mon-badge--ok' : 'mon-badge--nula'}`}>${t.ativo ? 'Ativa' : 'Desativada'}</span>
-            <span class="wfm-tipo-acoes">
-              <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => setForm({ id_tipo: t.id_tipo, nome: t.nome, descricao: t.descricao || '', ativo: t.ativo })}>Editar</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => alternar(t)}>${t.ativo ? 'Desativar' : 'Ativar'}</button>
-              <button type="button" class="btn btn-outline-danger btn-sm" onClick=${() => excluir(t)}>Excluir</button>
-            </span></div>`) : html`<div class="wfm-tipo-linha mon-muted">Nenhuma escala cadastrada.</div>`}
-        </div>
-      </div>
-    </${CardRecolhivel}>`;
+    <div class="c-tabela-caixa">
+      <${FaixaItem} titulo="Tipos de escala" novo=${{ rotulo: 'Novo tipo', onClick: () => setForm({ nome: '', descricao: '', ativo: true }) }}>
+        <span class="c-ajuda">Escalas próprias do setor de Tecnologia (ex.: Plantão de sábado, Sobreaviso).</span>
+      <//>
+      ${!itens ? html`<${Esqueleto} linhas=${3} />` : !itens.length ? html`<${Estado} titulo="Nenhum tipo de escala cadastrado." />`
+        : html`<table class="c-tabela"><thead><tr><th scope="col">Nome</th><th scope="col" class="c-estica">Descrição</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead><tbody>
+          ${itens.map((t) => html`<tr key=${t.id_tipo} class="c-clicavel" onClick=${(ev) => { if (!ev.target.closest('button, .c-abre-menu')) setForm({ id_tipo: t.id_tipo, nome: t.nome, descricao: t.descricao || '', ativo: t.ativo }); }}>
+            <td class="c-forte" data-papel="titulo">${t.nome}</td><td class="c-estica c-secundario" data-papel="info" data-prioridade="1" data-primeira="">${t.descricao || '—'}</td>
+            <td data-papel="selo">${t.ativo ? html`<${Selo} tom="sucesso">Ativa<//>` : html`<${Selo} tom="neutro">Desativada<//>`}</td>
+            <td class="c-acoes" data-papel="acoes"><${MenuAcoes} rotulo=${`Ações de ${t.nome}`} acoes=${[
+              { label: t.ativo ? 'Desativar' : 'Ativar', icon: t.ativo ? 'pause-circle' : 'play-circle', onClick: () => alternar(t) },
+              { label: 'Excluir', icon: 'trash', perigo: true, onClick: () => excluir(t) },
+            ]} /></td></tr>`)}
+        </tbody></table>`}
+    </div>
+    ${form ? html`<${JanelaForm} titulo=${form.id_tipo ? 'Editar tipo de escala' : 'Novo tipo de escala'} onClose=${() => setForm(null)} onSubmit=${salvar} salvando=${salvando}>
+      <${Campo} rotulo="Nome da escala"><input class="c-entrada" required maxlength="120" value=${form.nome} onInput=${(e) => setForm({ ...form, nome: e.target.value })} /><//>
+      <${Campo} rotulo="Descrição" opcional=${true}><input class="c-entrada" maxlength="200" value=${form.descricao} onInput=${(e) => setForm({ ...form, descricao: e.target.value })} /><//>
+    <//>` : null}`;
 }
 
-export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToast, recarregarContexto }) {
+const ITENS = [
+  ['escala', 'Escala', [['turnos', 'Turnos', 'clock'], ['jornadas', 'Jornadas e limites', 'scales'], ['calendario', 'Calendário especial', 'calendar-dots'], ['skills', 'Skills', 'star'], ['tipos', 'Tipos de escala', 'squares-four']]],
+  ['registro', 'Registro', [['historico', 'Histórico de alterações', 'clock-counter-clockwise']]],
+];
+
+// Cadastros: lista lateral + a tabela do item escolhido. `pagina` monta a página inteira (cabeçalho com a escala);
+// sem ela (Equipes › Horários) mostra só a lista e a tabela. Jornadas e Histórico só aparecem quando a tela os oferece.
+export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala, itemInicial = 'turnos', comJornadas = false, comHistorico = false, pagina = false }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
+  const [item, setItem] = useState(itemInicial);
+  const [mesCal, setMesCal] = useState(anoMes);
+  useEffect(() => { setMesCal(anoMes); }, [anoMes]);
+  useEffect(() => { setItem(itemInicial); }, [itemInicial]);
   const carregar = useCallback(async () => {
     if (!operacao) { setDados({ supervisores: [], contratos: [], turnos: [], skills: [], eventos: [], operadores: [] }); return; }
     setErro('');
     try {
       const [contratos, turnos, skills, eventos, escala, supervisores] = await Promise.all([
-        listarContratosWfm(operacao), listarTurnosWfm(operacao), listarSkillsWfm(operacao), listarCalendarioWfm(operacao, anoMes), lerEscalaWfm(operacao, anoMes).catch(() => ({ operadores: [] })),
+        listarContratosWfm(operacao), listarTurnosWfm(operacao), listarSkillsWfm(operacao), listarCalendarioWfm(operacao, mesCal), lerEscalaWfm(operacao, mesCal).catch(() => ({ operadores: [] })),
         listarSupervisoresWfm(operacao).catch(() => ({ itens: [] })),
       ]);
       setDados({ supervisores: supervisores.itens, contratos: contratos.itens, turnos: turnos.itens, skills: skills.itens, eventos: eventos.itens, operadores: escala.operadores });
     } catch (e) { setDados(null); setErro(e?.message || 'Não foi possível carregar os cadastros.'); }
-  }, [operacao, anoMes]);
-  useEffect(() => { setDados(null); carregar(); }, [carregar]);
-  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<${LoadingState} titulo="Carregando os cadastros" />`;
+  }, [operacao, mesCal]);
+  useEffect(() => { carregar(); }, [carregar]);
+
   const podeCadastros = controlador.possuiPermissao('wfm.cadastros.editar');
+  const disponivel = {
+    turnos: !!operacao, jornadas: comJornadas && !!operacao, calendario: !!operacao, skills: !!operacao,
+    tipos: !!contexto?.pode_editar_tipos_escala, historico: comHistorico,
+  };
+  const atual = disponivel[item] ? item : (Object.keys(disponivel).find((k) => disponivel[k]) || 'turnos');
   const comum = { operacao, showToast, recarregar: carregar };
-  return html`
-    ${!operacao ? html`<p class="mon-muted wfm-vazio-txt">Os turnos, o calendário especial e as skills pertencem a uma escala. Clique em "Nova escala" (ou ative uma existente) acima: assim que ela existir, escolha-a no seletor "Escala / operação" que aparece no topo e o cadastro de turnos é liberado.</p>` : null}
-    <div class="mo-cad">
-      <div class="mo-cad-esq">
-        ${contexto?.pode_editar_tipos_escala ? html`<${TiposEscala} recarregarContexto=${recarregarContexto} showToast=${showToast} />` : null}
-        ${operacao ? html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />` : null}
-      </div>
-      ${operacao ? html`<div class="mo-cad-dir">
-        <${Calendario} ...${comum} eventos=${dados.eventos} turnos=${dados.turnos} operadores=${dados.operadores} podeEditar=${podeCadastros} />
-        <${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />
-      </div>` : null}
-    </div>`;
+
+  const conteudo = () => {
+    if (atual === 'historico') return html`<${TabelaHistorico} contexto=${contexto} showToast=${showToast} />`;
+    if (atual === 'tipos') return html`<${TiposEscala} recarregarContexto=${recarregarContexto} showToast=${showToast} />`;
+    if (atual === 'jornadas') return html`<${TabelaJornadas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`;
+    if (!operacao) return html`<div class="c-tabela-caixa"><${Estado} icone="calendar-blank" titulo="Escolha uma escala" texto="Turnos, calendário especial e skills pertencem a uma escala. Crie ou ative uma escala e escolha-a no topo." /></div>`;
+    if (erro) return html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div>`;
+    if (!dados) return html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${6} /></div>`;
+    if (atual === 'calendario') return html`<${Calendario} ...${comum} anoMes=${mesCal} aoMudarMes=${setMesCal} eventos=${dados.eventos} turnos=${dados.turnos} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
+    if (atual === 'skills') return html`<${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
+    return html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
+  };
+
+  const lista = html`<nav class="c-rel-lista c-rel-lista--caixa c-cad-lista" aria-label="Cadastros">
+    ${ITENS.map(([grupo, rotulo, itens]) => {
+      const vis = itens.filter(([id]) => disponivel[id]);
+      if (!vis.length) return null;
+      return html`<div key=${grupo} style=${{ display: 'contents' }}><h3>${rotulo}</h3>
+        ${vis.map(([id, nome, icone]) => html`<button key=${id} type="button" class="c-cad-item" aria-current=${atual === id ? 'page' : null} onClick=${() => setItem(id)}><${Ic} nome=${icone} />${nome}</button>`)}</div>`;
+    })}
+  </nav>`;
+  const corpo = html`<div class="c-cad">${lista}<div style=${{ minWidth: 0 }}>${conteudo()}</div></div>`;
+  if (!pagina) return corpo;
+  const opcoes = (contexto?.operacoes || []).map((o) => [o.chave, o.nome]);
+  return html`<main class="c-pagina c-conteudo">
+    <div class="c-cab-linha">
+      <h1>Cadastros</h1>
+      ${opcoes.length > 1 && aoTrocarEscala && atual !== 'historico' && atual !== 'tipos' ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Escala / operação" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoes.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+    </div>
+    ${corpo}
+  </main>`;
 }
+

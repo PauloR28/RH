@@ -1,19 +1,15 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
-import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, ModuleHeader, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
+import { ModuleHeader } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261104-leitura';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { TelaHistorico } from './historico.js?v=20261104-leitura';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
 import { TelaEscala } from './escala.js?v=20261106-wfm';
 import { TelaPresenca } from './presenca.js?v=20261106-wfm';
-import { TelaCadastros } from './cadastros.js?v=20261104-leitura';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261104-leitura';
-import { TelaJornadas } from './jornadas.js?v=20261104-leitura';
+import { TelaCadastros } from './cadastros.js?v=20261109-cadastros';
 import { TelaEscalaPausas } from './pausas.js?v=20261104-dia';
 import { TelaEscalaTabela } from './tabela.js?v=20261104-dia';
 import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
@@ -34,7 +30,6 @@ export const ABAS_WFM = [
   { tela: 'screen-wfm-trocas', rotulo: 'Trocas', icone: 'compare_arrows', permissao: 'wfm.troca.visualizar' },
   { tela: 'screen-wfm-presenca', rotulo: 'Presença', icone: 'fact_check', permissao: 'wfm.presenca.lancar' },
   { tela: 'screen-wfm-painel', rotulo: 'Indicadores', icone: 'monitoring', permissao: 'relhub.wfm.painel' },
-  { tela: 'screen-wfm-jornadas', rotulo: 'Jornadas', icone: 'schedule', permissao: 'wfm.cadastros.visualizar' },
   { tela: 'screen-wfm-cadastros', rotulo: 'Cadastros', icone: 'settings', permissao: 'wfm.cadastros.visualizar' },
 ];
 
@@ -91,7 +86,6 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   }, [contexto, telaAtual, operacao]);
 
   // "Minhas escalas" segue a permissão wfm.escala.propria: quem pode ser escalado (Operador, Técnicos e Analista de TI).
-  const emConfig = ['screen-wfm-cadastros', 'screen-wfm-jornadas'].includes(telaAtual);
   const [titulo, descricao] = TITULOS[telaAtual] || TITULOS['screen-wfm'];
   const podeCriarEscala = controlador.possuiPermissao('wfm.escala.criar');
   // Supervisor sem 'criar escala' ainda consulta a Escala do dia (somente leitura, sem montar nem publicar).
@@ -197,38 +191,16 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       </${PainelRh}>`;
   }
 
-  // Cadastros e Jornadas: contexto (escala e mês), sub-abas e os cartões numa tela só.
-  if (emConfig && contexto && !erro && operacao && contexto.operacoes.length) {
-    const noCadastros = telaAtual === 'screen-wfm-cadastros';
+  // Cadastros (redesign Fase 15, amostra Q3): lista lateral com Turnos, Jornadas e limites, Calendário especial, Skills,
+  // Tipos de escala e Histórico de alterações. As rotas antigas de Jornadas e do Histórico abrem o item correspondente.
+  const emCadastros = ['screen-wfm-cadastros', 'screen-wfm-jornadas', 'screen-wfm-auditoria'].includes(telaAtual);
+  if (emCadastros && contexto && !erro && (operacao || telaAtual === 'screen-wfm-auditoria' || contexto.pode_editar_tipos_escala)) {
+    const item = { 'screen-wfm-jornadas': 'jornadas', 'screen-wfm-auditoria': 'historico' }[telaAtual] || 'turnos';
     return html`
-      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual === 'screen-wfm-auditoria' && !controlador.podeAcessarTela('screen-wfm-cadastros') ? telaAtual : 'screen-wfm-cadastros'} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${PaginaConsole} className="cx-pagina--modulo cx-pagina--rolavel">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
-          <div class="mo-contexto cx-fixo">
-            <${ContextField} rotulo="Escala / operação" valor=${operacao} opcoes=${contexto.operacoes.map((o) => [o.chave, o.nome])} aoMudar=${setOperacao} ocultar=${contexto.operacoes.length <= 1} />
-            ${noCadastros ? html`<${Stepper} rotulo="Mês" valor=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
-          </div>
-          <section class="mo-card-escala cx-cresce mo-cad-card">
-            <div class="mo-subabas cx-fixo">
-              <${AbasConsole} prefixo="wfmcad" rotulo="Cadastros e jornadas" variante="sublinhada" ativa=${telaAtual}
-                itens=${[{ id: 'screen-wfm-cadastros', rotulo: 'Turnos, calendário e skills' }, { id: 'screen-wfm-jornadas', rotulo: 'Jornadas e limites' }]}
-                aoMudar=${(tela) => controlador.irParaTelaProtegida(tela)} />
-            </div>
-            <div class="mo-cad-painel cx-cresce" role="tabpanel" id=${idPainel('wfmcad', telaAtual)} aria-labelledby=${idAba('wfmcad', telaAtual)}>
-              ${noCadastros ? html`<${TelaCadastros} ...${props} />` : html`<${TelaJornadas} ...${props} />`}
-            </div>
-          </section>
-        <//>
-      </${PainelRh}>`;
-  }
-
-  // Histórico (antiga Auditoria de Plantões): layout novo, cabe numa tela só.
-  if (telaAtual === 'screen-wfm-auditoria' && contexto && !erro) {
-    return html`
-      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Auditoria de Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
-        <div class="wfm-toast"><${ToastHost} /></div>
-        <${TelaHistorico} contexto=${contexto} showToast=${showToast} />
+        <${TelaCadastros} ...${props} pagina=${true} itemInicial=${item}
+          comJornadas=${controlador.possuiPermissao('wfm.cadastros.visualizar')} comHistorico=${controlador.podeAcessarTela('screen-wfm-auditoria')} />
       </${PainelRh}>`;
   }
 
@@ -255,7 +227,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   else if (telaAtual === 'screen-wfm-trocas') corpo = html`<${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />`;
   else if (telaAtual === 'screen-wfm-painel') corpo = html`<${TelaRelatorios} contexto=${contexto} operacao=${operacao} aoTrocarEscala=${setOperacao} showToast=${showToast} somentePainel=${true} />`;
   else if (telaAtual === 'screen-wfm-presenca') corpo = html`<${TelaPresenca} ...${props} />`;
-  else if (telaAtual === 'screen-wfm-jornadas') corpo = html`<${TelaJornadas} ...${props} />`;
+  else if (telaAtual === 'screen-wfm-jornadas') corpo = html`<${TelaCadastros} ...${props} itemInicial="jornadas" comJornadas=${true} />`;
   else if (telaAtual === 'screen-wfm-cadastros') corpo = html`<${TelaCadastros} ...${props} />`;
   else if (visaoEscala === 'mes') corpo = html`
     <${TelaEscala} ...${props} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} />`;
@@ -271,10 +243,6 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <div class="mo-cab-solto"><${ModuleHeader} titulo=${titulo} subtitulo=${descricao} /></div>
       <div class="mon-shell">
         ${contexto && (contexto.operacoes.length || telaAtual === 'screen-wfm') && !semPeriodo ? html`<${SeletorPeriodo} contexto=${contexto} operacao=${operacao} setOperacao=${setOperacao} anoMes=${anoMes} setAnoMes=${setAnoMes} semMes=${telaAtual === 'screen-wfm-jornadas'} semOperacao=${semOperacao} soEscalasAtivas=${telaAtual === 'screen-wfm'} />` : null}
-        ${emConfig && contexto ? html`<div class="wfm-segmento" role="tablist" aria-label="Cadastros e jornadas">
-          <button type="button" role="tab" aria-selected=${telaAtual === 'screen-wfm-cadastros'} class=${telaAtual === 'screen-wfm-cadastros' ? 'is-ativo' : ''} onClick=${() => controlador.irParaTelaProtegida('screen-wfm-cadastros')}>Turnos, calendário e skills</button>
-          <button type="button" role="tab" aria-selected=${telaAtual === 'screen-wfm-jornadas'} class=${telaAtual === 'screen-wfm-jornadas' ? 'is-ativo' : ''} onClick=${() => controlador.irParaTelaProtegida('screen-wfm-jornadas')}>Jornadas e limites</button>
-        </div>` : null}
         ${corpo}
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}

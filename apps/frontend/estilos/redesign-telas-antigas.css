@@ -229,3 +229,45 @@
 .c-pausa-hora::-webkit-datetime-edit-fields-wrapper { padding: 0; }
 /* Faixa de filtros que pode quebrar em 2 linhas (Do dia e Pausas têm mais filtros que cabem em 1180 px; nenhum filtro some) */
 .c-tabela-caixa > .c-filtros.c-filtros--quebra { flex-wrap: wrap; row-gap: var(--espaco-2); padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
+.c-cad-lista h3 { margin-top: var(--espaco-3); }
+.c-cad-lista > div:first-child h3 { margin-top: 0; }
+.c-antes-depois { max-width: 320px; min-width: 0; }
+.c-antes-depois s, .c-antes-depois span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-antes-depois .c-ic { flex: none; width: 14px; height: 14px; color: var(--cor-texto-secundario); }
+.c-tabela .c-corta { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-botao.c-botao--texto.c-tom-perigo { color: var(--cor-status-perigo-texto); }
+
+/* ── Faixas de tela ──────────────────────────────────────────────────────── */
+/* Compacto (600–1179): a lista lateral de Cadastros vira a faixa de nomes que rola com o dedo (igual a Relatórios);
+   colunas de apoio (.c-col-opc) saem para a tabela caber; o valor continua na janela da linha. */
+@media (max-width: 1179.98px) {
+  .c-cad { grid-template-columns: minmax(0, 1fr); }
+  .c-cad .c-rel-lista--caixa { flex-direction: row; align-items: center; overflow-x: auto; scrollbar-width: none; white-space: nowrap; padding: var(--espaco-2); }
+  .c-cad .c-rel-lista--caixa > div { display: contents; }
+  .c-cad .c-rel-lista--caixa h3 { display: none; }
+  .c-cad .c-rel-lista--caixa button.c-cad-item { flex: none; }
+  .c-tabela .c-col-opc { display: none; }
+}
+/* Grades de digitação (Escala do dia, Pausas): abaixo de 1180 px a tabela rola para o lado dentro da caixa (exceção declarada:
+   são telas de trabalho do Control Desk no computador); no celular continuam tabela, não viram cartão. */
+@media (max-width: 1179.98px) {
+  .c-tabela-caixa:has(> .c-tabela-digita), .c-tabela-caixa:has(> .c-pausas > .c-tabela-digita) { overflow-x: auto; }
+  .c-pausas:has(> .c-tabela-digita) { grid-template-columns: minmax(0, 1fr); }
+  .c-pausas > .c-pausas-painel { border-left: 0; border-top: var(--borda-fina) solid var(--tabela-linha); }
+}
+@media (max-width: 599.98px) {
+  .c-tabela.c-tabela-digita { display: table; }
+  .c-tabela.c-tabela-digita thead { display: table-header-group; }
+  .c-tabela.c-tabela-digita tbody { display: table-row-group; }
+  .c-tabela.c-tabela-digita tbody tr { display: table-row; min-height: 0; padding: 0; }
+  .c-tabela.c-tabela-digita tbody tr::after { content: none; }
+  .c-tabela.c-tabela-digita tbody td { display: table-cell; padding: 0 var(--espaco-2); height: 40px; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+}
+.c-tabela .c-duas small.c-corta { display: block; max-width: 200px; }
+@media (max-width: 1179.98px) { .c-antes-depois { max-width: 220px; } }
+@media (max-width: 599.98px) { .c-tabela td.c-col-opc[data-papel='selo'] { display: block; } }
+.c-tabela .c-botao.c-linha-nome { padding: 0; height: auto; min-height: 0; font-weight: var(--fonte-peso-semi); }
+@media (max-width: 599.98px) {
+  .c-tabela .c-botao.c-linha-nome { min-height: var(--altura-toque); }
+  .c-tabela-digita .c-entrada, .c-pausas-painel .c-entrada { height: var(--altura-toque); }
+}

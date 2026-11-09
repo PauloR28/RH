@@ -174,13 +174,13 @@ export function BarraLateral({
   const sublinksWfm = [
     { tela: 'screen-equipes-controle', icone: 'groups', label: 'Equipes e Turnos', permissao: 'equipes.controle.visualizar' },
     // Painel do dia: 1ª aba de Turnos e Plantões (amostra aprovada em 08/11/2026); o antigo Painel virou Indicadores.
+    // Jornadas saiu da sub-barra (09/11/2026): virou item de Cadastros, junto com o Histórico de alterações.
     { tela: 'screen-wfm-dia', icone: 'today', label: 'Painel', permissao: 'wfm.presenca.lancar' },
     { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minhas escalas', permissao: 'wfm.escala.propria' },
     { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escalas', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
     { tela: 'screen-wfm-painel', icone: 'monitoring', label: 'Indicadores', permissao: 'relhub.wfm.painel' },
-    { tela: 'screen-wfm-jornadas', icone: 'schedule', label: 'Jornadas', permissao: 'wfm.cadastros.visualizar' },
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);

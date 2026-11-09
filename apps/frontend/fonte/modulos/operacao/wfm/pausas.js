@@ -229,7 +229,7 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
         ${!operadores.length && !semEscala.length
           ? html`<${Estado} icone="pause-circle" titulo="Ninguém neste dia" texto="Não há colaboradores nesta escala. Monte a escala de turnos primeiro." />`
           : html`<div class=${podeEditar ? 'c-pausas' : ''}>
-            <table class="c-tabela" aria-label=${`Pausas de ${brData(dia)}`}>
+            <table class="c-tabela c-tabela-digita" aria-label=${`Pausas de ${brData(dia)}`}>
               <thead><tr>
                 ${podeEditar ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel} disabled=${!visiveis.length || null}
                   ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}

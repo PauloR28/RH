@@ -441,7 +441,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
         ${!dados.operadores.length ? html`<${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." />`
           : !visiveis.length ? html`<${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltroEquipe(''); setFiltroSup(''); setFiltroCargo(''); setFiltroTurno(''); }} />`
-          : html`<table class="c-tabela c-dia-tabela" aria-label=${`Escala do dia ${br(dia)}`}>
+          : html`<table class="c-tabela c-dia-tabela c-tabela-digita" aria-label=${`Escala do dia ${br(dia)}`}>
             <thead><tr>
               ${editavel ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel}
                 ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}
