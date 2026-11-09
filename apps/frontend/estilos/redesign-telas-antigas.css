@@ -275,3 +275,7 @@
 .c-cfg-linha > .c-campo { flex: 1 1 0; }
 @media (max-width: 599.98px) { .c-cfg-linha { flex-wrap: wrap; } .c-cfg-linha > .c-campo { flex-basis: 100%; } }
 .c-tabela td.c-plano-texto { white-space: normal; max-width: 220px; line-height: 18px; padding-top: var(--espaco-1); padding-bottom: var(--espaco-1); }
+.c-fm-lado-col .c-tabela td .c-entrada { padding: 0 var(--espaco-1); min-width: 0; }
+.c-fm-lado-col .c-tabela td:first-child .c-grupo .c-entrada { width: 100%; }
+@media (max-width: 1179.98px) { .c-fm-corpo { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 599.98px) { .c-tabela-caixa > .c-filtros .c-segmento { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .c-tabela-caixa > .c-filtros .c-segmento > .c-botao { flex: none; } }

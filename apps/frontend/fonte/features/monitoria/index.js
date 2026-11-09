@@ -13,7 +13,7 @@ import { TelaNovaMonitoria } from './formulario.js?v=20261029-fix';
 import { ModalDetalheMonitoria } from './detalhe.js?v=20261109-telas-antigas';
 import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261028-ausencias';
 import { TelaDashboard } from './painel.js?v=20261023-ajustes';
-import { TelaFormularios } from './admin.js?v=20261014-formularios';
+import { TelaFormularios } from './admin.js?v=20261109-telas-antigas';
 import { TelaCentralMonitoria } from './central.js';
 import { ListaMonitoriasNova } from './redesign-listas.js?v=20261108-fatia2';
 import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261108-fatia2';
@@ -138,7 +138,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   } else if (telaAtual === 'screen-monitoria-dashboard') corpo = html`<${TelaDashboard} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-planos') corpo = html`<${TelaPlanos} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-relatorios') corpo = html`<${TelaRelatorios} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} subnav=${null} />`;
+  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} />`;
   else {
     const modo = { 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas' }[telaAtual] || 'historico';
     corpo = html`<${ListaMonitorias} ...${props} modo=${modo} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} />`;
