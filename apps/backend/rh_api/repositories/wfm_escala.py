@@ -204,16 +204,26 @@ class WfmEscalaRepositoryMixin:
         }
 
     def _wfm_turnos_modelo(self, cursor, operacao: str) -> dict[int, TurnoModelo]:
-        cursor.execute("SELECT id_turno, codigo, tipo, entrada, saida, pausas_json FROM dbo.wfm_turnos WHERE operacao = ?", (operacao,))
+        # A jornada do turno (id_contrato, escolhida na criação do turno) vale para quem trabalha nele.
+        cursor.execute(
+            "SELECT t.id_turno, t.codigo AS codigo_turno, t.tipo, t.entrada, t.saida, t.pausas_json, c.codigo, c.jornada_diaria_max_min, "
+            "c.interjornada_min_min, c.max_dias_consecutivos, c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json, "
+            "c.jornada_semanal_max_min FROM dbo.wfm_turnos t LEFT JOIN dbo.wfm_contratos c ON c.id_contrato = t.id_contrato "
+            "WHERE t.operacao = ?",
+            (operacao,),
+        )
         out: dict[int, TurnoModelo] = {}
-        for r in cursor.fetchall():
+        for r in rows_to_dicts(cursor, cursor.fetchall()):
             try:
                 pausas = tuple(
-                    (int(p["offset_min"]), int(p["duracao_min"]), p["tipo"]) for p in json.loads(r[5] or "[]")
+                    (int(p["offset_min"]), int(p["duracao_min"]), p["tipo"]) for p in json.loads(r["pausas_json"] or "[]")
                 )
             except (ValueError, KeyError, TypeError):
                 pausas = ()
-            out[int(r[0])] = TurnoModelo(int(r[0]), normalize_text(r[1]), normalize_text(r[2]), r[3], r[4], pausas)
+            contrato = _contrato_de_linha(r) if r.get("codigo") is not None else None
+            out[int(r["id_turno"])] = TurnoModelo(
+                int(r["id_turno"]), normalize_text(r["codigo_turno"]), normalize_text(r["tipo"]), r["entrada"], r["saida"], pausas, contrato
+            )
         return out
 
     # ------------------------------------------------------------------
