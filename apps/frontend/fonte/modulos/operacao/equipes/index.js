@@ -10,7 +10,7 @@ import {
   listarSupervisoresDestinoEquipe,
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
-import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
+import { TelaMural } from '../../../features/mural/index.js?v=20261109-telas-antigas';
 import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261104-leitura';
 import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261109-telas-antigas';
 import { TelaPresenca } from '../wfm/presenca.js?v=20261106-wfm';

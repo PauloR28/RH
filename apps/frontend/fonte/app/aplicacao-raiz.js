@@ -122,7 +122,7 @@ const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261005-redesign16'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261014-funcoes3'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261022-equipes'), 'TelaMural');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261109-telas-antigas'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
   () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),

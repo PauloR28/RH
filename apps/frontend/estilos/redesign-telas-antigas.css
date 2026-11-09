@@ -279,3 +279,8 @@
 .c-fm-lado-col .c-tabela td:first-child .c-grupo .c-entrada { width: 100%; }
 @media (max-width: 1179.98px) { .c-fm-corpo { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 599.98px) { .c-tabela-caixa > .c-filtros .c-segmento { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .c-tabela-caixa > .c-filtros .c-segmento > .c-botao { flex: none; } }
+.c-mu-topo .c-abre-menu { margin-left: auto; }
+.c-mu-texto a { color: var(--cor-texto-link); }
+.c-mu-ferr .c-mu-tam { width: auto; margin-left: auto; height: 28px; }
+@media (pointer: coarse) { .c-mu-ferr .c-mu-tam { height: 44px; } }
+@media (min-width: 600px) { .c-mu-lista .c-estica { max-width: 0; } .c-mu-lista .c-estica .c-duas > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
