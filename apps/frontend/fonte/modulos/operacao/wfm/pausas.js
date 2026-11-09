@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { aMin, brData, deMin, doIso, paraIso, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { estadoEscala } from './escala.js?v=20261106-wfm';
+import { estadoEscala } from './escala.js?v=20261109-aprovar';
 import { Campo, Esqueleto, Estado, Faixa, Ic, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Aba "Pausas" da escala (redesign Fase 15, amostra Q2 do lote 1): as 3 pausas de cada colaborador escalado no dia (2 de 10 min

@@ -54,7 +54,7 @@ export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToas
 
   let mensagem;
   if (aprovacao.estado === 'EM_APROVACAO') {
-    mensagem = `Aguardando aprovação ${aprovacao.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprovacao.enviado_por || '—'} em ${dataHora(aprovacao.enviado_em)}. A edição fica bloqueada até a decisão.`;
+    mensagem = `Aguardando aprovação ${aprovacao.aprovadores_configurados ? 'dos aprovadores configurados' : 'de quem tem permissão para aprovar'}. Enviada por ${aprovacao.enviado_por || '—'} em ${dataHora(aprovacao.enviado_em)}. A edição fica bloqueada até a decisão.`;
   } else if (aprovacao.estado === 'APROVADA') {
     mensagem = `Aprovada por ${aprovacao.decidido_por || '—'} em ${dataHora(aprovacao.decidido_em)}. A aprovação publica a escala.`;
   } else if (aprovacao.declinada) {

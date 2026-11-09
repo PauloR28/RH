@@ -20,7 +20,7 @@ import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
 import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261106-wfm';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261109-aprovar';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -402,14 +402,14 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
           ${menuCab}
           ${pendentes ? html`<button type="button" class="c-botao c-botao--texto" onClick=${() => setPend({})}>Descartar</button>` : null}
           ${editavel ? html`<button type="button" class="c-botao c-botao--secundario" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !pendentes || (fechada && !justificativa.trim()) || null} onClick=${salvar}>Salvar${pendentes ? ` (${pendentes})` : ''}</button>` : null}
-          ${!leitura ? html`<${AcoesAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${aprov} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} />` : null}
+          ${!todasEquipes ? html`<${AcoesAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${aprov} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} />` : null}
           ${podePublicar && !(aprovada && dados.status.versao_publicada > 0 && !pendentes) ? html`<button type="button" class=${`c-botao ${aprov?.pode_enviar || aprov?.pode_aprovar ? 'c-botao--secundario' : 'c-botao--principal'}`} disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA') || null} title=${bloqueioPublicar || null} onClick=${publicar}><${Ic} nome="send" />Publicar</button>` : null}
         </div>
       </div>
 
       ${aprov?.declinada && aprov.motivo ? html`<${Faixa} tom="perigo" icone="x-circle"><b>Declinada por ${aprov.decidido_por || '—'}${aprov.decidido_em ? ` em ${dataHora(aprov.decidido_em)}` : ''}:</b> ${aprov.motivo}<//>` : null}
       ${aprov?.invalidada && !aprov?.declinada ? html`<${Faixa} tom="atencao" icone="warning">A escala foi alterada depois do envio/aprovação: envie novamente para aprovação.<//>` : null}
-      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
+      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'de quem tem permissão para aprovar'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
       ${excedentes.length ? html`<${Faixa} tom="atencao" icone="warning"><b>Mais pessoas em pausa do que o limite.</b> ${excedentes.slice(0, 4).map((x) => `${x.inicio}–${x.fim}: ${x.qtd} (limite ${x.capacidade})`).join(' · ')}${excedentes.length > 4 ? ` · e mais ${excedentes.length - 4}` : ''}<//>` : null}
       ${mostrarJust ? html`<div class="c-cartao c-cartao-corpo"><${Campo} rotulo=${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado, obrigatória)'}>
         <input class="c-entrada" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} />

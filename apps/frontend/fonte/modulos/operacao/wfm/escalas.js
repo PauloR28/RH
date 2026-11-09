@@ -68,7 +68,7 @@ const ehPublicada = (e) => e.versao_publicada > 0;
 const motivoSemPublicar = (e) => {
   if (!e.ativa) return 'A escala está inativa.';
   if (!e.escalados) return 'Adicione colaboradores antes de publicar';
-  if (!e.fechada && e.aprovacao !== 'APROVADA') return 'A escala precisa ser aprovada pelo Gestor ou Supervisor antes de publicar.';
+  if (!e.fechada && e.aprovacao !== 'APROVADA') return 'A escala precisa ser aprovada por quem tem permissão para aprovar antes de publicar.';
   return '';
 };
 

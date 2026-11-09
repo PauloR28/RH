@@ -772,7 +772,7 @@ class WfmEscalaRepositoryMixin:
                 if ap["estado"] != "APROVADA":
                     detalhe = (
                         "A escala foi alterada depois da aprovação: envie novamente para aprovação."
-                        if ap["invalidada"] else "A escala precisa ser aprovada pelo Gestor ou Supervisor antes de ser publicada."
+                        if ap["invalidada"] else "A escala precisa ser aprovada por quem tem permissão para aprovar antes de ser publicada."
                     )
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detalhe)
             # Conflito de interesse: quem está na escala como operador não a publica (o Analista de TI é exceção).

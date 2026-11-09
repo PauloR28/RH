@@ -482,7 +482,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
 
       ${aprov?.declinada && aprov.motivo ? html`<${Faixa} tom="perigo" icone="x-circle"><b>Declinada por ${aprov.decidido_por || '—'}${aprov.decidido_em ? ` em ${dataHora(aprov.decidido_em)}` : ''}:</b> ${aprov.motivo}<//>` : null}
       ${aprov?.invalidada && !aprov?.declinada ? html`<${Faixa} tom="atencao" icone="warning">A escala foi alterada depois do envio/aprovação: envie novamente para aprovação.<//>` : null}
-      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
+      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'de quem tem permissão para aprovar'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
       ${!somentePropria && validacao?.violacoes?.length ? html`<${Faixa} tom=${bloqueio ? 'perigo' : 'atencao'} icone="warning"
         acao=${html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setVerViolacoes(true)}>Ver violações</button>`}>
         <b>${validacao.violacoes.length} violação(ões) de jornada.</b> ${duro ? 'Bloqueio duro: corrija a escala para publicar.' : bloqueio ? (podePublicarComViolacao ? 'Você pode publicar com justificativa (fica registrada em auditoria).' : 'Não é possível publicar até corrigir.') : 'Confira antes de publicar.'}

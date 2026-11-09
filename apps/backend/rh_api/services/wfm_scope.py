@@ -147,7 +147,7 @@ def pode_aprovar_escala(
             return False, "Você não está entre os aprovadores configurados para esta escala."
     if perfil != ROLE_ANALISTA_TI:
         if id_usuario is not None and id_usuario == id_enviou:
-            return False, "Você enviou esta escala e não pode aprová-la: peça a outro Gestor ou Supervisor."
+            return False, "Você enviou esta escala e não pode aprová-la: peça a outra pessoa com permissão para aprovar."
         if id_usuario is not None and id_usuario in set(ids_na_escala):
             return False, "Você consta nesta escala como operador e não pode aprová-la."
     return True, ""
