@@ -274,3 +274,4 @@
 .c-cfg-linha { align-items: flex-end; flex-wrap: nowrap; }
 .c-cfg-linha > .c-campo { flex: 1 1 0; }
 @media (max-width: 599.98px) { .c-cfg-linha { flex-wrap: wrap; } .c-cfg-linha > .c-campo { flex-basis: 100%; } }
+.c-tabela td.c-plano-texto { white-space: normal; max-width: 220px; line-height: 18px; padding-top: var(--espaco-1); padding-bottom: var(--espaco-1); }

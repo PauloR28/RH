@@ -18,6 +18,7 @@ import { TelaCentralMonitoria } from './central.js';
 import { ListaMonitoriasNova } from './redesign-listas.js?v=20261108-fatia2';
 import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261108-fatia2';
 import { TelaPainelMonitoria } from './painel-redesign.js?v=20261108-fatia2';
+import { ListaFeedback, TelaPlanosNova } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
 import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';
 import { definirSelos } from '../../ui/components/selos-subbarra.js';
 import { listarMonitorias } from '../../services/api/monitoria.js';
@@ -63,6 +64,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   const [detalhe, setDetalhe] = useState(null);
   const [compartilhar, setCompartilhar] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
+  const [novoPlano, setNovoPlano] = useState(false);
   const [alertasTick, setAlertasTick] = useState(0);
   const alertas = useAlertasMonitoria(controlador, alertasTick);
   // Bolinha vermelha por aba: contestação/réplica -> Contestações; feedback pendente -> Feedback; novidades do operador -> Minhas monitorias.
@@ -90,25 +92,28 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   }, [telaAtual, atualizacao]);
 
   // Redesign Fase 15 (fatia 2): Histórico, Contestações, Minhas monitorias, Nova monitoria e Painel no desenho novo.
-  // Feedback, Planos de ação, Formulários e Relatórios ainda não têm amostra aprovada: seguem com o conteúdo de antes.
-  const REDESENHADAS = { 'screen-monitoria': 'historico', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas' };
+  // Fatia 4 (09/11/2026): Feedback e Planos de ação também. Formulários e Relatórios seguem com o conteúdo de antes.
+  const REDESENHADAS = { 'screen-monitoria': 'historico', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas', 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-planos': 'planos' };
   const ehNova = telaAtual === 'screen-monitoria-nova';
   const ehPainel = telaAtual === 'screen-monitoria-dashboard';
   if (REDESENHADAS[telaAtual] || ehNova || ehPainel) {
-    const podeCriar = controlador.possuiPermissao('monitoria.criar');
-    const rotulo = { historico: 'Histórico', contestacoes: 'Contestações', minhas: 'Minhas monitorias' }[REDESENHADAS[telaAtual]] || 'Painel';
+    const ehPlanos = REDESENHADAS[telaAtual] === 'planos';
+    const podeCriar = ehPlanos ? controlador.possuiPermissao('monitoria.plano_acao') : controlador.possuiPermissao('monitoria.criar');
+    const rotulo = { historico: 'Histórico', contestacoes: 'Contestações', minhas: 'Minhas monitorias', feedback: 'Feedback', planos: 'Planos de ação' }[REDESENHADAS[telaAtual]] || 'Painel';
     let conteudo;
     if (erro) conteudo = html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${recarregar} /></div>`;
     else if (!contexto) conteudo = html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div>`;
     else if (ehNova) conteudo = html`<${TelaNovaMonitoriaRedesign} ...${props} aoConcluir=${(r) => { controlador.irParaTelaProtegida('screen-monitoria'); setTimeout(() => setDetalhe(String(r.id_monitoria)), 300); }} />`;
     else if (ehPainel) conteudo = html`<${TelaPainelMonitoria} ...${props} />`;
+    else if (REDESENHADAS[telaAtual] === 'feedback') conteudo = html`<${ListaFeedback} ...${props} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} aoAlterou=${() => { setAtualizacao((n) => n + 1); setAlertasTick((n) => n + 1); }} />`;
+    else if (ehPlanos) conteudo = html`<${TelaPlanosNova} ...${props} novoAberto=${novoPlano} aoFecharNovo=${() => setNovoPlano(false)} />`;
     else conteudo = html`<${ListaMonitoriasNova} ...${props} modo=${REDESENHADAS[telaAtual]} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} aoAlterou=${() => { setAtualizacao((n) => n + 1); setAlertasTick((n) => n + 1); }} />`;
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Monitoria" placeholderBusca="Monitoria" controlador=${controlador}>
         <${ToastHost} />
         <main class="c-pagina c-conteudo">
           ${ehNova ? null : html`<div class="c-cab-linha"><h1>${rotulo}</h1>
-            ${podeCriar ? html`<div class="c-cab-dir"><button type="button" class="c-botao c-botao--principal c-botao--compacto" onClick=${() => controlador.irParaTelaProtegida('screen-monitoria-nova')}><${Ic} nome="plus" />Nova monitoria</button></div>` : null}</div>`}
+            ${podeCriar ? html`<div class="c-cab-dir"><button type="button" class="c-botao c-botao--principal c-botao--compacto" onClick=${() => (ehPlanos ? setNovoPlano(true) : controlador.irParaTelaProtegida('screen-monitoria-nova'))}><${Ic} nome="plus" />${ehPlanos ? 'Novo plano' : 'Nova monitoria'}</button></div>` : null}</div>`}
           ${conteudo}
         </main>
         <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
