@@ -64,7 +64,7 @@ import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
 import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261104-leitura';
-import { PerfisPermissoes } from './perfis-permissoes.js?v=20261108-admin';
+import { PerfisPermissoes } from './perfis-permissoes.js?v=20261109-operacao';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },

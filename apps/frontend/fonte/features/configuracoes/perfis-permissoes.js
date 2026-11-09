@@ -17,6 +17,7 @@ const AREAS = [
   { id: 'turnos', nome: 'Turnos', modulos: ['WFM'], secoes: ['wfm'] },
   { id: 'monitoria', nome: 'Monitoria', modulos: ['Monitoria'], secoes: ['monitoria'] },
   { id: 'equipes', nome: 'Equipes', modulos: ['Equipes'], secoes: ['equipe'] },
+  { id: 'diario', nome: 'Diário de bordo', modulos: ['Diário de bordo'], secoes: ['diario'] },
   { id: 'relatorios', nome: 'Relatórios', modulos: ['Relatórios e Históricos', 'Relatórios'], secoes: ['relatorios'] },
   { id: 'recrutamento', nome: 'Recrutamento', modulos: ['Vagas', 'Processos', 'Candidatos', 'Entrevistas', 'Provas', 'Etapas e Trilhas', 'Fit Cultural', 'Documentos', 'Templates de Documentos', 'E-mails', 'Onboarding'], secoes: ['curriculos', 'processos', 'provas', 'gestao', 'treinamentos'] },
   { id: 'comunicacao', nome: 'Comunicação', modulos: ['Mural', 'Notificações', 'Calendário', 'Políticas', 'Central de Ajuda', 'OneDrive'], secoes: ['drive'] },
