@@ -1,9 +1,5 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { EmptyState } from '../../../ui/componentes-compartilhados.js';
-import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { IconeSvg } from '../../../ui/icone.js';
 import {
-  definirCapacidadePausasWfm,
   distribuirPausasWfm,
   lancarHoraExtraWfm,
   lancarPresencaWfm,
@@ -18,14 +14,14 @@ import {
   salvarItensEscalaWfm,
   salvarPausasWfm,
 } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261104-leitura';
-import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261104-leitura';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261104-leitura';
+import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261104-leitura';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { LinhaTempo } from './minha.js?v=20261104-leitura';
+import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261106-wfm';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser
@@ -41,6 +37,7 @@ const duracao = (e, s) => (e && s ? (((paraMin(s) - paraMin(e)) % 1440) + 1440) 
 const diaSemanaSegunda = (iso) => (doIso(iso).getDay() + 6) % 7; // 0 = segunda
 const chave = (id, data) => `${id}:${data}`;
 const ROTULO_PAUSA = { DESCANSO: 'Descanso', REFEICAO: 'Refeição', LANCHE: 'Lanche', OUTRA: 'Pausa', INTERVALO: 'Intervalo' };
+const TOM_SIGLA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'atencao', ATESTADO: 'informacao' };
 
 export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, showToast, aoVerMes, aoPausas, aoVoltarLista, aoMudarMes, aoTrocarEscala, opcoesEscala = null, somenteLeitura = false }) {
   const [dia, setDia] = useState(() => { const hoje = paraIso(new Date()); return hoje.startsWith(anoMes) ? hoje : `${anoMes}-01`; });
@@ -67,11 +64,10 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const [ocupado, setOcupado] = useState(false);
   const [pedirJust, setPedirJust] = useState(false);
   const [modalTurno, setModalTurno] = useState(null);
-  const [capacidade, setCapacidade] = useState('');
   const [configurando, setConfigurando] = useState(false);
   const [versaoLista, setVersaoLista] = useState(0);
   const [verMassa, setVerMassa] = useState(false);
-  const [verTurnos, setVerTurnos] = useState(false);
+  const [editHe, setEditHe] = useState(null); // id do colaborador com a hora extra em edição
   const [filtroTurno, setFiltroTurno] = useState(''); // '' = todos | 'dsr' | id do turno
   const [limite, setLimite] = useState(50);
   const [gaveta, setGaveta] = useState(null); // { id, nome, data, secao }
@@ -88,7 +84,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
 
   const carregarPausas = useCallback(async () => {
     if (!operacao) return;
-    try { const p = await lerPausasDiaWfm(operacao, dia, todasEquipes); setPausasDia(p); setCapacidade(String(p.capacidade)); } catch { setPausasDia(null); }
+    try { const p = await lerPausasDiaWfm(operacao, dia, todasEquipes); setPausasDia(p); } catch { setPausasDia(null); }
   }, [operacao, dia, todasEquipes]);
 
   const carregar = useCallback(async () => {
@@ -119,9 +115,10 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const extraSalvo = useMemo(() => Object.fromEntries(extras.map((x) => [chave(x.id_operador, x.data), x.minutos])), [extras]);
   const pausasDeOp = useMemo(() => Object.fromEntries((pausasDia?.operadores || []).map((o) => [o.id_operador, o])), [pausasDia]);
 
-  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<section class="mo-card-escala" aria-busy="true" aria-label="Carregando a escala"><${EsqueletoLinhas} linhas=${10} altura=${40} /></section>`;
-  if (!dados.operadores.length) return html`<section class="mo-card-escala cx-cresce"><div class="mo-corpo-vazio cx-cresce"><${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." /></div></section>`;
+  const nomeOp0 = (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
+  const voltar0 = aoVoltarLista ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Voltar para Escalas" title="Voltar para Escalas" onClick=${aoVoltarLista}><${Ic} nome="arrow-left" /></button>` : null;
+  if (erro) return html`<main class="c-pagina c-conteudo"><div class="c-cab-linha">${voltar0}<h1>${nomeOp0}</h1></div><div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div></main>`;
+  if (!dados) return html`<main class="c-pagina c-conteudo" aria-busy="true"><div class="c-cab-linha">${voltar0}<h1>${nomeOp0}</h1></div><div class="c-tabela-caixa"><${Esqueleto} linhas=${10} /></div></main>`;
 
   const editavel = dados.pode_editar && !leitura;
   const fechada = dados.status.fechada;
@@ -311,14 +308,8 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     } catch (err) { showToast?.(falhaAo('publicar a escala', err), 'error'); setPedirJust(true); } finally { setOcupado(false); }
   };
 
-  const salvarCapacidade = async () => {
-    try { await definirCapacidadePausasWfm({ operacao, pausas_simultaneas: Number(capacidade) }); showToast?.('Limite de pausas atualizado.', 'success'); await carregarPausas(); }
-    catch (err) { showToast?.(err?.message || 'Não foi possível salvar o limite.', 'error'); }
-  };
-
   const mover = (n) => { const d = doIso(dia); d.setDate(d.getDate() + n); const iso = paraIso(d); if (iso.startsWith(anoMes)) setDia(iso); };
   const rotuloEscopo = { dia: `${br(dia).slice(0, 5)}`, semana: 'a semana', mes: 'o mês' }[lote.escopo];
-  const ordensPausa = (pausasDia?.pausas_padrao || [{ ordem: 1 }, { ordem: 2 }, { ordem: 3 }]).map((p) => p.ordem);
   const excedentes = pausasDia?.excedentes || [];
   const nomeOperacao = (contexto?.operacoes || []).find((o) => o.chave === operacao)?.nome || operacao;
   const nomeEscala = dados.nome_escala || nomeOperacao;
@@ -329,151 +320,175 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const mostradas = visiveis.slice(0, limite);
   const hojeIso = paraIso(new Date());
   const alternarTodos = () => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
-  const menuAcoes = html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} />`;
 
   const aprov = dados.aprovacao;
   const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
-  const algumaAcaoAprov = !!(aprov && (aprov.pode_enviar || aprov.pode_aprovar || aprov.pode_declinar || aprov.pode_cancelar));
-  const mostrarFaixaAprov = !!aprov?.exige && (!aprovada || algumaAcaoAprov);
   const mostrarJust = (fechada && editavel && pendentes) || pedirJust;
 
+  const [rotuloEstado, tomEstado, iconeEstado, proximoPasso] = estadoEscala(dados);
+  const turnosFiltro = turnosSelecionaveis.map((t) => [String(t.id_turno), `${t.nome}${t.entrada ? ` ${faixaTurno(t)}` : ''}`]);
+  const extrasMenu = [
+    podeCadastros ? { label: 'Novo turno', icon: 'plus', onClick: () => setModalTurno({ ...TURNO_VAZIO, pausas: [] }) } : null,
+  ];
+  const menuCab = html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${() => aoVerMes?.('mes')} rotuloVer="Escala do mês" aoConfigurar=${podeCadastros ? () => setConfigurando(true) : undefined} />`;
+  const nomePausaCurto = (p, i) => `${i + 1}ª pausa${p?.tipo && ROTULO_PAUSA[p.tipo] ? ` · ${ROTULO_PAUSA[p.tipo]}` : ''}`;
+
+  // Linha da tabela: Equipe · Turno e horário · 3 pausas · Presença · Hora extra · ⋯ (amostra Q1, lote 1).
+  const linha = (o) => {
+    const id = o.id_usuario; const t = turnoDe(id, dia); const trab = trabalha(id, dia); const m = mudou(id, dia);
+    const pausas = pausasDe(id, dia); const salvaTrab = escalaSalva(id, dia) && !m.escala; const pres = presencaDe(id, dia);
+    const turnoLinha = t && t.tipo !== 'DSR' ? t : null;
+    const pendente = m.escala || m.extra || m.pres || m.pausas;
+    const ent = entradaDe(id, dia); const sai = saidaDe(id, dia);
+    const bloco = turnoLinha
+      ? html`<span class="c-dia-bloco" style=${{ '--t': turnoLinha.cor || 'var(--cor-acao-fundo)' }}>${turnoLinha.codigo}<small>${trab && ent ? `${ent}–${sai}` : turnoLinha.nome}${ajustado(id, dia) ? ' *' : ''}</small>${editavel ? html`<${Ic} nome="caret-down" />` : null}</span>`
+      : html`<span class="c-dia-bloco--dsr">DSR</span>`;
+    const he = extraDe(id, dia);
+    return html`<tr key=${id} class=${pendente ? 'c-cel-pendente' : ''} aria-selected=${sel[id] ? 'true' : null}>
+      ${editavel ? html`<td><label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${o.nome}`} checked=${!!sel[id]} onChange=${() => setSel({ ...sel, [id]: !sel[id] })} /></label></td>` : null}
+      <td class="c-forte c-estica" title=${(o.supervisores || []).length ? `Supervisor: ${(o.supervisores || []).map((s) => s.nome).join(', ')}` : null}>${o.nome}</td>
+      <td class="c-secundario">${o.equipe || '—'}</td>
+      <td>${editHor === id && editavel && trab
+        ? html`<${CelulaHorario} nome=${o.nome} entrada=${ent} saida=${sai} aoFechar=${() => setEditHor(null)} aoMudar=${(campo, valor) => mudarHorario(id, dia, campo, valor)} />`
+        : editavel
+          ? html`<span class="c-dia-turno-sel" title=${turnoLinha ? `${turnoLinha.nome}${trab ? ` · ${ent}–${sai}` : ''} (clique para trocar o turno)` : 'Sem turno neste dia (DSR). Clique para escalar.'}>${bloco}
+              <select aria-label=${`Turno de ${o.nome}`} value=${turnoLinha ? String(turnoLinha.id_turno) : ''} onChange=${(e) => mudarTurno(id, dia, e.target.value)}>
+                ${turnosSelecionaveis.map((x) => html`<option key=${x.id_turno} value=${x.id_turno}>${x.nome}${x.entrada ? ` ${faixaTurno(x)}` : ''}</option>`)}<option value="">DSR (sem turno)</option>
+              </select></span>`
+          : bloco}</td>
+      ${[0, 1, 2].map((i) => {
+        const p = pausas[i];
+        if (!trab) return html`<td key=${i} class="c-secundario">—</td>`;
+        if (!(salvaTrab || m.pausas)) return html`<td key=${i} class="c-secundario" title="As pausas são programadas ao salvar">${i === 0 ? 'ao salvar' : ''}</td>`;
+        if (!p) return html`<td key=${i}>${editavel && i === pausas.length ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-add" aria-label=${`Definir pausas de ${o.nome}`} onClick=${() => abrirGaveta(o, 'pausas')}>+ Definir</button>` : html`<span class="c-secundario">—</span>`}</td>`;
+        return html`<td key=${i} class="c-num-esq">${editavel
+          ? html`<span class="c-dia-pausas"><button type="button" title=${`${nomePausaCurto(p, i)} · ${p.duracao_min} min (clique para editar)`} aria-label=${`Editar ${i + 1}ª pausa de ${o.nome}: ${p.inicio}`} onClick=${() => abrirGaveta(o, 'pausas')}>${p.inicio}</button></span>`
+          : html`<span title=${`${nomePausaCurto(p, i)} · ${p.duracao_min} min`}>${p.inicio}</span>`}</td>`;
+      })}
+      <td>${trab
+        ? (podePresenca
+          ? html`<span class="c-dia-pres" title=${pres ? rotuloPresenca(pres) : 'Lançar presença'}>${pres ? html`<span class=${`c-sigla c-selo--${TOM_SIGLA[pres] || 'neutro'}`}>${siglaPresenca(pres)}</span>` : html`<span class="c-sigla c-selo--neutro">·</span>`}
+              <select aria-label=${`Presença de ${o.nome}`} value=${pres} onChange=${(e) => mudar(id, dia, { pres: e.target.value })}><option value="">— Sem lançamento</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s} · ${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select></span>`
+          : (pres ? html`<span class=${`c-sigla c-selo--${TOM_SIGLA[pres] || 'neutro'}`} title=${rotuloPresenca(pres)}>${siglaPresenca(pres)}</span>` : html`<span class="c-secundario">—</span>`))
+        : html`<span class="c-secundario">—</span>`}</td>
+      <td>${!trab ? html`<span class="c-secundario">—</span>`
+        : podePresenca && editHe === id
+          ? html`<input class="c-entrada c-entrada--compacta c-dia-he-campo" type="number" min="0" max="720" step="5" inputmode="numeric" autoFocus aria-label=${`Hora extra de ${o.nome} (minutos)`} placeholder="min"
+              value=${he || ''} onInput=${(e) => mudar(id, dia, { he: Number(e.target.value) || 0 })} onBlur=${() => setEditHe(null)} onKeyDown=${(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditHe(null); }} />`
+          : he
+            ? (podePresenca
+              ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-he" title=${`Total no mês: ${minutosParaHoras(extraMes(id))} (clique para editar)`} onClick=${() => setEditHe(id)}><${Ic} nome="clock" />+${minutosParaHoras(he)}</button>`
+              : html`<span class="c-dia-he" title=${`Total no mês: ${minutosParaHoras(extraMes(id))}`}><${Ic} nome="clock" />+${minutosParaHoras(he)}</span>`)
+            : (podePresenca ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-add" aria-label=${`Adicionar hora extra de ${o.nome}`} onClick=${() => setEditHe(id)}>+ Adicionar</button>` : html`<span class="c-secundario">—</span>`)}</td>
+      <td class="c-acoes">${editavel || podePresenca ? html`<${MenuAcoes} rotulo=${`Mais ações para ${o.nome}`} acoes=${[
+        editavel && trab ? { label: 'Ajustar horário', icon: 'clock', onClick: () => setEditHor(id) } : null,
+        podePresenca && trab ? { label: 'Lançar atestado', icon: 'clipboard-text', onClick: () => mudar(id, dia, { pres: 'ATESTADO' }) } : null,
+        editavel && trab ? { label: 'Editar pausas', icon: 'pause-circle', onClick: () => abrirGaveta(o, 'pausas') } : null,
+        editavel ? { label: 'Ajustar dia (turno, horário, pausas)', icon: 'pencil-simple', onClick: () => abrirGaveta(o, 'turno') } : null,
+      ]} />` : null}</td>
+    </tr>`;
+  };
+
   return html`
-    <${LinhaContexto} nome=${nomeEscala} operacao=${operacao} operacoes=${opcoesEscala} aoTrocarEscala=${aoTrocarEscala} anoMes=${anoMes} aoMudarMes=${aoMudarMes} ocultarEscala=${(contexto?.operacoes || []).length <= 1}
-      escalados=${escalados} emDsr=${dados.operadores.length - escalados} versao=${dados.status.versao_publicada} aoVoltarLista=${aoVoltarLista} menu=${menuAcoes} />
-
-    <section class="mo-card-escala cx-cresce" aria-label="Escala do dia">
-      <div class="mo-barra cx-fixo">
-        <${SeletorVisao} visao="dia" aoMes=${aoVerMes} aoPausas=${aoPausas} />
-        <div class="ea-dia-nav" role="group" aria-label="Escolher o dia">
-          <button type="button" class="ea-icone-btn" aria-label="Dia anterior" title="Dia anterior" disabled=${dia <= `${anoMes}-01`} onClick=${() => mover(-1)}><${Icone} nome="chevron_left" /></button>
-          <label class="ea-data"><${Icone} nome="calendar_month" /><span class="ea-num">${SEMANA[d0.getDay()]}, ${br(dia)}</span>
-            <input class="ea-data-input" type="date" aria-label="Escolher data" onClick=${(e) => e.target.showPicker?.()} value=${dia} min=${`${anoMes}-01`} max=${dados.dias[dados.dias.length - 1]} onChange=${(e) => e.target.value && e.target.value.startsWith(anoMes) && setDia(e.target.value)} /></label>
-          <button type="button" class="ea-icone-btn" aria-label="Próximo dia" title="Próximo dia" disabled=${dia >= dados.dias[dados.dias.length - 1]} onClick=${() => mover(1)}><${Icone} nome="chevron_right" /></button>
-          <button type="button" class="mo-btn mo-btn--neutro mo-btn--34" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso} onClick=${() => setDia(hojeIso)}>Hoje</button>
+    <main class="c-pagina c-conteudo">
+      <div class="c-cab-linha c-cab-escala">
+        ${voltar0}
+        <h1 title=${nomeEscala}>${nomeEscala}</h1>
+        ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+        <${Selo} tom=${tomEstado} icone=${iconeEstado} title="Caminho: Rascunho › Aprovação › Publicada › Fechada">${rotuloEstado}<//>
+        ${proximoPasso ? html`<span class="c-ajuda">${proximoPasso}</span>` : null}
+        <div class="c-cab-dir">
+          ${pendentes ? html`<span class="c-ajuda c-pendencias" role="status">${pendentes} alteração(ões) não salva(s)</span>` : null}
+          ${menuCab}
+          ${pendentes ? html`<button type="button" class="c-botao c-botao--texto" onClick=${() => setPend({})}>Descartar</button>` : null}
+          ${editavel ? html`<button type="button" class="c-botao c-botao--secundario" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !pendentes || (fechada && !justificativa.trim()) || null} onClick=${salvar}>Salvar${pendentes ? ` (${pendentes})` : ''}</button>` : null}
+          ${!leitura ? html`<${AcoesAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${aprov} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} />` : null}
+          ${podePublicar && !(aprovada && dados.status.versao_publicada > 0 && !pendentes) ? html`<button type="button" class=${`c-botao ${aprov?.pode_enviar || aprov?.pode_aprovar ? 'c-botao--secundario' : 'c-botao--principal'}`} disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA') || null} title=${bloqueioPublicar || null} onClick=${publicar}><${Ic} nome="send" />Publicar</button>` : null}
         </div>
-        <button type="button" class=${`mo-btn mo-btn--sec mo-btn--34 ${verTurnos ? 'is-ativo' : ''}`} style=${{ marginLeft: 'auto' }} aria-expanded=${verTurnos} onClick=${() => setVerTurnos(!verTurnos)}><${Icone} nome="schedule" />Turnos e pausas</button>
       </div>
 
-      ${verTurnos ? html`<div class="wfm-turnos-faixa">
-        <span class="wfm-turnos-rotulo">Turnos</span>
-        ${turnosSelecionaveis.map((t) => html`<button key=${t.id_turno} type="button" class="wfm-turno-pill" disabled=${!podeCadastros} title=${t.entrada ? `${t.nome} · ${t.entrada}–${t.saida} · ${minutosParaHoras(t.minutos || 0)}${podeCadastros ? ' (clique para editar)' : ''}` : t.nome} onClick=${() => setModalTurno(turnoParaEdicao(t))}>
-          <span class="wfm-chip" style=${{ '--wfm-cor': t.cor }}>${t.codigo}</span><span>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</span></button>`)}
-        ${podeCadastros ? html`<button type="button" class="wfm-turno-pill wfm-turno-pill--novo" onClick=${() => setModalTurno({ ...TURNO_VAZIO, pausas: [] })}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('add')}</span>Novo turno</button>` : null}
-        ${podeCadastros && pausasDia ? html`<span class="wfm-capacidade"><label for="wfm-cap">Em pausa ao mesmo tempo</label><input id="wfm-cap" class="form-control" type="number" min="1" max="200" value=${capacidade} onInput=${(e) => setCapacidade(e.target.value)} />${Number(capacidade) !== pausasDia.capacidade ? html`<button type="button" class="btn btn-outline-primary btn-sm" onClick=${salvarCapacidade}>OK</button>` : null}</span>` : null}
-      </div>` : null}
+      ${aprov?.declinada && aprov.motivo ? html`<${Faixa} tom="perigo" icone="x-circle"><b>Declinada por ${aprov.decidido_por || '—'}${aprov.decidido_em ? ` em ${dataHora(aprov.decidido_em)}` : ''}:</b> ${aprov.motivo}<//>` : null}
+      ${aprov?.invalidada && !aprov?.declinada ? html`<${Faixa} tom="atencao" icone="warning">A escala foi alterada depois do envio/aprovação: envie novamente para aprovação.<//>` : null}
+      ${aprov?.estado === 'EM_APROVACAO' ? html`<${Faixa} tom="informacao" icone="hourglass">Aguardando aprovação ${aprov.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprov.enviado_por || '—'} em ${dataHora(aprov.enviado_em)}.<//>` : null}
+      ${excedentes.length ? html`<${Faixa} tom="atencao" icone="warning"><b>Mais pessoas em pausa do que o limite.</b> ${excedentes.slice(0, 4).map((x) => `${x.inicio}–${x.fim}: ${x.qtd} (limite ${x.capacidade})`).join(' · ')}${excedentes.length > 4 ? ` · e mais ${excedentes.length - 4}` : ''}<//>` : null}
+      ${mostrarJust ? html`<div class="c-cartao c-cartao-corpo"><${Campo} rotulo=${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado, obrigatória)'}>
+        <input class="c-entrada" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} />
+      <//></div>` : null}
 
-      <div class="mo-barra mo-barra--filtros cx-fixo"><${FiltrosCompactos} rotuloBusca="Buscar colaborador" busca=${busca} aoBuscar=${setBusca} contagem=${`${visiveis.length} de ${dados.operadores.length} colaborador(es)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}`}
-        selects=${[
-          ...(ehSupervisor ? [seletorVisaoEquipes(todasEquipes, setTodasEquipes)] : []),
-          { rotulo: 'Supervisor', padrao: 'Supervisor: todos', valor: filtroSup, aoMudar: setFiltroSup, largura: 'g', opcoes: supervisores.map(([id, nome]) => [String(id), nome]) },
-          { rotulo: 'Equipe', padrao: 'Equipe: todas', valor: filtroEquipe, aoMudar: setFiltroEquipe, largura: 'm', opcoes: equipes.map(([id, nome]) => [String(id), nome]) },
-          { rotulo: 'Cargo', padrao: 'Cargo: todos', valor: filtroCargo, aoMudar: setFiltroCargo, largura: 'p', opcoes: cargos.map((c) => [c, c]) },
-        ]} /></div>
-
-      <div class="ea-chips" role="group" aria-label="Filtrar por turno">
-        <span class="ea-rotulo">TURNO</span>
-        <button type="button" class=${`ea-chip ${filtroTurno === '' ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === ''} onClick=${() => setFiltroTurno('')}>Todos</button>
-        ${turnosSelecionaveis.map((t) => html`<button key=${t.id_turno} type="button" class=${`ea-chip ${filtroTurno === String(t.id_turno) ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === String(t.id_turno)} onClick=${() => setFiltroTurno(filtroTurno === String(t.id_turno) ? '' : String(t.id_turno))}>
-          <${Quadrado} cor=${t.cor} />${t.nome}${t.entrada ? html`<span class="ea-muted ea-num">${faixaTurno(t)}</span>` : null}</button>`)}
-        <button type="button" class=${`ea-chip ${filtroTurno === 'dsr' ? 'is-ativo' : ''}`} aria-pressed=${filtroTurno === 'dsr'} onClick=${() => setFiltroTurno(filtroTurno === 'dsr' ? '' : 'dsr')}><${Quadrado} dsr=${true} />DSR</button>
-      </div>
-
-      ${editavel ? html`<${BarraSelecao} n=${marcados.length} aoLimpar=${() => setSel({})}>
-        <label class="visually-hidden" for="ea-turno-massa">Turno a aplicar</label>
-        <select id="ea-turno-massa" class="ea-campo ea-select ea-select--turno ea-campo--massa" value=${turnoTodos} onChange=${(e) => setTurnoTodos(e.target.value)}>
-          <option value="">Turno…</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${faixaTurno(t)}` : ''}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
-        <button type="button" class="ea-btn-sol" disabled=${turnoTodos === ''} onClick=${aplicarTurnoTodos}>Aplicar turno</button>
-        <button type="button" class=${`ea-btn-ctn ${verMassa ? 'is-ativo' : ''}`} aria-expanded=${verMassa} onClick=${() => setVerMassa(!verMassa)}>Preencher em massa</button>
-        <button type="button" class=${`ea-btn-ctn ${verPausasLote ? 'is-ativo' : ''}`} aria-expanded=${verPausasLote} onClick=${() => setVerPausasLote(!verPausasLote)}>Replicar pausas</button>
-      <//>` : null}
-
-      ${editavel && marcados.length && verPausasLote ? html`<div class="wfm-lote-dia wfm-lote-pausas ea-painel-massa">
-        <div class="wfm-lote-dia-linha">
-          <strong>Replicar as pausas de ${br(dia).slice(0, 5)} (${SEMANA[d0.getDay()]})</strong>
-          <label class="wfm-campo"><span>Em</span><select class="form-select" value=${lotePausas.escopo} onChange=${(e) => setLotePausas({ ...lotePausas, escopo: e.target.value })}><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
-          <button type="button" class="btn btn-primary btn-sm" disabled=${ocupado || pendentes > 0 || !pausasDoDiaDefinidas || !diasDasPausas.length} onClick=${replicarPausas}>Aplicar pausas</button>
-          <span class="wfm-dias-chips" role="group" aria-label="Dias da semana em que as pausas se aplicam">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${lotePausas.dias[i] ? 'is-ativo' : ''}`} aria-pressed=${lotePausas.dias[i]} onClick=${() => setLotePausas({ ...lotePausas, dias: lotePausas.dias.map((v, j) => (j === i ? !v : v)) })}>${nome}</button>`)}<span class="wfm-contagem-dias">${diasDasPausas.length} dia(s)</span></span>
-          <label class="wfm-check"><input type="checkbox" checked=${lotePausas.sobrescrever} onChange=${(e) => setLotePausas({ ...lotePausas, sobrescrever: e.target.checked })} /> Substituir pausas já programadas</label>
+      <div class="c-tabela-caixa">
+        ${editavel && marcados.length ? html`<div class="c-selecao">
+          <span>${marcados.length} selecionado(s)</span>
+          <select class="c-entrada c-entrada--compacta" aria-label="Turno a atribuir" value=${turnoTodos} onChange=${(e) => setTurnoTodos(e.target.value)}>
+            <option value="">Atribuir turno…</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.nome}${t.entrada ? ` ${faixaTurno(t)}` : ''}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
+          <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${turnoTodos === '' || null} onClick=${aplicarTurnoTodos}>Aplicar turno</button>
+          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setVerMassa(true)}>Preencher em massa</button>
+          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setVerPausasLote(true)}>Replicar pausas</button>
+          <button type="button" class="c-botao c-botao--texto c-botao--compacto c-fim" onClick=${() => setSel({})}>Limpar seleção</button>
+        </div>` : null}
+        <div class="c-filtros c-filtros--suave c-filtros--quebra">
+          <${Segmento} rotulo="Visão" valor="dia" aoMudar=${(v) => { if (v === 'semana' || v === 'mes') aoVerMes?.(v); else if (v === 'pausas') aoPausas?.(); }}
+            opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ['dia', 'Do dia'], ...(aoPausas ? [['pausas', 'Pausas']] : [])]} />
+          <${Navegar} grupo="Dia" rotulo=${`${SEMANA[d0.getDay()].slice(0, 3)}, ${br(dia).slice(0, 5)}`} rotuloAnterior="Dia anterior" rotuloProximo="Próximo dia" aoAnterior=${() => mover(-1)} aoProximo=${() => mover(1)} />
+          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${!hojeIso.startsWith(anoMes) || dia === hojeIso || null} onClick=${() => setDia(hojeIso)}>Hoje</button>
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+          ${ehSupervisor ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipes exibidas" value=${todasEquipes ? 'todas' : ''} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="">Minha equipe</option><option value="todas">Todas as equipes</option></select>` : null}
+          ${equipes.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Equipe: todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${supervisores.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Supervisor" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Supervisor: todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+          ${cargos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Cargo" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Cargo: todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select>` : null}
+          <select class="c-entrada c-entrada--compacta" aria-label="Turno" value=${filtroTurno} onChange=${(e) => setFiltroTurno(e.target.value)}><option value="">Turno: todos</option>${turnosFiltro.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}<option value="dsr">DSR (sem turno)</option></select>
+          <span class="c-contador" aria-live="polite">${visiveis.length} de ${dados.operadores.length} · ${escalados} escalado(s)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}</span>
         </div>
-        <p class="mon-muted wfm-dica">${pendentes > 0 ? 'Salve as alterações do dia antes de replicar as pausas.' : !pausasDoDiaDefinidas ? 'Defina e salve as pausas deste dia primeiro: elas servem de modelo.' : `Copia os horários de pausa de ${marcados.length} selecionado(s) para os dias marcados em que o colaborador trabalha. Vários colaboradores podem pausar no mesmo horário até o limite${pausasDia ? ` de ${pausasDia.capacidade}` : ''}; só o que passar do limite é deslocado para o horário livre mais próximo.`}</p>
-      </div>` : null}
 
-      ${editavel && marcados.length && verMassa ? html`<div class="wfm-lote-dia ea-painel-massa">
-        <div class="wfm-lote-dia-linha">
-          <strong>Aplicar a ${marcados.length} selecionado(s)</strong>
-          <label class="wfm-campo"><span>Turno</span><select class="form-select" value=${lote.turno} onChange=${(e) => setLote({ ...lote, turno: e.target.value })}><option value="">Manter</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}<option value="dsr">DSR (sem turno)</option></select></label>
-          <label class="wfm-campo"><span>Entrada</span><input class="form-control" type="time" value=${lote.entrada} onInput=${(e) => setLote({ ...lote, entrada: e.target.value })} /></label>
-          <label class="wfm-campo"><span>Saída</span><input class="form-control" type="time" value=${lote.saida} onInput=${(e) => setLote({ ...lote, saida: e.target.value })} /></label>
-          <label class="wfm-campo"><span>Em</span><select class="form-select" value=${lote.escopo} onChange=${(e) => setLote({ ...lote, escopo: e.target.value })}><option value="dia">Só este dia</option><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select></label>
-          <button type="button" class="btn btn-primary btn-sm" onClick=${aplicarLote}>Aplicar em ${rotuloEscopo}</button>
-          ${lote.escopo !== 'dia' ? html`<span class="wfm-dias-chips" role="group" aria-label="Dias da semana atingidos">${SEMANA_CURTA.map((nome, i) => html`<button key=${nome} type="button" class=${`wfm-dia-chip ${lote.dias[i] ? 'is-ativo' : ''}`} aria-pressed=${lote.dias[i]} onClick=${() => setLote({ ...lote, dias: lote.dias.map((v, j) => (j === i ? !v : v)) })}>${nome}</button>`)}<span class="wfm-contagem-dias">${datasAlvo.length} dia(s)</span></span>` : null}
-        </div>
-      </div>` : null}
-
-      ${excedentes.length ? html`<div class="wfm-validacao is-alerta ea-alerta" role="status"><strong>Mais operadores em pausa do que o limite</strong>
-        <ul>${excedentes.slice(0, 6).map((x, i) => html`<li key=${i}>${x.inicio}–${x.fim}: ${x.qtd} em pausa (limite ${x.capacidade})</li>`)}</ul></div>` : null}
-
-      <div class="mo-mat ea-tabela cx-cresce">
-        <div class="ea-rolagem mo-rolagem" role="region" aria-label="Escala do dia" tabindex="0">
-          <table class=${`ea-tab ${editavel ? 'ea-tab--sel' : ''}`}>
-            <colgroup>${editavel ? html`<col style=${{ width: '44px' }} />` : null}<col /><col style=${{ width: '170px' }} /><col style=${{ width: '200px' }} /><col style=${{ width: '230px' }} /><col style=${{ width: '100px' }} /><col style=${{ width: '120px' }} /></colgroup>
+        ${!dados.operadores.length ? html`<${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." />`
+          : !visiveis.length ? html`<${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltroEquipe(''); setFiltroSup(''); setFiltroCargo(''); setFiltroTurno(''); }} />`
+          : html`<table class="c-tabela c-dia-tabela" aria-label=${`Escala do dia ${br(dia)}`}>
             <thead><tr>
-              ${editavel ? html`<th scope="col" class="ea-c-sel"><${CheckTodos} rotulo="Selecionar todos os colaboradores" total=${visiveis.length} marcados=${marcados.length} aoAlternar=${alternarTodos} /></th>` : null}
-              <th scope="col" class="ea-c-nome">Colaborador</th><th scope="col">Turno</th><th scope="col">Horário</th><th scope="col">Pausas</th><th scope="col">Presença</th><th scope="col">Hora extra</th>
+              ${editavel ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel}
+                ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}
+              <th scope="col" class="c-estica">Colaborador</th><th scope="col">Equipe</th><th scope="col">Turno e horário</th>
+              <th scope="col">1ª pausa</th><th scope="col">2ª pausa</th><th scope="col">3ª pausa</th>
+              <th scope="col">Presença</th><th scope="col">Hora extra</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th>
             </tr></thead>
-            <tbody>
-              ${mostradas.length ? mostradas.map((o) => { const id = o.id_usuario; const t = turnoDe(id, dia); const trab = trabalha(id, dia); const m = mudou(id, dia);
-                const pausas = pausasDe(id, dia); const salvaTrab = escalaSalva(id, dia) && !m.escala; const pres = presencaDe(id, dia);
-                const turnoLinha = t && t.tipo !== 'DSR' ? t : null;
-                const pausasItem = { entrada: entradaDe(id, dia), saida: saidaDe(id, dia), pausas };
-                return html`<tr key=${id} class=${`${sel[id] ? 'is-sel' : ''} ${m.escala || m.extra || m.pres || m.pausas ? 'is-pendente' : ''}`.trim()}>
-                  ${editavel ? html`<td class="ea-c-sel"><input type="checkbox" class="ea-check" aria-label=${`Selecionar ${o.nome}`} checked=${!!sel[id]} onChange=${() => setSel({ ...sel, [id]: !sel[id] })} /></td>` : null}
-                  <td class="ea-c-nome"><span class="ea-nome" title=${o.nome}>${o.nome}</span><span class="ea-sup">${(o.supervisores || []).map((s) => s.nome.split(' ')[0]).join(', ')}</span></td>
-                  <td>${editavel
-                    ? html`<${SeletorTurnoLinha} turno=${turnoLinha} turnos=${turnosSelecionaveis} rotuloAria=${`Alterar turno de ${o.nome}`} aoEscolher=${(v) => mudarTurno(id, dia, v)} data=${dia} />`
-                    : html`<span class="ea-turno-ro" title=${turnoLinha ? undefined : 'Sem escala neste dia (DSR, folga ou sem turno)'}><${Quadrado} cor=${turnoLinha?.cor} dsr=${!turnoLinha} />${turnoLinha ? turnoLinha.nome : '—'}</span>`}</td>
-                  <td><${CelulaHorario} nome=${o.nome} trab=${trab} editavel=${editavel} entrada=${entradaDe(id, dia)} saida=${saidaDe(id, dia)} ajustado=${ajustado(id, dia)}
-                    editando=${editHor === id} aoEditar=${(v) => setEditHor(v ? id : null)} aoMudar=${(campo, valor) => mudarHorario(id, dia, campo, valor)} /></td>
-                  <td>${!trab ? html`<span class="ea-muted">—</span>`
-                    : !(salvaTrab || m.pausas) ? html`<span class="ea-muted" title="As pausas são programadas ao salvar">ao salvar</span>`
-                    : pausas.length ? (editavel
-                      ? html`<button type="button" class="ea-pausas-btn" aria-label=${`Editar pausas de ${o.nome}`} onClick=${() => abrirGaveta(o, 'pausas')}>${pausasItem.entrada && pausasItem.saida ? html`<${LinhaTempo} item=${pausasItem} mini />` : null}<span>${pausas.length} pausa${pausas.length > 1 ? 's' : ''}</span></button>`
-                      : html`<span class="ea-pausas-ro">${pausasItem.entrada && pausasItem.saida ? html`<${LinhaTempo} item=${pausasItem} mini />` : null}<span>${pausas.length} pausa${pausas.length > 1 ? 's' : ''}</span></span>`)
-                    : (editavel ? html`<button type="button" class="ea-definir" aria-label=${`Definir pausas de ${o.nome}`} onClick=${() => abrirGaveta(o, 'pausas')}><${Icone} nome="add" />Definir</button>` : html`<span class="ea-muted">—</span>`)}</td>
-                  <td>${trab ? html`<select class=${`ea-campo ea-select ea-select--pres wfm-pres-${pres.toLowerCase()}`} aria-label=${`Presença de ${o.nome}`} disabled=${!podePresenca} value=${pres} onChange=${(e) => mudar(id, dia, { pres: e.target.value })}><option value="">·</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k} title=${ROTULO_STATUS_PRESENCA[k]}>${s}</option>`)}</select>` : html`<span class="ea-muted">—</span>`}</td>
-                  <td>${trab ? (podePresenca
-                    ? html`<input class="ea-campo ea-in-min" type="number" min="0" max="720" step="5" inputmode="numeric" aria-label=${`Hora extra de ${o.nome} (minutos)`} title=${extraMes(id) ? `Minutos de hora extra neste dia. Total no mês: ${minutosParaHoras(extraMes(id))}` : 'Minutos de hora extra neste dia'} value=${extraDe(id, dia) || ''} placeholder="min" onInput=${(e) => mudar(id, dia, { he: Number(e.target.value) || 0 })} />`
-                    : html`<span class="ea-num">${extraDe(id, dia) || '—'}</span>`) : html`<span class="ea-muted">—</span>`}</td>
-                </tr>`; })
-                : html`<tr><td class="ea-vazio" colspan=${editavel ? 7 : 6}>Nenhum colaborador encontrado com estes filtros.</td></tr>`}
-            </tbody>
-          </table>
-        </div>
-        <div class="ea-rodape">
-          <span class="ea-muted" aria-live="polite">Mostrando ${mostradas.length} de ${visiveis.length} colaboradores</span>
-          ${mostradas.length < visiveis.length ? html`<button type="button" class="btn btn-outline-secondary ea-btn-40" onClick=${() => setLimite((l) => l + 50)}>Mostrar mais</button>` : null}
+            <tbody>${mostradas.map(linha)}</tbody>
+          </table>`}
+
+        <div class="c-caixa-rodape">
+          <span class="c-ajuda" aria-live="polite">Mostrando ${mostradas.length} de ${visiveis.length}</span>
+          ${mostradas.length < visiveis.length ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setLimite((l) => l + 50)}>Mostrar mais</button>` : null}
+          ${aprovada ? html`<span class="c-ajuda">Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}</span>` : null}
+          <span class="c-fim">${editavel ? html`<label class="c-interruptor c-interruptor-linha"><input type="checkbox" role="switch" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} />Programar pausas de quem ficar sem</label>` : html`<span class="c-ajuda">Somente leitura</span>`}</span>
         </div>
       </div>
-      <div class="wfm-legenda-pres cx-fixo">${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k}><span class=${`wfm-pres wfm-pres-${k.toLowerCase()}`}>${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}<span><span class="wfm-dsr">DSR</span>Dia sem turno</span></div>
+    </main>
 
-      ${mostrarFaixaAprov || mostrarJust ? html`<div class="mo-faixa cx-fixo">
-        ${mostrarFaixaAprov ? html`<${PainelAprovacao} operacao=${operacao} anoMes=${anoMes} aprovacao=${dados.aprovacao} onMudou=${carregar} showToast=${showToast} desabilitado=${pendentes > 0} semTexto=${aprovada} compacto />` : null}
-        ${mostrarJust ? html`<label class="mo-just"><span>${pedirJust ? 'Justificativa (para publicar com violação ou após o fechamento)' : 'Justificativa (período fechado)'}</span><input class="form-control" maxlength="400" value=${justificativa} onInput=${(e) => setJustificativa(e.target.value)} /></label>` : null}
-      </div>` : null}
+    ${verMassa && editavel && marcados.length ? html`<${Janela} titulo=${`Preencher em massa · ${marcados.length} selecionado(s)`} onClose=${() => setVerMassa(false)}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setVerMassa(false)}>Cancelar</button>
+        <button type="button" class="c-botao c-botao--principal" onClick=${() => { aplicarLote(); setVerMassa(false); }}>Aplicar em ${rotuloEscopo}</button>`}>
+      <div class="c-janela-corpo">
+        <${Campo} rotulo="Turno"><select class="c-entrada" value=${lote.turno} onChange=${(e) => setLote({ ...lote, turno: e.target.value })}><option value="">Manter</option>${turnosSelecionaveis.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo} · ${t.nome}</option>`)}<option value="dsr">DSR (sem turno)</option></select><//>
+        <div class="c-grupo">
+          <${Campo} rotulo="Entrada" opcional=${true}><input class="c-entrada" type="time" value=${lote.entrada} onInput=${(e) => setLote({ ...lote, entrada: e.target.value })} /><//>
+          <${Campo} rotulo="Saída" opcional=${true}><input class="c-entrada" type="time" value=${lote.saida} onInput=${(e) => setLote({ ...lote, saida: e.target.value })} /><//>
+        </div>
+        <${Campo} rotulo="Em"><select class="c-entrada" value=${lote.escopo} onChange=${(e) => setLote({ ...lote, escopo: e.target.value })}><option value="dia">Só este dia</option><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select><//>
+        ${lote.escopo !== 'dia' ? html`<fieldset class="c-padrao-dias"><legend class="c-rotulo">Dias da semana atingidos · ${datasAlvo.length} dia(s)</legend>
+          ${SEMANA_CURTA.map((nome, i) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${lote.dias[i]} onChange=${() => setLote({ ...lote, dias: lote.dias.map((v, j) => (j === i ? !v : v)) })} /><span>${nome}</span></label>`)}</fieldset>` : null}
+        <p class="c-ajuda">Fica pendente até você clicar em Salvar.</p>
+      </div>
+    <//>` : null}
 
-      <footer class="mo-rodape cx-fixo">
-        <div class="mo-rodape-esq">
-          ${aprovada ? html`<span class="mo-aprovada"><${Icone} nome="check_circle" />Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}. A aprovação publica a escala.</span>` : null}
-          <span class="mo-rodape-txt">${pendentes ? `${pendentes} alteração(ões) não salva(s)` : 'Tudo salvo'}</span>
-          ${editavel ? html`<label class="wfm-check"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /> Programar pausas de quem ficar sem</label>` : null}
-        </div>
-        <div class="mo-rodape-dir">
-          ${pendentes ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--38" onClick=${() => setPend({})}>Descartar</button>` : null}
-          ${podePublicar ? html`<button type="button" class="mo-btn mo-btn--sec mo-btn--38" disabled=${ocupado || pendentes > 0 || (!fechada && dados.aprovacao?.estado !== 'APROVADA')} title=${bloqueioPublicar} onClick=${publicar}><${Icone} nome="send" />Publicar</button>` : null}
-          <button type="button" class="mo-btn mo-btn--prim mo-btn--38" disabled=${ocupado || !pendentes || (fechada && !justificativa.trim())} onClick=${salvar}>Salvar${pendentes ? ` (${pendentes})` : ''}</button>
-        </div>
-      </footer>
-    </section>
+    ${verPausasLote && editavel && marcados.length ? html`<${Janela} titulo=${`Replicar as pausas de ${br(dia).slice(0, 5)} (${SEMANA[d0.getDay()]})`} onClose=${() => setVerPausasLote(false)}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setVerPausasLote(false)}>Cancelar</button>
+        <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || pendentes > 0 || !pausasDoDiaDefinidas || !diasDasPausas.length || null} onClick=${async () => { await replicarPausas(); setVerPausasLote(false); }}>Aplicar pausas</button>`}>
+      <div class="c-janela-corpo">
+        <${Campo} rotulo="Em"><select class="c-entrada" value=${lotePausas.escopo} onChange=${(e) => setLotePausas({ ...lotePausas, escopo: e.target.value })}><option value="semana">Toda a semana</option><option value="mes">Todo o mês</option></select><//>
+        <fieldset class="c-padrao-dias"><legend class="c-rotulo">Dias da semana · ${diasDasPausas.length} dia(s)</legend>
+          ${SEMANA_CURTA.map((nome, i) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${lotePausas.dias[i]} onChange=${() => setLotePausas({ ...lotePausas, dias: lotePausas.dias.map((v, j) => (j === i ? !v : v)) })} /><span>${nome}</span></label>`)}</fieldset>
+        <label class="c-marcar"><input type="checkbox" checked=${lotePausas.sobrescrever} onChange=${(e) => setLotePausas({ ...lotePausas, sobrescrever: e.target.checked })} /><span>Substituir pausas já programadas</span></label>
+        <p class="c-ajuda">${pendentes > 0 ? 'Salve as alterações do dia antes de replicar as pausas.' : !pausasDoDiaDefinidas ? 'Defina e salve as pausas deste dia primeiro: elas servem de modelo.' : `Copia os horários de pausa de ${marcados.length} selecionado(s) para os dias marcados em que a pessoa trabalha. Só o que passar do limite${pausasDia ? ` de ${pausasDia.capacidade}` : ''} em pausa ao mesmo tempo é deslocado para o horário livre mais próximo.`}</p>
+      </div>
+    <//>` : null}
+
     ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
       bloqueio=${pendentes > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}
       aoFechar=${() => setGaveta(null)} aoSalvo=${(ok) => { if (ok) setGaveta(null); carregar(); }} />` : null}
@@ -481,21 +496,15 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
     ${modalTurno ? html`<${ModalTurno} operacao=${operacao} inicial=${modalTurno} contratos=${contratos} supervisores=${supervisoresOp} showToast=${showToast} onClose=${() => setModalTurno(null)} onSalvo=${() => { setModalTurno(null); carregar(); }} />` : null}`;
 }
 
-// Horário da linha: texto clicável (36px) que vira dois campos de hora com a duração recalculada. Edita o mesmo estado pendente de antes.
-function CelulaHorario({ nome, trab, editavel, entrada, saida, ajustado, editando, aoEditar, aoMudar }) {
+// Horário da linha em edição (⋯ › Ajustar horário): dois campos de hora com a duração recalculada. Enter/Esc ou sair fecha.
+function CelulaHorario({ nome, entrada, saida, aoMudar, aoFechar }) {
   const raiz = useRef(null);
-  if (!trab) return html`<span class="ea-muted">—</span>`;
   const dur = minutosParaHoras(duracao(entrada, saida));
-  if (!editavel) return html`<span class="ea-hor-ro"><span class="ea-hor-txt ea-num">${entrada} – ${saida}</span><span class="ea-muted">${dur}</span></span>`;
-  if (!editando) {
-    return html`<button type="button" class=${`ea-hor-btn ${ajustado ? 'is-ajustado' : ''}`} aria-label=${`Editar horário de ${nome}`} title=${ajustado ? 'Horário diferente do padrão do turno' : 'Editar horário'} onClick=${() => aoEditar(true)}>
-      <span class="ea-hor-txt ea-num">${entrada} – ${saida}</span><span class="ea-muted">${dur}</span></button>`;
-  }
-  const sair = (e) => { if (!raiz.current?.contains(e.relatedTarget)) aoEditar(false); };
-  return html`<span class="ea-hor-edit" ref=${raiz} onKeyDown=${(e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); aoEditar(false); } }}>
-    <input type="time" class="ea-campo ea-in-hora" autoFocus aria-label=${`Entrada de ${nome}`} value=${entrada} onInput=${(e) => aoMudar('entrada', e.target.value)} onBlur=${sair} />
+  const sair = (e) => { if (!raiz.current?.contains(e.relatedTarget)) aoFechar(); };
+  return html`<span class="c-grupo" ref=${raiz} onKeyDown=${(e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); aoFechar(); } }}>
+    <input type="time" class="c-entrada c-entrada--compacta c-pausa-hora" autoFocus aria-label=${`Entrada de ${nome}`} value=${entrada} onInput=${(e) => aoMudar('entrada', e.target.value)} onBlur=${sair} />
     <span aria-hidden="true">–</span>
-    <input type="time" class="ea-campo ea-in-hora" aria-label=${`Saída de ${nome}`} value=${saida} onInput=${(e) => aoMudar('saida', e.target.value)} onBlur=${sair} />
-    <span class="ea-muted" aria-live="polite">${dur}</span>
+    <input type="time" class="c-entrada c-entrada--compacta c-pausa-hora" aria-label=${`Saída de ${nome}`} value=${saida} onInput=${(e) => aoMudar('saida', e.target.value)} onBlur=${sair} />
+    <span class="c-ajuda" aria-live="polite">${dur}</span>
   </span>`;
 }

@@ -44,7 +44,7 @@ export function descreverTurno(t) {
 }
 
 // Estado da escala no cabeçalho (o caminho é Rascunho › Aprovação › Publicada › Fechada).
-function estadoEscala(dados) {
+export function estadoEscala(dados) {
   const ap = dados.aprovacao;
   const v = dados.status.versao_publicada;
   if (dados.status.fechada) return ['Fechada', 'neutro', 'lock', ''];
@@ -56,7 +56,7 @@ function estadoEscala(dados) {
 }
 
 // Aprovação no cabeçalho: Enviar / Aprovar / Declinar (justificativa em janela) / Cancelar envio. Mesmas rotas de antes.
-function AcoesAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado }) {
+export function AcoesAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast, desabilitado }) {
   const [declinando, setDeclinando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -135,7 +135,7 @@ function semanasDoMes(dias) {
   return semanas;
 }
 
-export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoPausas, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null, acessorio = null }) {
+export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast, somentePropria = false, somenteLeitura = false, aoVoltarDia, aoPausas, aoVoltarLista, aoTrocarEscala, aoMudarMes, opcoesEscala = null, acessorio = null, visaoInicial = 'semana' }) {
   const [dados, setDados] = useState(null);
   const [configurando, setConfigurando] = useState(false);
   const [erro, setErro] = useState('');
@@ -157,7 +157,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [busca, setBusca] = useState(() => tomarFocoPessoa('escala-mes')); // vindo do Painel do dia: já filtrado pela pessoa
   const [selecionados, setSelecionados] = useState({});
   const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
-  const [visao, setVisao] = useState('semana'); // semana | mes
+  const [visao, setVisao] = useState(visaoInicial); // semana | mes
   const [semanaIdx, setSemanaIdx] = useState(null); // null = a semana de hoje (ou a 1ª do mês)
 
   const pode = (p) => controlador.possuiPermissao(p);

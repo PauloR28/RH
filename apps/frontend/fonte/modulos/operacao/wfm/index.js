@@ -67,6 +67,9 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
   const [anoMes, setAnoMes] = useState(mesAtual());
   // Aba Escala: 'lista' (padrão, lista de escalas) | 'dia' (montar) | 'mes' (visualizar o mês inteiro) | 'pausas'
   const [visaoEscala, setVisaoEscala] = useState('lista');
+  // Grade da escala aberta (Semana ou Mês): o seletor de visão do Dia e das Pausas abre a grade já na visão escolhida.
+  const [visaoGrade, setVisaoGrade] = useState('semana');
+  const verGrade = (v) => { setVisaoGrade(v === 'mes' ? 'mes' : 'semana'); setVisaoEscala('mes'); };
   const [configurandoItem, setConfigurandoItem] = useState(null);
   const [versaoLista, setVersaoLista] = useState(0);
   // Minhas escalas: quem enxerga escalas (Supervisor, Gestor...) alterna entre a própria escala e a da equipe (somente leitura;
@@ -134,15 +137,10 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
         ${visaoEscala === 'mes'
-          ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
-          : html`<${PaginaConsole} className="cx-pagina--modulo cx-escala-aberta">
-          <${ModuleHeader} titulo=${titulo} subtitulo=${descricao} />
-          ${visaoEscala === 'pausas'
-            ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoMes=${() => setVisaoEscala('mes')} />`
-            : visaoEscala === 'mes'
-              ? html`<${TelaEscala} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
-              : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVerMes=${() => setVisaoEscala('mes')} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
-        <//>`}
+          ? html`<${TelaEscala} key=${visaoGrade} ...${props} visaoInicial=${visaoGrade} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVoltarLista=${voltarParaLista} aoVoltarDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoPausas=${aoVerPausas} />`
+          : visaoEscala === 'pausas'
+            ? html`<${TelaEscalaPausas} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} aoVoltarLista=${voltarParaLista} aoDia=${podeAbrirDia ? () => setVisaoEscala('dia') : undefined} aoMes=${verGrade} />`
+            : html`<${TelaEscalaTabela} ...${props} aoMudarMes=${setAnoMes} opcoesEscala=${opcoesEscala} somenteLeitura=${!podeCriarEscala} aoVerMes=${verGrade} aoPausas=${aoVerPausas} aoVoltarLista=${voltarParaLista} />`}
         ${configurandoItem ? html`<${ModalConfigEscala} operacao=${configurandoItem.chave} nomePadrao=${configurandoItem.operacao} showToast=${showToast} onClose=${() => setConfigurandoItem(null)}
           onSalvo=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }}
           onMudouLista=${() => { setConfigurandoItem(null); setVersaoLista((v) => v + 1); recarregarContexto(); }} />` : null}

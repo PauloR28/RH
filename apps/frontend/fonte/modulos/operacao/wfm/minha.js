@@ -96,7 +96,7 @@ function PainelDia({ data, itens, eventos, presenca, podeTrocar, folga, onTrocar
       ${trabalhando.map((item) => {
         const pausas = item.pausas || [];
         const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
-        return html`<div key=${item.operacao} class="c-dia-bloco">
+        return html`<div key=${item.operacao} class="c-dia-secao">
           <table class="c-diario-ficha"><tbody>
             <tr><td>Turno</td><td><${Turno} item=${item} /></td></tr>
             <tr><td>Horário</td><td><b>${faixa(item)}</b> · ${horasMin(item.minutos)} de jornada</td></tr>
@@ -113,7 +113,7 @@ function PainelDia({ data, itens, eventos, presenca, podeTrocar, folga, onTrocar
           </div>` : null}
         </div>`;
       })}
-      ${!trabalhando.length && folga ? html`<div class="c-dia-bloco">
+      ${!trabalhando.length && folga ? html`<div class="c-dia-secao">
         <p>Você está de folga neste dia.</p>
         <div class="c-grupo">
           <button type="button" class="c-botao c-botao--secundario" onClick=${() => onTrocar({ ...folga, folga: true })}><${Ic} nome="arrows-left-right" />Pedir troca de folga</button>

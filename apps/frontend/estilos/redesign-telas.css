@@ -79,8 +79,8 @@
 .c-cal-st--atencao { color: var(--cor-status-atencao-texto); }
 .c-cal-st--neutro { color: var(--cor-texto-secundario); }
 .c-cal .c-ic > svg { display: block; width: 100%; height: 100%; }
-.c-dia-bloco { display: flex; flex-direction: column; gap: var(--espaco-3); padding-bottom: var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
-.c-dia-bloco:last-child { border-bottom: 0; }
+.c-dia-secao { display: flex; flex-direction: column; gap: var(--espaco-3); padding-bottom: var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-dia-secao:last-child { border-bottom: 0; }
 /* Janela: os blocos do corpo não encolhem (o corpo é que rola) */
 .c-janela-corpo > * { flex-shrink: 0; }
 .c-janela-corpo > .c-tabela-caixa { overflow: visible; }
