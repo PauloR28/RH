@@ -213,12 +213,37 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos)
 
 
+# Função do menu (Administração > Módulos) a que cada permissão que ABRE módulo pertence. Permissão sem função (ex.:
+# configuracoes.visualizar = Administração) abre o módulo sempre.
+_FUNCAO_DA_PERMISSAO = {
+    "sessao.curriculos.acessar": "cx-curriculos",
+    "sessao.processos.acessar": "processos",
+    "sessao.provas.acessar": "provas",
+    "sessao.monitoria.acessar": "monitoria",
+    "sessao.wfm.acessar": "wfm",
+    "chamados.abrir": "suporte",
+    "chamados.atender": "suporte",
+}
+
+
+def _abre_com_funcao_ligada(chave: str, modulo: str) -> bool:
+    """Decisão do Paulo (10/11/2026): o módulo some do seletor quando nenhuma função dele está ligada. Uma permissão ligada
+    a uma função (ex.: chamados.abrir -> Suporte TI) só abre o módulo se essa função estiver ligada nele."""
+    funcao = _FUNCAO_DA_PERMISSAO.get(chave)
+    if not funcao or funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
+        return True
+    return funcao in funcoes_ativas(modulo)
+
+
 def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> list[str]:
     """Módulos (exceto core) que o conjunto de permissões abre MAIS os liberados para o perfil/usuário em Tecnologia
     (`extras`, V060), apenas módulos ativos, na ordem de exibição. Liberar um módulo só o torna visível: as telas dentro dele
-    continuam dependendo das permissões do perfil."""
+    continuam dependendo das permissões do perfil. Permissão ligada a uma função desligada no módulo não o abre."""
     est = estado()
-    abertos = {m for p in permissoes if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m)}
+    abertos = {
+        m for p in permissoes
+        if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m) and _abre_com_funcao_ligada(p, m)
+    }
     abertos |= {m for m in extras if m in MODULOS_VALIDOS and m != MODULO_CORE and modulo_ativo(m)}
     return sorted(abertos, key=lambda m: (est.ordem.get(m, 99), m))
 

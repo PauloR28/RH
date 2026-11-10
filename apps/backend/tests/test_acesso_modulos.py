@@ -211,3 +211,19 @@ def test_nenhuma_rota_nova_fica_sem_permissao_declarada():
     sem = {r for r, d in tabela.items() if not d["perms"] and not d["inline"]}
     novas = sorted(sem - permitido - {"GET /core/acesso"})
     assert not novas, f"Rotas novas sem permissão nem módulo declarados: {novas}"
+
+
+def test_modulo_some_quando_nenhuma_funcao_dele_esta_ligada_10_11_2026():
+    """Decisão do Paulo: permissão ligada a uma função (chamados.abrir -> Suporte TI) só abre o módulo com a função ligada;
+    a Administração (configuracoes.visualizar) não é função e continua abrindo Tecnologia."""
+    from rh_api.modulos_catalogo import FUNCOES_PADRAO_ATIVAS, MODULO_TECNOLOGIA
+
+    sem_suporte = {**FUNCOES_PADRAO_ATIVAS, MODULO_TECNOLOGIA: frozenset()}
+    acesso.definir_carregador(lambda: acesso.EstadoModulos(funcoes=sem_suporte))
+    try:
+        assert MODULO_TECNOLOGIA not in acesso.modulos_visiveis(["chamados.abrir"])
+        assert MODULO_TECNOLOGIA in acesso.modulos_visiveis(["chamados.abrir", "configuracoes.visualizar"])
+        acesso.definir_carregador(lambda: acesso.EstadoModulos())
+        assert MODULO_TECNOLOGIA in acesso.modulos_visiveis(["chamados.abrir"])  # Suporte TI ligado (padrão)
+    finally:
+        acesso.definir_carregador(None)
