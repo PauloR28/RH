@@ -7,7 +7,7 @@ import { Icone } from './escala-ui.js?v=20261104-leitura';
 import { horasDec } from './comum.js?v=20261104-leitura';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261028-hms';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
@@ -378,7 +378,14 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
   if (somentePainel) {
     return html`
       <main class="c-pagina c-conteudo">
-        <${CabPagina} titulo="Painel" descricao="Indicadores do período comparados ao período anterior. Os relatórios em planilha ficam em Relatórios e Históricos." />
+        <${CabPagina} titulo="Painel" descricao="Indicadores do período comparados ao período anterior. Os relatórios em planilha ficam em Relatórios e Históricos."
+          acoes=${html`<${MenuAcoes} rotulo="Exportar" texto=${ocupado ? 'Gerando…' : 'Exportar'} icone="tray-arrow-down" classeBotao="c-botao c-botao--secundario c-botao--compacto"
+            acoes=${[
+              { label: 'Este relatório (Excel)', icon: 'table', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('xlsx') },
+              { label: 'Este relatório (CSV)', icon: 'file-text', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('csv') },
+              { label: 'Este relatório (PDF)', icon: 'file-text', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('pdf') },
+              { label: 'Todos os relatórios (Excel)', icon: 'file-zip', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('completo') },
+            ]} />`} />
         <div class="c-tabela-caixa">
           <div class="c-filtros c-filtros--suave">
             ${opcoesEscalas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Escala / operação" value=${operacao} onChange=${(e) => aoTrocarEscala?.(e.target.value)}>${opcoesEscalas.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}

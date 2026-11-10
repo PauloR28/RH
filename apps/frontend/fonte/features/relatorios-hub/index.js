@@ -218,7 +218,7 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261104-leitura').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261110-exportar').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261023-ajustes'), import('../monitoria/comum.js')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
