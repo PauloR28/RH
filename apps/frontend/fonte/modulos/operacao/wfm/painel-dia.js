@@ -410,7 +410,13 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
   };
 
   const menuAtual = menu ? linhas.find((l) => l.id === menu.id) : null;
+  // Escala da tela sempre visível ao lado do título; com mais de uma, vira a lista para trocar (lista 10/11, item 14).
+  const nomeEscala = operacoesAtivas.find((o) => o.chave === operacao)?.nome || '';
   const cabecalho = html`<div class="c-cab-linha"><h1>Painel</h1>
+    ${operacoesAtivas.length > 1 ? html`<select class="c-entrada c-pd-escala" aria-label="Escala" value=${operacao} onChange=${(e) => { setTurno(''); setEquipe(''); aoTrocarEscala?.(e.target.value); }}>
+      ${operacoesAtivas.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select>`
+    : nomeEscala ? html`<span class="c-pd-escala c-pd-escala--fixa">${nomeEscala}</span>` : null}
+    ${bruto ? html`<span class="c-secundario">${linhas.length} ${linhas.length === 1 ? 'escalado' : 'escalados'} nesta escala</span>` : null}
     <div class="c-cab-dir">
       ${atualizadoEm ? html`<span class="c-secundario c-pd-atual" title="Atualiza sozinho a cada minuto"><${Ic} nome="arrows-clockwise" />Atualizado às ${hora(atualizadoEm.getHours() * 60 + atualizadoEm.getMinutes())}</span>` : null}
       ${podeLancar ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${!loteAlvo.length || null}
@@ -428,8 +434,6 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
         : html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" aria-live="polite" title="Voltar para hoje" onClick=${() => setDia(hoje)}>${tituloDia}</button>`}
       <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Próximo dia" title="Próximo dia" onClick=${() => setDia(somarDias(dia, 1))}><${Ic} nome="caret-right" /></button>
     </div>
-    ${operacoesAtivas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Escala" value=${operacao} onChange=${(e) => { setTurno(''); setEquipe(''); aoTrocarEscala?.(e.target.value); }}>
-      ${operacoesAtivas.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select>` : null}
     <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
     <select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${equipe} onChange=${(e) => setEquipe(e.target.value)}>
       <option value="">Todas as equipes</option>${equipes.map((e) => html`<option key=${e} value=${e}>${e}</option>`)}</select>

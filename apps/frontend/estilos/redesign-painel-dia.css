@@ -116,3 +116,8 @@ tr:hover .c-pd-nome .c-ic, .c-pd-nome:focus-visible .c-ic, .c-pd-nome[aria-expan
 /* Precisa de você: linha de 40 px (o botão compacto de 32 px não encosta nas linhas) e ação com respiro à direita (ajuste do Paulo, 08/11) */
 .c-hoje-pend td { vertical-align: middle; }
 .c-hoje-pend td.c-acoes { width: 1%; padding-right: var(--espaco-3); text-align: right; white-space: nowrap; }
+
+/* Painel: escala da tela ao lado do título (lista 10/11, item 14). */
+.c-pd .c-cab-linha > .c-pd-escala { width: auto; max-width: 360px; }
+.c-pd-escala--fixa { display: inline-flex; align-items: center; height: var(--altura-controle-compacto); padding: 0 var(--espaco-3); border: var(--borda-fina) solid var(--cor-borda-campo); border-radius: var(--raio-pequeno); background: var(--cor-fundo-painel); font-size: 14px; font-weight: var(--fonte-peso-semi); }
+.c-pd > .c-cab-linha { gap: var(--espaco-4); }
