@@ -147,7 +147,7 @@ export function TelaInicioOperador({ controlador, sessoes = [] }) {
         </header>
         ${atalhos.length ? html`<section><h2 class="c-rotulo c-io-rotulo">Atalhos</h2><nav class="c-atalhos" aria-label="Atalhos">
           ${atalhos.map((s) => html`<a key=${s.id} class="c-atalho" href="#" title=${s.desc || null} onClick=${(ev) => { ev.preventDefault(); irPara(s.destino); }}>
-            ${s.icone && s.icone.includes('-') ? html`<${Ic} nome=${s.icone} />` : html`<span class="c-ic" aria-hidden="true">${IconeSvg(s.icone)}</span>`}${s.titulo}</a>`)}
+            ${s.icone && s.icone.includes('-') ? html`<${Ic} nome=${s.icone} />` : html`<span class="c-ic" aria-hidden="true">${IconeSvg(s.icone)}</span>`}${s.titulo}${(() => { const n = (pendencias || []).find((p) => (s.id === 'trocas' && p.id === 'trocas') || (s.id === 'minhas-monitorias' && p.id === 'monitorias'))?.qtd || 0; return n > 0 ? html`<span class="c-conta c-atalho-conta" aria-label=${`${n} pendente(s)`}>${n}</span>` : null; })()}</a>`)}
         </nav></section>` : null}
         <section class="c-cartao" aria-labelledby="c-io-precisa">
           <div class="c-cartao-cab"><h2 id="c-io-precisa">Precisa de você</h2>${vencemLogo ? html`<${Selo} tom="atencao" icone="clock">${vencemLogo} ${vencemLogo === 1 ? 'vence em até 24 h' : 'vencem em até 24 h'}<//>` : null}</div>

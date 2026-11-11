@@ -171,7 +171,7 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
         ${atalhos.length ? html`<section><h2 class="c-rotulo c-oculto">Atalhos</h2><nav class="c-atalhos" aria-label="Atalhos">
           ${atalhos.map((s) => html`<a key=${s.id} class="c-atalho" href="#" onClick=${(ev) => { ev.preventDefault(); irPara(s.destino); }}
             title=${s.desc}><span class="c-ic" aria-hidden="true">${IconeSvg(s.icone)}</span>${s.titulo}
-            ${(s.id === 'monitoria' && alertasMonitoria > 0) || (s.id === 'wfm' && trocasPendentes > 0) ? html`<span class="c-oculto">(há novidades)</span>` : null}</a>`)}
+            ${(() => { const n = s.id === 'monitoria' ? alertasMonitoria : s.id === 'wfm' ? trocasPendentes : 0; return n > 0 ? html`<span class="c-conta c-atalho-conta" aria-label=${`${n} pendente(s)`}>${n}</span>` : null; })()}</a>`)}
         </nav></section>` : null}
         ${temWfm && operacoes === null ? html`<section class="c-cartao"><div class="c-cartao-corpo"><${Esqueleto} linhas=${3} /></div></section>` : null}
         ${temWfm && operacoes?.length ? html`<${EscalaDeHoje} controlador=${controlador} operacao=${operacoes[0]} />` : null}

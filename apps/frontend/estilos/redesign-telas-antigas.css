@@ -308,6 +308,12 @@
   .c-saudacao .c-meudia { margin-left: 0; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); border-top: var(--borda-fina) solid var(--tabela-linha); }
   .c-io-meudia-carregando { width: auto; }
 }
+/* Início (09/11/2026): atalhos do tamanho do texto, mesma altura, alinhados à esquerda, gap 8; sem Mural, "Precisa de você" ocupa a linha */
+.c-atalhos { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: flex-start; gap: var(--espaco-2); }
+.c-atalhos > .c-atalho { flex: 0 0 auto; min-width: 176px; }
+.c-hoje-dupla.c-hoje-dupla--so { grid-template-columns: minmax(0, 1fr); }
+/* Início: a regra antiga de #screen-menu somava ~20 px de margem; no desenho novo a margem é só a da .c-pagina (24 px), igual às outras telas */
+#screen-menu .rh-modern-page:has(> .c-pagina) { padding: 0; }
 /* Painel do WFM (Indicadores), 10/11/2026: gráficos desenhados 1:1 (texto dos eixos 12 px), legenda no cabeçalho sem cortar,
    cartões da mesma linha com a mesma altura e estado vazio padrão quando não há dados */
 .c-graficos-wfm { align-items: stretch; }
@@ -324,9 +330,5 @@
 .c-graficos-wfm .wfm-g-rosca--compacta .wfm-g-legenda { font-size: 12px; gap: var(--espaco-1); }
 .c-graficos-wfm .wfm-g-barras, .c-graficos-wfm .wfm-g-barras-rotulo, .c-graficos-wfm .wfm-g-barras-valor, .c-graficos-wfm .wfm-g-legenda { font-size: 12px; }
 .c-graficos-wfm .c-grafico > .wfm-g-rosca { flex: 1 1 auto; align-content: center; }
-/* Início (09/11/2026): atalhos do tamanho do texto, mesma altura, alinhados à esquerda, gap 8; sem Mural, "Precisa de você" ocupa a linha */
-.c-atalhos { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: flex-start; gap: var(--espaco-2); }
-.c-atalhos > .c-atalho { flex: 0 0 auto; min-width: 176px; }
-.c-hoje-dupla.c-hoje-dupla--so { grid-template-columns: minmax(0, 1fr); }
-/* Início: a regra antiga de #screen-menu somava ~20 px de margem; no desenho novo a margem é só a da .c-pagina (24 px), igual às outras telas */
-#screen-menu .rh-modern-page:has(> .c-pagina) { padding: 0; }
+/* Início: contador de pendências no atalho (como a bolinha do avatar), 11/11/2026 */
+.c-atalho .c-atalho-conta { margin-left: auto; min-width: 20px; height: 20px; padding: 0 var(--espaco-1); border-radius: var(--raio-cheio); background: var(--cor-status-perigo-texto); color: var(--cor-fundo-painel); font-size: 12px; font-weight: var(--fonte-peso-negrito); display: inline-grid; place-items: center; }
