@@ -8,7 +8,7 @@ import { horasDec } from './comum.js?v=20261104-leitura';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261028-hms';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261110-graficos';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -227,6 +227,14 @@ function PainelNovo({ painel, resumido = false }) {
   const pct = escaladas?.valor && trabalhadas?.valor !== null && trabalhadas?.valor !== undefined ? ` (${fmt((100 * trabalhadas.valor) / escaladas.valor, 0)}%)` : '';
   const cor = (n) => `var(--cor-grafico-${n})`;
   const leg = (itens) => itens.map(([r, c]) => html`<span key=${r}><i style=${{ background: c }}></i>${r}</span>`);
+  // Sem dados no período: estado vazio padrão no lugar de eixos zerados (regras de gráfico do rebranding).
+  const vazio = html`<${Estado} icone="chart-bar" titulo="Sem dados no período" />`;
+  const soma = (lista, k) => (lista || []).reduce((t, x) => t + (Number(x?.[k]) || 0), 0);
+  const temSerie = soma(g.serie_diaria, 'escalados') + soma(g.serie_diaria, 'presentes') + soma(g.serie_diaria, 'faltas') > 0;
+  const temAbsenteismo = (g.absenteismo_semana || []).some((d) => d.valor) || !!painel.totais.absenteismo;
+  const temPresenca = soma(g.presenca, 'valor') > 0;
+  const temOperadores = soma(g.top_operadores, 'trabalhadas') + soma(g.top_operadores, 'escaladas') > 0;
+  const temTurnos = soma(g.horas_turno, 'valor') > 0;
   return html`
     ${semDados ? html`<${Faixa} tom="informacao" icone="info">Não há dias de trabalho de escala publicada neste período. Os indicadores ficam zerados até uma escala ser publicada.<//>` : null}
     <div class="c-indicadores" aria-label="Indicadores do período">
@@ -238,20 +246,20 @@ function PainelNovo({ painel, resumido = false }) {
     </div>
     <div class="c-graficos c-graficos-wfm">
       <${Figura} titulo="Escalados × presentes por dia" nota="Barras cinza: escalados · linha: presentes · laranja: faltas"
-        legenda=${leg([['Escalados', 'var(--wfm-g-neutro)'], ['Presentes', cor(1)], ['Faltas', cor(2)]])}>
-        <${GraficoSerieDiaria} serie=${g.serie_diaria} compacto=${true} /><//>
+        legenda=${temSerie ? leg([['Escalados', 'var(--wfm-g-neutro)'], ['Presentes', cor(1)], ['Faltas', cor(2)]]) : null}>
+        ${temSerie ? html`<${GraficoSerieDiaria} serie=${g.serie_diaria} compacto=${true} />` : vazio}<//>
       <${Figura} titulo="Absenteísmo por dia da semana" nota="Faltas ÷ dias apurados · tracejado = média do período">
-        <${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} /><//>
+        ${temAbsenteismo ? html`<${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} />` : vazio}<//>
       <${Figura} titulo="Situação da presença" nota="Dias de trabalho do período">
-        <${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} /><//>
+        ${temPresenca ? html`<${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} />` : vazio}<//>
       ${resumido ? null : html`<${Figura} titulo="Horas por operador" nota="Trabalhadas / escaladas · 10 com mais horas"
-        legenda=${leg([['Trabalhadas', cor(1)], ['Escaladas', 'var(--wfm-g-neutro)']])}>
-        <${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h" fmtH=${horasDec}
-          principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: cor(1) }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} /><//>`}
+        legenda=${temOperadores ? leg([['Trabalhadas', cor(1)], ['Escaladas', 'var(--wfm-g-neutro)']]) : null}>
+        ${temOperadores ? html`<${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h" fmtH=${horasDec}
+          principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: cor(1) }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} />` : vazio}<//>`}
       ${resumido ? null : html`<${Figura} titulo="Horas escaladas por turno" nota="Distribuição entre os turnos">
-        <${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: cor(1) }]} unidade="h" fmtH=${horasDec} /><//>`}
+        ${temTurnos ? html`<${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: cor(1) }]} unidade="h" fmtH=${horasDec} />` : vazio}<//>`}
       ${resumido ? null : html`<${Figura} titulo="Trocas por situação" nota="Pedidos do período">
-        ${g.trocas_estado.length ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : html`<p class="c-nota">Nenhum pedido de troca no período.</p>`}<//>`}
+        ${soma(g.trocas_estado, 'valor') > 0 ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : vazio}<//>`}
     </div>
     ${resumido || !g.equipes.length ? null : html`<section class="c-cartao" aria-labelledby="wfm-painel-equipes">
       <div class="c-cartao-cab"><h2 id="wfm-painel-equipes">Comparação entre equipes</h2></div>
@@ -387,7 +395,7 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
               { label: 'Todos os relatórios (Excel)', icon: 'file-zip', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('completo') },
             ]} />`} />
         <div class="c-tabela-caixa">
-          <div class="c-filtros c-filtros--suave">
+          <div class="c-filtros c-filtros--suave c-filtros--quebra">
             ${opcoesEscalas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Escala / operação" value=${operacao} onChange=${(e) => aoTrocarEscala?.(e.target.value)}>${opcoesEscalas.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
             <select class="c-entrada c-entrada--compacta" aria-label="Período" value=${preset} onChange=${(e) => escolherPreset(e.target.value)}>${opcoesPeriodo.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>
             <input class="c-entrada c-entrada--compacta" type="date" aria-label="De" value=${ini} max=${fim || undefined} onChange=${(e) => { setPreset('personalizado'); setIntervalo([e.target.value, fim]); }} />

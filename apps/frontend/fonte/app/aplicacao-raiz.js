@@ -116,7 +116,7 @@ const importarMonitoria = () => import('../features/monitoria/index.js?v=2026111
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261110-exportar'), 'TelaRelatoriosHub');
+const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261110-graficos2'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261104-leitura'), 'TelaEquipesControle');
 const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261108-diario'), 'TelaDiario');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261111-seletor'), 'TelaWfm');

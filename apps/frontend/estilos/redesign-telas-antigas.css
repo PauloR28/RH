@@ -308,3 +308,19 @@
   .c-saudacao .c-meudia { margin-left: 0; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); border-top: var(--borda-fina) solid var(--tabela-linha); }
   .c-io-meudia-carregando { width: auto; }
 }
+/* Painel do WFM (Indicadores), 10/11/2026: gráficos desenhados 1:1 (texto dos eixos 12 px), legenda no cabeçalho sem cortar,
+   cartões da mesma linha com a mesma altura e estado vazio padrão quando não há dados */
+.c-graficos-wfm { align-items: stretch; }
+.c-graficos-wfm .c-grafico { gap: var(--espaco-2); }
+.c-graficos-wfm .c-grafico-cab { flex-wrap: wrap; white-space: normal; row-gap: var(--espaco-1); margin-bottom: 0; }
+.c-graficos-wfm .c-grafico-legenda { flex-wrap: wrap; gap: var(--espaco-1) var(--espaco-3); }
+.c-graficos-wfm .c-grafico-legenda > span { white-space: nowrap; }
+.c-graficos-wfm .wfm-g-medida { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-end; }
+.c-graficos-wfm .wfm-g-svg--real { width: 100%; height: auto; max-height: none; }
+.c-graficos-wfm .c-grafico svg text, .c-graficos-wfm .wfm-g-eixo, .c-graficos-wfm .wfm-g-valor { font-size: 12px; }
+.c-graficos-wfm .c-grafico > .c-estado { flex: 1 1 auto; justify-content: center; padding: var(--espaco-4); }
+.c-graficos-wfm .c-grafico-rodape { margin-top: auto; white-space: normal; }
+.c-graficos-wfm .wfm-g-rosca--compacta .wfm-g-svg-rosca { width: 120px; height: 120px; }
+.c-graficos-wfm .wfm-g-rosca--compacta .wfm-g-legenda { font-size: 12px; gap: var(--espaco-1); }
+.c-graficos-wfm .wfm-g-barras, .c-graficos-wfm .wfm-g-barras-rotulo, .c-graficos-wfm .wfm-g-barras-valor, .c-graficos-wfm .wfm-g-legenda { font-size: 12px; }
+.c-graficos-wfm .c-grafico > .wfm-g-rosca { flex: 1 1 auto; align-content: center; }

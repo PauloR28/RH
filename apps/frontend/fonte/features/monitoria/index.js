@@ -18,7 +18,7 @@ import { TelaFormularios } from './admin.js?v=20261109-telas-antigas';
 import { TelaCentralMonitoria } from './central.js';
 import { ListaMonitoriasNova } from './redesign-listas.js?v=20261108-fatia2';
 import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261109-operacao';
-import { TelaPainelMonitoria } from './painel-redesign.js?v=20261108-fatia2';
+import { TelaPainelMonitoria } from './painel-redesign.js?v=20261110-graficos';
 import { ListaFeedback, TelaPlanosNova } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
 import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';
 import { definirSelos } from '../../ui/components/selos-subbarra.js';
