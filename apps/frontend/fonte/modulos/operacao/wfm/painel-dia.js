@@ -457,7 +457,7 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
 
   const vazio = !grupos.length;
   const tabela = visao === 'lista'
-    ? html`<table class="c-tabela c-tabela--compacta c-pd-lista">
+    ? html`<table class="c-tabela c-tabela--compacta c-tabela--junta c-pd-lista">
         <thead><tr><th class="c-col-nome" scope="col">Colaborador</th><th scope="col">Equipe</th><th scope="col">Agora</th><th scope="col">Entrada</th><th scope="col">Pausas</th><th scope="col">Saída</th><th class="c-estica" scope="col">Troca</th><th class="c-centro" scope="col">Presença</th></tr></thead>
         ${grupos.map((g) => html`<tbody key=${g.id} class="c-pd-grupo" hidden=${!g.linhas.some((l) => passa(l, filtro)) || null}>${cabGrupo(g)}${aberto(g) ? g.linhas.map(linhaLista) : null}</tbody>`)}
       </table>`
