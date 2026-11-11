@@ -96,30 +96,41 @@ export function AcoesAprovacao({ operacao, anoMes, aprovacao, onMudou, showToast
     <//>` : null}`;
 }
 
-// Padrão semanal: turno + dias da semana (vários turnos possíveis). Fica pendente até "Salvar".
-function JanelaPadrao({ padrao, setPadrao, turnos, alvoTexto, diasDoTurno, programarPausas, setProgramarPausas, aoAplicar }) {
+// Padrão semanal: onde aplicar (uma semana ou o mês), turno + dias da semana (vários turnos). Fica pendente até "Salvar".
+// Layout e escolha semana/mês: lista 10/11, item 15.
+const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+function JanelaPadrao({ padrao, setPadrao, turnos, alvoTexto, semanas, diasDoTurno, programarPausas, setProgramarPausas, aoAplicar }) {
   const mudarRegra = (i, campo, valor) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, [campo]: valor } : x)) });
+  const naSemana = padrao.alcance === 'semana';
+  const diasAlvo = naSemana ? (semanas[padrao.semana] || []).length : semanas.reduce((t, sem) => t + sem.length, 0);
   return html`<${Janela} titulo="Padrão semanal" tamanho="grande" onClose=${() => setPadrao(null)}
-    rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setPadrao(null)}>Cancelar</button>
-      <button type="button" class="c-botao c-botao--principal" onClick=${aoAplicar}>Aplicar ao mês</button>`}>
+    rodape=${html`<span class="c-ajuda c-padrao-conta">${diasAlvo} dias · depois você ainda ajusta dia a dia</span>
+      <button type="button" class="c-botao c-botao--secundario" onClick=${() => setPadrao(null)}>Cancelar</button>
+      <button type="button" class="c-botao c-botao--principal" onClick=${aoAplicar}>${naSemana ? 'Aplicar à semana' : 'Aplicar ao mês'}</button>`}>
     <div class="c-janela-corpo">
-      <p>Vale para ${alvoTexto}. Escolha o turno e marque os dias da semana em que ele vale; adicione outro turno para os demais dias. Depois você ainda ajusta dia a dia.</p>
-      ${padrao.regras.map((r, i) => html`<div key=${i} class="c-padrao-regra">
-        <${Campo} rotulo="Turno">
-          <select class="c-entrada" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurno(e.target.value, x.dias) } : x)) })}>
-            <option value="">Escolher turno</option>${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}${t.nome && t.nome !== t.codigo ? ` · ${t.nome}` : ''}</option>`)}
-          </select>
-        <//>
-        <fieldset class="c-padrao-dias">
-          <legend class="c-rotulo">Dias da semana</legend>
-          <label class="c-marcar"><input type="checkbox" checked=${r.dias.every(Boolean)} onChange=${() => mudarRegra(i, 'dias', r.dias.map(() => !r.dias.every(Boolean)))} /><span>Todos</span></label>
-          ${DIAS_SEMANA_LONGO.map((nome, k) => html`<label key=${nome} class="c-marcar"><input type="checkbox" checked=${r.dias[k]} onChange=${() => mudarRegra(i, 'dias', r.dias.map((v, j) => (j === k ? !v : v)))} /><span>${nome}</span></label>`)}
-        </fieldset>
-        ${padrao.regras.length > 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Remover este turno" title="Remover este turno" onClick=${() => setPadrao({ ...padrao, regras: padrao.regras.filter((_, j) => j !== i) })}><${Ic} nome="x" /></button>` : null}
-      </div>`)}
+      <p class="c-padrao-passo">1 · Onde aplicar</p>
+      <div class="c-padrao-alcance">
+        <${Segmento} rotulo="Onde aplicar" valor=${padrao.alcance} aoMudar=${(v) => setPadrao({ ...padrao, alcance: v })} opcoes=${[['semana', 'Uma semana'], ['mes', 'Mês inteiro']]} />
+        ${naSemana ? html`<select class="c-entrada c-padrao-semana" aria-label="Semana" value=${padrao.semana} onChange=${(e) => setPadrao({ ...padrao, semana: Number(e.target.value) })}>
+          ${semanas.map((sem, k) => html`<option key=${k} value=${k}>Semana de ${ddmm(sem[0])} a ${ddmm(sem[sem.length - 1])}</option>`)}</select>` : null}
+        <span class="c-ajuda">Vale para ${alvoTexto}.</span>
+      </div>
+      <p class="c-padrao-passo">2 · Turno e dias da semana</p>
+      <div>${padrao.regras.map((r, i) => html`<div key=${i} class="c-padrao-regra">
+        <select class="c-entrada" aria-label="Turno" value=${r.turno} onChange=${(e) => setPadrao({ ...padrao, regras: padrao.regras.map((x, j) => (j === i ? { ...x, turno: e.target.value, dias: diasDoTurno(e.target.value, x.dias) } : x)) })}>
+          <option value="">Escolher turno</option>${turnos.map((t) => html`<option key=${t.id_turno} value=${t.id_turno}>${t.codigo}${t.entrada ? ` ${t.entrada}–${t.saida}` : ''}${t.nome && t.nome !== t.codigo ? ` · ${t.nome}` : ''}</option>`)}
+        </select>
+        <div class="c-segmento c-padrao-dias" role="group" aria-label="Dias da semana">
+          ${DIAS_SEMANA_LONGO.map((nome, k) => html`<button key=${nome} type="button" class="c-botao" aria-pressed=${r.dias[k] ? 'true' : 'false'} onClick=${() => mudarRegra(i, 'dias', r.dias.map((v, j) => (j === k ? !v : v)))}>${nome}</button>`)}
+        </div>
+        <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => mudarRegra(i, 'dias', r.dias.map(() => !r.dias.every(Boolean)))}>${r.dias.every(Boolean) ? 'Nenhum' : 'Todos'}</button>
+        ${padrao.regras.length > 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Remover este turno" title="Remover este turno" onClick=${() => setPadrao({ ...padrao, regras: padrao.regras.filter((_, j) => j !== i) })}><${Ic} nome="x" /></button>` : html`<span></span>`}
+      </div>`)}</div>
       <div><button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setPadrao({ ...padrao, regras: [...padrao.regras, { turno: '', dias: Array(7).fill(false) }] })}><${Ic} nome="plus" />Outro turno</button></div>
-      <label class="c-marcar"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /><span>Programar também as pausas dos dias aplicados (ao salvar)</span></label>
-      <label class="c-marcar"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /><span>Sobrescrever dias que já têm turno</span></label>
+      <div class="c-padrao-opcoes">
+        <label class="c-marcar"><input type="checkbox" checked=${programarPausas} onChange=${(e) => setProgramarPausas(e.target.checked)} /><span>Programar também as pausas dos dias aplicados (ao salvar)</span></label>
+        <label class="c-marcar"><input type="checkbox" checked=${padrao.sobrescrever} onChange=${(e) => setPadrao({ ...padrao, sobrescrever: e.target.checked })} /><span>Sobrescrever dias que já têm turno</span></label>
+      </div>
     </div>
   <//>`;
 }
@@ -248,7 +259,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const turnoDoDia = Array(7).fill('');
     padrao.regras.forEach((r) => { if (r.turno !== '') r.dias.forEach((marcado, i) => { if (marcado) turnoDoDia[i] = r.turno; }); });
     if (turnoDoDia.every((t) => t === '')) { showToast?.('Escolha um turno e marque ao menos um dia da semana.', 'info'); return; }
-    alvos.forEach((op) => dados.dias.forEach((d) => {
+    const diasAlvo = padrao.alcance === 'semana' ? (semanasDoMes(dados.dias)[padrao.semana] || []) : dados.dias;
+    alvos.forEach((op) => diasAlvo.forEach((d) => {
       const [a, m, dia] = d.split('-').map(Number);
       const alvo = turnoDoDia[(new Date(a, m - 1, dia).getDay() + 6) % 7];
       if (alvo === '' || (!padrao.sobrescrever && idTurnoDe(op.id_usuario, d) !== null)) return;
@@ -377,7 +389,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const aprov = dados.aprovacao;
   const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
   const precisaJust = (bloqueio && podePublicarComViolacao) || exigeJustFechada || (totalPend > 0 && fechada);
-  const abrirPadrao = () => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false });
+  const abrirPadrao = () => setPadrao(padrao ? null : { regras: [{ turno: '', dias: Array(7).fill(false) }], sobrescrever: false, alcance: 'semana', semana: idx });
   const [rotuloEstado, tomEstado, iconeEstado, proximoPasso] = estadoEscala(dados);
   const podePublicarAqui = pode('wfm.escala.publicar') && !somenteLeitura && !(aprovada && dados.status.versao_publicada > 0 && totalPend === 0);
   const extrasMenu = [
@@ -560,7 +572,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
 
     ${padrao ? html`<${JanelaPadrao} padrao=${padrao} setPadrao=${setPadrao} turnos=${dados.turnos.filter((t) => t.ativo !== false)}
       alvoTexto=${selecionadosVis.length ? `${selecionadosVis.length} colaborador(es) selecionado(s)` : `todos os ${visiveis.length} colaborador(es) exibidos`}
-      diasDoTurno=${diasDoTurnoSelecionado} programarPausas=${programarPausas} setProgramarPausas=${setProgramarPausas} aoAplicar=${aplicarPadrao} />` : null}
+      semanas=${semanas} diasDoTurno=${diasDoTurnoSelecionado} programarPausas=${programarPausas} setProgramarPausas=${setProgramarPausas} aoAplicar=${aplicarPadrao} />` : null}
     ${somenteLeitura && !somentePropria ? html`<${OutrasEscalas} anoMes=${anoMes} operacao=${operacao} versao=${`${dados.aprovacao?.estado}:${dados.status?.versao_publicada}`} onEscolher=${(chave) => aoTrocarEscala?.(chave)} />` : null}
     ${gaveta && editavel ? html`<${GavetaAjusteDia} alvo=${gaveta} dados=${dados} operacao=${operacao} anoMes=${anoMes} fechada=${fechada} showToast=${showToast}
       bloqueio=${totalPend > 0 ? 'Há alterações não salvas na tela. Salve ou descarte antes de ajustar um dia.' : ''}

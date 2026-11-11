@@ -7,7 +7,7 @@ import { useToast } from '../../../shared/hooks/use-toast.js';
 import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
-import { TelaEscala } from './escala.js?v=20261109-proprio';
+import { TelaEscala } from './escala.js?v=20261111-padrao';
 import { TelaPresenca } from './presenca.js?v=20261111-seletor';
 import { TelaCadastros } from './cadastros.js?v=20261109-cadastros';
 import { TelaEscalaPausas } from './pausas.js?v=20261111-espacos';

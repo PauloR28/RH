@@ -113,10 +113,16 @@
 .c-ajuste-turnos .c-botao[aria-pressed='true'] { border-color: var(--cor-acao-fundo); background: var(--cor-acao-suave); }
 .c-ajuste-dia .c-fim, .c-selecao .c-fim { margin-left: auto; }
 /* Padrão semanal */
-.c-padrao-regra { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: var(--espaco-4); align-items: end; padding-bottom: var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
-.c-padrao-dias { display: flex; flex-wrap: wrap; gap: var(--espaco-1) var(--espaco-3); margin: 0; padding: 0; border: 0; min-width: 0; }
-.c-padrao-dias legend { width: 100%; margin-bottom: var(--espaco-1); }
-@media (max-width: 599.98px) { .c-padrao-regra { grid-template-columns: minmax(0, 1fr); } }
+/* Janela Padrão semanal (lista 10/11, item 15): cada turno numa linha, dias em botões curtos. */
+.c-padrao-passo { margin: 0; font-size: 13px; font-weight: var(--fonte-peso-negrito); }
+.c-padrao-passo + * { margin-bottom: var(--espaco-2); }
+.c-padrao-alcance { display: flex; align-items: center; flex-wrap: wrap; gap: var(--espaco-3); }
+.c-padrao-alcance .c-padrao-semana { width: auto; }
+.c-padrao-regra { display: grid; grid-template-columns: minmax(200px, 280px) auto auto 32px; gap: var(--espaco-3); align-items: center; padding: var(--espaco-2) 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-padrao-dias .c-botao { min-width: 48px; }
+.c-padrao-opcoes { display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-padrao-conta { margin-right: auto; }
+@media (max-width: 767.98px) { .c-padrao-regra { grid-template-columns: minmax(0, 1fr) auto; } .c-padrao-dias { grid-column: 1 / -1; flex-wrap: wrap; } }
 .c-legenda .c-ic { width: 14px; height: 14px; color: var(--cor-status-sucesso-texto); }
 .c-legenda .c-ic > svg { display: block; width: 100%; height: 100%; }
 
