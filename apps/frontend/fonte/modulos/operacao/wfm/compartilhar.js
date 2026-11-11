@@ -1,6 +1,6 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { exportarEscalaWfm, lerEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { infoDia } from './comum.js?v=20261104-leitura';
 
@@ -181,7 +181,13 @@ export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, 
   };
   const gerar = async (formato) => {
     const titulo = tituloEscala(nomeOperacao, anoMes);
-    const canvas = desenharEscala(dados, titulo, rotuloSub());
+    // Supervisor: o PDF/PNG sai com a escala completa (todas as equipes), mesmo se a tela estiver só na equipe dele.
+    // O backend só devolve todas_equipes=true para o Supervisor; para os demais perfis fica o que está na tela.
+    let base = dados;
+    if (dados && !dados.todas_equipes && operacao && anoMes) {
+      try { const completa = await lerEscalaWfm(operacao, anoMes, false, true); if (completa?.todas_equipes) base = completa; } catch { /* mantém a tela */ }
+    }
+    const canvas = desenharEscala(base, titulo, rotuloSub());
     if (formato === 'png') return { blob: await paraBlob(canvas, 'image/png'), filename: nomeArquivo(nomeOperacao, anoMes, 'png') };
     return { blob: await canvasParaPdf(canvas), filename: nomeArquivo(nomeOperacao, anoMes, 'pdf') };
   };
