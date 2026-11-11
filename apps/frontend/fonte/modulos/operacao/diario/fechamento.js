@@ -4,8 +4,8 @@ import { Ic, Janela, Segmento } from '../../../ui/components/ds.js?v=20261106-wf
 import { avisosDoTurno, consolidar, diaLongo, hhmm, nf, pct } from './regras.js';
 
 // Fechamento para o grupo (D9, amostra quadro 3): imagem em pé (PNG de 1080 px gerado no navegador) e texto no formato do
-// WhatsApp, os dois a partir dos DADOS SALVOS. O Conecta não envia nada sozinho: 3 passos (gerado → copiado/baixado →
-// "Marquei: enviei ao grupo"), e só a pessoa marca o último.
+// WhatsApp, os dois a partir dos DADOS SALVOS. O Conecta não envia nada sozinho: 2 passos (gerado → copiado/baixado).
+// O passo "Marquei: enviei ao grupo" saiu (pedido do Paulo, 10/11/2026).
 
 const SECOES = [['totais', 'Totais do dia'], ['demandas', 'Demandas por tipo'], ['ns', 'Nível de serviço'], ['parciais', 'Parciais'], ['abs', 'ABS'], ['interc', 'Intercorrências'], ['passagem', 'Passagem']];
 const CHAVE_SECOES = 'conecta.diario.secoesFechamento';
@@ -219,9 +219,7 @@ export function JanelaFechamento({ dados, ver, operacaoNome, controlador, onClos
         <ol class="c-db-passos">
           ${passo(Boolean(envio.envio_gerado_em), `Gerado ${quando(envio.envio_gerado_em)}`, salvoEm ? `com os dados salvos às ${hhmm(salvoEm)}` : '')}
           ${passo(Boolean(envio.envio_copiado_em || envio.envio_baixado_em), envio.envio_copiado_em ? `Texto copiado ${quando(envio.envio_copiado_em)}` : envio.envio_baixado_em ? `Imagem baixada ${quando(envio.envio_baixado_em)}` : 'Copiado ou baixado')}
-          ${passo(Boolean(envio.envio_enviado_em), envio.envio_enviado_em ? `Enviado ao grupo ${quando(envio.envio_enviado_em)}` : 'Enviado ao grupo', envio.envio_enviado_em ? `marcado por ${envio.envio_enviado_por}` : 'o Conecta não envia sozinho: marque quando enviar')}
         </ol>
-        <div><button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${Boolean(envio.envio_enviado_em) || null} onClick=${() => registrar('enviado')}><${Ic} nome="paper-plane-tilt" />Marquei: enviei ao grupo</button></div>
         ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
       </div>
     </div></div>
