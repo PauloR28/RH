@@ -210,7 +210,7 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
         acao=${podeEditar ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${ocupado || null} onClick=${distribuirConflito}>Distribuir automático</button>` : null}>
         <b>${opsEmConflito} pessoa(s)</b> em pausa ao mesmo tempo acima do limite de ${capacidade}. Ajuste os horários ou deixe o sistema distribuir.<//>` : null}
 
-      <div class="c-tabela-caixa" role="region" aria-label="Pausas do dia">
+      <div class="c-tabela-caixa c-pausas-caixa" role="region" aria-label="Pausas do dia">
         <div class="c-filtros c-filtros--suave c-filtros--quebra">
           <${Segmento} rotulo="Visão" valor="pausas" aoMudar=${(v) => { if (v === 'semana' || v === 'mes') aoMes?.(v); else if (v === 'dia') aoDia?.(); }}
             opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoDia ? [['dia', 'Do dia']] : []), ['pausas', 'Pausas']]} />

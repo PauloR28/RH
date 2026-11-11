@@ -65,7 +65,7 @@ export function AbaHistorico({ contexto, operacao, setOperacao, irParaDia }) {
 
   return html`<div class="c-cab-linha"><h1>Histórico</h1><div class="c-cab-dir">
       ${contexto.pode.exportar ? html`<button type="button" class="c-botao c-botao--secundario" disabled=${exportando || !itens?.length || null} onClick=${exportar}><${Ic} nome="tray-arrow-down" />${exportando ? 'Exportando…' : 'Exportar'}</button>` : null}</div></div>
-    <div class="c-tabela-caixa c-db-caixa">
+    <div class="c-tabela-caixa c-db-caixa c-db-caixa--justa">
       <div class="c-filtros c-filtros--suave">
         <div class="c-grupo c-navegar" role="group" aria-label="Mês" style=${{ gap: 0, flexWrap: 'nowrap' }}>
           <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Mês anterior" title="Mês anterior" onClick=${() => setAnoMes(somarMes(anoMes, -1))}><${Ic} nome="caret-left" /></button>
@@ -78,7 +78,7 @@ export function AbaHistorico({ contexto, operacao, setOperacao, irParaDia }) {
         ${sel('Envio', envio, setEnvio, ENVIOS)}
       </div>
       ${erro ? html`<${Estado} titulo=${erro} /> ` : !itens ? html`<${Esqueleto} linhas=${6} />` : !filtrados.length ? html`<${Estado} icone="notebook" titulo=${itens.length ? 'Nenhum dia com esses filtros' : 'Nenhum dia registrado neste mês'} />`
-        : html`<table class="c-tabela c-tabela--compacta">
+        : html`<table class="c-tabela c-tabela--compacta c-tabela--junta">
           <thead><tr><th scope="col">Dia</th><th scope="col" title="Abertura · Intermediário · Fechamento">Turnos</th><th class="c-num" scope="col">Tratadas</th><th class="c-num c-db-opc" scope="col">Pendentes</th>
             ${canais.map((c) => html`<th key=${c} class="c-num" scope="col">NS ${c}</th>`)}<th class="c-num" scope="col">ABS</th><th class="c-num c-db-opc" scope="col">Intercorr.</th><th scope="col">Encerramento</th><th scope="col">Envio ao grupo</th><th class="c-estica c-db-opc" scope="col"></th><th class="c-acoes" scope="col"><span class="c-oculto">Ações</span></th></tr></thead>
           <tbody>${filtrados.map((i) => {

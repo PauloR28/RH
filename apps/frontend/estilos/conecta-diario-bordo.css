@@ -207,3 +207,6 @@
 }
 /* Termo de uso do Diário centralizado na página (pedido do Paulo, 10/11/2026) */
 .c-db-termos { max-width: 760px; margin-inline: auto; width: 100%; }
+/* Histórico e Cadastros: a caixa fica do tamanho do conteúdo (lista 10/11, item 11). Só o Hoje estica até o pé. */
+.c-db:has(> .c-db-caixa--justa) { min-height: 0; }
+.c-db > .c-db-caixa.c-db-caixa--justa { flex: none; }

@@ -318,7 +318,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
   const eventosDoDia = (d) => (dados?.eventos || []).filter((e) => paraIso(d) >= e.data_ini && paraIso(d) <= e.data_fim);
   const semTurno = (lista) => { const item = lista[0]; return ROTULO_SEM_HORARIO[item?.tipo] || (item && item.codigo !== 'DSR' ? 'Folga' : 'DSR'); };
 
-  const planilha = () => html`<table class="c-tabela c-minha">
+  const planilha = () => html`<table class="c-tabela c-tabela--junta c-minha">
     <thead><tr><th scope="col">Dia</th><th scope="col">Turno</th><th scope="col" class="c-num">Horário</th><th scope="col" class="c-estica">Pausas</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
     <tbody>${periodo.dias.map((d) => {
     const iso = paraIso(d);

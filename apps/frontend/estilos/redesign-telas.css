@@ -142,3 +142,14 @@
 .c-pagina .c-tom-atencao { color: var(--cor-status-atencao-texto); }
 .c-filtros--solto { padding: 0; }
 .c-turno-linha .c-traco:only-child { display: none; }
+
+/* Tabela "junta" (lista 10/11, item 11): colunas e botões lado a lado, o espaço que sobra vai para o fim da linha.
+   Usada em tabelas de poucas colunas: Minha escala, Precisa de você, Diário › Histórico e Cadastros. */
+.c-tabela.c-tabela--junta .c-estica, .c-tabela.c-tabela--junta .c-estica.c-secundario { width: auto; max-width: none; white-space: nowrap; }
+.c-tabela.c-tabela--junta th, .c-tabela.c-tabela--junta td { padding-right: var(--espaco-5); }
+.c-tabela.c-tabela--junta tr > :last-child { width: 100%; text-align: left; }
+.c-tabela.c-tabela--junta .c-acoes > .c-grupo { justify-content: flex-start; }
+
+/* Escalas › Pausas: a caixa vai até o pé da tela e os botões ficam embaixo (sem faixa vazia). */
+.c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh - var(--altura-topo) - 40px - 136px); }
+.c-pausas-caixa > .c-pausas { flex: 1 1 auto; }

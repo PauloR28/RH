@@ -189,8 +189,8 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
           ${canaisNs.map((c) => html`<div class="c-campo" key=${c.id_item}><label class="c-rotulo" for=${`ns-${turno.turno}-${c.id_item}`}>${c.nome}</label>
             <span class="c-db-pct"><input class=${`c-entrada c-db-campo${ns[c.id_item] === '' ? ' c-db-campo--vazio' : ''}`} id=${`ns-${turno.turno}-${c.id_item}`} inputmode="decimal" placeholder="—" readOnly=${!editavel || null}
               value=${ns[c.id_item]} onInput=${(e) => { setNs((x) => ({ ...x, [c.id_item]: e.target.value.replace(/[^\d,.]/g, '') })); setSujo(true); }} /><span>%</span></span>
-            ${ns[c.id_item] === '' ? html`<span class="c-ajuda">Vazio = "não informado" (não vira 0)</span>` : null}</div>`)}
-        </div></div></section>
+</div>`)}
+        </div>${canaisNs.some((c) => ns[c.id_item] === '') ? html`<span class="c-ajuda">Em branco = não informado (não conta como 0)</span>` : null}</div></section>
         <${BlocoParciais} dados=${dados} pode=${pode} abrir=${abrir} />
         <${BlocoIntercorrencias} dados=${dados} pode=${pode} abrir=${abrir} ferramentas=${ferramentas} operacao=${operacao} />
       </div>

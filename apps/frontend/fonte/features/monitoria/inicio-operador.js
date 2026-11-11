@@ -153,7 +153,7 @@ export function TelaInicioOperador({ controlador, sessoes = [], atalhosOcultos =
           <div class="c-cartao-cab"><h2 id="c-io-precisa">Precisa de você</h2>${vencemLogo ? html`<${Selo} tom="atencao" icone="clock">${vencemLogo} ${vencemLogo === 1 ? 'vence em até 24 h' : 'vencem em até 24 h'}<//>` : null}</div>
           ${pendencias === null ? html`<div class="c-cartao-corpo"><${Esqueleto} linhas=${2} /></div>`
     : !pendencias.length ? html`<${Estado} icone="check-circle" titulo="Nada pendente agora." />`
-      : html`<div class="c-tabela-caixa"><table class="c-tabela c-io-tabela">
+      : html`<div class="c-tabela-caixa"><table class="c-tabela c-tabela--junta c-io-tabela">
             <thead><tr><th scope="col">Pendência</th><th scope="col" class="c-num">Qtd.</th><th scope="col">Prazo</th><th scope="col" class="c-estica">Onde fica</th><th scope="col" class="c-acoes"><span class="c-oculto">Ação</span></th></tr></thead>
             <tbody>${pendencias.map((p) => html`<tr key=${p.id} class="c-clicavel" onClick=${() => irPara(p.tela)}>
               <td><span class="c-io-pend"><${Ic} nome=${p.icone} />${p.texto}</span></td>

@@ -159,7 +159,7 @@ function Celula({ coluna: c, linha: l }) {
 }
 
 // Tabela do relatório: ordenação, paginação, total e as colunas escolhidas. O arquivo exportado leva TODAS as colunas.
-function Planilha({ relatorio, dados, filtrosColuna, busca, visiveis, aoLinhas }) {
+function Planilha({ relatorio, dados, filtrosColuna, busca, visiveis, aoLinhas, aoLimpar, aoMesAnterior }) {
   const [ordem, setOrdem] = useState(null);
   const [pagina, setPagina] = useState(0);
   const [tamanho, setTamanho] = useState(TAMANHOS[0]);
@@ -190,7 +190,10 @@ function Planilha({ relatorio, dados, filtrosColuna, busca, visiveis, aoLinhas }
   const ordenadoPor = ordem ? dados.colunas.find((c) => c.chave === ordem.chave)?.rotulo : '';
 
   if (!linhas.length) {
-    return html`<${Estado} icone="table" titulo="Sem dados" texto=${termo || Object.values(filtrosColuna).some(Boolean) ? 'Nenhuma linha corresponde aos filtros.' : 'Não há registros para os filtros escolhidos.'} />`;
+    // Sem dados: o aviso já oferece o próximo passo (lista 10/11, item 11).
+    const filtrado = termo || Object.values(filtrosColuna).some(Boolean);
+    return html`<${Estado} icone="table" titulo="Sem dados" texto=${filtrado ? 'Nenhuma linha corresponde aos filtros.' : 'Não há registros para os filtros escolhidos.'}
+      rotuloAcao=${filtrado ? 'Limpar filtros' : aoMesAnterior ? 'Ver mês anterior' : null} aoAcao=${filtrado ? aoLimpar : aoMesAnterior} />`;
   }
   return html`
     <table class="c-tabela c-tabela--justa c-rh-tabela">
@@ -369,7 +372,9 @@ export function TelaRelatoriosHub({ controlador }) {
       ${erro ? html`<${Estado} icone="warning" titulo=${erro} />`
     : !dados ? html`<${Esqueleto} linhas=${8} />`
       : html`${(dados.resumo || []).length ? html`<${Indicadores} resumo=${dados.resumo} />` : null}
-        <${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} visiveis=${visiveis} aoLinhas=${(l) => { linhasAtuais.current = l; setNLinhas(l.length); }} />`}
+        <${Planilha} key=${relatorio.id} relatorio=${relatorio} dados=${dados} filtrosColuna=${filtrosColuna} busca=${filtros.busca} visiveis=${visiveis} aoLinhas=${(l) => { linhasAtuais.current = l; setNLinhas(l.length); }}
+          aoLimpar=${() => setFiltros((f) => ({ ...f, busca: '', equipe: '', supervisor: '', status: '', operador: relatorio.area === 'wfm' ? f.operador : '' }))}
+          aoMesAnterior=${filtros.preset === 'mes' ? () => setFiltros((f) => ({ ...f, preset: 'anterior', ini: PERIODOS.anterior.calc()[0], fim: PERIODOS.anterior.calc()[1] })) : null} />`}
     </div>`;
   }
 

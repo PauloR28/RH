@@ -180,7 +180,7 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
             <div class="c-cartao-cab"><h2 id="c-precisa-titulo">Precisa de você</h2>${vencemHoje ? html`<${Selo} tom="perigo" icone="warning-octagon">${vencemHoje} ${vencemHoje === 1 ? 'vence hoje' : 'vencem hoje'}<//>` : null}</div>
             ${pendencias === null ? html`<div class="c-cartao-corpo"><${Esqueleto} linhas=${3} /></div>`
     : !pendencias.length ? html`<${Estado} icone="check-circle" titulo="Nada pendente agora." />`
-      : html`<div class="c-tabela-caixa"><table class="c-tabela c-hoje-pend">
+      : html`<div class="c-tabela-caixa"><table class="c-tabela c-tabela--junta c-hoje-pend">
               <thead><tr><th scope="col" class="c-estica">Pendência</th><th scope="col" class="c-num">Qtd.</th><th scope="col">Prazo</th><th scope="col" class="c-acoes"><span class="c-oculto">Ação</span></th></tr></thead>
               <tbody>${pendencias.map((p) => html`<tr key=${p.id} class="c-clicavel" title=${p.onde} onClick=${() => { p.antes?.(); irPara(p.tela); }}>
                 <td class="c-estica"><span style=${{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><${Ic} nome=${p.icone} />${p.texto}</span></td>
