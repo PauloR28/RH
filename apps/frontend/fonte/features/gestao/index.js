@@ -1937,7 +1937,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261109-operacao')
+    import('../monitoria/index.js?v=20261111-atalhos')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

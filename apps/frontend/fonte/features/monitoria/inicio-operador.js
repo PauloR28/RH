@@ -128,9 +128,10 @@ export function TelaInicioOperador({ controlador, sessoes = [] }) {
   const pendencias = usePendencias(controlador, podeTrocas);
   const irPara = (tela) => controlador.irParaTelaProtegida(tela);
 
-  // Atalhos: Minha escala e Minhas monitorias; as demais áreas liberadas ao perfil (ex.: Treinamentos) continuam aqui.
+  // Atalhos: Minha escala, Trocas e Minhas monitorias; as demais áreas liberadas ao perfil (ex.: Treinamentos) continuam aqui.
   const atalhos = [
     temEscala ? { id: 'minha-escala', titulo: 'Minha escala', icone: 'calendar-blank', destino: 'screen-wfm-minha-escala' } : null,
+    podeTrocas ? { id: 'trocas', titulo: 'Trocas', icone: 'arrows-left-right', destino: 'screen-wfm-trocas' } : null,
     controlador.podeAcessarTela('screen-monitoria-minhas') ? { id: 'minhas-monitorias', titulo: 'Minhas monitorias', icone: 'clipboard-text', destino: 'screen-monitoria-minhas' } : null,
     ...sessoes.filter((s) => !['wfm', 'monitoria', 'mural'].includes(s.id)).map((s) => ({ id: s.id, titulo: s.titulo, icone: s.icone, destino: s.destino, desc: s.desc })),
   ].filter(Boolean);
