@@ -211,9 +211,20 @@ class DiarioRepositoryMixin:
         return turnos
 
     def _db_presenca_do_dia(self, cursor, operacao: str, data: date) -> dict:
+        # As escalas de uma operação podem ter chave própria ("CRF::ESCALA-CRF"): o ABS soma a operação e todas as escalas
+        # dela. Cada operador conta uma vez no dia (se aparecer em mais de uma escala, vale o status mais "presente").
         try:
-            cursor.execute("SELECT status FROM dbo.wfm_presencas WHERE operacao = ? AND data = ?", (operacao, data))
-            status_dia = [row[0] for row in cursor.fetchall()]
+            cursor.execute(
+                "SELECT id_operador, status FROM dbo.wfm_presencas WHERE data = ? AND (operacao = ? OR operacao LIKE ?)",
+                (data, operacao, f"{operacao}::%"),
+            )
+            ordem = {s: i for i, s in enumerate((*r.PRESENCA_PRESENTE, *r.PRESENCA_JUSTIFICADA, *r.PRESENCA_FALTA))}
+            por_operador: dict[int, str] = {}
+            for id_operador, status_op in cursor.fetchall():
+                atual = por_operador.get(int(id_operador))
+                if atual is None or ordem.get(status_op, 99) < ordem.get(atual, 99):
+                    por_operador[int(id_operador)] = status_op
+            status_dia = list(por_operador.values())
         except pyodbc.Error:  # WFM ausente no ambiente: ABS fica sem presença (não inventa número)
             status_dia = []
         return {**r.abs_da_presenca(status_dia), "lancamentos": len(status_dia)}
