@@ -1,5 +1,5 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261111-texto';
 import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
@@ -28,6 +28,12 @@ const rotuloHorario = (item) => (item?.entrada ? faixa(item) : 'Folga'); // folg
 const ROTULO_SEM_HORARIO = { FOLGA: 'Folga', DSR: 'DSR', FERIAS: 'Férias', ESCALADO: 'Escalado', SOBREAVISO: 'Sobreaviso' };
 const TIPOS_FOLGA = ['FOLGA', 'DSR'];
 const aMin = (hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+// Troca em andamento no dia (pedidos do próprio operador, ou que ele recebeu): selo na Situação.
+const SELO_TROCA = { AGUARDANDO_B: ['Pendente aceitação', 'atencao'], AGUARDANDO_APROVACAO: ['Aguardando aprovação', 'informacao'] };
+function SeloTroca({ estado }) {
+  const s = SELO_TROCA[estado];
+  return s ? html`<${Selo} tom=${s[1]} icone="arrows-left-right">${s[0]}<//>` : null;
+}
 const TOM_PRESENCA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'atencao', ATESTADO: 'informacao' };
 const ICONE_PRESENCA = { PRESENTE: 'check-circle', FALTA: 'x-circle', FALTA_JUSTIFICADA: 'warning', ATESTADO: 'file-text' };
 
@@ -266,7 +272,12 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
           (livres[iso] = livres[iso] || []).push({ data: iso, operacao: r.chave, nome_escala: r.nome_escala, troca_antecedencia_dias: r.troca_antecedencia_dias, trabalha: false, tipo: 'SEM_LANCAMENTO', codigo: 'FOLGA', nome_turno: 'Folga' });
         });
       });
+      // Trocas em andamento: o operador só recebe as dele (escopo do servidor). Falha aqui não impede a escala de abrir.
+      const trocas = (await Promise.all(chaves.map((c) => listarTrocasWfm(c).then((r) => r.itens || [], () => [])))).flat();
+      const trocasPorDia = {};
+      trocas.filter((t) => SELO_TROCA[t.estado]).forEach((t) => { [t.data_a, t.data_b].filter(Boolean).forEach((d) => { trocasPorDia[String(d).slice(0, 10)] = t.estado; }); });
       setDados({
+        trocasPorDia,
         itens,
         livres,
         eventos: respostas.flatMap((r) => r.eventos || []),
@@ -323,7 +334,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
           <td class="c-num">${trab.map((i, k) => html`<div key=${k}>${faixa(i)}</div>`)}</td>
           <td class="c-estica c-secundario">${trab.map((i, k) => html`<div key=${k}>${(i.pausas || []).length ? i.pausas.map((p) => p.inicio).join(' · ') : 'a programar'}</div>`)}</td>`
         : html`<td><span class="c-folga">${semTurno(lista) === 'DSR' ? 'Descanso semanal' : semTurno(lista)}</span></td><td class="c-num">—</td><td class="c-estica c-secundario">—</td>`}
-        <td><${SeloPresenca} presenca=${dados.presencas?.[iso]} /></td>
+        <td><span class="c-grupo"><${SeloPresenca} presenca=${dados.presencas?.[iso]} /><${SeloTroca} estado=${dados.trocasPorDia?.[iso]} /></span></td>
         <td class="c-acoes">${troca ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setTrocando({ item: troca, data: d })}><${Ic} nome="arrows-left-right" />Pedir troca</button>` : null}</td>
       </tr>`;
   })}</tbody>
@@ -341,7 +352,8 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
     const classe = `c-cal-dia ${iso === hoje ? 'c-cal-hoje' : ''} ${fora ? 'c-cal-fora' : ''} ${!trab.length ? 'c-cal-dsr' : ''}`.replace(/\s+/g, ' ').trim();
     const conteudo = html`<span class="c-cal-n">${d.getDate()}</span>
       ${trab.length ? trab.map((i, k) => html`<span key=${k} class="c-cal-bloco" style=${i.cor ? { borderLeftColor: i.cor } : undefined}>${faixa(i)}</span>`) : html`<span class="c-cal-folga">${lista.length || dados.livres?.[iso] ? semTurno(lista) : '—'}</span>`}
-      ${pres ? html`<span class=${`c-cal-st c-cal-st--${TOM_PRESENCA[pres.status] || 'neutro'}`}><${Ic} nome=${ICONE_PRESENCA[pres.status] || 'circle'} />${ROTULO_STATUS_PRESENCA[pres.status] || pres.status}</span>` : null}`;
+      ${pres ? html`<span class=${`c-cal-st c-cal-st--${TOM_PRESENCA[pres.status] || 'neutro'}`}><${Ic} nome=${ICONE_PRESENCA[pres.status] || 'circle'} />${ROTULO_STATUS_PRESENCA[pres.status] || pres.status}</span>` : null}
+      ${dados.trocasPorDia?.[iso] ? html`<span class=${`c-cal-st c-cal-st--${SELO_TROCA[dados.trocasPorDia[iso]][1]}`}><${Ic} nome="arrows-left-right" />${SELO_TROCA[dados.trocasPorDia[iso]][0]}</span>` : null}`;
     return html`<td key=${iso} class=${classe} aria-current=${iso === hoje ? 'date' : null}>
       ${fora ? conteudo : html`<button type="button" class="c-cal-botao" aria-label=${`${tituloDia(d)}${trab.length ? `, ${trab.map(faixa).join(' e ')}` : `, ${semTurno(lista)}`}`} aria-pressed=${aberto === iso ? 'true' : 'false'} onClick=${() => setAberto(iso)}>${conteudo}</button>`}
     </td>`;
