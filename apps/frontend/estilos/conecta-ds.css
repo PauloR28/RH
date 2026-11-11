@@ -228,7 +228,7 @@ select.c-entrada--compacta { padding-right: var(--espaco-6); background-position
 :root[data-theme='dark'] .c-dica { background: var(--cor-escuro-texto); color: var(--cor-marinho-900); }
 /* Janela: 3 larguras. Título 20 px. Rodapé com botões à direita */
 .c-fundo-janela { position: fixed; inset: 0; background: var(--cor-fundo-sobreposicao); display: grid; place-items: center; padding: var(--espaco-4); z-index: 50; }
-.c-janela { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--cor-fundo-painel); border-radius: var(--janela-raio); box-shadow: var(--janela-sombra); border: var(--borda-fina) solid var(--painel-borda); }
+.c-janela { width: 100%; max-width: 560px; max-height: calc(100vh / var(--c-zoom, 1) - 32px); display: flex; flex-direction: column; background: var(--cor-fundo-painel); border-radius: var(--janela-raio); box-shadow: var(--janela-sombra); border: var(--borda-fina) solid var(--painel-borda); }
 .c-janela--pequena { max-width: 400px; }
 .c-janela--grande { max-width: 800px; }
 .c-janela-cab { display: flex; align-items: flex-start; gap: var(--espaco-2); padding: var(--espaco-4) var(--espaco-2) 0 var(--espaco-5); }

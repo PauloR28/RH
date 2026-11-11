@@ -586,7 +586,7 @@
 .mon-lf-filtros-dir .mon-btn-icone, .mon-fm-acoes .mon-btn-icone { min-width: 0; padding: 0 16px; }
 .mon-lf-grade {
   display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: stretch;
-  height: calc(100vh - var(--mon-fm-offset, 312px)); min-height: 320px;
+  height: calc(100vh / var(--c-zoom, 1) - var(--mon-fm-offset, 312px)); min-height: 320px;
 }
 .mon-lf-tabela-card, .mon-lf-painel {
   display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); overflow: hidden;
@@ -659,7 +659,7 @@
 .mon-fm-acoes .btn { height: 40px; }
 .mon-fm-grade {
   display: grid; grid-template-columns: minmax(0, 1fr) 464px; gap: 16px; align-items: stretch;
-  height: calc(100vh - var(--mon-fm-offset-form, 408px)); min-height: 320px;
+  height: calc(100vh / var(--c-zoom, 1) - var(--mon-fm-offset-form, 408px)); min-height: 320px;
 }
 .mon-fm-card { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); overflow: hidden; }
 .mon-fm-card-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 0 24px; background: var(--paper-sunken); border-bottom: 1px solid var(--line); flex: none; }
@@ -725,7 +725,7 @@
    ========================================================================== */
 .mon-nm {
   display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: stretch;
-  height: calc(100vh - var(--mon-nm-offset, 304px)); min-height: 400px;
+  height: calc(100vh / var(--c-zoom, 1) - var(--mon-nm-offset, 304px)); min-height: 400px;
 }
 .mon-nm-esq { display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow-y: auto; }
 .mon-nm-resumo, .mon-nm-etapas, .mon-nm-painel { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
@@ -848,7 +848,7 @@
    ========================================================================== */
 .mon-dt-overlay { place-items: start center; padding: 16px 24px; }
 .mon-dt {
-  width: min(1392px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden;
+  width: min(1392px, 100%); max-height: calc(100vh / var(--c-zoom, 1) - 32px); display: flex; flex-direction: column; overflow: hidden;
   background: var(--color-bg); border: 1px solid var(--line); border-radius: 14px; outline: none;
 }
 .mon-dt-topo { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 24px; background: var(--paper); border-bottom: 1px solid var(--line); flex: none; }

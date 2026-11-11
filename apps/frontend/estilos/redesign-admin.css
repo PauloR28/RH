@@ -2,8 +2,8 @@
    Só tokens e peças c- de conecta-ds.css / conecta-telas.css; aqui ficam apenas os encaixes. */
 
 /* ── Login ─────────────────────────────────────────────────────────── */
-.c-login-tela { padding: 0; margin: 0; min-height: 100vh; background: var(--cor-fundo-painel); }
-.c-login-tela .c-login { min-height: 100vh; }
+.c-login-tela { padding: 0; margin: 0; min-height: calc(100vh / var(--c-zoom, 1)); background: var(--cor-fundo-painel); }
+.c-login-tela .c-login { min-height: calc(100vh / var(--c-zoom, 1)); }
 .c-login-logo img { width: 200px; height: auto; display: block; margin-bottom: var(--espaco-2); }
 .c-login-simbolo img { width: 56px; height: auto; display: block; }
 .c-login-caixa > .c-botao { width: 100%; justify-content: center; height: 44px; text-decoration: none; }

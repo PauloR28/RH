@@ -151,7 +151,7 @@
 .c-tabela.c-tabela--junta .c-acoes > .c-grupo { justify-content: flex-start; }
 
 /* Escalas › Pausas: a caixa vai até o pé da tela e os botões ficam embaixo (sem faixa vazia). */
-.c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh - var(--altura-topo) - 40px - 136px); }
+.c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh / var(--c-zoom, 1) - var(--altura-topo) - 40px - 136px); }
 .c-pausas-caixa > .c-pausas { flex: 1 1 auto; }
 
 /* Minha escala: dias que já passaram ficam apagados (só consulta) — lista 10/11, item 12. */
@@ -160,3 +160,9 @@
 .c-dia-passou-rot { font-size: 12px; font-weight: var(--fonte-peso-normal, 400); }
 .c-cal td.c-cal-passou { background: var(--cor-fundo-sutil); }
 .c-cal td.c-cal-passou .c-cal-botao > * { opacity: .65; }
+
+/* Monitor grande (lista 10/11, item 13): o Conecta inteiro cresce na mesma proporção.
+   --c-zoom acompanha o zoom para as alturas que usam 100vh (o zoom também multiplica o vh). */
+:root { --c-zoom: 1; }
+@media (min-width: 1920px) { :root { --c-zoom: 1.125; } html { zoom: 1.125; } }
+@media (min-width: 2400px) { :root { --c-zoom: 1.25; } html { zoom: 1.25; } }

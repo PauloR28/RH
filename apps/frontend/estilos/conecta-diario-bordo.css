@@ -186,7 +186,7 @@
    Hoje, Histórico e Cadastros: largura toda (sem o teto de 1600 px), alinhado à esquerda com 24 px;
    a página ocupa a altura da tela (topo 56 px + sub-barra 40 px) e a caixa estica até o pé. */
 .c-db.c-conteudo { max-width: none; }
-.c-db { min-height: calc(100vh - var(--altura-topo) - 40px); }
+.c-db { min-height: calc(100vh / var(--c-zoom, 1) - var(--altura-topo) - 40px); }
 .c-db > .c-db-caixa { flex: 1 1 auto; display: flex; flex-direction: column; }
 .c-db-caixa > .c-db-corpo, .c-db-caixa > .c-db-dia { flex: 1 1 auto; }
 .c-db-caixa > table { flex: none; }
