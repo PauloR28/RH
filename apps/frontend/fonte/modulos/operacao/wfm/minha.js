@@ -325,8 +325,9 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
     const lista = dados.itens[iso] || [];
     const trab = lista.filter((i) => i.trabalha);
     const troca = trocaDoDia(iso);
-    const dia = html`${rotuloDia(iso)}${iso === hoje ? html` <span class="c-sec">· hoje</span>` : null}`;
-    return html`<tr key=${iso} class=${`c-clicavel ${trab.length ? '' : 'c-dia-folga'}`.trim()} aria-current=${iso === hoje ? 'date' : null} aria-selected=${aberto === iso ? 'true' : null}
+    const passou = iso < hoje;
+    const dia = html`${rotuloDia(iso)}${iso === hoje ? html` <span class="c-sec">· hoje</span>` : passou ? html` <span class="c-dia-passou-rot">· passou</span>` : null}`;
+    return html`<tr key=${iso} class=${`c-clicavel ${trab.length ? '' : 'c-dia-folga'} ${passou ? 'c-dia-passou' : ''}`.replace(/\s+/g, ' ').trim()} aria-current=${iso === hoje ? 'date' : null} aria-selected=${aberto === iso ? 'true' : null}
         tabIndex="0" onClick=${(ev) => { if (!ev.target.closest('button')) setAberto(iso); }} onKeyDown=${(ev) => { if (ev.key === 'Enter' && ev.target === ev.currentTarget) setAberto(iso); }}>
         <td class="c-forte">${dia}</td>
         ${trab.length ? html`
@@ -349,7 +350,7 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
     const lista = dados.itens[iso] || [];
     const trab = lista.filter((i) => i.trabalha);
     const pres = dados.presencas?.[iso];
-    const classe = `c-cal-dia ${iso === hoje ? 'c-cal-hoje' : ''} ${fora ? 'c-cal-fora' : ''} ${!trab.length ? 'c-cal-dsr' : ''}`.replace(/\s+/g, ' ').trim();
+    const classe = `c-cal-dia ${iso === hoje ? 'c-cal-hoje' : ''} ${fora ? 'c-cal-fora' : ''} ${!trab.length ? 'c-cal-dsr' : ''} ${iso < hoje ? 'c-cal-passou' : ''}`.replace(/\s+/g, ' ').trim();
     const conteudo = html`<span class="c-cal-n">${d.getDate()}</span>
       ${trab.length ? trab.map((i, k) => html`<span key=${k} class="c-cal-bloco" style=${i.cor ? { borderLeftColor: i.cor } : undefined}>${faixa(i)}</span>`) : html`<span class="c-cal-folga">${lista.length || dados.livres?.[iso] ? semTurno(lista) : '—'}</span>`}
       ${pres ? html`<span class=${`c-cal-st c-cal-st--${TOM_PRESENCA[pres.status] || 'neutro'}`}><${Ic} nome=${ICONE_PRESENCA[pres.status] || 'circle'} />${ROTULO_STATUS_PRESENCA[pres.status] || pres.status}</span>` : null}

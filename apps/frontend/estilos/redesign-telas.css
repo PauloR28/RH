@@ -153,3 +153,10 @@
 /* Escalas › Pausas: a caixa vai até o pé da tela e os botões ficam embaixo (sem faixa vazia). */
 .c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh - var(--altura-topo) - 40px - 136px); }
 .c-pausas-caixa > .c-pausas { flex: 1 1 auto; }
+
+/* Minha escala: dias que já passaram ficam apagados (só consulta) — lista 10/11, item 12. */
+.c-minha tbody tr.c-dia-passou > td { background: var(--cor-fundo-sutil); color: var(--cor-texto-secundario); }
+.c-minha tbody tr.c-dia-passou > td > * { opacity: .65; }
+.c-dia-passou-rot { font-size: 12px; font-weight: var(--fonte-peso-normal, 400); }
+.c-cal td.c-cal-passou { background: var(--cor-fundo-sutil); }
+.c-cal td.c-cal-passou .c-cal-botao > * { opacity: .65; }

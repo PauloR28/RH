@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261111-espacos';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261111-passou';
