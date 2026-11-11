@@ -205,3 +205,5 @@
   .c-db-larga small { font-size: 12px; color: var(--cor-texto-secundario); }
   .c-db .c-db-passagem { display: none; } /* na tela larga a passagem fica na 3ª coluna */
 }
+/* Termo de uso do Diário centralizado na página (pedido do Paulo, 10/11/2026) */
+.c-db-termos { max-width: 760px; margin-inline: auto; width: 100%; }
