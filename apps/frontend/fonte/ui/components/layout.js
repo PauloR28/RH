@@ -4,7 +4,7 @@ import { obterTourDaTela } from '../../shared/tour-config.js';
 import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261022-guia';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261010-guia';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';

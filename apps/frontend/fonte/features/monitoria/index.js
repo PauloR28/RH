@@ -1,12 +1,12 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261108-admin';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261111-notif';
 import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261109-operacao';
 import { TelaInicioOperador } from './inicio-operador.js?v=20261109-lote3';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
-import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
+import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261111-notif';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
 import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261104-leitura';
 import { useContextoMonitoria } from './comum.js';

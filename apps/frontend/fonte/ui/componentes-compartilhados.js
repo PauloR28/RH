@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261108-admin';
+} from './components/layout.js?v=20261111-notif';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,

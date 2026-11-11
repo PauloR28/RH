@@ -45,7 +45,7 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261010-guia';
+} from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
 import {
