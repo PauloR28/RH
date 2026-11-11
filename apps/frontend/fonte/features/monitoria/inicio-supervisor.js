@@ -156,7 +156,8 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
   }, []);
   const destinoMonitoria = sessoes.find((s) => s.id === 'monitoria')?.destino || null;
   const pendencias = usePendencias(controlador, operacoes || [], alertasMonitoria, destinoMonitoria);
-  const mural = useMural(controlador);
+  // Sem Mural e sem atalho da Central de Treinamento no Início (pedido do Paulo, 09/11/2026); o Mural segue na seção própria.
+  const atalhos = sessoes.filter((s) => s.id !== 'treinamentos');
   const hoje = paraIso(agora);
   const vencemHoje = (pendencias || []).filter((p) => p.prazo && paraIso(new Date(p.prazo)) === hoje).length;
   const irPara = (tela) => controlador.irParaTelaProtegida(tela);
@@ -167,14 +168,14 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
       <main class="c-pagina c-conteudo">
         <div class="c-pagina-cab"><div class="c-titulo"><h1>${saudacao(agora)}, ${(nome || '').split(' ')[0] || 'bem-vindo(a)'}</h1>
           <p>${estado.perfilUsuarioNome || 'Supervisor'} · ${DIAS_LONGOS[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}</p></div></div>
-        ${sessoes.length ? html`<section><h2 class="c-rotulo c-oculto">Atalhos</h2><nav class="c-atalhos" aria-label="Atalhos">
-          ${sessoes.map((s) => html`<a key=${s.id} class="c-atalho" href="#" onClick=${(ev) => { ev.preventDefault(); irPara(s.destino); }}
+        ${atalhos.length ? html`<section><h2 class="c-rotulo c-oculto">Atalhos</h2><nav class="c-atalhos" aria-label="Atalhos">
+          ${atalhos.map((s) => html`<a key=${s.id} class="c-atalho" href="#" onClick=${(ev) => { ev.preventDefault(); irPara(s.destino); }}
             title=${s.desc}><span class="c-ic" aria-hidden="true">${IconeSvg(s.icone)}</span>${s.titulo}
             ${(s.id === 'monitoria' && alertasMonitoria > 0) || (s.id === 'wfm' && trocasPendentes > 0) ? html`<span class="c-oculto">(há novidades)</span>` : null}</a>`)}
         </nav></section>` : null}
         ${temWfm && operacoes === null ? html`<section class="c-cartao"><div class="c-cartao-corpo"><${Esqueleto} linhas=${3} /></div></section>` : null}
         ${temWfm && operacoes?.length ? html`<${EscalaDeHoje} controlador=${controlador} operacao=${operacoes[0]} />` : null}
-        <div class="c-hoje-dupla" style=${mural.disponivel ? null : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
+        <div class="c-hoje-dupla c-hoje-dupla--so">
           <section class="c-cartao" aria-labelledby="c-precisa-titulo">
             <div class="c-cartao-cab"><h2 id="c-precisa-titulo">Precisa de você</h2>${vencemHoje ? html`<${Selo} tom="perigo" icone="warning-octagon">${vencemHoje} ${vencemHoje === 1 ? 'vence hoje' : 'vencem hoje'}<//>` : null}</div>
             ${pendencias === null ? html`<div class="c-cartao-corpo"><${Esqueleto} linhas=${3} /></div>`
@@ -188,12 +189,6 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
                 <td class="c-acoes"><button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-label=${`Ver: ${p.texto} (${p.onde})`} onClick=${(ev) => { ev.stopPropagation(); p.antes?.(); irPara(p.tela); }}>Ver</button></td>
               </tr>`)}</tbody></table></div>`}
           </section>
-          ${mural.disponivel ? html`<section class="c-cartao c-mural" aria-labelledby="c-mural-titulo">
-            <div class="c-cartao-cab"><h2 id="c-mural-titulo">Mural</h2>${destinoMural ? html`<a class="c-botao c-botao--texto c-botao--compacto c-fim" href="#" onClick=${(ev) => { ev.preventDefault(); irPara(destinoMural); }}>Ver tudo</a>` : null}</div>
-            ${mural.itens === null ? html`<div class="c-cartao-corpo"><${Esqueleto} linhas=${3} /></div>`
-    : !mural.itens.length ? html`<${Estado} icone="megaphone" titulo="Nenhum aviso publicado." />`
-      : html`<ul class="c-lista">${mural.itens.map((p) => html`<li key=${p.id}><div class="c-lista-txt"><span class="c-forte" title=${p.titulo}>${p.titulo}</span><small>${quando(p.em, agora)}</small></div></li>`)}</ul>`}
-          </section>` : null}
         </div>
       </main>
     </${PainelRh}>`;

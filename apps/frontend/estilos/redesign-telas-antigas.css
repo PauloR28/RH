@@ -324,3 +324,9 @@
 .c-graficos-wfm .wfm-g-rosca--compacta .wfm-g-legenda { font-size: 12px; gap: var(--espaco-1); }
 .c-graficos-wfm .wfm-g-barras, .c-graficos-wfm .wfm-g-barras-rotulo, .c-graficos-wfm .wfm-g-barras-valor, .c-graficos-wfm .wfm-g-legenda { font-size: 12px; }
 .c-graficos-wfm .c-grafico > .wfm-g-rosca { flex: 1 1 auto; align-content: center; }
+/* Início (09/11/2026): atalhos do tamanho do texto, mesma altura, alinhados à esquerda, gap 8; sem Mural, "Precisa de você" ocupa a linha */
+.c-atalhos { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: flex-start; gap: var(--espaco-2); }
+.c-atalhos > .c-atalho { flex: 0 0 auto; min-width: 176px; }
+.c-hoje-dupla.c-hoje-dupla--so { grid-template-columns: minmax(0, 1fr); }
+/* Início: a regra antiga de #screen-menu somava ~20 px de margem; no desenho novo a margem é só a da .c-pagina (24 px), igual às outras telas */
+#screen-menu .rh-modern-page:has(> .c-pagina) { padding: 0; }

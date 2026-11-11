@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261111-notif';
-import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261109-operacao';
+import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261111-inicio';
 import { TelaInicioOperador } from './inicio-operador.js?v=20261111-atalhos';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
