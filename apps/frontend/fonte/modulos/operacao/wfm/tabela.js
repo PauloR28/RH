@@ -13,14 +13,14 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261104-leitura';
-import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261104-leitura';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
-import { ModalConfigEscala } from './configuracao.js?v=20261109-proprio';
-import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261111-padrao';
+} from '../../../services/api/wfm.js?v=20261111-modulos-op';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261111-modulos-op';
+import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261111-modulos-op';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-modulos-op';
+import { ModalConfigEscala } from './configuracao.js?v=20261111-modulos-op';
+import { GavetaAjusteDia } from './ajuste.js?v=20261111-modulos-op';
+import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261111-modulos-op';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:

@@ -425,6 +425,7 @@
 .amb-campo { display: flex; flex-direction: column; gap: 8px; }
 .amb-explicacao { margin: 0; font-size: var(--text-xs); line-height: 16px; color: var(--ink-soft); }
 .amb-explicacao strong { color: var(--ink); }
+.amb-modulos .amb-modulo-nome, .amb-modulos .amb-modulo-nome + .c-ajuda { display: block; }
 .amb-aviso { margin: 0; padding: 8px 16px; font-size: var(--text-sm); display: flex; flex-direction: column; gap: 4px; }
 .amb-campo small, .amb-secao-corpo > small, .amb-rodape small { color: var(--ink-soft); font-size: var(--text-xs); }
 .amb-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); font-weight: 600; color: var(--ink); cursor: pointer; }

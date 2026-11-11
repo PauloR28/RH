@@ -4,6 +4,7 @@ import { IconeSvg } from '../../ui/icone.js';
 import {
   enviarLogoOperacao,
   lerAmbienteOperacao,
+  lerModulosOperacao,
   listarIdentidadeOperacoes,
   listarCatalogoMonitoria,
   listarEquipesMonitoria,
@@ -11,9 +12,10 @@ import {
   salvarCatalogoMonitoria,
   salvarCorOperacao,
   salvarEquipeMonitoria,
+  salvarModulosOperacao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
-import { CartaoLista } from './monitoria-config.js?v=20261109-sem-jornada';
+import { CartaoLista } from './monitoria-config.js?v=20261111-modulos-op';
 
 // Aba "Configurar ambiente" da operação (Configurações > Operações): quem trabalha nela
 // (supervisores, Qualidade), se ela tem Qualidade, turnos/equipes e as intranets (ambientes
@@ -69,6 +71,51 @@ function SecaoIdentidade({ chave, ativa, onFeedback, onErro }) {
           </div>
         </label>
       </div>
+    </${Secao}>`;
+}
+
+// Módulos desta operação (lista 10/11, item 16): o que aparece no menu da Operação para quem trabalha nela.
+// O teto é a tela Módulos (Tecnologia): módulo desligado lá não liga aqui. Salva na hora; permissões não mudam.
+function SecaoModulos({ chave, ativa, podeEditar, onFeedback, onErro }) {
+  const [itens, setItens] = useState(null);
+  const [ocupado, setOcupado] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    setItens(null);
+    lerModulosOperacao(chave).then((r) => vivo && setItens(r.itens || [])).catch(() => vivo && setItens([]));
+    return () => { vivo = false; };
+  }, [chave]);
+  const alternar = async (item) => {
+    setOcupado(item.chave);
+    try {
+      const r = await salvarModulosOperacao(chave, { [item.chave]: !item.ativo });
+      setItens(r.itens || []);
+      onFeedback?.(`${item.nome} ${item.ativo ? 'desligado' : 'ligado'} nesta operação.`);
+    } catch (e) {
+      onErro?.(e?.message || 'Não foi possível salvar os módulos da operação.');
+    } finally {
+      setOcupado('');
+    }
+  };
+  const lista = itens || [];
+  const ligados = lista.filter((i) => i.no_conecta && i.ativo).length;
+  return html`
+    <${Secao} titulo="Módulos desta operação" resumo=${itens ? `${ligados} de ${lista.length} ligados` : ''}>
+      <p class="c-ajuda amb-explicacao">Escolha o que aparece no menu de quem trabalha nesta operação. Só dá para ligar o que está ligado na tela Módulos do Conecta. As permissões de cada perfil continuam valendo. Salva na hora.</p>
+      ${!itens ? html`<${LoadingState} titulo="Carregando os módulos" />` : html`
+      <div class="c-tabela-caixa"><table class="c-tabela amb-modulos">
+        <thead><tr><th>Módulo</th><th>Situação no Conecta</th><th>Nesta operação</th></tr></thead>
+        <tbody>
+          ${lista.map((i) => html`<tr key=${i.chave}>
+            <td><strong class="amb-modulo-nome">${i.nome}</strong><span class="c-ajuda">${i.descricao}</span></td>
+            <td>${i.no_conecta ? html`<span class="c-selo c-selo--sucesso">Ligado</span>` : html`<span class="c-selo c-selo--neutro">Desligado no Conecta</span>`}</td>
+            <td>${i.no_conecta
+              ? html`<label class="c-interruptor"><input type="checkbox" checked=${i.ativo} aria-label=${`${i.nome} nesta operação`}
+                  disabled=${!podeEditar || !ativa || ocupado === i.chave} onChange=${() => alternar(i)} /><span>${i.ativo ? 'Ligado' : 'Desligado'}</span></label>`
+              : html`<label class="c-interruptor"><input type="checkbox" disabled aria-label=${`${i.nome} nesta operação`} /><span class="c-ajuda">Ligue primeiro em Módulos</span></label>`}</td>
+          </tr>`)}
+        </tbody>
+      </table></div>`}
     </${Secao}>`;
 }
 
@@ -156,6 +203,8 @@ export function AbaAmbienteOperacao({ chave, nome, podeEditar, podeEditarOrganiz
       <div class="amb-totais" aria-label=${`Resumo do ambiente ${nome || chave}`}>
         ${totais.map(([rotulo, valor]) => html`<div key=${rotulo} class="amb-total"><strong>${valor}</strong><span>${rotulo}</span></div>`)}
       </div>
+
+      <${SecaoModulos} chave=${chave} ativa=${dados.ativa} podeEditar=${podeEditar} onFeedback=${onFeedback} onErro=${onErro} />
 
       <${Secao} titulo="Supervisão" resumo=${`${form.supervisores.length} supervisor(es)`}>
         <div class="amb-campo"><span>Supervisores da operação</span>

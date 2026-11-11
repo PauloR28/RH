@@ -11,13 +11,13 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261104-leitura';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261106-wfm';
-import { ModalConfigEscala } from './configuracao.js?v=20261109-proprio';
-import { OutrasEscalas } from './outras.js?v=20261104-leitura';
-import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261111-modulos-op';
+import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261111-modulos-op';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-modulos-op';
+import { ModalConfigEscala } from './configuracao.js?v=20261111-modulos-op';
+import { OutrasEscalas } from './outras.js?v=20261111-modulos-op';
+import { GavetaAjusteDia } from './ajuste.js?v=20261111-modulos-op';
+import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { tomarFocoPessoa } from './foco-pessoa.js';
 

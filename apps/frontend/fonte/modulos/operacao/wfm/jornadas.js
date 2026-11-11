@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js';
-import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { semAcento } from './escala-ui.js?v=20261104-leitura';
+import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261111-modulos-op';
+import { minutosParaHoras } from './comum.js?v=20261111-modulos-op';
+import { semAcento } from './escala-ui.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Jornadas e limites (item de Cadastros no redesign Fase 15, amostra Q3 do lote 1): limites do motor de regras (horas no dia

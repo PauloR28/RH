@@ -5,8 +5,8 @@ import {
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora } from './comum.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261111-modulos-op';
+import { dataHora } from './comum.js?v=20261111-modulos-op';
 import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js?v=20261111-texto';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { tomarFocoPessoa } from './foco-pessoa.js';

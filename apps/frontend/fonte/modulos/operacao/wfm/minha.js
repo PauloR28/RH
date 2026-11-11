@@ -1,7 +1,7 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261111-modulos-op';
 import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261111-texto';
-import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
+import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Minha escala (redesign Fase 15, amostras "Minha escala" e "Pedir troca" da Fase 14). Só a própria escala PUBLICADA.

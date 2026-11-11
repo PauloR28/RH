@@ -30,8 +30,9 @@ def test_migration_v062_e_aditiva_ascii_e_idempotente():
 
 def test_padrao_reproduz_o_menu_de_antes():
     # MODULO_DO_GRUPO do frontend: RH = cx-curriculos/processos/provas/gestao/drive; Operação = monitoria/wfm
+    # (+ diario e treinamentos desde o item 16 de 10/11: já apareciam no menu da Operação, agora são configuráveis)
     assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_RH] == {"cx-curriculos", "processos", "provas", "gestao", "drive"}
-    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_OPERACAO] == {"monitoria", "wfm"}
+    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_OPERACAO] == {"monitoria", "wfm", "diario", "treinamentos"}
     assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_TECNOLOGIA] == {"suporte", "wfm"}
     for modulo, ligadas in cat.FUNCOES_PADRAO_ATIVAS.items():
         assert ligadas <= set(cat.FUNCOES_POR_MODULO[modulo])

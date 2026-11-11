@@ -58,6 +58,11 @@ class AmbienteOperacaoRequest(BaseSchema):
     intranets: list[int] | None = None
 
 
+class ModulosOperacaoRequest(BaseSchema):
+    # função da Operação (monitoria, wfm, diario, treinamentos) -> ligada nesta operação
+    funcoes: dict[str, bool]
+
+
 class TransferirSupervisaoRequest(BaseSchema):
     operacao: str
     id_de: int

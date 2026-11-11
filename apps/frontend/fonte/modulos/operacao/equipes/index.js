@@ -11,11 +11,11 @@ import {
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261109-telas-antigas';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261104-leitura';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261109-telas-antigas';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261106-wfm';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261104-leitura';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261104-leitura';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261111-modulos-op';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261111-modulos-op';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261111-modulos-op';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261111-modulos-op';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { tomarFocoPessoa } from '../wfm/foco-pessoa.js';
 

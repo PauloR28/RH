@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261111-modulos-op';
 import { Campo, Esqueleto, Ic, Janela } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Configurações da escala (redesign Fase 15, amostra Q4 do lote 1): janela de 560 px com Nome · Jornada · Escala ativa ·

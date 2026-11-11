@@ -2,7 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
-import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261104-leitura';
+import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261111-modulos-op';
 import { listarMonitorias } from '../../services/api/monitoria.js';
 
 // Início do Operador (redesign Fase 15, fatia 4, lote 3 · amostra Fase 14, quadro 1): cabeçalho em caixa com a saudação,
