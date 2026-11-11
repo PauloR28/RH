@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js';
 import { baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261111-modulos-op';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261111-escalados';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -86,7 +86,7 @@ const tomEstado = (texto) => {
 
 // Filtros que dependem das colunas da planilha carregada (equipe, supervisor, operador, status): aparecem só se a coluna existe.
 const COLUNA_DO_FILTRO = {
-  equipe: /^equipe/i, supervisor: /^supervisor/i, operador: /^(operador|avaliado|candidato)/i, status: /^(status|situa)/i,
+  equipe: /^equipe/i, supervisor: /^supervisor/i, operador: /^(operador|avaliado|candidato)/i, status: /^(status|situa|trocou)/i,
 };
 const ROTULO_FILTRO = { equipe: 'Equipe', supervisor: 'Supervisor', operador: 'Operador', status: 'Status' };
 

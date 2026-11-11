@@ -174,6 +174,7 @@ RELATORIOS_HUB: tuple[tuple[str, str, str, bool], ...] = (
     ("relhub.wfm.painel", "Painel de indicadores e gráficos de Turnos e Plantões.", "wfm.relatorios", False),
     ("relhub.wfm.resumo", "Relatório Resumo por operador (horas, presença e faltas) de Turnos e Plantões.", "wfm.relatorios", False),
     ("relhub.wfm.escalas", "Relatório de escalas publicadas e quem aprovou (Turnos e Plantões).", "wfm.relatorios", False),
+    ("relhub.wfm.escalados", "Relatório Escalados: quem trabalhou em cada dia, em qual escala e se trocou com alguém (Turnos e Plantões).", "wfm.relatorios", False),
     ("relhub.wfm.presencas", "Relatório/histórico de presenças e faltas dia a dia (Turnos e Plantões).", "wfm.relatorios", False),
     ("relhub.wfm.trocas", "Relatório/histórico de trocas de plantão (pedidos, aprovações e reprovações).", "wfm.relatorios", False),
     ("relhub.wfm.aprovacoes", "Relatório de aprovações de escala (envio, aprovação, declínio e publicação).", "wfm.relatorios", False),

@@ -86,7 +86,7 @@ PERMISSOES_POSTERIORES_A_V056 = frozenset({
     "relhub.monitoria.qualidade",
     "relhub.rh.candidatos", "relhub.rh.exames", "relhub.rh.funil", "relhub.rh.processos", "relhub.rh.ranking",
     "relhub.sistema.logs",
-    "relhub.wfm.aprovacoes", "relhub.wfm.escalas", "relhub.wfm.historico", "relhub.wfm.painel", "relhub.wfm.presencas",
+    "relhub.wfm.aprovacoes", "relhub.wfm.escalados", "relhub.wfm.escalas", "relhub.wfm.historico", "relhub.wfm.painel", "relhub.wfm.presencas",
     "relhub.wfm.resumo", "relhub.wfm.trocas",
     "sessao.equipe.acessar", "sessao.relatorios.acessar",
 })

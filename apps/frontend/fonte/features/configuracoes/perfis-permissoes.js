@@ -44,7 +44,7 @@ const ROTULO_CHAVE = {
   'wfm.relatorios': 'Relatórios', 'wfm.auditoria': 'Auditoria completa', 'wfm.troca.visualizar': 'Ver', 'wfm.troca.solicitar': 'Pedir e responder', 'wfm.troca.desfazer': 'Desfazer aprovada',
   'equipes.controle.visualizar': 'Ver a própria equipe', 'equipes.membros.editar': 'Adicionar e remover pessoas', 'equipes.mural.publicar': 'Publicar no Mural',
   'relhub.wfm.historico': 'Histórico de alterações', 'relhub.monitoria.historico': 'Histórico de monitorias', 'relhub.wfm.resumo': 'Resumo por operador', 'relhub.wfm.aprovacoes': 'Aprovações de escala', 'relhub.wfm.presencas': 'Presenças',
-  'relhub.wfm.painel': 'Painel', 'relhub.wfm.escalas': 'Escalas', 'relhub.wfm.trocas': 'Trocas', 'relhub.monitoria.qualidade': 'Qualidade', 'relhub.monitoria.planos': 'Planos de ação', 'relhub.monitoria.dashboard': 'Dashboard',
+  'relhub.wfm.painel': 'Painel', 'relhub.wfm.escalas': 'Escalas', 'relhub.wfm.escalados': 'Escalados', 'relhub.wfm.trocas': 'Trocas', 'relhub.monitoria.qualidade': 'Qualidade', 'relhub.monitoria.planos': 'Planos de ação', 'relhub.monitoria.dashboard': 'Dashboard',
   'relhub.monitoria.logs': 'Logs', 'relhub.rh.processos': 'Processos', 'relhub.rh.candidatos': 'Candidatos', 'relhub.rh.ranking': 'Ranking', 'relhub.rh.funil': 'Funil', 'relhub.rh.exames': 'Exames e provas', 'relhub.sistema.logs': 'Logs do sistema',
   'relatorios.visualizar': 'Ver (antigo)', 'relatorios.exportar': 'Exportar (antigo)', 'documentos_templates.visualizar': 'Ver e gerar', 'operacoes.editar': 'Cadastrar e inativar', 'etapas.configurar': 'Configurar etapas', 'trilhas.configurar': 'Configurar trilhas',
 };

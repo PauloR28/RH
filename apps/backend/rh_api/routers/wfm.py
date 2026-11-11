@@ -190,7 +190,7 @@ def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str 
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
-_RELATORIOS_WFM = ("painel", "resumo", "escalas", "presencas", "trocas", "aprovacoes")
+_RELATORIOS_WFM = ("painel", "resumo", "escalas", "escalados", "presencas", "trocas", "aprovacoes")
 
 
 def _exigir_relatorio_wfm(user: AuthenticatedUser, tipo: str) -> None:

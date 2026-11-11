@@ -74,9 +74,9 @@ export async function carregarOperacoes(area) {
   return [];
 }
 
-const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false) => ({
+const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false, filtrosExtras = []) => ({
   id: `wfm.${tipo}`, area: 'wfm', rotulo, descricao, permissao: `relhub.wfm.${tipo}`,
-  filtros: ['periodo', 'operacao', 'operador', 'busca'], totais,
+  filtros: ['periodo', 'operacao', ...filtrosExtras, 'operador', 'busca'], totais,
   // Sem escala escolhida = todas as escalas a que a pessoa tem acesso (uma troca ou presença nunca "some" por estar noutra escala).
   async carregar(f) {
     const consulta = (operacao) => lerRelatorioWfm({ operacao, data_ini: f.ini, data_fim: f.fim, id_operador: f.operador || undefined, tipo });
@@ -100,6 +100,7 @@ export const RELATORIOS = [
   { id: 'wfm.painel', area: 'wfm', rotulo: 'Painel', descricao: 'Indicadores, comparações e gráficos do período (também na aba Painel do WFM).', permissao: 'relhub.wfm.painel', filtros: ['periodo', 'operacao'], operacaoObrigatoria: true, tela: 'painel-wfm' },
   SO_WFM_RELATORIO('resumo', 'Resumo por operador', 'Horas, presença e faltas por operador.', true),
   SO_WFM_RELATORIO('escalas', 'Escalas', 'Versões publicadas e quem aprovou.'),
+  SO_WFM_RELATORIO('escalados', 'Escalados', 'Quem trabalhou em cada dia, em qual escala, e se trocou o dia com alguém.', false, ['equipe', 'status']),
   SO_WFM_RELATORIO('presencas', 'Presenças', 'Presença e falta dia a dia (histórico de presenças).', true),
   SO_WFM_RELATORIO('trocas', 'Trocas de plantão', 'Pedidos, aprovações e reprovações (histórico de trocas).'),
   SO_WFM_RELATORIO('aprovacoes', 'Aprovações de escala', 'Envio, aprovação, declínio e publicação.'),
@@ -223,7 +224,7 @@ export const RELATORIOS = [
 // Permissão de base de cada relatório (a que a rota de origem exige no servidor): a página só mostra o relatório se o perfil
 // tem a chave `relhub.*` E a de base, para nunca listar algo que a origem recusaria.
 export const PERMISSAO_BASE = {
-  'wfm.painel': 'wfm.relatorios', 'wfm.resumo': 'wfm.relatorios', 'wfm.escalas': 'wfm.relatorios', 'wfm.presencas': 'wfm.relatorios',
+  'wfm.painel': 'wfm.relatorios', 'wfm.resumo': 'wfm.relatorios', 'wfm.escalas': 'wfm.relatorios', 'wfm.escalados': 'wfm.relatorios', 'wfm.presencas': 'wfm.relatorios',
   'wfm.trocas': 'wfm.relatorios', 'wfm.aprovacoes': 'wfm.relatorios', 'wfm.historico': 'wfm.auditoria',
   'monitoria.historico': 'monitoria.relatorios', 'monitoria.qualidade': 'monitoria.relatorios', 'monitoria.planos': 'monitoria.relatorios',
   'monitoria.dashboard': 'monitoria.dashboard', 'monitoria.logs': 'monitoria.logs',
