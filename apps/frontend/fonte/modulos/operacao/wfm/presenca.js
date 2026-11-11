@@ -29,7 +29,7 @@ const TOM_SIGLA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'at
 const PRINCIPAIS = ['PRESENTE', 'FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'];
 
 // `embutido`: dentro de outra página (Equipes) — sem <main> nem título próprio; os botões ficam numa linha à direita.
-export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias, embutido = false }) {
+export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias, embutido = false, opcoesEscala = null, aoTrocarEscala = null }) {
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [presencas, setPresencas] = useState({});
@@ -83,6 +83,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
   const semana = `${br(dias[0]).slice(0, 5)} a ${br(dias[6])}`;
   const pagina = (conteudo, extra = {}) => (embutido ? html`<div class="c-embutido" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</div>` : html`<main class="c-pagina c-conteudo" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</main>`);
   const cabecalho = html`<div class="c-cab-linha">${embutido ? null : html`<h1>Presença</h1>`}
+    ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
     ${pode && dados ? html`<div class="c-cab-dir">
       <button type="button" class="c-botao c-botao--secundario" aria-expanded=${verAtestados ? 'true' : 'false'} onClick=${() => { setVerAtestados(true); setVerLote(false); }}><${Ic} nome="file-text" />Atestados${atestados.length ? ` (${atestados.length})` : ''}</button>
       <button type="button" class="c-botao c-botao--principal" aria-expanded=${verLote ? 'true' : 'false'} onClick=${() => { setVerLote(true); setVerAtestados(false); }}><${Ic} nome="list-checks" />Presença em lote</button>

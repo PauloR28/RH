@@ -129,7 +129,7 @@ function PainelTroca({ troca, acoes, onClose }) {
   </aside>`;
 }
 
-export function TelaTrocas({ controlador, operacao, showToast }) {
+export function TelaTrocas({ controlador, operacao, showToast, opcoesEscala = null, aoTrocarEscala = null }) {
   const [itens, setItens] = useState(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState('andamento');
@@ -227,6 +227,7 @@ export function TelaTrocas({ controlador, operacao, showToast }) {
   return html`
     <main class="c-pagina c-conteudo">
       <div class="c-cab-linha"><h1>Trocas</h1>
+        ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
         ${podeSolicitar ? html`<div class="c-cab-dir"><button type="button" class="c-botao c-botao--principal" onClick=${() => controlador.irParaTelaProtegida('screen-wfm-minha-escala')}><${Ic} nome="plus" />Pedir troca</button></div>` : null}
       </div>
       <div class="c-tabela-caixa">

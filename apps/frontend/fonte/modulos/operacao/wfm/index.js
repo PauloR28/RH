@@ -8,14 +8,14 @@ import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
 import { TelaEscala } from './escala.js?v=20261109-proprio';
-import { TelaPresenca } from './presenca.js?v=20261106-wfm';
+import { TelaPresenca } from './presenca.js?v=20261111-seletor';
 import { TelaCadastros } from './cadastros.js?v=20261109-cadastros';
 import { TelaEscalaPausas } from './pausas.js?v=20261104-dia';
 import { TelaEscalaTabela } from './tabela.js?v=20261109-proprio';
 import { TelaMinhaEscala } from './minha.js?v=20261111-selo-troca';
 import { ListaEscalas } from './escalas.js?v=20261109-proprio';
 import { ModalConfigEscala } from './configuracao.js?v=20261109-proprio';
-import { TelaTrocas } from './trocas.js?v=20261111-texto';
+import { TelaTrocas } from './trocas.js?v=20261111-seletor';
 import { TelaRelatorios } from './relatorios.js?v=20261110-exportar';
 import { TelaPainelDia } from './painel-dia.js?v=20261108-painel-dia';
 
@@ -183,7 +183,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} />
+        <${TelaTrocas} controlador=${controlador} operacao=${operacao} showToast=${showToast} opcoesEscala=${operacoesComEscala.map((o) => [o.chave, o.nome])} aoTrocarEscala=${setOperacao} />
       </${PainelRh}>`;
   }
 
@@ -192,7 +192,7 @@ export function TelaWfm({ controlador, telaAtual: telaPedida = 'screen-wfm' }) {
     return html`
       <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Turnos e Plantões" placeholderBusca="Turnos e Plantões" controlador=${controlador} buscaGlobal=${false}>
         <div class="wfm-toast"><${ToastHost} /></div>
-        <${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} aoMudarPendencias=${setTotalSemanaPresenca} />
+        <${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} aoMudarPendencias=${setTotalSemanaPresenca} opcoesEscala=${operacoesComEscala.map((o) => [o.chave, o.nome])} aoTrocarEscala=${setOperacao} />
       </${PainelRh}>`;
   }
 
