@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { textoTrocaOperador } from './trocas-texto.js?v=20261106-wfm';
+import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261111-texto';
 import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
@@ -210,7 +210,7 @@ function JanelaTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, show
         <${Campo} rotulo="Motivo" erro=${motivo.trim() ? '' : 'Escreva o motivo'} ajuda=${`Obrigatório. ${primeiroNome(colega.nome)} e o supervisor leem este texto.`}>
           <textarea class="c-entrada" rows="2" maxlength="300" placeholder="Ex.: consulta médica de manhã" value=${motivo} onInput=${(e) => setMotivo(e.target.value)}></textarea>
         <//>
-        <pre class="c-texto-formal">${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${meuHorario} (${nomeUsuario ? primeiroNome(nomeUsuario) : 'você'}) e ${rotuloHorario(horarioB)} (${primeiroNome(colega.nome)})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })}</pre>
+        <${TextoFormal} texto=${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${meuHorario} (${nomeUsuario ? primeiroNome(nomeUsuario) : 'você'}) e ${rotuloHorario(horarioB)} (${primeiroNome(colega.nome)})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })} />
         <label class="c-marcar"><input type="checkbox" checked=${ciente} onChange=${(e) => setCiente(e.target.checked)} /><span>Estou ciente</span></label>
         <p class="c-ajuda">Depois de enviar: ${primeiroNome(colega.nome)} aceita ou recusa. Se aceitar, o supervisor (ou o RH) aprova.</p>` : null}
     </div>

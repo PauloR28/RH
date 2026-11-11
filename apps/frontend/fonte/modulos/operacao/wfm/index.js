@@ -12,10 +12,10 @@ import { TelaPresenca } from './presenca.js?v=20261106-wfm';
 import { TelaCadastros } from './cadastros.js?v=20261109-cadastros';
 import { TelaEscalaPausas } from './pausas.js?v=20261104-dia';
 import { TelaEscalaTabela } from './tabela.js?v=20261109-proprio';
-import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
+import { TelaMinhaEscala } from './minha.js?v=20261111-texto';
 import { ListaEscalas } from './escalas.js?v=20261109-proprio';
 import { ModalConfigEscala } from './configuracao.js?v=20261109-proprio';
-import { TelaTrocas } from './trocas.js?v=20261106-wfm';
+import { TelaTrocas } from './trocas.js?v=20261111-texto';
 import { TelaRelatorios } from './relatorios.js?v=20261110-exportar';
 import { TelaPainelDia } from './painel-dia.js?v=20261108-painel-dia';
 
