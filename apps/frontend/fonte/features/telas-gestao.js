@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261108-admin';
+} from './gestao/index.js?v=20261111-atalhos-ocultos';

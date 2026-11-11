@@ -75,7 +75,7 @@ class TelaInicialRepositoryMixin:
         try:
             cursor = conn.cursor()
             ensure_home_screen_config_table(cursor)
-            conteudo = json.dumps({"blocos": config["blocos"]}, ensure_ascii=False)
+            conteudo = json.dumps({"blocos": config["blocos"], "atalhos_ocultos": config["atalhos_ocultos"]}, ensure_ascii=False)
             cursor.execute(
                 """
                 MERGE dbo.perfis_tela_inicial WITH (HOLDLOCK) AS alvo

@@ -1,8 +1,9 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { AvatarUsuario } from '../../ui/components/layout.js?v=20261111-notif';
-import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261111-atalho-conta';
-import { TelaInicioOperador } from './inicio-operador.js?v=20261111-atalho-conta';
+import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261111-atalhos-ocultos';
+import { TelaInicioOperador } from './inicio-operador.js?v=20261111-atalhos-ocultos';
+import { useAtalhosOcultos } from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -225,6 +226,8 @@ export function TelaInicioPorSessoes({ controlador }) {
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
   const alertas = useAlertasMonitoria(controlador);
   const trocasPendentes = useTrocasParaMim(controlador.possuiPermissao('wfm.troca.visualizar'));
+  // Atalhos escondidos em Perfis > Tela inicial: só saem do Início, a seção continua no menu.
+  const atalhosOcultos = useAtalhosOcultos();
 
   // O Operador só usa a Central de Treinamento como autoatendimento dos
   // próprios treinamentos atribuídos (sem onboarding.criar/editar/gerenciar) —
@@ -247,10 +250,11 @@ export function TelaInicioPorSessoes({ controlador }) {
   });
   // Supervisor: Início no desenho novo (atalhos, Escala de hoje, Precisa de você e Mural) — amostra de 08/11/2026.
   if (estado.perfilUsuario === 'supervisor') {
-    return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} />`;
+    return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} atalhosOcultos=${atalhosOcultos} />`;
   }
   // Operador: Início no desenho novo (cabeçalho com "Seu dia", atalhos e Precisa de você) — amostra da Fase 14 (DEC-086).
-  if (ehOperador) return html`<${TelaInicioOperador} controlador=${controlador} sessoes=${sessoes} />`;
+  if (ehOperador) return html`<${TelaInicioOperador} controlador=${controlador} sessoes=${sessoes} atalhosOcultos=${atalhosOcultos} />`;
+  const sessoesVisiveis = sessoes.filter((s) => !atalhosOcultos.has(s.id));
   return html`
     <${PainelRh} screenId="screen-menu" navAtiva="screen-menu" subtituloMarca="Início" placeholderBusca="Conecta" controlador=${controlador}>
       <div class="mon-inicio">
@@ -258,9 +262,9 @@ export function TelaInicioPorSessoes({ controlador }) {
           <${AvatarUsuario} avatar=${avatar} nome=${nome} tamanho=${56} />
           <div><h1>Olá, ${(nome || '').split(' ')[0] || 'bem-vindo(a)'}!</h1><span class="mon-muted">${estado.perfilUsuarioNome || ''} · escolha por onde começar.</span></div>
         </div>
-        ${sessoes.length ? html`
+        ${sessoesVisiveis.length ? html`
           <div class="mon-sessoes">
-            ${sessoes.map((s) => html`
+            ${sessoesVisiveis.map((s) => html`
               <button key=${s.id} type="button" class="mon-sessao" onClick=${() => controlador.irParaTelaProtegida(s.destino)}>
                 <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(s.icone)}</span>
                 <strong>${s.titulo}</strong><span class="desc">${s.desc}</span>

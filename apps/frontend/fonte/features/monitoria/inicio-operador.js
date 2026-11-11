@@ -117,7 +117,7 @@ function usePendencias(controlador, podeTrocas) {
   return itens;
 }
 
-export function TelaInicioOperador({ controlador, sessoes = [] }) {
+export function TelaInicioOperador({ controlador, sessoes = [], atalhosOcultos = new Set() }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
   const [agora, setAgora] = useState(() => new Date());
@@ -134,7 +134,7 @@ export function TelaInicioOperador({ controlador, sessoes = [] }) {
     podeTrocas ? { id: 'trocas', titulo: 'Trocas', icone: 'arrows-left-right', destino: 'screen-wfm-trocas' } : null,
     controlador.podeAcessarTela('screen-monitoria-minhas') ? { id: 'minhas-monitorias', titulo: 'Minhas monitorias', icone: 'clipboard-text', destino: 'screen-monitoria-minhas' } : null,
     ...sessoes.filter((s) => !['wfm', 'monitoria', 'mural'].includes(s.id)).map((s) => ({ id: s.id, titulo: s.titulo, icone: s.icone, destino: s.destino, desc: s.desc })),
-  ].filter(Boolean);
+  ].filter((a) => a && !atalhosOcultos.has(a.id));
   const vencemLogo = (pendencias || []).filter((p) => p.prazo && p.prazo.getTime() - agora.getTime() < 24 * 3600000).length;
 
   return html`

@@ -9,6 +9,7 @@ nunca liberar uma área que o perfil não acessa.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from ..rbac import ROLE_CANDIDATE, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
@@ -33,9 +34,28 @@ _IDS = tuple(bloco["id"] for bloco in BLOCOS_TELA_INICIAL)
 # sem nenhum bloco de recrutamento veem as áreas automaticamente (front).
 _OCULTOS_POR_PADRAO = frozenset({"sessoes"})
 
+# Início por sessões (item 9 da lista de 10/11/2026, opção B): atalhos que o perfil
+# escondeu do Início. Só exibição: a pessoa continua acessando a seção pelo menu,
+# e nenhum atalho aparece sem a permissão da área (o front ainda confere).
+_ID_ATALHO = re.compile(r"^[a-z0-9-]{1,40}$")
+_MAX_ATALHOS_OCULTOS = 40
+
+
+def normalizar_atalhos_ocultos(bruto: Any) -> list[str]:
+    if not isinstance(bruto, list):
+        return []
+    ids: list[str] = []
+    for item in bruto:
+        atalho = str(item if item is not None else "").strip().lower()
+        if _ID_ATALHO.match(atalho) and atalho not in ids:
+            ids.append(atalho)
+        if len(ids) >= _MAX_ATALHOS_OCULTOS:
+            break
+    return ids
+
 
 def config_padrao() -> dict:
-    return {"blocos": [{"id": bloco_id, "visivel": bloco_id not in _OCULTOS_POR_PADRAO} for bloco_id in _IDS], "personalizado": False}
+    return {"blocos": [{"id": bloco_id, "visivel": bloco_id not in _OCULTOS_POR_PADRAO} for bloco_id in _IDS], "atalhos_ocultos": [], "personalizado": False}
 
 
 def normalizar_config(bruto: Any) -> dict:
@@ -57,7 +77,7 @@ def normalizar_config(bruto: Any) -> dict:
     for bloco_id in _IDS:
         if bloco_id not in vistos:
             blocos.append({"id": bloco_id, "visivel": bloco_id not in _OCULTOS_POR_PADRAO})
-    return {"blocos": blocos, "personalizado": True}
+    return {"blocos": blocos, "atalhos_ocultos": normalizar_atalhos_ocultos(bruto.get("atalhos_ocultos")), "personalizado": True}
 
 
 def catalogo() -> list[dict]:

@@ -92,6 +92,8 @@ class TelaInicialConfigRequest(BaseSchema):
     """Ordem e visibilidade dos blocos da tela inicial de um perfil."""
 
     blocos: list[TelaInicialBlocoInput] = Field(default_factory=list, max_length=40)
+    # Início por sessões: atalhos escondidos do Início (só exibição, não tira acesso).
+    atalhos_ocultos: list[str] = Field(default_factory=list, max_length=40)
 
 
 

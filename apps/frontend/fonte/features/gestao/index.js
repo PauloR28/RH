@@ -14,7 +14,7 @@ import {
   blocosVisiveisTelaInicial,
   configTelaInicialPadrao,
   lerMinhaTelaInicial,
-} from '../../shared/tela-inicial.js';
+} from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
 
 const Fragment = React.Fragment;
 import {
@@ -1937,7 +1937,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261111-atalhos')
+    import('../monitoria/index.js?v=20261111-atalhos-ocultos')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

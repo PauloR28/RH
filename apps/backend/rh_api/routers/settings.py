@@ -96,7 +96,7 @@ def save_tela_inicial_perfil(
         acao="configurar_tela_inicial_perfil",
         entidade="perfil",
         entidade_id=id_perfil,
-        valor_novo={"blocos": result.get("blocos")},
+        valor_novo={"blocos": result.get("blocos"), "atalhos_ocultos": result.get("atalhos_ocultos")},
     )
     return result
 

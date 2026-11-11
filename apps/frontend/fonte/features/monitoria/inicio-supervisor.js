@@ -143,7 +143,7 @@ function useMural(controlador) {
   return { itens, disponivel: Boolean(fonte) };
 }
 
-export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 0, trocasPendentes = 0 }) {
+export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 0, trocasPendentes = 0, atalhosOcultos = new Set() }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
   const agora = new Date();
@@ -157,7 +157,7 @@ export function TelaInicioSupervisor({ controlador, sessoes, alertasMonitoria = 
   const destinoMonitoria = sessoes.find((s) => s.id === 'monitoria')?.destino || null;
   const pendencias = usePendencias(controlador, operacoes || [], alertasMonitoria, destinoMonitoria);
   // Sem Mural e sem atalho da Central de Treinamento no Início (pedido do Paulo, 09/11/2026); o Mural segue na seção própria.
-  const atalhos = sessoes.filter((s) => s.id !== 'treinamentos');
+  const atalhos = sessoes.filter((s) => s.id !== 'treinamentos' && !atalhosOcultos.has(s.id));
   const hoje = paraIso(agora);
   const vencemHoje = (pendencias || []).filter((p) => p.prazo && paraIso(new Date(p.prazo)) === hoje).length;
   const irPara = (tela) => controlador.irParaTelaProtegida(tela);

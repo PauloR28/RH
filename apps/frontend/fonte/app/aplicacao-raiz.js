@@ -1,5 +1,5 @@
 import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
-import { usaInicioPorSessoes } from '../shared/tela-inicial.js';
+import { usaInicioPorSessoes } from '../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
 import { CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO } from '../shared/relatorios-hub.js';
 import {
   navegarParaTela,
@@ -81,7 +81,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20261104-leitura');
+const importarGestao = () => import('../features/telas-gestao.js?v=20261111-atalhos-ocultos');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -109,10 +109,10 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261109-sem-jornada'),
+  () => import('../features/configuracoes/index.js?v=20261111-atalhos-ocultos'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261111-atalhos');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261111-atalhos-ocultos');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
