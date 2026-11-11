@@ -1,6 +1,6 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { textoLegivel } from './compartilhar.js?v=20261104-leitura';
+import { textoLegivel } from './compartilhar.js?v=20261111-export';
 import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 
 // Peças compartilhadas da administração de escala (Escala do dia, Escala mensal e gaveta "Ajustar dia").

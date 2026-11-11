@@ -21,7 +21,7 @@ import {
 import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
 import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261104-leitura';
 import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261104-leitura';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-export';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
 import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';

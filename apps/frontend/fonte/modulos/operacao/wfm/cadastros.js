@@ -30,7 +30,7 @@ import { descreverTurno } from './escala.js?v=20261104-leitura';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import { Icone } from './escala-ui.js?v=20261104-leitura';
-import { textoLegivel } from './compartilhar.js?v=20261104-leitura';
+import { textoLegivel } from './compartilhar.js?v=20261111-export';
 import { TIPOS_PAUSA } from './jornadas.js?v=20261104-leitura';
 
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.

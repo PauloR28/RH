@@ -14,7 +14,7 @@ import {
 } from '../../../services/api/wfm.js?v=20261104-leitura';
 import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261104-leitura';
 import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
-import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261104-leitura';
+import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261111-export';
 import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
 import { OutrasEscalas } from './outras.js?v=20261104-leitura';
 import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';

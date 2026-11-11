@@ -1228,7 +1228,8 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escala=True)
             conn.commit()
-            operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
+            # Supervisor exporta a escala COMPLETA da operação (mesma leitura de "Todas as equipes"); demais perfis seguem o escopo.
+            operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=user.perfil == ROLE_SUPERVISOR)
             ids = [op["id_usuario"] for op in operadores]
             modelos = self._wfm_turnos_modelo(cursor, operacao)
             cursor.execute(
