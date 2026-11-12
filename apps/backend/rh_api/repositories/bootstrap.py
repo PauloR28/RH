@@ -40,6 +40,7 @@ from .chamados_schema_v060 import ensure_chamados_v060
 from .diario_schema import ensure_diario_schema
 from .exam_analytics_schema import ensure_exam_analytics_tables
 from .unidades_schema import ensure_unidades
+from .acesso_excecoes_schema import ensure_acesso_excecoes
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .modulos_schema import ensure_modulos_schema
 from .monitoria_schema import ensure_monitoria_schema
@@ -3761,6 +3762,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_wfm_v066(cursor)
             ensure_chamados_schema(cursor)
             ensure_chamados_v060(cursor)
+            ensure_acesso_excecoes(cursor)  # V071: exceções de acesso (copia V060; depende de modulos_acesso_*)
             ensure_diario_schema(cursor)
             ensure_modulos_funcoes(cursor)
             from .monitoria_org import ensure_monitoria_seeds

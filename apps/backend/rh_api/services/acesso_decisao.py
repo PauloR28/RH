@@ -45,6 +45,8 @@ def decidir(
     unidade: str | None = None,
     unidades_do_usuario: AbstractSet[str] | None = None,
     restrito: bool = False,
+    perfil: str | None = None,
+    id_usuario: int | None = None,
 ) -> Decisao:
     """Decide UMA permissão. `permissoes` = conjunto do perfil. `unidade` = chave da operação/setor do recurso, se houver.
     Sem `unidade`, a camada função olha as unidades da pessoa: fecha só se a função estiver desligada em TODAS elas
@@ -60,10 +62,51 @@ def decidir(
     fechou = _funcao_fechada(permissao, unidade, unidades_do_usuario)
     if fechou:
         return Decisao(False, CAMADA_FUNCAO, fechou)
-    # 4. Perfil (exceções na Etapa 5).
+    # 4. Perfil, depois das exceções (Etapa 5): pessoa > perfil na unidade > padrão. No mesmo nível, 'retirar' vence.
+    if perfil or id_usuario:
+        resposta = _por_excecao(permissao, perfil, id_usuario, unidade, unidades_do_usuario)
+        if resposta is not None:
+            return resposta
     if permissao in permissoes:
         return Decisao(True, CAMADA_PERFIL, "Permitido pelo perfil.")
     return Decisao(False, CAMADA_PERFIL, "O perfil não tem esta permissão.")
+
+
+def _nivel(excecoes, alvo_tipo: str, unidades: list[str | None]) -> bool | None:
+    efeitos = {e.efeito for e in excecoes if e.alvo_tipo == alvo_tipo and (e.unidade is None or e.unidade in unidades)}
+    if "retirar" in efeitos:
+        return False
+    if "conceder" in efeitos:
+        return True
+    return None
+
+
+def _por_excecao(permissao, perfil, id_usuario, unidade, unidades_do_usuario) -> Decisao | None:
+    """Resposta da camada perfil quando há exceção para esta permissão; None = nenhuma exceção se aplica (vale o perfil).
+    Com unidade no pedido, vale a dela. Sem unidade, a pessoa pode se puder em ALGUMA das suas unidades."""
+    from . import acesso_cache
+
+    excecoes = [e for e in acesso_cache.excecoes_de(perfil, id_usuario) if e.chave == permissao]
+    if not excecoes:
+        return None
+    grupos = [[unidade]] if unidade else ([[u] for u in sorted(unidades_do_usuario)] if unidades_do_usuario else [[None]])
+    achadas = []
+    for unidades in grupos:
+        valor, rotulo = None, ""
+        for alvo, nome in (("usuario", "exceção da pessoa"), ("perfil", "exceção do perfil")):
+            valor = _nivel(excecoes, alvo, unidades)
+            if valor is not None:
+                rotulo = nome
+                break
+        achadas.append((valor, rotulo))
+    if all(v is None for v, _ in achadas):
+        return None
+    for valor, rotulo in achadas:
+        if valor:
+            return Decisao(True, CAMADA_PERFIL, f"Permitido por {rotulo}.")
+    if any(v is None for v, _ in achadas):
+        return None  # numa das unidades não há exceção: vale o perfil
+    return Decisao(False, CAMADA_PERFIL, f"Retirado por {achadas[0][1]}.")
 
 
 def _funcao_fechada(permissao: str, unidade: str | None, unidades_do_usuario: AbstractSet[str] | None) -> str:
@@ -96,6 +139,30 @@ def decidir_rota(
         return True
     verificar = all if exigir_todas else any
     return verificar(decidir(permissoes, p, unidades_do_usuario=unidades_do_usuario).pode for p in lista)
+
+
+def regra_unica_manda() -> bool:
+    """Chave da Etapa 5. Desligada (padrão) = só sombra. RH_ACESSO_REGRA_UNICA=1 = a regra única decide os acessos."""
+    return os.environ.get("RH_ACESSO_REGRA_UNICA", "0").strip().lower() in {"1", "true", "sim", "on", "mandar"}
+
+
+def permissoes_efetivas(
+    permissoes: AbstractSet[str], *, perfil: str | None, id_usuario: int | None, unidades_do_usuario: AbstractSet[str] | None
+) -> frozenset[str]:
+    """Conjunto final de permissões da pessoa pela regra única (todas as camadas e exceções). Memorizado até o cache mudar."""
+    from . import acesso_cache
+
+    chave = (perfil, id_usuario, frozenset(unidades_do_usuario or ()), frozenset(permissoes))
+    memo = acesso_cache._memo_efetivas.get(chave)
+    if memo is not None:
+        return memo
+    candidatas = set(permissoes) | {e.chave for e in acesso_cache.excecoes_de(perfil, id_usuario) if e.efeito == "conceder"}
+    efetivas = frozenset(
+        p for p in candidatas
+        if decidir(permissoes, p, unidades_do_usuario=unidades_do_usuario, perfil=perfil, id_usuario=id_usuario).pode
+    )
+    acesso_cache._memo_efetivas[chave] = efetivas
+    return efetivas
 
 
 # ---------------------------------------------------------------- modo sombra

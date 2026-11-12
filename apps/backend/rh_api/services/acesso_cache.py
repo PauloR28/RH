@@ -37,11 +37,23 @@ class Unidade:
 
 
 @dataclass(frozen=True)
+class Excecao:
+    alvo_tipo: str  # 'perfil' | 'usuario'
+    id_perfil: str | None
+    id_usuario: int | None
+    unidade: str | None  # None = vale em qualquer unidade
+    chave: str
+    efeito: str  # 'conceder' | 'retirar'
+
+
+@dataclass(frozen=True)
 class FotoAcessos:
     permissoes: dict[str, frozenset[str]] = field(default_factory=dict)  # perfil -> permissões permitidas
     modulos_perfil: dict[str, frozenset[str]] = field(default_factory=dict)  # perfil -> módulos liberados (V060)
     modulos_usuario: dict[int, frozenset[str]] = field(default_factory=dict)  # id_usuario -> módulos liberados (V060)
     unidades: dict[str, "Unidade"] = field(default_factory=dict)  # chave da operação/setor -> unidade (V070)
+    excecoes: tuple["Excecao", ...] = ()  # V071 (Etapa 5)
+    perfil_do_usuario: dict[int, str] = field(default_factory=dict)  # perfil ATUAL de cada usuário (troca sem relogin)
     ok: bool = False  # False = leitura falhou; ninguém deve trocar o token por isto
 
 
@@ -72,6 +84,8 @@ def _carregar_do_banco() -> FotoAcessos:
         linhas = cursor.fetchall()
         mod_perfil = _ler_tabela(cursor, "SELECT id_perfil, modulo FROM dbo.modulos_acesso_perfil")
         mod_usuario = _ler_tabela(cursor, "SELECT id_usuario, modulo FROM dbo.modulos_acesso_usuario")
+        excecoes = _ler_tabela(cursor, "SELECT alvo_tipo, id_perfil, id_usuario, unidade, chave_permissao, efeito FROM dbo.acesso_excecoes")
+        perfis_usuarios = _ler_tabela(cursor, "SELECT id_usuario, perfil_id FROM dbo.usuarios WHERE perfil_id IS NOT NULL")
         # V070 pode não estar aplicada: sem as colunas, toda unidade é operação do módulo Operação (o que vale hoje).
         unidades = _ler_tabela(cursor, "SELECT chave, nome, tipo, modulo, ativo FROM dbo.operacoes WHERE chave IS NOT NULL") or [
             (c, n, "operacao", "operacao", a) for c, n, a in _ler_tabela(cursor, "SELECT chave, nome, ativo FROM dbo.operacoes WHERE chave IS NOT NULL")
@@ -97,6 +111,11 @@ def _carregar_do_banco() -> FotoAcessos:
         modulos_perfil={k: frozenset(v) for k, v in mp.items()},
         modulos_usuario={k: frozenset(v) for k, v in mu.items()},
         unidades={str(c): Unidade(str(c), str(n or c), str(t or "operacao"), str(m or "operacao"), bool(a)) for c, n, t, m, a in unidades},
+        excecoes=tuple(
+            Excecao(str(t), str(p) if p else None, int(u) if u is not None else None, str(un).strip() if un else None, str(c), str(e))
+            for t, p, u, un, c, e in excecoes
+        ),
+        perfil_do_usuario={int(i): normalize_role_id(str(p)) for i, p in perfis_usuarios},
         ok=True,
     )
 
@@ -135,11 +154,35 @@ def permissoes_atuais(perfil: str | None) -> frozenset[str] | None:
 
 
 def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
+    """Módulos liberados (V060) somados às exceções `modulo.<chave>.abrir` (V071). 'retirar' tira."""
     atual = foto()
     extras = set(atual.modulos_perfil.get(perfil or "", frozenset()))
     if id_usuario:
         extras |= atual.modulos_usuario.get(int(id_usuario), frozenset())
+    for e in excecoes_de(perfil, id_usuario):
+        if e.chave.startswith("modulo.") and e.chave.endswith(".abrir") and e.unidade is None:
+            modulo = e.chave[len("modulo."):-len(".abrir")]
+            (extras.add if e.efeito == "conceder" else extras.discard)(modulo)
     return frozenset(extras)
+
+
+def excecoes_de(perfil: str | None, id_usuario: int | None) -> list[Excecao]:
+    """Exceções que valem para esta pessoa: as do perfil dela e as dela mesma."""
+    lista = []
+    for e in foto().excecoes:
+        if e.alvo_tipo == "perfil" and perfil and e.id_perfil == perfil:
+            lista.append(e)
+        elif e.alvo_tipo == "usuario" and id_usuario and e.id_usuario == int(id_usuario):
+            lista.append(e)
+    return lista
+
+
+def perfil_atual(id_usuario: int | None) -> str | None:
+    """Perfil vigente do usuário no banco (troca de perfil vale sem relogin). None = não sabe, vale o token."""
+    if not id_usuario:
+        return None
+    atual = foto()
+    return atual.perfil_do_usuario.get(int(id_usuario)) if atual.ok else None
 
 
 def unidade(chave: str | None) -> Unidade | None:
@@ -162,6 +205,11 @@ def invalidar() -> None:
     global _cache
     with _lock:
         _cache = None
+        _memo_efetivas.clear()
+
+
+# Permissões efetivas por (perfil, usuário, unidades): calculadas uma vez e reaproveitadas até o cache mudar.
+_memo_efetivas: dict[tuple, frozenset[str]] = {}
 
 
 def definir_carregador(carregador: Callable[[], FotoAcessos] | None) -> None:

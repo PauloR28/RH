@@ -73,11 +73,26 @@ def get_current_user(
     # Central de Acessos, Etapa 2: permissões atuais do perfil (cache em memória), não as congeladas no token.
     # Mudou o perfil em Perfis e Permissões, vale no próximo pedido, sem sair e entrar. Sem cache = token, como antes.
     if user.id_usuario:
+        # Etapa 5: troca de PERFIL também vale sem relogin (perfil vigente no banco, via cache).
+        perfil_vigente = acesso_cache.perfil_atual(user.id_usuario)
+        if perfil_vigente and perfil_vigente != user.perfil:
+            from .rbac import get_role_definition
+
+            definicao = get_role_definition(perfil_vigente)
+            user = replace(user, perfil=definicao.id, perfil_nome=definicao.name, nivel=definicao.level)
         atuais = acesso_cache.permissoes_atuais(user.perfil)
         if atuais is not None and atuais != user.permissions:
             user = replace(user, permissions=atuais)
     # Módulo desativado: as permissões dele deixam de valer já neste pedido (sem relogin). Com todos ativos, não muda nada.
     permissoes_efetivas = acesso_modulos.filtrar_permissoes(user.permissions)
+    # Etapa 5: com a chave ligada, a regra única decide o conjunto final (função por unidade e exceções incluídas).
+    if acesso_decisao.regra_unica_manda() and user.id_usuario:
+        try:
+            permissoes_efetivas = acesso_decisao.permissoes_efetivas(
+                permissoes_efetivas, perfil=user.perfil, id_usuario=user.id_usuario, unidades_do_usuario=user.operacoes,
+            )
+        except Exception:  # noqa: BLE001 - falha na regra nova = regra de hoje, nunca derruba o pedido
+            logger.exception("Regra única de acesso falhou para o usuário %s; usando a regra de hoje.", user.id_usuario)
     if permissoes_efetivas != user.permissions:
         user = replace(user, permissions=permissoes_efetivas)
     user_id_var.set(str(user.id_usuario or user.username))
