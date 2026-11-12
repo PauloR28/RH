@@ -245,6 +245,12 @@ export function BarraLateral({
       permissao: 'configuracoes.visualizar',
     },
     {
+      tela: 'screen-settings-acessos',
+      icone: 'lock',
+      label: 'Acessos',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
       tela: 'screen-settings-operations',
       icone: 'apartment',
       label: 'Unidades',
@@ -339,6 +345,7 @@ export function BarraLateral({
     'screen-settings',
     'screen-settings-users',
     'screen-settings-profiles',
+    'screen-settings-acessos',
     'screen-settings-operations',
     'screen-settings-etapas',
     'screen-settings-motivos-eliminacao',
@@ -471,7 +478,7 @@ export function BarraLateral({
       || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
       || (ehWfm(tela) && ehWfm(navAtiva));
     const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
-    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-acessos', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
     const soltas = [];
     const itensAdm = [];
     menuTec.forEach((entrada) => {

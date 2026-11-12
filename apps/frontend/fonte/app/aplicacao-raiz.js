@@ -7,7 +7,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261112-unidades';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261112-acessos';
 import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261112-exporta-filtro';
 import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-exporta-filtro';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
@@ -109,7 +109,7 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261112-unidades'),
+  () => import('../features/configuracoes/index.js?v=20261112-acessos2'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-exporta-filtro');
@@ -477,6 +477,7 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     telaResolvida === 'screen-settings' ||
     telaResolvida === 'screen-settings-users' ||
     telaResolvida === 'screen-settings-profiles' ||
+    telaResolvida === 'screen-settings-acessos' ||
     telaResolvida === 'screen-settings-operations' ||
     telaResolvida === 'screen-settings-notifications' ||
     telaResolvida === 'screen-settings-logs' ||

@@ -66,6 +66,7 @@ import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/co
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-exporta-filtro';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-exporta-filtro';
+import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
@@ -81,6 +82,7 @@ function nomeModuloUnidade(chave) {
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
   { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
+  { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Unidades', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
@@ -4122,7 +4124,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       mostrarAtalhos=${false}
       buscaGlobal=${abaRenderizada !== 'perfis'}
     >
-      ${['usuarios', 'perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
+      ${['usuarios', 'perfis', 'acessos', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4204,6 +4206,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           ? renderUsuarios()
           : abaRenderizada === 'perfis'
             ? renderPerfis()
+            : abaRenderizada === 'acessos'
+              ? html`<${CentralAcessos} controlador=${controlador} />`
             : abaRenderizada === 'operacoes'
               ? renderOperacoes()
               : abaRenderizada === 'catalogos'
