@@ -63,6 +63,9 @@ class ConfigurationItemRequest(BaseSchema):
     payload: dict = Field(default_factory=dict)
     ativo: bool = True
     justificativa: str = Field(default="")
+    # Só para o catálogo `operacoes` (Unidade, V070). Vazio = não muda (quem não manda continua como antes).
+    tipo_unidade: str = Field(default="")
+    modulo: str = Field(default="")
 
 
 class LgpdRequestCreate(BaseSchema):
