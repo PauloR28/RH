@@ -7,6 +7,7 @@ from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
+from ..services import acesso_cache
 from ..schemas.auth import DecideEmailChangeRequest
 from ..schemas.common import SuccessResponse
 from ..schemas.security import (
@@ -62,7 +63,9 @@ def update_role_permissions(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.update_role_permissions(id_perfil, payload.model_dump(), actor=user)
+    resultado = repository.update_role_permissions(id_perfil, payload.model_dump(), actor=user)
+    acesso_cache.invalidar()  # vale já no próximo pedido, sem relogin
+    return resultado
 
 
 @router.get("/tela-inicial", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
