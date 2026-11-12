@@ -35,7 +35,7 @@
 .c-acessos-tabela thead th:first-child { background: var(--tabela-cabecalho-fundo); }
 .c-acessos-tabela td, .c-acessos-tabela thead th { text-align: center; }
 .c-acessos-tabela td { padding-top: var(--espaco-1); padding-bottom: var(--espaco-1); vertical-align: middle; line-height: 0; }
-.c-acessos-cel { width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: var(--raio-pequeno); border: var(--borda-fina) solid var(--cor-linha-divisoria); background: transparent; color: var(--cor-texto-apagado); cursor: pointer; position: relative; font: inherit; }
+.c-acessos-cel { padding: 0; width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: var(--raio-pequeno); border: var(--borda-fina) solid var(--cor-linha-divisoria); background: transparent; color: var(--cor-texto-apagado); cursor: pointer; position: relative; font: inherit; }
 .c-acessos-cel .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
 .c-acessos-cel.is-pode { background: var(--cor-status-sucesso-fundo); border-color: transparent; color: var(--cor-status-sucesso-texto); }
 .c-acessos-cel.is-difere::after { content: ''; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; border-radius: var(--raio-cheio); background: var(--cor-status-atencao-texto); box-shadow: 0 0 0 2px var(--cor-fundo-painel); }
