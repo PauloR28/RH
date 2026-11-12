@@ -146,5 +146,30 @@ FUNCOES_PADRAO_ATIVAS: dict[str, frozenset[str]] = {
 }
 
 
+# Módulo DONO de cada função (o mesmo de `MODULO_DO_GRUPO` no frontend). Uma função pode ser exibida em outro módulo
+# (tela Módulos), mas continua sendo do dono: com o dono DESATIVADO ela some de todos os módulos, e a chave de sessão dela
+# deixa de valer (menu, Início, atalhos e acesso direto por URL). Regra central em `services/acesso.py`.
+MODULO_DONO_DA_FUNCAO: dict[str, str] = {
+    "cx-curriculos": MODULO_RH,
+    "processos": MODULO_RH,
+    "provas": MODULO_RH,
+    "gestao": MODULO_RH,
+    "drive": MODULO_RH,
+    "monitoria": MODULO_OPERACAO,
+    "wfm": MODULO_OPERACAO,
+    "suporte": MODULO_TECNOLOGIA,
+}
+# Chave de sessão que abre cada função (algumas são do `core` por padrão, por isso precisam ser ligadas ao dono aqui).
+SESSAO_DA_FUNCAO: dict[str, str] = {
+    "cx-curriculos": "sessao.curriculos.acessar",
+    "processos": "sessao.processos.acessar",
+    "provas": "sessao.provas.acessar",
+    "gestao": "sessao.gestao.acessar",
+    "drive": "sessao.drive.acessar",
+    "monitoria": "sessao.monitoria.acessar",
+    "wfm": "sessao.wfm.acessar",
+}
+
+
 def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
     return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())
