@@ -5,7 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..schemas.modulos import FuncaoModuloRequest, LoteAcessosRequest, LoteModulosRequest, PadronizarAcessosRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
+from ..schemas.modulos import (
+    FuncaoModuloRequest,
+    LoteAcessosRequest,
+    LoteModulosRequest,
+    ModuloAtivoRequest,
+    ModulosAcessoRequest,
+    PadronizarAcessosRequest,
+    PermissaoModuloRequest,
+    WfmParticipantesRequest,
+)
 from ..services import acesso, acesso_cache, central_acessos, modulos_admin
 
 router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depends(get_current_user)])

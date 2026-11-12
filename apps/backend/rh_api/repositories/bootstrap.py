@@ -35,15 +35,15 @@ from ..services.process_flow import (
     normalize_process_status,
     resolve_effective_process_status,
 )
+from .acesso_excecoes_schema import ensure_acesso_excecoes
 from .chamados_schema import ensure_chamados_schema
 from .chamados_schema_v060 import ensure_chamados_v060
 from .diario_schema import ensure_diario_schema
 from .exam_analytics_schema import ensure_exam_analytics_tables
-from .unidades_schema import ensure_unidades
-from .acesso_excecoes_schema import ensure_acesso_excecoes
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .modulos_schema import ensure_modulos_schema
 from .monitoria_schema import ensure_monitoria_schema
+from .unidades_schema import ensure_unidades
 from .wfm_schema import ensure_wfm_schema
 from .wfm_schema_v061 import ensure_wfm_v061
 from .wfm_schema_v064 import ensure_wfm_v064

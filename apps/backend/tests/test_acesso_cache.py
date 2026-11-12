@@ -8,7 +8,8 @@ import pytest
 
 from rh_api import dependencies
 from rh_api.auth import AuthenticatedUser
-from rh_api.services import acesso, acesso_cache as cache
+from rh_api.services import acesso
+from rh_api.services import acesso_cache as cache
 
 
 def _foto(perms=None, mp=None, mu=None, ok=True):

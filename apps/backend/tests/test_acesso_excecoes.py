@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -11,7 +10,9 @@ from rh_api import dependencies
 from rh_api import modulos_catalogo as cat
 from rh_api.auth import AuthenticatedUser
 from rh_api.repositories import acesso_excecoes_schema as xs
-from rh_api.services import acesso, acesso_cache as cache, acesso_decisao as dec
+from rh_api.services import acesso
+from rh_api.services import acesso_cache as cache
+from rh_api.services import acesso_decisao as dec
 
 MIGRATIONS = Path(__file__).resolve().parents[3] / "infra" / "sql" / "migrations"
 E = cache.Excecao

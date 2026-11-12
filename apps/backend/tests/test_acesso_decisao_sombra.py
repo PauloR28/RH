@@ -7,7 +7,8 @@ import logging
 import pytest
 
 from rh_api import modulos_catalogo as cat
-from rh_api.services import acesso, acesso_cache, acesso_decisao as dec
+from rh_api.services import acesso, acesso_cache
+from rh_api.services import acesso_decisao as dec
 
 
 @pytest.fixture(autouse=True)

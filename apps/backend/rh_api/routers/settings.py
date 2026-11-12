@@ -7,7 +7,6 @@ from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
-from ..services import acesso_cache
 from ..schemas.auth import DecideEmailChangeRequest
 from ..schemas.common import SuccessResponse
 from ..schemas.security import (
@@ -24,6 +23,7 @@ from ..schemas.security import (
     UserStatusRequest,
     UserUpdateRequest,
 )
+from ..services import acesso_cache
 from ..services.http_cache import aplicar_cache_http
 
 
