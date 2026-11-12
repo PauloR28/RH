@@ -151,6 +151,7 @@ def require_permissions(
             resposta_atual=has_access,
             rota=f"{request.method} {request.url.path}" if request is not None else "",
             usuario=str(user.id_usuario or user.username),
+            unidades_do_usuario=user.operacoes,
         )
         if has_access:
             return user

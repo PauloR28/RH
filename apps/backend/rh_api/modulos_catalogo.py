@@ -173,3 +173,26 @@ SESSAO_DA_FUNCAO: dict[str, str] = {
 
 def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
     return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())
+
+
+# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Só prefixos exclusivos de uma
+# função; permissão compartilhada (ex.: `candidatos.`) ou de núcleo fica sem função e a camada não fecha nada para ela.
+PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = {
+    "monitoria": ("monitoria.", "sessao.monitoria."),
+    "wfm": ("wfm.", "sessao.wfm."),
+    "diario": ("diario.", "sessao.diario."),
+    "treinamentos": ("trilhas.", "sessao.treinamentos."),
+    "suporte": ("chamados.",),
+    "processos": ("processos.", "vagas.", "entrevistas.", "sessao.processos."),
+    "provas": ("provas.", "fit_cultural.", "sessao.provas."),
+    "cx-curriculos": ("sessao.curriculos.",),
+    "gestao": ("sessao.gestao.",),
+    "drive": ("sessao.drive.",),
+}
+
+
+def funcao_da_permissao(chave: str) -> str | None:
+    for funcao, prefixos in PREFIXOS_DA_FUNCAO.items():
+        if any(chave.startswith(p) for p in prefixos):
+            return funcao
+    return None

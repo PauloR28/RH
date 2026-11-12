@@ -188,6 +188,18 @@ def funcoes_ativas(modulo: str) -> list[str]:
     return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f) and _dono_da_funcao_ativo(f)]
 
 
+def funcao_ligada_na_unidade(funcao: str, unidade: str, modulo_da_unidade: str | None) -> bool:
+    """Camada "função" (Etapa 4): a função está ligada no módulo da unidade E na própria unidade?
+
+    * Módulo: só fecha se a função é do catálogo daquele módulo e está desligada lá (`modulos_funcoes`, V062).
+    * Unidade: desligada só nela em `operacoes_modulos` (V069, item 16). Sem linha = ligada.
+    Função fora do catálogo do módulo não é "desligada": a camada simplesmente não se aplica a ela."""
+    est = estado()
+    if modulo_da_unidade and funcao in FUNCOES_POR_MODULO.get(modulo_da_unidade, ()) and funcao not in est.funcoes.get(modulo_da_unidade, frozenset()):
+        return False
+    return funcao not in est.desligadas_operacao.get(str(unidade or "").strip(), frozenset())
+
+
 def _dono_da_funcao_ativo(funcao: str) -> bool:
     dono = MODULO_DONO_DA_FUNCAO.get(funcao)
     return dono is None or modulo_ativo(dono)

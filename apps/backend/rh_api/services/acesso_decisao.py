@@ -42,11 +42,13 @@ def decidir(
     permissoes: AbstractSet[str],
     permissao: str,
     *,
-    unidade: int | None = None,
-    unidades_do_usuario: AbstractSet[int] | None = None,
+    unidade: str | None = None,
+    unidades_do_usuario: AbstractSet[str] | None = None,
     restrito: bool = False,
 ) -> Decisao:
-    """Decide UMA permissão. `permissoes` = conjunto do perfil (do token). `unidade` = operação/setor do recurso, se houver."""
+    """Decide UMA permissão. `permissoes` = conjunto do perfil. `unidade` = chave da operação/setor do recurso, se houver.
+    Sem `unidade`, a camada função olha as unidades da pessoa: fecha só se a função estiver desligada em TODAS elas
+    (mesma regra do menu do item 16). Pessoa sem unidade: vale o global."""
     # 1. Módulo: o filtro de hoje já cobre módulo desativado, áreas inativas e sessões das funções do módulo desligado.
     if permissao not in acesso.filtrar_permissoes({permissao}):
         modulo = acesso.modulo_da_permissao(permissao)
@@ -54,20 +56,46 @@ def decidir(
     # 2. Unidade: só vale para quem é restrito ao escopo de operações e quando o recurso tem unidade.
     if unidade is not None and restrito and unidade not in (unidades_do_usuario or frozenset()):
         return Decisao(False, CAMADA_UNIDADE, f"Sem vínculo com a unidade {unidade}.")
-    # 3. Função: Etapa 4 (unidade_funcoes). Hoje não fecha nada.
+    # 3. Função (Etapa 4): desligada no módulo da unidade ou na unidade.
+    fechou = _funcao_fechada(permissao, unidade, unidades_do_usuario)
+    if fechou:
+        return Decisao(False, CAMADA_FUNCAO, fechou)
     # 4. Perfil (exceções na Etapa 5).
     if permissao in permissoes:
         return Decisao(True, CAMADA_PERFIL, "Permitido pelo perfil.")
     return Decisao(False, CAMADA_PERFIL, "O perfil não tem esta permissão.")
 
 
-def decidir_rota(permissoes: AbstractSet[str], requeridas: Iterable[str], *, exigir_todas: bool = False) -> bool:
+def _funcao_fechada(permissao: str, unidade: str | None, unidades_do_usuario: AbstractSet[str] | None) -> str:
+    """Motivo do fechamento pela camada função, ou "" quando ela não fecha."""
+    from ..modulos_catalogo import funcao_da_permissao
+    from . import acesso_cache
+
+    funcao = funcao_da_permissao(permissao)
+    if not funcao:
+        return ""
+    alvo = [unidade] if unidade else sorted(unidades_do_usuario or ())
+    if not alvo:
+        return ""
+    ligadas = [u for u in alvo if acesso.funcao_ligada_na_unidade(funcao, u, acesso_cache.modulo_da_unidade(u))]
+    if ligadas:
+        return ""
+    return f"Função '{funcao}' desligada " + (f"na unidade {unidade}." if unidade else "em todas as unidades da pessoa.")
+
+
+def decidir_rota(
+    permissoes: AbstractSet[str],
+    requeridas: Iterable[str],
+    *,
+    exigir_todas: bool = False,
+    unidades_do_usuario: AbstractSet[str] | None = None,
+) -> bool:
     """Mesma semântica de `require_permissions`: uma das requeridas basta, ou todas com `exigir_todas`."""
     lista = tuple(p for p in requeridas if p)
     if not lista:
         return True
     verificar = all if exigir_todas else any
-    return verificar(decidir(permissoes, p).pode for p in lista)
+    return verificar(decidir(permissoes, p, unidades_do_usuario=unidades_do_usuario).pode for p in lista)
 
 
 # ---------------------------------------------------------------- modo sombra
@@ -87,13 +115,14 @@ def comparar_em_sombra(
     resposta_atual: bool,
     rota: str = "",
     usuario: str = "",
+    unidades_do_usuario: AbstractSet[str] | None = None,
 ) -> bool | None:
     """Roda a regra nova ao lado da atual. Nunca muda a resposta e nunca levanta erro. Devolve a resposta nova (ou None)."""
     if not sombra_ligada():
         return None
     try:
         lista = tuple(requeridas)
-        nova = decidir_rota(permissoes, lista, exigir_todas=exigir_todas)
+        nova = decidir_rota(permissoes, lista, exigir_todas=exigir_todas, unidades_do_usuario=unidades_do_usuario)
     except Exception:  # noqa: BLE001 - a sombra jamais pode derrubar um pedido
         logger.exception("acesso_sombra_erro rota=%s", rota)
         return None
