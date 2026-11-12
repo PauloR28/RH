@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js';
 import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js';
+import { useModulos } from '../modulos/estado.js?v=20261014-funcoes2';
 import {
   baixarBlob,
   gerarIdResultado,
@@ -1163,11 +1164,16 @@ export function useControladorAplicacao() {
     );
   };
 
+  // Módulo desativado (Tecnologia > Módulos) desliga TUDO o que é dele: as permissões efetivas vêm de GET /core/acesso,
+  // que já tira as de módulos/funções desligados (mesma regra que o servidor aplica nas rotas). Sem o dado ainda, vale o login.
+  const modulosAcesso = useModulos();
+  const permissoesEfetivas = modulosAcesso.carregado ? modulosAcesso.permissoes || [] : estado.permissoesUsuario || [];
+
   const possuiPermissao = (permissao) => {
     if (!permissao) return true;
     // Áreas inativas (Suporte TI, Treinamentos, Processos, Provas, CX de Currículos): suas permissões não valem (shared/areas.js).
     if (permissaoEmAreaInativa(permissao)) return false;
-    return (estado.permissoesUsuario || []).includes(permissao);
+    return permissoesEfetivas.includes(permissao);
   };
 
   const possuiAlgumaPermissao = (...permissoes) =>
@@ -1178,7 +1184,7 @@ export function useControladorAplicacao() {
     const permissoes = estado.permissoesUsuario || [];
     // Sem nenhuma chave "sessao.*" no token (sessão antiga), nada é restringido.
     if (!permissoes.some((permissao) => permissao.startsWith('sessao.'))) return true;
-    return permissoes.includes(`sessao.${sessao}.acessar`);
+    return permissoesEfetivas.includes(`sessao.${sessao}.acessar`);
   };
 
   const podeAcessarTela = (tela) => {

@@ -29,7 +29,9 @@ from ..modulos_catalogo import (
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
+    MODULO_DONO_DA_FUNCAO,
     OPERACAO_TI,
+    SESSAO_DA_FUNCAO,
     modulo_dono_padrao,
 )
 
@@ -154,8 +156,14 @@ def modulo_ativo(modulo: str) -> bool:
 def funcoes_ativas(modulo: str) -> list[str]:
     """Funções (grupos do menu) que o módulo exibe, na ordem do catálogo."""
     ligadas = estado().funcoes.get(modulo, frozenset())
-    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa.
-    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f)]
+    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa. Idem função cujo módulo dono
+    # está desativado (ex.: RH desligado => Currículos, Processos, Provas, Gestão e Drive somem também da Operação).
+    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f) and _dono_da_funcao_ativo(f)]
+
+
+def _dono_da_funcao_ativo(funcao: str) -> bool:
+    dono = MODULO_DONO_DA_FUNCAO.get(funcao)
+    return dono is None or modulo_ativo(dono)
 
 
 def modulo_da_permissao(chave: str, grupo: str = "") -> str:
@@ -210,7 +218,9 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     inativos = {chave for chave, *_ in MODULOS_PADRAO} - set(est.ativos) - MODULOS_PROTEGIDOS
     if not inativos:
         return todas
-    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos)
+    # Chaves de sessão das funções do módulo desativado (Gestão e Drive são do `core` por padrão): também deixam de valer.
+    sessoes_desligadas = {SESSAO_DA_FUNCAO[f] for f, dono in MODULO_DONO_DA_FUNCAO.items() if dono in inativos and f in SESSAO_DA_FUNCAO}
+    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos and p not in sessoes_desligadas)
 
 
 def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> list[str]:
