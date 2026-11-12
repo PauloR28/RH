@@ -1,8 +1,8 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { infoDia } from './comum.js?v=20261112-exporta-filtro';
+import { infoDia } from './comum.js?v=20261112-modulo-unico2';
 
 // Compartilhar / exportar a escala do mês: planilha (xlsx) e CSV vêm do servidor (já filtrados pelo escopo do
 // usuário); PDF e imagem (PNG) são desenhados aqui, a partir da grade que o usuário está vendo, sem bibliotecas.

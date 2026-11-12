@@ -5,7 +5,7 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import { Ic, Segmento, Selo } from '../../ui/components/ds.js';
 import { definirModuloAtivo } from '../../services/api/modulos.js';
 import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-exporta-filtro';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 
 const POR_PAGINA = 5;
 const MODULOS_PADRAO = [{ chave: 'tecnologia', nome: 'Tecnologia', ativo: true, protegido: true }, { chave: 'rh', nome: 'RH', ativo: true }, { chave: 'operacao', nome: 'Operação', ativo: true }];

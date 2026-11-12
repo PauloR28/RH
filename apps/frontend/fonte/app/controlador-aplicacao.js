@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js';
 import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js';
-import { useModulos } from '../modulos/estado.js?v=20261014-funcoes2';
+import { useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
 import {
   baixarBlob,
   gerarIdResultado,

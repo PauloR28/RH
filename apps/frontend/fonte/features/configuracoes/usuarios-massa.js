@@ -1,5 +1,5 @@
 import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-exporta-filtro';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-modulo-unico2';
 import { IconeSvg } from '../../ui/icone.js';
 import { baixarArquivo } from '../monitoria/comum.js';
 import { baixarModeloUsuariosEmMassa, enviarPlanilhaUsuarios } from '../../services/api/settings.js';

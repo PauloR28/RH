@@ -2,7 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { formatarPontuacaoDetalhada } from '../../utilitarios.js';
 import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js';
 import { EmptyState } from './feedback.js';
-import { SectionCard } from './layout.js?v=20261112-exporta-filtro';
+import { SectionCard } from './layout.js?v=20261112-modulo-unico2';
 import { IconeSvg } from '../icone.js';
 
 export function ModalPadrao({

@@ -7,8 +7,8 @@ import {
   listarPresencasWfm,
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
-} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261112-exporta-filtro';
+} from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261112-modulo-unico2';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { tomarFocoPessoa } from './foco-pessoa.js';
 
