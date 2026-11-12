@@ -14,6 +14,7 @@ from .config import get_settings
 from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
 from .services import acesso as acesso_modulos
+from .services import acesso_decisao
 from .services.monitoria_scope import escopo_global
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,15 @@ def require_permissions(
         has_access = AuthorizationPolicy(user.permissions).allows(
             *required_permissions,
             require_all=require_all,
+        )
+        # Central de Acessos, Etapa 1: a regra única roda ao lado e só registra divergência. Não muda a resposta.
+        acesso_decisao.comparar_em_sombra(
+            user.permissions,
+            required_permissions,
+            exigir_todas=require_all,
+            resposta_atual=has_access,
+            rota=f"{request.method} {request.url.path}" if request is not None else "",
+            usuario=str(user.id_usuario or user.username),
         )
         if has_access:
             return user
