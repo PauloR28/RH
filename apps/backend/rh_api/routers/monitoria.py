@@ -16,7 +16,6 @@ from ..dependencies import exigir_relatorio_hub, get_current_user, get_repositor
 from ..repositories import DatabaseRepository
 from ..schemas.monitoria import (
     AmbienteOperacaoRequest,
-    ModulosOperacaoRequest,
     CalcularRequest,
     CatalogoRequest,
     CompartilharRequest,
@@ -29,6 +28,7 @@ from ..schemas.monitoria import (
     GuiaRequest,
     IdentidadeOperacaoRequest,
     MatrizConfigRequest,
+    ModulosOperacaoRequest,
     MonitoriaCriarRequest,
     PlanoAcaoRequest,
     PlanoAcaoRevisaoRequest,
