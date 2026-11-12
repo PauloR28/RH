@@ -7,8 +7,8 @@ import {
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora } from './comum.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { dataHora } from './comum.js?v=20261112-exporta-filtro';
 import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js';
 
 // Trocas de plantão. Nenhuma troca é automática: mesmo com o colega de acordo, um Supervisor,

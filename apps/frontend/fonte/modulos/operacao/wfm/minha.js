@@ -1,9 +1,9 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { textoTrocaOperador } from './trocas-texto.js';
-import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
+import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261112-exporta-filtro';
 
 // Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel
 // do dia selecionado (turno, jornada, pausas e o pedido de troca). Clicar num dia só seleciona: o modal de troca

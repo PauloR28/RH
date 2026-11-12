@@ -11,14 +11,14 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { dataHora, falhaAo, infoDia, minutosParaHoras } from './comum.js?v=20261112-exporta-filtro';
+import { PainelAprovacao } from './aprovacao.js?v=20261112-exporta-filtro';
 import { MenuCompartilharEscala, textoLegivel } from './compartilhar.js?v=20261111-export';
-import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
-import { OutrasEscalas } from './outras.js?v=20261104-leitura';
-import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { ModalConfigEscala } from './configuracao.js?v=20261112-exporta-filtro';
+import { OutrasEscalas } from './outras.js?v=20261112-exporta-filtro';
+import { GavetaAjusteDia } from './ajuste.js?v=20261112-exporta-filtro';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LegendaTurnos, LinhaContexto, SeletorVisao, diaDoTurno, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
 
 // Escala mensal (Supervisor/Control Desk/Gestor editam; Qualidade lê; Operador lê a própria
 // escala PUBLICADA). Toda validação (jornada, interjornada, pausas, DSR) roda no servidor;
@@ -289,7 +289,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     e.currentTarget.querySelector(`[data-r="${r}"][data-c="${c}"]`)?.focus();
   };
   const menuAcoes = !somentePropria && pode('wfm.escala.visualizar')
-    ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
+    ? html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} visiveis=${visiveis} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" iconeVer="arrow_back" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
     : null;
 
   // ---- faixa de ajuste do dia: a célula escolhida aceita um turno (fica pendente até "Salvar alterações") ----

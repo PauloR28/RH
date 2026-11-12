@@ -17,15 +17,15 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261104-leitura';
-import { PainelAprovacao } from './aprovacao.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras } from './comum.js?v=20261112-exporta-filtro';
+import { ModalTurno, TURNO_VAZIO, turnoParaEdicao } from './cadastros.js?v=20261112-exporta-filtro';
+import { PainelAprovacao } from './aprovacao.js?v=20261112-exporta-filtro';
 import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-export';
-import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
-import { GavetaAjusteDia } from './ajuste.js?v=20261104-leitura';
-import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { LinhaTempo } from './minha.js?v=20261104-leitura';
+import { ModalConfigEscala } from './configuracao.js?v=20261112-exporta-filtro';
+import { GavetaAjusteDia } from './ajuste.js?v=20261112-exporta-filtro';
+import { BarraSelecao, CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorTurnoLinha, SeletorVisao, Quadrado, faixaTurno, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
+import { LinhaTempo } from './minha.js?v=20261112-exporta-filtro';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser
@@ -329,7 +329,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const mostradas = visiveis.slice(0, limite);
   const hojeIso = paraIso(new Date());
   const alternarTodos = () => setSel(todosSel ? {} : Object.fromEntries(visiveis.map((o) => [o.id_usuario, true])));
-  const menuAcoes = html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} />`;
+  const menuAcoes = html`<${MenuCompartilharEscala} operacao=${operacao} anoMes=${anoMes} dados=${dados} visiveis=${visiveis} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${aoVerMes} aoConfigurar=${() => setConfigurando(true)} />`;
 
   const aprov = dados.aprovacao;
   const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
