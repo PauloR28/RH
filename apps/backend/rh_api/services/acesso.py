@@ -234,27 +234,13 @@ def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> l
 
 
 def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
-    """Módulos liberados por perfil ou usuário (tabelas da V060). Falha de leitura ou migration ausente = nenhum extra."""
+    """Módulos liberados por perfil ou usuário (tabelas da V060), lidos do cache de acessos (Etapa 2): sem ida ao banco
+    a cada `/me`. Falha de leitura ou migration ausente = nenhum extra."""
     if not id_usuario and not perfil:
         return frozenset()
-    from ..config import get_settings
-    from ..db import get_connection
+    from . import acesso_cache
 
-    try:
-        conn = get_connection(get_settings(), autocommit=True)
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT modulo FROM dbo.modulos_acesso_perfil WHERE id_perfil = ? "
-                "UNION SELECT modulo FROM dbo.modulos_acesso_usuario WHERE id_usuario = ?",
-                (perfil or "", int(id_usuario or 0)),
-            )
-            return frozenset(str(r[0]) for r in cursor.fetchall() if str(r[0]) in MODULOS_VALIDOS)
-        finally:
-            conn.close()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Acesso extra a módulos indisponível (%s); usando só as permissões.", exc)
-        return frozenset()
+    return frozenset(m for m in acesso_cache.modulos_liberados(id_usuario, perfil) if m in MODULOS_VALIDOS)
 
 
 def pode(permissoes: Iterable[str], permissao: str) -> bool:

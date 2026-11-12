@@ -12,7 +12,7 @@ from .config import get_settings
 from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
 from .services import acesso as acesso_modulos
-from .services import acesso_decisao
+from .services import acesso_cache, acesso_decisao
 from .services.monitoria_scope import escopo_global
 from conecta.domain.permissoes import AuthorizationPolicy
 from conecta.infrastructure.observability.context import user_id_var
@@ -71,6 +71,12 @@ def get_current_user(
 
     user = validate_access_token(credentials.credentials)
     user = _refresh_monitoria_scope(user, request)
+    # Central de Acessos, Etapa 2: permissões atuais do perfil (cache em memória), não as congeladas no token.
+    # Mudou o perfil em Perfis e Permissões, vale no próximo pedido, sem sair e entrar. Sem cache = token, como antes.
+    if user.id_usuario:
+        atuais = acesso_cache.permissoes_atuais(user.perfil)
+        if atuais is not None and atuais != user.permissions:
+            user = replace(user, permissions=atuais)
     # Módulo desativado: as permissões dele deixam de valer já neste pedido (sem relogin). Com todos ativos, não muda nada.
     permissoes_efetivas = acesso_modulos.filtrar_permissoes(user.permissions)
     if permissoes_efetivas != user.permissions:

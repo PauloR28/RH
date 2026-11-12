@@ -6,7 +6,7 @@ from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.modulos import FuncaoModuloRequest, LoteModulosRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
-from ..services import acesso, modulos_admin
+from ..services import acesso, acesso_cache, modulos_admin
 
 router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depends(get_current_user)])
 
@@ -32,6 +32,7 @@ def listar_acessos() -> dict:
 def definir_acesso_perfil(id_perfil: str, payload: ModulosAcessoRequest, request: Request,
                           user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
     resultado = modulos_admin.definir_acesso_perfil(id_perfil, payload.modulos, autor=user.username)
+    acesso_cache.invalidar()
     audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_perfil_alterado", entidade="perfil", entidade_id=id_perfil,
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)
@@ -42,6 +43,7 @@ def definir_acesso_perfil(id_perfil: str, payload: ModulosAcessoRequest, request
 def definir_acesso_usuario(id_usuario: int, payload: ModulosAcessoRequest, request: Request,
                            user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
     resultado = modulos_admin.definir_acesso_usuario(id_usuario, payload.modulos, autor=user.username)
+    acesso_cache.invalidar()
     audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_usuario_alterado", entidade="usuario", entidade_id=str(id_usuario),
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)
