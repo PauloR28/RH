@@ -4,12 +4,12 @@ import { IconeSvg } from '../../ui/icone.js';
 import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
 import { lerResumoHojeDiario } from '../../services/api/diario.js';
 import { pedirDiaDiario, pendenciasDiario } from '../../modulos/operacao/diario/ligacoes.js';
-import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261111-modulos-op';
+import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { listarMural } from '../../services/api/mural.js';
 import { API_MURAL_EQUIPE } from '../../services/api/equipes.js';
 import {
   EixoHoras, agoraNoDia, agruparPorTurno, carregarDia, faixa, iniciais, montarLinhas, paraIso, pctEixo, resumoGrupo, rotuloDiaMes,
-} from '../../modulos/operacao/wfm/painel-dia.js?v=20261111-modulos-op';
+} from '../../modulos/operacao/wfm/painel-dia.js?v=20261112-exporta-filtro';
 import { pedirFocoPessoa } from '../../modulos/operacao/wfm/foco-pessoa.js';
 
 // Início do Supervisor (amostra "Painel do dia", aprovada em 08/11/2026): atalhos para as sessões, "Escala de hoje"

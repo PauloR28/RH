@@ -19,11 +19,11 @@ import {
   impactoTipoTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261111-modulos-op';
-import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261111-modulos-op';
-import { semAcento } from './escala-ui.js?v=20261111-modulos-op';
-import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261111-modulos-op';
-import { TabelaHistorico } from './historico.js?v=20261111-modulos-op';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261112-exporta-filtro';
+import { semAcento } from './escala-ui.js?v=20261112-exporta-filtro';
+import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261112-exporta-filtro';
+import { TabelaHistorico } from './historico.js?v=20261112-exporta-filtro';
 import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Cadastros do WFM (redesign Fase 15, amostra Q3 do lote 1): lista lateral em caixa branca (como Relatórios) —

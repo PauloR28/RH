@@ -11,13 +11,13 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261111-modulos-op';
-import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261111-modulos-op';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-modulos-op';
-import { ModalConfigEscala } from './configuracao.js?v=20261111-modulos-op';
-import { OutrasEscalas } from './outras.js?v=20261111-modulos-op';
-import { GavetaAjusteDia } from './ajuste.js?v=20261111-modulos-op';
-import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261111-modulos-op';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261112-exporta-filtro';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261112-exporta-filtro';
+import { ModalConfigEscala } from './configuracao.js?v=20261112-exporta-filtro';
+import { OutrasEscalas } from './outras.js?v=20261112-exporta-filtro';
+import { GavetaAjusteDia } from './ajuste.js?v=20261112-exporta-filtro';
+import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { tomarFocoPessoa } from './foco-pessoa.js';
 
@@ -398,7 +398,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     padraoDisponivel ? { label: 'Aplicar padrão semanal', icon: 'calendar-dots', onClick: abrirPadrao } : null,
   ];
   const menuAcoes = !somentePropria && pode('wfm.escala.visualizar')
-    ? html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
+    ? html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} visiveis=${visiveis} nomeOperacao=${nomeOperacao} showToast=${showToast} aoVerMes=${aoVoltarDia} rotuloVer="Escala do dia" aoConfigurar=${!somenteLeitura && pode('wfm.cadastros.visualizar') ? () => setConfigurando(true) : undefined} aoLimpar=${editavel && dados.operadores.length ? limparTabela : undefined} />`
     : null;
 
   const moverSemana = (n) => {

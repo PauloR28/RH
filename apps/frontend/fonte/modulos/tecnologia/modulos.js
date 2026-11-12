@@ -1,6 +1,6 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
 import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261111-modulos-op';
+import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261112-exporta-filtro';
 import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { listarUsuarios } from '../../services/api/settings.js';
 import {
@@ -11,7 +11,7 @@ import {
   lerWfmParticipantes,
   listarFuncoesModulos,
 } from '../../services/api/modulos.js?v=20261014-funcoes';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261111-modulos-op';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261112-exporta-filtro';
 import {
   CHAVE_WFM_PARTICIPANTES, alternarRascunho, chaveFuncao, chaveModulo, consequenciasDoLote, contarLigadas, descreverLote,
   listarPendencias, paraPayloadLote, pendenciasDoModulo, valorExibido,

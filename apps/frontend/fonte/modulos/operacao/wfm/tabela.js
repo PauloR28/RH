@@ -13,14 +13,14 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261111-modulos-op';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261111-modulos-op';
-import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261111-modulos-op';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261111-modulos-op';
-import { ModalConfigEscala } from './configuracao.js?v=20261111-modulos-op';
-import { GavetaAjusteDia } from './ajuste.js?v=20261111-modulos-op';
-import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261111-modulos-op';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261111-modulos-op';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261112-exporta-filtro';
+import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261112-exporta-filtro';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261112-exporta-filtro';
+import { ModalConfigEscala } from './configuracao.js?v=20261112-exporta-filtro';
+import { GavetaAjusteDia } from './ajuste.js?v=20261112-exporta-filtro';
+import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261112-exporta-filtro';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
@@ -330,7 +330,7 @@ export function TelaEscalaTabela({ controlador, contexto, operacao, anoMes, show
   const extrasMenu = [
     podeCadastros ? { label: 'Novo turno', icon: 'plus', onClick: () => setModalTurno({ ...TURNO_VAZIO, pausas: [] }) } : null,
   ];
-  const menuCab = html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${() => aoVerMes?.('mes')} rotuloVer="Escala do mês" aoConfigurar=${podeCadastros ? () => setConfigurando(true) : undefined} />`;
+  const menuCab = html`<${MenuCompartilharEscala} novo=${true} extras=${extrasMenu} operacao=${operacao} anoMes=${anoMes} dados=${dados} visiveis=${visiveis} nomeOperacao=${nomeEscala} showToast=${showToast} aoVerMes=${() => aoVerMes?.('mes')} rotuloVer="Escala do mês" aoConfigurar=${podeCadastros ? () => setConfigurando(true) : undefined} />`;
   const nomePausaCurto = (p, i) => `${i + 1}ª pausa${p?.tipo && ROTULO_PAUSA[p.tipo] ? ` · ${ROTULO_PAUSA[p.tipo]}` : ''}`;
 
   // Linha da tabela: Equipe · Turno e horário · 3 pausas · Presença · Hora extra · ⋯ (amostra Q1, lote 1).

@@ -29,11 +29,11 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261111-modulos-op';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-exporta-filtro';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261111-modulos-op';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-exporta-filtro';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
 import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261022-guia';
@@ -57,13 +57,13 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261111-modulos-op';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261111-modulos-op';
+} from './monitoria-config.js?v=20261112-exporta-filtro';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
 import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261111-modulos-op';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-exporta-filtro';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
 
 const ABAS = [

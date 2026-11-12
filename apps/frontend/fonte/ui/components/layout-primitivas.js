@@ -1,5 +1,5 @@
 import { html, useContext, useEffect, useRef } from '../../infraestrutura-react.js';
-import { AcoesPaginaContext } from './layout.js?v=20261111-modulos-op';
+import { AcoesPaginaContext } from './layout.js?v=20261112-exporta-filtro';
 import { IconeSvg } from '../icone.js';
 
 // Primitivas de layout (Etapa 2 do redesign Tecnologia/WFM). Prefixo `lp-`, estilos em estilos/layout-primitivas.css.

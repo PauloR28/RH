@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261111-modulos-op';
+} from './gestao/index.js?v=20261112-exporta-filtro';

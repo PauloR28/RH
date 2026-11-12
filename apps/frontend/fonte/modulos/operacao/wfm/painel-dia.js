@@ -6,8 +6,8 @@ import {
   lerPausasDiaWfm,
   listarPresencasWfm,
   listarTrocasWfm,
-} from '../../../services/api/wfm.js?v=20261111-modulos-op';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261111-modulos-op';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261112-exporta-filtro';
 import { Esqueleto, Estado, Ic, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { pedirFocoPessoa, tomarFocoPessoa } from './foco-pessoa.js';
 import { FaixaDiarioPainel } from '../diario/ligacoes.js';
