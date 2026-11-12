@@ -185,8 +185,10 @@ def fechar(payload: FecharRequest, request: Request, user: AuthenticatedUser = D
 
 
 @router.get("/escala/exportar", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
-def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request))
+def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", todas_equipes: bool = False, ids: str | None = None, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    # `ids`: operadores visíveis na tela (separados por vírgula); ausente = todos do escopo.
+    ids_operadores = None if ids is None else [int(i) for i in ids.split(",") if i.strip().isdigit()]
+    conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request), todas_equipes=todas_equipes, ids_operadores=ids_operadores)
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 

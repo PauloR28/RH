@@ -3,22 +3,22 @@ import { EmptyState, LoadingState, PainelRh } from '../../../ui/componentes-comp
 import { PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
 import { AbasConsole, PaginaConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, ModuleHeader, ModuleTabs, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261104-leitura';
+import { usePendenciasAprovacao, usePendenciasPresenca } from './pendencias.js?v=20261112-exporta-filtro';
 import { useToast } from '../../../shared/hooks/use-toast.js';
-import { TelaHistorico } from './historico.js?v=20261104-leitura';
-import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261104-leitura';
-import { TelaEscala } from './escala.js?v=20261104-leitura';
-import { TelaPresenca } from './presenca.js?v=20261104-leitura';
-import { TelaCadastros } from './cadastros.js?v=20261104-leitura';
-import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261104-leitura';
-import { TelaJornadas } from './jornadas.js?v=20261104-leitura';
+import { TelaHistorico } from './historico.js?v=20261112-exporta-filtro';
+import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261112-exporta-filtro';
+import { TelaEscala } from './escala.js?v=20261112-exporta-filtro';
+import { TelaPresenca } from './presenca.js?v=20261112-exporta-filtro';
+import { TelaCadastros } from './cadastros.js?v=20261112-exporta-filtro';
+import { rotuloMesAno, somarMes } from './escala-ui.js?v=20261112-exporta-filtro';
+import { TelaJornadas } from './jornadas.js?v=20261112-exporta-filtro';
 import { TelaEscalaPausas } from './pausas.js?v=20261104-dia';
 import { TelaEscalaTabela } from './tabela.js?v=20261104-dia';
-import { TelaMinhaEscala } from './minha.js?v=20261104-leitura';
-import { ListaEscalas } from './escalas.js?v=20261104-leitura';
-import { ModalConfigEscala } from './configuracao.js?v=20261104-leitura';
-import { TelaTrocas } from './trocas.js?v=20261104-leitura';
-import { TelaRelatorios } from './relatorios.js?v=20261104-leitura';
+import { TelaMinhaEscala } from './minha.js?v=20261112-exporta-filtro';
+import { ListaEscalas } from './escalas.js?v=20261112-exporta-filtro';
+import { ModalConfigEscala } from './configuracao.js?v=20261112-exporta-filtro';
+import { TelaTrocas } from './trocas.js?v=20261112-exporta-filtro';
+import { TelaRelatorios } from './relatorios.js?v=20261112-exporta-filtro';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;

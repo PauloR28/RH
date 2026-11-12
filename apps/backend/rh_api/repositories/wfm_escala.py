@@ -1216,7 +1216,7 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Exportação em planilha (escala mensal do escopo do usuário)
     # ------------------------------------------------------------------
-    def wfm_exportar_escala(self, user, operacao: str, ano_mes: str, formato: str = "xlsx", *, ip: str = "") -> tuple[bytes, str, str]:
+    def wfm_exportar_escala(self, user, operacao: str, ano_mes: str, formato: str = "xlsx", *, ip: str = "", todas_equipes: bool = False, ids_operadores: list[int] | None = None) -> tuple[bytes, str, str]:
         """XLSX/CSV da escala-rascunho do mês, só dos operadores que o usuário pode ver. Duas abas:
         "Escala" (código do turno por dia + total de horas) e "Horários" (um dia por linha, com
         entrada, saída e horas líquidas já com feriado/dia/horário especial aplicados)."""
@@ -1228,8 +1228,14 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escala=True)
             conn.commit()
-            # Supervisor exporta a escala COMPLETA da operação (mesma leitura de "Todas as equipes"); demais perfis seguem o escopo.
-            operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=user.perfil == ROLE_SUPERVISOR)
+            # O arquivo segue o filtro da tela: o Supervisor só leva as demais equipes com "Todas as equipes" ligado (mesma
+            # leitura de wfm_get_escala) e, se a tela mandou a lista de quem está visível (filtros de equipe, supervisor,
+            # cargo, nome), só esses entram. A lista nunca amplia o escopo: é cruzada com quem o usuário pode ver.
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)
+            if ids_operadores is not None:
+                filtro = {int(i) for i in ids_operadores}
+                operadores = [op for op in operadores if op["id_usuario"] in filtro]
             ids = [op["id_usuario"] for op in operadores]
             modelos = self._wfm_turnos_modelo(cursor, operacao)
             cursor.execute(

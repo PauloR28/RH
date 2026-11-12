@@ -61,8 +61,9 @@ export const listarHistoricoWfm = (filtros = {}) => requisitar(`/wfm/historico${
 export const opcoesHistoricoWfm = (operacao = '') => requisitar(`/wfm/historico/opcoes${consulta({ operacao })}`, { method: 'GET' });
 export const exportarHistoricoWfm = (corpo) => requisitarArquivo('/wfm/historico/exportar', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(corpo || {}) });
 
-export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx') =>
-  requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato })}`, { method: 'GET' });
+// `todasEquipes` e `ids` (operadores visíveis na tela) fazem o arquivo seguir o filtro aplicado na escala.
+export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx', { todasEquipes = false, ids = null } = {}) =>
+  requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato, ...(todasEquipes ? { todas_equipes: true } : {}), ...(ids ? { ids: ids.join(',') || '0' } : {}) })}`, { method: 'GET' });
 
 export const lerRelatorioWfm = (filtros) => requisitar(`/wfm/relatorios${consulta(filtros)}`, { method: 'GET' });
 export const exportarRelatorioWfm = (filtros) => requisitarArquivo(`/wfm/relatorios/exportar${consulta(filtros)}`, { method: 'GET' });

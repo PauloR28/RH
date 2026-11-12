@@ -14,12 +14,12 @@ import {
   removerOperadorEquipe,
 } from '../../../services/api/equipes.js';
 import { TelaMural } from '../../../features/mural/index.js?v=20261022-equipes';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261104-leitura';
-import { TelaEscala } from '../wfm/escala.js?v=20261104-leitura';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261104-leitura';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261104-leitura';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261104-leitura';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261104-leitura';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261112-exporta-filtro';
+import { TelaEscala } from '../wfm/escala.js?v=20261112-exporta-filtro';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261112-exporta-filtro';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261112-exporta-filtro';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261112-exporta-filtro';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261112-exporta-filtro';
 
 // Controle de Equipes e Turnos (Supervisor): visão macro da própria equipe. Presença, escala e horários reaproveitam as telas do
 // WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural usam as rotas /equipes.

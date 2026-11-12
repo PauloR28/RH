@@ -24,14 +24,14 @@ import {
   impactoTipoTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261104-leitura';
-import { descreverTurno } from './escala.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261112-exporta-filtro';
+import { descreverTurno } from './escala.js?v=20261112-exporta-filtro';
 import { BotaoAdicionar, BotaoRemover, Campo, Marca, ModalForm } from './formulario.js';
 import { CardRecolhivel } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261104-leitura';
+import { Icone } from './escala-ui.js?v=20261112-exporta-filtro';
 import { textoLegivel } from './compartilhar.js?v=20261111-export';
-import { TIPOS_PAUSA } from './jornadas.js?v=20261104-leitura';
+import { TIPOS_PAUSA } from './jornadas.js?v=20261112-exporta-filtro';
 
 // Cadastros do WFM: turnos, calendário especial (feriado, data, dia e horário especiais) e skills.
 

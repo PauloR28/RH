@@ -1,8 +1,8 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
-import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { ModalForm } from './formulario.js';
-import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
+import { CheckTodos, FiltrosCompactos, Icone, LinhaContexto, SeletorVisao, aMin, brData, deMin, doIso, paraIso, semAcento, seletorVisaoEquipes, useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
 
 // Aba "Pausas" da escala: as 3 pausas de cada colaborador escalado no dia (2 de 10 min e 1 de 20 min, todas contadas
 // como jornada). Define horários à mão — por colaborador, em lote, por equipe ou por turno — e aplica ao dia, à semana ou

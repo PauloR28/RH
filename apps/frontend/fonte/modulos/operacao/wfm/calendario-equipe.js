@@ -1,8 +1,8 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
 import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { useVisaoEquipes } from './escala-ui.js?v=20261104-leitura';
-import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
+import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
 
 // Escala da equipe em calendário (visão do Supervisor): versão reduzida do calendário do operador. Cada dia mostra quantos
 // estão escalados e, ao selecionar, quem trabalha, em que horário e com quais pausas. Somente leitura.
