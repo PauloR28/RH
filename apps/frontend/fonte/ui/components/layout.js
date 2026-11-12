@@ -247,7 +247,7 @@ export function BarraLateral({
     {
       tela: 'screen-settings-operations',
       icone: 'apartment',
-      label: 'Operações',
+      label: 'Unidades',
       permissao: 'configuracoes.visualizar',
     },
     {

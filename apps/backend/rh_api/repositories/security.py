@@ -2213,6 +2213,13 @@ class SecurityRepositoryMixin:
                     item["payload"] = safe_json_loads(item.get("payload_json"), {})
                     item["ativo"] = bool(item.get("ativo"))
                     item["usado"] = bool(item.get("usado"))
+                    if key == "operacoes":
+                        # Unidade (V070): tipo e módulo vêm do cache de acessos (sem consulta a mais).
+                        from ..services import acesso_cache
+
+                        unidade = acesso_cache.unidade(item.get("chave"))
+                        item["tipo_unidade"] = unidade.tipo if unidade else "operacao"
+                        item["modulo"] = unidade.modulo if unidade else "operacao"
                     items.append(item)
                 sections.append(
                     {
