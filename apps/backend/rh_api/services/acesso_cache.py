@@ -28,10 +28,20 @@ _TTL_FALHA_SEGUNDOS = 5.0
 
 
 @dataclass(frozen=True)
+class Unidade:
+    chave: str
+    nome: str
+    tipo: str  # 'operacao' | 'setor'
+    modulo: str  # o único módulo a que pertence
+    ativo: bool
+
+
+@dataclass(frozen=True)
 class FotoAcessos:
     permissoes: dict[str, frozenset[str]] = field(default_factory=dict)  # perfil -> permissões permitidas
     modulos_perfil: dict[str, frozenset[str]] = field(default_factory=dict)  # perfil -> módulos liberados (V060)
     modulos_usuario: dict[int, frozenset[str]] = field(default_factory=dict)  # id_usuario -> módulos liberados (V060)
+    unidades: dict[str, "Unidade"] = field(default_factory=dict)  # chave da operação/setor -> unidade (V070)
     ok: bool = False  # False = leitura falhou; ninguém deve trocar o token por isto
 
 
@@ -62,6 +72,10 @@ def _carregar_do_banco() -> FotoAcessos:
         linhas = cursor.fetchall()
         mod_perfil = _ler_tabela(cursor, "SELECT id_perfil, modulo FROM dbo.modulos_acesso_perfil")
         mod_usuario = _ler_tabela(cursor, "SELECT id_usuario, modulo FROM dbo.modulos_acesso_usuario")
+        # V070 pode não estar aplicada: sem as colunas, toda unidade é operação do módulo Operação (o que vale hoje).
+        unidades = _ler_tabela(cursor, "SELECT chave, nome, tipo, modulo, ativo FROM dbo.operacoes WHERE chave IS NOT NULL") or [
+            (c, n, "operacao", "operacao", a) for c, n, a in _ler_tabela(cursor, "SELECT chave, nome, ativo FROM dbo.operacoes WHERE chave IS NOT NULL")
+        ]
     finally:
         conn.close()
     por_perfil: dict[str, set[str]] = {}
@@ -82,6 +96,7 @@ def _carregar_do_banco() -> FotoAcessos:
         permissoes=permissoes,
         modulos_perfil={k: frozenset(v) for k, v in mp.items()},
         modulos_usuario={k: frozenset(v) for k, v in mu.items()},
+        unidades={str(c): Unidade(str(c), str(n or c), str(t or "operacao"), str(m or "operacao"), bool(a)) for c, n, t, m, a in unidades},
         ok=True,
     )
 
@@ -125,6 +140,22 @@ def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[s
     if id_usuario:
         extras |= atual.modulos_usuario.get(int(id_usuario), frozenset())
     return frozenset(extras)
+
+
+def unidade(chave: str | None) -> Unidade | None:
+    return foto().unidades.get(str(chave or ""))
+
+
+def modulo_da_unidade(chave: str | None) -> str | None:
+    """Módulo a que a operação/setor pertence (uma unidade, um módulo). None = unidade desconhecida."""
+    u = unidade(chave)
+    return u.modulo if u else None
+
+
+def unidades_do_modulo(modulo: str, *, so_ativas: bool = True) -> list[Unidade]:
+    """Opções do "Vale para" da Central de Acessos: só as unidades do módulo aberto."""
+    lista = [u for u in foto().unidades.values() if u.modulo == modulo and (u.ativo or not so_ativas)]
+    return sorted(lista, key=lambda u: (u.tipo, u.nome.lower()))
 
 
 def invalidar() -> None:

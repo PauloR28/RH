@@ -16,6 +16,14 @@ def listar_modulos() -> list[dict]:
     return modulos_admin.listar_modulos()
 
 
+@router.get("/unidades", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def listar_unidades(modulo: str | None = None) -> list[dict]:
+    """Operações e setores (Central de Acessos, Etapa 3). Com `modulo`, só as unidades daquele módulo."""
+    foto = acesso_cache.foto()
+    lista = acesso_cache.unidades_do_modulo(modulo, so_ativas=False) if modulo else sorted(foto.unidades.values(), key=lambda u: (u.modulo, u.tipo, u.nome.lower()))
+    return [{"chave": u.chave, "nome": u.nome, "tipo": u.tipo, "modulo": u.modulo, "ativo": u.ativo} for u in lista]
+
+
 @router.get("/resumo", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
 def resumo_inicio() -> dict:
     """Indicadores da tela inicial da Tecnologia (contagens), sem baixar a lista de usuários."""

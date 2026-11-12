@@ -39,6 +39,7 @@ from .chamados_schema import ensure_chamados_schema
 from .chamados_schema_v060 import ensure_chamados_v060
 from .diario_schema import ensure_diario_schema
 from .exam_analytics_schema import ensure_exam_analytics_tables
+from .unidades_schema import ensure_unidades
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .modulos_schema import ensure_modulos_schema
 from .monitoria_schema import ensure_monitoria_schema
@@ -3751,6 +3752,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_parametros_sistema_table(cursor)
             ensure_ambientes_sharepoint_table(cursor)
             ensure_operacoes_seed(cursor)
+            ensure_unidades(cursor)  # V070: tipo e módulo da unidade (depende de modulos_sistema e operacoes)
             ensure_user_operacoes_table(cursor)
             ensure_monitoria_schema(cursor)
             ensure_wfm_schema(cursor)
