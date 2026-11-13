@@ -1,5 +1,5 @@
 import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { Esqueleto, Estado, Ic, Janela, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 

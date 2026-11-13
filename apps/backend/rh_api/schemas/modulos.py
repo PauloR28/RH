@@ -46,3 +46,27 @@ class WfmParticipantesRequest(BaseSchema):
     valor: bool
     confirmar: bool = False
     justificativa: str = Field(default="", max_length=400)
+
+
+class MudancaAcessoRequest(BaseSchema):
+    """Central de Acessos (Etapa 6): uma célula (perm) ou a chave de uma função (funcao)."""
+
+    tipo: Literal["perm", "funcao"]
+    chave: str = Field(default="", max_length=120)
+    perfil: str = Field(default="", max_length=60)
+    valor: bool = False
+    funcao: str = Field(default="", max_length=40)
+    ligada: bool = True
+
+
+class LoteAcessosRequest(BaseSchema):
+    modulo: str = Field(max_length=30)
+    escopo: str = Field(default="padrao", max_length=80)
+    mudancas: list[MudancaAcessoRequest] = Field(min_length=1, max_length=400)
+    justificativa: str = Field(default="", max_length=400)
+
+
+class PadronizarAcessosRequest(BaseSchema):
+    modulo: str = Field(max_length=30)
+    escopo: str = Field(default="padrao", max_length=80)
+    justificativa: str = Field(default="", max_length=400)

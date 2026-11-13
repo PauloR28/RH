@@ -27,11 +27,13 @@ from ..modulos_catalogo import (
     FUNCOES_POR_MODULO,
     FUNCOES_POR_OPERACAO,
     MODULO_CORE,
+    MODULO_DONO_DA_FUNCAO,
     MODULO_OPERACAO,
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
     OPERACAO_TI,
+    SESSAO_DA_FUNCAO,
     modulo_dono_padrao,
 )
 
@@ -181,8 +183,26 @@ def modulo_ativo(modulo: str) -> bool:
 def funcoes_ativas(modulo: str) -> list[str]:
     """Funções (grupos do menu) que o módulo exibe, na ordem do catálogo."""
     ligadas = estado().funcoes.get(modulo, frozenset())
-    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa.
-    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f)]
+    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa. Idem função cujo módulo dono
+    # está desativado (ex.: RH desligado => Currículos, Processos, Provas, Gestão e Drive somem também da Operação).
+    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f) and _dono_da_funcao_ativo(f)]
+
+
+def funcao_ligada_na_unidade(funcao: str, unidade: str, modulo_da_unidade: str | None) -> bool:
+    """Camada "função" (Etapa 4): a função está ligada no módulo da unidade E na própria unidade?
+
+    * Módulo: só fecha se a função é do catálogo daquele módulo e está desligada lá (`modulos_funcoes`, V062).
+    * Unidade: desligada só nela em `operacoes_modulos` (V069, item 16). Sem linha = ligada.
+    Função fora do catálogo do módulo não é "desligada": a camada simplesmente não se aplica a ela."""
+    est = estado()
+    if modulo_da_unidade and funcao in FUNCOES_POR_MODULO.get(modulo_da_unidade, ()) and funcao not in est.funcoes.get(modulo_da_unidade, frozenset()):
+        return False
+    return funcao not in est.desligadas_operacao.get(str(unidade or "").strip(), frozenset())
+
+
+def _dono_da_funcao_ativo(funcao: str) -> bool:
+    dono = MODULO_DONO_DA_FUNCAO.get(funcao)
+    return dono is None or modulo_ativo(dono)
 
 
 def funcoes_do_usuario(modulo: str, operacoes: Iterable[str] = ()) -> list[str]:
@@ -248,7 +268,9 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     inativos = {chave for chave, *_ in MODULOS_PADRAO} - set(est.ativos) - MODULOS_PROTEGIDOS
     if not inativos:
         return todas
-    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos)
+    # Chaves de sessão das funções do módulo desativado (Gestão e Drive são do `core` por padrão): também deixam de valer.
+    sessoes_desligadas = {SESSAO_DA_FUNCAO[f] for f, dono in MODULO_DONO_DA_FUNCAO.items() if dono in inativos and f in SESSAO_DA_FUNCAO}
+    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos and p not in sessoes_desligadas)
 
 
 # Função do menu (Administração > Módulos) a que cada permissão que ABRE módulo pertence. Permissão sem função (ex.:
@@ -287,27 +309,13 @@ def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> l
 
 
 def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
-    """Módulos liberados por perfil ou usuário (tabelas da V060). Falha de leitura ou migration ausente = nenhum extra."""
+    """Módulos liberados por perfil ou usuário (tabelas da V060), lidos do cache de acessos (Etapa 2): sem ida ao banco
+    a cada `/me`. Falha de leitura ou migration ausente = nenhum extra."""
     if not id_usuario and not perfil:
         return frozenset()
-    from ..config import get_settings
-    from ..db import get_connection
+    from . import acesso_cache
 
-    try:
-        conn = get_connection(get_settings(), autocommit=True)
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT modulo FROM dbo.modulos_acesso_perfil WHERE id_perfil = ? "
-                "UNION SELECT modulo FROM dbo.modulos_acesso_usuario WHERE id_usuario = ?",
-                (perfil or "", int(id_usuario or 0)),
-            )
-            return frozenset(str(r[0]) for r in cursor.fetchall() if str(r[0]) in MODULOS_VALIDOS)
-        finally:
-            conn.close()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Acesso extra a módulos indisponível (%s); usando só as permissões.", exc)
-        return frozenset()
+    return frozenset(m for m in acesso_cache.modulos_liberados(id_usuario, perfil) if m in MODULOS_VALIDOS)
 
 
 def pode(permissoes: Iterable[str], permissao: str) -> bool:

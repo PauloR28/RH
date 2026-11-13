@@ -1,6 +1,6 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { useVisaoEquipes } from './escala-ui.js?v=20261112-exporta-filtro';
-import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { useVisaoEquipes } from './escala-ui.js?v=20261112-modulo-unico2';
+import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { Esqueleto, Estado, Ic, Navegar, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Equipes › Escala (redesign Fase 15, fatia 4, amostra Q4 do lote 2): calendário do mês (c-cal) em que cada dia mostra quantos

@@ -47,6 +47,7 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-document-templates': MODULO_RH,
   'screen-settings-users': MODULO_TECNOLOGIA,
   'screen-settings-profiles': MODULO_TECNOLOGIA,
+  'screen-settings-acessos': MODULO_TECNOLOGIA, // Central de Acessos (Etapa 6): Gestão Global fica na Tecnologia
   'screen-settings-operations': MODULO_TECNOLOGIA,
   'screen-settings-logs': MODULO_TECNOLOGIA,
   'screen-settings-administracao': MODULO_TECNOLOGIA,
@@ -78,7 +79,8 @@ export const MENU_TECNOLOGIA = [
     itens: [
       { tela: 'screen-settings-users', label: 'Usuários', icone: 'person', permissao: 'usuarios.visualizar' },
       { tela: 'screen-settings-profiles', label: 'Perfis e permissões', icone: 'admin_panel_settings', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-operations', label: 'Operações', icone: 'apartment', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-acessos', label: 'Acessos', icone: 'lock', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-operations', label: 'Unidades', icone: 'apartment', permissao: 'configuracoes.visualizar' },
     ],
   },
   {
@@ -204,6 +206,28 @@ export function telaInicialDoModulo(modulo, podeAcessarTela) {
     return ordem.find((tela) => podeAcessarTela(tela)) || 'screen-menu';
   }
   return 'screen-menu';
+}
+
+/**
+ * Central de Acessos, Etapa 7: módulo DONO de uma tela, para abrir um módulo por vez.
+ * Abrir uma tela de outro módulo (link direto, atalho, notificação) troca o módulo aberto para o dono dela, em vez de
+ * mostrar a página dentro do menu do módulo errado. Telas compartilhadas (WFM, que a Tecnologia também usa como
+ * "Escalas e Plantões"; Início; Configurações sem dono) devolvem '' e não trocam nada.
+ */
+export function moduloDonoDaTela(tela) {
+  const t = String(tela || '');
+  if (!t) return '';
+  if (TELAS_TECNOLOGIA.includes(t) || TELAS_SUPORTE_TI.includes(t)) return MODULO_TECNOLOGIA;
+  if (MODULO_DA_TELA_CONFIGURACAO[t]) return MODULO_DA_TELA_CONFIGURACAO[t];
+  if (t.startsWith('screen-monitoria') || t.startsWith('screen-diario')) return MODULO_OPERACAO;
+  return '';
+}
+
+/** Módulo a abrir para esta tela: o dono dela, se a pessoa enxerga esse módulo e ele não é o atual; senão ''. */
+export function moduloParaAbrir(tela, moduloAtual, visiveis = [], carregado = true) {
+  if (!carregado) return '';
+  const dono = moduloDonoDaTela(tela);
+  return dono && dono !== moduloAtual && visiveis.includes(dono) ? dono : '';
 }
 
 /** Em Tecnologia, a tela do WFM só mostra a operação da TI; nos demais módulos, nenhum filtro. */

@@ -7,10 +7,10 @@ import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
-import { useModulos } from '../../modulos/estado.js?v=20261112-exporta-filtro';
+import { useModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia } from '../../modulos/registro.js?v=20261112-exporta-filtro';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-exporta-filtro';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia } from '../../modulos/registro.js?v=20261112-modulo-unico2';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-modulo-unico2';
 import { MolduraConecta } from './moldura.js?v=20261108-admin';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
@@ -245,9 +245,15 @@ export function BarraLateral({
       permissao: 'configuracoes.visualizar',
     },
     {
+      tela: 'screen-settings-acessos',
+      icone: 'lock',
+      label: 'Acessos',
+      permissao: 'configuracoes.visualizar',
+    },
+    {
       tela: 'screen-settings-operations',
       icone: 'apartment',
-      label: 'Operações',
+      label: 'Unidades',
       permissao: 'configuracoes.visualizar',
     },
     {
@@ -339,6 +345,7 @@ export function BarraLateral({
     'screen-settings',
     'screen-settings-users',
     'screen-settings-profiles',
+    'screen-settings-acessos',
     'screen-settings-operations',
     'screen-settings-etapas',
     'screen-settings-motivos-eliminacao',
@@ -471,7 +478,7 @@ export function BarraLateral({
       || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
       || (ehWfm(tela) && ehWfm(navAtiva));
     const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
-    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-acessos', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
     const soltas = [];
     const itensAdm = [];
     menuTec.forEach((entrada) => {

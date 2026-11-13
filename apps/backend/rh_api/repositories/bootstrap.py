@@ -35,6 +35,7 @@ from ..services.process_flow import (
     normalize_process_status,
     resolve_effective_process_status,
 )
+from .acesso_excecoes_schema import ensure_acesso_excecoes
 from .chamados_schema import ensure_chamados_schema
 from .chamados_schema_v060 import ensure_chamados_v060
 from .diario_schema import ensure_diario_schema
@@ -42,6 +43,7 @@ from .exam_analytics_schema import ensure_exam_analytics_tables
 from .modulos_funcoes_schema import ensure_modulos_funcoes
 from .modulos_schema import ensure_modulos_schema
 from .monitoria_schema import ensure_monitoria_schema
+from .unidades_schema import ensure_unidades
 from .wfm_schema import ensure_wfm_schema
 from .wfm_schema_v061 import ensure_wfm_v061
 from .wfm_schema_v064 import ensure_wfm_v064
@@ -3751,6 +3753,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_parametros_sistema_table(cursor)
             ensure_ambientes_sharepoint_table(cursor)
             ensure_operacoes_seed(cursor)
+            ensure_unidades(cursor)  # V070: tipo e módulo da unidade (depende de modulos_sistema e operacoes)
             ensure_user_operacoes_table(cursor)
             ensure_monitoria_schema(cursor)
             ensure_wfm_schema(cursor)
@@ -3759,6 +3762,7 @@ def bootstrap_runtime_schema(settings: Settings, *, force: bool = False) -> bool
             ensure_wfm_v066(cursor)
             ensure_chamados_schema(cursor)
             ensure_chamados_v060(cursor)
+            ensure_acesso_excecoes(cursor)  # V071: exceções de acesso (copia V060; depende de modulos_acesso_*)
             ensure_diario_schema(cursor)
             ensure_modulos_funcoes(cursor)
             from .monitoria_org import ensure_monitoria_seeds

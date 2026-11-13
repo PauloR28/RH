@@ -23,6 +23,7 @@ from ..schemas.security import (
     UserStatusRequest,
     UserUpdateRequest,
 )
+from ..services import acesso_cache
 from ..services.http_cache import aplicar_cache_http
 
 
@@ -62,7 +63,9 @@ def update_role_permissions(
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    return repository.update_role_permissions(id_perfil, payload.model_dump(), actor=user)
+    resultado = repository.update_role_permissions(id_perfil, payload.model_dump(), actor=user)
+    acesso_cache.invalidar()  # vale já no próximo pedido, sem relogin
+    return resultado
 
 
 @router.get("/tela-inicial", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])

@@ -7,9 +7,10 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261112-exporta-filtro';
-import { obterEstadoModulos, useModulos } from '../modulos/estado.js?v=20261112-exporta-filtro';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-exporta-filtro';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261112-acessos';
+import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
+import { moduloParaAbrir } from '../modulos/registro.js?v=20261112-modulo-unico2';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-modulo-unico2';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -81,7 +82,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20261112-exporta-filtro');
+const importarGestao = () => import('../features/telas-gestao.js?v=20261112-modulo-unico2');
 const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
@@ -109,19 +110,19 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261111-escalados'),
+  () => import('../features/configuracoes/index.js?v=20261112-acessos2'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-exporta-filtro');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-modulo-unico2');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261111-escalados'), 'TelaRelatoriosHub');
-const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261112-exporta-filtro'), 'TelaEquipesControle');
+const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261112-modulo-unico2'), 'TelaEquipesControle');
 const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261108-diario'), 'TelaDiario');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261112-exporta-filtro'), 'TelaWfm');
-const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-exporta-filtro'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261112-exporta-filtro'), 'TelaTecnologia');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261112-modulo-unico2'), 'TelaWfm');
+const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261112-modulo-unico2'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261109-telas-antigas'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
@@ -477,6 +478,7 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     telaResolvida === 'screen-settings' ||
     telaResolvida === 'screen-settings-users' ||
     telaResolvida === 'screen-settings-profiles' ||
+    telaResolvida === 'screen-settings-acessos' ||
     telaResolvida === 'screen-settings-operations' ||
     telaResolvida === 'screen-settings-notifications' ||
     telaResolvida === 'screen-settings-logs' ||
@@ -619,10 +621,17 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
 
 export function Aplicacao() {
   // Re-renderiza quando o módulo atual muda (o início de Tecnologia depende dele).
-  useModulos();
+  const modulos = useModulos();
   const controlador = useControladorAplicacao();
   const telaAtual = usarTelaAtual(controlador.estado.autenticado);
   const telaResolvida = resolverTelaProtegida(telaAtual, controlador);
+
+  // Etapa 7: um módulo aberto por vez. Tela de outro módulo (link direto, atalho) abre o módulo dono dela, com o
+  // Iniciar e o menu dele, em vez de aparecer misturada no menu do módulo atual.
+  const moduloDaTela = moduloParaAbrir(telaResolvida, modulos.moduloAtual, modulos.visiveis, modulos.carregado);
+  useEffect(() => {
+    if (moduloDaTela) selecionarModulo(moduloDaTela);
+  }, [moduloDaTela]);
 
   const usaShellFixo =
     controlador.estado.autenticado &&

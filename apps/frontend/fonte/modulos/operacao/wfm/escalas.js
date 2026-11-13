@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
-import { dataHora, falhaAo } from './comum.js?v=20261112-exporta-filtro';
+import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
+import { dataHora, falhaAo } from './comum.js?v=20261112-modulo-unico2';
 import { CabPagina, Campo, Esqueleto, Estado, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Tela inicial da aba Escalas: a lista de escalas do mês (redesign Fase 15, amostra "Escalas" da Fase 12).

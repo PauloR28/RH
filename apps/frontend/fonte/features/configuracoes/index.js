@@ -29,11 +29,11 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-exporta-filtro';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-modulo-unico2';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-exporta-filtro';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-modulo-unico2';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
 import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261022-guia';
@@ -57,19 +57,33 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261112-exporta-filtro';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
+} from './monitoria-config.js?v=20261112-modulo-unico2';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
 import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-exporta-filtro';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
+import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
+
+// Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
+const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
+const MODULOS_UNIDADE_PADRAO = [{ chave: 'tecnologia', nome: 'Tecnologia' }, { chave: 'rh', nome: 'RH' }, { chave: 'operacao', nome: 'Operação' }];
+function modulosDaUnidade() {
+  const lista = (obterEstadoModulos()?.modulos || []).filter((m) => m && m.chave && m.chave !== 'core');
+  return lista.length ? lista : MODULOS_UNIDADE_PADRAO;
+}
+function nomeModuloUnidade(chave) {
+  return (modulosDaUnidade().find((m) => m.chave === chave) || {}).nome || chave || 'Operação';
+}
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
   { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
-  { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operações', permissao: 'configuracoes.visualizar', icon: 'apartment' },
+  { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
+  { id: 'operacoes', tela: 'screen-settings-operations', label: 'Unidades', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
   // Administração da Monitoria (função do Administrador): equipes/catálogos. Os logs da Monitoria
@@ -162,6 +176,8 @@ const FORM_ITEM_INICIAL = {
   id_item: '',
   chave: '',
   nome: '',
+  tipoUnidade: 'operacao',
+  modulo: 'operacao',
   descricao: '',
   categoria: '',
   criticidade: 'operacional',
@@ -674,7 +690,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     ),
     [catalogo],
   );
-  const [filtrosCatalogo, setFiltrosCatalogo] = useState({ busca: '', status: 'todos' });
+  const [filtrosCatalogo, setFiltrosCatalogo] = useState({ busca: '', status: 'todos', tipo: '', modulo: '' });
   const [filtrosLogs, setFiltrosLogs] = useState({
     busca: '',
     modulo: '',
@@ -1231,6 +1247,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       id_item: item.id_item || '',
       chave: item.chave || '',
       nome: item.nome || '',
+      tipoUnidade: item.tipo_unidade || 'operacao',
+      modulo: item.modulo || 'operacao',
       descricao: item.descricao || '',
       categoria: item.categoria || '',
       criticidade: payload.criticidade || payload.severidade || 'operacional',
@@ -1435,6 +1453,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         payload,
         ativo: formItem.ativo,
         justificativa: formItem.justificativa,
+        ...(secaoCatalogoAtiva.tipo === 'operacoes' ? { tipo_unidade: formItem.tipoUnidade || 'operacao', modulo: formItem.modulo || 'operacao' } : {}),
       };
 
       if (formItem.id_item) {
@@ -1712,6 +1731,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       if (busca && !texto.includes(busca)) return false;
       if (status === 'ativo' && !item.ativo) return false;
       if (status === 'inativo' && item.ativo) return false;
+      if (filtrosCatalogo.tipo && (item.tipo_unidade || 'operacao') !== filtrosCatalogo.tipo) return false;
+      if (filtrosCatalogo.modulo && (item.modulo || 'operacao') !== filtrosCatalogo.modulo) return false;
       return true;
     });
   }, [itensCatalogo, filtrosCatalogo]);
@@ -3029,6 +3050,12 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         return html`
           ${campo('Nome', 3, (p) => html`<input ...${p} value=${formItem.nome} placeholder="Nome da operação" required onInput=${(e) => { setFormItem({ ...formItem, nome: e.target.value }); setSecoesComErro([]); }} />`, { erro: secoesComErro.includes('identificacao') && !String(formItem.nome || '').trim() ? 'Informe o nome.' : undefined })}
           ${campo('Chave/Tag (automática)', 3, (p) => html`<input ...${p} readOnly value=${String(formItem.nome || '').toUpperCase() || '—'} />`)}
+          ${campo('Tipo', 3, (p) => html`<select ...${p} value=${formItem.tipoUnidade || 'operacao'} onChange=${(e) => setFormItem({ ...formItem, tipoUnidade: e.target.value })}>
+            ${TIPOS_UNIDADE.map((t) => html`<option key=${t.value} value=${t.value}>${t.label}</option>`)}</select>`)}
+          ${campo('Módulo', 3, (p) => html`<select ...${p} value=${formItem.modulo || 'operacao'} onChange=${(e) => setFormItem({ ...formItem, modulo: e.target.value })}>
+            ${modulosDaUnidade().map((m) => html`<option key=${m.chave} value=${m.chave}>${m.nome}</option>`)}</select>`,
+    { dica: 'Obrigatório. A unidade só aparece no “Vale para” da Central de Acessos deste módulo.' })}
+          ${itemEmEdicao && (itemEmEdicao.modulo || 'operacao') !== (formItem.modulo || 'operacao') ? html`<p class="cx-legenda cx-op-total" role="status">Ao mudar de ${nomeModuloUnidade(itemEmEdicao.modulo || 'operacao')} para ${nomeModuloUnidade(formItem.modulo)}, a unidade sai do “Vale para” de ${nomeModuloUnidade(itemEmEdicao.modulo || 'operacao')} e as exceções de acesso dela lá deixam de valer. As pessoas continuam ligadas à unidade.</p>` : null}
           ${campo('Tipo de operação', 2, (p) => html`<select ...${p} value=${formItem.categoria} onChange=${(e) => setFormItem({ ...formItem, categoria: e.target.value })}>
             <option value="">Selecione</option>
             ${TIPOS_OPERACAO.map((tipo) => html`<option key=${tipo} value=${tipo}>${tipo}</option>`)}
@@ -3106,10 +3133,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     <${PaginaConsole}>
       <${CabecalhoConsole}
         sobretitulo="Console - Administração"
-        titulo="Operações"
+        titulo="Unidades"
       />
       <div class="cx-resumos">
-        <${CardResumo} icone="check_circle" tom="sucesso" rotulo="Itens ativos" valor=${`${ativos}`} complemento=${ativos === 1 ? 'operação' : 'operações'} />
+        <${CardResumo} icone="check_circle" tom="sucesso" rotulo="Itens ativos" valor=${`${ativos}`} complemento=${ativos === 1 ? 'unidade' : 'unidades'} />
         <${CardResumo} icone="archive" rotulo="Itens arquivados" valor=${`${itensCatalogo.length - ativos}`} complemento=${`· ${itensCatalogo.length} no total`} />
         <${CardResumo} icone="history" rotulo="Última atualização" valor=${String(ultima)} texto=${true} />
         <${CardResumo} icone="apartment" rotulo="Endereço principal" valor=${textoEnderecoPrincipal} texto=${true}
@@ -3118,24 +3145,30 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
 
       <div class="cx-op-corpo cx-cresce">
         <${CardDados}
-          sobretitulo="Operações"
-          titulo="Itens cadastrados"
+          sobretitulo="Unidades"
+          titulo="Operações e setores"
           legenda="Desative itens usados nos fluxos; não remova fisicamente."
-          acoes=${html`<button type="button" class="cx-icone-btn cx-icone-btn--quadrado" aria-label="Nova operação" title="Nova operação" onClick=${() => { setFormItem(FORM_ITEM_INICIAL); setErro(''); setFeedback(''); setSecoesComErro([]); }}><${IconeCx} nome="add" /></button>`}
+          acoes=${html`<button type="button" class="cx-icone-btn cx-icone-btn--quadrado" aria-label="Nova unidade" title="Nova unidade" onClick=${() => { setFormItem({ ...FORM_ITEM_INICIAL, modulo: filtrosCatalogo.modulo || 'operacao', tipoUnidade: filtrosCatalogo.tipo || 'operacao' }); setErro(''); setFeedback(''); setSecoesComErro([]); }}><${IconeCx} nome="add" /></button>`}
           rodape=${html`<span>${itensCatalogoFiltrados.length} exibidos de ${itensCatalogo.length}</span><span class="cx-rodape-espaco"></span>
-            <button type="button" class="cx-btn cx-btn--texto cx-btn--sm" onClick=${() => setFiltrosCatalogo({ busca: '', status: 'todos' })}>Ver todos</button>`}
+            <button type="button" class="cx-btn cx-btn--texto cx-btn--sm" onClick=${() => setFiltrosCatalogo({ busca: '', status: 'todos', tipo: '', modulo: '' })}>Ver todos</button>`}
         >
           <div class="cx-op-filtros">
             <label class="cx-busca"><${IconeCx} nome="search" /><input type="search" value=${filtrosCatalogo.busca} placeholder="Nome, chave ou categoria" aria-label="Buscar por nome, chave ou categoria" onInput=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, busca: e.target.value })} /></label>
             <select class="cx-select" aria-label="Status" value=${filtrosCatalogo.status} onChange=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, status: e.target.value })}>
               ${STATUS_ITEM.map((item) => html`<option key=${item.value} value=${item.value}>${item.label}</option>`)}
             </select>
+            <select class="cx-select" aria-label="Tipo" value=${filtrosCatalogo.tipo} onChange=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, tipo: e.target.value })}>
+              <option value="">Tipos</option>${TIPOS_UNIDADE.map((t) => html`<option key=${t.value} value=${t.value}>${t.value === 'setor' ? 'Setores' : 'Operações'}</option>`)}
+            </select>
+            <select class="cx-select" aria-label="Módulo" value=${filtrosCatalogo.modulo} onChange=${(e) => setFiltrosCatalogo({ ...filtrosCatalogo, modulo: e.target.value })}>
+              <option value="">Módulos</option>${modulosDaUnidade().map((m) => html`<option key=${m.chave} value=${m.chave}>${m.nome}</option>`)}
+            </select>
           </div>
           ${itensCatalogoFiltrados.length ? html`<ul class="cx-op-itens">
             ${itensCatalogoFiltrados.map((item) => html`<li key=${item.id_item} class=${`cx-op-item ${String(item.id_item) === String(formItem.id_item) ? 'is-ativo' : ''}`.trim()}>
               <button type="button" class="cx-op-item-main" onClick=${() => { editarItem(item); setSecoesComErro([]); }}>
                 <span class=${`cx-op-icone ${item.ativo ? '' : 'is-inativo'}`.trim()} style=${item.ativo && item.payload?.cor_tag ? { color: item.payload.cor_tag } : undefined}><${IconeCx} nome="apartment" /></span>
-                <span class="cx-op-item-texto"><strong class="cx-trunca" title=${item.nome || '-'}>${item.nome || '-'}</strong><small class="cx-trunca" title=${item.categoria || item.descricao || ''}>${item.categoria || item.descricao || item.chave || 'Sem descrição'}</small></span>
+                <span class="cx-op-item-texto"><strong class="cx-trunca" title=${item.nome || '-'}>${item.nome || '-'}</strong><small class="cx-trunca" title=${item.categoria || item.descricao || ''}>${(item.tipo_unidade === 'setor' ? 'Setor' : 'Operação')} · ${nomeModuloUnidade(item.modulo || 'operacao')}</small></span>
               </button>
               <${PilulaStatus} variante=${item.ativo ? 'ativo' : 'inativo'} />
               <${MenuAcoesProcesso} ariaLabel=${`Ações de ${item.nome || 'item'}`} icon="more_horiz" triggerClassName="cx-icone-btn cx-icone-btn--borda"
@@ -3152,8 +3185,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         <form class="cx-op-form-wrap" noValidate onSubmit=${salvarOperacaoNova}>
         <${CardDados}
           formulario=${true}
-          sobretitulo="Operações"
-          titulo=${formItem.id_item ? 'Editar operação' : 'Nova operação'}
+          sobretitulo="Unidades"
+          titulo=${formItem.id_item ? 'Editar unidade' : 'Nova unidade'}
           legenda="Preencha os dados desta operação — eles passam a valer em Processos, Provas e Treinamentos."
           acoes=${itemEmEdicao ? html`<div class="cx-cab-acoes">
             <span class="cx-op-ativo"><span aria-hidden="true">${itemEmEdicao.ativo ? 'Ativa' : 'Inativa'}</span>
@@ -4091,7 +4124,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       mostrarAtalhos=${false}
       buscaGlobal=${abaRenderizada !== 'perfis'}
     >
-      ${['usuarios', 'perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
+      ${['usuarios', 'perfis', 'acessos', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4173,6 +4206,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           ? renderUsuarios()
           : abaRenderizada === 'perfis'
             ? renderPerfis()
+            : abaRenderizada === 'acessos'
+              ? html`<${CentralAcessos} controlador=${controlador} />`
             : abaRenderizada === 'operacoes'
               ? renderOperacoes()
               : abaRenderizada === 'catalogos'

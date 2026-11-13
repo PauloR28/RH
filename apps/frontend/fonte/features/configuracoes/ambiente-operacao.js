@@ -15,7 +15,7 @@ import {
   salvarModulosOperacao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
-import { CartaoLista } from './monitoria-config.js?v=20261112-exporta-filtro';
+import { CartaoLista } from './monitoria-config.js?v=20261112-modulo-unico2';
 
 // Aba "Configurar ambiente" da operação (Configurações > Operações): quem trabalha nela
 // (supervisores, Qualidade), se ela tem Qualidade, turnos/equipes e as intranets (ambientes

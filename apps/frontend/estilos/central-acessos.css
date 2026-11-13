@@ -1,0 +1,55 @@
+/* Central de Acessos (Etapa 6). Só tokens do rebranding; peças c- vêm de conecta-ds.css. Régua 4·8·16·24. */
+.c-acessos { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: var(--espaco-5); align-items: start; }
+.c-acessos-cresce { flex: 1 1 0; min-width: 0; }
+.c-acessos-mods-lista { list-style: none; margin: 0; padding: var(--espaco-2); display: grid; gap: var(--espaco-1); }
+.c-acessos-mod { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-2); padding: var(--espaco-2); border-radius: var(--raio-pequeno); border: var(--borda-fina) solid transparent; cursor: pointer; }
+.c-acessos-mod:hover { background: var(--cor-fundo-sutil); }
+.c-acessos-mod[aria-current='true'] { background: var(--cor-fundo-selecionado); border-color: var(--cor-borda-padrao); }
+.c-acessos-mod-texto { display: grid; min-width: 0; }
+.c-acessos-mod-texto small, .c-acessos-nota { color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-nota { margin: 0; padding: var(--espaco-2) var(--espaco-4) var(--espaco-4); border-top: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-acessos-cadeado { display: inline-flex; align-items: center; gap: var(--espaco-1); color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); white-space: nowrap; }
+.c-acessos-cadeado .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-acessos-detalhe { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espaco-4); padding-bottom: 0; min-width: 0; }
+.c-acessos-detalhe > *, .c-acessos-funcao, .c-acessos-funcao-corpo { min-width: 0; }
+.c-acessos-detalhe-cab { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--espaco-4); padding: var(--espaco-4); border-bottom: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-acessos-detalhe-cab h2 { margin: 0; display: flex; align-items: center; gap: var(--espaco-2); font-size: var(--texto-titulo-secao-tamanho); font-weight: var(--fonte-peso-semi); }
+.c-acessos-detalhe-cab p { margin: var(--espaco-1) 0 0; color: var(--cor-texto-secundario); }
+.c-acessos-vale { flex: 0 1 280px; min-width: 0; }
+.c-acessos-faixa { margin: 0 var(--espaco-4); align-items: center; }
+.c-acessos-faixa .c-faixa-txt { flex: 1 1 0; min-width: 0; }
+.c-acessos-barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espaco-2) var(--espaco-4); padding: 0 var(--espaco-4); }
+.c-acessos-busca { flex: 0 1 320px; }
+.c-acessos-busca .c-entrada { height: var(--altura-controle-compacto); }
+.c-acessos-funcoes { list-style: none; margin: 0; padding: 0 var(--espaco-4); display: grid; gap: var(--espaco-2); }
+.c-acessos-funcao { border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio); background: var(--cor-fundo-painel); }
+.c-acessos-funcao-cab { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-4) var(--espaco-2) var(--espaco-2); min-height: 48px; }
+.c-acessos-funcao-nome { all: unset; flex: 1 1 0; min-width: 0; display: grid; cursor: pointer; }
+.c-acessos-funcao-nome:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: 2px; }
+.c-acessos-funcao-nome small { color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-funcao.is-desligada .c-acessos-funcao-nome strong { color: var(--cor-texto-apagado); }
+.c-acessos-funcao.is-desligada .c-acessos-funcao-nome small { color: var(--cor-status-perigo-texto); }
+.c-acessos-funcao-corpo { border-top: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-acessos-tabela { border: 0; border-radius: 0 0 var(--raio-medio) var(--raio-medio); }
+.c-acessos-tabela th[scope='row'], .c-acessos-tabela thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--cor-fundo-painel); text-align: left; min-width: 200px; }
+.c-acessos-tabela thead th:first-child { background: var(--tabela-cabecalho-fundo); }
+.c-acessos-tabela td, .c-acessos-tabela thead th { text-align: center; }
+.c-acessos-tabela td { padding-top: var(--espaco-1); padding-bottom: var(--espaco-1); vertical-align: middle; line-height: 0; }
+.c-acessos-cel { padding: 0; width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: var(--raio-pequeno); border: var(--borda-fina) solid var(--cor-linha-divisoria); background: transparent; color: var(--cor-texto-apagado); cursor: pointer; position: relative; font: inherit; }
+.c-acessos-cel .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-acessos-cel.is-pode { background: var(--cor-status-sucesso-fundo); border-color: transparent; color: var(--cor-status-sucesso-texto); }
+.c-acessos-cel.is-difere::after { content: ''; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; border-radius: var(--raio-cheio); background: var(--cor-status-atencao-texto); box-shadow: 0 0 0 2px var(--cor-fundo-painel); }
+.c-acessos-cel.is-alterada { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: 1px; }
+.c-acessos-cel:disabled { cursor: default; opacity: 0.4; }
+.c-acessos-vazio { margin: 0; padding: var(--espaco-4); color: var(--cor-texto-apagado); }
+.c-acessos-paginas { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espaco-2); padding: 0 var(--espaco-4); color: var(--cor-texto-secundario); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-salvar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--espaco-2) var(--espaco-4); padding: var(--espaco-4); border-top: var(--borda-fina) solid var(--cor-linha-divisoria); background: var(--cor-fundo-painel); border-radius: 0 0 var(--raio-medio) var(--raio-medio); color: var(--cor-texto-secundario); }
+@media (max-width: 959.98px) {
+  .c-acessos { grid-template-columns: minmax(0, 1fr); }
+  .c-acessos-mods-lista { display: flex; overflow-x: auto; }
+  .c-acessos-mod { flex: 0 0 auto; min-width: 180px; border-color: var(--cor-linha-divisoria); }
+  .c-acessos-nota { display: none; }
+}
+@media (max-width: 599.98px) {
+  .c-acessos-vale, .c-acessos-busca { flex: 1 1 100%; }
+}

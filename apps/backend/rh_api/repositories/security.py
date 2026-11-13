@@ -2121,6 +2121,32 @@ class SecurityRepositoryMixin:
         cursor.execute("SELECT TOP 1 1 FROM dbo.monitorias WHERE operacao = ?", (chave,))
         return bool(cursor.fetchone())
 
+    def _definir_tipo_modulo_unidade(self, cursor, id_item: int, data: dict) -> dict:
+        """Unidade (V070): grava tipo ('operacao'|'setor') e o ÚNICO módulo da operação/setor, quando enviados.
+        Sem as colunas (V070 não aplicada) ou sem os campos no pedido, não faz nada: o cadastro segue como antes."""
+        from ..modulos_catalogo import MODULO_CORE, MODULOS_VALIDOS
+        from .unidades_schema import TIPOS_UNIDADE
+
+        tipo_unidade = normalize_text(data.get("tipo_unidade")).lower()
+        modulo = normalize_text(data.get("modulo")).lower()
+        if not tipo_unidade and not modulo:
+            return {}
+        if tipo_unidade and tipo_unidade not in TIPOS_UNIDADE:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de unidade inválido. Use operação ou setor.")
+        if modulo and (modulo not in MODULOS_VALIDOS or modulo == MODULO_CORE):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Módulo inválido para a unidade.")
+        cursor.execute("SELECT COL_LENGTH('dbo.operacoes', 'tipo'), COL_LENGTH('dbo.operacoes', 'modulo')")
+        colunas = cursor.fetchone()
+        if not colunas or colunas[0] is None or colunas[1] is None:
+            return {}
+        mudancas = {k: v for k, v in (("tipo", tipo_unidade), ("modulo", modulo)) if v}
+        sets = ", ".join(f"{coluna} = ?" for coluna in mudancas)
+        cursor.execute(f"UPDATE dbo.operacoes SET {sets} WHERE id_item = ?", (*mudancas.values(), int(id_item)))
+        from ..services import acesso_cache
+
+        acesso_cache.invalidar()  # o "Vale para" da Central de Acessos muda na hora
+        return mudancas
+
     def _guard_operacao_update(self, cursor, previous: dict, values: dict) -> dict:
         ativo_anterior = bool(previous.get("ativo"))
         if not ativo_anterior:
@@ -2187,6 +2213,13 @@ class SecurityRepositoryMixin:
                     item["payload"] = safe_json_loads(item.get("payload_json"), {})
                     item["ativo"] = bool(item.get("ativo"))
                     item["usado"] = bool(item.get("usado"))
+                    if key == "operacoes":
+                        # Unidade (V070): tipo e módulo vêm do cache de acessos (sem consulta a mais).
+                        from ..services import acesso_cache
+
+                        unidade = acesso_cache.unidade(item.get("chave"))
+                        item["tipo_unidade"] = unidade.tipo if unidade else "operacao"
+                        item["modulo"] = unidade.modulo if unidade else "operacao"
                     items.append(item)
                 sections.append(
                     {
@@ -2292,6 +2325,11 @@ class SecurityRepositoryMixin:
                 )
                 resolved_id = int(cursor.fetchone()[0])
                 action = "criar_configuracao"
+
+            if normalize_text(tipo) == "operacoes":
+                unidade = self._definir_tipo_modulo_unidade(cursor, resolved_id, data)
+                if unidade:
+                    values = {**values, **unidade}
 
             self._insert_audit_log(
                 cursor,

@@ -1,16 +1,16 @@
 import { html } from '../../../infraestrutura-react.js';
 import { PainelRh } from '../../../ui/componentes-compartilhados.js';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261112-exporta-filtro';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261112-modulo-unico2';
 import { useToast } from '../../../shared/hooks/use-toast.js';
 import {
   ABAS_CHAMADOS, Icone, TELA_CONFIG, TELA_DASHBOARD, TELA_DETALHE, TELA_FILA, TELA_LISTA, TELA_NOVO,
 } from './comum.js?v=20261005-redesign16';
-import { ListaChamados } from './lista.js?v=20261112-exporta-filtro';
-import { NovoChamado } from './novo.js?v=20261112-exporta-filtro';
-import { PaginaDetalheChamado } from './detalhe.js?v=20261112-exporta-filtro';
-import { FilaChamados } from './fila.js?v=20261112-exporta-filtro';
-import { DashboardChamados } from './dashboard.js?v=20261112-exporta-filtro';
-import { ConfiguracoesChamados } from './configuracoes.js?v=20261112-exporta-filtro';
+import { ListaChamados } from './lista.js?v=20261112-modulo-unico2';
+import { NovoChamado } from './novo.js?v=20261112-modulo-unico2';
+import { PaginaDetalheChamado } from './detalhe.js?v=20261112-modulo-unico2';
+import { FilaChamados } from './fila.js?v=20261112-modulo-unico2';
+import { DashboardChamados } from './dashboard.js?v=20261112-modulo-unico2';
+import { ConfiguracoesChamados } from './configuracoes.js?v=20261112-modulo-unico2';
 
 // Suporte TI (Conecta Tecnologia): abertura e gestão de chamados. As abas visíveis dependem das permissões do usuário,
 // nunca do nome do perfil. Quem só abre/acompanha (ex.: Supervisor) vê apenas a página "Chamados", sem barra de abas.

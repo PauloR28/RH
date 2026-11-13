@@ -3,7 +3,7 @@ import {
   atualizarCategoriaChamado, atualizarEmailChamados, criarCategoriaChamado, criarEmailChamados, lerConfigChamados, listarEmailsChamados,
   removerEmailChamados, salvarConfigChamados,
 } from '../../../services/api/chamados.js?v=20261005-redesign16';
-import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261112-exporta-filtro';
+import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261112-modulo-unico2';
 import { EstadoErro, Icone } from './comum.js?v=20261005-redesign16';
 
 // Configurações (`chamados.configurar`): subnavegação à esquerda e uma seção por assunto. Nada fica fixo no código.
