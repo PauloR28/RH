@@ -6,7 +6,6 @@ from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..services.http_cache import aplicar_cache_http
 
-
 router = APIRouter(tags=["operations"], dependencies=[Depends(get_current_user)])
 
 

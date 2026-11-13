@@ -10,9 +10,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import (
     ROLE_ADMIN,
@@ -63,9 +63,10 @@ def test_quem_aprova_a_escala():
     base = dict(operacoes_usuario=["OP"], operacao="OP", id_enviou=10, ids_na_escala=[1, 2])
     assert wfm_scope.pode_aprovar_escala(perfil=ROLE_SUPERVISOR, id_usuario=20, **base)[0]
     assert wfm_scope.pode_aprovar_escala(perfil=ROLE_MANAGER, id_usuario=20, **base)[0]
-    assert not wfm_scope.pode_aprovar_escala(perfil=ROLE_CONTROL_DESK, id_usuario=20, **base)[0]
-    assert not wfm_scope.pode_aprovar_escala(perfil=ROLE_ADMIN, id_usuario=20, **base)[0]
-    assert not wfm_scope.pode_aprovar_escala(perfil=ROLE_SUPERVISOR, id_usuario=10, **base)[0]  # quem enviou
+    # 09/11/2026: aprova quem tem a chave wfm.escala.aprovar (rota + repositório); o escopo só barra participantes.
+    assert wfm_scope.pode_aprovar_escala(perfil=ROLE_ADMIN, id_usuario=20, **base)[0]
+    assert not wfm_scope.pode_aprovar_escala(perfil=ROLE_OPERATOR, id_usuario=20, **base)[0]
+    assert wfm_scope.pode_aprovar_escala(perfil=ROLE_SUPERVISOR, id_usuario=10, **base)[0]  # quem enviou também aprova (09/11/2026)
     assert not wfm_scope.pode_aprovar_escala(perfil=ROLE_SUPERVISOR, id_usuario=2, **base)[0]  # consta na escala
     ti = dict(operacoes_usuario=["TI"], operacao="TI::SOBREAVISO", id_enviou=10, ids_na_escala=[10])
     assert wfm_scope.pode_aprovar_escala(perfil=ROLE_ANALISTA_TI, id_usuario=10, **ti)[0]  # gestor único do TI
@@ -187,7 +188,7 @@ def test_fluxo_enviar_declinar_corrigir_aprovar_e_publicar(ctx):
     assert _erro(ctx.repo.wfm_aprovar_escala, ctx.sup, ctx.op, MES).status_code == 409  # ainda não foi enviada
     ctx.repo.wfm_enviar_aprovacao(ctx.cd, ctx.op, MES)
     assert _estado(ctx, ctx.cd)["estado"] == "EM_APROVACAO"
-    # em aprovação: edição bloqueada; Control Desk (quem enviou) e Admin não aprovam
+    # em aprovação: edição bloqueada; Control Desk e Admin sem a chave wfm.escala.aprovar (catálogo padrão) não aprovam
     assert _erro(ctx.repo.wfm_salvar_itens, ctx.cd, ctx.op, MES, [_item(ctx.id_a, 4, ctx.M)]).status_code == 409
     assert _erro(ctx.repo.wfm_aprovar_escala, ctx.cd, ctx.op, MES).status_code == 403
     assert _erro(ctx.repo.wfm_aprovar_escala, ctx.admin, ctx.op, MES).status_code == 403
@@ -316,7 +317,9 @@ def test_quem_cria_e_gere_escalas():
     for perfil in (ROLE_SUPERVISOR, ROLE_CONTROL_DESK, ROLE_ANALISTA_TI):
         assert wfm_scope.pode_criar_escala(perfil) and "wfm.escala.criar" in get_role_permissions(perfil)
     for perfil in (ROLE_MANAGER, ROLE_ADMIN, ROLE_OPERATOR, ROLE_TEC_PLENO):
-        assert not wfm_scope.pode_criar_escala(perfil) and "wfm.escala.criar" not in get_role_permissions(perfil)
+        assert "wfm.escala.criar" not in get_role_permissions(perfil)  # catálogo padrão; vale a chave ligada em Perfis
+    for perfil in (ROLE_OPERATOR, ROLE_TEC_PLENO):
+        assert not wfm_scope.pode_criar_escala(perfil)
 
 
 def test_gestao_criar_configurar_duplicar_e_excluir_escala(ctx):

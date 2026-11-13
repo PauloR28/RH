@@ -78,8 +78,6 @@ class EnfileirarMockedRqTests(unittest.TestCase):
         _reset_module_state()
 
     def test_enqueues_via_rq_queue_when_available(self):
-        settings = mock.Mock(redis_url="redis://localhost:6379/0")
-
         fake_job = mock.Mock(id="job-123")
         fake_queue = mock.Mock()
         fake_queue.enqueue.return_value = fake_job

@@ -20,7 +20,6 @@ from .bootstrap import (
     get_gabaritos_payload_column,
 )
 
-
 logger = logging.getLogger(__name__)
 
 

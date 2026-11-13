@@ -29,11 +29,11 @@ import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261026-ajustes';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-exporta-filtro';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261023-inicio';
+import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20260921-hdr';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-exporta-filtro';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
 import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261022-guia';
@@ -45,7 +45,7 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261010-guia';
+} from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../../ui/icone.js';
 import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
 import {
@@ -57,13 +57,14 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261104-leitura';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261104-leitura';
+} from './monitoria-config.js?v=20261112-exporta-filtro';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
 import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261104-leitura';
-import { PerfisPermissoes } from './perfis-permissoes.js?v=20261007-perfis';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-exporta-filtro';
+import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
@@ -92,6 +93,7 @@ const SESSOES_PERMISSAO = [
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
   { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
   { id: 'equipe', modulo: 'operacao', label: 'Equipes e Turnos', icon: 'groups', modulos: ['Equipes'] },
+  { id: 'diario', modulo: 'operacao', label: 'Diário de bordo', icon: 'notebook', modulos: ['Diário de bordo'] },
   { id: 'chamados', modulo: 'tecnologia', label: 'Suporte TI (Chamados)', icon: 'support_agent', modulos: ['Chamados'] },
   {
     id: 'configuracoes',
@@ -261,6 +263,48 @@ const CATALOGO_ICONS = {
   geral: 'settings',
   operacoes: 'apartment',
 };
+
+// Usuários no desenho novo (DEC-072) ─────────────────────────────────
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+// "hoje 08:12", "ontem 18:40", "há 32 dias" (até 60) ou "12/10".
+function formatarAcessoCurto(valor) {
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return '—';
+  const dois = (n) => String(n).padStart(2, '0');
+  const hora = `${dois(data.getHours())}:${dois(data.getMinutes())}`;
+  const inicioHoje = new Date();
+  inicioHoje.setHours(0, 0, 0, 0);
+  if (data >= inicioHoje) return `hoje ${hora}`;
+  if (data >= new Date(inicioHoje.getTime() - DIA_MS)) return `ontem ${hora}`;
+  const dias = Math.floor((inicioHoje.getTime() - data.getTime()) / DIA_MS) + 1;
+  if (dias >= 30 && dias <= 60) return `há ${dias} dias`;
+  const ano = data.getFullYear() !== inicioHoje.getFullYear() ? `/${data.getFullYear()}` : '';
+  return `${dois(data.getDate())}/${dois(data.getMonth() + 1)}${ano}`;
+}
+
+function rotuloEntrada(provedor) {
+  const valor = String(provedor || '').trim().toLowerCase();
+  if (valor === 'microsoft') return 'Microsoft';
+  if (valor === 'ambos') return 'Microsoft e senha';
+  return 'Senha';
+}
+
+// Ativo · Inativo · Bloqueado · Sem acesso há 30 dias (ativo, mas parado: ajuda a achar contas esquecidas).
+function usuarioParado30(usuario) {
+  const referencia = usuario?.ultimo_acesso || usuario?.criado_em;
+  if (!referencia) return false;
+  const data = new Date(referencia);
+  return !Number.isNaN(data.getTime()) && Date.now() - data.getTime() > 30 * DIA_MS;
+}
+
+function situacaoUsuario(usuario) {
+  const status = String(usuario?.status || 'Ativo').trim().toLowerCase();
+  if (status === 'bloqueado') return { chave: 'bloqueado', rotulo: 'Bloqueado', tom: 'perigo', icone: 'lock' };
+  if (status === 'inativo') return { chave: 'inativo', rotulo: 'Inativo', tom: 'neutro', icone: 'prohibit' };
+  if (usuarioParado30(usuario)) return { chave: 'parado30', rotulo: 'Sem acesso há 30 dias', tom: 'atencao', icone: 'warning' };
+  return { chave: 'ativo', rotulo: 'Ativo', tom: 'sucesso', icone: 'check-circle' };
+}
 
 const STATUS_USUARIO = ['', 'Ativo', 'Inativo', 'Bloqueado'];
 const STATUS_ITEM = [
@@ -610,12 +654,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   });
   const [painelFiltrosUsuariosAberto, setPainelFiltrosUsuariosAberto] = useState(false);
   const [paginaUsuarios, setPaginaUsuarios] = useState(1);
-  // Telas altas comportam mais linhas: começa com a maior opção que cabe na janela (mínimo 7, como antes nas telas pequenas).
-  const [tamanhoPaginaUsuarios, setTamanhoPaginaUsuarios] = useState(() => {
-    const altura = typeof window !== 'undefined' ? window.innerHeight : 0;
-    const linhasQueCabem = Math.floor((altura - 340) / 56);
-    return [50, 30, 15].find((n) => n <= linhasQueCabem) || 7;
-  });
+  // Tabela densa de 25 por página (DEC-072).
+  const [tamanhoPaginaUsuarios] = useState(25);
   const [perfilSelecionadoId, setPerfilSelecionadoId] = useState('');
   const [permissoesPerfilDraft, setPermissoesPerfilDraft] = useState([]);
   const [buscaPermissao, setBuscaPermissao] = useState('');
@@ -795,6 +835,10 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       }
       if (aba === 'usuarios' && controlador.possuiPermissao('usuarios.alterar_email')) {
         tarefas.push(carregarSolicitacoesEmailPendentes());
+      }
+      // Perfis mostra quantas pessoas usam cada perfil (DEC-073): a lista de usuários vem do cache.
+      if (aba === 'perfis' && controlador.possuiPermissao('usuarios.visualizar')) {
+        tarefas.push(listarUsuarios().then((valor) => setUsuarios(normalizarLista(valor))));
       }
       if ((aba === 'usuarios' || aba === 'perfis') && controlador.possuiPermissao('configuracoes.visualizar')) {
         tarefas.push(listarPerfis().then((valor) => setPerfis(normalizarLista(valor))));
@@ -1584,6 +1628,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         );
         if (!operacoesUsuario.includes(area) && !textoArea.includes(area)) return false;
       }
+      if (acesso === 'parado30' && situacaoUsuario(usuario).chave !== 'parado30') return false;
       if (acesso === 'sem_acesso' && usuario?.ultimo_acesso) return false;
       if (acesso === 'recentes') {
         const data = new Date(usuario?.ultimo_acesso);
@@ -1808,7 +1853,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     const podeBloquear = controlador.possuiPermissao('usuarios.bloquear');
     const podeDesbloquear = controlador.possuiPermissao('usuarios.desbloquear');
     const podeSalvar = formUsuario.id_usuario ? podeEditar : podeCriar;
-    const bloqueadoLeitura = !criandoUsuario && !modoEdicaoUsuario;
     const totalUsuarios = usuariosFiltrados.length;
     const statusAtivo = normalizarBusca(formUsuario.status) === 'ativo';
     const statusBloqueado = normalizarBusca(formUsuario.status) === 'bloqueado';
@@ -1825,455 +1869,300 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       setPaginaUsuarios(1);
     };
 
+    // Desenho novo (DEC-072): título + "Criar usuário", filtros na faixa de cima da
+    // caixa branca, tabela densa de 25 por página e janela de 600 px já editável.
+    const somenteLeitura = !podeSalvar;
+    const provedorAtual = normalizarBusca(formUsuario.provedor_autenticacao) || 'local';
+    const situacaoDoForm = situacaoUsuario(formUsuario);
+    const operacoesDoUsuario = (usuario) => {
+      const lista = Array.isArray(usuario?.operacoes) ? usuario.operacoes : [];
+      if (!lista.length) return '—';
+      return lista.map((chave) => operacoesDisponiveis.find((op) => (op.chave || op.nome) === chave)?.nome || chave).join(' · ');
+    };
+    const menuLinha = (usuario) => {
+      const status = normalizarBusca(usuario.status);
+      return [
+        { label: 'Abrir', icon: 'pencil-simple', onClick: () => selecionarUsuario(usuario) },
+        status === 'bloqueado'
+          ? (podeDesbloquear ? { label: 'Desbloquear', icon: 'lock-open', onClick: () => alterarStatus(usuario, 'desbloquear') } : null)
+          : (podeBloquear ? { label: 'Bloquear', icon: 'lock', onClick: () => alterarStatus(usuario, 'bloquear') } : null),
+        status === 'ativo' && podeEditar ? { label: 'Desativar', icon: 'prohibit', perigo: true, onClick: () => desativarUsuario(usuario) } : null,
+      ];
+    };
+    const acoesExtras = [
+      { label: 'Cadastro em massa', icon: 'tray-arrow-up', disabled: !podeCriar, onClick: () => setCadastrandoEmMassa(true) },
+      areaAtiva(AREA_PROCESSOS) ? { label: 'Criar usuário rápido', icon: 'user-plus', disabled: !podeCriar, onClick: abrirCriacaoUsuarioRapido } : null,
+      ehAdministrador ? { label: 'Transferir supervisão', icon: 'arrows-left-right', onClick: () => setTransferindoSupervisao(true) } : null,
+      ehAdministrador ? { label: 'Transferir de operação', icon: 'arrow-right', onClick: () => setTransferindoOperacao(true) } : null,
+    ];
+    const situacaoFiltro = filtrosUsuarios.acesso === 'parado30' ? 'parado30' : normalizarBusca(filtrosUsuarios.status);
+    const mudarSituacaoFiltro = (valor) => {
+      setFiltrosUsuarios((atuais) => ({
+        ...atuais,
+        status: valor && valor !== 'parado30' ? valor.charAt(0).toUpperCase() + valor.slice(1) : '',
+        acesso: valor === 'parado30' ? 'parado30' : '',
+      }));
+      setPaginaUsuarios(1);
+    };
+    const { paginaAtual, totalPaginas, totalItens } = paginacaoUsuarios;
+    const primeiroItem = totalItens ? (paginaAtual - 1) * tamanhoPaginaUsuarios + 1 : 0;
+    const ultimoItem = Math.min(paginaAtual * tamanhoPaginaUsuarios, totalItens);
+    const quandoCriado = formUsuario.criado_em ? formatarAcessoCurto(formUsuario.criado_em) : '';
+
     return html`
-      <div class="settings-admin-shell users-modern-page">
-        <section class="users-modern-panel">
-          ${controlador.possuiPermissao('usuarios.alterar_email') && solicitacoesEmailPendentes.length > 0
-        ? html`
-                <section class="c24-card settings-ambiente-section">
-                  <h3>Solicitações de e-mail pendentes</h3>
-                  <p class="settings-notifications-hint">
-                    Alterações de e-mail solicitadas pelos usuários aguardando sua aprovação.
-                  </p>
-                  <div class="settings-notif-list">
-                    ${solicitacoesEmailPendentes.map(
-          (solicitacao) => html`
-                        <div class="settings-notif-row" key=${solicitacao.id}>
-                          <span>
-                            <strong>${solicitacao.nome_usuario || solicitacao.login_usuario || 'Usuário'}</strong>
-                            <small>${solicitacao.email_atual || '—'} → ${solicitacao.email_novo}</small>
-                          </span>
-                          <div class="settings-card-actions">
-                            <button
-                              type="button"
-                              class="btn btn-primary btn-sm"
-                              disabled=${decidindoSolicitacaoEmailId === String(solicitacao.id)}
-                              onClick=${() => aprovarSolicitacaoEmailAmbiente(solicitacao.id)}
-                            >
-                              Aprovar
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-outline-secondary btn-sm"
-                              disabled=${decidindoSolicitacaoEmailId === String(solicitacao.id)}
-                              onClick=${() => rejeitarSolicitacaoEmailAmbiente(solicitacao.id)}
-                            >
-                              Rejeitar
-                            </button>
-                          </div>
-                        </div>
-                      `,
-        )}
-                  </div>
-                </section>
-              `
-        : null}
+      <main class="c-pagina c-conteudo c-usuarios">
+        <div class="c-cab-linha">
+          <h1>Usuários</h1>
+          <div class="c-cab-dir">
+            <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${!podeCriar || null} onClick=${iniciarNovoUsuario}>
+              <${Ic} nome="plus" />Criar usuário
+            </button>
+            <${MenuAcoes} rotulo="Mais ações de usuários" acoes=${acoesExtras} classeBotao="c-botao c-botao--secundario c-botao--icone c-botao--compacto" />
+          </div>
+        </div>
 
-          <div class="users-modern-count">${totalUsuarios} ${totalUsuarios === 1 ? 'resultado' : 'resultados'}</div>
+        ${erro && !drawerUsuarioAberto ? html`<${Faixa} tom="perigo" icone="warning-octagon">${erro}<//>` : null}
+        ${feedback ? html`<${Faixa} tom="sucesso" icone="check-circle">${feedback}<//>` : null}
 
-          <div class="users-modern-toolbar">
-            <label class="users-search-field">
-              <${Icone} name="search" />
+        ${controlador.possuiPermissao('usuarios.alterar_email') && solicitacoesEmailPendentes.length > 0
+      ? html`
+              <div class="c-tabela-caixa">
+                <div class="c-filtros c-filtros--suave"><strong class="c-usuarios-pedidos">Pedidos de troca de e-mail · ${solicitacoesEmailPendentes.length}</strong></div>
+                <table class="c-tabela c-tabela--justa">
+                  <tbody>
+                    ${solicitacoesEmailPendentes.map((solicitacao) => html`
+                      <tr key=${solicitacao.id}>
+                        <td class="c-forte">${solicitacao.nome_usuario || solicitacao.login_usuario || 'Usuário'}</td>
+                        <td class="c-secundario">${solicitacao.email_atual || '—'}</td>
+                        <td>${solicitacao.email_novo}</td>
+                        <td class="c-estica"></td>
+                        <td class="c-acoes c-usuarios-decidir">
+                          <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${decidindoSolicitacaoEmailId === String(solicitacao.id) || null} onClick=${() => rejeitarSolicitacaoEmailAmbiente(solicitacao.id)}>Recusar</button>
+                          <button type="button" class="c-botao c-botao--principal c-botao--compacto" disabled=${decidindoSolicitacaoEmailId === String(solicitacao.id) || null} onClick=${() => aprovarSolicitacaoEmailAmbiente(solicitacao.id)}>Aprovar</button>
+                        </td>
+                      </tr>
+                    `)}
+                  </tbody>
+                </table>
+              </div>
+            `
+      : null}
+
+        <div class="c-tabela-caixa">
+          <div class="c-filtros c-filtros--suave">
+            <div class="c-com-icone c-com-icone--compacta c-busca">
+              <${Ic} nome="magnifying-glass" />
               <input
-                class="form-control"
-                placeholder="Pesquisar usuário"
+                class="c-entrada c-entrada--compacta"
+                type="search"
+                placeholder="Nome ou e-mail"
+                aria-label="Buscar por nome ou e-mail"
                 value=${filtrosUsuarios.busca}
                 onInput=${(event) => atualizarFiltroUsuario('busca', event.target.value)}
               />
-            </label>
-
-            <div class="users-filter-menu">
-              <button
-                type="button"
-                class="btn btn-outline-secondary btn-sm users-filter-btn"
-                aria-expanded=${painelFiltrosUsuariosAberto}
-                onClick=${() => setPainelFiltrosUsuariosAberto((aberto) => !aberto)}
-              >
-                <${Icone} name="filter_alt" />
-                Filtros
-                ${filtrosUsuariosAtivos ? html`<span class="users-filter-count">${filtrosUsuariosAtivos}</span>` : null}
-              </button>
-              ${painelFiltrosUsuariosAberto
-        ? html`
-                    <div class="users-filter-panel" role="dialog" aria-label="Filtros de usuários">
-                      <label>
-                        <span>Status</span>
-                        <select
-                          class="form-select"
-                          value=${filtrosUsuarios.status}
-                          onChange=${(event) => atualizarFiltroUsuario('status', event.target.value)}
-                        >
-                          ${STATUS_USUARIO.map(
-          (status) => html`<option key=${status || 'todos'} value=${status}>${status || 'Todos'}</option>`,
-        )}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Perfil</span>
-                        <select
-                          class="form-select"
-                          value=${filtrosUsuarios.perfil}
-                          onChange=${(event) => atualizarFiltroUsuario('perfil', event.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          ${perfisVisiveis.map(
-          (perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`,
-        )}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Operação</span>
-                        <select
-                          class="form-select"
-                          value=${filtrosUsuarios.area}
-                          onChange=${(event) => atualizarFiltroUsuario('area', event.target.value)}
-                        >
-                          <option value="">Todas</option>
-                          ${operacoesDisponiveis.map(
-          (operacao) => html`<option key=${operacao.id_item} value=${operacao.chave || operacao.nome}>${operacao.nome}</option>`,
-        )}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Acesso</span>
-                        <select
-                          class="form-select"
-                          value=${filtrosUsuarios.acesso}
-                          onChange=${(event) => atualizarFiltroUsuario('acesso', event.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          <option value="recentes">Últimos 7 dias</option>
-                          <option value="sem_acesso">Sem acesso</option>
-                        </select>
-                      </label>
-                    </div>
-                  `
-        : null}
             </div>
-
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm users-clear-btn"
-              disabled=${!filtrosUsuariosAtivos}
-              onClick=${limparFiltrosUsuarios}
-            >
-              Limpar tudo
-            </button>
+            <select class="c-entrada c-entrada--compacta" aria-label="Perfil" value=${filtrosUsuarios.perfil} onChange=${(event) => atualizarFiltroUsuario('perfil', event.target.value)}>
+              <option value="">Perfil: todos</option>
+              ${perfisVisiveis.map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
+            </select>
+            <select class="c-entrada c-entrada--compacta" aria-label="Operação" value=${filtrosUsuarios.area} onChange=${(event) => atualizarFiltroUsuario('area', event.target.value)}>
+              <option value="">Operação: todas</option>
+              ${operacoesDisponiveis.map((operacao) => html`<option key=${operacao.id_item} value=${operacao.chave || operacao.nome}>${operacao.nome}</option>`)}
+            </select>
+            <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${situacaoFiltro} onChange=${(event) => mudarSituacaoFiltro(event.target.value)}>
+              <option value="">Situação: todas</option>
+              <option value="ativo">Ativos</option>
+              <option value="inativo">Inativos</option>
+              <option value="bloqueado">Bloqueados</option>
+              <option value="parado30">Sem acesso há 30 dias</option>
+            </select>
+            ${filtrosUsuariosAtivos
+      ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${limparFiltrosUsuarios}>Limpar</button>`
+      : null}
           </div>
 
           ${linhasUsuarios.length
-        ? html`
-                <div class="users-table-shell">
-                  <table class="users-modern-table">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Perfil</th>
-                        <th>Status</th>
-                        <th>E-mail</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${linhasUsuarios.map(
-          ({ usuario, idUsuario, selecionado }) => html`
-                          <tr
-                            key=${idUsuario || textoSeguro(usuario.email, textoSeguro(usuario.login, 'usuario'))}
-                            class=${`users-row-clickable ${selecionado ? 'is-selected' : ''}`.trim()}
-                            tabIndex="0"
-                            role="button"
-                            aria-label=${`Ver informações de ${textoSeguro(usuario.nome, 'usuário')}`}
-                            onClick=${() => selecionarUsuario(usuario)}
-                            onKeyDown=${(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                selecionarUsuario(usuario);
-              }
-            }}
-                          >
-                            <td><span class="users-name-text">${textoSeguro([usuario.nome, usuario.sobrenome].filter(Boolean).join(' '))}</span></td>
-                            <td>${textoSeguro(usuario.perfil_nome, textoSeguro(usuario.perfil))}</td>
-                            <td><${Badge} label=${textoSeguro(usuario.status, 'Sem status')} tone=${obterStatusTone(textoSeguro(usuario.status, ''))} /></td>
-                            <td>${textoSeguro(usuario.email, textoSeguro(usuario.login))}</td>
-                          </tr>
-                        `,
-        )}
-                    </tbody>
-                  </table>
-                </div>
-                <div class="users-pagination-bar">
-                  <${PaginacaoCompacta}
-                    paginacao=${paginacaoUsuarios}
-                    label=${`Mostrando ${obterIntervaloPaginacao(paginacaoUsuarios)} de ${paginacaoUsuarios.totalItens} resultados`}
-                    onChange=${setPaginaUsuarios}
-                  />
-                  <label class="users-page-size">
-                    Por página
-                    <select
-                      class="form-select"
-                      value=${tamanhoPaginaUsuarios}
-                      onChange=${(event) => {
-        setTamanhoPaginaUsuarios(Number(event.target.value));
-        setPaginaUsuarios(1);
-      }}
-                    >
-                      ${[7, 15, 30, 50].map((tamanho) => html`<option key=${tamanho} value=${tamanho}>${tamanho}</option>`)}
-                    </select>
-                  </label>
-                </div>
-              `
-        : html`
-                <${EmptyPanel}
-                  icon="groups"
-                  title="Sem usuários"
-                  text="Nenhum usuário corresponde aos filtros atuais."
-                  action=${html`<button type="button" class="btn btn-primary btn-sm" disabled=${!podeCriar} onClick=${iniciarNovoUsuario}>Criar usuário</button>`}
-                />
-              `}
-        </section>
-
-        <${ModalPadrao}
-          aberto=${drawerUsuarioAberto}
-          titulo=${criandoUsuario ? 'Criar usuário' : 'Editar usuário'}
-          subtitulo=${nomeDrawer}
-          onClose=${fecharDrawerUsuario}
-          acaoCabecalho=${!criandoUsuario && podeEditar
-        ? html`
-                <button
-                  type="button"
-                  class=${`btn btn-sm ${modoEdicaoUsuario ? 'btn-outline-secondary' : 'btn-primary'}`.trim()}
-                  onClick=${() => setModoEdicaoUsuario((atual) => !atual)}
-                >
-                  <${Icone} name=${modoEdicaoUsuario ? 'lock_open' : 'edit'} />
-                  ${modoEdicaoUsuario ? 'Edição liberada' : 'Editar'}
-                </button>
-              `
-        : null}
-        >
-          <form class="users-drawer-form" onSubmit=${salvarUsuario}>
-            <div class="users-drawer-body">
-              <div class="users-drawer-form-grid">
-              <label>
-                        <span>Nome</span>
-                        <input
-                          class="form-control"
-                          required
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.nome}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, nome: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Perfil</span>
-                        <select
-                          class="form-select"
-                          required
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.perfil}
-                          onChange=${(event) => setFormUsuario({ ...formUsuario, perfil: event.target.value })}
+      ? html`
+                <table class="c-tabela c-tabela--justa c-usuarios-tabela">
+                  <thead>
+                    <tr>
+                      <th class="c-col-nome">Nome</th>
+                      <th>E-mail</th>
+                      <th>Perfil</th>
+                      <th>Operação</th>
+                      <th>Entrada</th>
+                      <th>Último acesso</th>
+                      <th class="c-estica">Situação</th>
+                      <th class="c-acoes"><span class="c-oculto">Ações</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${linhasUsuarios.map(({ usuario, idUsuario }) => {
+        const situacao = situacaoUsuario(usuario);
+        return html`
+                        <tr
+                          key=${idUsuario || textoSeguro(usuario.email, textoSeguro(usuario.login, 'usuario'))}
+                          class="c-clicavel"
+                          tabIndex="0"
+                          aria-label=${`Abrir ${textoSeguro(usuario.nome, 'usuário')}`}
+                          onClick=${(event) => { if (!event.target.closest('.c-acoes')) selecionarUsuario(usuario); }}
+                          onKeyDown=${(event) => {
+          if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
+            event.preventDefault();
+            selecionarUsuario(usuario);
+          }
+        }}
                         >
+                          <td class="c-forte">${textoSeguro([usuario.nome, usuario.sobrenome].filter(Boolean).join(' '))}</td>
+                          <td class="c-secundario">${textoSeguro(usuario.email, textoSeguro(usuario.login))}</td>
+                          <td>${textoSeguro(usuario.perfil_nome, textoSeguro(usuario.perfil))}</td>
+                          <td>${operacoesDoUsuario(usuario)}</td>
+                          <td class="c-secundario">${rotuloEntrada(usuario.provedor_autenticacao)}</td>
+                          <td>${usuario.ultimo_acesso ? formatarAcessoCurto(usuario.ultimo_acesso) : html`<span class="c-secundario">nunca</span>`}</td>
+                          <td><${Selo} tom=${situacao.tom} icone=${situacao.icone}>${situacao.rotulo}<//></td>
+                          <td class="c-acoes"><${MenuAcoes} acoes=${menuLinha(usuario)} /></td>
+                        </tr>
+                      `;
+      })}
+                  </tbody>
+                </table>
+                <div class="c-legenda">
+                  <span>${primeiroItem}–${ultimoItem} de ${totalItens}</span>
+                  ${totalPaginas > 1
+        ? html`<span class="c-usuarios-paginas">
+                        <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Página anterior" title="Página anterior" disabled=${paginaAtual <= 1 || null} onClick=${() => setPaginaUsuarios(paginaAtual - 1)}><${Ic} nome="caret-left" /></button>
+                        <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Próxima página" title="Próxima página" disabled=${paginaAtual >= totalPaginas || null} onClick=${() => setPaginaUsuarios(paginaAtual + 1)}><${Ic} nome="caret-right" /></button>
+                      </span>`
+        : null}
+                </div>
+              `
+      : html`<${Estado}
+                icone="users"
+                titulo=${filtrosUsuariosAtivos ? 'Nenhum usuário com esses filtros' : 'Nenhum usuário ainda'}
+                rotuloAcao=${filtrosUsuariosAtivos ? 'Limpar filtros' : (podeCriar ? 'Criar usuário' : '')}
+                aoAcao=${filtrosUsuariosAtivos ? limparFiltrosUsuarios : iniciarNovoUsuario}
+              />`}
+        </div>
+
+        ${drawerUsuarioAberto
+      ? html`
+              <div class="c-fundo-janela c-ds" onMouseDown=${(event) => { if (event.target === event.currentTarget && !salvando) fecharDrawerUsuario(); }}>
+                <form class="c-janela c-janela-usuario" role="dialog" aria-modal="true" aria-label=${criandoUsuario ? 'Criar usuário' : `Editar ${nomeDrawer}`} noValidate onSubmit=${salvarUsuario}>
+                  <div class="c-janela-cab">
+                    <h2>
+                      ${criandoUsuario ? 'Criar usuário' : [formUsuario.nome, formUsuario.sobrenome].filter(Boolean).join(' ') || nomeDrawer}
+                      ${!criandoUsuario
+          ? html`<small>
+                            ${formUsuario.ultimo_acesso ? `Último acesso ${formatarAcessoCurto(formUsuario.ultimo_acesso)}` : 'Nunca entrou'}
+                            ${quandoCriado ? ` · criado ${quandoCriado}${formUsuario.criado_por ? ` por ${formUsuario.criado_por}` : ''}` : ''}
+                          </small>`
+          : null}
+                    </h2>
+                    <button type="button" class="c-botao c-botao--texto c-botao--icone c-janela-fechar" aria-label="Fechar" title="Fechar" onClick=${fecharDrawerUsuario}><${Ic} nome="x" /></button>
+                  </div>
+                  <div class="c-janela-corpo">
+                    <fieldset class="c-form c-usuario-form" style=${{ '--colunas': 2 }} disabled=${somenteLeitura || null}>
+                      <${Campo} rotulo="Nome">
+                        <input class="c-entrada" required value=${formUsuario.nome} onInput=${(event) => setFormUsuario({ ...formUsuario, nome: event.target.value })} />
+                      <//>
+                      <${Campo} rotulo="Sobrenome" opcional=${true}>
+                        <input class="c-entrada" value=${formUsuario.sobrenome} onInput=${(event) => setFormUsuario({ ...formUsuario, sobrenome: event.target.value })} />
+                      <//>
+                      <${Campo} rotulo="E-mail">
+                        <input class="c-entrada" type="email" required value=${formUsuario.email} onInput=${(event) => setFormUsuario({ ...formUsuario, email: event.target.value })} />
+                      <//>
+                      <${Campo} rotulo="Login" opcional=${true}>
+                        <input class="c-entrada" placeholder="Usa o e-mail" value=${formUsuario.login} onInput=${(event) => setFormUsuario({ ...formUsuario, login: event.target.value })} />
+                      <//>
+                      <${Campo} rotulo="Perfil">
+                        <select class="c-entrada" required value=${formUsuario.perfil} onChange=${(event) => setFormUsuario({ ...formUsuario, perfil: event.target.value })}>
                           ${perfis
           .filter((perfil) => !perfil.oculto || perfil.id === formUsuario.perfil)
           .map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
                         </select>
-                      </label>
-                      <label>
-                        <span>Sobrenome</span>
-                        <input
-                          class="form-control"
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.sobrenome}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, sobrenome: event.target.value })}
+                      <//>
+                      <${Campo} rotulo="Cargo" opcional=${true}>
+                        <input class="c-entrada" placeholder="Ex.: Supervisora de atendimento" value=${formUsuario.cargo} onInput=${(event) => setFormUsuario({ ...formUsuario, cargo: event.target.value })} />
+                      <//>
+                      <div class="c-campo c-cheio c-usuario-vinculos">
+                        <${CamposVinculosMonitoria}
+                          perfil=${formUsuario.perfil}
+                          idUsuario=${criandoUsuario ? '' : formUsuario.id_usuario}
+                          operacoes=${Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : []}
+                          setOperacoes=${(lista) => setFormUsuario((atual) => ({ ...atual, operacoes: lista }))}
+                          operacoesDisponiveis=${operacoesDisponiveis}
+                          vinculos=${vinculosMon}
+                          setVinculos=${setVinculosMon}
+                          bloqueado=${somenteLeitura}
                         />
-                      </label>
-                      <label class="users-toggle-row">
-                        <span>${statusAtivo ? 'Usuário ativo' : 'Usuário inativo'}</span>
-                        <button
-                          type="button"
-                          class=${`users-switch ${statusAtivo ? 'is-on' : ''}`.trim()}
-                          role="switch"
-                          aria-checked=${statusAtivo}
-                          disabled=${bloqueadoLeitura}
-                          onClick=${() => setFormUsuario({ ...formUsuario, status: statusAtivo ? 'Inativo' : 'Ativo' })}
-                        >
-                          <i></i>
-                        </button>
-                      </label>
-                      <label>
-                        <span>E-mail</span>
-                        <input
-                          class="form-control"
-                          type="email"
-                          required
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.email}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, email: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Cargo</span>
-                        <input
-                          class="form-control"
-                          placeholder="Ex.: Analista de RH Pleno"
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.cargo}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, cargo: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Login</span>
-                        <input
-                          class="form-control"
-                          placeholder="Padrão: usa o e-mail"
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.login}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, login: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        <span>Tipo de acesso</span>
-                        <${SelectMultiplo}
-                          rotulo="Tipo de acesso"
-                          desabilitado=${bloqueadoLeitura}
-                          placeholder="Selecione"
-                          opcoes=${[{ valor: 'local', rotulo: 'Login' }, { valor: 'microsoft', rotulo: 'Microsoft' }]}
-                          valores=${valoresTipoAcesso(formUsuario.provedor_autenticacao)}
-                          onChange=${(marcados) => {
-          if (!marcados.length) return; // sempre fica ao menos um tipo de acesso
-          const provedor = marcados.length > 1 ? 'ambos' : marcados[0];
-          setFormUsuario({ ...formUsuario, provedor_autenticacao: provedor, senha: provedor === 'microsoft' ? '' : formUsuario.senha });
-        }}
-                        />
-                        <small class="text-muted">
-                          ${acessoMicrosoft
-          ? 'Entra só pelo botão "Entrar com a Microsoft", com o e-mail corporativo cadastrado acima (não tem senha no Conecta). Login e senha são recusados.'
-          : normalizarBusca(formUsuario.provedor_autenticacao) === 'ambos'
-            ? 'Pode entrar com login e senha ou pela Microsoft.'
-            : 'Entra só com login e senha (a Microsoft é recusada). No primeiro acesso a pessoa troca a senha inicial.'}
-                        </small>
-                      </label>
-                      <${CamposVinculosMonitoria}
-                        perfil=${formUsuario.perfil}
-                        idUsuario=${criandoUsuario ? '' : formUsuario.id_usuario}
-                        operacoes=${Array.isArray(formUsuario.operacoes) ? formUsuario.operacoes : []}
-                        setOperacoes=${(lista) => setFormUsuario((atual) => ({ ...atual, operacoes: lista }))}
-                        operacoesDisponiveis=${operacoesDisponiveis}
-                        vinculos=${vinculosMon}
-                        setVinculos=${setVinculosMon}
-                        bloqueado=${bloqueadoLeitura}
-                      />
-                      ${!acessoMicrosoft && (criandoUsuario || (podeRedefinirSenha && !bloqueadoLeitura))
-        ? html`
-                            <label class="users-drawer-field-wide">
-                              <span>${criandoUsuario ? 'Senha inicial' : 'Nova senha (opcional)'}</span>
-                              <input
-                                class="form-control"
-                                type="password"
-                                required=${criandoUsuario}
-                                placeholder=${criandoUsuario ? '' : 'Deixe em branco para manter a senha atual'}
-                                value=${formUsuario.senha}
-                                onInput=${(event) => setFormUsuario({ ...formUsuario, senha: event.target.value })}
-                              />
-                              ${!criandoUsuario ? html`<small class="text-muted">${formUsuario.possui_senha ? 'Este usuário já tem senha definida. Por segurança ela nunca é exibida.' : 'Este usuário ainda não tem senha local definida.'}</small>` : null}
-                            </label>
-                          `
-        : !acessoMicrosoft && !criandoUsuario
-          ? html`
-                            <label class="users-drawer-field-wide">
-                              <span>Senha</span>
-                              <input class="form-control" type="text" disabled value=${formUsuario.possui_senha ? 'Senha definida (oculta por segurança)' : 'Sem senha local definida'} />
-                              ${podeRedefinirSenha ? html`<small class="text-muted">Para trocar, clique em Editar e preencha "Nova senha".</small>` : null}
-                            </label>
-                          `
-          : null}
-                      <label class="users-drawer-field-wide">
-                        <span>Justificativa</span>
-                        <textarea
-                          class="form-control"
-                          rows="3"
-                          placeholder="Obrigatória para alterações sensíveis"
-                          disabled=${bloqueadoLeitura}
-                          value=${formUsuario.justificativa}
-                          onInput=${(event) => setFormUsuario({ ...formUsuario, justificativa: event.target.value })}
-                        ></textarea>
-                      </label>
                       </div>
-
-                      ${formUsuario.id_usuario && (podeBloquear || podeDesbloquear || podeRedefinirSenha || podeExcluir)
-        ? html`
-                            <div class="users-critical-actions">
-                              ${statusBloqueado
-            ? podeDesbloquear
-              ? html`
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-secondary btn-sm"
-                                        onClick=${() => alterarStatus(formUsuario, 'desbloquear')}
-                                      >
-                                        <span class="material-symbols-outlined">${IconeSvg('lock_open')}</span>
-                                        Desbloquear usuário
-                                      </button>
-                                    `
-              : null
-            : podeBloquear
-              ? html`
-                                      <button
-                                        type="button"
-                                        class="btn btn-outline-secondary btn-sm"
-                                        onClick=${() => alterarStatus(formUsuario, 'bloquear')}
-                                      >
-                                        <span class="material-symbols-outlined">${IconeSvg('lock')}</span>
-                                        Bloquear usuário
-                                      </button>
-                                    `
-              : null}
-                              ${podeRedefinirSenha
+                      <div class="c-campo">
+                        <span class="c-rotulo">Entrada</span>
+                        <${Segmento}
+                          rotulo="Tipo de acesso"
+                          valor=${provedorAtual}
+                          opcoes=${[['microsoft', 'Microsoft'], ['local', 'Senha'], ['ambos', 'Os dois']]}
+                          aoMudar=${(valor) => setFormUsuario({ ...formUsuario, provedor_autenticacao: valor, senha: valor === 'microsoft' ? '' : formUsuario.senha })}
+                        />
+                        <span class="c-ajuda">${provedorAtual === 'microsoft'
+            ? 'Entra só pelo botão da Microsoft. Sem senha no Conecta.'
+            : provedorAtual === 'ambos'
+              ? 'Pode entrar com login e senha ou pela Microsoft.'
+              : 'Entra só com login e senha. Troca a senha no 1º acesso.'}</span>
+                      </div>
+                      <div class="c-campo">
+                        <span class="c-rotulo">Situação</span>
+                        ${normalizarBusca(formUsuario.status) === 'bloqueado'
+            ? html`<span><${Selo} tom="perigo" icone="lock">Bloqueado<//></span>`
+            : html`<label class="c-interruptor">
+                              <input type="checkbox" role="switch" checked=${statusAtivo} onChange=${() => setFormUsuario({ ...formUsuario, status: statusAtivo ? 'Inativo' : 'Ativo' })} />
+                              ${statusAtivo ? 'Ativo' : 'Inativo'}
+                            </label>`}
+                        ${!criandoUsuario && situacaoDoForm.chave === 'parado30' ? html`<span class="c-ajuda">Sem acesso há 30 dias ou mais.</span>` : null}
+                      </div>
+                      ${!acessoMicrosoft && (criandoUsuario || podeRedefinirSenha)
             ? html`
-                                    <button
-                                      type="button"
-                                      class="btn btn-outline-secondary btn-sm"
-                                      onClick=${() => redefinirMfa(formUsuario)}
-                                    >
-                                      <span class="material-symbols-outlined">${IconeSvg('restart_alt')}</span>
-                                      Redefinir MFA
-                                    </button>
-                                  `
-            : null}
-                              ${podeExcluir
-            ? confirmandoExclusaoUsuario
-              ? html`
-                                    <span class="users-delete-confirm">
-                                      <span>Excluir permanentemente?</span>
-                                      <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(false)}>
-                                        Cancelar
-                                      </button>
-                                      <button type="button" class="btn btn-danger btn-sm" disabled=${salvando} onClick=${excluirUsuarioSelecionado}>
-                                        Confirmar exclusão
-                                      </button>
-                                    </span>
-                                  `
-              : html`
-                                    <button type="button" class="btn btn-danger btn-sm" disabled=${salvando} onClick=${() => setConfirmandoExclusaoUsuario(true)}>
-                                      <span class="material-symbols-outlined">${IconeSvg('delete')}</span>
-                                      Excluir usuário
-                                    </button>
-                                  `
-            : null}
-                            </div>
+                            <${Campo}
+                              rotulo=${criandoUsuario ? 'Senha inicial' : 'Nova senha'}
+                              opcional=${!criandoUsuario}
+                              ajuda=${criandoUsuario ? '' : (formUsuario.possui_senha ? 'Deixe em branco para manter a senha atual.' : 'Ainda não tem senha no Conecta.')}
+                              cheio=${true}
+                            >
+                              <input class="c-entrada" type="password" autocomplete="new-password" required=${criandoUsuario} value=${formUsuario.senha} onInput=${(event) => setFormUsuario({ ...formUsuario, senha: event.target.value })} />
+                            <//>
                           `
-        : null}
-            </div>
-
-            ${erro ? html`<div class="alert alert-danger c24-feedback users-drawer-alert" role="alert">${erro}</div>` : null}
-            <footer class="rh-modal-footer">
-              <button type="button" class="btn btn-outline-secondary" disabled=${salvando} onClick=${fecharDrawerUsuario}>
-                Cancelar
-              </button>
-              <button type="submit" class="btn btn-primary" disabled=${salvando || !podeSalvar || bloqueadoLeitura}>
-                ${salvando ? 'Salvando...' : 'Salvar'}
-              </button>
-            </footer>
-          </form>
-        </${ModalPadrao}>
+            : null}
+                      <${Campo} rotulo="Motivo da alteração" ajuda="Fica no Registro de alterações." cheio=${true} opcional=${criandoUsuario}>
+                        <input class="c-entrada" placeholder="Ex.: mudou de operação" value=${formUsuario.justificativa} onInput=${(event) => setFormUsuario({ ...formUsuario, justificativa: event.target.value })} />
+                      <//>
+                    </fieldset>
+                    ${erro ? html`<div class="c-faixa c-faixa--perigo c-usuario-erro" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
+                  </div>
+                  <div class="c-janela-rodape">
+                    ${formUsuario.id_usuario
+            ? html`<div class="c-esq">
+                          ${statusBloqueado
+                ? (podeDesbloquear ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => alterarStatus(formUsuario, 'desbloquear')}><${Ic} nome="lock-open" />Desbloquear</button>` : null)
+                : (podeBloquear ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => alterarStatus(formUsuario, 'bloquear')}><${Ic} nome="lock" />Bloquear</button>` : null)}
+                          ${podeRedefinirSenha ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => redefinirMfa(formUsuario)}>Redefinir MFA</button>` : null}
+                          ${podeExcluir
+                ? (confirmandoExclusaoUsuario
+                  ? html`<span class="c-usuario-excluir">
+                                  <span>Excluir de vez?</span>
+                                  <button type="button" class="c-botao c-botao--texto c-botao--compacto" disabled=${salvando || null} onClick=${() => setConfirmandoExclusaoUsuario(false)}>Não</button>
+                                  <button type="button" class="c-botao c-botao--perigo c-botao--compacto" disabled=${salvando || null} onClick=${excluirUsuarioSelecionado}>Sim, excluir</button>
+                                </span>`
+                  : html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-usuario-excluir-btn" disabled=${salvando || null} onClick=${() => setConfirmandoExclusaoUsuario(true)}>Excluir</button>`)
+                : null}
+                        </div>`
+            : null}
+                    <button type="button" class="c-botao c-botao--secundario" disabled=${salvando || null} onClick=${fecharDrawerUsuario}>Cancelar</button>
+                    <button type="submit" class="c-botao c-botao--principal" aria-busy=${salvando ? 'true' : null} disabled=${salvando || somenteLeitura || null}>${salvando ? 'Salvando…' : criandoUsuario ? 'Criar usuário' : 'Salvar'}</button>
+                  </div>
+                </form>
+              </div>
+            `
+      : null}
 
         <${ModalPadrao}
           aberto=${drawerUsuarioRapidoAberto}
@@ -2357,7 +2246,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             </footer>
           </form>
         </${ModalPadrao}>
-      </div>
+      </main>
     `;
   };
 
@@ -2381,23 +2270,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       <${PerfisPermissoes}
         perfis=${perfisVisiveis}
         permissoes=${permissoes}
-        grupos=${permissoesPorModulo}
-        sessoes=${SESSOES_PERMISSAO}
         ordemModulos=${ORDEM_MODULOS_PERMISSAO}
         nomesModulos=${NOME_MODULO_PERMISSAO}
-        iconePerfil=${(id) => ICONE_POR_PERFIL[id] || 'badge'}
         perfilId=${perfilSelecionado?.id || ''}
         aoSelecionarPerfil=${selecionarPerfilPermissoes}
-        sessaoId=${sessaoPermissaoAtiva}
-        aoSelecionarSessao=${setSessaoPermissaoAtiva}
         draft=${permissoesPerfilDraft}
         desbloqueado=${perfisDesbloqueados}
         podeEditar=${podeEditarPerfis}
         aoDesbloquear=${() => setPerfisDesbloqueados((atual) => !atual)}
         aoAlternar=${alternarPermissao}
         aoGrupo=${alterarGrupoPermissoes}
-        modulosVisiveis=${new Set([...modulosQueOPerfilAbre, 'core'])}
-        usuarios=${usuariosPerfilSelecionado.length}
+        contagemUsuarios=${contagemUsuariosPorPerfil}
+        usuariosCarregados=${usuarios.length > 0}
         aoVerUsuarios=${abrirUsuariosDoPerfil}
         pendentes=${alteracoesPendentesPerfil}
         salvando=${salvando}
@@ -2408,6 +2292,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         podeMover=${perfisDesbloqueados && podeEditarPerfis}
         aoMover=${moverPermissaoDeModulo}
         wfmFechado=${!!perfilSelecionado?.wfm_fechado}
+        avisos=${html`${erro ? html`<${Faixa} tom="perigo" icone="warning-octagon">${erro}<//>` : null}${feedback ? html`<${Faixa} tom="sucesso" icone="check-circle">${feedback}<//>` : null}`}
         telaInicial=${perfilSelecionado ? html`<${PainelTelaInicialPerfil} perfil=${perfilSelecionado} permissoes=${permissoesPerfilDraft} podeEditar=${podeEditarPerfis && perfisDesbloqueados} />` : null}
       />
     `;
@@ -4206,7 +4091,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       mostrarAtalhos=${false}
       buscaGlobal=${abaRenderizada !== 'perfis'}
     >
-      ${['perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
+      ${['usuarios', 'perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4246,8 +4131,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       : null}
       />`}
 
-      ${!['ambiente', 'operacoes'].includes(abaRenderizada) && erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
-      ${!['ambiente', 'operacoes'].includes(abaRenderizada) && feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
+      ${!['usuarios', 'perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) && erro && !drawerUsuarioAberto ? html`<div class="alert alert-danger c24-feedback">${erro}</div>` : null}
+      ${!['usuarios', 'perfis', 'ambiente', 'operacoes'].includes(abaRenderizada) && feedback ? html`<div class="alert alert-success c24-feedback">${feedback}</div>` : null}
       <${ModalCadastroEmMassa}
         aberto=${cadastrandoEmMassa}
         onClose=${() => setCadastrandoEmMassa(false)}

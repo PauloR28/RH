@@ -13,7 +13,6 @@ from ..repositories import DatabaseRepository
 from ..schemas.calendar import CelebratoryDateCreateRequest, CelebratoryDateUpdateRequest
 from ..services.training_uploads import CATEGORIA_IMAGEM, save_training_upload, validate_training_upload
 
-
 router = APIRouter(prefix="/celebratory-dates", tags=["calendar"], dependencies=[Depends(get_current_user)])
 events_router = APIRouter(prefix="/calendar", tags=["calendar"], dependencies=[Depends(get_current_user)])
 

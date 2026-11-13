@@ -32,6 +32,7 @@ export const MODULO_DO_GRUPO = {
   treinamentos: MODULO_CORE,
   monitoria: MODULO_OPERACAO,
   wfm: MODULO_OPERACAO,
+  diario: MODULO_OPERACAO, // Diário de bordo (08/11/2026): seção própria da Operação
 };
 
 // Itens do grupo "Configurações" -> módulo. Em Tecnologia aparecem todos; em RH/Operação só os do próprio módulo.
@@ -113,7 +114,7 @@ export const MENU_TECNOLOGIA = [
 // Grupo do menu cuja área pode estar inativa (shared/areas.js). Treinamentos/Suporte têm tratamento próprio.
 const AREA_DA_FUNCAO_DO_GRUPO = { 'cx-curriculos': AREA_CURRICULOS, processos: AREA_PROCESSOS, provas: AREA_PROVAS };
 
-export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm']);
+export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm', 'diario']);
 let funcoesPorModulo = null;
 
 export function definirFuncoesModulos(funcoes) {
@@ -132,6 +133,10 @@ export function grupoNoModulo(grupo, moduloAtual, carregado) {
   if (!carregado || !moduloAtual) return true;
   if (moduloAtual === MODULO_TECNOLOGIA) return false;
   if (FUNCOES_CONFIGURAVEIS.has(grupo) && Array.isArray(funcoesPorModulo?.[moduloAtual])) return funcoesPorModulo[moduloAtual].includes(grupo);
+  // Treinamentos é do núcleo, mas na Operação segue a tela Módulos e os módulos da operação da pessoa (item 16, 10/11).
+  if (grupo === 'treinamentos' && moduloAtual === MODULO_OPERACAO && Array.isArray(funcoesPorModulo?.[moduloAtual])) {
+    return funcoesPorModulo[moduloAtual].includes(grupo);
+  }
   const dono = MODULO_DO_GRUPO[grupo];
   return !dono || dono === MODULO_CORE || dono === moduloAtual;
 }

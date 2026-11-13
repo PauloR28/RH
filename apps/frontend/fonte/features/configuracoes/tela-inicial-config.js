@@ -4,24 +4,11 @@ import { IconeSvg } from '../../ui/icone.js';
 import {
   BLOCOS_TELA_INICIAL,
   PERFIS_INICIO_POR_SESSOES,
+  atalhosDoInicioPorPerfil,
   configTelaInicialPadrao,
   listarTelaInicialPerfis,
   salvarTelaInicialPerfil,
-} from '../../shared/tela-inicial.js';
-
-// Cards da Início por sessões (espelha SESSOES em features/monitoria/index.js).
-const SESSOES_INICIO = [
-  { id: 'curriculos', label: 'Caixa de Currículos', icone: 'badge' },
-  { id: 'processos', label: 'Processos', icone: 'checklist' },
-  { id: 'provas', label: 'Provas', icone: 'quiz' },
-  { id: 'gestao', label: 'Gestão', icone: 'analytics' },
-  { id: 'drive', label: 'Drive', icone: 'cloud' },
-  { id: 'treinamentos', label: 'Central de Treinamento', icone: 'school' },
-  { id: 'monitoria', label: 'Monitorias', icone: 'fact_check' },
-  { id: 'equipe', label: 'Equipes e Turnos', icone: 'groups' },
-  { id: 'wfm', label: 'Turnos e Plantões', icone: 'calendar_month' },
-  { id: 'configuracoes', label: 'Configurações', icone: 'settings' },
-];
+} from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
 
 // Perfis e Permissões > [perfil] > Tela inicial: quais blocos aparecem na Início
 // do perfil e em que ordem. Só esconde/reordena: um bloco sem a permissão da área
@@ -29,6 +16,7 @@ const SESSOES_INICIO = [
 export function PainelTelaInicialPerfil({ perfil, permissoes = [], podeEditar = false }) {
   const [configs, setConfigs] = useState(null);
   const [draft, setDraft] = useState([]);
+  const [ocultosDraft, setOcultosDraft] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [erro, setErro] = useState('');
@@ -48,14 +36,19 @@ export function PainelTelaInicialPerfil({ perfil, permissoes = [], podeEditar = 
     return (salvo?.blocos || configTelaInicialPadrao().blocos).map((item) => ({ ...item }));
   }, [configs, perfilId]);
 
+  const ocultosOriginal = useMemo(() => [...(configs?.perfis?.[perfilId]?.atalhos_ocultos || [])], [configs, perfilId]);
+
   useEffect(() => {
     setDraft(original);
-    setMensagem('');
-  }, [original]);
+    setOcultosDraft(ocultosOriginal);
+  }, [original, ocultosOriginal]);
+  // A mensagem de "salvo" some só ao trocar de perfil (antes sumia logo depois de salvar).
+  useEffect(() => { setMensagem(''); }, [perfilId]);
 
   const catalogo = new Map(BLOCOS_TELA_INICIAL.map((bloco) => [bloco.id, bloco]));
   const temPermissao = (bloco) => !bloco?.permissao || permissoes.includes(bloco.permissao);
-  const alterado = JSON.stringify(draft) !== JSON.stringify(original);
+  const alterado = JSON.stringify(draft) !== JSON.stringify(original)
+    || JSON.stringify([...ocultosDraft].sort()) !== JSON.stringify([...ocultosOriginal].sort());
 
   const mover = (indice, direcao) => {
     const destino = indice + direcao;
@@ -70,8 +63,8 @@ export function PainelTelaInicialPerfil({ perfil, permissoes = [], podeEditar = 
     setSalvando(true);
     setErro('');
     try {
-      const resultado = await salvarTelaInicialPerfil(perfilId, draft);
-      setConfigs((atual) => ({ ...(atual || {}), perfis: { ...(atual?.perfis || {}), [perfilId]: { blocos: resultado.blocos } } }));
+      const resultado = await salvarTelaInicialPerfil(perfilId, draft, ocultosDraft);
+      setConfigs((atual) => ({ ...(atual || {}), perfis: { ...(atual?.perfis || {}), [perfilId]: { blocos: resultado.blocos, atalhos_ocultos: resultado.atalhos_ocultos || [] } } }));
       setMensagem('Tela inicial salva. Vale no próximo acesso dos usuários deste perfil.');
     } catch (error) {
       setErro(error?.message || 'Não foi possível salvar a tela inicial.');
@@ -80,22 +73,43 @@ export function PainelTelaInicialPerfil({ perfil, permissoes = [], podeEditar = 
     }
   };
 
+  // Início por sessões (item 9 da lista de 10/11/2026, opção B): o interruptor só esconde o atalho
+  // do Início; a pessoa continua abrindo a seção pelo menu. Liberar ou bloquear a seção é na aba Sessões.
   if (porSessoes) {
-    const cards = SESSOES_INICIO.filter((sessao) => permissoes.includes(`sessao.${sessao.id}.acessar`));
+    if (!configs && !erro) return html`<p class="text-muted small mb-0">Carregando…</p>`;
+    const atalhos = atalhosDoInicioPorPerfil(perfilId, permissoes);
+    const alternarAtalho = (id) => setOcultosDraft((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]));
     return html`
       <div class="settings-home-config">
         <p class="text-muted small">
-          ${perfil?.nome || 'Este perfil'} usa a Início por sessões: cada sessão liberada em "Sessões de ${perfil?.nome || 'perfil'}" vira um card.
-          Para mudar a Início, libere ou bloqueie a sessão ao lado.
+          Escolha quais atalhos aparecem no Início de <strong>${perfil?.nome || 'este perfil'}</strong>. Desligar só tira o atalho
+          do Início: a pessoa continua abrindo a seção pelo menu. Para liberar ou bloquear a seção, use a aba de sessões.
         </p>
-        ${cards.length ? html`
+        ${erro ? html`<div class="alert alert-danger">${erro}</div>` : null}
+        ${mensagem ? html`<div class="alert alert-success">${mensagem}</div>` : null}
+        ${atalhos.length ? html`
           <ol class="settings-home-config-list">
-            ${cards.map((sessao) => html`
-              <li key=${sessao.id} class="settings-home-config-item">
-                <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(sessao.icone)}</span>
-                <span class="settings-home-config-label"><strong>${sessao.label}</strong></span>
-              </li>`)}
-          </ol>` : html`<p class="text-muted small mb-0">Nenhuma sessão liberada: a Início ficará vazia.</p>`}
+            ${atalhos.map((atalho) => {
+              const visivel = !ocultosDraft.includes(atalho.id);
+              return html`
+                <li key=${atalho.id} class=${`settings-home-config-item ${visivel ? '' : 'is-off'}`.trim()}>
+                  <${ToggleSwitch} checked=${visivel} disabled=${!podeEditar} onChange=${() => alternarAtalho(atalho.id)} />
+                  <span class="settings-home-config-label">
+                    <strong>${atalho.label}</strong>
+                    ${!visivel ? html`<small class="text-muted">Fora do Início. Continua no menu.</small>` : null}
+                  </span>
+                </li>`;
+            })}
+          </ol>` : html`<p class="text-muted small mb-0">Nenhuma sessão liberada: o Início ficará sem atalhos.</p>`}
+        <div class="settings-card-actions">
+          <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${!podeEditar || salvando || !ocultosDraft.length} onClick=${() => setOcultosDraft([])}>
+            Mostrar todos
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" disabled=${!podeEditar || salvando || !alterado} onClick=${salvar}>
+            ${salvando ? 'Salvando...' : 'Salvar tela inicial'}
+          </button>
+        </div>
+        ${!podeEditar ? html`<p class="text-muted small mt-2 mb-0">Use "Editar configurações padrão" para alterar.</p>` : null}
       </div>`;
   }
   if (!configs && !erro) return html`<p class="text-muted small mb-0">Carregando…</p>`;

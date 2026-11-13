@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from conecta.infrastructure.security.html_sanitizer import sanitize_rich_text_html
+
 from rh_api.repositories.generated_exams import GeneratedExamRepositoryMixin
 
 

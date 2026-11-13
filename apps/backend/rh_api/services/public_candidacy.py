@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import secrets
 import json
+import secrets
 import unicodedata
 import zipfile
 from dataclasses import dataclass
@@ -13,7 +13,6 @@ from fastapi import HTTPException, status
 
 from .helpers import normalize_text
 from .public_job_texts import get_default_public_job_texts
-
 
 PUBLIC_CANDIDACY_ROUTE = "candidatar"
 PUBLIC_CV_MAX_BYTES = 5 * 1024 * 1024

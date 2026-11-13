@@ -14,41 +14,41 @@ from fastapi.responses import Response, StreamingResponse
 from ..auth import AuthenticatedUser
 from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services import wfm_historico as historico
 from ..schemas.wfm import (
+    AplicarPausasRequest,
     AtestadoRequest,
     CapacidadePausasRequest,
     ConfigEscalaRequest,
-    CriarEscalaRequest,
-    DuplicarEscalaMesRequest,
-    DuplicarEscalaRequest,
-    DeclinarRequest,
-    DistribuirPausasRequest,
-    ExportarHistoricoRequest,
-    PersonalizacaoTurnoRequest,
-    PresencaLoteRequest,
-    SalvarPausasRequest,
     ContratoOperadorRequest,
     ContratoRequest,
+    CriarEscalaRequest,
+    DeclinarRequest,
+    DistribuirPausasRequest,
+    DuplicarEscalaMesRequest,
+    DuplicarEscalaRequest,
     EventoRequest,
+    ExportarHistoricoRequest,
     FecharRequest,
     HoraExtraRequest,
-    PresencaRequest,
-    PublicarRequest,
-    AplicarPausasRequest,
-    ReplicarPausasRequest,
     ImpactoDiasTurnoRequest,
     ImpactoTipoTurnoRequest,
+    PersonalizacaoTurnoRequest,
+    PresencaLoteRequest,
+    PresencaRequest,
+    PublicarRequest,
+    ReplicarPausasRequest,
     SalvarItensRequest,
+    SalvarPausasRequest,
     SkillRequest,
     SkillsOperadorRequest,
+    TipoEscalaRequest,
     TrocaDecidirRequest,
     TrocaDesfazerRequest,
     TrocaResponderRequest,
     TrocaSolicitarRequest,
-    TipoEscalaRequest,
     TurnoRequest,
 )
+from ..services import wfm_historico as historico
 
 router = APIRouter(prefix="/wfm", tags=["wfm"], dependencies=[Depends(get_current_user)])
 
@@ -185,12 +185,14 @@ def fechar(payload: FecharRequest, request: Request, user: AuthenticatedUser = D
 
 
 @router.get("/escala/exportar", dependencies=[Depends(require_permissions("wfm.escala.visualizar"))])
-def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request))
+def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str = "xlsx", todas_equipes: bool = False, ids: str | None = None, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    # `ids`: operadores visíveis na tela (separados por vírgula); ausente = todos do escopo.
+    ids_operadores = None if ids is None else [int(i) for i in ids.split(",") if i.strip().isdigit()]
+    conteudo, nome, mime = repository.wfm_exportar_escala(user, operacao, ano_mes, formato, ip=client_ip(request), todas_equipes=todas_equipes, ids_operadores=ids_operadores)
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
-_RELATORIOS_WFM = ("painel", "resumo", "escalas", "presencas", "trocas", "aprovacoes")
+_RELATORIOS_WFM = ("painel", "resumo", "escalas", "escalados", "presencas", "trocas", "aprovacoes")
 
 
 def _exigir_relatorio_wfm(user: AuthenticatedUser, tipo: str) -> None:
@@ -232,6 +234,12 @@ def listar_presencas(operacao: str, ano_mes: str, todas_equipes: bool = False, u
 @router.get("/presencas/pendencias", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
 def pendencias_presenca(operacao: str, data_ini: str, data_fim: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_pendencias_presenca(user, operacao, data_ini, data_fim)
+
+
+# Painel do dia: 1º login do dia no Conecta de quem a pessoa vê (só leitura; sem dado de ponto nem de pausa real).
+@router.get("/painel-dia/logins", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def logins_do_dia(operacao: str, data: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_logins_dia(user, operacao, data, todas_equipes=todas_equipes)
 
 
 @router.put("/presencas", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])

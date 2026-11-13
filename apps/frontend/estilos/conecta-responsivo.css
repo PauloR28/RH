@@ -1,0 +1,211 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Responsividade e acessibilidade (Fase 13) · conecta-responsivo.css
+ * Carregar depois de tokens.css, conecta-ds.css e conecta-telas.css.
+ * Mesmas regras: prefixo "c-", só tokens, nenhuma biblioteca.
+ *
+ * Faixas de tela (DEC-075, PROPOSTA). Só 2 pontos de quebra no sistema todo:
+ *   Celular      até 599 px      @media (max-width: 599.98px)
+ *   Compacto     600 a 1179 px   @media (max-width: 1179.98px)
+ *   Computador   1180 px ou mais (padrão; é o desenho da Fase 12)
+ * O zoom do navegador/Windows muda a largura em px: 1366 com zoom 150% = 911 px → Compacto.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Topo e sub-abas em tela menor (DEC-076, PROPOSTA) ─────────────── */
+/* Compacto: seções com nome continuam; as que não cabem vão para "Mais ▾" (JS mede).
+   A seção atual nunca vai para o "Mais". A busca vira lupa. */
+.c-topo-menu, .c-topo-lupa { display: none; }
+.c-topo-mais { position: relative; display: none; align-self: stretch; align-items: center; }
+.c-topo-mais[data-tem] { display: flex; }
+.c-topo-mais > button { all: unset; display: flex; align-items: center; gap: var(--espaco-1); height: 100%; color: inherit; font-weight: var(--fonte-peso-semi); white-space: nowrap; cursor: pointer; }
+.c-topo-mais > button .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); }
+.c-topo-mais > button:hover { color: var(--cor-texto-topo-atual); }
+.c-topo-mais > button:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel-inverso); outline-offset: 2px; }
+.c-topo-mais > .c-menu { position: absolute; top: calc(100% - 4px); left: 0; z-index: 40; color: var(--cor-texto-padrao); }
+.c-topo-mais > .c-menu a { color: inherit; text-decoration: none; box-shadow: none; }
+.c-topo-nav { overflow: visible; }
+@media (max-width: 1179.98px) {
+  .c-topo { gap: var(--espaco-4); }
+  .c-topo-nav { display: flex; gap: var(--espaco-4); flex: 1; min-width: 0; overflow: hidden; }
+  .c-topo-nav:has(.c-topo-mais[data-tem]), .c-topo-nav:focus-within { overflow: visible; }
+  .c-topo-busca { display: none; }
+  .c-topo-lupa { display: inline-grid; }
+  .c-subbarra { overflow-x: auto; scrollbar-width: none; padding: 0 var(--espaco-4); }
+  .c-subbarra::-webkit-scrollbar { display: none; }
+  /* Sombra suave na borda quando há abas escondidas para o lado */
+  .c-subbarra[data-mais-dir] { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+  .c-subbarra[data-mais-esq] { mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+  .c-subbarra[data-mais-dir][data-mais-esq] { mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+}
+/* Celular: botão "Menu" (ícone + palavra) abre a gaveta com todas as seções (ícone + nome).
+   Sub-barra fica só com as abas (o nome da seção já está no Menu). */
+@media (max-width: 599.98px) {
+  .c-topo { gap: var(--espaco-2); padding: 0 var(--espaco-1) 0 var(--espaco-2); }
+  .c-topo-nav { display: none; }
+  .c-topo-menu { all: unset; display: inline-flex; align-items: center; gap: var(--espaco-1); height: var(--altura-toque); padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); color: var(--cor-texto-topo-atual); font-weight: var(--fonte-peso-semi); cursor: pointer; }
+  .c-topo-menu .c-ic { width: var(--icone-medio); height: var(--icone-medio); }
+  .c-topo-menu:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel-inverso); }
+  .c-topo-logo svg { height: 20px; }
+  .c-topo-icone { width: var(--altura-toque); height: var(--altura-toque); }
+  .c-avatar { margin-left: 0; }
+  .c-topo-tema { display: none; }
+  .c-subbarra { padding: 0 var(--espaco-2); gap: 0; }
+  .c-subbarra-secao { display: none; }
+}
+/* Gaveta do Menu (celular): <dialog> nativo = foco preso dentro, Esc fecha, foco volta ao botão */
+.c-gaveta-menu { margin: 0; padding: 0; border: 0; width: min(304px, 86vw); max-width: none; height: 100%; max-height: none; display: flex; flex-direction: column; background: var(--cor-fundo-painel); color: var(--cor-texto-padrao); box-shadow: var(--sombra-janela); }
+.c-gaveta-menu:not([open]) { display: none; }
+.c-gaveta-menu::backdrop { background: var(--cor-fundo-sobreposicao); }
+.c-gaveta-cab { display: flex; align-items: center; justify-content: space-between; flex: none; height: var(--altura-topo); padding: 0 var(--espaco-1) 0 var(--espaco-4); background: var(--cor-fundo-topo); color: var(--cor-texto-topo); }
+.c-gaveta-cab svg[role='img'] { height: 20px; width: auto; }
+.c-gaveta-cab .c-topo-icone { width: var(--altura-toque); height: var(--altura-toque); }
+.c-gaveta-lista { list-style: none; margin: 0; padding: var(--espaco-2) 0; }
+.c-gaveta-lista a { display: flex; align-items: center; gap: var(--espaco-3); height: var(--altura-toque); padding: 0 var(--espaco-4); color: inherit; text-decoration: none; font-weight: var(--fonte-peso-semi); }
+.c-gaveta-lista a .c-ic { width: var(--icone-medio); height: var(--icone-medio); color: var(--cor-texto-secundario); }
+.c-gaveta-lista a:hover { background: var(--cor-fundo-sutil); }
+.c-gaveta-lista a:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: -2px; }
+.c-gaveta-lista a[aria-current='page'] { background: var(--cor-fundo-selecionado); color: var(--cor-texto-link); box-shadow: inset 3px 0 0 var(--cor-marca-traco-menu); }
+.c-gaveta-lista a[aria-current='page'] .c-ic { color: var(--cor-texto-link); }
+.c-gaveta-rodape { margin-top: auto; border-top: var(--borda-fina) solid var(--cor-linha-divisoria); }
+
+/* ── 2. Tabelas em tela menor (DEC-077, PROPOSTA) ─────────────────────── */
+/* Compacto: o JS esconde colunas de prioridade 3 e depois 2, até a tabela caber. Nada rola para o lado.
+   O que some continua no detalhe da linha (clique) e no arquivo exportado. */
+.c-tabela [data-escondida] { display: none; }
+.c-dia-troca { display: none; }
+@media (max-width: 599.98px) {
+  /* Celular: cada linha vira um bloco de 2 linhas. 1ª: título + selo + ações. 2ª: até 4 informações curtas. */
+  .c-tabela:not(.c-tabela--dias) { display: block; }
+  .c-tabela:not(.c-tabela--dias) thead { display: none; } /* o título da coluna vai junto de cada valor, escondido (JS) */
+  .c-tabela:not(.c-tabela--dias) tbody { display: block; }
+  .c-tabela:not(.c-tabela--dias) tbody tr { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--espaco-2); row-gap: 2px; min-height: 56px; padding: var(--espaco-2) var(--espaco-2) var(--espaco-2) var(--espaco-3); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+  .c-tabela:not(.c-tabela--dias) tbody tr::after { content: ''; order: 4; flex-basis: 100%; height: 0; }
+  .c-tabela:not(.c-tabela--dias) tbody td { display: none; height: auto; padding: 0; border: 0; background: none; white-space: nowrap; }
+  .c-tabela:not(.c-tabela--dias) td[data-papel='marca'] { display: block; order: 0; width: 20px; margin-right: 4px; }
+  .c-tabela:not(.c-tabela--dias) td[data-papel='titulo'] { display: block; order: 1; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: var(--fonte-peso-semi); }
+  .c-tabela:not(.c-tabela--dias) td[data-papel='acoes'] { display: block; order: 3; width: auto; }
+  .c-tabela:not(.c-tabela--dias) td[data-papel='selo'] { display: block; order: 5; }
+  /* 2ª linha: selo + só as informações de prioridade 1 (no máximo 3) */
+  .c-tabela:not(.c-tabela--dias) td[data-papel='info'][data-prioridade='1'] { display: block; order: 6; width: auto; text-align: left; font-size: 13px; line-height: 20px; color: var(--cor-texto-secundario); }
+  .c-tabela:not(.c-tabela--dias) td[data-papel='info'][data-prioridade='1']:not([data-primeira])::before { content: '· '; }
+  .c-tabela:not(.c-tabela--dias) tbody tr:has(td[data-papel='marca']) td:is([data-papel='selo'], [data-primeira]):nth-child(n) { margin-left: 0; }
+  .c-tabela:not(.c-tabela--dias) tbody tr:has(td[data-papel='marca'])::after { flex-basis: calc(100% - 28px); margin-left: 28px; }
+  .c-tabela:not(.c-tabela--dias) tbody tr:has(td[data-papel='marca']) { padding-left: var(--espaco-3); }
+  .c-tabela:not(.c-tabela--dias) tbody tr:has(td[data-papel='marca']) td[data-papel='selo'] { margin-left: 28px; }
+  .c-tabela:not(.c-tabela--dias) tbody tr:not(:has(td[data-papel='selo'])):has(td[data-papel='marca']) td[data-primeira] { margin-left: 28px; }
+  /* Linha de total: vira 1 bloco com "Rótulo: valor" */
+  .c-tabela:not(.c-tabela--dias) tfoot { display: block; }
+  .c-tabela:not(.c-tabela--dias) tfoot tr { display: flex; flex-wrap: wrap; gap: 2px var(--espaco-3); padding: var(--espaco-2) var(--espaco-3); }
+  .c-tabela:not(.c-tabela--dias) tfoot td { height: auto; padding: 0; border: 0; white-space: nowrap; }
+  .c-tabela:not(.c-tabela--dias) tfoot td:empty { display: none; }
+  .c-tabela:not(.c-tabela--dias) tfoot td[data-rotulo]::before { content: attr(data-rotulo) ': '; font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+  /* Grade de dias: Colaborador + 1 dia; troca o dia com ‹ › */
+  .c-tabela--dias th[data-papel='dia']:not([data-dia-atual]), .c-tabela--dias td[data-papel='dia']:not([data-dia-atual]),
+  .c-tabela--dias [data-prioridade='2'], .c-tabela--dias [data-prioridade='3'] { display: none; }
+  .c-tabela--dias th[data-dia-atual], .c-tabela--dias td[data-dia-atual] { width: 72px; }
+  .c-dia-troca { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-2); padding: 0 var(--espaco-1); }
+  .c-dia-troca b { font-size: 14px; }
+}
+
+/* ── 3. Filtros, painéis, janelas e ações em tela menor (DEC-078, PROPOSTA) ── */
+/* Filtros: ficam em 1 linha na faixa de cima da caixa (Fase 12). O que não cabe vai para "+N filtros";
+   no celular todos os campos vão para "Filtros", e só a busca (e a visão) ficam à vista. */
+.c-filtros-botao { flex: none; }
+.c-filtros-botao[hidden] { display: none; }
+.c-filtros-botao .c-conta { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--raio-cheio); background: var(--cor-acao-fundo); color: var(--cor-acao-texto); font-size: 11px; font-weight: var(--fonte-peso-negrito); }
+.c-filtros-gaveta { margin: 0 0 0 auto; padding: 0; border: 0; width: min(360px, 100%); max-width: none; height: 100%; max-height: none; background: var(--cor-fundo-painel); color: var(--cor-texto-padrao); box-shadow: var(--sombra-janela); }
+.c-filtros-gaveta[open] { display: flex; flex-direction: column; }
+.c-filtros-gaveta::backdrop { background: var(--cor-fundo-sobreposicao); }
+.c-filtros-gaveta .c-janela-corpo { flex: 1; display: flex; flex-direction: column; gap: var(--espaco-3); }
+.c-filtros-gaveta .c-entrada--gaveta { width: 100%; height: var(--campo-altura); font-size: 14px; }
+.c-acoes-mais[hidden] { display: none; }
+.c-acoes-mais .c-menu-item { height: var(--altura-toque); }
+@media (max-width: 599.98px) {
+  .c-tabela-caixa > .c-filtros { flex-wrap: wrap; row-gap: var(--espaco-2); }
+  .c-tabela-caixa > .c-filtros > .c-busca { flex: 1 1 0; min-width: 0; }
+  .c-tabela-caixa > .c-filtros > .c-segmento { flex: 1 1 100%; }
+  .c-tabela-caixa > .c-filtros .c-entrada { height: var(--altura-toque); font-size: 14px; }
+  .c-filtros-gaveta { margin: auto 0 0; width: 100%; height: auto; max-height: 85%; border-radius: var(--raio-medio) var(--raio-medio) 0 0; }
+  .c-filtros-gaveta .c-janela-rodape .c-botao { flex: 1; }
+  .c-filtros-gaveta .c-janela-corpo { flex: none; }
+  /* Painel lateral (detalhe, Diário): tela cheia, por cima do topo */
+  .c-painel-lateral { top: 0; width: 100%; border-left: 0; z-index: 60; }
+  /* Janela: tela cheia, botões fixos embaixo, mesmo tamanho */
+  .c-fundo-janela { padding: 0; place-items: stretch; }
+  .c-janela, .c-janela--pequena, .c-janela--grande { max-width: none; max-height: none; height: 100%; border-radius: 0; border: 0; }
+  .c-janela-corpo { flex: 1; }
+  .c-janela-rodape .c-botao { flex: 1; }
+  /* Cabeçalho: título + principal. Textos de ajuda saem; secundários vão para ⋯ (JS) */
+  .c-cab-linha { flex-wrap: wrap; row-gap: var(--espaco-1); }
+  .c-cab-linha > .c-ajuda, .c-cab-dir > .c-ajuda, .c-cab-dir > .c-botao--icone[aria-label='Mais ações']:not(.c-acoes-mais *) { display: none; }
+  .c-cab-linha > h1 { flex: 1 1 calc(100% - 48px); }
+  .c-cab-linha > .c-cab-dir { flex: 1 1 auto; order: 6; }
+  .c-cab-linha:has(> h1:first-child + .c-cab-dir:last-child) > h1 { flex: 1 1 0; }
+  .c-cab-linha:has(> h1:first-child + .c-cab-dir:last-child) > .c-cab-dir { flex: none; order: 0; }
+  .c-cab-linha > .c-selo { order: 5; }
+  /* Barra de ações (seleção) e ação principal com 2+ botões: fixas embaixo, ao alcance do polegar */
+  .c-tabela-caixa > .c-selecao { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; height: auto; flex-wrap: wrap; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-3) calc(var(--espaco-2) + env(safe-area-inset-bottom, 0px)); background: var(--cor-fundo-painel); border-top: var(--borda-fina) solid var(--painel-borda); box-shadow: var(--sombra-janela); }
+  .c-tabela-caixa > .c-selecao > span:first-child { flex: 1 1 auto; font-weight: var(--fonte-peso-semi); }
+  .c-tabela-caixa > .c-selecao > .c-fim { margin-left: 0; }
+  .c-tabela-caixa > .c-selecao > select { flex: 1 1 40%; height: var(--altura-toque); }
+  .c-tabela-caixa > .c-selecao > .c-botao--principal { flex: 1 1 100%; }
+  .c-acoes-mais > .c-menu--solto { top: auto; bottom: calc(100% + 4px); }
+  .c-cab-linha .c-acoes-mais > .c-menu--solto { top: calc(100% + 4px); bottom: auto; }
+  .c-pagina:has(.c-selecao:not([hidden])) { padding-bottom: 136px; }
+}
+
+/* Ajustes achados pelo verificador (DEC-082): telas que ainda passavam da largura */
+@media (max-width: 1179.98px) {
+  .c-tabela-caixa > .c-selecao { flex-wrap: wrap; height: auto; row-gap: var(--espaco-2); padding-block: var(--espaco-2); }
+  .c-tabela--dias th[data-papel='dia'], .c-tabela--dias td[data-papel='dia'] { min-width: 44px; width: auto; }
+  .c-tabela--dias .c-bloco, .c-tabela--dias .c-bloco b, .c-tabela--dias th[data-papel='dia'] { white-space: normal; line-height: 14px; }
+  /* Relatórios: a lista lateral vira uma faixa de nomes que rola com o dedo, acima do relatório */
+  .c-rel { grid-template-columns: minmax(0, 1fr); }
+  .c-rel-lista { flex-direction: row; overflow-x: auto; scrollbar-width: none; white-space: nowrap; padding-bottom: var(--espaco-1); }
+  .c-rel-lista::-webkit-scrollbar { display: none; }
+  .c-rel-lista > * { flex: none; }
+  .c-rel-lista a small { display: none; }
+}
+@media (max-width: 599.98px) {
+  .c-grafico-cab { flex-wrap: wrap; white-space: normal; row-gap: var(--espaco-1); }
+  .c-grafico-legenda { margin-left: 0; flex-wrap: wrap; }
+  .c-grafico-rodape, .c-legenda, .c-tabela-rodape, .c-etapa-rodape { flex-wrap: wrap; white-space: normal; row-gap: var(--espaco-1); height: auto; }
+  .c-contexto { flex-wrap: wrap; white-space: normal; row-gap: var(--espaco-1); }
+  .c-legenda > span { white-space: normal; flex-wrap: wrap; min-width: 0; }
+  .c-legenda > span[style*='margin-left'] { margin-left: 0 !important; }
+  .c-abas { overflow-x: auto; scrollbar-width: none; }
+  .c-abas::-webkit-scrollbar { display: none; }
+  .c-pv { grid-template-columns: minmax(0, 1fr); }
+  .c-cab-linha .c-busca { flex: 1 1 100%; order: 7; }
+}
+
+/* Toque: os controles "suaves" e mini da Fase 12 também crescem para 44 px no dedo (DEC-040) */
+@media (pointer: coarse) {
+  .c-filtros--suave .c-segmento .c-botao, .c-filtros--suave .c-navegar .c-botao, .c-segmento--mini .c-botao, .c-segmento .c-botao,
+  .c-filtros--suave select.c-entrada, .c-filtros--suave .c-busca .c-entrada { height: var(--altura-toque); }
+  .c-filtros--suave .c-navegar .c-botao--icone { width: var(--altura-toque); }
+}
+
+/* ── 4. Teclado e foco (DEC-079, PROPOSTA) ─────────────────────────────── */
+/* "Pular para o conteúdo": 1ª parada do Tab, só aparece com o foco */
+.c-pular { position: absolute; left: var(--espaco-2); top: var(--espaco-2); z-index: 100; padding: var(--espaco-2) var(--espaco-3); border-radius: var(--raio-pequeno); background: var(--cor-fundo-painel); color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); text-decoration: none; box-shadow: var(--sombra-menu); transform: translateY(-200%); }
+.c-pular:focus { transform: none; outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: 2px; }
+main[tabindex='-1']:focus { outline: none; }
+/* Linha da tabela com foco: anel por dentro, sem mexer na altura */
+.c-tabela tbody tr[tabindex]:focus { outline: none; }
+.c-tabela tbody tr[tabindex]:focus-visible td { background: var(--cor-fundo-selecionado); box-shadow: inset 0 2px 0 var(--cor-foco-anel), inset 0 -2px 0 var(--cor-foco-anel); }
+.c-tabela tbody tr[tabindex]:focus-visible td:first-child { box-shadow: inset 2px 2px 0 var(--cor-foco-anel), inset 0 -2px 0 var(--cor-foco-anel); }
+.c-tabela tbody tr[tabindex]:focus-visible td:last-child { box-shadow: inset -2px 2px 0 var(--cor-foco-anel), inset 0 -2px 0 var(--cor-foco-anel); }
+/* O foco nunca fica escondido atrás do topo fixo (WCAG 2.4.11) */
+html { scroll-padding-top: calc(var(--altura-topo) + 40px + var(--espaco-2)); }
+
+/* ── 5. Contraste e tamanho de texto (DEC-081, PROPOSTA) ──────────────── */
+/* Novo token "apagado legível": para o que deve parecer secundário (folga, DSR, dia futuro, "—"),
+   mas ainda é texto. Passa 4,5:1 no branco, no fundo da página e no fundo sutil, nos 2 modos.
+   --cor-texto-desligado (#868BA2, 3,37:1) volta a ser só para controle desligado, como manda a Fase 08.
+   O token --cor-texto-apagado agora mora em tokens.css (Fase 15). */
+.c-folga, .c-presenca .c-futuro, .c-futuro { color: var(--cor-texto-apagado); }
+.c-aba.c-aba--off { color: var(--cor-texto-apagado); }
+/* Mínimo de 12 px em todo texto (DEC-037). Eram 11 px em 10 lugares, e <small> dentro de 14 px dava 11,7. */
+small { font-size: 12px; }
+.c-folga, .c-presenca .c-futuro, .c-bloco small, .c-grafico svg text, .c-rel-lista a small,
+.c-diario-numeros small, .c-diario-numeros em, .c-linha-tempo .c-selo, .c-pv-abas .c-aba small, .c-pv-mods small { font-size: 12px; }

@@ -1,19 +1,29 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261026-ajustes';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261112-exporta-filtro';
+import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261112-exporta-filtro';
+import { TelaInicioOperador } from './inicio-operador.js?v=20261112-exporta-filtro';
+import { useAtalhosOcultos } from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
-import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261010-guia';
+import { useAlertasMonitoria } from '../../shared/notificacoes.js?v=20261111-notif';
 import { listarMeusTreinamentos } from '../../services/api/onboarding.js?v=20260922-meus-treinamentos';
-import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261104-leitura';
+import { lerContextoWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { useContextoMonitoria } from './comum.js';
 import { TelaNovaMonitoria } from './formulario.js?v=20261029-fix';
-import { ModalDetalheMonitoria } from './detalhe.js?v=20261029-fix';
+import { ModalDetalheMonitoria } from './detalhe.js?v=20261109-operacao';
 import { ListaMonitorias, TelaPlanos, TelaRelatorios } from './listas.js?v=20261028-ausencias';
 import { TelaDashboard } from './painel.js?v=20261023-ajustes';
-import { TelaFormularios } from './admin.js?v=20261014-formularios';
+import { TelaFormularios } from './admin.js?v=20261109-telas-antigas';
 import { TelaCentralMonitoria } from './central.js';
+import { ListaMonitoriasNova } from './redesign-listas.js?v=20261108-fatia2';
+import { TelaNovaMonitoriaRedesign } from './nova-redesign.js?v=20261109-operacao';
+import { TelaPainelMonitoria } from './painel-redesign.js?v=20261110-graficos';
+import { ListaFeedback, TelaPlanosNova } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
+import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';
+import { definirSelos } from '../../ui/components/selos-subbarra.js';
+import { listarMonitorias } from '../../services/api/monitoria.js';
 
 // Vertente Monitoria: um único módulo de telas, cada uma com sua rota (screen-monitoria*).
 // Toda restrição é aplicada no backend (escopo por operação/equipe/perfil); a tela só
@@ -36,7 +46,7 @@ const TITULOS = {
   'screen-monitoria-feedback': ['Feedback', 'Monitorias aguardando a aplicação do feedback.'],
   'screen-monitoria-contestacoes': ['Contestações', 'Contestações do operador para reanálise.'],
   'screen-monitoria-minhas': ['Minhas monitorias', 'Acompanhe suas avaliações, confirme ou conteste.'],
-  'screen-monitoria-dashboard': ['Dashboard de qualidade', 'Indicadores respeitam seu perfil, filtros e escopo.'],
+  'screen-monitoria-dashboard': ['Painel', 'Indicadores respeitam seu perfil, filtros e escopo.'],
   'screen-monitoria-planos': ['Planos de ação', 'Acompanhe a evolução dos operadores.'],
   'screen-monitoria-relatorios': ['Relatórios', 'Visualize e exporte (XLSX ou CSV) com os mesmos indicadores do dashboard.'],
   'screen-monitoria-formularios': ['Formulários de monitoria', 'Matriz de qualidade versionada por operação.'],
@@ -56,6 +66,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   const [detalhe, setDetalhe] = useState(null);
   const [compartilhar, setCompartilhar] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
+  const [novoPlano, setNovoPlano] = useState(false);
   const [alertasTick, setAlertasTick] = useState(0);
   const alertas = useAlertasMonitoria(controlador, alertasTick);
   // Bolinha vermelha por aba: contestação/réplica -> Contestações; feedback pendente -> Feedback; novidades do operador -> Minhas monitorias.
@@ -69,6 +80,48 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
     setDetalhe(ref);
   };
   const props = { controlador, contexto, showToast };
+
+  // Contagens das abas na sub-barra (Feedback · Contestações · Minhas monitorias): totais pendentes vindos do servidor.
+  useEffect(() => {
+    let ativo = true;
+    const contar = (status, pode) => (pode ? listarMonitorias({ status, pagina: 1, por_pagina: 1 }).then((r) => Number(r?.total) || 0, () => 0) : Promise.resolve(0));
+    Promise.all([
+      contar('FEEDBACK_PENDENTE', controlador.possuiPermissao('monitoria.feedback_aplicar')),
+      contar('REANALISE', controlador.possuiPermissao('monitoria.reanalisar')),
+      contar('AGUARDANDO_CONFIRMACAO', controlador.estado?.perfilUsuario === 'operador'),
+    ]).then(([fb, ct, mi]) => { if (ativo) definirSelos({ 'screen-monitoria-feedback': fb, 'screen-monitoria-contestacoes': ct, 'screen-monitoria-minhas': mi }); });
+    return () => { ativo = false; };
+  }, [telaAtual, atualizacao]);
+
+  // Redesign Fase 15 (fatia 2): Histórico, Contestações, Minhas monitorias, Nova monitoria e Painel no desenho novo.
+  // Fatia 4 (09/11/2026): Feedback e Planos de ação também. Formulários e Relatórios seguem com o conteúdo de antes.
+  const REDESENHADAS = { 'screen-monitoria': 'historico', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas', 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-planos': 'planos' };
+  const ehNova = telaAtual === 'screen-monitoria-nova';
+  const ehPainel = telaAtual === 'screen-monitoria-dashboard';
+  if (REDESENHADAS[telaAtual] || ehNova || ehPainel) {
+    const ehPlanos = REDESENHADAS[telaAtual] === 'planos';
+    const podeCriar = ehPlanos ? controlador.possuiPermissao('monitoria.plano_acao') : controlador.possuiPermissao('monitoria.criar');
+    const rotulo = { historico: 'Histórico', contestacoes: 'Contestações', minhas: 'Minhas monitorias', feedback: 'Feedback', planos: 'Planos de ação' }[REDESENHADAS[telaAtual]] || 'Painel';
+    let conteudo;
+    if (erro) conteudo = html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${recarregar} /></div>`;
+    else if (!contexto) conteudo = html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div>`;
+    else if (ehNova) conteudo = html`<${TelaNovaMonitoriaRedesign} ...${props} aoConcluir=${(r) => { controlador.irParaTelaProtegida('screen-monitoria'); setTimeout(() => setDetalhe(String(r.id_monitoria)), 300); }} />`;
+    else if (ehPainel) conteudo = html`<${TelaPainelMonitoria} ...${props} />`;
+    else if (REDESENHADAS[telaAtual] === 'feedback') conteudo = html`<${ListaFeedback} ...${props} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} aoAlterou=${() => { setAtualizacao((n) => n + 1); setAlertasTick((n) => n + 1); }} />`;
+    else if (ehPlanos) conteudo = html`<${TelaPlanosNova} ...${props} novoAberto=${novoPlano} aoFecharNovo=${() => setNovoPlano(false)} />`;
+    else conteudo = html`<${ListaMonitoriasNova} ...${props} modo=${REDESENHADAS[telaAtual]} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} aoAlterou=${() => { setAtualizacao((n) => n + 1); setAlertasTick((n) => n + 1); }} />`;
+    return html`
+      <${PainelRh} screenId=${telaAtual} navAtiva=${telaAtual} subtituloMarca="Monitoria" placeholderBusca="Monitoria" controlador=${controlador}>
+        <${ToastHost} />
+        <main class="c-pagina c-conteudo">
+          ${ehNova ? null : html`<div class="c-cab-linha"><h1>${rotulo}</h1>
+            ${podeCriar ? html`<div class="c-cab-dir"><button type="button" class="c-botao c-botao--principal c-botao--compacto" onClick=${() => (ehPlanos ? setNovoPlano(true) : controlador.irParaTelaProtegida('screen-monitoria-nova'))}><${Ic} nome="plus" />${ehPlanos ? 'Novo plano' : 'Nova monitoria'}</button></div>` : null}</div>`}
+          ${conteudo}
+        </main>
+        <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
+          onClose=${() => setDetalhe(null)} onAlterou=${() => setAtualizacao((n) => n + 1)} onLida=${() => setAlertasTick((n) => n + 1)} />
+      </${PainelRh}>`;
+  }
 
   const subnav = html`
         <nav class="mon-subnav" aria-label="Seções da Monitoria">
@@ -87,7 +140,7 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
   } else if (telaAtual === 'screen-monitoria-dashboard') corpo = html`<${TelaDashboard} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-planos') corpo = html`<${TelaPlanos} ...${props} />`;
   else if (telaAtual === 'screen-monitoria-relatorios') corpo = html`<${TelaRelatorios} ...${props} />`;
-  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} subnav=${subnav} />`;
+  else if (telaAtual === 'screen-monitoria-formularios') corpo = html`<${TelaFormularios} ...${props} />`;
   else {
     const modo = { 'screen-monitoria-feedback': 'feedback', 'screen-monitoria-contestacoes': 'contestacoes', 'screen-monitoria-minhas': 'minhas' }[telaAtual] || 'historico';
     corpo = html`<${ListaMonitorias} ...${props} modo=${modo} abrirDetalhe=${abrirDetalhe} atualizacao=${atualizacao} />`;
@@ -99,7 +152,6 @@ export function TelaMonitoria({ controlador, telaAtual = 'screen-monitoria' }) {
       ${ehFormularios && contexto && !erro ? corpo : html`
       <${PageIntro} kicker="Monitoria" title=${titulo} description=${descricao} />
       <div class="mon-shell">
-        ${subnav}
         ${corpo}
       </div>`}
       <${ModalDetalheMonitoria} referencia=${detalhe} controlador=${controlador} contexto=${contexto} showToast=${showToast}
@@ -131,7 +183,7 @@ const SESSOES = [
   { id: 'treinamentos', titulo: 'Central de Treinamento', icone: 'school', desc: 'Treinamentos, trilhas e atribuições.', telas: ['screen-training', 'screen-training-mine', 'screen-training-trilhas'] },
   { id: 'monitoria', titulo: 'Monitorias', icone: 'fact_check', desc: 'Avaliações de qualidade, feedback e indicadores.', telas: ['__monitoria__'] },
   { id: 'equipe', titulo: 'Equipes e Turnos', icone: 'groups', desc: 'Sua equipe, presença, monitorias, escala, horários e mural.', telas: ['screen-equipes-controle'] },
-  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
+  { id: 'wfm', titulo: 'Turnos e Plantões', icone: 'calendar_month', desc: 'Escala, presença e calendário da operação.', telas: ['screen-wfm-dia', 'screen-wfm-minha-escala', 'screen-wfm', 'screen-wfm-presenca', 'screen-wfm-painel', 'screen-wfm-jornadas', 'screen-wfm-cadastros'] },
   { id: 'relatorios', titulo: 'Relatórios e Históricos', icone: 'table_chart', desc: 'Relatórios, históricos e exportações em um só lugar.', telas: ['screen-relatorios'] },
   { id: 'configuracoes', titulo: 'Configurações', icone: 'settings', desc: 'Usuários e configurações do sistema.', telas: ['screen-settings-users', 'screen-settings'] },
 ];
@@ -174,6 +226,8 @@ export function TelaInicioPorSessoes({ controlador }) {
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
   const alertas = useAlertasMonitoria(controlador);
   const trocasPendentes = useTrocasParaMim(controlador.possuiPermissao('wfm.troca.visualizar'));
+  // Atalhos escondidos em Perfis > Tela inicial: só saem do Início, a seção continua no menu.
+  const atalhosOcultos = useAtalhosOcultos();
 
   // O Operador só usa a Central de Treinamento como autoatendimento dos
   // próprios treinamentos atribuídos (sem onboarding.criar/editar/gerenciar) —
@@ -194,6 +248,13 @@ export function TelaInicioPorSessoes({ controlador }) {
   const sessoes = sessoesDoUsuario(controlador, {
     ocultarTreinamentosSemAgenda: ehOperador && !temTreinamentoAgendado,
   });
+  // Supervisor: Início no desenho novo (atalhos, Escala de hoje, Precisa de você e Mural) — amostra de 08/11/2026.
+  if (estado.perfilUsuario === 'supervisor') {
+    return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} atalhosOcultos=${atalhosOcultos} />`;
+  }
+  // Operador: Início no desenho novo (cabeçalho com "Seu dia", atalhos e Precisa de você) — amostra da Fase 14 (DEC-086).
+  if (ehOperador) return html`<${TelaInicioOperador} controlador=${controlador} sessoes=${sessoes} atalhosOcultos=${atalhosOcultos} />`;
+  const sessoesVisiveis = sessoes.filter((s) => !atalhosOcultos.has(s.id));
   return html`
     <${PainelRh} screenId="screen-menu" navAtiva="screen-menu" subtituloMarca="Início" placeholderBusca="Conecta" controlador=${controlador}>
       <div class="mon-inicio">
@@ -201,9 +262,9 @@ export function TelaInicioPorSessoes({ controlador }) {
           <${AvatarUsuario} avatar=${avatar} nome=${nome} tamanho=${56} />
           <div><h1>Olá, ${(nome || '').split(' ')[0] || 'bem-vindo(a)'}!</h1><span class="mon-muted">${estado.perfilUsuarioNome || ''} · escolha por onde começar.</span></div>
         </div>
-        ${sessoes.length ? html`
+        ${sessoesVisiveis.length ? html`
           <div class="mon-sessoes">
-            ${sessoes.map((s) => html`
+            ${sessoesVisiveis.map((s) => html`
               <button key=${s.id} type="button" class="mon-sessao" onClick=${() => controlador.irParaTelaProtegida(s.destino)}>
                 <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(s.icone)}</span>
                 <strong>${s.titulo}</strong><span class="desc">${s.desc}</span>

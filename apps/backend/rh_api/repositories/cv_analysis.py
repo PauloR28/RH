@@ -11,15 +11,15 @@ from fastapi import HTTPException, UploadFile, status
 
 from ..services.cv import (
     CvTextExtractionError,
+    extract_candidate_name,
     extract_candidate_name_details,
     extract_competencies,
-    extract_candidate_name,
     extract_education_strength,
     extract_email,
     extract_experience_strength,
-    extract_professional_experiences,
     extract_keywords,
     extract_phone,
+    extract_professional_experiences,
     extract_text_from_uploaded_file,
     extract_whatsapp,
     is_valid_email,
@@ -34,7 +34,6 @@ from ..services.helpers import (
     normalize_text,
     rows_to_dicts,
 )
-from ..services.public_candidacy import validate_public_cv_upload
 from ..services.process_flow import (
     CANDIDATE_STATUS_TALENT_BANK,
     build_process_closed_message,
@@ -42,9 +41,10 @@ from ..services.process_flow import (
     is_process_closed,
     map_cv_classification_to_status,
 )
+from ..services.public_candidacy import validate_public_cv_upload
 from .bootstrap import (
-    ensure_cv_pre_analises_table,
     ensure_candidate_attachments_table,
+    ensure_cv_pre_analises_table,
     ensure_pipeline_columns,
     ensure_process_reference_columns,
     get_process_row,
@@ -440,11 +440,7 @@ class CvAnalysisRepositoryMixin:
             experience_strength = extract_experience_strength(texto_normalizado)
             competencias = extract_competencies(texto_normalizado)
             experiencias = extract_professional_experiences(texto_normalizado)
-            processo_id_analise = normalize_text(processo.get("id_processo")) if processo else normalize_text(row.get("id_processo"))
-            processo_ref_analise = normalize_text(processo.get("id_processo_ref")) if processo else normalize_text(row.get("id_processo_ref"))
-            vaga_analise = (
-                normalize_text(processo.get("vaga")) if processo else ""
-            ) or normalize_text(row.get("vaga")) or "Banco de Talentos"
+            vaga_analise = (normalize_text(processo.get("vaga")) if processo else "") or "Banco de Talentos"
             avaliacao = score_cv_for_role(
                 vaga_analise,
                 palavras,
@@ -525,7 +521,7 @@ class CvAnalysisRepositoryMixin:
                     whatsapp=whatsapp,
                 )
                 if not existing_candidate:
-                    id_registro = insert_candidate_process_record(
+                    insert_candidate_process_record(
                         cursor,
                         processo,
                         {

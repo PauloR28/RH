@@ -24,7 +24,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..rbac import ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -40,8 +40,6 @@ from ..services.wfm_montagem import (
 from ..services.wfm_regras import (
     ExigenciaPausa,
     ParametrosContrato,
-    tem_bloqueio,
-    tem_bloqueio_duro,
     validar_escala,
 )
 
@@ -206,16 +204,26 @@ class WfmEscalaRepositoryMixin:
         }
 
     def _wfm_turnos_modelo(self, cursor, operacao: str) -> dict[int, TurnoModelo]:
-        cursor.execute("SELECT id_turno, codigo, tipo, entrada, saida, pausas_json FROM dbo.wfm_turnos WHERE operacao = ?", (operacao,))
+        # A jornada do turno (id_contrato, escolhida na criação do turno) vale para quem trabalha nele.
+        cursor.execute(
+            "SELECT t.id_turno, t.codigo AS codigo_turno, t.tipo, t.entrada, t.saida, t.pausas_json, c.codigo, c.jornada_diaria_max_min, "
+            "c.interjornada_min_min, c.max_dias_consecutivos, c.jornada_feriado_max_min, c.jornada_bloqueio_duro, c.exigencias_pausa_json, "
+            "c.jornada_semanal_max_min FROM dbo.wfm_turnos t LEFT JOIN dbo.wfm_contratos c ON c.id_contrato = t.id_contrato "
+            "WHERE t.operacao = ?",
+            (operacao,),
+        )
         out: dict[int, TurnoModelo] = {}
-        for r in cursor.fetchall():
+        for r in rows_to_dicts(cursor, cursor.fetchall()):
             try:
                 pausas = tuple(
-                    (int(p["offset_min"]), int(p["duracao_min"]), p["tipo"]) for p in json.loads(r[5] or "[]")
+                    (int(p["offset_min"]), int(p["duracao_min"]), p["tipo"]) for p in json.loads(r["pausas_json"] or "[]")
                 )
             except (ValueError, KeyError, TypeError):
                 pausas = ()
-            out[int(r[0])] = TurnoModelo(int(r[0]), normalize_text(r[1]), normalize_text(r[2]), r[3], r[4], pausas)
+            contrato = _contrato_de_linha(r) if r.get("codigo") is not None else None
+            out[int(r["id_turno"])] = TurnoModelo(
+                int(r["id_turno"]), normalize_text(r["codigo_turno"]), normalize_text(r["tipo"]), r["entrada"], r["saida"], pausas, contrato
+            )
         return out
 
     # ------------------------------------------------------------------
@@ -326,7 +334,6 @@ class WfmEscalaRepositoryMixin:
                 not somente_propria
                 and not ver_todas
                 and user.has_permission("wfm.escala.editar")
-                and user.perfil != ROLE_ADMIN
                 and (not cab["fechada"] or user.has_permission("wfm.escala.corrigir_fechada"))
             )
             aprovacao = None
@@ -414,6 +421,7 @@ class WfmEscalaRepositoryMixin:
     def wfm_salvar_itens(
         self, user, operacao: str, ano_mes: str, itens: list[dict], *, justificativa: str = "", ip: str = ""
     ) -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.editar")
         ano_mes = _exigir_ano_mes(ano_mes)
         dias_validos = set(dias_do_mes(ano_mes))
         justificativa = normalize_text(justificativa)
@@ -753,10 +761,9 @@ class WfmEscalaRepositoryMixin:
         return None
 
     def wfm_publicar(self, user, operacao: str, ano_mes: str, *, justificativa: str = "", ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.publicar")
         ano_mes = _exigir_ano_mes(ano_mes)
         justificativa = normalize_text(justificativa)
-        if user.perfil == ROLE_ADMIN:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não publica escalas.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -775,7 +782,7 @@ class WfmEscalaRepositoryMixin:
                 if ap["estado"] != "APROVADA":
                     detalhe = (
                         "A escala foi alterada depois da aprovação: envie novamente para aprovação."
-                        if ap["invalidada"] else "A escala precisa ser aprovada pelo Gestor ou Supervisor antes de ser publicada."
+                        if ap["invalidada"] else "A escala precisa ser aprovada por quem tem permissão para aprovar antes de ser publicada."
                     )
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detalhe)
             # Conflito de interesse: quem está na escala como operador não a publica (o Analista de TI é exceção).
@@ -837,9 +844,8 @@ class WfmEscalaRepositoryMixin:
         return {"violacoes": vistas, "violacoes_outras_equipes": len(resumo["violacoes"]) - len(vistas)}
 
     def wfm_fechar_periodo(self, user, operacao: str, ano_mes: str, *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.fechar")
         ano_mes = _exigir_ano_mes(ano_mes)
-        if user.perfil == ROLE_ADMIN:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="O Administrador não fecha períodos.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -980,10 +986,55 @@ class WfmEscalaRepositoryMixin:
         finally:
             conn.close()
 
+    def wfm_logins_dia(self, user, operacao: str, data: Any, *, todas_equipes: bool = False) -> dict:
+        """Primeiro login do dia NO CONECTA de cada participante visível (Painel do dia). Só leitura, mesmo escopo de presenças.
+
+        Fonte: a auditoria da presença automática (`wfm_auditoria`, acao='presenca_automatica'), gravada no 1º login do dia
+        de quem está escalado num turno de trabalho. Sem ela (presença já lançada antes do login, por exemplo), vale o último
+        acesso do dia (`usuarios.ultimo_acesso_em`). Não é ponto eletrônico nem login na plataforma de atendimento, e não há
+        registro de pausa real: o Painel mostra as pausas previstas.
+        """
+        dia = _parse_data(data)
+        seguinte = dia + timedelta(days=1)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
+            conn.commit()
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
+            resposta = {"data": dia.isoformat(), "fonte": "login_conecta", "itens": []}
+            if not ids:
+                return resposta
+            marcadores = ",".join("?" for _ in ids)
+            cursor.execute(
+                f"SELECT id_usuario, MIN(criado_em) FROM dbo.wfm_auditoria "
+                f"WHERE acao = 'presenca_automatica' AND operacao = ? AND criado_em >= ? AND criado_em < ? AND id_usuario IN ({marcadores}) "
+                f"GROUP BY id_usuario",
+                (operacao, dia, seguinte, *ids),
+            )
+            primeiros = {int(r[0]): (r[1], "presenca_automatica") for r in cursor.fetchall() if r[1]}
+            cursor.execute(
+                f"SELECT id_usuario, ultimo_acesso_em FROM dbo.usuarios "
+                f"WHERE ultimo_acesso_em >= ? AND ultimo_acesso_em < ? AND id_usuario IN ({marcadores})",
+                (dia, seguinte, *ids),
+            )
+            for id_usuario, quando in cursor.fetchall():
+                if quando and int(id_usuario) not in primeiros:
+                    primeiros[int(id_usuario)] = (quando, "ultimo_acesso")
+            resposta["itens"] = [
+                {"id_operador": id_op, "primeiro_login": quando.isoformat(timespec="minutes"), "origem": origem}
+                for id_op, (quando, origem) in sorted(primeiros.items())
+            ]
+            return resposta
+        finally:
+            conn.close()
+
     def wfm_lancar_presenca(
         self, user, operacao: str, id_operador: int, data: Any, status_presenca: str, observacao: str = "", *, ip: str = ""
     ) -> dict:
         """Sem prazo para lançar ou corrigir (regra do RH): a alteração é sempre permitida, sempre auditada."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         status_presenca = normalize_text(status_presenca).upper()
         if status_presenca not in STATUS_PRESENCA:
@@ -1107,6 +1158,7 @@ class WfmEscalaRepositoryMixin:
     def wfm_lancar_hora_extra(
         self, user, operacao: str, id_operador: int, data: Any, minutos: int, observacao: str = "", *, ip: str = ""
     ) -> dict:
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         minutos = int(minutos)
         if minutos < 0 or minutos > 720:
@@ -1151,6 +1203,7 @@ class WfmEscalaRepositoryMixin:
         self, user, operacao: str, id_operador: int, data_ini: Any, data_fim: Any, tipo: str, *, ip: str = ""
     ) -> dict:
         """Guarda só período, tipo e quem validou. Nunca o arquivo do atestado nem CID (dado de saúde)."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data_ini, data_fim = _parse_data(data_ini), _parse_data(data_fim)
         tipo = normalize_text(tipo).upper()
         if tipo not in TIPOS_ATESTADO:
@@ -1216,7 +1269,7 @@ class WfmEscalaRepositoryMixin:
     # ------------------------------------------------------------------
     # Exportação em planilha (escala mensal do escopo do usuário)
     # ------------------------------------------------------------------
-    def wfm_exportar_escala(self, user, operacao: str, ano_mes: str, formato: str = "xlsx", *, ip: str = "") -> tuple[bytes, str, str]:
+    def wfm_exportar_escala(self, user, operacao: str, ano_mes: str, formato: str = "xlsx", *, ip: str = "", todas_equipes: bool = False, ids_operadores: list[int] | None = None) -> tuple[bytes, str, str]:
         """XLSX/CSV da escala-rascunho do mês, só dos operadores que o usuário pode ver. Duas abas:
         "Escala" (código do turno por dia + total de horas) e "Horários" (um dia por linha, com
         entrada, saída e horas líquidas já com feriado/dia/horário especial aplicados)."""
@@ -1228,7 +1281,14 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escala=True)
             conn.commit()
-            operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
+            # O arquivo segue o filtro da tela: o Supervisor só leva as demais equipes com "Todas as equipes" ligado (mesma
+            # leitura de wfm_get_escala) e, se a tela mandou a lista de quem está visível (filtros de equipe, supervisor,
+            # cargo, nome), só esses entram. A lista nunca amplia o escopo: é cruzada com quem o usuário pode ver.
+            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)
+            if ids_operadores is not None:
+                filtro = {int(i) for i in ids_operadores}
+                operadores = [op for op in operadores if op["id_usuario"] in filtro]
             ids = [op["id_usuario"] for op in operadores]
             modelos = self._wfm_turnos_modelo(cursor, operacao)
             cursor.execute(
@@ -1286,6 +1346,7 @@ class WfmEscalaRepositoryMixin:
     ) -> dict:
         """Aplica o mesmo status a TODOS os operadores escalados do dia que o usuário pode editar, exceto
         os `excecoes` (ex.: "presença para todos, menos quem faltou"). Sem prazo; tudo auditado."""
+        self._wfm_exigir_chave(user, "wfm.presenca.lancar")
         data = _parse_data(data)
         status_presenca = normalize_text(status_presenca).upper()
         if status_presenca not in STATUS_PRESENCA:

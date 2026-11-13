@@ -9,8 +9,9 @@ Aplica, para um operador:
                         (`id_turno`) na data ou período;
   * DATA_ESPECIAL    -> apenas informativa, SEM efeito no motor.
 
-Dia com escala mas sem contrato vigente NÃO é validado silenciosamente: gera
-a violação `SEM_CONTRATO` (SUPOSIÇÃO restritiva: sem contrato, não publica).
+Jornada de cada dia (decisão do Paulo, 09/11/2026: a jornada é escolhida na criação do TURNO, não no usuário):
+a jornada do turno do dia; se o turno não tiver, a vigência do operador ou a padrão da escala (dados antigos,
+mantidos). Sem nenhuma, o dia entra sem limites de jornada e NÃO gera aviso (`SEM_CONTRATO` não é mais emitido).
 """
 
 from __future__ import annotations
@@ -19,7 +20,6 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from .wfm_regras import (
-    SEVERIDADE_BLOQUEIO,
     DiaEscala,
     ParametrosContrato,
     Violacao,
@@ -46,6 +46,8 @@ class TurnoModelo:
     saida: str | None = None
     # (minutos após a entrada, duração em minutos, tipo)
     pausas: tuple[tuple[int, int, str], ...] = ()
+    # Jornada escolhida na criação do turno (wfm_turnos.id_contrato); None = turno sem jornada.
+    contrato: ParametrosContrato | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +123,8 @@ def horario_efetivo(
 
 # Contrato fictício só para reaproveitar o cálculo de jornada líquida na exibição (não valida nada).
 _CONTRATO_EXIBICAO = ParametrosContrato("EXIBICAO", 1440, 0, 31)
+# Dia sem jornada (nem no turno, nem no operador, nem padrão da escala): entra no motor sem limites, sem aviso.
+_SEM_JORNADA = ParametrosContrato("SEM_JORNADA", 1440, 0, 366)
 
 
 def montar_dias(
@@ -134,24 +138,11 @@ def montar_dias(
     Devolve (dias, violações de montagem)."""
     dias: list[DiaEscala] = []
     violacoes: list[Violacao] = []
-    sem_contrato_reportado = False
     for data in sorted(itens):
         turno = turnos.get(itens[data])
         if turno is None:
             continue
-        contrato = contrato_em(data, vigencias)
-        if contrato is None:
-            if not sem_contrato_reportado:
-                sem_contrato_reportado = True
-                violacoes.append(
-                    Violacao(
-                        codigo=SEM_CONTRATO,
-                        severidade=SEVERIDADE_BLOQUEIO,
-                        data=data,
-                        mensagem="Operador sem contrato de jornada vigente: não é possível validar a escala.",
-                    )
-                )
-            continue
+        contrato = turno.contrato or contrato_em(data, vigencias) or _SEM_JORNADA
         if turno.tipo != TIPO_TURNO_TRABALHO:
             dias.append(folga(data, contrato, dsr=turno.tipo == TIPO_TURNO_DSR))
             continue

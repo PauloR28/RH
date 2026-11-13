@@ -21,12 +21,13 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
-from ..services import wfm_scope, wfm_trocas as regras
-from .wfm_aprovacao import hash_snapshot
+from ..rbac import ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..services import wfm_scope
+from ..services import wfm_trocas as regras
 from ..services.helpers import normalize_text
-from ..services.wfm_montagem import EventoCalendario, TurnoModelo, horario_efetivo
+from ..services.wfm_montagem import EventoCalendario, horario_efetivo
 from ..services.wfm_regras import CONTEXTO_TROCA, SEVERIDADE_BLOQUEIO
+from .wfm_aprovacao import hash_snapshot
 
 PARAMS = regras.ParametrosTroca()
 ANTECEDENCIA_PADRAO_DIAS = 3
@@ -207,13 +208,14 @@ class WfmTrocasRepositoryMixin:
 
     def _tr_exigir_visivel(self, cursor, user, troca: dict) -> None:
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if user.perfil == ROLE_SUPERVISOR else set()
-        if not wfm_scope.pode_ver_troca(
+        if not user.has_permission("wfm.troca.visualizar") or not wfm_scope.pode_ver_troca(
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=troca["operacao"],
             id_a=troca["id_solicitante"], id_b=troca["id_alvo"], equipe_supervisor=equipe,
         ):
             raise _http(status.HTTP_403_FORBIDDEN, "Você não tem acesso a esta troca.")
 
     def _tr_exigir_decisor(self, cursor, user, troca: dict) -> None:
+        self._wfm_exigir_chave(user, "wfm.troca.aprovar", "wfm.troca.desfazer")
         equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if user.perfil == ROLE_SUPERVISOR else set()
         if not wfm_scope.pode_decidir_troca(
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=troca["operacao"],
@@ -686,7 +688,7 @@ class WfmTrocasRepositoryMixin:
             saida = []
             for id_troca in ids:
                 t = self._tr_linha(cursor, id_troca)
-                if not wfm_scope.pode_ver_troca(
+                if not user.has_permission("wfm.troca.visualizar") or not wfm_scope.pode_ver_troca(
                     perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao,
                     id_a=t["id_solicitante"], id_b=t["id_alvo"], equipe_supervisor=equipe,
                 ):
@@ -707,7 +709,7 @@ class WfmTrocasRepositoryMixin:
                 sou_decisor = wfm_scope.pode_decidir_troca(
                     perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao,
                     id_a=t["id_solicitante"], id_b=t["id_alvo"], equipe_supervisor=equipe,
-                )
+                ) and user.has_permission("wfm.troca.aprovar")
                 cursor.execute("SELECT evento, por_nome, detalhe, criado_em FROM dbo.wfm_trocas_eventos WHERE id_troca = ? ORDER BY id_evento", (id_troca,))
                 linha = [{"evento": r[0], "por": normalize_text(r[1]), "detalhe": normalize_text(r[2]), "em": r[3].isoformat()} for r in cursor.fetchall()]
                 saida.append(

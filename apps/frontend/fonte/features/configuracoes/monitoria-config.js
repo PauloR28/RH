@@ -14,7 +14,7 @@ import {
   transferirSupervisao,
 } from '../../services/api/monitoria.js';
 import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js';
-import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261104-leitura';
+import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e
@@ -161,16 +161,6 @@ export function CamposVinculosMonitoria({ perfil, idUsuario, operacoes, setOpera
               <option value="">Sem equipe</option>${equipesDaOperacao.map((t) => html`<option key=${t.id_equipe} value=${String(t.id_equipe)}>${t.nome}</option>`)}
             </select>
           </label>` : null}
-        ${ehOperador && contratosWfm.length ? html`
-          <label class="mon-campo"><span>Contrato de jornada <small class="mon-muted">(Turnos e Plantões)</small></span>
-            <select class="form-select" disabled=${bloqueado} value=${vinculos.id_contrato || ''} onChange=${(e) => definir('id_contrato', e.target.value)}>
-              <option value="">Sem contrato</option>${contratosWfm.map((c) => html`<option key=${c.id_contrato} value=${String(c.id_contrato)}>${c.codigo} · ${Math.floor(c.jornada_diaria_max_min / 60)}h${String(c.jornada_diaria_max_min % 60).padStart(2, '0')}</option>`)}
-            </select>
-          </label>
-          ${vinculos.id_contrato && String(vinculos.id_contrato) !== String(vinculos.contrato_atual) ? html`
-            <label class="mon-campo"><span>Contrato vale a partir de</span>
-              <input class="form-control" type="date" disabled=${bloqueado} value=${vinculos.vigencia_ini || ''} onInput=${(e) => definir('vigencia_ini', e.target.value)} />
-            </label>` : null}` : null}
         ${precisaCanais ? html`
           <div class="mon-campo">
             <span>Canais de atendimento</span>

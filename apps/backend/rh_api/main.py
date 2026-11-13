@@ -6,6 +6,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pyodbc
+from conecta.interfaces.http.middlewares.request_context import (
+    RequestContextMiddleware,
+)
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from .areas import CURRICULOS, PROCESSOS, PROVAS, SUPORTE_TI, area_ativa, onboarding_ativo
 from .config import ConfigurationError, get_settings
 from .logging_config import configure_logging
 from .repositories import (
@@ -24,35 +28,36 @@ from .repositories import (
 from .routers.auth import router as auth_router
 from .routers.calendar import (
     events_router as calendar_events_router,
+)
+from .routers.calendar import (
     public_router as calendar_public_router,
+)
+from .routers.calendar import (
     router as calendar_router,
 )
-from .areas import CURRICULOS, PROCESSOS, PROVAS, SUPORTE_TI, area_ativa, onboarding_ativo
 from .routers.chamados import router as chamados_router
 from .routers.core import router as core_router
+from .routers.diario import router as diario_router
 from .routers.document_templates import router as document_templates_router
 from .routers.documentos_biblioteca import router as documentos_biblioteca_router
 from .routers.email_send import router as email_send_router
+from .routers.equipes import router as equipes_router
 from .routers.monitoria import public_router as monitoria_public_router
 from .routers.monitoria import router as monitoria_router
-from .routers.equipes import router as equipes_router
-from .routers.relatorios_hub import router as relatorios_hub_router
-from .routers.wfm import router as wfm_router
 from .routers.mural import public_router as mural_public_router
 from .routers.mural import router as mural_router
-from .routers.onedrive_files import router as onedrive_files_router
 from .routers.notifications import router as notifications_router
+from .routers.onedrive_files import router as onedrive_files_router
 from .routers.operations import router as operations_router
 from .routers.policies import router as policies_router
+from .routers.relatorios_hub import router as relatorios_hub_router
 from .routers.settings import router as settings_router
 from .routers.sistema import router as sistema_router
-from .routers.system import build_system_status, router as system_router
+from .routers.system import build_system_status
+from .routers.system import router as system_router
 from .routers.tecnologia import router as tecnologia_router
+from .routers.wfm import router as wfm_router
 from .scheduler import start_scheduler, stop_scheduler
-from conecta.interfaces.http.middlewares.request_context import (
-    RequestContextMiddleware,
-)
-
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -469,6 +474,7 @@ def create_app() -> FastAPI:
     app.include_router(monitoria_router)
     app.include_router(wfm_router)
     app.include_router(equipes_router)
+    app.include_router(diario_router)
     app.include_router(relatorios_hub_router)
     app.include_router(monitoria_public_router)
     app.include_router(mural_public_router)

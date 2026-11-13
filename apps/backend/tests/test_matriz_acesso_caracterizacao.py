@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 import _matriz_acesso as m
+import pytest
 
 # Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
 # tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
 PERFIS_APROVADOS = frozenset(m.PERFIS_TI)
-_NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca", "relhub.", "sessao.relatorios.")
+_NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca", "relhub.", "sessao.relatorios.", "diario.", "sessao.diario.")
 
 
 def _esperado_para_ti(antes: set[str]) -> set[str]:
@@ -54,6 +53,7 @@ def test_permissoes_efetivas_nao_mudaram(atual, base):
             # Mudança aprovada (Controle de Equipes e Turnos / Ambiente > Segurança, 22/out/2026): chaves NOVAS `equipes.*`,
             # `sessao.equipe.*` e `ambiente.seguranca`; também só são adicionadas.
             # Mudança aprovada (Relatórios e Históricos, 23/out/2026): chaves NOVAS `relhub.*` e `sessao.relatorios.*`; só adicionadas.
+            # Mudança aprovada (Diário de bordo, 08/nov/2026): chaves NOVAS `diario.*` e `sessao.diario.*`; só adicionadas.
             depois = {p for p in depois if not p.startswith(_NOVAS)}
             esperado = {p for p in esperado if not p.startswith(_NOVAS)}
             if depois != esperado:

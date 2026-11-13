@@ -5,8 +5,8 @@ import {
   cancelarEnvioEscalaWfm,
   declinarEscalaWfm,
   enviarAprovacaoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { dataHora } from './comum.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { dataHora } from './comum.js?v=20261112-exporta-filtro';
 
 // Aprovação da escala antes de publicar: Rascunho -> Em aprovação -> Aprovada -> (publicar).
 // Gestor ou Supervisor aprovam (nunca a própria escala; o Analista de TI é o gestor único do TI e aprova a sua).
@@ -54,7 +54,7 @@ export function PainelAprovacao({ operacao, anoMes, aprovacao, onMudou, showToas
 
   let mensagem;
   if (aprovacao.estado === 'EM_APROVACAO') {
-    mensagem = `Aguardando aprovação ${aprovacao.aprovadores_configurados ? 'dos aprovadores configurados' : 'do Gestor ou Supervisor'}. Enviada por ${aprovacao.enviado_por || '—'} em ${dataHora(aprovacao.enviado_em)}. A edição fica bloqueada até a decisão.`;
+    mensagem = `Aguardando aprovação ${aprovacao.aprovadores_configurados ? 'dos aprovadores configurados' : 'de quem tem permissão para aprovar'}. Enviada por ${aprovacao.enviado_por || '—'} em ${dataHora(aprovacao.enviado_em)}. A edição fica bloqueada até a decisão.`;
   } else if (aprovacao.estado === 'APROVADA') {
     mensagem = `Aprovada por ${aprovacao.decidido_por || '—'} em ${dataHora(aprovacao.decidido_em)}. A aprovação publica a escala.`;
   } else if (aprovacao.declinada) {

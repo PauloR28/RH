@@ -26,7 +26,7 @@ assert.ok(processesScreen.includes('setCarregando(false);'));
 assert.equal(processesScreen.includes('lerBancoTalentos({ forcar: true })'), false);
 assert.ok(appRoot.includes('function carregarTela(importador, nomeExportado)'));
 assert.ok(appRoot.includes('<${Suspense}'));
-assert.ok(processesApi.includes('TEMPO_CACHE_EMAIL_INBOX_MS = 1800000'));
+assert.ok(processesApi.includes('TEMPO_CACHE_EMAIL_INBOX_MS = 60 * 60 * 1000'));
 assert.ok(processesApi.includes("const paramsCache = new URLSearchParams({ limit: String(limite) });"));
 assert.ok(managementScreen.includes('const cacheSecoesEmail = new Map();'));
 assert.ok(managementScreen.includes('refresh: forcar'));

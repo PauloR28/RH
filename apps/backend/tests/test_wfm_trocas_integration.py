@@ -9,9 +9,9 @@ import uuid
 from datetime import date, datetime
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_MANAGER, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_permissions
 
@@ -294,6 +294,13 @@ def test_exportacao_em_planilha_respeita_o_escopo(ctx):
     assert ctx.repo.wfm_exportar_escala(ctx.sup_fora, ctx.op, MES, "csv")[1].endswith(".csv")
     vazia = list(load_workbook(io.BytesIO(ctx.repo.wfm_exportar_escala(ctx.sup_fora, ctx.op, MES)[0]))["Escala"].iter_rows(values_only=True))
     assert len(vazia) == 1                                          # só o cabeçalho
+    # O arquivo segue o filtro da tela: "Todas as equipes" ligado traz as outras equipes ao Supervisor...
+    todas = list(load_workbook(io.BytesIO(ctx.repo.wfm_exportar_escala(ctx.sup_fora, ctx.op, MES, todas_equipes=True)[0]))["Escala"].iter_rows(values_only=True))
+    assert {l[0] for l in todas[1:]} == {"Op A", "Op B", "Op C", "Op D aprendiz"}
+    # ...e a lista de quem está visível (filtro de equipe/supervisor/cargo/nome) restringe, sem nunca ampliar o escopo.
+    so_a = list(load_workbook(io.BytesIO(ctx.repo.wfm_exportar_escala(ctx.gestor, ctx.op, MES, ids_operadores=[ctx.id_a])[0]))["Escala"].iter_rows(values_only=True))
+    assert [l[0] for l in so_a[1:]] == ["Op A"]
+    assert len(list(load_workbook(io.BytesIO(ctx.repo.wfm_exportar_escala(ctx.sup_fora, ctx.op, MES, ids_operadores=[ctx.id_a])[0]))["Escala"].iter_rows(values_only=True))) == 1
     assert "wfm.escala.visualizar" not in ctx.a.permissions    # a rota de exportação exige essa permissão: o Operador não exporta
 
 

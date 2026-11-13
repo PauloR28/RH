@@ -14,7 +14,6 @@ from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 
-
 router = APIRouter(prefix="/notificacoes", tags=["notificacoes"], dependencies=[Depends(get_current_user)])
 
 

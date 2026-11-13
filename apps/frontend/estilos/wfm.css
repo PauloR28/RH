@@ -1259,7 +1259,7 @@ legend.ea-sec-rotulo--linha .ea-muted { font-weight: 400; font-size: 0.8rem; }
 .ea-cel.is-manual::after { content: ''; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--status-warning-ink, #8a5a00); box-shadow: 0 0 0 1px var(--paper); }
 
 /* ---- Trocas: lista compacta + detalhe (.tr-*). Página sem rolagem: só a lista, o corpo do detalhe e a linha do tempo rolam. ---- */
-.tr-card { display: flex; flex-direction: column; height: calc(100dvh - 232px); min-height: 400px; padding: 0; overflow: hidden; }
+.tr-card { display: flex; flex-direction: column; height: calc(100dvh / var(--c-zoom, 1) - 232px); min-height: 400px; padding: 0; overflow: hidden; }
 .tr-topo { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 24px; min-height: 72px; box-sizing: border-box; flex: none; }
 .tr-topo h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; }
 .tr-corpo { flex: 1; min-height: 0; display: grid; grid-template-columns: 432px minmax(0, 1fr); gap: 16px; padding: 16px; background: var(--paper-sunken); border-top: 1px solid var(--line); }

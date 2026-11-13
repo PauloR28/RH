@@ -1,12 +1,12 @@
 ﻿from __future__ import annotations
 
-from datetime import datetime
 import re
+from datetime import datetime
 
 from pydantic import field_validator, model_validator
 
-from ..services.process_flow import CANDIDATE_STATUS_PENDING_CONFIRMATION
 from ..services.interviews import normalize_interview_status
+from ..services.process_flow import CANDIDATE_STATUS_PENDING_CONFIRMATION
 from .common import BaseSchema
 
 

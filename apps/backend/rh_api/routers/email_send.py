@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
-
 from conecta.infrastructure.security.rate_limit import InMemoryRateLimiter
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..auth import AuthenticatedUser
 from ..config import get_settings

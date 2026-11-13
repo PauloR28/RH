@@ -1,7 +1,4 @@
 import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { EmptyState } from '../../../ui/componentes-compartilhados.js';
-import { EsqueletoLinhas } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { PainelFlutuante, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
 import {
   lancarPresencaLoteWfm,
   lancarPresencaWfm,
@@ -10,14 +7,15 @@ import {
   listarPresencasWfm,
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
-} from '../../../services/api/wfm.js?v=20261104-leitura';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261104-leitura';
-import { Icone } from './escala-ui.js?v=20261104-leitura';
+} from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261112-exporta-filtro';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { tomarFocoPessoa } from './foco-pessoa.js';
 
-// Presença: Supervisor (própria equipe) e Control Desk (operações vinculadas). Trabalha-se por SEMANA.
-// Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria. Atestado guarda só período,
-// tipo e quem validou — o arquivo do atestado NUNCA é armazenado (dado de saúde).
-// Layout: quadro da semana à esquerda e pendências de confirmação à direita. O total de pendências vem do servidor.
+// Presença (redesign Fase 15, amostra "Presença" da Fase 12): Supervisor (própria equipe) e Control Desk (operações
+// vinculadas). Trabalha-se por SEMANA. Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria.
+// Atestado guarda só período, tipo e quem validou — o arquivo do atestado NUNCA é armazenado (dado de saúde).
+// O total de pendências vem do servidor.
 
 const TIPOS_ATESTADO = { MEDICO: 'Médico', ACOMPANHAMENTO: 'Acompanhamento de familiar', DOACAO_SANGUE: 'Doação de sangue', OUTRO: 'Outro' };
 const ORIGEM_AUTOMATICA = 'Automática (1º login)'; // mesmo texto gravado pelo backend no primeiro login do dia
@@ -26,9 +24,12 @@ const paraIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const somar = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const segundaDe = (d) => somar(d, -((d.getDay() + 6) % 7));
 const br = (iso) => iso.split('-').reverse().join('/');
-const SIGLA_CLASSE = { PRESENTE: 'p', FALTA: 'f', FALTA_JUSTIFICADA: 'fj', ATESTADO: 'at', SERVICO_EXTERNO: 'se', DAY_OFF: 'do', FOLGA_COMP_BH: 'fb', FOLGA: 'fl', FERIAS: 'fe' };
+// Sigla da grade (DEC-056): a sigla carrega o sentido, a cor só reforça.
+const TOM_SIGLA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'atencao', ATESTADO: 'informacao' };
+const PRINCIPAIS = ['PRESENTE', 'FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'];
 
-export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias }) {
+// `embutido`: dentro de outra página (Equipes) — sem <main> nem título próprio; os botões ficam numa linha à direita.
+export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendencias, embutido = false, opcoesEscala = null, aoTrocarEscala = null }) {
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [presencas, setPresencas] = useState({});
@@ -36,14 +37,14 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
   const [atestados, setAtestados] = useState([]);
   const [pend, setPend] = useState({ total: 0, itens: [] });
   const [erro, setErro] = useState('');
-  const [filtro, setFiltro] = useState('todos'); // todos | faltas | atestados
-  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState('todos'); // todos | pendentes | faltas | atestados
+  const [busca, setBusca] = useState(() => tomarFocoPessoa('presenca')); // vindo do Painel do dia: já filtrado pela pessoa
   const [form, setForm] = useState({ id_operador: '', data_ini: '', data_fim: '', tipo: 'MEDICO' });
   const [lote, setLote] = useState({ data: '', status: 'PRESENTE', excecoes: {}, marcar: '' });
   const [ocupado, setOcupado] = useState(false);
   const [verLote, setVerLote] = useState(false);
   const [verAtestados, setVerAtestados] = useState(false);
-  const [gavetaPend, setGavetaPend] = useState(false);
+  const [verPendencias, setVerPendencias] = useState(false);
   const listaRef = useRef(null);
   const pode = controlador.possuiPermissao('wfm.presenca.lancar');
 
@@ -74,24 +75,34 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
   }, [operacao, meses.join(','), dias.join(','), pode]);
   useEffect(() => { setDados(null); carregar(); }, [carregar]);
   useEffect(() => { setLote((l) => ({ ...l, data: dias.includes(l.data) ? l.data : (dias.includes(paraIso(new Date())) ? paraIso(new Date()) : dias[0]), excecoes: {} })); }, [dias.join(',')]);
-  // O selo da aba Presença acompanha o total do título do painel.
+  // O selo de Presença na sub-barra acompanha o total da semana mostrada.
   useEffect(() => { if (dados) aoMudarPendencias?.(pend.total); }, [pend.total, !!dados]);
   useEffect(() => () => aoMudarPendencias?.(null), []);
 
   const nomes = useMemo(() => Object.fromEntries((dados?.operadores || []).map((o) => [o.id_usuario, o.nome])), [dados]);
-  if (erro) return html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`;
-  if (!dados) return html`<section class="mo-card-escala" aria-busy="true" aria-label="Carregando a presença"><${EsqueletoLinhas} linhas=${10} altura=${40} /></section>`;
+  const semana = `${br(dias[0]).slice(0, 5)} a ${br(dias[6])}`;
+  const pagina = (conteudo, extra = {}) => (embutido ? html`<div class="c-embutido" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</div>` : html`<main class="c-pagina c-conteudo" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</main>`);
+  const cabecalho = html`<div class="c-cab-linha">${embutido ? null : html`<h1>Presença</h1>`}
+    ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+    ${pode && dados ? html`<div class="c-cab-dir">
+      <button type="button" class="c-botao c-botao--secundario" aria-expanded=${verAtestados ? 'true' : 'false'} onClick=${() => { setVerAtestados(true); setVerLote(false); }}><${Ic} nome="file-text" />Atestados${atestados.length ? ` (${atestados.length})` : ''}</button>
+      <button type="button" class="c-botao c-botao--principal" aria-expanded=${verLote ? 'true' : 'false'} onClick=${() => { setVerLote(true); setVerAtestados(false); }}><${Ic} nome="list-checks" />Presença em lote</button>
+    </div>` : null}</div>`;
+  if (erro) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} /></div>`);
+  if (!dados) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div>`, { ocupado: true });
 
   const escalado = (id, d) => dados.turnos[dados.itens[`${id}:${d}`]?.id_turno]?.tipo === 'TRABALHO';
   const statusDe = (id, d) => presencas[`${id}:${d}`] || '';
-  const operadores = dados.operadores.filter((o) => (!busca || o.nome.toLowerCase().includes(busca.toLowerCase()))
-    && (filtro === 'todos' || dias.some((d) => statusDe(o.id_usuario, d) === (filtro === 'faltas' ? 'FALTA' : 'ATESTADO')
-      || (filtro === 'faltas' && statusDe(o.id_usuario, d) === 'FALTA_JUSTIFICADA'))));
   const hoje = paraIso(new Date());
+  const pendentesDaSemana = new Set(pend.itens.map((p) => p.id_operador));
+  const operadores = dados.operadores.filter((o) => (!busca || o.nome.toLowerCase().includes(busca.toLowerCase()))
+    && (filtro === 'todos'
+      || (filtro === 'pendentes' && pendentesDaSemana.has(o.id_usuario))
+      || (filtro !== 'pendentes' && dias.some((d) => statusDe(o.id_usuario, d) === (filtro === 'faltas' ? 'FALTA' : 'ATESTADO')
+        || (filtro === 'faltas' && statusDe(o.id_usuario, d) === 'FALTA_JUSTIFICADA')))));
   const escaladosDoDia = dados.operadores.filter((o) => escalado(o.id_usuario, lote.data));
-  const semana = `${br(dias[0])} a ${br(dias[6])}`;
 
-  // Lançamento de uma célula (select) ou de uma pendência: o quadro, a lista, o título e o selo andam juntos.
+  // Lançamento de uma célula ou de uma pendência: a grade, a lista, o total e o selo andam juntos.
   const lancar = async (idOperador, data, status) => {
     if (!status) return;
     const chave = `${idOperador}:${data}`;
@@ -113,7 +124,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
     const i = pend.itens.indexOf(p);
     if (!(await lancar(p.id_operador, p.data, status))) return;
     // O foco vai para a próxima linha, não para o topo da página.
-    setTimeout(() => { const linhas = listaRef.current?.querySelectorAll('.mo-pend-lin') || []; (linhas[Math.min(i, linhas.length - 1)]?.querySelector('button') || listaRef.current)?.focus?.(); }, 0);
+    setTimeout(() => { const linhas = listaRef.current?.querySelectorAll('tbody tr') || []; (linhas[Math.min(i, linhas.length - 1)]?.querySelector('button') || listaRef.current)?.focus?.(); }, 0);
   };
   const aplicarLote = async () => {
     const excecoes = Object.keys(lote.excecoes).filter((k) => lote.excecoes[k]).map(Number);
@@ -136,105 +147,112 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
     } catch (err) { showToast?.(err?.message || 'Não foi possível registrar o atestado.', 'error'); }
   };
 
-  if (!dados.operadores.length) return html`<${EmptyState} icon="groups" title="Nenhum operador" text="Não há operadores visíveis para você nesta operação." />`;
+  if (!dados.operadores.length) return pagina(html`${cabecalho}<div class="c-tabela-caixa"><${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." /></div>`);
   const contagemExc = Object.values(lote.excecoes).filter(Boolean).length;
 
-  // Conteúdo de uma célula do quadro: "—" (fora da escala), ponto vermelho (pendente), ponto cinza (ainda vai chegar) ou chip.
+  // Célula: sigla (lançado), "—" âmbar (escalado, dia já chegou, sem lançamento), "—"/"DSR" apagado (futuro / sem escala).
   const marca = (valor, esc, d) => {
-    if (valor) return html`<span class=${`mo-pres mo-pres--${SIGLA_CLASSE[valor] || 'p'}`} aria-hidden="true">${siglaPresenca(valor)}</span>`;
-    if (!esc) return html`<span class="mo-pres-nada" aria-hidden="true">—</span>`;
-    return html`<span class=${`mo-ponto-pres ${d <= hoje ? 'is-pendente' : ''}`} aria-hidden="true"></span>`;
+    if (valor) return html`<span class=${`c-sigla c-selo--${TOM_SIGLA[valor] || 'neutro'}`} title=${rotuloPresenca(valor)}>${siglaPresenca(valor)}</span>`;
+    if (!esc) return html`<span class="c-futuro" title="Sem escala de trabalho neste dia">DSR</span>`;
+    if (d <= hoje) return html`<span class="c-pendente" title="Sem lançamento">—</span>`;
+    return html`<span class="c-futuro" title="Ainda não chegou">—</span>`;
   };
   const textoCelula = (valor, esc, d) => (valor ? rotuloPresenca(valor).toLowerCase() : !esc ? 'sem escala' : d <= hoje ? 'pendente' : 'sem lançamento');
+  const presentesNoDia = (d) => {
+    const esc = dados.operadores.filter((o) => escalado(o.id_usuario, d));
+    return { presentes: esc.filter((o) => statusDe(o.id_usuario, d) === 'PRESENTE').length, total: esc.length };
+  };
 
   return html`
-    <div class="mo-contexto cx-fixo">
-      <${Stepper} rotulo="Presença da semana" valor=${semana} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => setAncora(somar(ancora, -7))} aoProximo=${() => setAncora(somar(ancora, 7))} />
-      <button type="button" class="mo-btn mo-btn--neutro mo-btn--46" onClick=${() => setAncora(new Date())}>Esta semana</button>
-      ${pode ? html`<button type="button" class="mo-btn mo-btn--neutro mo-btn--46 mo-pend-abrir" aria-expanded=${gavetaPend} aria-controls="mo-pend" onClick=${() => setGavetaPend(!gavetaPend)}>Pendentes de confirmação (${pend.total})</button>` : null}
-      ${pode ? html`<div class="mo-contexto-fim">
-        <button type="button" class=${`mo-btn mo-btn--prim mo-btn--46 ${verLote ? 'is-ativo' : ''}`} aria-expanded=${verLote} aria-controls="mo-painel-lote" onClick=${() => { setVerLote(!verLote); setVerAtestados(false); }}><${Icone} nome="fact_check" />Presença em lote</button>
-        <button type="button" class=${`mo-btn mo-btn--sec mo-btn--46 ${verAtestados ? 'is-ativo' : ''}`} aria-expanded=${verAtestados} aria-controls="mo-painel-atestados" onClick=${() => { setVerAtestados(!verAtestados); setVerLote(false); }}><${Icone} nome="add" />Atestados${atestados.length ? ` (${atestados.length})` : ''}</button>
-      </div>` : null}
-    </div>
-
-    <div class=${`mo-presenca cx-cresce ${pode ? 'tem-pend' : ''}`}>
-      <section class="mo-card-escala mo-semana-card" aria-label="Presença da semana">
-        <div class="mo-barra mo-barra--filtros cx-fixo">
-          <label class="mo-filtro"><span>Mostrar</span><select class="ea-campo ea-select" value=${filtro} onChange=${(e) => setFiltro(e.target.value)}><option value="todos">Todos os operadores</option><option value="faltas">Só quem faltou na semana</option><option value="atestados">Só quem está de atestado</option></select></label>
-          <div class="ea-busca"><label class="visually-hidden" for="mo-busca-pres">Buscar operador</label><span class="ea-busca-icone" aria-hidden="true"><${Icone} nome="search" /></span>
-            <input id="mo-busca-pres" type="search" class="ea-campo" placeholder="Buscar operador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
-          <span class="ea-contagem" aria-live="polite">${operadores.length} de ${dados.operadores.length} operador(es)</span>
-        </div>
-        <div class="mo-rolagem mo-semana-rolagem cx-cresce" role="region" aria-label="Presença da semana" tabindex="0">
-          <table class="mo-semana">
-            <thead><tr><th scope="col" class="mo-semana-op">OPERADOR</th>${dias.map((d, i) => html`<th key=${d} scope="col" class=${`mo-semana-dia ${d === hoje ? 'is-hoje' : ''} ${i === 6 ? 'is-dom' : ''}`}><span class="ea-dia-num">${d.slice(8)}</span><small>${SEMANA[i]}</small></th>`)}</tr></thead>
-            <tbody>${operadores.length ? operadores.map((op) => html`<tr key=${op.id_usuario}><th scope="row" class="mo-semana-op"><span class="mo-trunca" title=${op.nome}>${op.nome}</span></th>
-              ${dias.map((d, i) => { const valor = statusDe(op.id_usuario, d); const esc = escalado(op.id_usuario, d);
-                const aria = `${op.nome}, ${br(d).slice(0, 5)}, ${textoCelula(valor, esc, d)}`;
-                return html`<td key=${d} class=${`mo-semana-cel ${d === hoje ? 'is-hoje' : ''} ${i === 6 ? 'is-dom' : ''}`} title=${automaticas[`${op.id_usuario}:${d}`] ? 'Presença automática (primeiro login do dia)' : esc ? 'Escalado neste dia' : 'Sem escala de trabalho neste dia'}>
-                  ${marca(valor, esc, d)}
-                  ${pode ? html`<select class="mo-semana-sel" aria-label=${aria} value=${valor} onChange=${(e) => lancar(op.id_usuario, d, e.target.value)}><option value="">${esc ? '·' : '—'}</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s} · ${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select>` : html`<span class="visually-hidden">${aria}</span>`}</td>`; })}</tr>`)
-              : html`<tr><td class="ea-vazio" colspan="8">Nenhum operador encontrado com estes filtros.</td></tr>`}</tbody>
-          </table>
-        </div>
-        <div class="mo-legenda-pres cx-fixo">
-          ${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<span key=${k} class="mo-legenda-item"><span class=${`mo-pres mo-pres--${SIGLA_CLASSE[k]}`} aria-hidden="true">${s}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}
-          <span class="mo-legenda-item"><span class="mo-ponto-pres is-pendente" aria-hidden="true"></span>Pendente</span>
-          ${pode ? html`<span class="mo-legenda-dica">Clique numa célula para lançar</span>` : null}
-        </div>
-      </section>
-
-      ${pode ? html`<aside id="mo-pend" class=${`mo-pend ${gavetaPend ? 'is-aberta' : ''}`} aria-label="Pendentes de confirmação">
-        <header class="mo-pend-cab">
-          <span class="mo-pend-ponto" aria-hidden="true"></span>
-          <div><h2>Pendentes de confirmação (${pend.total})</h2><p>Escalados que não logaram no Conecta no dia. Dê presença ou marque a falta.</p></div>
-          <button type="button" class="mo-painel-x mo-pend-fechar" aria-label="Fechar" title="Fechar" onClick=${() => setGavetaPend(false)}><${Icone} nome="close" /></button>
-          <span class="visually-hidden" role="status" aria-live="polite">${pend.total} pendências de confirmação</span>
-        </header>
-        <ul class="mo-pend-lista" ref=${listaRef} tabindex="-1">${pend.itens.length ? pend.itens.map((p) => html`<li key=${`${p.id_operador}:${p.data}`} class="mo-pend-lin">
-          <span class="mo-trunca mo-pend-nome" title=${p.nome}>${p.nome}</span><small class="mo-pend-data">${br(p.data).slice(0, 5)}</small>
-          <button type="button" class="mo-btn mo-btn--30 mo-btn--ok" aria-label=${`Dar presença para ${p.nome}, ${br(p.data).slice(0, 5)}`} onClick=${() => resolverPendencia(p, 'PRESENTE')}><span class="mo-pend-longo">Dar presença</span><span class="mo-pend-curto" aria-hidden="true"><${Icone} nome="check" />Presença</span></button>
-          <button type="button" class="mo-btn mo-btn--30 mo-btn--erro" aria-label=${`Marcar falta para ${p.nome}, ${br(p.data).slice(0, 5)}`} onClick=${() => resolverPendencia(p, 'FALTA')}><span class="mo-pend-longo">Marcar falta</span><span class="mo-pend-curto" aria-hidden="true"><${Icone} nome="close" />Falta</span></button>
-        </li>`) : html`<li class="mo-pend-vazio">Nenhuma pendência de confirmação.</li>`}</ul>
-      </aside>` : null}
-
-      ${pode && verLote ? html`<${PainelFlutuante} id="mo-painel-lote" posicao="cima" largura=${760} titulo="Presença em lote" aoFechar=${() => setVerLote(false)}>
-        <div class="wfm-form mo-padrao">
-          <p class="mon-muted">Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <strong>não</strong> deve receber (faltou, está de atestado...).</p>
-          <div class="wfm-lote-linha">
-            <label class="mon-campo"><span>Dia</span><select class="form-select" value=${lote.data} onChange=${(e) => setLote({ ...lote, data: e.target.value, excecoes: {} })}>${dias.map((d, i) => html`<option key=${d} value=${d}>${SEMANA[i]} ${br(d).slice(0, 5)}</option>`)}</select></label>
-            <label class="mon-campo"><span>Aplicar a todos</span><select class="form-select" value=${lote.status} onChange=${(e) => setLote({ ...lote, status: e.target.value })}>${Object.entries(ROTULO_STATUS_PRESENCA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select></label>
-            <label class="mon-campo"><span>Quem ficou de fora, marcar como</span><select class="form-select" value=${lote.marcar} onChange=${(e) => setLote({ ...lote, marcar: e.target.value })}><option value="">Não alterar</option>${['FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'].map((k) => html`<option key=${k} value=${k}>${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select></label>
-            <button type="button" class="btn btn-primary wfm-lote-botao" disabled=${ocupado || !escaladosDoDia.length || escaladosDoDia.length === contagemExc} onClick=${aplicarLote}>${rotuloPresenca(lote.status)} para ${escaladosDoDia.length - contagemExc} operador(es)</button>
-          </div>
-          ${escaladosDoDia.length ? html`
-            <div class="wfm-lote-excecoes">
-              <strong class="wfm-rotulo-sm">Exceto (${contagemExc} de ${escaladosDoDia.length} escalados em ${br(lote.data).slice(0, 5)})</strong>
-              <div class="wfm-excecoes">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class=${`wfm-excecao ${lote.excecoes[o.id_usuario] ? 'is-marcada' : ''}`}><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<small class=${`wfm-pres wfm-pres-${statusDe(o.id_usuario, lote.data).toLowerCase()}`}>${siglaPresenca(statusDe(o.id_usuario, lote.data))}</small>` : null}</label>`)}</div>
-            </div>` : html`<p class="mon-muted">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
-        </div>
+    ${pagina(html`
+      ${cabecalho}
+      ${pode && pend.total ? html`<${Faixa} tom="atencao" icone="warning"
+        acao=${html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-expanded=${verPendencias ? 'true' : 'false'} onClick=${() => setVerPendencias((v) => !v)}>${verPendencias ? 'Esconder' : 'Resolver pendências'}</button>`}>
+        <b>${pend.total} ${pend.total === 1 ? 'lançamento pendente' : 'lançamentos pendentes'}</b> nesta semana: escalados que não logaram no Conecta no dia.
       <//>` : null}
-
-      ${pode && verAtestados ? html`<${PainelFlutuante} id="mo-painel-atestados" posicao="cima" largura=${760} titulo="Atestados" aoFechar=${() => setVerAtestados(false)}>
-        <div class="mo-padrao">
-          <p class="mon-muted">Registra período, tipo e quem validou.</p>
-          <form class="wfm-linha-form" onSubmit=${registrarAtestado}>
-            <label class="mon-campo"><span>Operador</span>
-              <select class="form-select" required value=${form.id_operador} onChange=${(e) => setForm({ ...form, id_operador: e.target.value })}>
-                <option value="">Selecione</option>${dados.operadores.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}
-              </select></label>
-            <label class="mon-campo"><span>Início</span><input class="form-control" type="date" required value=${form.data_ini} onChange=${(e) => setForm({ ...form, data_ini: e.target.value, data_fim: form.data_fim || e.target.value })} /></label>
-            <label class="mon-campo"><span>Fim</span><input class="form-control" type="date" required value=${form.data_fim} onChange=${(e) => setForm({ ...form, data_fim: e.target.value })} /></label>
-            <label class="mon-campo"><span>Tipo</span>
-              <select class="form-select" value=${form.tipo} onChange=${(e) => setForm({ ...form, tipo: e.target.value })}>
-                ${Object.entries(TIPOS_ATESTADO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}
-              </select></label>
-            <button type="submit" class="btn btn-primary"><${Icone} nome="add" />Registrar</button>
-          </form>
-          ${atestados.length ? html`<table class="mo-tabela"><thead><tr><th scope="col">Operador</th><th scope="col">Período</th><th scope="col">Tipo</th><th scope="col">Validado por</th></tr></thead>
-            <tbody>${atestados.map((a) => html`<tr key=${a.id_atestado}><td>${nomes[a.id_operador] || a.id_operador}</td><td>${br(a.data_ini)} a ${br(a.data_fim)}</td><td>${TIPOS_ATESTADO[a.tipo] || a.tipo}</td><td>${a.validado_por}</td></tr>`)}</tbody></table>` : null}
+      ${pode && pend.total && verPendencias ? html`<section class="c-cartao" aria-labelledby="wfm-pend-titulo">
+        <div class="c-cartao-cab"><h2 id="wfm-pend-titulo">Pendentes de confirmação</h2><span class="c-nota" role="status" aria-live="polite">${pend.total} pendência(s)</span></div>
+        <div class="c-tabela-caixa" ref=${listaRef} tabindex="-1">
+          <table class="c-tabela"><thead><tr><th scope="col" class="c-estica">Colaborador</th><th scope="col">Dia</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+            <tbody>${pend.itens.map((p) => html`<tr key=${`${p.id_operador}:${p.data}`}>
+              <td class="c-estica c-forte">${p.nome}</td><td class="c-secundario">${br(p.data).slice(0, 5)}</td>
+              <td class="c-acoes"><div class="c-grupo">
+                <button type="button" class="c-botao c-botao--secundario c-botao--compacto" aria-label=${`Marcar falta para ${p.nome}, ${br(p.data).slice(0, 5)}`} onClick=${() => resolverPendencia(p, 'FALTA')}>Marcar falta</button>
+                <button type="button" class="c-botao c-botao--principal c-botao--compacto" aria-label=${`Dar presença para ${p.nome}, ${br(p.data).slice(0, 5)}`} onClick=${() => resolverPendencia(p, 'PRESENTE')}><${Ic} nome="check" />Dar presença</button>
+              </div></td></tr>`)}</tbody></table>
         </div>
-      <//>` : null}
-    </div>`;
+      </section>` : null}
+      <div class="c-tabela-caixa">
+        <div class="c-filtros c-filtros--suave">
+          <${Navegar} grupo="Semana" rotulo=${semana} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => setAncora(somar(ancora, -7))} aoProximo=${() => setAncora(somar(ancora, 7))} />
+          <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setAncora(new Date())}>Esta semana</button>
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+          <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${filtro} onChange=${(e) => setFiltro(e.target.value)}>
+            <option value="todos">Todos os colaboradores</option>
+            ${pode ? html`<option value="pendentes">Só pendentes</option>` : null}
+            <option value="faltas">Só quem faltou na semana</option>
+            <option value="atestados">Só quem está de atestado</option>
+          </select>
+          <span class="c-contador" aria-live="polite">${operadores.length} de ${dados.operadores.length}</span>
+        </div>
+        <table class="c-tabela c-tabela--fixa c-semana c-presenca">
+          <thead><tr><th scope="col" class="c-col-nome">Colaborador</th>${dias.map((d, i) => html`<th key=${d} scope="col" class=${`c-dia-sem ${d === hoje ? 'c-hoje' : ''}`}>${SEMANA[i]} ${br(d).slice(0, 5)}</th>`)}</tr></thead>
+          <tbody>${operadores.length ? operadores.map((op) => html`<tr key=${op.id_usuario}><td class="c-forte c-col-nome">${op.nome}</td>
+            ${dias.map((d) => {
+    const valor = statusDe(op.id_usuario, d); const esc = escalado(op.id_usuario, d);
+    const aria = `${op.nome}, ${br(d).slice(0, 5)}, ${textoCelula(valor, esc, d)}`;
+    return html`<td key=${d} class=${`c-dia-sem ${d === hoje ? 'c-hoje' : ''} ${pode ? 'c-celula-lanca' : ''}`} title=${automaticas[`${op.id_usuario}:${d}`] ? 'Presença automática (primeiro login do dia)' : null}>
+                ${marca(valor, esc, d)}
+                ${pode ? html`<select class="c-celula-sel" aria-label=${aria} value=${valor} onChange=${(e) => lancar(op.id_usuario, d, e.target.value)}><option value="">${esc ? 'Sem lançamento' : 'Sem escala'}</option>${Object.entries(SIGLA_PRESENCA).map(([k, s]) => html`<option key=${k} value=${k}>${s} · ${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select>` : html`<span class="c-oculto">${aria}</span>`}
+              </td>`;
+  })}</tr>`)
+    : html`<tr><td colspan="8"><${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltro('todos'); }} /></td></tr>`}</tbody>
+          <tfoot><tr><td>Presentes no dia</td>${dias.map((d) => {
+    const { presentes, total } = presentesNoDia(d);
+    const falta = d <= hoje && total > 0 && presentes < total;
+    return html`<td key=${d} class=${`c-dia-sem ${d === hoje ? 'c-hoje' : ''} ${falta ? 'c-falta' : ''}`}>${total ? html`${presentes}<small> de ${total}</small>` : '—'}</td>`;
+  })}</tr></tfoot>
+        </table>
+        <div class="c-legenda">
+          ${PRINCIPAIS.map((k) => html`<span key=${k}><span class=${`c-sigla c-selo--${TOM_SIGLA[k]}`}>${SIGLA_PRESENCA[k]}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}
+          <span><span class="c-pendente">—</span>Sem lançamento</span>
+          ${pode ? html`<span class="c-legenda-fim">Clique no dia para lançar · outras ${Object.keys(SIGLA_PRESENCA).length - PRINCIPAIS.length} siglas no menu</span>` : null}
+        </div>
+      </div>`)}
+
+    ${pode && verLote ? html`<${Janela} titulo="Presença em lote" tamanho="grande" onClose=${() => setVerLote(false)}
+      rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setVerLote(false)}>Fechar</button>
+        <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || !escaladosDoDia.length || escaladosDoDia.length === contagemExc || null} onClick=${aplicarLote}>${rotuloPresenca(lote.status)} para ${escaladosDoDia.length - contagemExc} colaborador(es)</button>`}>
+      <div class="c-janela-corpo">
+        <p>Aplique o status a todos os escalados do dia de uma vez. Marque abaixo quem <b>não</b> deve receber (faltou, está de atestado...).</p>
+        <div class="c-form" style=${{ '--colunas': 3 }}>
+          <${Campo} rotulo="Dia"><select class="c-entrada" value=${lote.data} onChange=${(e) => setLote({ ...lote, data: e.target.value, excecoes: {} })}>${dias.map((d, i) => html`<option key=${d} value=${d}>${SEMANA[i]} ${br(d).slice(0, 5)}</option>`)}</select><//>
+          <${Campo} rotulo="Aplicar a todos"><select class="c-entrada" value=${lote.status} onChange=${(e) => setLote({ ...lote, status: e.target.value })}>${Object.entries(ROTULO_STATUS_PRESENCA).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}</select><//>
+          <${Campo} rotulo="Quem ficou de fora, marcar como"><select class="c-entrada" value=${lote.marcar} onChange=${(e) => setLote({ ...lote, marcar: e.target.value })}><option value="">Não alterar</option>${['FALTA', 'FALTA_JUSTIFICADA', 'ATESTADO'].map((k) => html`<option key=${k} value=${k}>${ROTULO_STATUS_PRESENCA[k]}</option>`)}</select><//>
+        </div>
+        ${escaladosDoDia.length ? html`<fieldset class="c-lote-excecoes">
+            <legend class="c-rotulo">Exceto (${contagemExc} de ${escaladosDoDia.length} escalados em ${br(lote.data).slice(0, 5)})</legend>
+            <div class="c-lote-lista">${escaladosDoDia.map((o) => html`<label key=${o.id_usuario} class="c-marcar"><input type="checkbox" checked=${!!lote.excecoes[o.id_usuario]} onChange=${() => setLote({ ...lote, excecoes: { ...lote.excecoes, [o.id_usuario]: !lote.excecoes[o.id_usuario] } })} /><span>${o.nome}</span>${statusDe(o.id_usuario, lote.data) ? html`<span class=${`c-sigla c-selo--${TOM_SIGLA[statusDe(o.id_usuario, lote.data)] || 'neutro'}`}>${siglaPresenca(statusDe(o.id_usuario, lote.data))}</span>` : null}</label>`)}</div>
+          </fieldset>` : html`<p class="c-ajuda">Ninguém da sua equipe está escalado em ${br(lote.data)}.</p>`}
+      </div>
+    <//>` : null}
+
+    ${pode && verAtestados ? html`<${Janela} titulo="Atestados" tamanho="grande" onClose=${() => setVerAtestados(false)}>
+      <div class="c-janela-corpo">
+        <p>Registra período, tipo e quem validou. O arquivo do atestado não é guardado.</p>
+        <form class="c-form" style=${{ '--colunas': 4 }} onSubmit=${registrarAtestado}>
+          <${Campo} rotulo="Colaborador"><select class="c-entrada" required value=${form.id_operador} onChange=${(e) => setForm({ ...form, id_operador: e.target.value })}>
+            <option value="">Selecione</option>${dados.operadores.map((o) => html`<option key=${o.id_usuario} value=${o.id_usuario}>${o.nome}</option>`)}
+          </select><//>
+          <${Campo} rotulo="Início"><input class="c-entrada" type="date" required value=${form.data_ini} onChange=${(e) => setForm({ ...form, data_ini: e.target.value, data_fim: form.data_fim || e.target.value })} /><//>
+          <${Campo} rotulo="Fim"><input class="c-entrada" type="date" required value=${form.data_fim} onChange=${(e) => setForm({ ...form, data_fim: e.target.value })} /><//>
+          <${Campo} rotulo="Tipo"><select class="c-entrada" value=${form.tipo} onChange=${(e) => setForm({ ...form, tipo: e.target.value })}>
+            ${Object.entries(TIPOS_ATESTADO).map(([k, v]) => html`<option key=${k} value=${k}>${v}</option>`)}
+          </select><//>
+          <div class="c-cheio c-grupo c-grupo--fim"><button type="submit" class="c-botao c-botao--principal"><${Ic} nome="plus" />Registrar atestado</button></div>
+        </form>
+        ${atestados.length ? html`<div class="c-tabela-caixa"><table class="c-tabela"><thead><tr><th scope="col">Colaborador</th><th scope="col">Período</th><th scope="col">Tipo</th><th scope="col" class="c-estica">Validado por</th></tr></thead>
+          <tbody>${atestados.map((a) => html`<tr key=${a.id_atestado}><td class="c-forte">${nomes[a.id_operador] || a.id_operador}</td><td>${br(a.data_ini)} a ${br(a.data_fim)}</td><td>${TIPOS_ATESTADO[a.tipo] || a.tipo}</td><td class="c-estica c-secundario">${a.validado_por}</td></tr>`)}</tbody></table></div>` : null}
+      </div>
+    <//>` : null}`;
 }

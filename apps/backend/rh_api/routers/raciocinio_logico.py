@@ -13,7 +13,6 @@ from ..schemas.raciocinio_logico import (
     RaciocinioProximaAdaptativaRequest,
 )
 
-
 router = APIRouter(prefix="/raciocinio-logico", tags=["raciocinio-logico"], dependencies=[Depends(get_current_user)])
 public_router = APIRouter(prefix="/raciocinio-logico-api", tags=["raciocinio-logico-public"])
 

@@ -1,4 +1,4 @@
-import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261104-leitura';
+import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js';
 import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js';
 import { lerHistoricoPaginado } from '../../services/api/history.js';
@@ -74,9 +74,9 @@ export async function carregarOperacoes(area) {
   return [];
 }
 
-const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false) => ({
+const SO_WFM_RELATORIO = (tipo, rotulo, descricao, totais = false, filtrosExtras = []) => ({
   id: `wfm.${tipo}`, area: 'wfm', rotulo, descricao, permissao: `relhub.wfm.${tipo}`,
-  filtros: ['periodo', 'operacao', 'operador', 'busca'], totais,
+  filtros: ['periodo', 'operacao', ...filtrosExtras, 'operador', 'busca'], totais,
   // Sem escala escolhida = todas as escalas a que a pessoa tem acesso (uma troca ou presença nunca "some" por estar noutra escala).
   async carregar(f) {
     const consulta = (operacao) => lerRelatorioWfm({ operacao, data_ini: f.ini, data_fim: f.fim, id_operador: f.operador || undefined, tipo });
@@ -100,6 +100,7 @@ export const RELATORIOS = [
   { id: 'wfm.painel', area: 'wfm', rotulo: 'Painel', descricao: 'Indicadores, comparações e gráficos do período (também na aba Painel do WFM).', permissao: 'relhub.wfm.painel', filtros: ['periodo', 'operacao'], operacaoObrigatoria: true, tela: 'painel-wfm' },
   SO_WFM_RELATORIO('resumo', 'Resumo por operador', 'Horas, presença e faltas por operador.', true),
   SO_WFM_RELATORIO('escalas', 'Escalas', 'Versões publicadas e quem aprovou.'),
+  SO_WFM_RELATORIO('escalados', 'Escalados', 'Quem trabalhou em cada dia, em qual escala, e se trocou o dia com alguém.', false, ['equipe', 'status']),
   SO_WFM_RELATORIO('presencas', 'Presenças', 'Presença e falta dia a dia (histórico de presenças).', true),
   SO_WFM_RELATORIO('trocas', 'Trocas de plantão', 'Pedidos, aprovações e reprovações (histórico de trocas).'),
   SO_WFM_RELATORIO('aprovacoes', 'Aprovações de escala', 'Envio, aprovação, declínio e publicação.'),
@@ -161,7 +162,7 @@ export const RELATORIOS = [
       {
         id: 'rh.processos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Processos seletivos', descricao: 'Processos abertos no período, vagas, aprovados e eliminados.', permissao: 'relhub.rh.processos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261104-leitura');
+          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261112-exporta-filtro');
           const procs = await operacaoDosProcessos(f);
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
           const linhas = procs.filter((p) => !f.operacao || p.operacao === f.operacao).map((p) => ({ ...montarLinhaProcessoRelatorio(p), operacao_relatorio: p.operacao || '' }));
@@ -171,7 +172,7 @@ export const RELATORIOS = [
       {
         id: 'rh.candidatos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Candidatos', descricao: 'Candidatos por processo, notas, aprovação e eliminação.', permissao: 'relhub.rh.candidatos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261104-leitura');
+          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261112-exporta-filtro');
           const [procs, cands] = await Promise.all([operacaoDosProcessos(f), lerRelatorioCandidatos({ dataInicial: f.ini, dataFinal: f.fim })]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
@@ -182,7 +183,7 @@ export const RELATORIOS = [
       {
         id: 'rh.ranking', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Ranking analítico', descricao: 'Nota final, afinidade e recomendação por candidato.', permissao: 'relhub.rh.ranking', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261104-leitura');
+          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261112-exporta-filtro');
           const [procs, analises] = await Promise.all([operacaoDosProcessos(f), lerAnalisesCandidatos()]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
@@ -223,7 +224,7 @@ export const RELATORIOS = [
 // Permissão de base de cada relatório (a que a rota de origem exige no servidor): a página só mostra o relatório se o perfil
 // tem a chave `relhub.*` E a de base, para nunca listar algo que a origem recusaria.
 export const PERMISSAO_BASE = {
-  'wfm.painel': 'wfm.relatorios', 'wfm.resumo': 'wfm.relatorios', 'wfm.escalas': 'wfm.relatorios', 'wfm.presencas': 'wfm.relatorios',
+  'wfm.painel': 'wfm.relatorios', 'wfm.resumo': 'wfm.relatorios', 'wfm.escalas': 'wfm.relatorios', 'wfm.escalados': 'wfm.relatorios', 'wfm.presencas': 'wfm.relatorios',
   'wfm.trocas': 'wfm.relatorios', 'wfm.aprovacoes': 'wfm.relatorios', 'wfm.historico': 'wfm.auditoria',
   'monitoria.historico': 'monitoria.relatorios', 'monitoria.qualidade': 'monitoria.relatorios', 'monitoria.planos': 'monitoria.relatorios',
   'monitoria.dashboard': 'monitoria.dashboard', 'monitoria.logs': 'monitoria.logs',

@@ -1,6 +1,6 @@
 import { requisitar, requisitarArquivo } from './core.js';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261014-funcoes2';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261026-ajustes';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261112-exporta-filtro';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261112-exporta-filtro';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -61,8 +61,9 @@ export const listarHistoricoWfm = (filtros = {}) => requisitar(`/wfm/historico${
 export const opcoesHistoricoWfm = (operacao = '') => requisitar(`/wfm/historico/opcoes${consulta({ operacao })}`, { method: 'GET' });
 export const exportarHistoricoWfm = (corpo) => requisitarArquivo('/wfm/historico/exportar', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(corpo || {}) });
 
-export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx') =>
-  requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato })}`, { method: 'GET' });
+// `todasEquipes` e `ids` (operadores visíveis na tela) fazem o arquivo seguir o filtro aplicado na escala.
+export const exportarEscalaWfm = (operacao, anoMes, formato = 'xlsx', { todasEquipes = false, ids = null } = {}) =>
+  requisitarArquivo(`/wfm/escala/exportar${consulta({ operacao, ano_mes: anoMes, formato, ...(todasEquipes ? { todas_equipes: true } : {}), ...(ids ? { ids: ids.join(',') || '0' } : {}) })}`, { method: 'GET' });
 
 export const lerRelatorioWfm = (filtros) => requisitar(`/wfm/relatorios${consulta(filtros)}`, { method: 'GET' });
 export const exportarRelatorioWfm = (filtros) => requisitarArquivo(`/wfm/relatorios/exportar${consulta(filtros)}`, { method: 'GET' });
@@ -84,6 +85,8 @@ export const excluirContratoWfm = (operacao, id) => requisitar(`/wfm/contratos/$
 export const excluirTurnoWfm =(operacao, id) => requisitar(`/wfm/turnos/${id}${consulta({ operacao })}`, { method: 'DELETE' });
 export const lerContratoOperadorWfm = (operacao, idOperador) => requisitar(`/wfm/operadores/${idOperador}/contrato${consulta({ operacao })}`, { method: 'GET' });
 export const lancarPresencaLoteWfm = (dados) => enviar('/wfm/presencas/lote', 'PUT', dados);
+// Painel do dia: 1º login do dia no Conecta (auditoria da presença automática; senão, último acesso do dia). Só leitura.
+export const lerLoginsDiaWfm = (operacao, data, todasEquipes = false) => requisitar(`/wfm/painel-dia/logins${consulta({ operacao, data, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 
 export const lerPausasDiaWfm = (operacao, data, todasEquipes = false) => requisitar(`/wfm/pausas${consulta({ operacao, data, ...(todasEquipes ? { todas_equipes: true } : {}) })}`, { method: 'GET' });
 export const salvarPausasWfm = (dados) => enviar('/wfm/pausas', 'PUT', dados);

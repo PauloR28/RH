@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import logging
 
+from conecta.infrastructure.observability.context import request_id_var
+from conecta.interfaces.http.middlewares.request_context import (
+    REQUEST_ID_PATTERN,
+    RequestContextMiddleware,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from conecta.infrastructure.observability.context import request_id_var
-from conecta.interfaces.http.middlewares.request_context import (
-    RequestContextMiddleware,
-    REQUEST_ID_PATTERN,
-)
 from rh_api.logging_config import JsonFormatter, configure_logging
 
 

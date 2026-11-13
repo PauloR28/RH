@@ -11,11 +11,11 @@ from ..schemas.processes import (
     CandidateReconsiderRequest,
     CandidateSheetUpdateRequest,
     CvPreAnalysisUpdateRequest,
-    ProcessDossierNoteCreateRequest,
-    ProcessDossierNoteUpdateRequest,
     ProcessCandidateCreateRequest,
     ProcessCandidateStatusUpdateRequest,
     ProcessCreateRequest,
+    ProcessDossierNoteCreateRequest,
+    ProcessDossierNoteUpdateRequest,
     ProcessStateChangeRequest,
     ProcessUpdateRequest,
     StandaloneCandidateStatusUpdateRequest,
@@ -23,7 +23,6 @@ from ..schemas.processes import (
     TalentBankUseRequest,
     WhatsAppManualContactRequest,
 )
-
 
 router = APIRouter(tags=["processes"], dependencies=[Depends(get_current_user)])
 

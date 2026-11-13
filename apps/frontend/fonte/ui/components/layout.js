@@ -4,13 +4,14 @@ import { obterTourDaTela } from '../../shared/tour-config.js';
 import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261022-guia';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261010-guia';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
-import { useModulos } from '../../modulos/estado.js?v=20261014-funcoes2';
+import { useModulos } from '../../modulos/estado.js?v=20261112-exporta-filtro';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo } from '../../modulos/registro.js?v=20261026-ajustes';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261026-ajustes';
+import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia } from '../../modulos/registro.js?v=20261112-exporta-filtro';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-exporta-filtro';
+import { MolduraConecta } from './moldura.js?v=20261108-admin';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -159,27 +160,36 @@ export function BarraLateral({
     },
   ];
   const sublinksMonitoria = [
-    { tela: 'screen-monitoria-nova', icone: 'add', label: 'Nova monitoria', permissao: 'monitoria.criar' },
+    // Redesign (DEC-068): abas finas Feedback · Contestações · Histórico · Painel · Planos de ação; o Operador vê
+    // Minhas monitorias · Histórico. "Nova monitoria" saiu das abas e virou o botão principal do cabeçalho.
     { tela: 'screen-monitoria-feedback', icone: 'rate_review', label: 'Feedback', permissao: 'monitoria.feedback_aplicar' },
     { tela: 'screen-monitoria-contestacoes', icone: 'verified', label: 'Contestações', permissao: 'monitoria.reanalisar' },
     { tela: 'screen-monitoria-minhas', icone: 'assignment_ind', label: 'Minhas monitorias', permissao: 'monitoria.contestar' },
     { tela: 'screen-monitoria', icone: 'history', label: 'Histórico', permissao: 'monitoria.visualizar' },
-    { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Dashboard', permissao: 'monitoria.dashboard' },
+    { tela: 'screen-monitoria-dashboard', icone: 'analytics', label: 'Painel', permissao: 'monitoria.dashboard' },
     { tela: 'screen-monitoria-planos', icone: 'task_alt', label: 'Planos de ação', permissao: 'monitoria.plano_acao_visualizar' },
     { tela: 'screen-monitoria-formularios', icone: 'rule', label: 'Formulários', permissao: 'monitoria.matriz' },
   ];
-  const telasRelacionadasMonitoria = sublinksMonitoria.map((item) => item.tela);
+  const telasRelacionadasMonitoria = [...sublinksMonitoria.map((item) => item.tela), 'screen-monitoria-nova'];
   const sublinksWfm = [
     { tela: 'screen-equipes-controle', icone: 'groups', label: 'Equipes e Turnos', permissao: 'equipes.controle.visualizar' },
+    // Painel do dia: 1ª aba de Turnos e Plantões (amostra aprovada em 08/11/2026); o antigo Painel virou Indicadores.
+    // Jornadas saiu da sub-barra (09/11/2026): virou item de Cadastros, junto com o Histórico de alterações.
+    { tela: 'screen-wfm-dia', icone: 'today', label: 'Painel', permissao: 'wfm.presenca.lancar' },
     { tela: 'screen-wfm-minha-escala', icone: 'today', label: 'Minhas escalas', permissao: 'wfm.escala.propria' },
-    { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escala', permissao: 'wfm.escala.visualizar' },
+    { tela: 'screen-wfm', icone: 'calendar_month', label: 'Escalas', permissao: 'wfm.escala.visualizar' },
     { tela: 'screen-wfm-trocas', icone: 'compare_arrows', label: 'Trocas', permissao: 'wfm.troca.visualizar' },
     { tela: 'screen-wfm-presenca', icone: 'fact_check', label: 'Presença', permissao: 'wfm.presenca.lancar' },
-    { tela: 'screen-wfm-painel', icone: 'monitoring', label: 'Painel', permissao: 'relhub.wfm.painel' },
-    { tela: 'screen-wfm-jornadas', icone: 'schedule', label: 'Jornadas', permissao: 'wfm.cadastros.visualizar' },
+    { tela: 'screen-wfm-painel', icone: 'monitoring', label: 'Indicadores', permissao: 'relhub.wfm.painel' },
     { tela: 'screen-wfm-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'wfm.cadastros.visualizar' },
   ];
   const telasRelacionadasWfm = sublinksWfm.map((item) => item.tela);
+  // Diário de bordo (D1, 08/11/2026): seção própria entre Equipes e Relatórios. Hoje · Histórico · Cadastros (só Administração).
+  const sublinksDiario = [
+    { tela: 'screen-diario', icone: 'notebook', label: 'Hoje', permissao: ['diario.visualizar', 'diario.intercorrencias'] },
+    { tela: 'screen-diario-historico', icone: 'history', label: 'Histórico', permissao: 'diario.visualizar' },
+    { tela: 'screen-diario-cadastros', icone: 'settings', label: 'Cadastros', permissao: 'diario.administrar' },
+  ];
   const sublinksGestao = [
     {
       tela: 'screen-dashboard-funil',
@@ -343,7 +353,7 @@ export function BarraLateral({
     'screen-settings-monitoria',
   ];
   const possuiPermissao = (permissao) =>
-    !permissao || controlador?.possuiPermissao?.(permissao);
+    !permissao || (Array.isArray(permissao) ? permissao.some((p) => controlador?.possuiPermissao?.(p)) : controlador?.possuiPermissao?.(permissao));
   // Chave-mestra da sessão (Perfis e Permissões): só restringe quando o token a traz.
   const sessaoOk = (tela) => controlador?.sessaoDaTelaLiberada?.(tela) !== false;
   // "Minhas monitorias" também é do Supervisor (monitorias da equipe, com a etiqueta "Contestada").
@@ -385,11 +395,15 @@ export function BarraLateral({
     possuiSub(subitem),
   );
   const grupoTreinamentosAtivo = telasRelacionadasTreinamentos.includes(navAtiva);
-  const sublinksMonitoriaVisiveis = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
+  const itemNovaMonitoria = { tela: 'screen-monitoria-nova', icone: 'add', label: 'Nova monitoria', permissao: 'monitoria.criar' };
+  const sublinksMonitoriaFiltrados = sublinksMonitoria.filter((subitem) => possuiSub(subitem));
+  // Quem só pode criar monitoria (sem nenhuma lista) continua com a aba "Nova monitoria" para chegar à tela.
+  const sublinksMonitoriaVisiveis = sublinksMonitoriaFiltrados.length || !possuiSub(itemNovaMonitoria) ? sublinksMonitoriaFiltrados : [itemNovaMonitoria];
   const grupoMonitoriaAtivo = telasRelacionadasMonitoria.includes(navAtiva);
   const subitemMonitoriaAtivo = (subitem) => navAtiva === subitem.tela;
   // "Minhas escalas" segue a permissão wfm.escala.propria (Operador, Técnicos de TI e Analista de TI; Adm/Gestão não têm escala própria).
   const sublinksWfmVisiveis = sublinksWfm.filter((subitem) => possuiSub(subitem));
+  const sublinksDiarioVisiveis = sublinksDiario.filter((subitem) => possuiSub(subitem));
   const grupoWfmAtivo = telasRelacionadasWfm.includes(navAtiva);
   const subitemWfmAtivo = (subitem) => navAtiva === subitem.tela;
   const subitemTreinamentoAtivo = (subitem) =>
@@ -438,6 +452,155 @@ export function BarraLateral({
       </button>
     `;
   };
+
+  // ── Moldura nova (Fase 15, DEC-063) ─────────────────────────────────────
+  // Mesmas regras de visibilidade de antes (permissão, sessão, módulo, área
+  // inativa); só muda o desenho: seções no topo e telas da seção na sub-barra.
+  // O módulo Tecnologia continua com o menu próprio (desenho antigo, abaixo).
+  // Módulo Tecnologia na moldura nova (DEC-072): Início · Administração (sub-barra com
+  // Usuários · Perfis e permissões · Operações · Registro de alterações · Parâmetros · demais)
+  // e as entradas soltas de antes (Relatórios, Escalas e Plantões, Suporte TI).
+  if (emTecnologia) {
+    const irParaTec = (tela) => {
+      setGrupoAberto(null);
+      controlador.irParaTelaProtegida(tela);
+    };
+    const menuTec = montarMenuTecnologia(controlador.podeAcessarTela, possuiPermissao);
+    const ehWfm = (tela) => String(tela || '').startsWith('screen-wfm') && tela !== 'screen-wfm-auditoria';
+    const ativaTec = (tela) => navAtiva === tela
+      || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
+      || (ehWfm(tela) && ehWfm(navAtiva));
+    const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const soltas = [];
+    const itensAdm = [];
+    menuTec.forEach((entrada) => {
+      if (entrada.tipo === 'grupo') {
+        entrada.itens.forEach((item) => {
+          if (item.tela === 'screen-relatorios' || ehWfm(item.tela)) soltas.push({ ...item, id: item.tela });
+          else itensAdm.push(item);
+        });
+      } else if (entrada.id !== 'inicio') {
+        soltas.push(entrada);
+      }
+    });
+    const posicao = (tela) => (ORDEM_ADM.includes(tela) ? ORDEM_ADM.indexOf(tela) : ORDEM_ADM.length);
+    const abasAdm = itensAdm
+      .map((item, indice) => ({ ...item, indice }))
+      .sort((a, b) => posicao(a.tela) - posicao(b.tela) || a.indice - b.indice)
+      .map((item, indice) => ({ tela: item.tela, label: ROTULO_ADM[item.tela] || item.label, ativo: ativaTec(item.tela), desativado: false, mais: indice >= 5 }));
+    const ICONE_SOLTA = { relatorios: 'presentation-chart', escalas: 'calendar-dots', suporte: 'headset' };
+    const inicioTec = menuTec.find((entrada) => entrada.id === 'inicio');
+    const secoesTec = [
+      inicioTec ? { chave: 'inicio', label: 'Início', icone: 'house', tela: inicioTec.tela, abas: [], ativo: navAtiva === inicioTec.tela } : null,
+      abasAdm.length ? { chave: 'administracao', label: 'Administração', icone: 'user-gear', tela: abasAdm[0].tela, abas: abasAdm, ativo: abasAdm.some((aba) => aba.ativo) } : null,
+      ...soltas.map((entrada) => ({
+        chave: entrada.id,
+        label: entrada.label,
+        icone: ICONE_SOLTA[entrada.id] || 'squares-four',
+        tela: entrada.tela,
+        abas: [],
+        ativo: ativaTec(entrada.tela),
+      })),
+    ].filter(Boolean);
+    const secaoAtivaTec = secoesTec.find((secao) => secao.ativo) || null;
+    return html`
+      <${MolduraConecta}
+        secoes=${secoesTec}
+        configuracoes=${null}
+        secaoAtual=${secaoAtivaTec && secaoAtivaTec.abas.length ? { ...secaoAtivaTec, telaAtual: navAtiva } : null}
+        logoUrl=${logoOperacao}
+        irPara=${irParaTec}
+        irParaInicio=${() => irParaTec(inicioTec?.tela || TELA_INICIO_TECNOLOGIA)}
+        sair=${() => controlador.sair()}
+        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
+        busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
+        usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
+      />
+    `;
+  }
+
+  if (!emTecnologia) {
+    const irPara = (tela) => {
+      setGrupoAberto(null);
+      controlador.irParaTelaProtegida(tela);
+    };
+    const abasDe = (lista, ehAtivo) =>
+      lista.map((subitem) => ({
+        tela: subitem.tela,
+        label: subitem.label,
+        ativo: ehAtivo(subitem),
+        desativado: Boolean(subitem.desativado),
+      }));
+    const secaoDeGrupo = (chave, label, icone, lista, ehAtivo, grupoAtivo) => {
+      if (!lista.length) return null;
+      const abas = abasDe(lista, ehAtivo);
+      return { chave, label, icone, tela: lista[0].tela, abas, ativo: Boolean(grupoAtivo || abas.some((aba) => aba.ativo)) };
+    };
+    const secaoDeItem = (chave, label, icone, item) => {
+      if (!item || item.visivel === false || !possuiPermissao(item.permissao) || !sessaoOk(item.tela) || telaEmAreaInativa(item.tela)) return null;
+      const ativo = itemAtivo(item);
+      return { chave, label, icone, tela: item.tela, abas: [], ativo };
+    };
+    const itemEquipes = sublinksWfm.find((subitem) => subitem.tela === 'screen-equipes-controle');
+    const itemMural = sublinksGestao.find((subitem) => subitem.tela === 'screen-mural');
+    const wfmSemEquipes = sublinksWfmVisiveis.filter((subitem) => subitem.tela !== 'screen-equipes-controle');
+    const gestaoSemMural = sublinksGestaoVisiveis.filter((subitem) => subitem.tela !== 'screen-mural');
+    const secoesMoldura = [
+      // Ordem aprovada (DEC-063): Início · Turnos e Plantões · Monitoria · Equipes · Diário de bordo (D1) · Relatórios · Mural.
+      secaoDeItem('inicio', 'Início', 'house', itensPrincipais[0]),
+      noModulo('wfm')
+        ? secaoDeGrupo('wfm', 'Turnos e Plantões', 'calendar-dots', wfmSemEquipes, subitemWfmAtivo, grupoWfmAtivo && navAtiva !== 'screen-equipes-controle')
+        : null,
+      noModulo('monitoria')
+        ? secaoDeGrupo('monitoria', 'Monitoria', 'clipboard-text', sublinksMonitoriaVisiveis, subitemMonitoriaAtivo, grupoMonitoriaAtivo)
+        : null,
+      noModulo('wfm') && itemEquipes && possuiSub(itemEquipes) ? secaoDeItem('equipes', 'Equipes', 'users', itemEquipes) : null,
+      noModulo('diario')
+        ? secaoDeGrupo('diario', 'Diário de bordo', 'notebook', sublinksDiarioVisiveis, (subitem) => navAtiva === subitem.tela, navAtiva.startsWith('screen-diario'))
+        : null,
+      secaoDeItem('relatorios', 'Relatórios', 'presentation-chart', { tela: 'screen-relatorios', permissao: 'sessao.relatorios.acessar' }),
+      noModulo('gestao') && itemMural && possuiSub(itemMural) ? secaoDeItem('mural', 'Mural', 'megaphone', itemMural) : null,
+      // Demais áreas que o perfil já via no menu antigo continuam alcançáveis (vão para "Mais" se não couberem).
+      noModulo('cx-curriculos') ? secaoDeItem('cx-curriculos', 'Cx de Currículos', 'mail', itensPrincipais[1]) : null,
+      noModulo('processos')
+        ? secaoDeGrupo('processos', 'Processos', 'business_center', sublinksProcessosVisiveis, (subitem) => navAtiva === subitem.tela, grupoProcessosAtivo)
+        : null,
+      noModulo('provas')
+        ? secaoDeGrupo('provas', 'Conecta Provas', 'assignment_turned_in', sublinksProvasVisiveis, subitemProvaAtivo, grupoProvasAtivo)
+        : null,
+      noModulo('gestao')
+        ? secaoDeGrupo('gestao', 'Gestão', 'manage_accounts', gestaoSemMural, subitemGestaoAtivo, grupoGestaoAtivo && navAtiva !== 'screen-mural')
+        : null,
+      noModulo('drive') ? secaoDeItem('drive', 'Drive', 'cloud', itensDriveConecta[0]) : null,
+      noModulo('treinamentos')
+        ? secaoDeGrupo('treinamentos', 'Treinamentos', 'school', sublinksTreinamentosVisiveis, subitemTreinamentoAtivo, grupoTreinamentosAtivo)
+        : null,
+    ].filter(Boolean);
+    const secaoConfiguracoes = secaoDeGrupo(
+      'configuracoes',
+      'Configurações',
+      'gear-six',
+      sublinksConfiguracoesVisiveis,
+      subitemConfiguracaoAtivo,
+      grupoConfiguracoesAtivo,
+    );
+    const secaoAtiva = [...secoesMoldura, secaoConfiguracoes].filter(Boolean).find((secao) => secao.ativo) || null;
+    return html`
+      <${MolduraConecta}
+        secoes=${secoesMoldura}
+        configuracoes=${secaoConfiguracoes}
+        secaoAtual=${secaoAtiva ? { ...secaoAtiva, telaAtual: navAtiva } : null}
+        logoUrl=${logoOperacao}
+        irPara=${irPara}
+        irParaInicio=${() => controlador.irParaMenu()}
+        sair=${() => controlador.sair()}
+        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
+        busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
+        usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
+      />
+    `;
+  }
 
   return html`
     <header

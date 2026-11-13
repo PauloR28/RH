@@ -3,7 +3,7 @@ import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhado
 import { obterRotaAtual } from '../../../rotas.js';
 import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20260927-estado-usuario';
 import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261006-areas-inativas';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261005-redesign16';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261112-exporta-filtro';
 import {
   assumirChamado, atribuirChamado, baixarAnexoChamado, buscarAtendentesChamado, cancelarChamado, confirmarEncerramentoChamado,
   enviarMensagemChamado, excluirAnexoChamado, lerChamado, lerHistoricoChamado, listarEventosChamado, mudarStatusChamado,

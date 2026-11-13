@@ -3,10 +3,12 @@ import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-c
 import { IconeSvg } from '../../../ui/icone.js';
 import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
 import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261104-leitura';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { Icone } from './escala-ui.js?v=20261112-exporta-filtro';
+import { horasDec } from './comum.js?v=20261112-exporta-filtro';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261028-hms';
+import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261110-graficos';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -190,6 +192,86 @@ function Painel({ painel, resumido = false }) {
     </div>`;
 }
 
+// ---------------------------------------------------------------------------------------------------- painel (redesign Fase 15)
+// Aba Painel de Turnos e Plantões no desenho novo (amostra "Painel" da Fase 12). Os mesmos dados e gráficos de antes;
+// só muda a casca: faixa de indicadores (até 5) e figuras `c-grafico`. O Painel antigo segue na página Relatórios e Históricos.
+function notaIndicador(k) {
+  if (k.chave === 'horas_trabalhadas') return '';
+  if (k.variacao === null || k.variacao === undefined) return 'sem base de comparação';
+  const anterior = k.anterior === null || k.anterior === undefined ? '' : ` · antes: ${k.unidade === 'h' ? horasDec(k.anterior) : `${fmt(k.anterior, k.unidade === '%' ? 1 : 0)}${k.unidade || ''}`}`;
+  return `${k.variacao > 0 ? '▲ +' : k.variacao < 0 ? '▼ ' : '= '}${fmt(k.variacao, 1)}% vs. anterior${anterior}`;
+}
+function tomIndicador(k) {
+  if (k.variacao === null || k.variacao === undefined || k.melhor === 'neutra' || !k.variacao) return '';
+  const bom = (k.variacao > 0 && k.melhor === 'alta') || (k.variacao < 0 && k.melhor === 'baixa');
+  return bom ? 'c-tom-sucesso' : 'c-tom-perigo';
+}
+function valorIndicador(k) {
+  if (k.valor === null || k.valor === undefined) return '—';
+  if (k.unidade === 'h') return horasDec(k.valor);
+  return html`${fmt(k.valor, k.unidade === '%' ? 1 : 0)}${k.unidade ? html`<small>${k.unidade}</small>` : null}`;
+}
+function Figura({ titulo, nota = '', legenda = null, children }) {
+  return html`<figure class="c-grafico">
+    <div class="c-grafico-cab"><h2>${titulo}</h2>${legenda ? html`<span class="c-grafico-legenda">${legenda}</span>` : null}</div>
+    ${children}
+    ${nota ? html`<div class="c-grafico-rodape"><span>${nota}</span></div>` : null}
+  </figure>`;
+}
+function PainelNovo({ painel, resumido = false }) {
+  const g = painel.graficos;
+  const semDados = !painel.totais.dias_escalados && !painel.totais.trocas;
+  const kpis = painel.kpis.filter((k) => k.chave !== 'horas_escaladas');
+  const escaladas = painel.kpis.find((k) => k.chave === 'horas_escaladas');
+  const trabalhadas = painel.kpis.find((k) => k.chave === 'horas_trabalhadas');
+  const pct = escaladas?.valor && trabalhadas?.valor !== null && trabalhadas?.valor !== undefined ? ` (${fmt((100 * trabalhadas.valor) / escaladas.valor, 0)}%)` : '';
+  const cor = (n) => `var(--cor-grafico-${n})`;
+  const leg = (itens) => itens.map(([r, c]) => html`<span key=${r}><i style=${{ background: c }}></i>${r}</span>`);
+  // Sem dados no período: estado vazio padrão no lugar de eixos zerados (regras de gráfico do rebranding).
+  const vazio = html`<${Estado} icone="chart-bar" titulo="Sem dados no período" />`;
+  const soma = (lista, k) => (lista || []).reduce((t, x) => t + (Number(x?.[k]) || 0), 0);
+  const temSerie = soma(g.serie_diaria, 'escalados') + soma(g.serie_diaria, 'presentes') + soma(g.serie_diaria, 'faltas') > 0;
+  const temAbsenteismo = (g.absenteismo_semana || []).some((d) => d.valor) || !!painel.totais.absenteismo;
+  const temPresenca = soma(g.presenca, 'valor') > 0;
+  const temOperadores = soma(g.top_operadores, 'trabalhadas') + soma(g.top_operadores, 'escaladas') > 0;
+  const temTurnos = soma(g.horas_turno, 'valor') > 0;
+  return html`
+    ${semDados ? html`<${Faixa} tom="informacao" icone="info">Não há dias de trabalho de escala publicada neste período. Os indicadores ficam zerados até uma escala ser publicada.<//>` : null}
+    <div class="c-indicadores" aria-label="Indicadores do período">
+      ${kpis.map((k) => html`<div key=${k.chave} class="c-indicador" title=${k.dica || ''}>
+        <span class="c-ind-rotulo">${k.rotulo}</span>
+        <span class="c-ind-valor">${valorIndicador(k)}</span>
+        <span class=${`c-ind-nota ${tomIndicador(k)}`.trim()}>${k.chave === 'horas_trabalhadas' && escaladas ? `de ${horasDec(escaladas.valor || 0)} escaladas${pct}` : notaIndicador(k)}</span>
+      </div>`)}
+    </div>
+    <div class="c-graficos c-graficos-wfm">
+      <${Figura} titulo="Escalados × presentes por dia" nota="Barras cinza: escalados · linha: presentes · laranja: faltas"
+        legenda=${temSerie ? leg([['Escalados', 'var(--wfm-g-neutro)'], ['Presentes', cor(1)], ['Faltas', cor(2)]]) : null}>
+        ${temSerie ? html`<${GraficoSerieDiaria} serie=${g.serie_diaria} compacto=${true} />` : vazio}<//>
+      <${Figura} titulo="Absenteísmo por dia da semana" nota="Faltas ÷ dias apurados · tracejado = média do período">
+        ${temAbsenteismo ? html`<${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} />` : vazio}<//>
+      <${Figura} titulo="Situação da presença" nota="Dias de trabalho do período">
+        ${temPresenca ? html`<${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} />` : vazio}<//>
+      ${resumido ? null : html`<${Figura} titulo="Horas por operador" nota="Trabalhadas / escaladas · 10 com mais horas"
+        legenda=${temOperadores ? leg([['Trabalhadas', cor(1)], ['Escaladas', 'var(--wfm-g-neutro)']]) : null}>
+        ${temOperadores ? html`<${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h" fmtH=${horasDec}
+          principal=${{ chave: 'trabalhadas', rotulo: 'Trabalhadas', cor: cor(1) }} referencia=${{ chave: 'escaladas', rotulo: 'Escaladas', cor: 'var(--wfm-g-neutro)' }} />` : vazio}<//>`}
+      ${resumido ? null : html`<${Figura} titulo="Horas escaladas por turno" nota="Distribuição entre os turnos">
+        ${temTurnos ? html`<${GraficoBarrasH} dados=${g.horas_turno} series=${[{ chave: 'valor', rotulo: 'Horas', cor: cor(1) }]} unidade="h" fmtH=${horasDec} />` : vazio}<//>`}
+      ${resumido ? null : html`<${Figura} titulo="Trocas por situação" nota="Pedidos do período">
+        ${soma(g.trocas_estado, 'valor') > 0 ? html`<${GraficoEmpilhada} dados=${g.trocas_estado} cores=${CORES_TROCA} />` : vazio}<//>`}
+    </div>
+    ${resumido || !g.equipes.length ? null : html`<section class="c-cartao" aria-labelledby="wfm-painel-equipes">
+      <div class="c-cartao-cab"><h2 id="wfm-painel-equipes">Comparação entre equipes</h2></div>
+      <div class="c-tabela-caixa"><table class="c-tabela">
+        <thead><tr><th scope="col">Equipe</th><th scope="col" class="c-num">Dias escalados</th><th scope="col" class="c-num">Faltas</th><th scope="col" class="c-num">Horas trabalhadas</th><th scope="col" class="c-estica">Absenteísmo</th></tr></thead>
+        <tbody>${g.equipes.map((e) => html`<tr key=${e.rotulo}><td class="c-forte">${e.rotulo}</td><td class="c-num">${fmt(e.escalados)}</td><td class="c-num">${fmt(e.faltas)}</td><td class="c-num">${horasDec(e.horas)}</td>
+          <td class="c-estica"><span class="c-minibarra"><i style=${{ width: `${Math.min(100, e.absenteismo || 0)}%` }}></i></span> ${e.absenteismo === null ? '—' : `${fmt(e.absenteismo, 1)}%`}</td></tr>`)}</tbody>
+      </table></div>
+    </section>`}
+    <p class="c-nota">Comparado com ${br(painel.anterior.ini)} a ${br(painel.anterior.fim)} (período imediatamente anterior, mesma duração).</p>`;
+}
+
 // ---------------------------------------------------------------------------------------------------- detalhe do operador
 function DetalheOperador({ filtros, linha, onClose }) {
   const [dados, setDados] = useState(null);
@@ -300,6 +382,40 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
   const opcoesOperador = [['', 'Todos'], ...operadores.map((o) => [String(o.id_usuario), o.nome])];
   const [calculoAberto, setCalculoAberto] = useState(false);
   useEffect(() => { setCalculoAberto(false); }, [visao]);
+
+  if (somentePainel) {
+    return html`
+      <main class="c-pagina c-conteudo">
+        <${CabPagina} titulo="Painel" descricao="Indicadores do período comparados ao período anterior. Os relatórios em planilha ficam em Relatórios e Históricos."
+          acoes=${html`<${MenuAcoes} rotulo="Exportar" texto=${ocupado ? 'Gerando…' : 'Exportar'} icone="tray-arrow-down" classeBotao="c-botao c-botao--secundario c-botao--compacto"
+            acoes=${[
+              { label: 'Este relatório (Excel)', icon: 'table', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('xlsx') },
+              { label: 'Este relatório (CSV)', icon: 'file-text', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('csv') },
+              { label: 'Este relatório (PDF)', icon: 'file-text', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('pdf') },
+              { label: 'Todos os relatórios (Excel)', icon: 'file-zip', disabled: ocupado || !intervaloValido || !operacao, onClick: () => exportar('completo') },
+            ]} />`} />
+        <div class="c-tabela-caixa">
+          <div class="c-filtros c-filtros--suave c-filtros--quebra">
+            ${opcoesEscalas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Escala / operação" value=${operacao} onChange=${(e) => aoTrocarEscala?.(e.target.value)}>${opcoesEscalas.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
+            <select class="c-entrada c-entrada--compacta" aria-label="Período" value=${preset} onChange=${(e) => escolherPreset(e.target.value)}>${opcoesPeriodo.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>
+            <input class="c-entrada c-entrada--compacta" type="date" aria-label="De" value=${ini} max=${fim || undefined} onChange=${(e) => { setPreset('personalizado'); setIntervalo([e.target.value, fim]); }} />
+            <input class="c-entrada c-entrada--compacta" type="date" aria-label="Até" value=${fim} min=${ini || undefined} onChange=${(e) => { setPreset('personalizado'); setIntervalo([ini, e.target.value]); }} />
+            <select class="c-entrada c-entrada--compacta" aria-label="Operador" value=${idOperador} onChange=${(e) => setIdOperador(e.target.value)}>${opcoesOperador.map(([v, r]) => html`<option key=${v} value=${v}>${v ? r : 'Todos os operadores'}</option>`)}</select>
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto c-fim" disabled=${!rel || rel.tipo !== visao || null} onClick=${() => setCalculoAberto(true)}><${Ic} nome="info" />Como é calculado</button>
+          </div>
+          ${!intervaloValido ? html`<${Estado} titulo="A data inicial precisa ser anterior ou igual à final." />`
+            : erro ? html`<${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} />`
+            : !rel || rel.tipo !== visao ? html`<${Esqueleto} linhas=${3} />` : null}
+        </div>
+        ${intervaloValido && !erro && rel && rel.tipo === visao ? html`<${PainelNovo} painel=${rel.painel} resumido=${!!idOperador} />` : null}
+      </main>
+      ${calculoAberto && rel ? html`<${Janela} titulo="Como é calculado" onClose=${() => setCalculoAberto(false)}>
+        <div class="c-janela-corpo">
+          <ul class="c-lista-calculo">${(rel.calculo || []).map((c, i) => html`<li key=${i}>${c}</li>`)}</ul>
+          <p class="c-ajuda">Gerado em ${new Date(rel.gerado_em).toLocaleString('pt-BR')} · escopo do seu perfil aplicado pelo servidor.</p>
+        </div>
+      <//>` : null}`;
+  }
 
   return html`
     <div class="mo-contexto cx-fixo wfm-rel2-filtros">

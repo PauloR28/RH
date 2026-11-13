@@ -4,9 +4,9 @@ Tudo que o teste altera é restaurado no `finally`."""
 from __future__ import annotations
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.modulos_catalogo import MODULO_RH, MODULO_TECNOLOGIA, modulo_dono_padrao
 from rh_api.rbac import PERMISSION_DEFINITIONS
 from rh_api.services import acesso, modulos_admin

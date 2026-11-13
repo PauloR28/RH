@@ -1,0 +1,174 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * CONECTA — Peças do app que o kit não trazia (Fase 15) · redesign-telas.css
+ * Só tokens e régua 4·8·16·24. Usado pelas telas redesenhadas (classes c-).
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* A tela redesenhada traz o próprio respiro (.c-pagina, 24 px); a casca antiga não soma o dela. */
+.rh-modern-page:has(> .c-pagina), .rh-modern-page:has(> .wfm-toast + .c-pagina) { padding: 0; }
+.c-pagina { font-family: var(--fonte-familia-texto); color: var(--cor-texto-padrao); font-variant-numeric: tabular-nums; }
+.c-pagina *, .c-fundo-janela * { box-sizing: border-box; }
+.c-pagina .c-ic > svg, .c-fundo-janela .c-ic > svg, .c-menu .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-pagina h1, .c-pagina h2, .c-pagina h3 { color: var(--cor-texto-padrao); }
+
+/* Navegar período: ‹ rótulo › colados */
+.c-navegar { display: inline-flex; flex: none; }
+.c-navegar > .c-botao { border-radius: 0; }
+.c-navegar > .c-botao + .c-botao { margin-left: calc(-1 * var(--borda-fina)); }
+.c-navegar > .c-botao:first-child { border-radius: var(--raio-pequeno) 0 0 var(--raio-pequeno); }
+.c-navegar > .c-botao:last-child { border-radius: 0 var(--raio-pequeno) var(--raio-pequeno) 0; }
+.c-navegar-rotulo { min-width: 136px; cursor: default; pointer-events: none; }
+
+/* Contagem dentro de segmento e da sub-barra */
+.c-segmento .c-conta, .c-moldura-subbarra .c-conta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); font-size: var(--texto-rotulo-tamanho); display: inline-grid; place-items: center; }
+.c-moldura-subbarra .c-aba .c-conta { margin-left: var(--espaco-1); }
+
+/* Esqueleto em lista */
+.c-esqueleto-lista { display: flex; flex-direction: column; gap: var(--espaco-4); padding: var(--espaco-4); }
+.c-esqueleto-lista .c-esqueleto:nth-child(3n+2) { width: 80%; }
+.c-esqueleto-lista .c-esqueleto:nth-child(3n) { width: 60%; }
+
+/* Janela de formulário: o corpo rola, o rodapé fica */
+.c-janela-form { display: flex; flex-direction: column; min-height: 0; }
+.c-janela-corpo { display: flex; flex-direction: column; gap: var(--espaco-4); }
+.c-janela-corpo > .c-faixa { margin-top: 0; }
+.c-fundo-janela { z-index: 1100; }
+
+/* Menu de ações aberto por cima da tabela */
+.c-tabela-caixa:has(.c-menu--solto) { overflow: visible; }
+.c-menu-item[aria-disabled='true'] { opacity: .55; cursor: not-allowed; }
+
+/* Pequenos utilitários de texto */
+.c-pagina .c-sec { color: var(--cor-texto-secundario); }
+.c-pagina .c-nota { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); margin: 0; }
+.c-pagina .c-bolinha { display: inline-block; width: 8px; height: 8px; margin-right: var(--espaco-2); border-radius: var(--raio-cheio); background: var(--cor-status-atencao-texto); vertical-align: middle; }
+
+/* Texto formal (troca de escala): mantém as quebras de linha, letra da interface */
+.c-texto-formal { margin: 0; padding: var(--espaco-3) var(--espaco-4); white-space: pre-wrap; font: inherit; background: var(--cor-fundo-pagina); border: var(--borda-fina) solid var(--tabela-linha); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); }
+/* Painel lateral do detalhe: acima da moldura e com corpo rolando */
+.c-painel-lateral { z-index: 1050; font-family: var(--fonte-familia-texto); color: var(--cor-texto-padrao); }
+.c-painel-lateral .c-janela-corpo { flex: 1; min-height: 0; }
+.c-painel-lateral .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-painel-lateral h3 { margin: 0 0 var(--espaco-2); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-secundario); }
+.c-legenda-fim { margin-left: auto; }
+
+/* Presença: a célula inteira abre o menu de siglas (select transparente por cima da sigla) */
+.c-presenca td.c-celula-lanca { position: relative; }
+.c-celula-sel { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; font: inherit; }
+.c-presenca td.c-celula-lanca:hover { background: var(--cor-acao-suave); }
+.c-presenca td.c-celula-lanca:focus-within { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-foco-anel); }
+.c-presenca tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); text-align: center; }
+.c-presenca tfoot td:first-child { text-align: left; color: var(--cor-texto-secundario); }
+.c-presenca tfoot small { font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+/* Presença em lote: lista de exceções em colunas */
+.c-lote-excecoes { margin: 0; padding: 0; border: 0; min-width: 0; }
+.c-lote-excecoes legend { margin-bottom: var(--espaco-2); }
+.c-lote-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: var(--espaco-1) var(--espaco-4); max-height: 320px; overflow: auto; }
+
+/* Minha escala */
+.c-turno-linha .c-traco { display: inline-block; width: 3px; height: 14px; border-radius: 2px; background: var(--t, var(--cor-acao-fundo)); flex: none; }
+.c-minha tr.c-dia-folga td { color: var(--cor-texto-apagado); }
+.c-minha tr[aria-current='date'] td { background: var(--cor-fundo-selecionado); }
+.c-minha tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); }
+.c-minha td > div + div { margin-top: var(--espaco-1); }
+.c-cal td.c-cal-dia:has(> .c-cal-botao) { padding: 0; }
+.c-cal-botao { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 64px; padding: var(--espaco-1) 6px; cursor: pointer; }
+.c-cal-botao:hover { background: var(--cor-acao-suave); }
+.c-cal-botao:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: -2px; }
+.c-cal-botao[aria-pressed='true'] { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-acao-fundo); }
+.c-cal-st--perigo { color: var(--cor-status-perigo-texto); }
+.c-cal-st--atencao { color: var(--cor-status-atencao-texto); }
+.c-cal-st--neutro { color: var(--cor-texto-secundario); }
+.c-cal .c-ic > svg { display: block; width: 100%; height: 100%; }
+.c-dia-secao { display: flex; flex-direction: column; gap: var(--espaco-3); padding-bottom: var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-dia-secao:last-child { border-bottom: 0; }
+/* Janela: os blocos do corpo não encolhem (o corpo é que rola) */
+.c-janela-corpo > * { flex-shrink: 0; }
+.c-janela-corpo > .c-tabela-caixa { overflow: visible; }
+
+/* Escala aberta (semana / mês) */
+.c-cab-escala { flex-wrap: wrap; row-gap: var(--espaco-2); }
+.c-cab-escala h1 { max-width: 40ch; }
+.c-cab-escala .c-cab-dir { flex-wrap: wrap; justify-content: flex-end; }
+.c-trocar-escala { width: auto; max-width: 240px; }
+.c-pendencias { color: var(--cor-status-atencao-texto); font-weight: var(--fonte-peso-semi); }
+.c-escala-grade td.c-dia-sem, .c-escala-grade td.c-dia { position: relative; }
+.c-cel-botao { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 32px; cursor: pointer; border-radius: var(--raio-pequeno); }
+.c-semana .c-cel-botao { justify-content: stretch; }
+.c-semana .c-cel-botao > .c-bloco { flex: 1; }
+.c-semana .c-cel-botao > .c-folga { flex: 1; text-align: center; }
+.c-cel-botao:hover { background: var(--cor-acao-suave); }
+.c-cel-botao:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: -2px; }
+.c-escala-grade td.c-cel-sel .c-cel-botao { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-acao-fundo); }
+.c-escala-grade td.c-cel-pendente .c-cel-botao { outline: var(--borda-fina) dashed var(--cor-status-atencao-texto); outline-offset: -3px; }
+.c-escala-grade td.c-cel-violacao::after { content: ''; position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 8px solid var(--cor-status-perigo-texto); border-left: 8px solid transparent; pointer-events: none; }
+.c-escala-grade td.c-cel-manual .c-bloco b::after, .c-escala-grade td.c-cel-manual .c-turno::after { content: '*'; margin-left: 2px; }
+.c-escala-grade tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); text-align: center; }
+.c-escala-grade tfoot td:first-child { text-align: left; color: var(--cor-texto-secundario); }
+.c-escala-grade tfoot small { font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+.c-escala-grade th.c-col-nome .c-marcar, .c-escala-grade td.c-col-nome .c-marcar { min-height: 0; }
+.c-grade-mes .c-cel-botao { min-height: 28px; }
+/* Ajuste do dia: escolhe o turno da célula marcada */
+.c-ajuste-dia { display: flex; align-items: center; flex-wrap: wrap; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-3); background: var(--cor-fundo-selecionado); border-top: var(--borda-fina) solid var(--tabela-linha); }
+.c-ajuste-turnos { display: flex; flex-wrap: wrap; gap: var(--espaco-1); }
+.c-ajuste-turnos .c-botao[aria-pressed='true'] { border-color: var(--cor-acao-fundo); background: var(--cor-acao-suave); }
+.c-ajuste-dia .c-fim, .c-selecao .c-fim { margin-left: auto; }
+/* Padrão semanal */
+/* Janela Padrão semanal (lista 10/11, item 15): cada turno numa linha, dias em botões curtos. */
+.c-padrao-passo { margin: 0; font-size: 13px; font-weight: var(--fonte-peso-negrito); }
+.c-padrao-passo + * { margin-bottom: var(--espaco-2); }
+.c-padrao-alcance { display: flex; align-items: center; flex-wrap: wrap; gap: var(--espaco-3); }
+.c-padrao-alcance .c-padrao-semana { width: auto; }
+.c-padrao-regra { display: grid; grid-template-columns: minmax(200px, 280px) auto auto 32px; gap: var(--espaco-3); align-items: center; padding: var(--espaco-2) 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-padrao-dias .c-botao { min-width: 48px; }
+.c-padrao-opcoes { display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-padrao-conta { margin-right: auto; }
+@media (max-width: 767.98px) { .c-padrao-regra { grid-template-columns: minmax(0, 1fr) auto; } .c-padrao-dias { grid-column: 1 / -1; flex-wrap: wrap; } }
+.c-legenda .c-ic { width: 14px; height: 14px; color: var(--cor-status-sucesso-texto); }
+.c-legenda .c-ic > svg { display: block; width: 100%; height: 100%; }
+
+/* Painel do WFM: figuras em grade e cores dos gráficos vindas do kit (só dentro desta tela) */
+.c-graficos-wfm .wfm-g-coluna, .c-graficos-wfm .wfm-g-faltas { fill: var(--cor-grafico-2); }
+@media (max-width: 1179.98px) { .c-graficos-wfm { grid-template-columns: minmax(0, 1fr); } }
+.c-graficos-wfm {
+  --wfm-g-marca: var(--cor-grafico-1); --wfm-g-marca-clara: color-mix(in srgb, var(--cor-grafico-1) 45%, var(--cor-fundo-painel));
+  --wfm-g-ok: var(--cor-grafico-3); --wfm-g-aviso: var(--cor-grafico-4); --wfm-g-perigo: var(--cor-grafico-8); --wfm-g-neutro: var(--cor-borda-padrao);
+}
+.c-graficos-wfm .c-grafico { margin: 0; display: flex; flex-direction: column; }
+.c-graficos-wfm .wfm-g-legenda { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-graficos-wfm .wfm-g-eixo, .c-graficos-wfm .wfm-g-valor { fill: var(--cor-texto-secundario); font-family: inherit; }
+.c-minibarra { display: inline-block; width: 96px; height: 8px; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); vertical-align: middle; overflow: hidden; }
+.c-minibarra i { display: block; height: 100%; background: var(--cor-status-atencao-texto); }
+.c-lista-calculo { margin: 0; padding-left: var(--espaco-4); display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-graficos-wfm .c-grafico > svg, .c-graficos-wfm .wfm-g-fill > svg { max-height: 220px; }
+
+/* Equipes */
+.c-embutido { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
+.c-embutido > .c-cab-linha:empty { display: none; }
+.c-indicadores--embutido { border: 0; border-radius: 0; }
+.c-pagina .c-tom-atencao { color: var(--cor-status-atencao-texto); }
+.c-filtros--solto { padding: 0; }
+.c-turno-linha .c-traco:only-child { display: none; }
+
+/* Tabela "junta" (lista 10/11, item 11): colunas e botões lado a lado, o espaço que sobra vai para o fim da linha.
+   Usada em tabelas de poucas colunas: Minha escala, Precisa de você, Diário › Histórico e Cadastros. */
+.c-tabela.c-tabela--junta .c-estica, .c-tabela.c-tabela--junta .c-estica.c-secundario { width: auto; max-width: none; white-space: nowrap; }
+.c-tabela.c-tabela--junta th, .c-tabela.c-tabela--junta td { padding-right: var(--espaco-5); }
+.c-tabela.c-tabela--junta tr > :last-child { width: 100%; text-align: left; }
+.c-tabela.c-tabela--junta .c-acoes > .c-grupo { justify-content: flex-start; }
+
+/* Escalas › Pausas: a caixa vai até o pé da tela e os botões ficam embaixo (sem faixa vazia). */
+.c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh / var(--c-zoom, 1) - var(--altura-topo) - 40px - 136px); }
+.c-pausas-caixa > .c-pausas { flex: 1 1 auto; }
+
+/* Minha escala: dias que já passaram ficam apagados (só consulta) — lista 10/11, item 12. */
+.c-minha tbody tr.c-dia-passou > td { background: var(--cor-fundo-sutil); color: var(--cor-texto-secundario); }
+.c-minha tbody tr.c-dia-passou > td > * { opacity: .65; }
+.c-dia-passou-rot { font-size: 12px; font-weight: var(--fonte-peso-normal, 400); }
+.c-cal td.c-cal-passou { background: var(--cor-fundo-sutil); }
+.c-cal td.c-cal-passou .c-cal-botao > * { opacity: .65; }
+
+/* Monitor grande (lista 10/11, item 13): o Conecta inteiro cresce na mesma proporção.
+   --c-zoom acompanha o zoom para as alturas que usam 100vh (o zoom também multiplica o vh). */
+:root { --c-zoom: 1; }
+@media (min-width: 1920px) { :root { --c-zoom: 1.125; } html { zoom: 1.125; } }
+@media (min-width: 2400px) { :root { --c-zoom: 1.25; } html { zoom: 1.25; } }

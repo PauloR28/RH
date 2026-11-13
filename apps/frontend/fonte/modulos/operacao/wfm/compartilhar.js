@@ -1,8 +1,8 @@
 import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 import { IconeSvg } from '../../../ui/icone.js';
-import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
+import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { infoDia } from './comum.js?v=20261104-leitura';
+import { infoDia } from './comum.js?v=20261112-exporta-filtro';
 
 // Compartilhar / exportar a escala do mês: planilha (xlsx) e CSV vêm do servidor (já filtrados pelo escopo do
 // usuário); PDF e imagem (PNG) são desenhados aqui, a partir da grade que o usuário está vendo, sem bibliotecas.
@@ -159,7 +159,7 @@ export async function canvasParaPdf(canvas) {
 
 // Menu da escala. Com `aoVerMes`/`aoConfigurar` vira o botão "Ações" (Ver mês, Compartilhar, Configurações); sem eles,
 // só Compartilhar/exportar (visão do mês).
-export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, showToast, aoVerMes, aoConfigurar, aoLimpar, rotuloVer = 'Visualizar escala (mês)', iconeVer = 'calendar_month' }) {
+export function MenuCompartilharEscala({ operacao, anoMes, dados, visiveis, nomeOperacao, showToast, aoVerMes, aoConfigurar, aoLimpar, rotuloVer = 'Visualizar escala (mês)', iconeVer = 'calendar_month', extras = [], novo = false }) {
   const comAcoes = !!(aoVerMes || aoConfigurar || aoLimpar);
   const [aberto, setAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -179,9 +179,11 @@ export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, 
     const aprov = ap === 'APROVADA' ? ' · aprovada' : ap === 'EM_APROVACAO' ? ' · em aprovação' : '';
     return `${situacao}${aprov} · gerada em ${new Date().toLocaleString('pt-BR')}`;
   };
+  // `visiveis`: operadores que a tela mostra depois dos filtros. PDF, PNG, planilha e CSV saem só com eles.
+  const filtrados = visiveis ? { ...dados, operadores: visiveis } : dados;
   const gerar = async (formato) => {
     const titulo = tituloEscala(nomeOperacao, anoMes);
-    const canvas = desenharEscala(dados, titulo, rotuloSub());
+    const canvas = desenharEscala(filtrados, titulo, rotuloSub());
     if (formato === 'png') return { blob: await paraBlob(canvas, 'image/png'), filename: nomeArquivo(nomeOperacao, anoMes, 'png') };
     return { blob: await canvasParaPdf(canvas), filename: nomeArquivo(nomeOperacao, anoMes, 'pdf') };
   };
@@ -190,7 +192,7 @@ export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, 
     setAberto(false);
     try { await acao(); } catch (e) { showToast?.(e?.message || 'Não foi possível concluir.', 'error'); } finally { setOcupado(false); }
   };
-  const baixarServidor = (formato) => executar(async () => baixarArquivo(await exportarEscalaWfm(operacao, anoMes, formato)));
+  const baixarServidor = (formato) => executar(async () => baixarArquivo(await exportarEscalaWfm(operacao, anoMes, formato, { todasEquipes: !!dados?.todas_equipes, ids: visiveis ? visiveis.map((o) => o.id_usuario) : null })));
   const baixarLocal = (formato) => executar(async () => baixarArquivo(await gerar(formato)));
   const compartilhar = () => executar(async () => {
     const { blob, filename } = await gerar('pdf');
@@ -205,7 +207,29 @@ export function MenuCompartilharEscala({ operacao, anoMes, dados, nomeOperacao, 
     catch { showToast?.('PDF baixado. Anexe o arquivo à conversa para compartilhar.', 'success'); }
   });
 
-  const vazio = !dados || !(dados.operadores || []).length;
+  const vazio = !dados || !(filtrados.operadores || []).length;
+  // `novo`: mesmo menu no desenho do rebranding (Fase 15, classes c-); `extras` = itens a mais no fim ({ label, icon, onClick, perigo }).
+  if (novo) {
+    const ic = (n) => html`<span class="c-ic" aria-hidden="true">${IconeSvg(n)}</span>`;
+    const item = (rotulo, icone, acao, { desab = false, perigo = false } = {}) => html`<button type="button" role="menuitem" class=${`c-menu-item ${perigo ? 'c-menu-item--perigo' : ''}`.trim()} disabled=${desab || null} onClick=${acao}>${ic(icone)}${rotulo}</button>`;
+    return html`
+      <div class="c-abre-menu" ref=${raiz}>
+        <button type="button" class="c-botao c-botao--secundario c-botao--icone" aria-label="Mais ações" title="Mais ações: compartilhar, exportar, configurar" aria-haspopup="menu" aria-expanded=${aberto ? 'true' : 'false'} aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || (vazio && !comAcoes && !extras.length) || null} onClick=${() => setAberto(!aberto)}>${ic('dots-three')}</button>
+        ${aberto ? html`<div class="c-menu c-menu--solto" role="menu">
+          ${aoVerMes ? item(rotuloVer, 'calendar-dots', () => { setAberto(false); aoVerMes(); }) : null}
+          ${item('Compartilhar escala', 'share', compartilhar, { desab: vazio })}
+          <div class="c-menu-separador"></div>
+          ${item('Exportar Excel (.xlsx)', 'table_view', () => baixarServidor('xlsx'))}
+          ${item('Exportar CSV', 'description', () => baixarServidor('csv'))}
+          ${item('Exportar PDF', 'picture_as_pdf', () => baixarLocal('pdf'))}
+          ${item('Exportar imagem (PNG)', 'image', () => baixarLocal('png'))}
+          ${extras.filter(Boolean).length || aoConfigurar || aoLimpar ? html`<div class="c-menu-separador"></div>` : null}
+          ${extras.filter(Boolean).map((x) => item(x.label, x.icon, () => { setAberto(false); x.onClick(); }, { desab: x.disabled, perigo: x.perigo }))}
+          ${aoConfigurar ? item('Configurações da escala', 'gear-six', () => { setAberto(false); aoConfigurar(); }) : null}
+          ${aoLimpar ? item('Limpar tabela', 'trash', () => { setAberto(false); aoLimpar(); }, { perigo: true }) : null}
+        </div>` : null}
+      </div>`;
+  }
   return html`
     <div class="wfm-menu" ref=${raiz}>
       <button type="button" class="btn btn-outline-secondary btn-sm" aria-haspopup="menu" aria-expanded=${aberto} disabled=${ocupado || (vazio && !comAcoes)} onClick=${() => setAberto(!aberto)}>

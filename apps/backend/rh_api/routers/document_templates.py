@@ -12,7 +12,6 @@ from ..schemas.document_templates import (
 )
 from ..services.document_template_engine import SUPPORTED_VARIABLES
 
-
 router = APIRouter(prefix="/document-templates", tags=["document-templates"], dependencies=[Depends(get_current_user)])
 
 

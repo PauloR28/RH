@@ -34,7 +34,6 @@ from rh_api.schemas.onboarding import (
     TreinamentoWizardCreateRequest,
 )
 
-
 # ---------------------------------------------------------------------------
 # 1) Validação do schema JSON de módulo
 # ---------------------------------------------------------------------------

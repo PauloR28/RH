@@ -12,7 +12,6 @@ from ..schemas.interviews import (
     InterviewUpdateRequest,
 )
 
-
 router = APIRouter(tags=["interviews"], dependencies=[Depends(get_current_user)])
 
 

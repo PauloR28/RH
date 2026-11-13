@@ -1,4 +1,4 @@
-import { html } from '../../../infraestrutura-react.js';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js';
 
 // Gráficos dos Relatórios do WFM, em SVG/CSS puro (sem biblioteca). Cores vêm de variáveis CSS (`--wfm-g-*`, em wfm.css),
 // nunca fixas aqui; cada gráfico traz rótulos e valores em texto (legenda/tabela), então nenhuma informação depende só da cor.
@@ -20,6 +20,38 @@ function maximoBonito(v) {
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * exp;
 }
 
+// Eixo com marcas INTEIRAS e sem repetir (regras de gráfico do rebranding): até 4 intervalos de 1, 2, 5 × 10^n.
+// Máximo 0 ou 1 → eixo 0–1.
+export function escalaInteira(valorMax) {
+  const v = Math.max(0, Number(valorMax) || 0);
+  if (v <= 1) return { max: 1, ticks: [0, 1] };
+  const bruto = v / 4;
+  const exp = 10 ** Math.floor(Math.log10(bruto));
+  const f = bruto / exp;
+  const passo = Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * exp);
+  const max = Math.ceil(v / passo) * passo;
+  const ticks = [];
+  for (let t = 0; t <= max + 1e-9; t += passo) ticks.push(t);
+  return { max, ticks };
+}
+
+// Largura real do contêiner: o SVG é desenhado 1:1 (1 unidade = 1 px), então o texto dos eixos fica sempre em 12 px.
+function useLargura(padrao) {
+  const ref = useRef(null);
+  const [largura, setLargura] = useState(padrao);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const medir = () => { const w = Math.round(el.clientWidth); if (w > 0) setLargura(w); };
+    medir();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, largura];
+}
+
 // Com períodos longos, agrupa a série diária em blocos de 7 dias para o gráfico continuar legível.
 export function agruparSerie(serie, limite = 62) {
   if (serie.length <= limite) return serie;
@@ -39,19 +71,20 @@ function Legenda({ itens }) {
 // 1. Evolução diária: barras de escalados (fundo), linha de presentes e barras de faltas.
 export function GraficoSerieDiaria({ serie, compacto = false }) {
   const dados = agruparSerie(serie);
-  const largura = compacto ? 640 : 720, altura = compacto ? 150 : 240, ml = compacto ? 32 : 40, mr = 8, mt = compacto ? 8 : 16, mb = compacto ? 22 : 32;
-  const max = maximoBonito(Math.max(1, ...dados.map((d) => Math.max(d.escalados, d.presentes))));
+  const [ref, largura] = useLargura(compacto ? 640 : 720);
+  const altura = compacto ? 176 : 240, ml = 40, mr = 8, mt = 8, mb = 24;
+  const { max, ticks } = escalaInteira(Math.max(0, ...dados.map((d) => Math.max(d.escalados, d.presentes))));
   const w = largura - ml - mr, h = altura - mt - mb;
   const passo = w / dados.length;
   const y = (v) => mt + h - (v / max) * h;
   const x = (i) => ml + passo * i + passo / 2;
   const linha = dados.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d.presentes).toFixed(1)}`).join(' ');
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * max);
-  const cadaN = compacto ? 3 : Math.ceil(dados.length / 12);
+  // Rótulos do eixo X sem encavalar: no máximo um a cada ~48 px.
+  const cadaN = Math.max(1, Math.ceil(dados.length / Math.max(1, Math.floor(w / 48))));
   const larguraBarra = Math.max(2, Math.min(24, passo * 0.6));
   return html`
-    <div class=${compacto ? 'wfm-g-fill' : ''}>
-      <svg viewBox=${`0 0 ${largura} ${altura}`} class=${`wfm-g-svg ${compacto ? 'wfm-g-svg--cheio' : ''}`} role="img" aria-label="Escalados, presentes e faltas por dia">
+    <div class="wfm-g-medida" ref=${ref}>
+      <svg viewBox=${`0 0 ${largura} ${altura}`} width=${largura} height=${altura} class="wfm-g-svg wfm-g-svg--real" role="img" aria-label="Escalados, presentes e faltas por dia">
         ${ticks.map((t) => html`<g key=${t}><line x1=${ml} x2=${largura - mr} y1=${y(t)} y2=${y(t)} class="wfm-g-grade" /><text x=${ml - 8} y=${y(t) + 4} class="wfm-g-eixo" text-anchor="end">${nf(t)}</text></g>`)}
         ${dados.map((d, i) => html`<g key=${i}>
           <rect x=${x(i) - larguraBarra / 2} y=${y(d.escalados)} width=${larguraBarra} height=${Math.max(0, mt + h - y(d.escalados))} class="wfm-g-escalados" rx="2"><title>${d.rotulo}: ${d.escalados} escalado(s), ${d.presentes} presente(s), ${d.faltas} falta(s)</title></rect>
@@ -91,7 +124,7 @@ export function GraficoRosca({ dados, cores, centro, rotuloCentro, compacto = fa
 }
 
 // 3 e 6. Barras horizontais, simples ou agrupadas (séries). `series`: [{ chave, rotulo, cor }].
-export function GraficoBarrasH({ dados, series, unidade = '' }) {
+export function GraficoBarrasH({ dados, series, unidade = '', fmtH = hms }) {
   if (!dados.length) return null;
   const max = Math.max(1, ...dados.flatMap((d) => series.map((s) => d[s.chave] || 0)));
   return html`
@@ -99,8 +132,8 @@ export function GraficoBarrasH({ dados, series, unidade = '' }) {
       <ul class="wfm-g-barras">
         ${dados.map((d) => html`<li key=${d.rotulo}>
           <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${unidade === 'h' ? hms(d[s.chave]) : `${nf(d[s.chave] || 0, 2)}${unidade}`}`}></span>`)}</span>
-          <span class="wfm-g-barras-valor">${series.map((s) => (unidade === 'h' ? hms(d[s.chave]) : nf(d[s.chave] || 0, 0))).join(' / ')}${unidade === 'h' ? '' : unidade}</span>
+          <span class="wfm-g-barras-trilha">${series.map((s) => html`<span key=${s.chave} class="wfm-g-barra" style=${{ width: `${Math.max(2, ((d[s.chave] || 0) / max) * 100)}%`, background: s.cor }} title=${`${s.rotulo}: ${unidade === 'h' ? fmtH(d[s.chave]) : `${nf(d[s.chave] || 0, 2)}${unidade}`}`}></span>`)}</span>
+          <span class="wfm-g-barras-valor">${series.map((s) => (unidade === 'h' ? fmtH(d[s.chave]) : nf(d[s.chave] || 0, 0))).join(' / ')}${unidade === 'h' ? '' : unidade}</span>
         </li>`)}
       </ul>
       ${series.length > 1 ? html`<${Legenda} itens=${series.map((s) => ({ rotulo: s.rotulo, cor: s.cor }))} />` : null}
@@ -108,17 +141,17 @@ export function GraficoBarrasH({ dados, series, unidade = '' }) {
 }
 
 // 3b. Barra fina sobreposta: o valor principal (azul) sobre o total de referência (cinza). Mostra "6,3 / 171,0h" em texto.
-export function GraficoBarrasSobrepostas({ dados, unidade = '', principal, referencia }) {
+export function GraficoBarrasSobrepostas({ dados, unidade = '', principal, referencia, fmtH = hms }) {
   if (!dados.length) return null;
   const max = Math.max(1, ...dados.map((d) => d[referencia.chave] || 0), ...dados.map((d) => d[principal.chave] || 0));
   return html`
     <ul class="wfm-g-barras wfm-g-barras--finas">
       ${dados.map((d) => html`<li key=${d.rotulo}>
         <span class="wfm-g-barras-rotulo" title=${d.rotulo}>${d.rotulo}</span>
-        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${unidade === 'h' ? hms(d[principal.chave]) : `${nf(d[principal.chave] || 0, 2)}${unidade}`} · ${referencia.rotulo}: ${unidade === 'h' ? hms(d[referencia.chave]) : `${nf(d[referencia.chave] || 0, 2)}${unidade}`}`}>
+        <span class="wfm-g-barras-sobre" title=${`${principal.rotulo}: ${unidade === 'h' ? fmtH(d[principal.chave]) : `${nf(d[principal.chave] || 0, 2)}${unidade}`} · ${referencia.rotulo}: ${unidade === 'h' ? fmtH(d[referencia.chave]) : `${nf(d[referencia.chave] || 0, 2)}${unidade}`}`}>
           <span class="wfm-g-sobre-ref" style=${{ width: `${Math.max(2, ((d[referencia.chave] || 0) / max) * 100)}%`, background: referencia.cor }}></span>
           <span class="wfm-g-sobre-princ" style=${{ width: `${Math.max(1, ((d[principal.chave] || 0) / max) * 100)}%`, background: principal.cor }}></span></span>
-        <span class="wfm-g-barras-valor">${unidade === 'h' ? `${hms(d[principal.chave])} / ${hms(d[referencia.chave])}` : `${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}`}</span>
+        <span class="wfm-g-barras-valor">${unidade === 'h' ? `${fmtH(d[principal.chave])} / ${fmtH(d[referencia.chave])}` : `${nf(d[principal.chave] || 0, 1)} / ${nf(d[referencia.chave] || 0, 1)}${unidade}`}</span>
       </li>`)}
     </ul>`;
 }
@@ -127,14 +160,15 @@ export const LegendaSimples = ({ itens }) => html`<${Legenda} itens=${itens} />`
 
 // 4. Colunas (absenteísmo por dia da semana), com a média como linha de referência.
 export function GraficoColunas({ dados, media, compacto = false }) {
-  const largura = compacto ? 320 : 360, altura = compacto ? 140 : 200, ml = 36, mr = 8, mt = compacto ? 14 : 16, mb = compacto ? 22 : 28;
+  const [ref, largura] = useLargura(compacto ? 320 : 360);
+  const altura = compacto ? 176 : 200, ml = 40, mr = 8, mt = 16, mb = 24;
   const valores = dados.map((d) => d.valor || 0);
-  const max = maximoBonito(Math.max(1, ...valores, media || 0));
+  const { max, ticks } = escalaInteira(Math.max(0, ...valores, media || 0));
   const w = largura - ml - mr, h = altura - mt - mb, passo = w / dados.length;
   const y = (v) => mt + h - (v / max) * h;
   return html`
-    <svg viewBox=${`0 0 ${largura} ${altura}`} class=${`wfm-g-svg ${compacto ? 'wfm-g-svg--cheio' : ''}`} role="img" aria-label="Absenteísmo por dia da semana">
-      ${[0, 0.5, 1].map((f) => html`<g key=${f}><line x1=${ml} x2=${largura - mr} y1=${y(f * max)} y2=${y(f * max)} class="wfm-g-grade" /><text x=${ml - 6} y=${y(f * max) + 4} class="wfm-g-eixo" text-anchor="end">${nf(f * max)}%</text></g>`)}
+    <div class="wfm-g-medida" ref=${ref}><svg viewBox=${`0 0 ${largura} ${altura}`} width=${largura} height=${altura} class="wfm-g-svg wfm-g-svg--real" role="img" aria-label="Absenteísmo por dia da semana">
+      ${ticks.map((t) => html`<g key=${t}><line x1=${ml} x2=${largura - mr} y1=${y(t)} y2=${y(t)} class="wfm-g-grade" /><text x=${ml - 6} y=${y(t) + 4} class="wfm-g-eixo" text-anchor="end">${nf(t)}%</text></g>`)}
       ${dados.map((d, i) => {
         const v = d.valor || 0;
         const bw = Math.min(28, passo * 0.6);
@@ -145,7 +179,7 @@ export function GraficoColunas({ dados, media, compacto = false }) {
         </g>`;
       })}
       ${media ? html`<g><line x1=${ml} x2=${largura - mr} y1=${y(media)} y2=${y(media)} class="wfm-g-media" /><text x=${largura - mr} y=${y(media) - 4} class="wfm-g-eixo" text-anchor="end">média ${nf(media, 1)}%</text></g>` : null}
-    </svg>`;
+    </svg></div>`;
 }
 
 // 7. Barra empilhada única (partes de um todo), usada nas trocas por situação.

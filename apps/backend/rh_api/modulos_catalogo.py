@@ -49,6 +49,7 @@ _DONO_POR_GRUPO = {
     "Monitoria": MODULO_OPERACAO,
     "WFM": MODULO_OPERACAO,
     "Equipes": MODULO_OPERACAO,
+    "Diário de bordo": MODULO_OPERACAO,  # 08/nov/2026: registro do dia da operação (TI não vê o conteúdo)
     "Configurações": MODULO_TECNOLOGIA,
     "Usuários": MODULO_TECNOLOGIA,
     "Logs": MODULO_TECNOLOGIA,
@@ -81,6 +82,7 @@ _DONO_POR_CHAVE = {
     "sessao.monitoria.acessar": MODULO_OPERACAO,
     "sessao.wfm.acessar": MODULO_OPERACAO,
     "sessao.equipe.acessar": MODULO_OPERACAO,
+    "sessao.diario.acessar": MODULO_OPERACAO,
     "sessao.configuracoes.acessar": MODULO_TECNOLOGIA,
 }
 
@@ -125,17 +127,21 @@ FUNCOES: dict[str, tuple[str, str]] = {
     "monitoria": ("Monitoria", "Central de Monitoria: avaliações, equipes e indicadores."),
     "wfm": ("Turnos e Plantões", "Escalas, presença, trocas e relatórios (WFM)."),
     "suporte": ("Suporte TI", "Chamados, fila, indicadores e configurações de TI."),
+    "diario": ("Diário de bordo", "Registro do dia, demandas e intercorrências da operação."),
+    "treinamentos": ("Treinamentos", "Trilhas e cursos da operação."),
 }
 _FUNCOES_MENU_LEGADO = ("cx-curriculos", "processos", "provas", "gestao", "drive", "monitoria", "wfm")
 FUNCOES_POR_MODULO: dict[str, tuple[str, ...]] = {
     MODULO_RH: _FUNCOES_MENU_LEGADO,
-    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO,
+    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO + ("diario", "treinamentos"),
     MODULO_TECNOLOGIA: ("suporte", "wfm"),
 }
+# Funções da Operação que cada operação pode desligar só para si (lista 10/11, item 16; tabela operacoes_modulos, V069).
+FUNCOES_POR_OPERACAO: tuple[str, ...] = ("monitoria", "wfm", "diario", "treinamentos")
 # Padrão = o menu de hoje (nada muda até alguém mexer): RH mostra as funções de RH; Operação, Monitoria e WFM; Tecnologia, Suporte e Escalas.
 FUNCOES_PADRAO_ATIVAS: dict[str, frozenset[str]] = {
     MODULO_RH: frozenset({"cx-curriculos", "processos", "provas", "gestao", "drive"}),
-    MODULO_OPERACAO: frozenset({"monitoria", "wfm"}),
+    MODULO_OPERACAO: frozenset({"monitoria", "wfm", "diario", "treinamentos"}),
     MODULO_TECNOLOGIA: frozenset({"suporte", "wfm"}),
 }
 

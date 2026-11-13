@@ -23,11 +23,11 @@ from ..services.public_candidacy import (
     build_public_application_url,
     build_public_process_slug,
     generate_public_token,
+    resolve_public_candidate_base_url,
+    resolve_public_frontend_base_url,
     resolve_public_process_description,
     resolve_public_process_requirements,
     resolve_public_process_responsibilities,
-    resolve_public_candidate_base_url,
-    resolve_public_frontend_base_url,
     validate_public_cv_upload,
 )
 from .bootstrap import (

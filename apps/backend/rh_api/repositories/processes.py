@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 
 from ..auth import AuthenticatedUser
 from ..services.helpers import (
+    clamp_limit,
     normalize_compare_text,
     normalize_indication_type,
     normalize_text,
@@ -27,7 +28,6 @@ from ..services.process_flow import (
     CANDIDATE_STATUS_WITHDREW,
     INTERVIEW_OPERATIONAL_STATUSES,
     PROCESS_STATUS_CANCELED,
-    build_approved_candidate_locked_message,
     build_process_closed_message,
     build_terminal_candidate_locked_message,
     canonicalize_candidate_status,
@@ -39,19 +39,17 @@ from ..services.process_flow import (
 )
 from .bootstrap import (
     build_process_where_clause,
-    ensure_process_inactivity_alerts_table,
-    ensure_process_dossier_notes_table,
     ensure_pipeline_columns,
     ensure_process_columns,
+    ensure_process_dossier_notes_table,
+    ensure_process_inactivity_alerts_table,
     ensure_process_reference_columns,
     generate_unique_process_id,
     get_process_row,
     get_process_rows,
     insert_candidate_process_record,
     process_auto_close_if_full,
-    resolve_process_row_for_related_record,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +100,7 @@ class ProcessRepositoryMixin:
             return items
 
         safe_page = max(1, int(page or 1))
-        safe_page_size = self._clamp_limit(page_size, default=20, maximum=100)
+        safe_page_size = clamp_limit(page_size, default=20, maximum=100)
         total = len(items)
         total_pages = max(1, math.ceil(total / safe_page_size))
         safe_page = min(safe_page, total_pages)

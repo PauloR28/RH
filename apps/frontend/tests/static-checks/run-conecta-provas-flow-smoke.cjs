@@ -31,9 +31,10 @@ assert.ok(source.includes('montarPayloadTelemetria({ finalizarEtapa: true })'));
 assert.ok(source.includes('interromperEtapaConectaProvas('));
 assert.ok(apiAggregator.includes("generated-exams.js?v=20260902-correcoes-rh"));
 assert.ok(generatedExamsApi.includes('export async function concluirEtapaConectaProvas'));
-assert.ok(indexHtml.includes('principal.js?v=20260901-nav-topo-home'));
-assert.ok(principal.includes('aplicacao.js?v=20260721-exam-analytics-2'));
-assert.ok(aplicacao.includes('aplicacao-raiz.js?v=20260901-nav-topo-home'));
+// A cadeia de carregamento usa tag de versão (?v=) em cada elo, para o navegador baixar os arquivos novos.
+assert.match(indexHtml, /principal\.js\?v=[\w-]+/);
+assert.match(principal, /aplicacao\.js\?v=[\w-]+/);
+assert.match(aplicacao, /aplicacao-raiz\.js\?v=[\w-]+/);
 assert.ok(!source.includes('Ver etapas'));
 assert.ok(source.includes("setEtapa('etapas')"));
 assert.ok(source.includes('localStorage.setItem(CHAVE_TOKEN_PUBLICO'));

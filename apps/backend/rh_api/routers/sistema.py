@@ -13,7 +13,6 @@ from ..schemas.sistema import (
     ResetarDadosConectaRequest,
 )
 
-
 router = APIRouter(prefix="/sistema", tags=["sistema"])
 
 

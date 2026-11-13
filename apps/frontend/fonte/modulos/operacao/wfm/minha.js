@@ -1,13 +1,12 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState } from '../../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../../ui/icone.js';
-import { lerEscalaWfm, listarColegasTrocaWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261104-leitura';
-import { textoTrocaOperador } from './trocas-texto.js';
-import { minutosParaHoras, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261104-leitura';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261112-exporta-filtro';
+import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261111-texto';
+import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261112-exporta-filtro';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
-// Visão do Operador: só a própria escala PUBLICADA. Calendário (semana ou mês) à esquerda e, à direita, o painel
-// do dia selecionado (turno, jornada, pausas e o pedido de troca). Clicar num dia só seleciona: o modal de troca
-// abre pelo botão do painel. Estilos: bloco "Minhas escalas" (.mc-*) no fim de estilos/wfm.css.
+// Minha escala (redesign Fase 15, amostras "Minha escala" e "Pedir troca" da Fase 14). Só a própria escala PUBLICADA.
+// Duas visões do mês: Planilha (um dia por linha) e Calendário. O detalhe do dia (jornada, pausas, presença) abre no
+// painel lateral; "Pedir troca" abre a janela da troca. Regras e payload da troca iguais aos de antes; o servidor valida.
 
 const SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -21,16 +20,22 @@ const segundaDe = (d) => somarDias(d, -((d.getDay() + 6) % 7));
 const anoMesDe = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const doIso = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };
 const nomeSemana = (d) => SEMANA[(d.getDay() + 6) % 7];
-const rotuloDia = (iso) => `${nomeSemana(doIso(iso)).slice(0, 3)} ${brIso(iso).slice(0, 5)}`;
+const rotuloDia = (iso) => `${nomeSemana(doIso(iso)).slice(0, 3).toLowerCase()}, ${brIso(iso).slice(0, 5)}`;
 const tituloDia = (d) => `${nomeSemana(d)}, ${br(d)}`;
-const faixa = (item) => `${item.entrada} – ${item.saida}`;
+const faixa = (item) => `${item.entrada}–${item.saida}`;
 const rotuloHorario = (item) => (item?.entrada ? faixa(item) : 'Folga'); // folga não tem horário
-// Dia sem horário: o que a operadora vê no calendário. Folga e DSR podem entrar numa troca; Férias e Escalado (horário por definir) não.
-const ROTULO_SEM_HORARIO = { FOLGA: 'FOLGA', DSR: 'DSR', FERIAS: 'FÉRIAS', ESCALADO: 'ESCALADO', SOBREAVISO: 'SOBREAVISO' };
+// Dia sem horário: o que a pessoa vê. Folga e DSR podem entrar numa troca; Férias e Escalado (horário por definir) não.
+const ROTULO_SEM_HORARIO = { FOLGA: 'Folga', DSR: 'DSR', FERIAS: 'Férias', ESCALADO: 'Escalado', SOBREAVISO: 'Sobreaviso' };
 const TIPOS_FOLGA = ['FOLGA', 'DSR'];
-const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const aMin = (hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
-const iniciais = (nome) => { const p = String(nome || '').trim().split(/\s+/).filter(Boolean); return p.length > 1 ? `${p[0][0]}${p[p.length - 1][0]}`.toUpperCase() : (p[0] || '?').slice(0, 2).toUpperCase(); };
+// Troca em andamento no dia (pedidos do próprio operador, ou que ele recebeu): selo na Situação.
+const SELO_TROCA = { AGUARDANDO_B: ['Pendente aceitação', 'atencao'], AGUARDANDO_APROVACAO: ['Aguardando aprovação', 'informacao'] };
+function SeloTroca({ estado }) {
+  const s = SELO_TROCA[estado];
+  return s ? html`<${Selo} tom=${s[1]} icone="arrows-left-right">${s[0]}<//>` : null;
+}
+const TOM_PRESENCA = { PRESENTE: 'sucesso', FALTA: 'perigo', FALTA_JUSTIFICADA: 'atencao', ATESTADO: 'informacao' };
+const ICONE_PRESENCA = { PRESENTE: 'check-circle', FALTA: 'x-circle', FALTA_JUSTIFICADA: 'warning', ATESTADO: 'file-text' };
 
 // Dá para pedir troca deste dia? (o servidor valida de novo: aqui só evitamos oferecer o que vai falhar)
 function motivoSemTroca(data, item) {
@@ -43,61 +48,21 @@ function motivoSemTroca(data, item) {
   return '';
 }
 
-const temPausas = (item) => (item?.pausas || []).length > 0;
 const nomePausa = (p, i) => (p.tipo && p.tipo !== 'OUTRA' && ROTULO_PAUSA[p.tipo]) || `Pausa ${i + 1}`;
+const fimPausa = (p) => { const fim = (aMin(p.inicio) + p.duracao_min) % 1440; return `${String(Math.floor(fim / 60)).padStart(2, '0')}:${String(fim % 60).padStart(2, '0')}`; };
 
-function Chip({ item, comum }) {
-  const nome = String(item.nome_turno || item.codigo || '').toUpperCase();
-  const classe = item.cor ? 'mc-chip' : `mc-chip ${item.codigo === comum ? 'is-solido' : 'is-contorno'}`;
-  return html`<span class=${classe} title=${nome} style=${item.cor ? { '--mc-cor': item.cor } : undefined}>${nome}</span>`;
+// Traço colorido + nome do turno (a cor do turno vem do cadastro; sem cor, o traço usa a cor de ação).
+function Turno({ item }) {
+  const nome = item.nome_turno || item.codigo || '';
+  return html`<span class="c-turno-linha"><span class="c-traco" style=${{ '--t': item.cor || 'var(--cor-acao-fundo)' }}></span>${nome}</span>`;
 }
 
-function PontoPausa({ programada }) {
-  const rotulo = programada ? 'Pausas programadas' : 'Pausas a programar';
-  return html`<span class=${`mc-ponto ${programada ? 'is-cheio' : 'is-anel'}`} role="img" aria-label=${rotulo} title=${rotulo}></span>`;
+function SeloPresenca({ presenca }) {
+  if (!presenca) return null;
+  return html`<${Selo} tom=${TOM_PRESENCA[presenca.status] || 'neutro'} icone=${ICONE_PRESENCA[presenca.status] || ''}>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}<//>`;
 }
 
-// ---------------------------------------------------------------- calendário
-
-function CelulaDia({ data, itens, hoje, selecionado, comum, trocavel, onSelecionar }) {
-  const trabalhando = itens.filter((i) => i.trabalha);
-  const iso = paraIso(data);
-  const ehHoje = iso === hoje;
-  const numero = String(data.getDate()).padStart(2, '0');
-  if (!trabalhando.length) {
-    const item = itens[0];
-    const rotulo = ROTULO_SEM_HORARIO[item?.tipo] || (item && item.codigo !== 'DSR' ? 'FOLGA' : 'DSR');
-    const nome = rotulo === 'DSR' ? 'DSR' : rotulo.toLowerCase();
-    const classe = `mc-dia is-dsr ${iso < hoje ? 'is-passado' : ''} ${selecionado ? 'is-sel' : ''}`.trim();
-    const conteudo = html`<span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>
-      <span class=${`mc-dsr ${rotulo.length > 5 ? 'is-longo' : ''}`.trim()} title=${rotulo}>${rotulo}</span>`;
-    // Dia de folga futuro vira botão: dá para pedir a troca da folga com um colega que trabalha neste dia.
-    return trocavel
-      ? html`<button type="button" class=${classe} aria-pressed=${selecionado} aria-label=${`${tituloDia(data)}, ${nome}, dá para pedir troca de folga`} onClick=${() => onSelecionar(iso)}>${conteudo}</button>`
-      : html`<div class=${classe} aria-label=${`${tituloDia(data)}, ${nome}`}>${conteudo}</div>`;
-  }
-  const descricao = trabalhando.map((it) => `${it.entrada} às ${it.saida}, ${it.nome_turno || it.codigo}, pausas ${temPausas(it) ? 'programadas' : 'a programar'}`).join('; ');
-  const classe = `mc-dia ${ehHoje ? 'is-hoje' : ''} ${iso < hoje ? 'is-passado' : ''} ${selecionado ? 'is-sel' : ''}`.trim();
-  return html`<button type="button" class=${classe} aria-pressed=${selecionado} aria-current=${ehHoje ? 'date' : undefined}
-    aria-label=${`${nomeSemana(data)}, ${data.getDate()} de ${MESES[data.getMonth()]}, ${descricao}`} onClick=${() => onSelecionar(iso)}>
-    <span class="mc-dia-topo"><span class="mc-dia-num">${numero}</span><span class="mc-dia-sem">${nomeSemana(data).slice(0, 3)}</span>${ehHoje ? html`<span class="mc-hoje">HOJE</span>` : null}</span>
-    ${trabalhando.map((it, i) => html`<span key=${i} class="mc-dia-bloco">
-      <span class="mc-dia-horario">${it.entrada}–${it.saida}</span>
-      <span class="mc-dia-pe"><${Chip} item=${it} comum=${comum} /><${PontoPausa} programada=${temPausas(it)} /></span>
-    </span>`)}
-  </button>`;
-}
-
-function Legenda({ tipos, comum }) {
-  return html`<div class="mc-legenda" aria-label="Legenda">
-    ${tipos.map((t) => html`<span key=${t.codigo} class="mc-legenda-item"><${Chip} item=${t} comum=${comum} /></span>`)}
-    <span class="mc-legenda-item"><span class="mc-amostra-dsr" aria-hidden="true"></span>DSR</span>
-    <span class="mc-legenda-item"><span class="mc-ponto is-cheio" aria-hidden="true"></span>Pausas programadas</span>
-    <span class="mc-legenda-item"><span class="mc-ponto is-anel" aria-hidden="true"></span>Pausas a programar</span>
-  </div>`;
-}
-
-// ---------------------------------------------------------------- painel do dia
+// ---------------------------------------------------------------- linha do tempo (também usada pela Escala do dia)
 
 // Reaproveitada pela administração da escala (Escala do dia e gaveta "Ajustar dia"): `mini` = só a barra de 96x8.
 export function LinhaTempo({ item, mini = false }) {
@@ -116,98 +81,69 @@ export function LinhaTempo({ item, mini = false }) {
   </div>`;
 }
 
-function BlocoTurno({ item, comum, mostrarEscala }) {
-  const pausas = item.pausas || [];
-  return html`<div class="mc-bloco">
-    ${mostrarEscala ? html`<p class="mc-escala">${item.nome_escala || item.operacao}</p>` : null}
-    <div class="mc-turno">
-      <div class="mc-turno-linha"><${Chip} item=${item} comum=${comum} /><span>${minutosParaHoras(item.minutos)} de jornada</span></div>
-      <div class="mc-turno-horario">${faixa(item)}</div>
-    </div>
-    <div class="mc-pausas">
-      <div class="mc-pausas-cab"><h4>Pausas</h4>${pausas.length ? html`<span>${pausas.length} programada${pausas.length > 1 ? 's' : ''}</span>` : null}</div>
-      ${pausas.length ? html`<${LinhaTempo} item=${item} />
-        <ul class="mc-pausas-lista">${pausas.map((p, i) => {
-          const fim = (aMin(p.inicio) + p.duracao_min) % 1440;
-          const fimTxt = `${String(Math.floor(fim / 60)).padStart(2, '0')}:${String(fim % 60).padStart(2, '0')}`;
-          return html`<li key=${i}><span class="mc-ponto is-cheio" aria-hidden="true"></span><span class="mc-pausa-nome">${nomePausa(p, i)}</span><span class="mc-pausa-int">${p.inicio} – ${fimTxt}</span><span class="mc-pausa-dur">${p.duracao_min} min</span></li>`;
-        })}</ul>`
-        : html`<p class="mc-pausas-vazio">Pausas ainda não programadas</p>`}
-    </div>
-  </div>`;
-}
+// ---------------------------------------------------------------- detalhe do dia (painel lateral)
 
-function PainelDia({ data, itens, eventos, presenca, comum, podeTrocar, folga, onTrocar }) {
+function PainelDia({ data, itens, eventos, presenca, podeTrocar, folga, onTrocar, onClose }) {
+  useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
   const trabalhando = itens.filter((i) => i.trabalha);
   const passado = paraIso(data) < paraIso(new Date());
-  return html`<aside class="mc-painel" aria-label="Dia selecionado">
-    <div><p class="mc-eyebrow">DIA SELECIONADO</p><h3 class="mc-painel-titulo">${tituloDia(data)}</h3></div>
-    ${presenca ? html`<div class=${`mc-presenca is-${String(presenca.status).toLowerCase()}`}><span>Presença: <strong>${ROTULO_STATUS_PRESENCA[presenca.status] || presenca.status}</strong></span>${presenca.observacao && !String(presenca.lancado_por || '').startsWith('Automática') && !String(presenca.observacao).startsWith('Presença automática') ? html`<small>${presenca.observacao}</small>` : null}</div>`
-      : passado ? html`<div class="mc-presenca"><span>Presença: <strong>Não lançada</strong></span></div>` : null}
-    ${trabalhando.map((item) => {
-      const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
-      const idAjuda = `mc-ajuda-${item.operacao}`;
-      return html`<div key=${item.operacao} class="mc-painel-item">
-        <${BlocoTurno} item=${item} comum=${comum} mostrarEscala=${trabalhando.length > 1 || !!item.nome_escala} />
-        ${podeTrocar ? html`<hr class="mc-div" />
-          <button type="button" class="btn btn-primary mc-btn-troca" disabled=${!!motivo} aria-describedby=${idAjuda} onClick=${() => onTrocar(item)}>Pedir troca de plantão</button>
-          <p id=${idAjuda} class="mc-ajuda">${motivo || 'Troque só o turno ou o dia inteiro com um colega.'}</p>` : null}
-      </div>`;
-    })}
-    ${!trabalhando.length && folga ? html`<div class="mc-painel-item">
-      <div class="mc-bloco">
-        ${folga.nome_escala ? html`<p class="mc-escala">${folga.nome_escala}</p>` : null}
-        <div class="mc-turno"><div class="mc-turno-linha"><${Chip} item=${folga} comum="" /><span>sua folga neste dia</span></div>
-          <div class="mc-turno-horario mc-turno-horario--texto">Folga</div></div>
-      </div>
-      <hr class="mc-div" />
-      <button type="button" class="btn btn-primary mc-btn-troca" aria-describedby="mc-ajuda-folga" onClick=${() => onTrocar({ ...folga, folga: true })}>Pedir troca de folga</button>
-      <p id="mc-ajuda-folga" class="mc-ajuda">Você assume o turno de um colega neste dia e a sua folga passa para essa pessoa.</p>
-    </div>` : null}
-    ${eventos.length ? html`<p class="mc-ajuda mc-eventos">${eventos.map((e) => e.descricao).join(' · ')}</p>` : null}
+  return html`<aside class="c-painel-lateral c-diario c-ds" role="dialog" aria-label=${`Dia ${tituloDia(data)}`}>
+    <div class="c-janela-cab">
+      <h2>${tituloDia(data)}<small>${trabalhando.length ? trabalhando.map((i) => i.nome_escala || i.operacao).join(' · ') : folga ? 'Sua folga' : 'Sem turno'}</small></h2>
+      <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-label="Fechar" title="Fechar" onClick=${onClose}><${Ic} nome="x" /></button>
+    </div>
+    <div class="c-janela-corpo">
+      ${presenca ? html`<div><${SeloPresenca} presenca=${presenca} />${presenca.observacao && !String(presenca.lancado_por || '').startsWith('Automática') && !String(presenca.observacao).startsWith('Presença automática') ? html` <span class="c-ajuda">${presenca.observacao}</span>` : null}</div>`
+        : passado && trabalhando.length ? html`<div><${Selo} tom="neutro">Presença não lançada<//></div>` : null}
+      ${trabalhando.map((item) => {
+        const pausas = item.pausas || [];
+        const motivo = podeTrocar ? motivoSemTroca(data, item) : '';
+        return html`<div key=${item.operacao} class="c-dia-secao">
+          <table class="c-diario-ficha"><tbody>
+            <tr><td>Turno</td><td><${Turno} item=${item} /></td></tr>
+            <tr><td>Horário</td><td><b>${faixa(item)}</b> · ${horasMin(item.minutos)} de jornada</td></tr>
+          </tbody></table>
+          <div>
+            <h3>Pausas ${pausas.length ? `(${pausas.length})` : ''}</h3>
+            ${pausas.length ? html`<${LinhaTempo} item=${item} />
+              <table class="c-diario-ficha"><tbody>${pausas.map((p, i) => html`<tr key=${i}><td>${nomePausa(p, i)}</td><td>${p.inicio}–${fimPausa(p)} · ${p.duracao_min} min</td></tr>`)}</tbody></table>`
+              : html`<p class="c-ajuda">Pausas ainda não programadas.</p>`}
+          </div>
+          ${podeTrocar ? html`<div class="c-grupo">
+            <button type="button" class="c-botao c-botao--secundario" disabled=${!!motivo || null} onClick=${() => onTrocar(item)}><${Ic} nome="arrows-left-right" />Pedir troca de plantão</button>
+            <span class="c-ajuda">${motivo || 'Troque só o turno ou o dia inteiro com um colega.'}</span>
+          </div>` : null}
+        </div>`;
+      })}
+      ${!trabalhando.length && folga ? html`<div class="c-dia-secao">
+        <p>Você está de folga neste dia.</p>
+        <div class="c-grupo">
+          <button type="button" class="c-botao c-botao--secundario" onClick=${() => onTrocar({ ...folga, folga: true })}><${Ic} nome="arrows-left-right" />Pedir troca de folga</button>
+          <span class="c-ajuda">Você assume o turno de um colega neste dia e a sua folga passa para essa pessoa.</span>
+        </div>
+      </div>` : null}
+      ${eventos.length ? html`<${Faixa} tom="informacao" icone="calendar-dots">${eventos.map((e) => e.descricao).join(' · ')}<//>` : null}
+    </div>
   </aside>`;
 }
 
-// ---------------------------------------------------------------- modal de troca
+// ---------------------------------------------------------------- janela "Pedir troca"
 
-function Avatar({ nome, ativo }) {
-  return html`<span class=${`mc-avatar ${ativo ? 'is-ativo' : ''}`} aria-hidden="true">${iniciais(nome)}</span>`;
-}
-
-// Passo a passo: o que trocar → com quem → confirmar. Regras de negócio e payload iguais aos de antes.
-function ModalTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, showToast }) {
+// O que trocar → com quem → conferir e enviar. Regras de negócio e payload iguais aos de antes.
+function JanelaTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, showToast }) {
   const iso = paraIso(data);
   const [colegas, setColegas] = useState(null);
   const [modo, setModo] = useState('turno'); // 'turno' = mesmo dia | 'dia' = assumo outro dia do colega
-  const [idColega, setIdColega] = useState(null);
+  const [idColega, setIdColega] = useState('');
   const [dataB, setDataB] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [busca, setBusca] = useState('');
-  const [horario, setHorario] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [ciente, setCiente] = useState(false);
-  const caixa = useRef(null);
-  const fechar = useRef(onClose);
-  fechar.current = onClose;
   useEffect(() => { listarColegasTrocaWfm(operacao).then((r) => setColegas(r.itens || [])).catch(() => setColegas([])); }, [operacao]);
-
-  // Foco: entra no diálogo, Tab circula dentro dele, Esc fecha e o foco volta para quem abriu.
-  useEffect(() => {
-    const anterior = document.activeElement;
-    const el = caixa.current;
-    el?.querySelector('input[type="radio"]:checked')?.focus();
-    const aoTeclar = (e) => {
-      if (e.key === 'Escape') { e.stopPropagation(); fechar.current(); return; }
-      if (e.key !== 'Tab' || !el) return;
-      const foco = [...el.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [href]')].filter((n) => n.offsetParent !== null);
-      if (!foco.length) return;
-      const primeiro = foco[0]; const ultimo = foco[foco.length - 1];
-      if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
-      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
-    };
-    document.addEventListener('keydown', aoTeclar);
-    return () => { document.removeEventListener('keydown', aoTeclar); anterior?.focus?.(); };
-  }, []);
 
   const ehFolga = !!item.folga; // troca de folga: a pessoa assume o turno de um colega que trabalha neste dia
   const limite = Date.now() + (item?.troca_antecedencia_dias ?? 3) * 24 * 3600 * 1000;
@@ -217,19 +153,16 @@ function ModalTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, showT
   const diaDoColega = (c) => (c.dias?.[iso] && (!ehFolga || comAntecedencia(c.dias[iso]))) ? c.dias[iso] : (ehFolga ? null : c.folgas?.[iso] || null);
   const horarioDe = (c) => rotuloHorario(diaDoColega(c));
   const compativeis = (colegas || []).filter((c) => c.compativel);
-  const opcoes = compativeis.filter((c) => (modo === 'turno' ? !!diaDoColega(c) : diasAssumiveis(c).length > 0));
-  const horarios = modo === 'turno' ? [...new Set(opcoes.map(horarioDe))].sort() : [];
-  const termo = semAcento(busca.trim());
-  const filtradas = opcoes.filter((c) => (!termo || semAcento(c.nome).includes(termo)) && (!horario || modo !== 'turno' || horarioDe(c) === horario));
-  const filtrando = !!termo || !!horario;
-  const colega = (colegas || []).find((c) => c.id_usuario === idColega);
+  const opcoes = compativeis.filter((c) => (modo === 'turno' ? !!diaDoColega(c) : diasAssumiveis(c).length > 0))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const colega = (colegas || []).find((c) => String(c.id_usuario) === String(idColega));
   const dataFinalB = modo === 'turno' ? iso : dataB;
   const horarioB = modo === 'turno' ? (colega && diaDoColega(colega)) : colega?.dias?.[dataFinalB];
   const pronto = !!colega && !!horarioB;
   const meuHorario = rotuloHorario(item);
+  const primeiroNome = (n) => String(n || '').split(' ')[0];
 
-  const trocarModo = (m) => { setCiente(false); setModo(m); setIdColega(null); setDataB(''); setHorario(''); };
-  const limpar = () => { setBusca(''); setHorario(''); };
+  const trocarModo = (m) => { setCiente(false); setModo(m); setIdColega(''); setDataB(''); };
   const enviar = async () => {
     setEnviando(true);
     try {
@@ -239,110 +172,82 @@ function ModalTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, showT
     } catch (err) { showToast?.(err?.message || 'Não foi possível solicitar a troca.', 'error'); } finally { setEnviando(false); }
   };
 
-  const contagem = `${filtradas.length} operador${filtradas.length === 1 ? '' : 'es'} ${filtrando ? (filtradas.length === 1 ? 'encontrado' : 'encontrados') : (modo === 'turno' ? (filtradas.length === 1 ? (ehFolga ? 'trabalha neste dia' : 'disponível neste dia') : (ehFolga ? 'trabalham neste dia' : 'disponíveis neste dia')) : (filtradas.length === 1 ? 'tem outro dia disponível' : 'têm outro dia disponível'))}`;
   const resumo = pronto ? (modo === 'turno'
     ? { voce: [meuHorario, rotuloHorario(horarioB)], colega: [rotuloHorario(horarioB), meuHorario] }
     : { voce: [`${rotuloDia(iso)} · ${faixa(item)}`, `${rotuloDia(dataFinalB)} · ${faixa(horarioB)}`], colega: [`${rotuloDia(dataFinalB)} · ${faixa(horarioB)}`, `${rotuloDia(iso)} · ${faixa(item)}`] }) : null;
-  const opcoesModo = ehFolga
-    ? [['turno', 'Trocar a folga', 'Você assume o turno de um colega neste dia e a sua folga passa para essa pessoa.']]
-    : [['turno', 'Só o turno', 'Mesmo dia: vocês trocam de horário (ou de folga, se o colega estiver de folga).'], ['dia', 'O dia inteiro', 'Você cede este dia e assume outro dia do colega.']];
+  const opcoesModo = [['turno', 'Só o turno'], ['dia', 'O dia inteiro']];
+  const ajudaModo = ehFolga ? 'Você assume o turno de um colega neste dia e a sua folga passa para essa pessoa.'
+    : modo === 'turno' ? 'Mesmo dia: vocês trocam de horário (ou de folga, se o colega estiver de folga).' : 'Você cede este dia e assume outro dia do colega.';
+  const vazio = modo === 'turno' ? (ehFolga ? 'Nenhum colega com as mesmas skills trabalha neste dia.' : 'Nenhum colega com as mesmas skills trabalha ou está de folga neste dia.')
+    : 'Nenhum colega com as mesmas skills tem outro dia de trabalho disponível.';
 
-  return html`<div class="rh-modal-overlay" onClick=${(e) => e.target === e.currentTarget && onClose()}>
-    <div class="mc-modal c24-fade-in" role="dialog" aria-modal="true" aria-labelledby="mc-modal-titulo" ref=${caixa}>
-      <header class="mc-modal-cab">
-        <div><h3 id="mc-modal-titulo">${tituloDia(data)}</h3><p>${ehFolga ? 'Pedir troca de folga' : 'Pedir troca de plantão'}</p></div>
-        <button type="button" class="mc-fechar" aria-label="Fechar" onClick=${onClose}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('close')}</span></button>
-      </header>
-
-      <div class="mc-meu-turno"><${Chip} item=${item} comum=${item.codigo} /><strong>${meuHorario}</strong>${ehFolga ? html`<span>sua folga neste dia</span>` : html`<span>${minutosParaHoras(item.minutos)} · seu turno neste dia</span>`}</div>
-
-      <fieldset class="mc-passo"><legend><span class="mc-num">1</span>O QUE VOCÊ QUER TROCAR?</legend>
-        <div class="mc-opcoes" role="radiogroup">
-          ${opcoesModo.map(([valor, titulo, desc]) => html`
-            <label key=${valor} class=${`mc-opcao ${modo === valor ? 'is-ativa' : ''}`}>
-              <input type="radio" name="mc-modo" class="mc-radio-oculto" checked=${modo === valor} onChange=${() => trocarModo(valor)} />
-              <strong>${titulo}</strong><small>${desc}</small></label>`)}
-        </div></fieldset>
-
-      <fieldset class="mc-passo"><legend><span class="mc-num">2</span>COM QUEM?</legend>
-        ${colegas === null ? html`<p class="mc-vazio-txt">Carregando colegas…</p>` : html`
-          <div class="mc-controles">
-            <label class="mc-busca"><span class="visually-hidden">Buscar operador por nome</span>
-              <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('search')}</span>
-              <input type="search" class="form-control" placeholder="Buscar operador por nome" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></label>
-            ${modo === 'turno' && horarios.length > 1 ? html`<label class="mc-filtro-horario"><span class="visually-hidden">Filtrar por horário</span>
-              <select class="form-select" value=${horario} onChange=${(e) => setHorario(e.target.value)}>
-                <option value="">Todos os horários</option>${horarios.map((h) => html`<option key=${h} value=${h}>${h}</option>`)}
-              </select></label>` : null}
-          </div>
-          <p class="mc-contagem" aria-live="polite">${opcoes.length ? contagem : ''}</p>
-          ${filtradas.length ? html`<div class="mc-lista" role="radiogroup" aria-label="Operadores">${filtradas.map((c) => {
-            const ativo = idColega === c.id_usuario;
-            return html`<label key=${c.id_usuario} class=${`mc-linha ${ativo ? 'is-ativa' : ''}`}>
-              <input type="radio" name="mc-colega" class="mc-radio-oculto" checked=${ativo} onChange=${() => { setIdColega(c.id_usuario); setDataB(''); setCiente(false); }} />
-              <${Avatar} nome=${c.nome} ativo=${ativo} />
-              <span class="mc-linha-nome">${c.nome}</span>
-              <span class="mc-linha-horario">${modo === 'turno' ? horarioDe(c) : `${diasAssumiveis(c).length} dia(s)`}</span>
-              <span class="mc-indicador" aria-hidden="true"></span></label>`; })}</div>`
-            : html`<div class="mc-lista mc-lista-vazia">${opcoes.length
-              ? html`<p>Nenhum operador encontrado</p><button type="button" class="mc-link" onClick=${limpar}>Limpar busca e filtros</button>`
-              : html`<p>${modo === 'turno' ? (ehFolga ? 'Nenhum colega com as mesmas skills trabalha neste dia.' : 'Nenhum colega com as mesmas skills trabalha ou está de folga neste dia.') : 'Nenhum colega com as mesmas skills tem outro dia de trabalho disponível nesta semana.'}</p>`}</div>`}
-          ${modo === 'dia' && colega ? html`<div class="mc-dias-colega" role="radiogroup" aria-label=${`Dia que você assume de ${colega.nome.split(' ')[0]}`}>
-            <span>Dia que você assume de ${colega.nome.split(' ')[0]}:</span>
-            ${diasAssumiveis(colega).map(([d, h]) => html`<label key=${d} class=${`mc-dia-opcao ${dataB === d ? 'is-ativa' : ''}`}>
-              <input type="radio" name="mc-dia-b" class="mc-radio-oculto" checked=${dataB === d} onChange=${() => { setDataB(d); setCiente(false); }} /><strong>${rotuloDia(d)}</strong><small>${h.entrada}–${h.saida}</small></label>`)}</div>` : null}`}
-      </fieldset>
-
-      ${resumo ? html`<section class="mc-resumo" aria-label="Resumo da troca">
-        <h4>RESUMO DA TROCA · ${brIso(iso).slice(0, 5)}</h4>
-        ${[['Você', resumo.voce], [colega.nome, resumo.colega]].map(([quem, [de, para]]) => html`<div key=${quem} class="mc-resumo-linha">
-          <span class="mc-resumo-nome">${quem}</span><span class="mc-resumo-de">${de}</span>
-          <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('arrow_forward')}</span><b class="mc-resumo-para">${para}</b></div>`)}
-        <label class="mc-motivo"><span>Motivo (opcional)</span><input class="form-control" maxlength="300" value=${motivo} onInput=${(e) => setMotivo(e.target.value)} /></label>
-        <p class="mc-ajuda">Seu colega precisa aceitar e depois o supervisor (ou o RH) aprova.</p>
-        <div class="mc-formalizacao">
-          <p class="mc-formalizacao-texto">${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${meuHorario} (${nomeUsuario ? nomeUsuario.split(' ')[0] : 'você'}) e ${rotuloHorario(horarioB)} (${colega.nome.split(' ')[0]})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })}</p>
-          <label class="mc-ciente"><input type="checkbox" checked=${ciente} onChange=${(e) => setCiente(e.target.checked)} /> Estou ciente</label>
-        </div>
-      </section>` : null}
-
-      <footer class="mc-modal-rodape">
-        <button type="button" class="btn btn-outline-secondary" onClick=${onClose}>Cancelar</button>
-        <button type="button" class="btn btn-primary" disabled=${!pronto || !ciente || enviando} onClick=${enviar}>${enviando ? 'Enviando…' : 'Enviar solicitação'}</button>
-      </footer>
+  return html`<${Janela} titulo=${`${ehFolga ? 'Pedir troca de folga' : 'Pedir troca'} · ${rotuloDia(iso)}`} onClose=${onClose}
+    rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${onClose}>Cancelar</button>
+      <button type="button" class="c-botao c-botao--principal" aria-busy=${enviando ? 'true' : null} disabled=${!pronto || !ciente || !motivo.trim() || enviando || null} onClick=${enviar}><${Ic} nome="arrows-left-right" />${enviando ? 'Enviando…' : 'Enviar pedido'}</button>`}>
+    <div class="c-janela-corpo">
+      <p>${ehFolga ? 'Sua folga neste dia.' : html`Seu turno neste dia: <b>${meuHorario}</b> · ${horasMin(item.minutos)}.`}</p>
+      ${ehFolga ? html`<p class="c-ajuda">${ajudaModo}</p>` : html`<div class="c-campo">
+        <span class="c-rotulo">O que você quer trocar?</span>
+        <${Segmento} rotulo="O que trocar" valor=${modo} aoMudar=${trocarModo} opcoes=${opcoesModo} />
+        <span class="c-ajuda">${ajudaModo}</span>
+      </div>`}
+      ${colegas === null ? html`<${Esqueleto} linhas=${2} />` : opcoes.length ? html`
+        <${Campo} rotulo="Trocar com" ajuda="Só aparecem colegas com as mesmas skills.">
+          <select class="c-entrada" autofocus value=${idColega} onChange=${(e) => { setIdColega(e.target.value); setDataB(''); setCiente(false); }}>
+            <option value="">Escolha o colega</option>
+            ${opcoes.map((c) => html`<option key=${c.id_usuario} value=${c.id_usuario}>${c.nome} · ${modo === 'turno' ? horarioDe(c) : `${diasAssumiveis(c).length} dia(s) disponível(is)`}</option>`)}
+          </select>
+        <//>
+        ${modo === 'dia' && colega ? html`<${Campo} rotulo=${`Dia que você assume de ${primeiroNome(colega.nome)}`}>
+          <select class="c-entrada" value=${dataB} onChange=${(e) => { setDataB(e.target.value); setCiente(false); }}>
+            <option value="">Escolha o dia</option>
+            ${diasAssumiveis(colega).map(([d, h]) => html`<option key=${d} value=${d}>${rotuloDia(d)} · ${h.entrada}–${h.saida}</option>`)}
+          </select>
+        <//>` : null}`
+        : html`<${Faixa} tom="informacao" icone="info">${vazio}<//>`}
+      ${resumo ? html`
+        <div class="c-tabela-caixa"><table class="c-tabela c-tabela--compacta">
+          <thead><tr><th scope="col"></th><th scope="col">Hoje</th><th scope="col">Depois da troca</th></tr></thead>
+          <tbody>
+            <tr><td class="c-forte">Você</td><td>${resumo.voce[0]}</td><td class="c-forte">${resumo.voce[1]}</td></tr>
+            <tr><td class="c-forte">${primeiroNome(colega.nome)}</td><td>${resumo.colega[0]}</td><td class="c-forte">${resumo.colega[1]}</td></tr>
+          </tbody>
+        </table></div>
+        <${Campo} rotulo="Motivo" erro=${motivo.trim() ? '' : 'Escreva o motivo'} ajuda=${`Obrigatório. ${primeiroNome(colega.nome)} e o supervisor leem este texto.`}>
+          <textarea class="c-entrada" rows="2" maxlength="300" placeholder="Ex.: consulta médica de manhã" value=${motivo} onInput=${(e) => setMotivo(e.target.value)}></textarea>
+        <//>
+        <${TextoFormal} texto=${textoTrocaOperador({ dataA: iso, dataB: dataFinalB, nomeA: nomeUsuario || 'Você', nomeB: colega.nome, horario: modo === 'turno' ? `${meuHorario} (${nomeUsuario ? primeiroNome(nomeUsuario) : 'você'}) e ${rotuloHorario(horarioB)} (${primeiroNome(colega.nome)})` : `${rotuloDia(iso)} ${faixa(item)} e ${rotuloDia(dataFinalB)} ${faixa(horarioB)}` })} />
+        <label class="c-marcar"><input type="checkbox" checked=${ciente} onChange=${(e) => setCiente(e.target.checked)} /><span>Estou ciente</span></label>
+        <p class="c-ajuda">Depois de enviar: ${primeiroNome(colega.nome)} aceita ou recusa. Se aceitar, o supervisor (ou o RH) aprova.</p>` : null}
     </div>
-  </div>`;
+  <//>`;
 }
 
 // ---------------------------------------------------------------- tela
 
-export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeUsuario = '' }) {
-  const modo = 'mes'; // o operador vê a escala sempre por mês
+export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeUsuario = '', acessorio = null }) {
+  const [visao, setVisao] = useState('planilha'); // planilha | calendario
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
-  const [sel, setSel] = useState(null);
-  const [trocando, setTrocando] = useState(null); // item (escala) em troca
+  const [aberto, setAberto] = useState(null); // dia no painel lateral
+  const [trocando, setTrocando] = useState(null); // { item, data } em troca
   const hoje = paraIso(new Date());
 
   const periodo = useMemo(() => {
-    if (modo === 'semana') {
-      const ini = segundaDe(ancora);
-      return { ini, fim: somarDias(ini, 6), dias: Array.from({ length: 7 }, (_, i) => somarDias(ini, i)) };
-    }
     const primeiro = new Date(ancora.getFullYear(), ancora.getMonth(), 1);
     const ultimo = new Date(ancora.getFullYear(), ancora.getMonth() + 1, 0);
     const ini = segundaDe(primeiro);
     const fim = somarDias(segundaDe(ultimo), 6);
     const n = Math.round((fim - ini) / 86400000) + 1;
     return { ini: primeiro, fim: ultimo, grade: Array.from({ length: n }, (_, i) => somarDias(ini, i)), dias: Array.from({ length: ultimo.getDate() }, (_, i) => new Date(ancora.getFullYear(), ancora.getMonth(), i + 1)) };
-  }, [modo, ancora]);
+  }, [ancora]);
 
   const carregar = useCallback(async () => {
     const chaves = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => o.chave);
     if (!chaves.length) return;
     setErro('');
-    const meses = [...new Set((periodo.grade || periodo.dias).map(anoMesDe))];
+    const meses = [...new Set(periodo.grade.map(anoMesDe))];
     try {
       // Une todas as escalas em que a pessoa está (ex.: plantão de sábado + sobreaviso): cada dia pode ter
       // mais de um turno; o servidor impede que os horários se sobreponham ao montar a escala.
@@ -360,14 +265,19 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
       respostas.forEach((r) => { const e = (porEscala[r.chave] = porEscala[r.chave] || { r, datas: new Set() }); (r.itens || []).forEach((i) => e.datas.add(i.data)); });
       const livres = {};
       Object.values(porEscala).forEach(({ r, datas }) => {
-        const meses = new Set([...datas].map((x) => x.slice(0, 7)));
+        const mesesEscala = new Set([...datas].map((x) => x.slice(0, 7)));
         periodo.dias.forEach((d) => {
           const iso = paraIso(d);
-          if (datas.has(iso) || !meses.has(iso.slice(0, 7))) return;
+          if (datas.has(iso) || !mesesEscala.has(iso.slice(0, 7))) return;
           (livres[iso] = livres[iso] || []).push({ data: iso, operacao: r.chave, nome_escala: r.nome_escala, troca_antecedencia_dias: r.troca_antecedencia_dias, trabalha: false, tipo: 'SEM_LANCAMENTO', codigo: 'FOLGA', nome_turno: 'Folga' });
         });
       });
+      // Trocas em andamento: o operador só recebe as dele (escopo do servidor). Falha aqui não impede a escala de abrir.
+      const trocas = (await Promise.all(chaves.map((c) => listarTrocasWfm(c).then((r) => r.itens || [], () => [])))).flat();
+      const trocasPorDia = {};
+      trocas.filter((t) => SELO_TROCA[t.estado]).forEach((t) => { [t.data_a, t.data_b].filter(Boolean).forEach((d) => { trocasPorDia[String(d).slice(0, 10)] = t.estado; }); });
       setDados({
+        trocasPorDia,
         itens,
         livres,
         eventos: respostas.flatMap((r) => r.eventos || []),
@@ -389,68 +299,92 @@ export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeU
     if (lista.some((i) => i.trabalha)) return null;
     return lista.find((i) => TIPOS_FOLGA.includes(i.tipo)) || (lista.length ? null : (dados.livres?.[iso] || [])[0]) || null;
   };
+  // "Pedir troca" direto na linha: o primeiro turno que ainda permite troca, ou a folga trocável.
+  const trocaDoDia = (iso) => {
+    if (!podeTrocar || !dados) return null;
+    const turno = (dados.itens[iso] || []).find((i) => i.trabalha && !motivoSemTroca(doIso(iso), i));
+    if (turno) return turno;
+    const folga = folgaDe(iso);
+    return folga ? { ...folga, folga: true } : null;
+  };
 
-  // Seleção: mantém o dia escolhido enquanto ele existir no período; senão hoje (se trabalha) ou o 1º dia de trabalho.
-  useEffect(() => {
-    if (!dados) return;
-    const noPeriodo = (iso) => periodo.dias.some((d) => paraIso(d) === iso) && trabalha(iso);
-    setSel((atual) => {
-      if (atual && noPeriodo(atual)) return atual;
-      if (noPeriodo(hoje)) return hoje;
-      const primeiro = periodo.dias.map(paraIso).find(trabalha);
-      return primeiro || null;
-    });
-  }, [dados, periodo, trabalha, hoje]);
-
-  const mover = (n) => setAncora((a) => (modo === 'semana' ? somarDias(a, 7 * n) : new Date(a.getFullYear(), a.getMonth() + n, 1)));
-  const irHoje = () => { setAncora(new Date()); setSel(hoje); };
-
-  const rotuloPeriodo = modo === 'semana' ? `${br(periodo.ini)} a ${br(periodo.fim)}` : `${MESES[periodo.ini.getMonth()]} de ${periodo.ini.getFullYear()}`;
+  const mover = (n) => setAncora((a) => new Date(a.getFullYear(), a.getMonth() + n, 1));
+  const rotuloPeriodo = `${MESES[periodo.ini.getMonth()]} de ${periodo.ini.getFullYear()}`;
   const itensPeriodo = dados ? periodo.dias.flatMap((d) => dados.itens[paraIso(d)] || []) : [];
   const escalados = itensPeriodo.filter((i) => i.trabalha);
   const diasTrabalho = dados ? periodo.dias.filter((d) => trabalha(paraIso(d))).length : 0;
   const diasDsr = dados ? periodo.dias.filter((d) => { const l = dados.itens[paraIso(d)] || []; return l.length && !l.some((i) => i.trabalha) && l[0].codigo === 'DSR'; }).length : 0;
   const totalMin = escalados.reduce((soma, i) => soma + (i.minutos || 0), 0);
   const eventosDoDia = (d) => (dados?.eventos || []).filter((e) => paraIso(d) >= e.data_ini && paraIso(d) <= e.data_fim);
+  const semTurno = (lista) => { const item = lista[0]; return ROTULO_SEM_HORARIO[item?.tipo] || (item && item.codigo !== 'DSR' ? 'Folga' : 'DSR'); };
 
-  // Tipos de turno que aparecem no período (legenda) e o mais comum (preenchimento de quem não tem cor).
-  const tipos = []; const contagem = {};
-  escalados.forEach((i) => { contagem[i.codigo] = (contagem[i.codigo] || 0) + 1; if (!tipos.some((t) => t.codigo === i.codigo)) tipos.push(i); });
-  const comum = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
+  const planilha = () => html`<table class="c-tabela c-tabela--junta c-minha">
+    <thead><tr><th scope="col">Dia</th><th scope="col">Turno</th><th scope="col" class="c-num">Horário</th><th scope="col" class="c-estica">Pausas</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+    <tbody>${periodo.dias.map((d) => {
+    const iso = paraIso(d);
+    const lista = dados.itens[iso] || [];
+    const trab = lista.filter((i) => i.trabalha);
+    const troca = trocaDoDia(iso);
+    const passou = iso < hoje;
+    const dia = html`${rotuloDia(iso)}${iso === hoje ? html` <span class="c-sec">· hoje</span>` : passou ? html` <span class="c-dia-passou-rot">· passou</span>` : null}`;
+    return html`<tr key=${iso} class=${`c-clicavel ${trab.length ? '' : 'c-dia-folga'} ${passou ? 'c-dia-passou' : ''}`.replace(/\s+/g, ' ').trim()} aria-current=${iso === hoje ? 'date' : null} aria-selected=${aberto === iso ? 'true' : null}
+        tabIndex="0" onClick=${(ev) => { if (!ev.target.closest('button')) setAberto(iso); }} onKeyDown=${(ev) => { if (ev.key === 'Enter' && ev.target === ev.currentTarget) setAberto(iso); }}>
+        <td class="c-forte">${dia}</td>
+        ${trab.length ? html`
+          <td>${trab.map((i, k) => html`<div key=${k}><${Turno} item=${i} /></div>`)}</td>
+          <td class="c-num">${trab.map((i, k) => html`<div key=${k}>${faixa(i)}</div>`)}</td>
+          <td class="c-estica c-secundario">${trab.map((i, k) => html`<div key=${k}>${(i.pausas || []).length ? i.pausas.map((p) => p.inicio).join(' · ') : 'a programar'}</div>`)}</td>`
+        : html`<td><span class="c-folga">${semTurno(lista) === 'DSR' ? 'Descanso semanal' : semTurno(lista)}</span></td><td class="c-num">—</td><td class="c-estica c-secundario">—</td>`}
+        <td><span class="c-grupo"><${SeloPresenca} presenca=${dados.presencas?.[iso]} /><${SeloTroca} estado=${dados.trocasPorDia?.[iso]} /></span></td>
+        <td class="c-acoes">${troca ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setTrocando({ item: troca, data: d })}><${Ic} nome="arrows-left-right" />Pedir troca</button>` : null}</td>
+      </tr>`;
+  })}</tbody>
+    <tfoot><tr><td>Mês</td><td>${diasTrabalho} dias</td><td class="c-num">${horasMin(totalMin)}</td><td>${diasDsr} DSR</td><td></td><td></td></tr></tfoot>
+  </table>`;
 
-  const dataSel = sel ? doIso(sel) : null;
-  const cabecalho = html`<div class="mc-dias-cab" aria-hidden="true">${SEMANA.map((s) => html`<span key=${s}>${s.slice(0, 3).toUpperCase()}</span>`)}</div>`;
-  const celula = (d) => html`<${CelulaDia} key=${paraIso(d)} data=${d} itens=${dados.itens[paraIso(d)] || []} hoje=${hoje} selecionado=${paraIso(d) === sel} comum=${comum} trocavel=${!!folgaDe(paraIso(d))} onSelecionar=${setSel} />`;
+  const calendario = () => html`<table class="c-cal">
+    <thead><tr>${SEMANA.map((s) => html`<th key=${s} scope="col">${s.slice(0, 3).toLowerCase()}</th>`)}</tr></thead>
+    <tbody>${Array.from({ length: periodo.grade.length / 7 }, (_, sem) => html`<tr key=${sem}>${periodo.grade.slice(sem * 7, sem * 7 + 7).map((d) => {
+    const iso = paraIso(d);
+    const fora = d.getMonth() !== periodo.ini.getMonth();
+    const lista = dados.itens[iso] || [];
+    const trab = lista.filter((i) => i.trabalha);
+    const pres = dados.presencas?.[iso];
+    const classe = `c-cal-dia ${iso === hoje ? 'c-cal-hoje' : ''} ${fora ? 'c-cal-fora' : ''} ${!trab.length ? 'c-cal-dsr' : ''} ${iso < hoje ? 'c-cal-passou' : ''}`.replace(/\s+/g, ' ').trim();
+    const conteudo = html`<span class="c-cal-n">${d.getDate()}</span>
+      ${trab.length ? trab.map((i, k) => html`<span key=${k} class="c-cal-bloco" style=${i.cor ? { borderLeftColor: i.cor } : undefined}>${faixa(i)}</span>`) : html`<span class="c-cal-folga">${lista.length || dados.livres?.[iso] ? semTurno(lista) : '—'}</span>`}
+      ${pres ? html`<span class=${`c-cal-st c-cal-st--${TOM_PRESENCA[pres.status] || 'neutro'}`}><${Ic} nome=${ICONE_PRESENCA[pres.status] || 'circle'} />${ROTULO_STATUS_PRESENCA[pres.status] || pres.status}</span>` : null}
+      ${dados.trocasPorDia?.[iso] ? html`<span class=${`c-cal-st c-cal-st--${SELO_TROCA[dados.trocasPorDia[iso]][1]}`}><${Ic} nome="arrows-left-right" />${SELO_TROCA[dados.trocasPorDia[iso]][0]}</span>` : null}`;
+    return html`<td key=${iso} class=${classe} aria-current=${iso === hoje ? 'date' : null}>
+      ${fora ? conteudo : html`<button type="button" class="c-cal-botao" aria-label=${`${tituloDia(d)}${trab.length ? `, ${trab.map(faixa).join(' e ')}` : `, ${semTurno(lista)}`}`} aria-pressed=${aberto === iso ? 'true' : 'false'} onClick=${() => setAberto(iso)}>${conteudo}</button>`}
+    </td>`;
+  })}</tr>`)}</tbody>
+  </table>`;
+
+  const corpo = () => {
+    if (erro) return html`<${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${carregar} />`;
+    if (!dados) return html`<${Esqueleto} linhas=${8} />`;
+    if (!dados.publicada) return html`<${Estado} icone="calendar-blank" titulo="Escala ainda não publicada" texto="Assim que a escala deste período for publicada, ela aparece aqui." />`;
+    return visao === 'planilha' ? planilha() : calendario();
+  };
+  const dataAberta = aberto ? doIso(aberto) : null;
 
   return html`
-    <section class="mon-card wfm-minha mc-card">
-      <div class="mc-barra">
-        <div class="mc-barra-esq">
-          <h3 class="mc-mes">${rotuloPeriodo}</h3>
-          <div class="mc-nav">
-            <button type="button" class="mc-btn mc-btn-icone" aria-label=${modo === 'semana' ? 'Semana anterior' : 'Mês anterior'} onClick=${() => mover(-1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_left')}</span></button>
-            <button type="button" class="mc-btn" onClick=${irHoje}>Hoje</button>
-            <button type="button" class="mc-btn mc-btn-icone" aria-label=${modo === 'semana' ? 'Próxima semana' : 'Próximo mês'} onClick=${() => mover(1)}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('chevron_right')}</span></button>
-          </div>
+    <main class="c-pagina c-conteudo">
+      <div class="c-cab-linha"><h1>Minha escala</h1>${acessorio ? html`<div class="c-cab-dir">${acessorio}</div>` : null}</div>
+      <div class="c-tabela-caixa">
+        <div class="c-filtros c-filtros--suave">
+          <${Segmento} rotulo="Visão" valor=${visao} aoMudar=${setVisao} opcoes=${[['planilha', 'Planilha'], ['calendario', 'Calendário']]} />
+          <${Navegar} grupo="Mês" rotulo=${rotuloPeriodo} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => mover(-1)} aoProximo=${() => mover(1)} />
+          <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => { setAncora(new Date()); }}>Hoje</button>
+          ${dados?.publicada ? html`<span class="c-contador">${diasTrabalho} dias de trabalho · ${horasMin(totalMin)} no mês · ${diasDsr} DSR</span>` : null}
         </div>
-        ${dados?.publicada ? html`<dl class="mc-totais">
-          <div><dd>${diasTrabalho}</dd><dt>dias de trabalho</dt></div>
-          <div><dd>${minutosParaHoras(totalMin)}</dd><dt>${modo === 'semana' ? 'na semana' : 'no mês'}</dt></div>
-          <div><dd>${diasDsr}</dd><dt>DSR</dt></div>
-        </dl>` : html`<span></span>`}
+        ${corpo()}
+        ${dados?.publicada && podeTrocar ? html`<div class="c-legenda"><span>Pedir troca aparece só nos dias que ainda vão chegar e respeitam a antecedência da escala · clique no dia para ver pausas e presença</span></div>` : null}
       </div>
-      ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>`
-        : !dados ? html`<${LoadingState} titulo="Carregando a sua escala" />`
-        : !dados.publicada ? html`<${EmptyState} icon="calendar_month" title="Escala ainda não publicada" text="Assim que a escala deste período for publicada, ela aparece aqui." />`
-        : html`<div class="mc-corpo">
-          <div class="mc-grade-col">
-            ${cabecalho}
-            <div class=${`mc-grade ${modo === 'semana' ? 'is-semana' : ''}`}>${modo === 'semana' ? periodo.dias.map(celula)
-              : periodo.grade.map((d) => (d.getMonth() === periodo.ini.getMonth() ? celula(d) : html`<div key=${paraIso(d)} class="mc-fora" aria-hidden="true"></div>`))}</div>
-            <${Legenda} tipos=${tipos} comum=${comum} />
-          </div>
-          ${dataSel ? html`<${PainelDia} data=${dataSel} itens=${dados.itens[sel] || []} eventos=${eventosDoDia(dataSel)} presenca=${dados.presencas?.[sel]} comum=${comum} podeTrocar=${podeTrocar} folga=${folgaDe(sel)} onTrocar=${setTrocando} />` : null}
-        </div>`}
-    </section>
-    ${trocando && dataSel ? html`<${ModalTroca} nomeUsuario=${nomeUsuario} operacao=${trocando.operacao} data=${dataSel} item=${trocando} showToast=${showToast} onClose=${() => setTrocando(null)} onFeito=${() => setTrocando(null)} />` : null}`;
+    </main>
+    ${dataAberta && dados ? html`<${PainelDia} data=${dataAberta} itens=${dados.itens[aberto] || []} eventos=${eventosDoDia(dataAberta)} presenca=${dados.presencas?.[aberto]}
+      podeTrocar=${podeTrocar} folga=${folgaDe(aberto)} onClose=${() => setAberto(null)} onTrocar=${(item) => setTrocando({ item, data: dataAberta })} />` : null}
+    ${trocando ? html`<${JanelaTroca} nomeUsuario=${nomeUsuario} operacao=${trocando.item.operacao} data=${trocando.data} item=${trocando.item} showToast=${showToast}
+      onClose=${() => setTrocando(null)} onFeito=${() => { setTrocando(null); setAberto(null); }} />` : null}`;
 }

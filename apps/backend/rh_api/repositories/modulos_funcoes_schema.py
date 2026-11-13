@@ -24,10 +24,17 @@ _CREATE = (
 )
 
 
-def schema_statements() -> list[str]:
+# Funções que entraram depois da V062 (item 16, nov/2026): o bootstrap as semeia, mas a V062 já aplicada não muda.
+# Sem a linha no banco, o padrão do catálogo vale (ligadas), então nenhuma migration nova precisa semeá-las.
+_DEPOIS_DA_V062 = frozenset({("operacao", "diario"), ("operacao", "treinamentos")})
+
+
+def schema_statements(*, so_v062: bool = False) -> list[str]:
     instrucoes = [_CREATE]
     for modulo, funcoes in FUNCOES_POR_MODULO.items():
         for funcao in funcoes:
+            if so_v062 and (modulo, funcao) in _DEPOIS_DA_V062:
+                continue
             instrucoes.append(
                 "IF OBJECT_ID('dbo.modulos_funcoes', 'U') IS NOT NULL AND NOT EXISTS "
                 f"(SELECT 1 FROM dbo.modulos_funcoes WHERE modulo = '{modulo}' AND funcao = '{funcao}')\n"
@@ -41,7 +48,7 @@ def render_migration_sql() -> str:
         "-- Conecta - Modularizacao (V062): funcoes que cada modulo exibe no menu (modulos_funcoes).\n"
         "-- Aditiva e idempotente; o seed nao sobrescreve escolhas ja feitas. Gerada de rh_api/repositories/modulos_funcoes_schema.py.\n\n"
     )
-    return cabecalho + "\n\n".join(schema_statements()) + "\n"
+    return cabecalho + "\n\n".join(schema_statements(so_v062=True)) + "\n"
 
 
 def render_rollback_sql() -> str:

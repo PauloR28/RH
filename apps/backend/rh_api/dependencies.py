@@ -4,6 +4,8 @@ import logging
 from collections.abc import Callable
 from dataclasses import replace
 
+from conecta.domain.permissoes import AuthorizationPolicy
+from conecta.infrastructure.observability.context import user_id_var
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -13,9 +15,6 @@ from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
 from .services import acesso as acesso_modulos
 from .services.monitoria_scope import escopo_global
-from conecta.domain.permissoes import AuthorizationPolicy
-from conecta.infrastructure.observability.context import user_id_var
-
 
 logger = logging.getLogger(__name__)
 
