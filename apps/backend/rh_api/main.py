@@ -49,6 +49,7 @@ from .routers.mural import router as mural_router
 from .routers.notifications import router as notifications_router
 from .routers.onedrive_files import router as onedrive_files_router
 from .routers.operations import router as operations_router
+from .routers.painel import router as painel_router
 from .routers.policies import router as policies_router
 from .routers.relatorios_hub import router as relatorios_hub_router
 from .routers.settings import router as settings_router
@@ -475,6 +476,7 @@ def create_app() -> FastAPI:
     app.include_router(wfm_router)
     app.include_router(equipes_router)
     app.include_router(diario_router)
+    app.include_router(painel_router)
     app.include_router(relatorios_hub_router)
     app.include_router(monitoria_public_router)
     app.include_router(mural_public_router)

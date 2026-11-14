@@ -33,6 +33,7 @@ from .monitoria_org import MonitoriaOrgRepositoryMixin
 from .monitoria_planos import MonitoriaPlanosRepositoryMixin
 from .mural import MuralRepositoryMixin
 from .onboarding import OnboardingRepositoryMixin
+from .painel import PainelRepositoryMixin
 from .pipeline import PipelineRepositoryMixin
 from .policies import PolicyRepositoryMixin
 from .processes import ProcessRepositoryMixin
@@ -91,6 +92,7 @@ class DatabaseRepository(
     MonitoriaOrgRepositoryMixin,
     EquipesControleRepositoryMixin,
     DiarioRepositoryMixin,
+    PainelRepositoryMixin,
     TelaInicialRepositoryMixin,
     LgpdRetencaoRepositoryMixin,
     ChamadosRepositoryMixin,

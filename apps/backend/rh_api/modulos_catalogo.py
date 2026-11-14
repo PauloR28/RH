@@ -49,7 +49,8 @@ _DONO_POR_GRUPO = {
     "Monitoria": MODULO_OPERACAO,
     "WFM": MODULO_OPERACAO,
     "Equipes": MODULO_OPERACAO,
-    "Diário de bordo": MODULO_OPERACAO,  # 08/nov/2026: registro do dia da operação (TI não vê o conteúdo)
+    "Diário de bordo": MODULO_OPERACAO,
+    "Painel": MODULO_CORE,  # 14/nov/2026: o painel mostra o módulo escolhido na própria tela (Operação ou RH)  # 08/nov/2026: registro do dia da operação (TI não vê o conteúdo)
     "Configurações": MODULO_TECNOLOGIA,
     "Usuários": MODULO_TECNOLOGIA,
     "Logs": MODULO_TECNOLOGIA,
@@ -83,6 +84,7 @@ _DONO_POR_CHAVE = {
     "sessao.wfm.acessar": MODULO_OPERACAO,
     "sessao.equipe.acessar": MODULO_OPERACAO,
     "sessao.diario.acessar": MODULO_OPERACAO,
+    "painel.configurar": MODULO_TECNOLOGIA,  # quem monta os painéis é a Tecnologia
     "sessao.configuracoes.acessar": MODULO_TECNOLOGIA,
 }
 
