@@ -15,7 +15,7 @@ import pytest
 # Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
 # tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
 PERFIS_APROVADOS = frozenset(m.PERFIS_TI)
-_NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca", "relhub.", "sessao.relatorios.", "diario.", "sessao.diario.")
+_NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca", "relhub.", "sessao.relatorios.", "diario.", "sessao.diario.", "painel.", "sessao.painel.")  # Painel (14/nov/2026): chaves NOVAS, só adicionadas
 
 
 def _esperado_para_ti(antes: set[str]) -> set[str]:

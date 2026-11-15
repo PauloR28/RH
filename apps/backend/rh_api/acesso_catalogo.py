@@ -51,7 +51,7 @@ FUNCOES_CATALOGO: tuple[Funcao, ...] = (
     _f(14, "mural", "Mural", T, ("mural.",)),
     _f(15, "logs", "Logs", T, ("logs.",)),
     _f(16, "provas", "Conecta Provas", H, ("provas.",), ("sessao.provas.acessar",), motor="provas"),
-    _f(17, "indicadores", "Indicadores de Gestão", T, (), ("sessao.gestao.acessar", "dashboard.visualizar"), motor="gestao"),
+    _f(17, "indicadores", "Indicadores de Gestão", T, ("painel.",), ("sessao.gestao.acessar", "dashboard.visualizar", "sessao.painel.acessar"), motor="gestao"),
     _f(18, "fit_cultural", "Fit Cultural", H, ("fit_cultural.",)),
     _f(19, "emails", "Emails", T, ("emails.",)),
     _f(20, "chat", "Chat", T, futura=True),

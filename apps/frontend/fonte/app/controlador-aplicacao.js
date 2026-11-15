@@ -227,6 +227,9 @@ export const PERMISSOES_TELAS = {
   'screen-tecnologia-modulos': 'configuracoes.visualizar',
   'screen-equipes-controle': 'equipes.controle.visualizar',
   'screen-relatorios': 'sessao.relatorios.acessar',
+  // Painel (14/11/2026): quem assiste e quem monta (Tecnologia).
+  'screen-painel': 'painel.visualizar',
+  'screen-settings-paineis': 'painel.configurar',
   'screen-wfm-painel': 'relhub.wfm.painel',
   // WFM — Turnos e Plantões
   'screen-wfm': 'wfm.escala.visualizar',
@@ -296,6 +299,7 @@ export const SESSAO_DA_TELA = {
   'screen-tecnologia-modulos': 'configuracoes',
   'screen-equipes-controle': 'equipe',
   'screen-relatorios': 'relatorios',
+  'screen-painel': 'painel',
   'screen-wfm-painel': 'wfm',
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',

@@ -89,6 +89,7 @@ PERMISSOES_POSTERIORES_A_V056 = frozenset({
     "relhub.wfm.aprovacoes", "relhub.wfm.escalados", "relhub.wfm.escalas", "relhub.wfm.historico", "relhub.wfm.painel", "relhub.wfm.presencas",
     "relhub.wfm.resumo", "relhub.wfm.trocas",
     "sessao.equipe.acessar", "sessao.relatorios.acessar",
+    "painel.configurar", "painel.visualizar", "sessao.painel.acessar",  # V072
 })
 
 

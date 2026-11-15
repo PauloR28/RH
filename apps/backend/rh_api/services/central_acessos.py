@@ -161,6 +161,11 @@ def salvar_lote(modulo: str, escopo: str, mudancas: list[dict], *, autor: str) -
     tipo, alvo = _ler_escopo(escopo, modulo)
     if not mudancas:
         return {"aplicadas": []}
+    # Recusa cedo (antes de abrir o banco) o que nunca pode ser gravado: desligar função base da Tecnologia.
+    for m in mudancas:
+        f = POR_ID.get(str(m.get("funcao"))) if m.get("tipo") == "funcao" else None
+        if f and f.base and modulo == MODULO_TECNOLOGIA and not bool(m.get("ligada")) and tipo != "pessoa":
+            raise _erro(status.HTTP_409_CONFLICT, f"{f.nome} é base da Tecnologia e não pode ser desligada.")
     foto = acesso_cache.foto()
     aplicadas = []
     conn = get_connection(get_settings(), autocommit=False)

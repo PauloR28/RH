@@ -251,6 +251,12 @@ export function BarraLateral({
       permissao: 'configuracoes.visualizar',
     },
     {
+      tela: 'screen-settings-paineis',
+      icone: 'chart-bar',
+      label: 'Painéis',
+      permissao: 'painel.configurar',
+    },
+    {
       tela: 'screen-settings-operations',
       icone: 'apartment',
       label: 'Unidades',
@@ -346,6 +352,7 @@ export function BarraLateral({
     'screen-settings-users',
     'screen-settings-profiles',
     'screen-settings-acessos',
+    'screen-settings-paineis',
     'screen-settings-operations',
     'screen-settings-etapas',
     'screen-settings-motivos-eliminacao',
@@ -556,6 +563,8 @@ export function BarraLateral({
     const secoesMoldura = [
       // Ordem aprovada (DEC-063): Início · Turnos e Plantões · Monitoria · Equipes · Diário de bordo (D1) · Relatórios · Mural.
       secaoDeItem('inicio', 'Início', 'house', itensPrincipais[0]),
+      // Painel (14/11/2026): área a mais, ao lado do Início; o módulo e a operação se escolhem dentro da tela.
+      secaoDeItem('painel', 'Painel', 'chart-bar', { tela: 'screen-painel', permissao: 'painel.visualizar' }),
       noModulo('wfm')
         ? secaoDeGrupo('wfm', 'Turnos e Plantões', 'calendar-dots', wfmSemEquipes, subitemWfmAtivo, grupoWfmAtivo && navAtiva !== 'screen-equipes-controle')
         : null,

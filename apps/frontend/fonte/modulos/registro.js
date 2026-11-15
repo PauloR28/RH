@@ -48,6 +48,7 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-users': MODULO_TECNOLOGIA,
   'screen-settings-profiles': MODULO_TECNOLOGIA,
   'screen-settings-acessos': MODULO_TECNOLOGIA, // Central de Acessos (Etapa 6): Gestão Global fica na Tecnologia
+  'screen-settings-paineis': MODULO_TECNOLOGIA, // Painéis (14/11/2026): quem monta os painéis é a Tecnologia
   'screen-settings-operations': MODULO_TECNOLOGIA,
   'screen-settings-logs': MODULO_TECNOLOGIA,
   'screen-settings-administracao': MODULO_TECNOLOGIA,
@@ -90,6 +91,7 @@ export const MENU_TECNOLOGIA = [
     icone: 'settings',
     itens: [
       { tela: TELA_MODULOS_TECNOLOGIA, label: 'Módulos', icone: 'grid_view', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-paineis', label: 'Painéis', icone: 'chart-bar', permissao: 'painel.configurar' },
       { tela: 'screen-settings-administracao', label: 'Parâmetros e integrações', icone: 'verified_user', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-etapas', label: 'Etapas do Processo', icone: 'checklist', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-motivos-eliminacao', label: 'Motivos de Eliminação', icone: 'person_remove', permissao: 'configuracoes.visualizar' },
