@@ -67,6 +67,7 @@ import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-un
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
+import { ConfigPaineis } from './paineis.js?v=20261114-painel';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
@@ -83,6 +84,7 @@ const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
   { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
   { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
+  { id: 'paineis', tela: 'screen-settings-paineis', label: 'Painéis', permissao: 'painel.configurar', icon: 'insights' },
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Unidades', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
@@ -102,6 +104,7 @@ const SESSOES_PERMISSAO = [
   { id: 'provas', modulo: 'rh', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
   { id: 'gestao', modulo: 'core', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
   { id: 'relatorios', modulo: 'core', label: 'Relatórios e Históricos', icon: 'table_chart', modulos: ['Relatórios e Históricos'] },
+  { id: 'painel', modulo: 'core', label: 'Painel', icon: 'insights', modulos: ['Painel'] },
   { id: 'drive', modulo: 'core', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
   { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
   { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
@@ -4124,7 +4127,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       mostrarAtalhos=${false}
       buscaGlobal=${abaRenderizada !== 'perfis'}
     >
-      ${['usuarios', 'perfis', 'acessos', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
+      ${['usuarios', 'perfis', 'acessos', 'paineis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -4208,6 +4211,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             ? renderPerfis()
             : abaRenderizada === 'acessos'
               ? html`<${CentralAcessos} controlador=${controlador} />`
+            : abaRenderizada === 'paineis'
+              ? html`<${ConfigPaineis} />`
             : abaRenderizada === 'operacoes'
               ? renderOperacoes()
               : abaRenderizada === 'catalogos'
