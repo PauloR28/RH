@@ -164,7 +164,8 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const [padrao, setPadrao] = useState(null); // {regras: [{turno, dias: [7 x bool]}], sobrescrever}
   const [filtroEquipe, setFiltroEquipe] = useState('');
   const [filtroCargo, setFiltroCargo] = useState('');
-  const [filtroSup, setFiltroSup] = useState('');
+  const [filtroEntrada, setFiltroEntrada] = useState(''); // horário de entrada do turno (ex.: 08:00)
+  const [filtroSaida, setFiltroSaida] = useState('');
   const [busca, setBusca] = useState(() => tomarFocoPessoa('escala-mes')); // vindo do Painel do dia: já filtrado pela pessoa
   const [selecionados, setSelecionados] = useState({});
   const [programarPausas, setProgramarPausas] = useState(false); // ao salvar, programa as pausas dos dias alterados
@@ -229,18 +230,26 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     });
   };
 
-  // Operadores exibidos depois dos filtros (equipe, supervisor, cargo, nome).
-  const visiveis = dados.operadores.filter((op) => (!filtroEquipe || String(op.id_equipe || '') === filtroEquipe)
-    && (!filtroSup || (op.supervisores || []).some((s) => String(s.id_usuario) === filtroSup))
-    && (!filtroCargo || (op.cargo || '') === filtroCargo)
-    && (!busca || semAcento(op.nome).includes(semAcento(busca.trim()))));
-  const cargos = [...new Set(dados.operadores.map((o) => o.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
-  const supervisores = [...new Map(dados.operadores.flatMap((o) => o.supervisores || []).map((s) => [s.id_usuario, s.nome])).entries()];
   const idTurnoDe = (idOp, d) => {
     const chave = `${idOp}:${d}`;
     return chave in pendentes ? pendentes[chave].id_turno : itensPorChave[chave]?.id_turno ?? null;
   };
+  // Horário de entrada/saída: mostra quem tem, no mês da escala, ao menos um dia num turno com esse horário
+  // (os dois filtros juntos valem para o mesmo dia). Pedido do Paulo, 15/11/2026: no lugar do filtro de Supervisor.
+  const temHorario = (op) => (!filtroEntrada && !filtroSaida) || dados.dias.some((d) => {
+    const t = turnosPorId[idTurnoDe(op.id_usuario, d)];
+    return t?.tipo === 'TRABALHO' && (!filtroEntrada || t.entrada === filtroEntrada) && (!filtroSaida || t.saida === filtroSaida);
+  });
+  // Operadores exibidos depois dos filtros (equipe, cargo, horário de entrada e saída, nome).
+  const visiveis = dados.operadores.filter((op) => temHorario(op)
+    && (!filtroEquipe || String(op.id_equipe || '') === filtroEquipe)
+    && (!filtroCargo || (op.cargo || '') === filtroCargo)
+    && (!busca || semAcento(op.nome).includes(semAcento(busca.trim()))));
+  const cargos = [...new Set(dados.operadores.map((o) => o.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const equipes = [...new Map(dados.operadores.filter((o) => o.id_equipe).map((o) => [o.id_equipe, o.equipe])).entries()];
+  const horariosDos = (campo) => [...new Set((dados.turnos || []).filter((t) => t.tipo === 'TRABALHO' && t[campo]).map((t) => t[campo]))].sort();
+  const entradas = horariosDos('entrada');
+  const saidas = horariosDos('saida');
   // Horas do mês do operador, já contando o que você pintou e ainda não salvou.
   const totalDe = (idOp) => dados.dias.reduce((acc, d) => {
     const t = turnosPorId[idTurnoDe(idOp, d)];
@@ -512,22 +521,27 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
           <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${abrirPadrao}>Aplicar padrão semanal</button>
           <button type="button" class="c-botao c-botao--texto c-botao--compacto c-fim" onClick=${() => setSelecionados({})}>Limpar seleção</button>
         </div>` : null}
-        <div class="c-filtros c-filtros--suave">
-          <${Segmento} rotulo="Visão" valor=${visao} aoMudar=${(v) => { if (v === 'dia') aoVoltarDia?.(); else if (v === 'pausas') aoPausas?.(); else setVisao(v); }}
-            opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoVoltarDia ? [['dia', 'Do dia']] : []), ...(aoPausas && !somentePropria ? [['pausas', 'Pausas']] : [])]} />
-          ${visao === 'semana'
-            ? html`<${Navegar} grupo="Semana" rotulo=${rotuloPeriodo} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => moverSemana(-1)} aoProximo=${() => moverSemana(1)} />`
-            : html`<${Navegar} grupo="Mês" rotulo=${rotuloPeriodo} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes?.(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes?.(somarMes(anoMes, 1))} />`}
-          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
-          ${controlador.estado?.perfilUsuario === 'supervisor' && !somentePropria ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipes exibidas" value=${todasEquipes ? 'todas' : ''} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="">Minha equipe</option><option value="todas">Todas as equipes</option></select>` : null}
-          ${equipes.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Equipe: todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
-          ${supervisores.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Supervisor" value=${filtroSup} onChange=${(e) => setFiltroSup(e.target.value)}><option value="">Supervisor: todos</option>${supervisores.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
-          ${cargos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Cargo" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Cargo: todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select>` : null}
-          <span class="c-contador" aria-live="polite">${visiveis.length} de ${dados.operadores.length} · ${operadoresEscalados} escalado(s)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}</span>
+        <div class="c-filtros-pilha">
+          <div class="c-filtros c-filtros--suave">
+            <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar colaborador" aria-label="Buscar colaborador" value=${busca} onInput=${(e) => setBusca(e.target.value)} /></div>
+            <span class="c-contador" aria-live="polite">${visiveis.length} de ${dados.operadores.length} · ${operadoresEscalados} escalado(s)${dados.todas_equipes ? ' · todas as equipes, somente leitura' : ''}</span>
+          </div>
+          <div class="c-filtros c-filtros--suave">
+            <${Segmento} rotulo="Visão" valor=${visao} aoMudar=${(v) => { if (v === 'dia') aoVoltarDia?.(); else if (v === 'pausas') aoPausas?.(); else setVisao(v); }}
+              opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoVoltarDia ? [['dia', 'Do dia']] : []), ...(aoPausas && !somentePropria ? [['pausas', 'Pausas']] : [])]} />
+            ${visao === 'semana'
+              ? html`<${Navegar} grupo="Semana" rotulo=${rotuloPeriodo} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => moverSemana(-1)} aoProximo=${() => moverSemana(1)} />`
+              : html`<${Navegar} grupo="Mês" rotulo=${rotuloPeriodo} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => aoMudarMes?.(somarMes(anoMes, -1))} aoProximo=${() => aoMudarMes?.(somarMes(anoMes, 1))} />`}
+            ${controlador.estado?.perfilUsuario === 'supervisor' && !somentePropria ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipes exibidas" value=${todasEquipes ? 'todas' : ''} onChange=${(e) => setTodasEquipes(e.target.value === 'todas')}><option value="">Minha equipe</option><option value="todas">Todas as equipes</option></select>` : null}
+            ${equipes.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtroEquipe} onChange=${(e) => setFiltroEquipe(e.target.value)}><option value="">Equipe: todas</option>${equipes.map(([id, nome]) => html`<option key=${id} value=${String(id)}>${nome}</option>`)}</select>` : null}
+            ${cargos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Cargo" value=${filtroCargo} onChange=${(e) => setFiltroCargo(e.target.value)}><option value="">Cargo: todos</option>${cargos.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}</select>` : null}
+            ${entradas.length ? html`<select class="c-entrada c-entrada--compacta" aria-label="Horário de entrada" value=${filtroEntrada} onChange=${(e) => setFiltroEntrada(e.target.value)}><option value="">Entrada: todas</option>${entradas.map((h) => html`<option key=${h} value=${h}>Entrada ${h}</option>`)}</select>` : null}
+            ${saidas.length ? html`<select class="c-entrada c-entrada--compacta" aria-label="Horário de saída" value=${filtroSaida} onChange=${(e) => setFiltroSaida(e.target.value)}><option value="">Saída: todas</option>${saidas.map((h) => html`<option key=${h} value=${h}>Saída ${h}</option>`)}</select>` : null}
+          </div>
         </div>
 
         ${semItens ? html`<${Estado} icone="users" titulo="Nenhum operador" texto="Não há operadores visíveis para você nesta operação." />`
-          : !visiveis.length ? html`<${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltroEquipe(''); setFiltroSup(''); setFiltroCargo(''); }} />`
+          : !visiveis.length ? html`<${Estado} titulo="Nenhum colaborador com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setFiltroEquipe(''); setFiltroEntrada(''); setFiltroSaida(''); setFiltroCargo(''); }} />`
           : tabela()}
 
         ${celSel ? html`<div class="c-ajuste-dia" role="status" aria-live="polite">

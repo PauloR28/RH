@@ -8,7 +8,7 @@ import { horasDec } from './comum.js?v=20261112-modulo-unico2';
 import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { baixarArquivo } from '../../../features/monitoria/comum.js';
 import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261110-graficos';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261110-graficos';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -251,7 +251,7 @@ function PainelNovo({ painel, resumido = false }) {
       <${Figura} titulo="Absenteísmo por dia da semana" nota="Faltas ÷ dias apurados · tracejado = média do período">
         ${temAbsenteismo ? html`<${GraficoColunas} dados=${g.absenteismo_semana} media=${painel.totais.absenteismo} compacto=${true} />` : vazio}<//>
       <${Figura} titulo="Situação da presença" nota="Dias de trabalho do período">
-        ${temPresenca ? html`<${GraficoRosca} dados=${g.presenca} cores=${CORES_PRESENCA} rotuloCentro="dias" compacto=${true} />` : vazio}<//>
+        ${temPresenca ? html`<${GraficoSituacao} dados=${g.presenca} cores=${CORES_PRESENCA} />` : vazio}<//>
       ${resumido ? null : html`<${Figura} titulo="Horas por operador" nota="Trabalhadas / escaladas · 10 com mais horas"
         legenda=${temOperadores ? leg([['Trabalhadas', cor(1)], ['Escaladas', 'var(--wfm-g-neutro)']]) : null}>
         ${temOperadores ? html`<${GraficoBarrasSobrepostas} dados=${g.top_operadores.map((o) => ({ rotulo: o.operador, trabalhadas: o.trabalhadas, escaladas: o.escaladas }))} unidade="h" fmtH=${horasDec}

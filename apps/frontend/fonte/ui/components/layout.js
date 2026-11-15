@@ -9,7 +9,7 @@ import { IconeSvg } from '../icone.js';
 import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { TELA_INICIO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia } from '../../modulos/registro.js?v=20261112-modulo-unico2';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261112-modulo-unico2';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-modulo-unico2';
 import { MolduraConecta } from './moldura.js?v=20261108-admin';
 
@@ -525,7 +525,7 @@ export function BarraLateral({
         secaoAtual=${secaoAtivaTec && secaoAtivaTec.abas.length ? { ...secaoAtivaTec, telaAtual: navAtiva } : null}
         logoUrl=${logoOperacao}
         irPara=${irParaTec}
-        irParaInicio=${() => irParaTec(inicioTec?.tela || TELA_INICIO_TECNOLOGIA)}
+        irParaInicio=${() => irParaTec(inicioTec?.tela || telaInicialDoModulo(MODULO_TECNOLOGIA, controlador.podeAcessarTela))}
         sair=${() => controlador.sair()}
         seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
         busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
@@ -630,7 +630,7 @@ export function BarraLateral({
           type="button"
           class="rh-modern-logo-btn"
           aria-label="Voltar ao painel principal"
-          onClick=${() => (emTecnologia ? controlador.irParaTelaProtegida(TELA_INICIO_TECNOLOGIA) : controlador.irParaMenu())}
+          onClick=${() => (emTecnologia ? controlador.irParaTelaProtegida(telaInicialDoModulo(MODULO_TECNOLOGIA, controlador.podeAcessarTela)) : controlador.irParaMenu())}
           title=${subtituloMarca || 'Conecta'}
         >
           ${logoComErro

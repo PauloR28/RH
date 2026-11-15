@@ -29,9 +29,13 @@ function publicar(parcial) {
   ouvintes.forEach((ouvinte) => ouvinte(estado));
 }
 
-function lerModuloSalvo() {
+// A escolha de módulo vale só para o login atual (guardada com o token, na aba): um novo login, do mesmo usuário ou de
+// outro no mesmo navegador, começa no módulo padrão. Antes ficava no localStorage sem dono e passava de um usuário a outro.
+function lerModuloSalvo(token) {
   try {
-    return window.localStorage.getItem(CHAVE_MODULO_ATUAL) || '';
+    window.localStorage.removeItem(CHAVE_MODULO_ATUAL); // valor antigo, sem dono
+    const salvo = JSON.parse(window.sessionStorage.getItem(CHAVE_MODULO_ATUAL) || 'null');
+    return salvo && salvo.token === token ? String(salvo.chave || '') : '';
   } catch {
     return '';
   }
@@ -39,14 +43,15 @@ function lerModuloSalvo() {
 
 function salvarModulo(chave) {
   try {
-    window.localStorage.setItem(CHAVE_MODULO_ATUAL, chave);
+    window.sessionStorage.setItem(CHAVE_MODULO_ATUAL, JSON.stringify({ token: estado.token, chave }));
   } catch {
-    /* preferência por usuário: sem armazenamento, vale o padrão */
+    /* sem armazenamento, vale o padrão */
   }
 }
 
 export function obterEstadoModulos() {
-  return estado;
+  // Estado de outro login (token diferente do atual) não vale: mesma regra de useModulos.
+  return estado.token === lerSessaoAutenticacao().token ? estado : ESTADO_VAZIO;
 }
 
 export function assinarModulos(ouvinte) {
@@ -67,6 +72,7 @@ export async function carregarAcessoModulos() {
     return;
   }
   if (estado.token === token && (estado.carregado || estado.carregando)) return;
+  if (estado.token !== token) definirFuncoesModulos(null); // funções do menu do usuário anterior não valem mais
   publicar({ ...ESTADO_VAZIO, carregando: true, token });
   try {
     const acesso = await lerAcessoCore();
@@ -81,7 +87,7 @@ export async function carregarAcessoModulos() {
       modulos: acesso.modulos || [],
       visiveis,
       moduloPadrao: acesso.modulo_padrao || MODULO_CORE,
-      moduloAtual: escolherModuloAtual(visiveis, lerModuloSalvo(), acesso.modulo_padrao),
+      moduloAtual: escolherModuloAtual(visiveis, lerModuloSalvo(token), acesso.modulo_padrao),
       permissoes: acesso.permissoes || [],
     });
   } catch {
@@ -91,24 +97,32 @@ export async function carregarAcessoModulos() {
 }
 
 export function selecionarModulo(chave) {
-  if (!estado.visiveis.includes(chave)) return;
+  if (estado.token !== lerSessaoAutenticacao().token || !estado.visiveis.includes(chave)) return;
   salvarModulo(chave);
   publicar({ moduloAtual: chave });
 }
 
 /** Filtro de operação do WFM no módulo atual ('TI' em Tecnologia, '' nos demais). Lido pela camada de API do WFM. */
 export function operacaoBaseAtiva() {
-  return operacaoBaseDoModulo(estado.moduloAtual, estado.carregado);
+  const atual = obterEstadoModulos();
+  return operacaoBaseDoModulo(atual.moduloAtual, atual.carregado);
 }
 
-/** Hook: devolve o estado dos módulos e dispara o carregamento quando há sessão. */
+/** Hook: devolve o estado dos módulos e dispara o carregamento quando há sessão.
+ * O estado pertence a um token: depois de sair e entrar com outro usuário na mesma aba (sem recarregar), o estado do
+ * usuário anterior (módulos, permissões efetivas) nunca é devolvido — volta vazio até o acesso do novo usuário chegar. */
 export function useModulos() {
   const [valor, setValor] = useState(estado);
   useEffect(() => {
     const cancelar = assinarModulos(setValor);
     setValor(estado);
-    carregarAcessoModulos();
     return cancelar;
   }, []);
+  // A cada render: troca de token (login/logout sem recarregar a página) recarrega ou limpa. Sem troca, não faz nada.
+  useEffect(() => {
+    carregarAcessoModulos();
+  });
+  const { token } = lerSessaoAutenticacao();
+  if (valor.token !== token) return ESTADO_VAZIO;
   return valor;
 }

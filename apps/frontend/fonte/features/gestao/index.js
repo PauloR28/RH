@@ -1660,9 +1660,9 @@ function salvarEmailLoginCache(valor) {
 // Enquanto não existe o cadastro de novidades (ADM/TI), a lista mora aqui.
 // Para trocar: edite os itens abaixo (o mais novo primeiro). `versao` é opcional.
 const NOVIDADES_LOGIN = [
-  { versao: '', titulo: 'Supervisor vê todas as equipes', data: '04/11', descricao: 'Pausas, presença e horas extras das outras equipes na Escala do dia.' },
-  { versao: '', titulo: 'Férias e troca de folga', data: '30/10', descricao: 'Novos tipos Férias e Escalado e troca de folga na escala.' },
-  { versao: '', titulo: 'Painel em sessões', data: '29/10', descricao: 'Indicadores 3 por linha e gráficos organizados.' },
+  { versao: '', titulo: 'Conecta de cara nova', data: '15/11', descricao: 'Telas mais limpas, letras mais legíveis e modo escuro em tudo.' },
+  { versao: '', titulo: 'Painel por área', data: '15/11', descricao: 'Os números do dia separados em abas: Operação e RH.' },
+  { versao: '', titulo: 'Um módulo por vez', data: '12/11', descricao: 'Troque entre RH, Operação e Tecnologia pelo seletor no topo.' },
 ];
 
 export function TelaLogin({ controlador }) {

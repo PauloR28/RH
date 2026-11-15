@@ -226,7 +226,7 @@ function JanelaTroca({ operacao, data, item, nomeUsuario, onClose, onFeito, show
 // ---------------------------------------------------------------- tela
 
 export function TelaMinhaEscala({ contexto, showToast, podeTrocar = false, nomeUsuario = '', acessorio = null }) {
-  const [visao, setVisao] = useState('planilha'); // planilha | calendario
+  const [visao, setVisao] = useState('calendario'); // planilha | calendario (abre em Calendário: pedido do Paulo, 15/11/2026)
   const [ancora, setAncora] = useState(() => new Date());
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
