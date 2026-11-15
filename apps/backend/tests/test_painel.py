@@ -82,3 +82,42 @@ def test_quem_ve_o_painel():
 def test_metrica_exige_permissao_de_base():
     assert r.tem_base(r.METRICAS["monitorias"], {"monitoria.dashboard"})
     assert not r.tem_base(r.METRICAS["diario"], {"wfm.relatorios"})
+
+
+def test_periodo_comparado():
+    ini, fim = date(2026, 11, 1), date(2026, 11, 14)
+    assert r.periodo_comparado(ini, fim, "anterior") == (date(2026, 10, 18), date(2026, 10, 31))
+    assert r.periodo_comparado(ini, fim, "mes") == (date(2026, 10, 1), date(2026, 10, 14))
+    assert r.periodo_comparado(ini, fim, "ano") == (date(2025, 11, 1), date(2025, 11, 14))
+    assert r.periodo_comparado(date(2026, 3, 1), date(2026, 3, 31), "mes") == (date(2026, 2, 1), date(2026, 2, 28))
+    assert r.periodo_comparado(date(2026, 1, 1), date(2026, 1, 31), "mes") == (date(2025, 12, 1), date(2025, 12, 31))
+    assert r.periodo_comparado(ini, fim, "nenhum") is None
+
+
+def test_semana_comeca_no_domingo():
+    assert r.dia_da_semana_domingo(date(2026, 11, 15)) == 0  # domingo
+    assert r.dia_da_semana_domingo(date(2026, 11, 14)) == 6  # sábado
+
+
+def test_ranking_por_posicoes():
+    itens = [
+        {"equipe": "A", "presenca_pct": 96, "nota_media": 89.4, "faltas": 2},
+        {"equipe": "B", "presenca_pct": 93, "nota_media": 84.1, "faltas": 5},
+        {"equipe": "C", "presenca_pct": 91, "nota_media": 88.7, "faltas": 7},
+        {"equipe": "D", "presenca_pct": 86, "nota_media": None, "faltas": 11},
+    ]
+    assert [i["equipe"] for i in r.ranking_por_posicoes(itens)] == ["A", "B", "C", "D"]
+    assert [i["posicao"] for i in itens if i["equipe"] == "A"] == [1]
+
+
+def test_slots_da_pausa():
+    assert r.slots_da_pausa("09:10", 10) == [18]
+    assert r.slots_da_pausa("09:25", 10) == [18, 19]
+    assert r.slots_da_pausa("23:50", 20) == [47]
+    assert r.slots_da_pausa("xx", 10) == []
+
+
+def test_toda_metrica_tem_area_e_forma_conhecida():
+    for m in r.METRICAS.values():
+        assert m.area in r.ORDEM_AREAS, m.id
+        assert all(f in r.NOME_FORMA for f in m.formas), m.id

@@ -43,3 +43,14 @@ def dados(id_painel: int, periodo: str = "mes", equipe: str = "", user: Authenti
 @router.get("/{id_painel}/operadores/{id_operador}", dependencies=[Depends(require_permissions(_VER))])
 def ficha(id_painel: int, id_operador: int, periodo: str = "mes", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.painel_ficha(user, id_painel, id_operador, periodo)
+
+
+@router.get("/{id_painel}/presenca-comparada", dependencies=[Depends(require_permissions(_VER))])
+def presenca_comparada(id_painel: int, periodo: str = "mes", equipe: str = "", comparar: str = "anterior",
+                       user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.painel_serie_comparada(user, id_painel, periodo, equipe, comparar)
+
+
+@router.get("/{id_painel}/dia", dependencies=[Depends(require_permissions(_VER))])
+def presenca_do_dia(id_painel: int, data: str, equipe: str = "", user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.painel_dia(user, id_painel, data, equipe)

@@ -28,8 +28,8 @@ from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
 from ..services import painel_regras as regras
 from ..services.helpers import normalize_text
-from ..services.interviews import normalize_interview_status
 from ..services.wfm_historico import FUSO_BRASIL
+from .painel_metricas import PainelMetricasMixin
 from .painel_schema import ensure_painel_schema
 
 CACHE_SEG = 30
@@ -40,6 +40,10 @@ SIGLA = {"PRESENTE": "P", "FALTA": "F", "FALTA_JUSTIFICADA": "FJ", "ATESTADO": "
          "FOLGA_COMP_BH": "FB", "FOLGA": "FL", "FERIAS": "FE"}
 TROCA_PENDENTE = ("AGUARDANDO_B", "AGUARDANDO_APROVACAO")
 CONTESTACAO_ABERTA = (wf.CONTESTADA, wf.REANALISE)
+_USA_WFM = frozenset({"presenca", "presenca_dia", "faltas_semana", "atestados", "escalas", "trocas_pessoa", "presenca_do_dia", "pausas_mapa",
+                      "frequencia", "ranking_equipes", "comparar_equipes", "operadores"})
+_USA_MONITORIA = frozenset({"monitorias", "nota_semana", "itens_erro", "distribuicao_notas", "sem_monitoria", "tempo_feedback",
+                            "operadores", "ranking_equipes", "comparar_equipes"})
 ROTULO_TURNO_DIARIO = {"abertura": "Abertura", "intermediario": "Intermediário", "fechamento": "Fechamento"}
 
 
@@ -87,7 +91,7 @@ def _do_cache(chave: tuple, produzir):
     return valor
 
 
-class PainelRepositoryMixin:
+class PainelRepositoryMixin(PainelMetricasMixin):
     # ------------------------------------------------------------------ infraestrutura
     def _pn_abrir(self):
         conn = self._connect()
@@ -147,7 +151,7 @@ class PainelRepositoryMixin:
                 continue
             if m.funcao and not acesso.funcao_ligada_na_unidade(m.funcao, painel["operacao"], painel["modulo"]):
                 continue
-            saida.append({**item, "nome": m.nome, "largura": m.largura})
+            saida.append({**item, "nome": m.nome, "largura": m.largura, "area": m.area})
         return saida
 
     # ------------------------------------------------------------------ visualização
@@ -180,18 +184,19 @@ class PainelRepositoryMixin:
             metricas = self._pn_metricas_liberadas(user, painel)
             ids_metricas = {m["metrica"] for m in metricas}
             ctx: dict[str, Any] = {"painel": painel, "ini": ini, "fim": fim, "hoje": hoje, "periodo": periodo, "equipe": equipe}
-            precisa_wfm = ids_metricas & {"presenca", "frequencia", "escalas", "operadores"}
+            # Só carrega a fonte que alguma métrica do painel usa (desempenho: nada de consulta à toa).
+            precisa_wfm = ids_metricas & (_USA_WFM | {"sem_monitoria"})
             if precisa_wfm:
                 ctx["wfm"] = self._pn_wfm(cursor, user, painel["operacao"], ini, fim)
-                if "presenca" in ids_metricas and ctx["wfm"].get("dado"):
+                if ids_metricas & {"presenca", "presenca_dia"} and ctx["wfm"].get("dado"):
                     a_ini, a_fim = regras.periodo_anterior(ini, fim)
                     ctx["wfm_anterior"] = self._pn_wfm(cursor, user, painel["operacao"], a_ini, a_fim)
-            if ids_metricas & {"monitorias", "operadores"} and regras.tem_base(regras.METRICAS["monitorias"], set(user.permissions)):
-                ctx["monitorias"] = self._pn_monitorias(user, painel["operacao"], ini, fim)
+            if ids_metricas & _USA_MONITORIA and regras.tem_base(regras.METRICAS["monitorias"], set(user.permissions)):
+                ctx["monitorias"] = self._pn_monitorias(user, painel["operacao"], ini, fim, com_respostas="itens_erro" in ids_metricas)
             blocos = []
             for m in metricas:
                 dados = getattr(self, f"_pn_bloco_{m['metrica']}")(cursor, user, ctx)
-                blocos.append({"metrica": m["metrica"], "nome": m["nome"], "forma": m["forma"], "largura": m["largura"], "dados": dados})
+                blocos.append({"metrica": m["metrica"], "nome": m["nome"], "forma": m["forma"], "largura": m["largura"], "area": m["area"], "dados": dados})
             equipes = sorted({o.get("equipe") or "" for o in (ctx.get("wfm", {}).get("dado") or {}).get("operadores", []) if o.get("equipe")})
         finally:
             conn.close()
@@ -213,8 +218,8 @@ class PainelRepositoryMixin:
         except HTTPException as exc:
             return {"dado": None, "motivo": str(exc.detail)}
 
-    def _pn_monitorias(self, user, operacao: str, ini: date, fim: date) -> list[dict]:
-        return self._mon_linhas_escopo(user, {"operacao": operacao, "data_inicio": ini.isoformat(), "data_fim": fim.isoformat()}, com_respostas=False)
+    def _pn_monitorias(self, user, operacao: str, ini: date, fim: date, *, com_respostas: bool = False) -> list[dict]:
+        return self._mon_linhas_escopo(user, {"operacao": operacao, "data_inicio": ini.isoformat(), "data_fim": fim.isoformat()}, com_respostas=com_respostas)
 
     @staticmethod
     def _pn_ops_da_equipe(ctx: dict) -> set[int] | None:
@@ -421,29 +426,6 @@ class PainelRepositoryMixin:
                 saida[d["id_operador"]] = "Hoje" if d["data"] == hoje else d["data"].isoformat()
         return saida
 
-    # ------------------------------------------------------------------ bloco (RH)
-    def _pn_bloco_rh_entrevistas(self, cursor, user, ctx: dict) -> dict:
-        ini, fim = ctx["ini"], ctx["fim"]
-        cursor.execute("SELECT OBJECT_ID('dbo.entrevistas_agendadas', 'U')")
-        if cursor.fetchone()[0] is None:
-            return {"indisponivel": "Ainda não há entrevistas no Conecta."}
-        cursor.execute(
-            "SELECT nome_candidato, vaga, data_entrevista, status_entrevista FROM dbo.entrevistas_agendadas "
-            "WHERE data_entrevista >= ? AND data_entrevista < ? ORDER BY data_entrevista",
-            (ini, fim + timedelta(days=1)),
-        )
-        cont: Counter = Counter()
-        faltaram = []
-        for nome, vaga, quando, st in cursor.fetchall():
-            s = normalize_interview_status(st)
-            grupo = {"Compareceu": "compareceram", "Faltou": "faltaram", "Cancelado": "canceladas"}.get(s, "marcadas")
-            cont[grupo] += 1
-            cont["total"] += 1
-            if grupo == "faltaram":
-                faltaram.append({"candidato": normalize_text(nome), "vaga": normalize_text(vaga), "quando": _br(quando)})
-        return {"total": cont["total"], "compareceram": cont["compareceram"], "faltaram": cont["faltaram"], "canceladas": cont["canceladas"],
-                "a_acontecer": cont["marcadas"], "lista_faltaram": faltaram}
-
     # ------------------------------------------------------------------ ficha do operador
     def painel_ficha(self, user, id_painel: int, id_operador: int, periodo: str = "mes") -> dict:
         periodo = periodo if periodo in regras.PERIODOS else "mes"
@@ -544,7 +526,7 @@ class PainelRepositoryMixin:
                                if m.funcao and not acesso.funcao_ligada_na_unidade(m.funcao, p["operacao"], p["modulo"])]
         return {
             "paineis": paineis,
-            "metricas": [{"id": m.id, "nome": m.nome, "descricao": m.descricao, "modulo": m.modulo, "funcao": m.funcao,
+            "metricas": [{"id": m.id, "nome": m.nome, "descricao": m.descricao, "modulo": m.modulo, "funcao": m.funcao, "area": m.area,
                           "formas": [{"id": f, "nome": regras.NOME_FORMA[f]} for f in m.formas]} for m in regras.METRICAS.values()],
             "modulos": [{"chave": k, "nome": regras.NOME_MODULO[k]} for k in regras.MODULOS_DO_PAINEL],
             "unidades": unidades, "perfis": perfis, "intervalos": list(regras.INTERVALOS_SEG),
