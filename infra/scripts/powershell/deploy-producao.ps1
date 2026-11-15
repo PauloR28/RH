@@ -79,7 +79,7 @@ if ($resp) {
 }
 else {
     $estado = (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue).State
-    Write-Host "ATENCAO - aplicacao nao respondeu em /health em 120 s (tarefa $TaskName: $estado). Veja o conecta.log em RH_LOG_DIR." -ForegroundColor Red
+    Write-Host "ATENCAO - aplicacao nao respondeu em /health em 120 s (tarefa ${TaskName}: $estado). Veja o conecta.log em RH_LOG_DIR." -ForegroundColor Red
     throw "Aplicacao nao respondeu em /health apos o deploy."
 }
 
