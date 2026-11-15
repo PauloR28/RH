@@ -170,7 +170,7 @@
 /* Monitor grande (lista 10/11, item 13): o Conecta inteiro cresce na mesma proporção.
    --c-zoom acompanha o zoom para as alturas que usam 100vh (o zoom também multiplica o vh). */
 :root { --c-zoom: 1; }
-/* Notebook (15/nov/2026, amostra aprovada pelo Paulo): de 1280 a 1599 px o Conecta abre em 90%. */
-@media (min-width: 1280px) and (max-width: 1599px) { :root { --c-zoom: .9; } html { zoom: .9; } }
+/* Notebook e monitor comum (15/nov/2026, amostras aprovadas pelo Paulo): de 1280 a 1919 px o Conecta abre em 90%. */
+@media (min-width: 1280px) and (max-width: 1919px) { :root { --c-zoom: .9; } html { zoom: .9; } }
 @media (min-width: 1920px) { :root { --c-zoom: 1.125; } html { zoom: 1.125; } }
 @media (min-width: 2400px) { :root { --c-zoom: 1.25; } html { zoom: 1.25; } }
