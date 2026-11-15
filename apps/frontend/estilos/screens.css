@@ -4543,25 +4543,22 @@
   padding: 0.82rem;
 }
 
+/* Suas áreas (15/11/2026, aprovado pelo Paulo): até 5 cards por linha, todos da mesma largura, nome inteiro. */
 .home-quick-grid {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: stretch;
-  gap: 0.4rem;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(160px, calc((100% - 4 * var(--espaco-2)) / 5)), 1fr));
+  gap: var(--espaco-2);
 }
 
 .home-quick-action {
   position: relative;
-  flex: 1 1 88px;
-  min-width: 88px;
-  min-height: 64px;
+  min-width: 0;
+  min-height: 72px;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
   overflow: hidden;
-  padding: var(--space-2);
+  padding: var(--espaco-3) var(--espaco-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -4604,11 +4601,10 @@
   position: relative;
   z-index: 1;
   max-width: 100%;
-  overflow: hidden;
+  padding-right: var(--espaco-8);
   font-size: 0.9rem;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .compact-dashboard-card.rh-section-card,

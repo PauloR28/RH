@@ -195,6 +195,27 @@ export function GraficoEmpilhada({ dados, cores }) {
     </div>`;
 }
 
+// Situação da presença em barra (pedido do Paulo, 15/11/2026): uma barra 100% na largura do cartão e, embaixo, um bloco por
+// situação com o número e a porcentagem. Ocupa o cartão inteiro, sem o vazio que a rosca deixava ao lado.
+export function GraficoSituacao({ dados, cores, unidade = 'dias' }) {
+  const total = dados.reduce((t, d) => t + (Number(d.valor) || 0), 0);
+  if (!total) return null;
+  const itens = dados.map((d, i) => ({ ...d, cor: cores[i % cores.length], pct: (100 * (Number(d.valor) || 0)) / total }));
+  return html`
+    <div class="wfm-g-situacao">
+      <div class="wfm-g-situacao-total"><strong>${nf(total)}</strong> ${unidade}</div>
+      <div class="wfm-g-empilhada wfm-g-situacao-barra" role="img" aria-label=${itens.map((i) => `${i.rotulo}: ${nf(i.valor)} (${nf(i.pct, 0)}%)`).join(', ')}>
+        ${itens.filter((i) => i.valor > 0).map((i) => html`<span key=${i.rotulo} style=${{ width: `${i.pct}%`, background: i.cor }} title=${`${i.rotulo}: ${nf(i.valor)} (${nf(i.pct, 1)}%)`}></span>`)}
+      </div>
+      <ul class="wfm-g-situacao-itens">
+        ${itens.map((i) => html`<li key=${i.rotulo}>
+          <span class="wfm-g-situacao-rotulo"><i style=${{ background: i.cor }}></i>${i.rotulo}</span>
+          <span class="wfm-g-situacao-valor">${nf(i.valor)}<small>${nf(i.pct, 0)}%</small></span>
+        </li>`)}
+      </ul>
+    </div>`;
+}
+
 export function CartaoGrafico({ titulo, subtitulo, children, largo = false, acoes = null, compacto = false, rodape = null, className = '' }) {
   return html`<section class=${`wfm-g-cartao ${largo ? 'is-largo' : ''} ${compacto ? 'wfm-g-cartao--compacto' : ''} ${className}`}>
     <header><div class="wfm-g-cab-txt"><h4>${titulo}</h4>${subtitulo ? html`<p class="mon-muted" title=${subtitulo}>${subtitulo}</p>` : null}</div>${acoes ? html`<div class="wfm-g-cab-acoes">${acoes}</div>` : null}</header>

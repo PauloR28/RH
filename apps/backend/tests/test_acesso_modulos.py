@@ -71,7 +71,7 @@ ESPERADO_FECHADA = {
     "rh": ["rh"],
     "dp": ["rh"],
     "estagiario": ["rh"],
-    "supervisor": ["operacao", "tecnologia"],  # Suporte TI: chamados.abrir abre Tecnologia (menu filtrado: só "Suporte TI")
+    "supervisor": ["operacao", "tecnologia"],  # Suporte TI ligado: chamados.abrir abre Tecnologia (desligado na tela Módulos, some — 15/11/2026)
     "control_desk": ["operacao"],
     "qualidade": ["operacao"],  # Monitoria abre `operacao` (WFM só entra com a flag aberta)
     "operador": ["operacao"],
@@ -159,7 +159,7 @@ def test_endpoint_core_acesso_devolve_modulos_e_permissoes():
     perms = m._permissoes_efetivas_em_subprocesso("1")["analista_ti"]
     corpo = _cliente(perms, "analista_ti").get("/core/acesso").json()
     visiveis = [x["chave"] for x in corpo["modulos"] if x["visivel"]]
-    assert visiveis == ["operacao", "tecnologia"] and corpo["modulo_padrao"] == "operacao"
+    assert visiveis == ["operacao", "tecnologia"] and corpo["modulo_padrao"] == "tecnologia"  # gestor de TI entra na Tecnologia (15/11/2026)
     assert corpo["permissoes"] == sorted(perms) and corpo["operacao_ti"] == "TI"
     assert {x["chave"]: x["protegido"] for x in corpo["modulos"]} == {"rh": False, "operacao": False, "tecnologia": True}
 
@@ -225,5 +225,45 @@ def test_modulo_some_quando_nenhuma_funcao_dele_esta_ligada_10_11_2026():
         assert MODULO_TECNOLOGIA in acesso.modulos_visiveis(["chamados.abrir", "configuracoes.visualizar"])
         acesso.definir_carregador(lambda: acesso.EstadoModulos())
         assert MODULO_TECNOLOGIA in acesso.modulos_visiveis(["chamados.abrir"])  # Suporte TI ligado (padrão)
+    finally:
+        acesso.definir_carregador(None)
+
+
+# ------------------------------------------------------------------ módulo de entrada (15/11/2026)
+def test_modulo_padrao_prioriza_tecnologia_para_quem_administra():
+    todos = ["rh", "operacao", "tecnologia"]
+    assert acesso.modulo_padrao(todos, {"configuracoes.visualizar"}) == "tecnologia"
+    assert acesso.modulo_padrao(todos, set(), extras={"tecnologia"}) == "tecnologia"
+
+
+def test_modulo_padrao_quem_so_abre_chamado_nao_cai_na_tecnologia():
+    assert acesso.modulo_padrao(["operacao", "tecnologia"], {"chamados.abrir", "sessao.wfm.acessar"}) == "operacao"
+    assert acesso.modulo_padrao([], {"configuracoes.visualizar"}) == "core"
+
+
+# ------------------------------------------------------------------ Suporte TI ligado/desligado em Tecnologia > Módulos
+def _com_suporte(ligado):
+    funcoes = dict(acesso.EstadoModulos().funcoes)
+    funcoes[MODULO_TECNOLOGIA] = frozenset({"wfm", "suporte"} if ligado else {"wfm"})
+    acesso.definir_carregador(lambda: acesso.EstadoModulos(funcoes=funcoes))
+
+
+def test_suporte_ti_desligado_tira_chamados_e_esconde_tecnologia():
+    perms = {"chamados.abrir", "chamados.ver_operacao", "sessao.wfm.acessar"}
+    _com_suporte(False)
+    try:
+        assert acesso.filtrar_permissoes(perms) == {"sessao.wfm.acessar"}
+        assert acesso.descrever(perms)["modulo_padrao"] == "operacao"
+        assert MODULO_TECNOLOGIA not in [x["chave"] for x in acesso.descrever(perms)["modulos"] if x["visivel"]]
+    finally:
+        acesso.definir_carregador(None)
+
+
+def test_suporte_ti_ligado_volta_a_valer():
+    perms = {"chamados.abrir", "sessao.wfm.acessar"}
+    _com_suporte(True)
+    try:
+        assert acesso.filtrar_permissoes(perms) == perms
+        assert acesso.modulos_visiveis(perms) == ["operacao", "tecnologia"]
     finally:
         acesso.definir_carregador(None)

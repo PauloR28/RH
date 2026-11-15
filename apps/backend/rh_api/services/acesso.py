@@ -29,6 +29,7 @@ from ..modulos_catalogo import (
     MODULO_CORE,
     MODULO_DONO_DA_FUNCAO,
     MODULO_OPERACAO,
+    MODULO_TECNOLOGIA,
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
@@ -200,6 +201,11 @@ def funcao_ligada_na_unidade(funcao: str, unidade: str, modulo_da_unidade: str |
     return funcao not in est.desligadas_operacao.get(str(unidade or "").strip(), frozenset())
 
 
+def suporte_ti_ligado() -> bool:
+    """A função Suporte TI (chamados) está ligada no módulo Tecnologia (tela Módulos)? Desligada = sistemática de chamados desativada."""
+    return "suporte" in estado().funcoes.get(MODULO_TECNOLOGIA, frozenset())
+
+
 def _dono_da_funcao_ativo(funcao: str) -> bool:
     dono = MODULO_DONO_DA_FUNCAO.get(funcao)
     return dono is None or modulo_ativo(dono)
@@ -259,7 +265,10 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     """Remove as permissões de módulos desativados. Com todos ativos devolve exatamente o mesmo conjunto."""
     todas = frozenset(permissoes)
     # Suporte TI inativo (fase de teste, ver rh_api/areas.py): as permissões chamados.* deixam de valer, inclusive para abrir o módulo.
-    if not area_ativa(SUPORTE_TI):
+    # Idem com a função "Suporte TI" desligada em Tecnologia > Módulos (decisão do Paulo, 15/11/2026: a sistemática de
+    # chamados fica desativada pelo próprio Conecta até voltar). Desligada = ninguém abre, atende nem vê chamado, e a
+    # permissão "Abrir chamado" deixa de abrir o módulo Tecnologia (o Supervisor não vê mais "Tecnologia" no topo).
+    if not area_ativa(SUPORTE_TI) or not suporte_ti_ligado():
         todas = frozenset(p for p in todas if not p.startswith("chamados."))
     # Áreas de RH inativas: as permissões exclusivas delas deixam de valer (o RH que sobra é Gestão/Drive/Calendário/Mural).
     for prefixo in _PREFIXOS_DE_AREAS_INATIVAS():
@@ -323,6 +332,17 @@ def pode(permissoes: Iterable[str], permissao: str) -> bool:
     return permissao in permissoes and modulo_ativo(modulo_da_permissao(permissao))
 
 
+def modulo_padrao(visiveis: list[str], efetivas: Iterable[str], extras: Iterable[str] = ()) -> str:
+    """Módulo em que a pessoa entra ao fazer login. Decisão do Paulo (15/11/2026): quem administra a Tecnologia (abre o
+    módulo por `configuracoes.visualizar` ou o tem liberado no perfil/usuário) começa nela, mesmo vendo RH e Operação.
+    Quem só abre chamados (ex.: Supervisor) não: a Tecnologia não é o trabalho dessa pessoa. Demais: o primeiro na ordem."""
+    if not visiveis:
+        return MODULO_CORE
+    if MODULO_TECNOLOGIA in visiveis and ("configuracoes.visualizar" in set(efetivas) or MODULO_TECNOLOGIA in set(extras)):
+        return MODULO_TECNOLOGIA
+    return visiveis[0]
+
+
 def descrever(permissoes: Iterable[str], extras: Iterable[str] = (), operacoes: Iterable[str] = ()) -> dict:
     """Payload de `GET /core/acesso`: módulos, padrão e permissões efetivas (já sem as de módulos desativados)."""
     efetivas = filtrar_permissoes(permissoes)
@@ -341,7 +361,7 @@ def descrever(permissoes: Iterable[str], extras: Iterable[str] = (), operacoes: 
     ]
     return {
         "modulos": modulos,
-        "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
+        "modulo_padrao": modulo_padrao(visiveis, efetivas, extras),
         "operacao_ti": OPERACAO_TI,
         "permissoes": sorted(efetivas),
         "funcoes": {modulo: funcoes_do_usuario(modulo, operacoes) for modulo in FUNCOES_POR_MODULO},

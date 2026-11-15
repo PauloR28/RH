@@ -158,6 +158,24 @@
 .c-filtros--suave .c-busca { flex: 0 1 180px; min-width: 120px; }
 .c-filtros--suave .c-segmento .c-botao, .c-filtros--suave .c-navegar .c-botao { height: 28px; font-size: 12px; }
 .c-filtros--suave .c-navegar .c-botao--icone { width: 28px; }
+/* Filtros em duas linhas (Escalas, 15/11/2026): busca e contador em cima; visão, período e filtros embaixo. Espaço de 8 px. */
+.c-tabela-caixa > .c-filtros-pilha { display: flex; flex-direction: column; gap: var(--espaco-2); padding: var(--espaco-2) var(--espaco-3); border-bottom: var(--borda-fina) solid var(--tabela-linha); }
+.c-filtros-pilha > .c-filtros { gap: var(--espaco-2); padding: 0; border: 0; flex-wrap: wrap; }
+.c-filtros-pilha .c-busca { flex: 0 1 320px; min-width: 200px; }
+/* Painel do WFM › Situação da presença em barra (15/11/2026): barra na largura do cartão e um bloco por situação. */
+.wfm-g-situacao { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--espaco-4); }
+.wfm-g-situacao-total { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.wfm-g-situacao-total strong { font-size: var(--texto-titulo-secao-tamanho); font-weight: var(--fonte-peso-negrito); color: var(--cor-texto-padrao); }
+.wfm-g-situacao-barra { height: 24px; border-radius: var(--raio-pequeno); background: var(--cor-fundo-sutil); }
+.wfm-g-situacao-itens { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--espaco-2); margin: 0; padding: 0; list-style: none; }
+.wfm-g-situacao-itens li { display: flex; flex-direction: column; gap: var(--espaco-1); padding: var(--espaco-2) var(--espaco-3); border: var(--borda-fina) solid var(--cor-borda-padrao); border-radius: var(--raio-pequeno); }
+.wfm-g-situacao-rotulo { display: flex; align-items: center; gap: var(--espaco-1); font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); white-space: nowrap; }
+.wfm-g-situacao-rotulo i { flex: none; width: 8px; height: 8px; border-radius: var(--raio-pequeno); }
+.wfm-g-situacao-valor { font-size: var(--texto-grande-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-padrao); font-variant-numeric: tabular-nums; }
+.wfm-g-situacao-valor small { margin-left: var(--espaco-1); font-size: var(--texto-rotulo-tamanho); font-weight: normal; color: var(--cor-texto-secundario); }
+/* Comparação entre equipes: a barra de absenteísmo ocupa a coluna (some o vazio à direita). */
+[aria-labelledby="wfm-painel-equipes"] .c-tabela td.c-estica { white-space: nowrap; }
+[aria-labelledby="wfm-painel-equipes"] .c-minibarra { width: calc(100% - var(--espaco-8) - var(--espaco-2)); margin-right: var(--espaco-2); }
 .c-semana th.c-dia-sem, .c-semana td.c-dia-sem { width: auto; min-width: 92px; }
 .c-legenda .c-traco { display: inline-block; width: 3px; height: 14px; border-radius: 2px; background: var(--t); }
 
