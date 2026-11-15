@@ -17,7 +17,6 @@ from fastapi import HTTPException, status
 from .helpers import normalize_text
 from .public_candidacy import generate_public_token
 
-
 _OOXML_ZIP_MAGIC = b"PK\x03\x04"
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 _JPEG_MAGIC = b"\xff\xd8\xff"

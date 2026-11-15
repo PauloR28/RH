@@ -12,39 +12,40 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from ..auth import AuthenticatedUser
-from ..dependencies import get_current_user, get_repository, require_permissions, exigir_relatorio_hub
+from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services.http_cache import aplicar_cache_http
 from ..schemas.monitoria import (
     AmbienteOperacaoRequest,
     CalcularRequest,
     CatalogoRequest,
-    TipoAtendimentoRequest,
+    CompartilharRequest,
+    ConfigMonitoriaRequest,
     ContestacaoRequest,
-    EquipeRequest,
-    FeedbackRequest,
     DuplicarFormularioRequest,
+    EquipeRequest,
     ExcluirMonitoriaRequest,
+    FeedbackRequest,
+    GuiaRequest,
+    IdentidadeOperacaoRequest,
     MatrizConfigRequest,
-    RestaurarMonitoriaRequest,
-    RestaurarVersaoRequest,
+    ModulosOperacaoRequest,
     MonitoriaCriarRequest,
     PlanoAcaoRequest,
     PlanoAcaoRevisaoRequest,
-    CompartilharRequest,
-    ConfigMonitoriaRequest,
-    GuiaRequest,
-    IdentidadeOperacaoRequest,
     RascunhoRequest,
     ReanaliseRequest,
-    RiscoRequest,
     ReplicaRequest,
+    RestaurarMonitoriaRequest,
+    RestaurarVersaoRequest,
+    RiscoRequest,
     TemaRequest,
+    TipoAtendimentoRequest,
     TransferirOperacaoRequest,
     TransferirSupervisaoRequest,
     UsuarioMonitoriaRequest,
     VinculosMonitoriaRequest,
 )
+from ..services.http_cache import aplicar_cache_http
 
 router = APIRouter(prefix="/monitoria", tags=["monitoria"], dependencies=[Depends(get_current_user)])
 
@@ -252,6 +253,27 @@ def salvar_ambiente_operacao(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     return repository.mon_set_ambiente(user, chave, payload.model_dump(exclude_unset=True), ip=client_ip(request))
+
+
+@router.get("/operacoes/{chave}/modulos", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def ler_modulos_operacao(
+    chave: str,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Funções do menu da Operação ligadas nesta operação (item 16), com a situação de cada uma na tela Módulos."""
+    return repository.mon_get_modulos_operacao(user, chave)
+
+
+@router.put("/operacoes/{chave}/modulos", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def salvar_modulos_operacao(
+    chave: str,
+    payload: ModulosOperacaoRequest,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.mon_set_modulos_operacao(user, chave, payload.funcoes, ip=client_ip(request))
 
 
 @router.post("/usuarios/{id_usuario}/transferir-operacao", dependencies=[Depends(require_permissions("monitoria.usuarios"))])

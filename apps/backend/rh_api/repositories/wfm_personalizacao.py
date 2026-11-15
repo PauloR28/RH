@@ -58,7 +58,7 @@ class WfmPersonalizacaoRepositoryMixin:
             conn.close()
 
     def wfm_salvar_personalizacao(self, user, data: dict, *, ip: str = "") -> dict:
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise _http(status.HTTP_403_FORBIDDEN, "Sem permissão para personalizar turnos.")
         entrada, saida = normalize_text(data.get("entrada")), normalize_text(data.get("saida"))
         if not (_HHMM.match(entrada) and _HHMM.match(saida)) or entrada == saida:
@@ -93,7 +93,7 @@ class WfmPersonalizacaoRepositoryMixin:
             conn.close()
 
     def wfm_remover_personalizacao(self, user, operacao: str, id_turno: int, id_operador: int, *, remover_lancados: bool = False, ip: str = "") -> dict:
-        if not wfm_scope.pode_editar_cadastros(user.perfil):
+        if not (wfm_scope.pode_editar_cadastros(user.perfil) and user.has_permission("wfm.cadastros.editar")):
             raise _http(status.HTTP_403_FORBIDDEN, "Sem permissão para personalizar turnos.")
         conn = self._connect()
         try:

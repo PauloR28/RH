@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .cv import CvTextExtractionError, extract_text_from_uploaded_file, normalize_cv_text
 
-
 _CONTACT_PATTERNS = (
     re.compile(r"(?i)\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b"),
     re.compile(r"(?<!\d)(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?\d{4,5}[-.\s]?\d{4}(?!\d)"),

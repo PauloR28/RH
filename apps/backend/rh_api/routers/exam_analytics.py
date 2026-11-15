@@ -9,7 +9,6 @@ from ..dependencies import audit_action, get_current_user, get_repository, requi
 from ..repositories import DatabaseRepository
 from ..schemas.exam_analytics import AnalyticalCategoryMappingsRequest, AnalyticalWeightsRequest, IdealProfileRequest
 
-
 router = APIRouter(
     prefix="/processes/{process_id}/analytical-results",
     tags=["exam-analytics"],

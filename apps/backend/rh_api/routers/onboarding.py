@@ -38,7 +38,6 @@ from ..services.training_uploads import (
     validate_training_upload,
 )
 
-
 router = APIRouter(prefix="/onboarding", tags=["onboarding"], dependencies=[Depends(get_current_user)])
 
 # Nome de arquivo gerado por generate_public_token() + extensão de imagem

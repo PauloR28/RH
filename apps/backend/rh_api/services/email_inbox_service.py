@@ -19,7 +19,6 @@ from ..config import Settings
 from .cv import extract_candidate_name, extract_email, extract_phone, extract_whatsapp
 from .helpers import clamp_limit, normalize_compare_text, normalize_text
 
-
 logger = logging.getLogger(__name__)
 
 EMAIL_INBOX_ORIGIN = "Recebimento de e-mail"

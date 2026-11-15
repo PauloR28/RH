@@ -164,7 +164,9 @@ class LgpdRetencaoRepositoryMixin:
                 avisar.append(linha)
             elif resultado["situacao"] == PROTEGIDO:
                 protegidos += 1
-        limpar = lambda linhas: [{k: v for k, v in linha.items() if not k.startswith("_")} for linha in linhas]
+        def limpar(linhas):
+            return [{k: v for k, v in linha.items() if not k.startswith("_")} for linha in linhas]
+
         return {
             "config": config,
             "excluir": limpar(excluir),

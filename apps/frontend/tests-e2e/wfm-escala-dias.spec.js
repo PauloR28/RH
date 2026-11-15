@@ -52,8 +52,10 @@ test.describe('Escala mensal · dias do turno', () => {
   test('o padrão semanal já marca os dias do turno escolhido', async ({ page }) => {
     await page.getByRole('checkbox', { name: 'Selecionar Ana Lima' }).check();
     await page.getByRole('button', { name: 'Aplicar padrão semanal' }).click();
-    const painel = page.locator('#mo-painel-padrao');
-    await painel.getByRole('combobox').first().selectOption({ label: 'SAB 08:00–14:20' });
-    await expect(painel.locator('.wfm-dias-btn')).toHaveText('Sáb');   // dias do turno SAB vêm marcados
+    const janela = page.getByRole('dialog', { name: 'Padrão semanal' });
+    await janela.getByRole('combobox').first().selectOption({ label: 'SAB 08:00–14:20' });
+    // dias do turno SAB vêm marcados: só o sábado (redesign Fase 15: caixas de marcar na janela)
+    await expect(janela.getByRole('checkbox', { name: 'Sáb', exact: true })).toBeChecked();
+    for (const dia of ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Dom']) await expect(janela.getByRole('checkbox', { name: dia, exact: true })).not.toBeChecked();
   });
 });

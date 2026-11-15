@@ -8,9 +8,9 @@ import uuid
 from datetime import timedelta
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import (
     ROLE_EMPLOYEE,
@@ -21,7 +21,6 @@ from rh_api.rbac import (
 )
 from rh_api.repositories.chamados_schema import ensure_chamados_schema
 from rh_api.repositories.chamados_schema_v060 import ensure_chamados_v060
-from rh_api.services import chamados_regras as rg
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 64
 

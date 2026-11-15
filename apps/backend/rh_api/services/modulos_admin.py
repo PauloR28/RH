@@ -6,6 +6,7 @@ import uuid
 
 from fastapi import HTTPException, status
 
+from ..areas import AREA_DA_FUNCAO, funcao_disponivel
 from ..config import get_settings
 from ..db import get_connection
 from ..modulos_catalogo import (
@@ -17,7 +18,6 @@ from ..modulos_catalogo import (
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
 )
-from ..areas import AREA_DA_FUNCAO, funcao_disponivel
 from . import acesso
 
 

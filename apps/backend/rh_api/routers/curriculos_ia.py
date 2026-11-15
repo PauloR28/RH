@@ -22,7 +22,6 @@ from ..services.ia_curriculo_service import (
     IaCurriculoService,
 )
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter(
     tags=["curriculos-ia"],

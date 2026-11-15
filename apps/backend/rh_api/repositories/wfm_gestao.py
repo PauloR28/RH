@@ -12,8 +12,8 @@ from fastapi import HTTPException, status
 
 from ..rbac import ROLE_SUPERVISOR
 from ..services import wfm_scope
-from ..services.wfm_montagem import dias_do_mes
 from ..services.helpers import normalize_text
+from ..services.wfm_montagem import dias_do_mes
 from .wfm_escala import _exigir_ano_mes
 
 

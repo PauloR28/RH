@@ -8,7 +8,6 @@ from ..repositories import DatabaseRepository
 from ..repositories.scorecards import SCORECARD_CRITERIOS_PADRAO
 from ..schemas.scorecards import ScorecardSaveRequest
 
-
 router = APIRouter(tags=["scorecards"], dependencies=[Depends(get_current_user)])
 
 

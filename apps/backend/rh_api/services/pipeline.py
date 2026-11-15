@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from .helpers import normalize_compare_text, normalize_text
+from .helpers import normalize_compare_text
 from .process_flow import (
     CANDIDATE_STATUS_ANALYSIS,
     CANDIDATE_STATUS_APPROVED,
@@ -21,7 +21,6 @@ from .process_flow import (
     CANDIDATE_STATUS_WITHDREW,
     canonicalize_candidate_status,
 )
-
 
 PIPELINE_STAGES = ("Triagem", "Prova", "Entrevista", "Aprovado", "Reprovado")
 NON_TERMINAL_PIPELINE_STAGES = {"Triagem", "Prova", "Entrevista"}

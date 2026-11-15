@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import sys
 from datetime import datetime, timedelta
 from decimal import Decimal

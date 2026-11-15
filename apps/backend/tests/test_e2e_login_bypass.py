@@ -10,7 +10,6 @@ from rh_api.auth import validate_access_token
 from rh_api.config import get_settings
 from rh_api.routers import auth as auth_routes
 
-
 ENV_VARS = (
     "RH_APP_ENV",
     "RH_E2E_TEST_LOGIN_SECRET",

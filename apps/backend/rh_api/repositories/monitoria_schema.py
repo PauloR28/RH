@@ -429,6 +429,8 @@ def ensure_monitoria_schema(cursor) -> None:
         + schema_formularios_exclusao_statements()
         + schema_situacao_formularios_statements()
         + schema_cliente_statements()
+        + schema_contato_cliente_statements()
+        + schema_modulos_operacao_statements()
     ):
         cursor.execute(instrucao)
 
@@ -609,6 +611,73 @@ def render_rollback_cliente_sql() -> str:
         "    ALTER TABLE dbo.monitorias DROP COLUMN nome_cliente;\n"
         "IF COL_LENGTH('dbo.monitorias', 'cpf_cliente') IS NOT NULL\n"
         "    ALTER TABLE dbo.monitorias DROP COLUMN cpf_cliente;\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Contato do cliente (redesign, DEC-095, nov/2026): gera a V067. Uma coluna; obrigatória só nas
+# monitorias novas (a API confere telefone com DDD ou e-mail). As antigas ficam com NULL.
+# ---------------------------------------------------------------------------
+_COLUNAS_CONTATO_CLIENTE: list[tuple[str, str, str]] = [
+    ("monitorias", "contato_cliente", "NVARCHAR(180)"),
+]
+
+
+def schema_contato_cliente_statements() -> list[str]:
+    return [_add_column_sql(*item) for item in _COLUNAS_CONTATO_CLIENTE]
+
+
+def render_migration_contato_cliente_sql() -> str:
+    cabecalho = (
+        "-- Conecta - Monitoria: contato do cliente (telefone com DDD ou e-mail). Aditiva e idempotente.\n"
+        "-- Gerada a partir de rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_contato_cliente_statements()) + "\n"
+
+
+def render_rollback_contato_cliente_sql() -> str:
+    return (
+        "-- Rollback da V067: remove a coluna do contato do cliente. Os contatos ja gravados sao perdidos.\n"
+        "IF COL_LENGTH('dbo.monitorias', 'contato_cliente') IS NOT NULL\n"
+        "    ALTER TABLE dbo.monitorias DROP COLUMN contato_cliente;\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Módulos por operação (lista 10/11, item 16): gera a V069. Cada linha desliga (ou religa) uma função do
+# menu da Operação só para quem trabalha nesta operação. Sem linha = segue a tela Módulos (nada muda).
+# ---------------------------------------------------------------------------
+_TABELAS_MODULOS_OPERACAO: list[tuple[str, str]] = [
+    (
+        "operacoes_modulos",
+        """
+        operacao NVARCHAR(60) NOT NULL,
+        funcao NVARCHAR(40) NOT NULL,
+        ativo BIT NOT NULL CONSTRAINT DF_operacoes_modulos_ativo DEFAULT 1,
+        atualizado_por NVARCHAR(180) NULL,
+        atualizado_em DATETIME NOT NULL CONSTRAINT DF_operacoes_modulos_atualizado_em DEFAULT GETDATE(),
+        CONSTRAINT PK_operacoes_modulos PRIMARY KEY (operacao, funcao)
+        """,
+    ),
+]
+
+
+def schema_modulos_operacao_statements() -> list[str]:
+    return [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS_MODULOS_OPERACAO]
+
+
+def render_migration_modulos_operacao_sql() -> str:
+    cabecalho = (
+        "-- Conecta - modulos por operacao (lista 10/11, item 16). Aditiva e idempotente.\n"
+        "-- Gerada a partir de rh_api/repositories/monitoria_schema.py (um teste garante que coincide com o bootstrap).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_modulos_operacao_statements()) + "\n"
+
+
+def render_rollback_modulos_operacao_sql() -> str:
+    return (
+        "-- Rollback da V069: remove os modulos por operacao. Todas as operacoes voltam a seguir a tela Modulos.\n"
+        "IF OBJECT_ID('dbo.operacoes_modulos', 'U') IS NOT NULL DROP TABLE dbo.operacoes_modulos;\n"
     )
 
 

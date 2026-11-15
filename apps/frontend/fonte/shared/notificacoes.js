@@ -267,6 +267,26 @@ const categoriaDeAreaInativa = (categoria) =>
 /** Categorias que o usuário pode configurar (esconde as de áreas inativas). */
 export const categoriasNotificacaoVisiveis = () => CATEGORIAS_NOTIFICACAO.filter((c) => !categoriaDeAreaInativa(c.id));
 
+// Clicar numa notificação abre a seção que a gerou (pedido do Paulo, 10/11/2026). Sem destino conhecido, só marca como lida.
+function caminhoDaNotificacao(item, { monitoria, chamado, wfm }) {
+  const cat = String(item.categoria || '');
+  const ent = String(item.entidade || '').toLowerCase();
+  const titulo = `${item.titulo || ''} ${item.mensagem || ''}`.toLowerCase();
+  if (chamado) return item.entidade_id ? `/suporte-ti/chamado/${encodeURIComponent(item.entidade_id)}` : '/suporte-ti';
+  if (monitoria) {
+    if (cat.includes('contestacao') || cat.includes('replica')) return '/monitorias/contestacoes';
+    if (cat.includes('feedback_pendente')) return '/monitorias/feedback';
+    return '/monitorias/minhas';
+  }
+  if (wfm) {
+    if (ent === 'troca' || titulo.includes('troca')) return '/turnos-plantoes/trocas';
+    if (titulo.includes('escala publicada')) return '/turnos-plantoes/minha-escala';
+    return '/turnos-plantoes';
+  }
+  if (cat.startsWith('diario')) return '/diario-de-bordo';
+  return '';
+}
+
 // Notificações gravadas no servidor (dbo.notificacoes): Central de Treinamentos e Monitoria.
 // A de Monitoria mostra só o resumo ("Fulano abriu uma contestação na monitoria #X").
 function montarItensPersistidos(notificacoes) {
@@ -283,7 +303,7 @@ function montarItensPersistidos(notificacoes) {
         // Categorias sem tela própria (LGPD, usuário criado...) caem em Administração, não mais em Treinamentos.
         categoria: monitoria ? 'monitoria' : chamado ? 'chamados' : wfm ? 'wfm' : treinamento ? 'treinamentos' : 'administracao',
         persistida: true,
-        caminho: chamado && item.entidade_id ? `/suporte-ti/chamado/${encodeURIComponent(item.entidade_id)}` : '',
+        caminho: caminhoDaNotificacao(item, { monitoria, chamado, wfm }),
         texto: monitoria
           ? item.mensagem || item.titulo || 'Atualização de monitoria'
           : wfm

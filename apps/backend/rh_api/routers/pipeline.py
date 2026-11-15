@@ -7,7 +7,6 @@ from ..dependencies import audit_action, get_current_user, get_repository, requi
 from ..repositories import DatabaseRepository
 from ..schemas.pipeline import PipelineCardCreateRequest, PipelineCardMoveRequest
 
-
 router = APIRouter(tags=["pipeline"], dependencies=[Depends(get_current_user)])
 
 

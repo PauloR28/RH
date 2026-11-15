@@ -6,10 +6,10 @@ Reaproveita o cenário (operação de atendimento + operação de TI de teste, u
 from __future__ import annotations
 
 import pytest
+from test_wfm_aprovacao_ti import MES, _erro, _user, ctx  # noqa: F401 - `ctx` é a fixture do cenário
 
 from rh_api.rbac import ROLE_MANAGER
 from rh_api.services import wfm_scope
-from test_wfm_aprovacao_ti import MES, _erro, _user, ctx  # noqa: F401 - `ctx` é a fixture do cenário
 
 
 @pytest.fixture()

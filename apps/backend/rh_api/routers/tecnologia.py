@@ -5,8 +5,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..schemas.modulos import FuncaoModuloRequest, LoteModulosRequest, ModuloAtivoRequest, ModulosAcessoRequest, PermissaoModuloRequest, WfmParticipantesRequest
-from ..services import acesso, modulos_admin
+from ..schemas.modulos import (
+    FuncaoModuloRequest,
+    LoteAcessosRequest,
+    LoteModulosRequest,
+    ModuloAtivoRequest,
+    ModulosAcessoRequest,
+    PadronizarAcessosRequest,
+    PermissaoModuloRequest,
+    WfmParticipantesRequest,
+)
+from ..services import acesso, acesso_cache, central_acessos, modulos_admin
 
 router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depends(get_current_user)])
 
@@ -14,6 +23,47 @@ router = APIRouter(prefix="/tecnologia", tags=["tecnologia"], dependencies=[Depe
 @router.get("/modulos", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
 def listar_modulos() -> list[dict]:
     return modulos_admin.listar_modulos()
+
+
+@router.get("/unidades", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def listar_unidades(modulo: str | None = None) -> list[dict]:
+    """Operações e setores (Central de Acessos, Etapa 3). Com `modulo`, só as unidades daquele módulo."""
+    foto = acesso_cache.foto()
+    lista = acesso_cache.unidades_do_modulo(modulo, so_ativas=False) if modulo else sorted(foto.unidades.values(), key=lambda u: (u.modulo, u.tipo, u.nome.lower()))
+    return [{"chave": u.chave, "nome": u.nome, "tipo": u.tipo, "modulo": u.modulo, "ativo": u.ativo} for u in lista]
+
+
+@router.get("/acessos", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def ler_acessos(modulo: str, escopo: str = "padrao") -> dict:
+    """Central de Acessos (Etapa 6): funções do catálogo, ações e o que cada perfil pode, no escopo pedido."""
+    return central_acessos.matriz(modulo, escopo)
+
+
+@router.get("/acessos/escopos", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def ler_escopos_acessos(modulo: str) -> dict:
+    """Opções do "Vale para": unidades do módulo e as pessoas ligadas a elas."""
+    return central_acessos.escopos(modulo)
+
+
+@router.put("/acessos/lote", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def salvar_acessos(payload: LoteAcessosRequest, request: Request,
+                   user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
+    """Salvar da Central de Acessos: tudo ou nada, uma linha de auditoria por mudança."""
+    resultado = central_acessos.salvar_lote(payload.modulo, payload.escopo, [m.model_dump() for m in payload.mudancas], autor=user.username)
+    for m in resultado["aplicadas"]:
+        entidade_id = f"{payload.modulo}|{payload.escopo}|" + (m["funcao"] if m["tipo"] == "funcao" else f"{m['perfil']}|{m['chave']}")
+        audit_action(repository, user, modulo="Sistema", acao="central_acessos_alterada", entidade=m["tipo"], entidade_id=entidade_id,
+                     valor_novo=m, justificativa=payload.justificativa, request=request)
+    return resultado
+
+
+@router.post("/acessos/padronizar", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def padronizar_acessos(payload: PadronizarAcessosRequest, request: Request,
+                       user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
+    resultado = central_acessos.padronizar(payload.modulo, payload.escopo, autor=user.username)
+    audit_action(repository, user, modulo="Sistema", acao="central_acessos_padronizada", entidade="escopo",
+                 entidade_id=f"{payload.modulo}|{payload.escopo}", valor_novo=resultado, justificativa=payload.justificativa, request=request)
+    return resultado
 
 
 @router.get("/resumo", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
@@ -32,6 +82,7 @@ def listar_acessos() -> dict:
 def definir_acesso_perfil(id_perfil: str, payload: ModulosAcessoRequest, request: Request,
                           user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
     resultado = modulos_admin.definir_acesso_perfil(id_perfil, payload.modulos, autor=user.username)
+    acesso_cache.invalidar()
     audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_perfil_alterado", entidade="perfil", entidade_id=id_perfil,
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)
@@ -42,6 +93,7 @@ def definir_acesso_perfil(id_perfil: str, payload: ModulosAcessoRequest, request
 def definir_acesso_usuario(id_usuario: int, payload: ModulosAcessoRequest, request: Request,
                            user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
     resultado = modulos_admin.definir_acesso_usuario(id_usuario, payload.modulos, autor=user.username)
+    acesso_cache.invalidar()
     audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_usuario_alterado", entidade="usuario", entidade_id=str(id_usuario),
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": resultado["modulos"]},
                  justificativa=payload.justificativa, request=request)

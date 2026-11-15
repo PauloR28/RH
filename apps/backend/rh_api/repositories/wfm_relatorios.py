@@ -30,7 +30,7 @@ from ..services.monitoria_export import gerar_csv, gerar_xlsx
 from ..services.wfm_montagem import EventoCalendario, horario_efetivo
 
 MAX_DIAS = 366
-TIPOS = ("resumo", "escalas", "presencas", "trocas", "aprovacoes")  # relatórios em tabela (exportáveis)
+TIPOS = ("resumo", "escalas", "escalados", "presencas", "trocas", "aprovacoes")  # relatórios em tabela (exportáveis)
 SEMANA = ("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
 ROTULO_STATUS = {"PRESENTE": "Presente", "FALTA": "Falta", "FALTA_JUSTIFICADA": "Falta justificada", "ATESTADO": "Atestado", "SERVICO_EXTERNO": "Serviço Externo", "DAY_OFF": "Day Off",
                   "FOLGA_COMP_BH": "Folga Compensação (BH)", "FOLGA": "Folga", "FERIAS": "Férias", "SEM_LANCAMENTO": "Sem lançamento"}
@@ -179,7 +179,8 @@ class WfmRelatoriosRepositoryMixin:
         for r in cursor.fetchall():
             id_a, id_b = int(r[1]), int(r[2])
             # O Administrador não lê o detalhe da troca na tela de pedidos, mas o histórico de relatórios é de leitura geral.
-            if user.perfil != ROLE_ADMIN and not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
+            # `todos_da_escala` (relatório Escalados do Supervisor): a escala inteira, como na exportação da escala.
+            if user.perfil != ROLE_ADMIN and not todos_da_escala and not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
                 continue
             if id_operador is not None and id_operador not in (id_a, id_b):
                 continue
@@ -447,6 +448,37 @@ class WfmRelatoriosRepositoryMixin:
                    "\"Aprovada por\" é a última aprovação registrada antes da publicação; a publicação com violação exige justificativa."]
         return colunas, linhas, resumo, calculo
 
+    def _wfm_rel_escalados(self, dado: dict) -> tuple[list[dict], list[dict], list[dict], list[str]]:
+        """Uma linha por operador e dia de trabalho: escala do dia e, se houve troca aprovada naquele dia, com quem e o outro dia da troca."""
+        equipes = {o["id_usuario"]: o.get("equipe") or "" for o in dado["operadores"]}
+        troca_do_dia: dict[tuple[int, date], tuple[str, date]] = {}
+        for t in dado["trocas"]:
+            if t["estado"] != "APROVADA":
+                continue
+            for id_op, colega in ((t["id_solicitante"], t["alvo"]), (t["id_alvo"], t["solicitante"])):
+                troca_do_dia[(id_op, t["data_a"])] = (colega, t["data_b"])
+                troca_do_dia[(id_op, t["data_b"])] = (colega, t["data_a"])
+        linhas = []
+        for d in sorted(dado["dias_escala"], key=lambda x: (x["data"], dado["nomes"][x["id_operador"]])):
+            if not d["trabalha"]:
+                continue
+            troca = troca_do_dia.get((d["id_operador"], d["data"]))
+            linhas.append({
+                "data": _br(d["data"]), "dia": SEMANA[d["data"].weekday()], "operador": dado["nomes"][d["id_operador"]], "equipe": equipes.get(d["id_operador"], ""),
+                "escala": d["codigo"], "horario": f"{d['entrada']}–{d['saida']}", "status_troca": "Sim" if troca else "Não",
+                "com_quem": troca[0] if troca else "—", "dia_troca": _br(troca[1]) if troca else "—",
+            })
+        colunas = [_col("data", "Data"), _col("dia", "Dia"), _col("operador", "Operador"), _col("equipe", "Equipe"), _col("escala", "Escala"), _col("horario", "Horário"),
+                   _col("status_troca", "Trocou?", "estado"), _col("com_quem", "Com quem"), _col("dia_troca", "Dia que deu em troca")]
+        trocados = sum(1 for l in linhas if l["status_troca"] == "Sim")
+        pct = f"{100 * trocados / len(linhas):.1f}".replace(".", ",") if linhas else "0"
+        resumo = [{"rotulo": "Dias escalados", "valor": len(linhas), "dica": "Dias de trabalho no período"},
+                  {"rotulo": "Operadores", "valor": len({l["operador"] for l in linhas}), "dica": "Com pelo menos 1 dia na escala"},
+                  {"rotulo": "Dias trocados", "valor": trocados, "dica": f"{pct}% dos dias · trocas aprovadas"}]
+        calculo = [CALCULO_COMUM[0], "Só dias de trabalho (folga e DSR ficam de fora). \"Trocou?\" considera só trocas aprovadas em que o dia é um dos dois dias da troca.",
+                   "O Supervisor vê a escala completa (todas as equipes)."]
+        return colunas, linhas, resumo, calculo
+
     def _wfm_rel_presencas(self, dado: dict) -> tuple[list[dict], list[dict], list[dict], list[str]]:
         linhas = []
         for d in sorted(dado["dias_escala"], key=lambda x: (x["data"], dado["nomes"][x["id_operador"]])):
@@ -518,7 +550,8 @@ class WfmRelatoriosRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)  # escalas desativadas continuam consultáveis (histórico)
             conn.commit()
-            dado = self._wfm_rel_coletar(cursor, user, operacao, ini, fim, id_operador)
+            # Escalados: o Supervisor vê a escala completa (todas as equipes), como na exportação da escala.
+            dado = self._wfm_rel_coletar(cursor, user, operacao, ini, fim, id_operador, todos_da_escala=tipo == "escalados" and user.perfil == ROLE_SUPERVISOR)
             anterior = None
             dado_equipes = None
             if tipo == "painel" and id_operador is None:  # comparação entre equipes: todas as equipes da escala, mesmo para o Supervisor
@@ -532,7 +565,7 @@ class WfmRelatoriosRepositoryMixin:
                 conn.commit()
         finally:
             conn.close()
-        titulos = {"resumo": "Resumo por operador", "escalas": "Histórico de escalas", "presencas": "Presenças e faltas", "trocas": "Trocas de plantão", "aprovacoes": "Aprovações da escala"}
+        titulos = {"resumo": "Resumo por operador", "escalas": "Histórico de escalas", "escalados": "Escalados", "presencas": "Presenças e faltas", "trocas": "Trocas de plantão", "aprovacoes": "Aprovações da escala"}
         if tipo == "painel":
             return {
                 "operacao": operacao, "tipo": tipo, "titulo": "Painel", "periodo": {"ini": ini.isoformat(), "fim": fim.isoformat()},

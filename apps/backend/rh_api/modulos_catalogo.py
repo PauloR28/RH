@@ -49,6 +49,8 @@ _DONO_POR_GRUPO = {
     "Monitoria": MODULO_OPERACAO,
     "WFM": MODULO_OPERACAO,
     "Equipes": MODULO_OPERACAO,
+    "Diário de bordo": MODULO_OPERACAO,
+    "Painel": MODULO_CORE,  # 14/nov/2026: o painel mostra o módulo escolhido na própria tela (Operação ou RH)  # 08/nov/2026: registro do dia da operação (TI não vê o conteúdo)
     "Configurações": MODULO_TECNOLOGIA,
     "Usuários": MODULO_TECNOLOGIA,
     "Logs": MODULO_TECNOLOGIA,
@@ -81,6 +83,8 @@ _DONO_POR_CHAVE = {
     "sessao.monitoria.acessar": MODULO_OPERACAO,
     "sessao.wfm.acessar": MODULO_OPERACAO,
     "sessao.equipe.acessar": MODULO_OPERACAO,
+    "sessao.diario.acessar": MODULO_OPERACAO,
+    "painel.configurar": MODULO_TECNOLOGIA,  # quem monta os painéis é a Tecnologia
     "sessao.configuracoes.acessar": MODULO_TECNOLOGIA,
 }
 
@@ -125,20 +129,72 @@ FUNCOES: dict[str, tuple[str, str]] = {
     "monitoria": ("Monitoria", "Central de Monitoria: avaliações, equipes e indicadores."),
     "wfm": ("Turnos e Plantões", "Escalas, presença, trocas e relatórios (WFM)."),
     "suporte": ("Suporte TI", "Chamados, fila, indicadores e configurações de TI."),
+    "diario": ("Diário de bordo", "Registro do dia, demandas e intercorrências da operação."),
+    "treinamentos": ("Treinamentos", "Trilhas e cursos da operação."),
 }
 _FUNCOES_MENU_LEGADO = ("cx-curriculos", "processos", "provas", "gestao", "drive", "monitoria", "wfm")
 FUNCOES_POR_MODULO: dict[str, tuple[str, ...]] = {
     MODULO_RH: _FUNCOES_MENU_LEGADO,
-    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO,
+    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO + ("diario", "treinamentos"),
     MODULO_TECNOLOGIA: ("suporte", "wfm"),
 }
+# Funções da Operação que cada operação pode desligar só para si (lista 10/11, item 16; tabela operacoes_modulos, V069).
+FUNCOES_POR_OPERACAO: tuple[str, ...] = ("monitoria", "wfm", "diario", "treinamentos")
 # Padrão = o menu de hoje (nada muda até alguém mexer): RH mostra as funções de RH; Operação, Monitoria e WFM; Tecnologia, Suporte e Escalas.
 FUNCOES_PADRAO_ATIVAS: dict[str, frozenset[str]] = {
     MODULO_RH: frozenset({"cx-curriculos", "processos", "provas", "gestao", "drive"}),
-    MODULO_OPERACAO: frozenset({"monitoria", "wfm"}),
+    MODULO_OPERACAO: frozenset({"monitoria", "wfm", "diario", "treinamentos"}),
     MODULO_TECNOLOGIA: frozenset({"suporte", "wfm"}),
+}
+
+
+# Módulo DONO de cada função (o mesmo de `MODULO_DO_GRUPO` no frontend). Uma função pode ser exibida em outro módulo
+# (tela Módulos), mas continua sendo do dono: com o dono DESATIVADO ela some de todos os módulos, e a chave de sessão dela
+# deixa de valer (menu, Início, atalhos e acesso direto por URL). Regra central em `services/acesso.py`.
+MODULO_DONO_DA_FUNCAO: dict[str, str] = {
+    "cx-curriculos": MODULO_RH,
+    "processos": MODULO_RH,
+    "provas": MODULO_RH,
+    "gestao": MODULO_RH,
+    "drive": MODULO_RH,
+    "monitoria": MODULO_OPERACAO,
+    "wfm": MODULO_OPERACAO,
+    "suporte": MODULO_TECNOLOGIA,
+}
+# Chave de sessão que abre cada função (algumas são do `core` por padrão, por isso precisam ser ligadas ao dono aqui).
+SESSAO_DA_FUNCAO: dict[str, str] = {
+    "cx-curriculos": "sessao.curriculos.acessar",
+    "processos": "sessao.processos.acessar",
+    "provas": "sessao.provas.acessar",
+    "gestao": "sessao.gestao.acessar",
+    "drive": "sessao.drive.acessar",
+    "monitoria": "sessao.monitoria.acessar",
+    "wfm": "sessao.wfm.acessar",
 }
 
 
 def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
     return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())
+
+
+# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Só prefixos exclusivos de uma
+# função; permissão compartilhada (ex.: `candidatos.`) ou de núcleo fica sem função e a camada não fecha nada para ela.
+PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = {
+    "monitoria": ("monitoria.", "sessao.monitoria."),
+    "wfm": ("wfm.", "sessao.wfm."),
+    "diario": ("diario.", "sessao.diario."),
+    "treinamentos": ("trilhas.", "sessao.treinamentos."),
+    "suporte": ("chamados.",),
+    "processos": ("processos.", "vagas.", "entrevistas.", "sessao.processos."),
+    "provas": ("provas.", "fit_cultural.", "sessao.provas."),
+    "cx-curriculos": ("sessao.curriculos.",),
+    "gestao": ("sessao.gestao.",),
+    "drive": ("sessao.drive.",),
+}
+
+
+def funcao_da_permissao(chave: str) -> str | None:
+    for funcao, prefixos in PREFIXOS_DA_FUNCAO.items():
+        if any(chave.startswith(p) for p in prefixos):
+            return funcao
+    return None

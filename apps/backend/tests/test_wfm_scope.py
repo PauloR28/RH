@@ -39,14 +39,18 @@ def test_control_desk_edita_qualquer_operador_das_operacoes_vinculadas():
     assert not _edita(ROLE_CONTROL_DESK, 1, 99, operacoes_usuario=[])
 
 
-def test_qualidade_le_mas_nao_edita():
+# 09/11/2026 (decisão do Paulo): o escopo só define o ALCANCE; quem edita é quem tem a chave wfm.escala.editar
+# (conferida na rota e no repositório). Qualidade e Administrador editam se a chave estiver ligada em Perfis.
+def test_qualidade_le_e_o_alcance_de_edicao_depende_da_chave():
     assert _ve(ROLE_QUALIDADE, 1, 99)
-    assert not _edita(ROLE_QUALIDADE, 1, 99)
+    assert _edita(ROLE_QUALIDADE, 1, 99)
+    assert not _edita(ROLE_QUALIDADE, 1, 99, operacoes_usuario=[])
 
 
-def test_administrador_le_tudo_mas_nunca_edita_escala():
+def test_administrador_le_e_edita_tudo_quando_tem_a_chave():
     assert _ve(ROLE_ADMIN, 1, 99, operacao="Z", operacoes_usuario=[])
-    assert not _edita(ROLE_ADMIN, 1, 99)
+    assert _edita(ROLE_ADMIN, 1, 99, operacao="Z", operacoes_usuario=[])
+    assert not _edita(ROLE_ADMIN, 10, 10)  # conflito de interesse continua valendo
 
 
 def test_gestor_e_global_e_edita():
@@ -63,9 +67,10 @@ def test_perfis_restritos_sem_vinculo_nao_acessam_nada():
         assert not sc.pode_ver_operacao(perfil, [], "A")
 
 
-def test_contratos_so_admin_e_control_desk():
-    assert sc.pode_editar_contratos(ROLE_ADMIN) and sc.pode_editar_contratos(ROLE_CONTROL_DESK)
-    assert not sc.pode_editar_contratos(ROLE_SUPERVISOR) and not sc.pode_editar_contratos(ROLE_MANAGER)
+def test_contratos_valem_pela_chave_e_participante_nunca():
+    for perfil in (ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_SUPERVISOR, ROLE_MANAGER):
+        assert sc.pode_editar_contratos(perfil)
+    assert not sc.pode_editar_contratos(ROLE_OPERATOR)
 
 
 def _decide(perfil, id_usuario, **kw):
@@ -81,8 +86,8 @@ def test_decidir_troca_respeita_perfil_equipe_operacao_e_conflito():
     assert not _decide(ROLE_MANAGER, 50)                         # parte da troca (qualquer perfil)
     assert _decide(ROLE_MANAGER, 9, ops=[], operacao="Z")
     assert _decide(ROLE_CONTROL_DESK, 9) and not _decide(ROLE_CONTROL_DESK, 9, operacao="B")
-    for perfil in (ROLE_ADMIN, ROLE_QUALIDADE, ROLE_OPERATOR):
-        assert not _decide(perfil, 9)
+    assert _decide(ROLE_ADMIN, 9, ops=[], operacao="Z")         # com a chave wfm.troca.aprovar
+    assert not _decide(ROLE_OPERATOR, 9)
 
 
 def test_ver_troca_so_os_dois_operadores_e_gestores():
@@ -91,4 +96,4 @@ def test_ver_troca_so_os_dois_operadores_e_gestores():
     assert ve(ROLE_OPERATOR, 10) and ve(ROLE_OPERATOR, 50) and not ve(ROLE_OPERATOR, 77)
     assert ve(ROLE_SUPERVISOR, 1) and not ve(ROLE_SUPERVISOR, 1, equipe=[99])
     assert ve(ROLE_MANAGER, 9) and ve(ROLE_CONTROL_DESK, 9)
-    assert not ve(ROLE_QUALIDADE, 9) and not ve(ROLE_ADMIN, 9)
+    assert ve(ROLE_ADMIN, 9)  # quem lê depende da chave wfm.troca.visualizar (conferida no repositório)

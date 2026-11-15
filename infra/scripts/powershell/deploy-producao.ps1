@@ -65,14 +65,22 @@ Write-Host "== 5/6: aplicando migrations pendentes (idempotente, seguro reaplica
 Write-Host ""
 Write-Host "== 6/6: reiniciando a aplicacao =="
 Start-ScheduledTask -TaskName $TaskName
-Start-Sleep -Seconds 5
-try {
-    $resp = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 10
+# A porta so abre depois do import do app e do bootstrap de schema (na primeira subida apos recriar o .venv
+# o Python ainda compila os .pyc), entao 5 s fixos nao bastam: tenta por ate 120 s.
+$limite = (Get-Date).AddSeconds(120)
+$resp = $null
+while (-not $resp -and (Get-Date) -lt $limite) {
+    Start-Sleep -Seconds 3
+    try { $resp = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 10 }
+    catch { $resp = $null }
+}
+if ($resp) {
     Write-Host "OK - aplicacao respondendo: $($resp.Content)" -ForegroundColor Green
 }
-catch {
-    Write-Host "ATENCAO - aplicacao nao respondeu em /health. Verifique manualmente." -ForegroundColor Red
-    throw
+else {
+    $estado = (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue).State
+    Write-Host "ATENCAO - aplicacao nao respondeu em /health em 120 s (tarefa $TaskName: $estado). Veja o conecta.log em RH_LOG_DIR." -ForegroundColor Red
+    throw "Aplicacao nao respondeu em /health apos o deploy."
 }
 
 Remove-Item $tempZip -ErrorAction SilentlyContinue

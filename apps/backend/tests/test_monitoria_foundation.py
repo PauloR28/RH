@@ -11,17 +11,17 @@ if str(API_DIR) not in sys.path:
     sys.path.insert(0, str(API_DIR))
 
 from rh_api.rbac import (
+    PERMISSION_DEFINITIONS,
     ROLE_ADMIN,
     ROLE_CONTROL_DESK,
+    ROLE_DEFINITIONS,
     ROLE_EMPLOYEE,
     ROLE_MANAGER,
     ROLE_OPERATOR,
+    ROLE_PERMISSIONS,
     ROLE_QUALIDADE,
     ROLE_RH,
     ROLE_SUPERVISOR,
-    ROLE_DEFINITIONS,
-    ROLE_PERMISSIONS,
-    PERMISSION_DEFINITIONS,
     get_role_definition,
     normalize_role_id,
 )
@@ -191,9 +191,8 @@ def test_token_antigo_sem_versao_de_permissoes_e_recusado():
     import pytest
     from fastapi import HTTPException
 
-    from rh_api.auth import _build_token, validate_access_token
+    from rh_api.auth import AuthenticatedUser, _build_token, validate_access_token
     from rh_api.config import get_settings
-    from rh_api.auth import AuthenticatedUser
 
     atual = _build_token(AuthenticatedUser(username="x", id_usuario=1, nome="X"))
     assert validate_access_token(atual).username == "x"

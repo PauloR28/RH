@@ -23,7 +23,6 @@ from .bootstrap import (
     ensure_talent_bank_table,
 )
 
-
 SHEET_RECOMMENDATION_LABELS = {
     "indicado": "Indicado",
     "indicado com restricoes": "Indicado com restrições",

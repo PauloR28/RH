@@ -14,7 +14,6 @@ from .bootstrap import (
     ensure_process_trainings_table,
 )
 
-
 _TRILHA_COLUMNS = """
     id_trilha,
     nome,
@@ -1574,7 +1573,7 @@ class OnboardingRepositoryMixin:
             row = cursor.fetchone()
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Treinamento do processo não encontrado.")
-            id_processo, trilha_id, vagas_totais, vagas_liberadas = (
+            _id_processo, trilha_id, vagas_totais, vagas_liberadas = (
                 normalize_text(row[0]),
                 int(row[1]),
                 int(row[2] or 0),

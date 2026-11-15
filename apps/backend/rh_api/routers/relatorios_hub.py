@@ -24,6 +24,7 @@ _EXPORTAR = {
     "relhub.wfm.painel": "wfm.relatorios",
     "relhub.wfm.resumo": "wfm.relatorios",
     "relhub.wfm.escalas": "wfm.relatorios",
+    "relhub.wfm.escalados": "wfm.relatorios",
     "relhub.wfm.presencas": "wfm.relatorios",
     "relhub.wfm.trocas": "wfm.relatorios",
     "relhub.wfm.aprovacoes": "wfm.relatorios",

@@ -29,7 +29,6 @@ from .bootstrap import (
 )
 from .security import _mask_email, _mask_phone
 
-
 logger = logging.getLogger(__name__)
 
 # Cache de queries (roadmap de expansão, respostas.txt): o dashboard de funil

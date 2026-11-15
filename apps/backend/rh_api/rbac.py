@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from .modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, modulo_dono_padrao
 
-
 ROLE_INTERN = "estagiario"
 ROLE_DP = "dp"
 ROLE_MANAGER = "gestor"
@@ -28,7 +27,7 @@ ROLE_ANALISTA_TI = "analista_ti"  # Gestor de TI: monta, aprova, publica e admin
 # Versão do catálogo de permissões embutido nos tokens. Muda quando perfis/permissões
 # são reorganizados (ex.: vertente Monitoria, 20/set/2026): tokens emitidos antes
 # são recusados (401) e a pessoa entra de novo já com as permissões atuais.
-PERMISSIONS_VERSION = "2026-10-23-relatorios-historicos"
+PERMISSIONS_VERSION = "2026-11-14-painel"
 
 ACCESS_DENIED_MESSAGE = "Você não possui permissão para acessar esta área ou executar esta ação."
 
@@ -170,10 +169,13 @@ def _permission(
 # A de base continua sendo exigida pelo backend (a chave nova só liga o relatório na página); a semente copia o acesso que cada
 # perfil já tem hoje (ver o fim do arquivo). Supervisor/Operador nunca recebem os logs: a base (logs.*) não é deles.
 GRUPO_RELHUB = "Relatórios e Históricos"
+GRUPO_DIARIO = "Diário de bordo"
+GRUPO_PAINEL = "Painel"
 RELATORIOS_HUB: tuple[tuple[str, str, str, bool], ...] = (
     ("relhub.wfm.painel", "Painel de indicadores e gráficos de Turnos e Plantões.", "wfm.relatorios", False),
     ("relhub.wfm.resumo", "Relatório Resumo por operador (horas, presença e faltas) de Turnos e Plantões.", "wfm.relatorios", False),
     ("relhub.wfm.escalas", "Relatório de escalas publicadas e quem aprovou (Turnos e Plantões).", "wfm.relatorios", False),
+    ("relhub.wfm.escalados", "Relatório Escalados: quem trabalhou em cada dia, em qual escala e se trocou com alguém (Turnos e Plantões).", "wfm.relatorios", False),
     ("relhub.wfm.presencas", "Relatório/histórico de presenças e faltas dia a dia (Turnos e Plantões).", "wfm.relatorios", False),
     ("relhub.wfm.trocas", "Relatório/histórico de trocas de plantão (pedidos, aprovações e reprovações).", "wfm.relatorios", False),
     ("relhub.wfm.aprovacoes", "Relatório de aprovações de escala (envio, aprovação, declínio e publicação).", "wfm.relatorios", False),
@@ -449,6 +451,19 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("chamados.atribuir", "Chamados", "Atribuir chamados a outros técnicos.", critical=True),
         _permission("chamados.dashboard", "Chamados", "Ver o dashboard de chamados."),
         _permission("chamados.configurar", "Chamados", "Gerenciar categorias, prazos de SLA, encerramento automático e limites de anexo.", critical=True),
+        # Diário de bordo (08/nov/2026): registro do dia da operação por turno. Valores iniciais editáveis em Perfis e Permissões.
+        _permission("sessao.diario.acessar", "Sessões", "Acessar a sessão Diário de bordo."),
+        _permission("diario.visualizar", GRUPO_DIARIO, "Abrir o Diário de bordo e consultar dias, turnos, intercorrências e histórico das suas operações."),
+        _permission("diario.preencher", GRUPO_DIARIO, "Preencher e concluir turnos, registrar intercorrências e parciais, corrigir o ABS e encerrar o dia.", critical=True),
+        _permission("diario.reabrir", GRUPO_DIARIO, "Reabrir turno concluído ou dia encerrado do Diário de bordo, com motivo.", critical=True),
+        _permission("diario.exportar", GRUPO_DIARIO, "Exportar o histórico do Diário de bordo e as alterações de um dia.", critical=True),
+        _permission("diario.administrar", GRUPO_DIARIO, "Cadastros do Diário de bordo (tipos de demanda, canais, ferramentas) e importação dos registros antigos.", critical=True),
+        _permission("diario.intercorrencias", GRUPO_DIARIO, "Consultar só as intercorrências do Diário de bordo (sem demandas, nível de serviço nem ABS)."),
+        # Painel (14/nov/2026): visão analítica por módulo e operação. A Tecnologia monta cada painel (métricas, forma, quem vê);
+        # cada bloco ainda exige a permissão de base do módulo de origem (o painel não abre dado que a pessoa não podia ver).
+        _permission("sessao.painel.acessar", "Sessões", "Acessar a sessão Painel."),
+        _permission("painel.visualizar", GRUPO_PAINEL, "Ver os painéis liberados para o seu perfil, nas operações a que você tem acesso."),
+        _permission("painel.configurar", GRUPO_PAINEL, "Criar e editar painéis: métricas, forma de mostrar, ordem, atualização e quem pode ver.", critical=True),
         # Relatórios e Históricos: a sessão (abre a página) e uma permissão por relatório.
         _permission("sessao.relatorios.acessar", "Sessões", "Acessar a sessão Relatórios e Históricos."),
         *(_permission(chave, GRUPO_RELHUB, descricao, critical=critica) for chave, descricao, _base, critica in RELATORIOS_HUB),
@@ -833,6 +848,7 @@ PERMISSOES_ADMINISTRACAO_TI = frozenset(
     if modulo_dono_padrao(chave, PERMISSION_DEFINITIONS[chave].module) in (MODULO_CORE, MODULO_TECNOLOGIA)
     and not chave.startswith("chamados.")  # Chamados tem seed próprio (abaixo); a V057 já aplicada não pode mudar
     and not chave.startswith("relhub.") and chave != "sessao.relatorios.acessar"  # Relatórios: só pelo que o perfil já tem (semente no fim)
+    and chave not in ("painel.visualizar", "sessao.painel.acessar")  # Painel: a TI configura (painel.configurar), não assiste
 )
 for _papel in PERFIS_TI:
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(PERMISSOES_ADMINISTRACAO_TI)
@@ -848,6 +864,19 @@ _EQUIPES_LEITURA = {"sessao.equipe.acessar", "equipes.controle.visualizar"}
 ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update(_EQUIPES_LEITURA | {"equipes.membros.editar", "equipes.mural.publicar"})
 for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(_EQUIPES_LEITURA)
+
+# Diário de bordo (D2, 08/nov/2026): Supervisor preenche; Gestor consulta, reabre e exporta; Qualidade só lê as intercorrências;
+# Administrador recebe o catálogo inteiro (inclui `diario.administrar`). Técnicos de TI não veem o conteúdo (grupo é do módulo Operação).
+ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"diario.visualizar", "diario.preencher"})
+ROLE_PERMISSIONS.setdefault(ROLE_MANAGER, set()).update({"diario.visualizar", "diario.reabrir", "diario.exportar"})
+ROLE_PERMISSIONS.setdefault(ROLE_QUALIDADE, set()).update({"diario.intercorrencias"})
+# Chave-mestra da sessão (liga/desliga em Perfis e Permissões): quem recebe alguma chave do diário recebe a sessão.
+for _papel, _perms in ROLE_PERMISSIONS.items():
+    if any(p.startswith("diario.") for p in _perms):
+        _perms.add("sessao.diario.acessar")
+
+# Painel (14/nov/2026): o Gestor assiste; a TI (via administração herdada, acima) e o Administrador configuram.
+ROLE_PERMISSIONS.setdefault(ROLE_MANAGER, set()).update({"sessao.painel.acessar", "painel.visualizar"})
 
 # Relatórios e Históricos: cada perfil recebe a chave do relatório SE já tem a permissão de base (nada some, nada novo aparece);
 # quem recebe ao menos um relatório recebe também a sessão. Roda por último de propósito: não entra na administração herdada da TI.
@@ -889,6 +918,12 @@ SCREEN_PERMISSIONS.update(
         "screen-wfm-trocas": "wfm.troca.visualizar",
         "screen-relatorios": "sessao.relatorios.acessar",
         "screen-wfm-painel": "relhub.wfm.painel",
+        "screen-wfm-dia": "wfm.presenca.lancar",
+        "screen-diario": "diario.visualizar",
+        "screen-diario-historico": "diario.visualizar",
+        "screen-diario-cadastros": "diario.administrar",
+        "screen-painel": "painel.visualizar",
+        "screen-settings-paineis": "painel.configurar",
     }
 )
 

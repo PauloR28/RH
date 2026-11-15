@@ -9,7 +9,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from ....infrastructure.observability.context import request_id_var, user_id_var
 
-
 logger = logging.getLogger("conecta.http")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 

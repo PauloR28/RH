@@ -6,7 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-
 PARECERES_PERMITIDOS = (
     "ADERENTE",
     "ADERENTE_COM_RESSALVAS",

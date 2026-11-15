@@ -40,7 +40,9 @@ assert.ok(examPage.includes('O conteudo da area de transferencia nunca e lido ne
 assert.equal(examPage.includes("clipboardData.getData"), false);
 
 const sidebarLinksStart = sidebar.indexOf('const sublinksProcessos = [');
-const sidebarLinksEnd = sidebar.indexOf('const sublinksRelatorios = [');
+// Só a lista de links do menu de Processos (termina no primeiro `];` depois do início).
+const sidebarLinksEnd = sidebar.indexOf('];', sidebarLinksStart);
+assert.ok(sidebarLinksStart >= 0 && sidebarLinksEnd > sidebarLinksStart);
 const sidebarLinks = sidebar.slice(sidebarLinksStart, sidebarLinksEnd);
 assert.equal(sidebarLinks.includes('screen-process-analytical-results'), false);
 

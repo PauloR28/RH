@@ -32,6 +32,7 @@ export const MODULO_DO_GRUPO = {
   treinamentos: MODULO_CORE,
   monitoria: MODULO_OPERACAO,
   wfm: MODULO_OPERACAO,
+  diario: MODULO_OPERACAO, // Diário de bordo (08/11/2026): seção própria da Operação
 };
 
 // Itens do grupo "Configurações" -> módulo. Em Tecnologia aparecem todos; em RH/Operação só os do próprio módulo.
@@ -46,6 +47,8 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-document-templates': MODULO_RH,
   'screen-settings-users': MODULO_TECNOLOGIA,
   'screen-settings-profiles': MODULO_TECNOLOGIA,
+  'screen-settings-acessos': MODULO_TECNOLOGIA, // Central de Acessos (Etapa 6): Gestão Global fica na Tecnologia
+  'screen-settings-paineis': MODULO_TECNOLOGIA, // Painéis (14/11/2026): quem monta os painéis é a Tecnologia
   'screen-settings-operations': MODULO_TECNOLOGIA,
   'screen-settings-logs': MODULO_TECNOLOGIA,
   'screen-settings-administracao': MODULO_TECNOLOGIA,
@@ -77,7 +80,8 @@ export const MENU_TECNOLOGIA = [
     itens: [
       { tela: 'screen-settings-users', label: 'Usuários', icone: 'person', permissao: 'usuarios.visualizar' },
       { tela: 'screen-settings-profiles', label: 'Perfis e permissões', icone: 'admin_panel_settings', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-operations', label: 'Operações', icone: 'apartment', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-acessos', label: 'Acessos', icone: 'lock', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-operations', label: 'Unidades', icone: 'apartment', permissao: 'configuracoes.visualizar' },
     ],
   },
   {
@@ -87,6 +91,7 @@ export const MENU_TECNOLOGIA = [
     icone: 'settings',
     itens: [
       { tela: TELA_MODULOS_TECNOLOGIA, label: 'Módulos', icone: 'grid_view', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-paineis', label: 'Painéis', icone: 'chart-bar', permissao: 'painel.configurar' },
       { tela: 'screen-settings-administracao', label: 'Parâmetros e integrações', icone: 'verified_user', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-etapas', label: 'Etapas do Processo', icone: 'checklist', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-motivos-eliminacao', label: 'Motivos de Eliminação', icone: 'person_remove', permissao: 'configuracoes.visualizar' },
@@ -113,7 +118,7 @@ export const MENU_TECNOLOGIA = [
 // Grupo do menu cuja área pode estar inativa (shared/areas.js). Treinamentos/Suporte têm tratamento próprio.
 const AREA_DA_FUNCAO_DO_GRUPO = { 'cx-curriculos': AREA_CURRICULOS, processos: AREA_PROCESSOS, provas: AREA_PROVAS };
 
-export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm']);
+export const FUNCOES_CONFIGURAVEIS = new Set(['cx-curriculos', 'processos', 'provas', 'gestao', 'drive', 'monitoria', 'wfm', 'diario']);
 let funcoesPorModulo = null;
 
 export function definirFuncoesModulos(funcoes) {
@@ -132,6 +137,10 @@ export function grupoNoModulo(grupo, moduloAtual, carregado) {
   if (!carregado || !moduloAtual) return true;
   if (moduloAtual === MODULO_TECNOLOGIA) return false;
   if (FUNCOES_CONFIGURAVEIS.has(grupo) && Array.isArray(funcoesPorModulo?.[moduloAtual])) return funcoesPorModulo[moduloAtual].includes(grupo);
+  // Treinamentos é do núcleo, mas na Operação segue a tela Módulos e os módulos da operação da pessoa (item 16, 10/11).
+  if (grupo === 'treinamentos' && moduloAtual === MODULO_OPERACAO && Array.isArray(funcoesPorModulo?.[moduloAtual])) {
+    return funcoesPorModulo[moduloAtual].includes(grupo);
+  }
   const dono = MODULO_DO_GRUPO[grupo];
   return !dono || dono === MODULO_CORE || dono === moduloAtual;
 }
@@ -199,6 +208,28 @@ export function telaInicialDoModulo(modulo, podeAcessarTela) {
     return ordem.find((tela) => podeAcessarTela(tela)) || 'screen-menu';
   }
   return 'screen-menu';
+}
+
+/**
+ * Central de Acessos, Etapa 7: módulo DONO de uma tela, para abrir um módulo por vez.
+ * Abrir uma tela de outro módulo (link direto, atalho, notificação) troca o módulo aberto para o dono dela, em vez de
+ * mostrar a página dentro do menu do módulo errado. Telas compartilhadas (WFM, que a Tecnologia também usa como
+ * "Escalas e Plantões"; Início; Configurações sem dono) devolvem '' e não trocam nada.
+ */
+export function moduloDonoDaTela(tela) {
+  const t = String(tela || '');
+  if (!t) return '';
+  if (TELAS_TECNOLOGIA.includes(t) || TELAS_SUPORTE_TI.includes(t)) return MODULO_TECNOLOGIA;
+  if (MODULO_DA_TELA_CONFIGURACAO[t]) return MODULO_DA_TELA_CONFIGURACAO[t];
+  if (t.startsWith('screen-monitoria') || t.startsWith('screen-diario')) return MODULO_OPERACAO;
+  return '';
+}
+
+/** Módulo a abrir para esta tela: o dono dela, se a pessoa enxerga esse módulo e ele não é o atual; senão ''. */
+export function moduloParaAbrir(tela, moduloAtual, visiveis = [], carregado = true) {
+  if (!carregado) return '';
+  const dono = moduloDonoDaTela(tela);
+  return dono && dono !== moduloAtual && visiveis.includes(dono) ? dono : '';
 }
 
 /** Em Tecnologia, a tela do WFM só mostra a operação da TI; nos demais módulos, nenhum filtro. */

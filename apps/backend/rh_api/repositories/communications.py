@@ -56,7 +56,6 @@ from .bootstrap import (
     insert_candidate_process_record,
 )
 
-
 CV_ATTACHMENT_EXTENSIONS = {".pdf", ".doc", ".docx"}
 EMAIL_INBOX_ORIGIN = "Recebimento de e-mail"
 EMAIL_INBOX_FILE_DROP_MODE = "file_drop"
@@ -195,8 +194,6 @@ class CommunicationRepositoryMixin:
 
     def _graph_request(self, token: str, path: str, params: dict | None = None) -> dict:
         return self._graph_client().get_json(path, params=params, token=token)
-
-        return response.json()
 
     def _graph_message_path(self, message_id: str = "") -> str:
         mailbox = self._graph_mailbox_user()
@@ -842,7 +839,6 @@ class CommunicationRepositoryMixin:
         filename, mime_type, content, attachment_path = self._read_email_drop_attachment_content(folder, metadata)
         subject = normalize_text(item.get("assunto"))
         sender = normalize_text(item.get("remetente"))
-        body = normalize_text(item.get("corpo"))
 
         try:
             extracted = extract_text_from_uploaded_file(filename, content, mime_type)

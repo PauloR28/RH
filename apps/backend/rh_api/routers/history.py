@@ -5,12 +5,11 @@ import logging
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from ..config import get_settings
 from ..auth import AuthenticatedUser
+from ..config import get_settings
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 from ..schemas.history import AnswerFileRequest, HistoryRecordRequest
-
 
 router = APIRouter(tags=["history"], dependencies=[Depends(get_current_user)])
 logger = logging.getLogger(__name__)

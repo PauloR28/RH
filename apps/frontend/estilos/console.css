@@ -237,7 +237,10 @@
 .cx-op-corpo > .cx-card, .cx-op-form-wrap { min-height: 0; min-width: 0; }
 .cx-op-form-wrap { display: flex; flex-direction: column; }
 .cx-op-form-wrap > .cx-card { flex: 1 1 auto; }
-.cx-op-filtros { display: flex; gap: 8px; padding: 0 16px 12px; position: sticky; top: 0; z-index: 1; background: var(--color-surface); }
+.cx-op-filtros { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; position: sticky; top: 0; z-index: 1; background: var(--color-surface); }
+/* Unidades (Central de Acessos, Etapa 3): busca em cima; status, tipo e módulo divididos por igual na linha de baixo. */
+.cx-op-filtros .cx-busca { flex: 1 1 100%; }
+.cx-op-filtros .cx-select { flex: 1 1 0; min-width: 0; }
 .cx-select { flex: 0 0 128px; height: 40px; padding: 0 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 0.867rem; }
 .cx-select:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 .cx-op-itens { list-style: none; margin: 0; padding: 0; }

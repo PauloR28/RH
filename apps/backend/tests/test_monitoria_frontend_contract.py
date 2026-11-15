@@ -12,12 +12,12 @@ if str(API_DIR) not in sys.path:
 
 from rh_api.rbac import (
     ROLE_ADMIN,
+    ROLE_CONTROL_DESK,
     ROLE_MANAGER,
     ROLE_OPERATOR,
-    ROLE_SUPERVISOR,
-    ROLE_QUALIDADE,
-    ROLE_CONTROL_DESK,
     ROLE_PERMISSIONS,
+    ROLE_QUALIDADE,
+    ROLE_SUPERVISOR,
     SCREEN_PERMISSIONS,
 )
 
@@ -55,8 +55,9 @@ def test_todas_as_abas_da_monitoria_tem_permissao_existente():
 
 def test_menu_por_sessoes_supervisor_e_operador_mostram_apenas_treinamentos_e_monitoria():
     sessoes = {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_SUPERVISOR] if p.startswith("sessao.")}
-    # wfm: Turnos e Plantões; equipe: Controle de Equipes e Turnos (Supervisor); relatorios: Relatórios e Históricos (23/out/2026)
-    assert sessoes == {"treinamentos", "monitoria", "wfm", "equipe", "relatorios"}, sessoes
+    # wfm: Turnos e Plantões; equipe: Controle de Equipes e Turnos (Supervisor); relatorios: Relatórios e Históricos (23/out/2026);
+    # diario: Diário de bordo (08/nov/2026)
+    assert sessoes == {"treinamentos", "monitoria", "wfm", "equipe", "relatorios", "diario"}, sessoes
     # Correções.txt 22/set: o Operador volta a acessar Treinamentos (autoatendimento dos
     # próprios treinamentos atribuídos — sem onboarding.criar/editar/gerenciar), mas
     # continua sem Dashboard nem Planos de ação da Monitoria.
@@ -64,7 +65,7 @@ def test_menu_por_sessoes_supervisor_e_operador_mostram_apenas_treinamentos_e_mo
     assert {p.split(".")[1] for p in perms_operador if p.startswith("sessao.")} == {"treinamentos", "monitoria", "wfm"}
     assert {"onboarding.visualizar", "onboarding.concluir_proprio"} <= perms_operador
     assert not {"monitoria.dashboard", "monitoria.plano_acao_visualizar", "onboarding.criar", "onboarding.editar", "onboarding.gerenciar"} & perms_operador
-    assert {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_QUALIDADE] if p.startswith("sessao.")} == {"monitoria", "wfm", "relatorios"}
+    assert {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_QUALIDADE] if p.startswith("sessao.")} == {"monitoria", "wfm", "relatorios", "diario"}
     assert {p.split(".")[1] for p in ROLE_PERMISSIONS[ROLE_CONTROL_DESK] if p.startswith("sessao.")} == {"monitoria", "wfm", "equipe", "relatorios"}
     assert "inicio.visualizar" in ROLE_PERMISSIONS[ROLE_SUPERVISOR]
 
@@ -78,7 +79,8 @@ def test_gestor_e_admin_tem_acesso_a_central_de_monitoria():
 def test_login_nao_menciona_mais_rh_na_marca():
     gestao = _ler(FONTE / "features" / "gestao" / "index.js")
     assert "Sistema Interno RH" not in gestao and "Acesso ao ambiente RH" not in gestao
-    assert "Acesse sua conta" in gestao and "Esqueci a senha" in gestao
+    # Redesenho do Login (DEC-070): o título passou a ser "Entrar"; "Esqueci a senha" continua.
+    assert "<h1>Entrar</h1>" in gestao and "Esqueci a senha" in gestao
 
 
 def test_caddy_encaminha_a_api_da_monitoria_ao_backend():

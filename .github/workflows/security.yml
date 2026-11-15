@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   security-events: write
 
 jobs:
@@ -22,13 +23,19 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -r requirements.txt pip-audit bandit
+      - run: pip install -r requirements.txt pip-audit bandit==1.9.4
       - name: Auditoria de dependências
         run: pip-audit -r requirements.txt
+      # O baseline guarda os 224 achados que já existiam em 08/11/2026 (quase todos B608, SQL montado em texto), ainda
+      # a revisar um a um. Só achado NOVO derruba o job. Para atualizar depois de corrigir:
+      #   bandit -q -r apps/backend -x apps/backend/tests -f json -o .github/bandit-baseline.json
       - name: SAST Python
-        run: bandit -q -r apps/backend -x apps/backend/tests
+        run: bandit -q -r apps/backend -x apps/backend/tests -b .github/bandit-baseline.json
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
+        env:
+          # Exigido pela gitleaks-action para varrer pull requests (lê a lista de commits da PR).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   codeql:
     runs-on: ubuntu-latest

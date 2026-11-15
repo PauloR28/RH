@@ -16,7 +16,6 @@ from .bootstrap import (
     ensure_parametros_sistema_table,
 )
 
-
 RESET_CONFIRMATION_PHRASE = "LIMPAR CONECTA"
 
 # Tabelas com dado operacional/transacional a zerar em "Limpar o Conecta",

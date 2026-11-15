@@ -5,12 +5,11 @@ import random
 import re
 import secrets
 import string
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from conecta.infrastructure.security.html_sanitizer import sanitize_rich_text_html
+from fastapi import HTTPException, status
 
 from ..services.cv import is_valid_email, is_valid_phone
 from ..services.helpers import normalize_compare_text, normalize_text, rows_to_dicts, safe_json_loads
@@ -43,7 +42,6 @@ from .bootstrap import (
     get_process_row,
 )
 from .exam_analytics_schema import ensure_exam_analytics_tables
-
 
 EXAM_STATUS_GENERATED = "Gerada"
 EXAM_STATUS_AVAILABLE = "Disponível"

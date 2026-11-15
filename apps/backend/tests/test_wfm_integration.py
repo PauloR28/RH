@@ -10,9 +10,9 @@ import uuid
 from datetime import date
 
 import pytest
+from _integracao_dev import repositorio_dev
 from fastapi import HTTPException
 
-from _integracao_dev import repositorio_dev
 from rh_api.auth import AuthenticatedUser
 from rh_api.rbac import (
     ROLE_ADMIN,

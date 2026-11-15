@@ -13,6 +13,7 @@ import {
 } from '../../services/api/monitoria.js';
 import { RESPOSTAS, formatarNota, hoje, SelectOperacao } from './comum.js';
 import { AnswerSegmented, ProgressBar, RatingScale, StepRail } from './nova-componentes.js?v=20261014-nova';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js';
 
 // Formulário de monitoria (avaliador), em etapas: trilho + resumo fixos à esquerda e a etapa
 // aberta à direita. A nota exibida é sempre calculada pelo servidor (mesmo motor da gravação) —
@@ -287,6 +288,7 @@ export function TelaNovaMonitoria({ controlador, contexto, aoConcluir, showToast
             <input class="form-control" value=${dados.id_interacao} maxlength="120" onInput=${(e) => atualizar('id_interacao', e.target.value)} />
           </label>` : null}
       </div>
+      ${operacao && dados.data_contato ? html`<${AvisoIntercorrencia} controlador=${controlador} operacao=${operacao} momento=${dados.data_contato} />` : null}
       ${operacao && matriz ? html`<p class="mon-alerta mon-alerta--info mon-alerta--linha"><${Icone} nome="info" /><span>Formulário: ${matriz.nome} · versão ${matriz.numero}. O ID de 8 dígitos é gerado ao finalizar.</span></p>` : null}
     </div>`;
 

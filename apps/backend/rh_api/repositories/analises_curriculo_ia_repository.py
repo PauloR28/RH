@@ -14,7 +14,6 @@ from .bootstrap import (
     get_process_row,
 )
 
-
 _LIST_FIELDS = (
     "pontos_fortes",
     "pontos_atencao",

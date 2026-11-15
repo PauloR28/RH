@@ -32,7 +32,6 @@ from .bootstrap import (
     resolve_process_row_for_related_record,
 )
 
-
 logger = logging.getLogger(__name__)
 
 SLOT_STATUS_AVAILABLE = "Disponivel"

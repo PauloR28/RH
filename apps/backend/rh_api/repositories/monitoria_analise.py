@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 
-from fastapi import HTTPException, status
+from fastapi import status
 
-from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition, get_role_permissions
 from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
@@ -25,8 +23,9 @@ from ..services.monitoria_export import gerar_csv, gerar_xlsx, sim_nao
 from ..services.monitoria_scope import operacoes_permitidas, pode_ver_detalhe_monitoria
 from ..services.monitoria_tema import derivar_tokens, validar_cor_primaria
 from ..services.training_uploads import CATEGORIA_IMAGEM, save_training_upload, validate_training_upload
-from .monitoria import _http, _iso, _json
+from .monitoria import _http, _iso
 from .monitoria_org import GUIA_PADRAO
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 
 SUBPASTA_LOGOS = "monitoria-logos"
 MAX_LOGO_MB = 1

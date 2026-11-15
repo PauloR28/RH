@@ -9,7 +9,6 @@ from .process_flow import (
     normalize_process_status,
 )
 
-
 STAGE_IMPORTANCE_BY_ROLE = {
     "Jovem Aprendiz": {
         "word_basic": 7.0,

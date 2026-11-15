@@ -179,9 +179,8 @@ class WfmPausasRepositoryMixin:
             raise _http(status.HTTP_403_FORBIDDEN, "Período fechado: somente o Gestor/RH altera as pausas.")
 
     def wfm_salvar_pausas(self, user, operacao: str, data: Any, itens: list[dict], *, ip: str = "") -> dict:
+        self._wfm_exigir_chave(user, "wfm.escala.editar")
         dia = _data(data)
-        if user.perfil == ROLE_ADMIN:
-            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não programa pausas.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -257,9 +256,8 @@ class WfmPausasRepositoryMixin:
     def wfm_distribuir_pausas(self, user, operacao: str, data: Any, ids: list[int] | None = None, *, sobrescrever: bool = False, ip: str = "") -> dict:
         """Preenche as 3 pausas de cada operador escalado do escopo (ou só dos `ids`), respeitando a
         capacidade simultânea da operação. Por padrão não mexe em quem já tem pausas programadas."""
+        self._wfm_exigir_chave(user, "wfm.escala.editar")
         dia = _data(data)
-        if user.perfil == ROLE_ADMIN:
-            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não programa pausas.")
         conn = self._connect()
         try:
             cursor = conn.cursor()
@@ -306,11 +304,10 @@ class WfmPausasRepositoryMixin:
         mês), só nos dias da semana escolhidos e só onde o operador trabalha. Serve também para "duplicar" as pausas de um
         colaborador para outro. O horário é gravado exatamente como informado: o que não cabe no turno do dia (ou se sobrepõe)
         é ignorado e contado; ultrapassar o limite de operadores em pausa ao mesmo tempo é apenas ALERTA (`dias_com_excesso`)."""
+        self._wfm_exigir_chave(user, "wfm.escala.editar")
         ini, fim = _data(data_ini), _data(data_fim)
         if fim < ini or (fim - ini).days > 62:
             raise _http(status.HTTP_400_BAD_REQUEST, "Período inválido (máximo de 2 meses).")
-        if user.perfil == ROLE_ADMIN:
-            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não programa pausas.")
         if not ids:
             raise _http(status.HTTP_400_BAD_REQUEST, "Escolha ao menos um colaborador.")
         modelo = []
@@ -395,8 +392,6 @@ class WfmPausasRepositoryMixin:
         origem, ini, fim = _data(data_origem), _data(data_ini), _data(data_fim)
         if fim < ini or (fim - ini).days > 62:
             raise _http(status.HTTP_400_BAD_REQUEST, "Período inválido (máximo de 2 meses).")
-        if user.perfil == ROLE_ADMIN:
-            raise _http(status.HTTP_403_FORBIDDEN, "O Administrador não programa pausas.")
         if not user.has_permission("wfm.escala.editar"):
             raise _http(status.HTTP_403_FORBIDDEN, "Você não pode programar as pausas desta escala.")
         dias_ok = set(dias_semana) if dias_semana is not None else set(range(7))

@@ -2,6 +2,8 @@
 
 ## Regras de Design (Anti-Estética de IA)
 
+> **SUBSTITUÍDAS em 06/nov/2026 (DEC-093)** pelas regras do rebranding aprovado: tokens de `tokens.css` + design system `conecta-ds.css` (prefixo `c-`), raios 0/4/8 px, régua de espaçamento 4·8·16·24, tabelas densas. As regras abaixo ficam como histórico; ver a seção "Exceção estendida: rebranding e redesign do Conecta (Fase 15, nov/2026)" no fim deste arquivo.
+
 - **Visual SaaS Moderno**: Evite gradientes genéricos, sombras pesadas e o visual padrão "Bootstrap".
 - **Sistema de Grade de 8px**: Use uma convenção de espaçamento onde todas as dimensões (margens, preenchimentos, lacunas) são múltiplos de 8 pixels (8px, 16px, 24px, etc.) para garantir consistência visual.
 - **Espaço em Branco (White Space)**: Aumente o "respiro" entre os elementos (microspace e macrospace) para melhorar o foco na ação do usuário e reduzir a distração.
@@ -74,3 +76,16 @@ O RH autorizou explicitamente a página **Relatórios e Históricos**, que centr
 ### Exceção estendida: ajustes de Escalas e Monitoria (rodada de 29/out/2026)
 
 O RH autorizou explicitamente ajustes full-stack em **Escalas (WFM)** e **Monitoria**: (1) o motivo real de qualquer erro chega à tela ("Falha ao salvar a escala: ..."), pois o tratador de `HTTPException` agora lê `detail` em dict (`mensagem`) e devolve `detalhes`; (2) painel "Aprovações pendentes" e bolinha na lista de escalas (`GET /wfm/escalas/aprovacoes-pendentes`, permissão `wfm.escala.aprovar`) e filtro do Supervisor "Todas as equipes" (somente leitura, `todas_equipes` em `GET /wfm/escala`); (3) turno com código automático (abreviação do nome) e tipo "Escala Especial" (não conta no limite de escalas nem na repetição de dias); limite de escalas por operador configurável em Configurações da escala (`max_escalas_operador`, padrão 4); (4) feriado ligado à escala: "Não gera serviço" aplica Folga a todos, "Gera serviço" aplica o turno/horário a quem foi escolhido (e Folga aos demais) ao salvar, em meses não fechados, invalidando a aprovação; (5) Nome e CPF do cliente (opcionais, CPF validado) na monitoria. Migrations aditivas V065 (monitorias) e V066 (WFM), geradas do mesmo DDL do bootstrap e com rollback. Mesmas condições de sempre: aditivo, sem quebrar rotas/dados/fluxos existentes, identidade visual (grade de 8px, sem gradiente, cores sóbrias).
+
+### Exceção estendida: rebranding e redesign do Conecta (Fase 15, nov/2026)
+
+O Paulo autorizou explicitamente o redesign da **Onda 1** (Fases 07–14 do rebranding, decisões DEC-032 a DEC-090). Condições:
+
+- O kit aprovado fica **só local** em `_redesign-kit/` (ignorado pelo Git) — nunca adicionar, commitar ou subir essa pasta.
+- Permitido mudar o visual de: Turnos e Plantões, Monitoria, Relatórios e Históricos, Login, Início, Equipes, Mural, Administração e a moldura (topo/navegação).
+- Nenhuma cor, espaço ou raio fora dos tokens (`tokens.css`); componentes pelo design system `conecta-ds.css` (prefixo `c-`).
+- Letra Nunito Sans servida localmente (DEC-033), sem Google Fonts.
+- Backend só aditivo e só onde o desenho pede (ex.: `contato_cliente` na monitoria, migration V067, DEC-095).
+- Regras de negócio, permissões, escopo por operação, auditoria, autenticação e imutabilidade da monitoria **não mudam**. Históricos continuam completos.
+- Trabalho na branch `redesign-2026`, uma área por vez, um PR por fatia para essa branch. Nada vai para a `main` sem o Paulo, que decide o deploy (DEC-097).
+- 4 portões por fatia: testes existentes verdes · `revisar.mjs` com 0 falhas no localhost · capturas amostra × tela real · roteiro de teste do Paulo.

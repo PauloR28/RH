@@ -8,6 +8,7 @@ from pathlib import Path
 os.environ.setdefault("RH_SESSION_SECRET_KEY", "teste")
 
 import pytest
+
 from rh_api.repositories.wfm import _abreviar_nome_turno
 from rh_api.repositories.wfm_escala import _mensagem_conflito
 from rh_api.repositories.wfm_schema_v066 import (

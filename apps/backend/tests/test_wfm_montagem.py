@@ -36,9 +36,18 @@ def test_montagem_com_troca_de_contrato_valida_limite_de_cada_dia():
     assert [v.codigo for v in res] == ["JORNADA_LEI"] and res[0].data == date(2026, 9, 15)
 
 
-def test_sem_contrato_bloqueia_com_violacao_de_montagem():
+def test_sem_jornada_nao_gera_aviso_09_11_2026():
+    # Decisão do Paulo: a jornada vem do turno; operador sem jornada não gera aviso nem bloqueio.
     dias, viol = m.montar_dias({date(2026, 9, 1): 1, date(2026, 9, 2): 1}, TURNOS, [], [])
-    assert dias == [] and len(viol) == 1 and viol[0].codigo == m.SEM_CONTRATO
+    assert viol == [] and len(dias) == 2
+    assert validar_escala(dias, periodo=(date(2026, 9, 1), date(2026, 9, 30))) == []
+
+
+def test_jornada_do_turno_vale_antes_da_do_operador():
+    t = {1: m.TurnoModelo(1, "M", TURNOS[1].tipo, TURNOS[1].entrada, TURNOS[1].saida, TURNOS[1].pausas, EST6)}
+    vig = [m.VigenciaContrato(CLT8, date(2026, 1, 1))]
+    dias, viol = m.montar_dias({date(2026, 9, 15): 1}, t, [], vig)
+    assert viol == [] and dias[0].contrato == EST6
 
 
 def test_feriado_aplica_jornada_propria_do_contrato():

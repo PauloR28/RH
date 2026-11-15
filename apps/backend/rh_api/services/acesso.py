@@ -25,11 +25,15 @@ from ..modulos_catalogo import (
     ABRE_MODULO_PADRAO,
     FUNCOES_PADRAO_ATIVAS,
     FUNCOES_POR_MODULO,
+    FUNCOES_POR_OPERACAO,
     MODULO_CORE,
+    MODULO_DONO_DA_FUNCAO,
+    MODULO_OPERACAO,
     MODULOS_PADRAO,
     MODULOS_PROTEGIDOS,
     MODULOS_VALIDOS,
     OPERACAO_TI,
+    SESSAO_DA_FUNCAO,
     modulo_dono_padrao,
 )
 
@@ -50,6 +54,8 @@ class EstadoModulos:
     abre: dict[str, bool] = field(default_factory=dict)  # permissão -> abre o módulo dono (só as que o banco definiu)
     # módulo -> funções (grupos do menu) que ele exibe. Só visibilidade: as permissões continuam valendo como antes.
     funcoes: dict[str, frozenset[str]] = field(default_factory=lambda: dict(FUNCOES_PADRAO_ATIVAS))
+    # operação -> funções da Operação desligadas só nela (V069, item 16). Sem linha = segue `funcoes`.
+    desligadas_operacao: dict[str, frozenset[str]] = field(default_factory=dict)
     de_banco: bool = False
 
 
@@ -84,7 +90,30 @@ def _carregar_do_banco() -> EstadoModulos:
     donos = {str(c): str(d) for c, d, _a in permissoes if str(d) in MODULOS_VALIDOS}
     abre = {str(c): bool(a) for c, d, a in permissoes if str(d) in MODULOS_VALIDOS}
     return EstadoModulos(ativos=frozenset(ativos | MODULOS_PROTEGIDOS), nomes=nomes, ordem=ordem, donos=donos, abre=abre,
-                         funcoes=_carregar_funcoes(), de_banco=True)
+                         funcoes=_carregar_funcoes(), desligadas_operacao=_carregar_desligadas_operacao(), de_banco=True)
+
+
+def _carregar_desligadas_operacao() -> dict[str, frozenset[str]]:
+    """Funções desligadas por operação (V069). Tabela ausente/ilegível = nenhuma (todas seguem a tela Módulos)."""
+    from ..config import get_settings
+    from ..db import get_connection
+
+    try:
+        conn = get_connection(get_settings(), autocommit=True)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT operacao, funcao FROM dbo.operacoes_modulos WHERE ativo = 0")
+            linhas = cursor.fetchall()
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 - V069 ainda não aplicada
+        logger.info("Módulos por operação indisponíveis (%s); todas as operações seguem a tela Módulos.", exc)
+        return {}
+    desligadas: dict[str, set[str]] = {}
+    for operacao, funcao in linhas:
+        if str(funcao) in FUNCOES_POR_OPERACAO:
+            desligadas.setdefault(str(operacao).strip(), set()).add(str(funcao))
+    return {op: frozenset(f) for op, f in desligadas.items()}
 
 
 def _carregar_funcoes() -> dict[str, frozenset[str]]:
@@ -154,8 +183,37 @@ def modulo_ativo(modulo: str) -> bool:
 def funcoes_ativas(modulo: str) -> list[str]:
     """Funções (grupos do menu) que o módulo exibe, na ordem do catálogo."""
     ligadas = estado().funcoes.get(modulo, frozenset())
-    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa.
-    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f)]
+    # Função de área inativa nunca aparece ligada, mesmo que o banco a tenha como ativa. Idem função cujo módulo dono
+    # está desativado (ex.: RH desligado => Currículos, Processos, Provas, Gestão e Drive somem também da Operação).
+    return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f) and _dono_da_funcao_ativo(f)]
+
+
+def funcao_ligada_na_unidade(funcao: str, unidade: str, modulo_da_unidade: str | None) -> bool:
+    """Camada "função" (Etapa 4): a função está ligada no módulo da unidade E na própria unidade?
+
+    * Módulo: só fecha se a função é do catálogo daquele módulo e está desligada lá (`modulos_funcoes`, V062).
+    * Unidade: desligada só nela em `operacoes_modulos` (V069, item 16). Sem linha = ligada.
+    Função fora do catálogo do módulo não é "desligada": a camada simplesmente não se aplica a ela."""
+    est = estado()
+    if modulo_da_unidade and funcao in FUNCOES_POR_MODULO.get(modulo_da_unidade, ()) and funcao not in est.funcoes.get(modulo_da_unidade, frozenset()):
+        return False
+    return funcao not in est.desligadas_operacao.get(str(unidade or "").strip(), frozenset())
+
+
+def _dono_da_funcao_ativo(funcao: str) -> bool:
+    dono = MODULO_DONO_DA_FUNCAO.get(funcao)
+    return dono is None or modulo_ativo(dono)
+
+
+def funcoes_do_usuario(modulo: str, operacoes: Iterable[str] = ()) -> list[str]:
+    """Funções do menu para quem trabalha nas `operacoes` (item 16). Na Operação, uma função some só se estiver desligada
+    em TODAS as operações da pessoa. Sem operação (Administrador, Gestor...) vale a tela Módulos. Só visibilidade."""
+    globais = funcoes_ativas(modulo)
+    ops = {str(o).strip() for o in operacoes if str(o).strip()}
+    if modulo != MODULO_OPERACAO or not ops:
+        return globais
+    desligadas = estado().desligadas_operacao
+    return [f for f in globais if f not in FUNCOES_POR_OPERACAO or any(f not in desligadas.get(op, frozenset()) for op in ops)]
 
 
 def modulo_da_permissao(chave: str, grupo: str = "") -> str:
@@ -210,41 +268,54 @@ def filtrar_permissoes(permissoes: Iterable[str]) -> frozenset[str]:
     inativos = {chave for chave, *_ in MODULOS_PADRAO} - set(est.ativos) - MODULOS_PROTEGIDOS
     if not inativos:
         return todas
-    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos)
+    # Chaves de sessão das funções do módulo desativado (Gestão e Drive são do `core` por padrão): também deixam de valer.
+    sessoes_desligadas = {SESSAO_DA_FUNCAO[f] for f, dono in MODULO_DONO_DA_FUNCAO.items() if dono in inativos and f in SESSAO_DA_FUNCAO}
+    return frozenset(p for p in todas if modulo_da_permissao(p) not in inativos and p not in sessoes_desligadas)
+
+
+# Função do menu (Administração > Módulos) a que cada permissão que ABRE módulo pertence. Permissão sem função (ex.:
+# configuracoes.visualizar = Administração) abre o módulo sempre.
+_FUNCAO_DA_PERMISSAO = {
+    "sessao.curriculos.acessar": "cx-curriculos",
+    "sessao.processos.acessar": "processos",
+    "sessao.provas.acessar": "provas",
+    "sessao.monitoria.acessar": "monitoria",
+    "sessao.wfm.acessar": "wfm",
+    "chamados.abrir": "suporte",
+    "chamados.atender": "suporte",
+}
+
+
+def _abre_com_funcao_ligada(chave: str, modulo: str) -> bool:
+    """Decisão do Paulo (10/11/2026): o módulo some do seletor quando nenhuma função dele está ligada. Uma permissão ligada
+    a uma função (ex.: chamados.abrir -> Suporte TI) só abre o módulo se essa função estiver ligada nele."""
+    funcao = _FUNCAO_DA_PERMISSAO.get(chave)
+    if not funcao or funcao not in FUNCOES_POR_MODULO.get(modulo, ()):
+        return True
+    return funcao in funcoes_ativas(modulo)
 
 
 def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> list[str]:
     """Módulos (exceto core) que o conjunto de permissões abre MAIS os liberados para o perfil/usuário em Tecnologia
     (`extras`, V060), apenas módulos ativos, na ordem de exibição. Liberar um módulo só o torna visível: as telas dentro dele
-    continuam dependendo das permissões do perfil."""
+    continuam dependendo das permissões do perfil. Permissão ligada a uma função desligada no módulo não o abre."""
     est = estado()
-    abertos = {m for p in permissoes if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m)}
+    abertos = {
+        m for p in permissoes
+        if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m) and _abre_com_funcao_ligada(p, m)
+    }
     abertos |= {m for m in extras if m in MODULOS_VALIDOS and m != MODULO_CORE and modulo_ativo(m)}
     return sorted(abertos, key=lambda m: (est.ordem.get(m, 99), m))
 
 
 def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
-    """Módulos liberados por perfil ou usuário (tabelas da V060). Falha de leitura ou migration ausente = nenhum extra."""
+    """Módulos liberados por perfil ou usuário (tabelas da V060), lidos do cache de acessos (Etapa 2): sem ida ao banco
+    a cada `/me`. Falha de leitura ou migration ausente = nenhum extra."""
     if not id_usuario and not perfil:
         return frozenset()
-    from ..config import get_settings
-    from ..db import get_connection
+    from . import acesso_cache
 
-    try:
-        conn = get_connection(get_settings(), autocommit=True)
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT modulo FROM dbo.modulos_acesso_perfil WHERE id_perfil = ? "
-                "UNION SELECT modulo FROM dbo.modulos_acesso_usuario WHERE id_usuario = ?",
-                (perfil or "", int(id_usuario or 0)),
-            )
-            return frozenset(str(r[0]) for r in cursor.fetchall() if str(r[0]) in MODULOS_VALIDOS)
-        finally:
-            conn.close()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Acesso extra a módulos indisponível (%s); usando só as permissões.", exc)
-        return frozenset()
+    return frozenset(m for m in acesso_cache.modulos_liberados(id_usuario, perfil) if m in MODULOS_VALIDOS)
 
 
 def pode(permissoes: Iterable[str], permissao: str) -> bool:
@@ -252,7 +323,7 @@ def pode(permissoes: Iterable[str], permissao: str) -> bool:
     return permissao in permissoes and modulo_ativo(modulo_da_permissao(permissao))
 
 
-def descrever(permissoes: Iterable[str], extras: Iterable[str] = ()) -> dict:
+def descrever(permissoes: Iterable[str], extras: Iterable[str] = (), operacoes: Iterable[str] = ()) -> dict:
     """Payload de `GET /core/acesso`: módulos, padrão e permissões efetivas (já sem as de módulos desativados)."""
     efetivas = filtrar_permissoes(permissoes)
     est = estado()
@@ -273,7 +344,7 @@ def descrever(permissoes: Iterable[str], extras: Iterable[str] = ()) -> dict:
         "modulo_padrao": visiveis[0] if visiveis else MODULO_CORE,
         "operacao_ti": OPERACAO_TI,
         "permissoes": sorted(efetivas),
-        "funcoes": {modulo: funcoes_ativas(modulo) for modulo in FUNCOES_POR_MODULO},
+        "funcoes": {modulo: funcoes_do_usuario(modulo, operacoes) for modulo in FUNCOES_POR_MODULO},
         "areas_inativas": sorted(areas_inativas()),
     }
 

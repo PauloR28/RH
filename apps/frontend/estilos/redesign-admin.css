@@ -1,0 +1,71 @@
+/* Redesign (Fase 15) — Login (DEC-070), Usuários (DEC-072) e Perfis e permissões (DEC-073).
+   Só tokens e peças c- de conecta-ds.css / conecta-telas.css; aqui ficam apenas os encaixes. */
+
+/* ── Login ─────────────────────────────────────────────────────────── */
+.c-login-tela { padding: 0; margin: 0; min-height: calc(100vh / var(--c-zoom, 1)); background: var(--cor-fundo-painel); }
+.c-login-tela .c-login { min-height: calc(100vh / var(--c-zoom, 1)); }
+.c-login-logo img { width: 200px; height: auto; display: block; margin-bottom: var(--espaco-2); }
+.c-login-simbolo img { width: 56px; height: auto; display: block; }
+.c-login-caixa > .c-botao { width: 100%; justify-content: center; height: 44px; text-decoration: none; }
+.c-login-em-breve { font-size: 12px; color: var(--cor-texto-secundario); cursor: not-allowed; }
+.c-login-rodape span:not(:first-child) { cursor: default; }
+.c-novidades li p.c-novidades-sem-versao { margin-left: 0; }
+:root[data-theme='dark'] .c-login-logo img { content: url('/estilos/marca/conecta_branco_assinatura.svg'); }
+
+/* Celular (< 600 px): faixa azul de 120 px só com o símbolo; formulário embaixo. */
+@media (max-width: 599px) {
+  .c-login-tela .c-login { grid-template-columns: 1fr; grid-template-rows: 120px 1fr; }
+  .c-login-tela .c-login-marca { padding: var(--espaco-5); justify-content: center; align-items: center; }
+  .c-login-tela .c-novidades { display: none; }
+  .c-login-tela .c-login-form { justify-content: flex-start; padding: var(--espaco-6) var(--espaco-4); }
+  .c-login-tela .c-login-rodape { flex-wrap: wrap; justify-content: center; white-space: normal; }
+}
+
+/* ── Usuários (DEC-072) ────────────────────────────────────────────── */
+.c-usuarios .c-cab-dir .c-abre-menu { display: inline-flex; }
+.c-usuarios-paginas { display: inline-flex; gap: var(--espaco-1); }
+.c-usuarios-pedidos { font-weight: var(--fonte-peso-semi); }
+.c-usuarios-decidir { display: flex; gap: var(--espaco-2); justify-content: flex-end; }
+.c-janela-usuario { max-width: 600px; }
+.c-janela-usuario .c-janela-cab h2 small { display: block; font-size: 12px; line-height: 16px; font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
+.c-usuario-form { border: 0; padding: 0; margin: 0; min-width: 0; }
+.c-usuario-erro { margin-top: var(--espaco-4); }
+.c-usuario-excluir { display: inline-flex; align-items: center; gap: var(--espaco-1); color: var(--cor-status-perigo-texto); font-size: 13px; }
+.c-usuario-excluir-btn { color: var(--cor-status-perigo-texto); }
+/* Vínculos (operações, turno, canais, equipe): mesmos campos de antes, no visual dos campos c-. */
+.c-usuario-vinculos .mon-vinculos { padding: 0; border: 0; background: none; gap: var(--espaco-4); }
+.c-usuario-vinculos .mon-vinculos-grid { gap: var(--espaco-4); }
+.c-usuario-vinculos .mon-campo { gap: var(--espaco-1); }
+.c-usuario-vinculos .mon-campo > span:first-child {
+  text-transform: none; letter-spacing: 0;
+  font-size: var(--texto-rotulo-tamanho); line-height: var(--texto-rotulo-altura-linha); font-weight: var(--texto-rotulo-peso); color: var(--cor-texto-subtitulo);
+}
+.c-usuario-vinculos .form-select, .c-usuario-vinculos .form-control, .c-usuario-vinculos .mon-multi-btn {
+  height: var(--campo-altura); padding: 0 var(--espaco-6) 0 var(--espaco-3); font: inherit; font-size: var(--texto-padrao-tamanho);
+  background-color: var(--campo-fundo); color: var(--cor-texto-padrao); border: var(--borda-fina) solid var(--campo-borda); border-radius: var(--campo-raio); box-shadow: none;
+}
+.c-usuario-vinculos .mon-vinculos > p, .c-usuario-vinculos .mon-muted { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); margin: 0; }
+
+/* ── Perfis e permissões (DEC-073) ─────────────────────────────────── */
+.c-perfis .c-rel-lista--caixa { position: sticky; top: var(--espaco-4); }
+.c-perfis-direita { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
+.c-perfis-resumo { font-size: 12px; white-space: nowrap; }
+.c-perfis-resumo a { color: inherit; }
+.c-perfis-busca { width: 200px; }
+.c-perfis-compara { width: 180px; }
+
+.c-perfis .c-pv-abas { overflow-x: auto; scrollbar-width: none; }
+.c-perfis .c-pv-abas .c-aba { background: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; }
+.c-perfis .c-pv-abas .c-aba[aria-selected='true'] { color: var(--cor-texto-link); box-shadow: inset 0 -2px 0 var(--cor-acao-fundo); font-weight: var(--fonte-peso-semi); }
+.c-pv-item { gap: var(--espaco-2); }
+.c-pv-item .c-pv-outro { margin-left: auto; flex: none; font-size: 11px; color: var(--cor-status-atencao-texto); white-space: nowrap; }
+.c-pv-item.c-pv-difere { background: var(--cor-status-atencao-fundo); }
+.c-pv-item .c-pv-dono { width: 120px; margin-left: auto; flex: none; }
+.c-pv-aviso { font-size: 12px; color: var(--cor-status-atencao-texto); }
+.c-pv-limpar { margin-left: auto; }
+.c-perfis-tela { min-height: 380px; }
+.c-perfis-legenda { padding: 0; margin: 0; }
+.c-perfis-legenda .c-pv-critica { display: inline-block; margin-right: var(--espaco-1); }
+.c-perfis-edicao { display: flex; align-items: center; gap: var(--espaco-3); padding: var(--espaco-2) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); font-size: 13px; }
+.c-perfis-edicao-acoes { margin-left: auto; display: flex; gap: var(--espaco-2); }
+.c-perfis-motivo { width: 280px; }

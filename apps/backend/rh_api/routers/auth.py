@@ -6,6 +6,7 @@ import re
 from dataclasses import replace
 from urllib.parse import urlparse
 
+from conecta.infrastructure.security.rate_limit import InMemoryRateLimiter
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
@@ -16,6 +17,7 @@ from ..auth import (
     reissue_token,
     revoke_access_token,
 )
+from ..config import get_settings
 from ..dependencies import audit_action, get_current_user, get_repository
 from ..rbac import get_role_definition, get_role_permissions
 from ..repositories import DatabaseRepository
@@ -37,13 +39,10 @@ from ..schemas.auth import (
     UpdateSurnameRequest,
 )
 from ..schemas.common import SuccessResponse
-from ..config import get_settings
 from ..services.microsoft_auth_service import (
     MicrosoftAuthConfigurationError,
     create_microsoft_client,
 )
-from conecta.infrastructure.security.rate_limit import InMemoryRateLimiter
-
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])

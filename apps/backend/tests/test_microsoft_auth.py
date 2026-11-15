@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from http.cookies import SimpleCookie
 import inspect
 import logging
+from dataclasses import replace
+from http.cookies import SimpleCookie
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request
@@ -18,7 +18,6 @@ from rh_api.services.microsoft_auth_service import (
     MicrosoftAuthConfigurationError,
     validate_microsoft_auth_configuration,
 )
-
 
 TENANT_ID = "tenant-conecta"
 AUTH_COLUMNS = [

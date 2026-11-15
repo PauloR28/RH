@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import json
 import logging
 import logging.handlers
-import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import get_settings
 from conecta.infrastructure.observability.context import (
     request_id_var,
     user_id_var,
 )
+
+from .config import get_settings
 
 
 class JsonFormatter(logging.Formatter):

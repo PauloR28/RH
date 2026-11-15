@@ -8,7 +8,6 @@ from ..dependencies import audit_action, get_current_user, get_repository, requi
 from ..repositories import DatabaseRepository
 from ..schemas.email_inbox import ManualCandidateCreateRequest
 
-
 router = APIRouter(tags=["email-inbox"], dependencies=[Depends(get_current_user)])
 
 

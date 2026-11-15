@@ -1,0 +1,65 @@
+/* Fase 14 · telas novas (DEC-086) + ajustes de rolagem (DEC-088). Juntar com conecta-telas.css na implementação. */
+/* Calendário do mês (Minha escala › Calendário) */
+.c-cal{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
+.c-cal th{ height:28px; font-size:12px; font-weight:600; color:var(--cor-texto-secundario); text-align:left; padding:0 8px; background:var(--tabela-cabecalho-fundo); border-bottom:1px solid var(--tabela-linha); }
+.c-cal td{ height:64px; vertical-align:top; padding:4px 6px; border-bottom:1px solid var(--tabela-linha); border-left:1px solid var(--tabela-linha); }
+.c-cal td:first-child{ border-left:0; }
+.c-cal-n{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; font-weight:700; border-radius:10px; }
+.c-cal-hoje{ background:color-mix(in srgb, var(--cor-fundo-selecionado) 70%, transparent); }
+.c-cal-hoje .c-cal-n{ background:var(--cor-acao-fundo); color:var(--cor-acao-texto); padding:0 6px; }
+.c-cal-fora{ color:var(--cor-texto-apagado, #666B82); } .c-cal-fora .c-cal-bloco, .c-cal-fora .c-cal-st{ opacity:.6; }
+.c-cal-dsr{ background:var(--cor-fundo-sutil); }
+.c-cal-bloco{ display:block; margin-top:2px; padding:1px 6px; border-left:3px solid #3A5FCD; border-radius:3px; background:color-mix(in srgb, #3A5FCD 10%, var(--cor-fundo-painel)); font-weight:600; font-variant-numeric:tabular-nums; }
+.c-cal-folga{ display:block; margin-top:2px; font-size:12px; font-weight:600; color:var(--cor-texto-apagado, #666B82); }
+.c-cal-st{ display:inline-flex; align-items:center; gap:3px; margin-top:3px; font-size:12px; }
+.c-cal-st .c-ic{ width:14px; height:14px; }
+.c-cal-st--sucesso{ color:var(--cor-status-sucesso-texto); } .c-cal-st--informacao{ color:var(--cor-status-informacao-texto); }
+/* Gabarito da monitoria (painel do operador) */
+.c-gab{ width:100%; table-layout:fixed; } .c-gab th:nth-child(2), .c-gab th:nth-child(3){ width:76px; } .c-gab td:first-child{ white-space:normal; } .c-gab td{ vertical-align:top; padding-top:6px; padding-bottom:6px; height:auto; }
+.c-gab-bloco td{ background:var(--tabela-cabecalho-fundo); font-weight:700; font-size:12px; }
+.c-gab-nao td:first-child{ box-shadow:inset 2px 0 0 var(--cor-status-perigo-texto); }
+.c-gab-just{ display:block; margin-top:2px; font-size:12px; color:var(--cor-texto-secundario); }
+.c-gab-r{ display:inline-flex; align-items:center; gap:4px; color:var(--cor-status-sucesso-texto); white-space:nowrap; }
+.c-gab-r .c-ic{ width:14px; height:14px; }
+.c-gab-r--nao{ color:var(--cor-status-perigo-texto); font-weight:700; }
+.c-feedback{ background:var(--cor-fundo-sutil); border:1px solid var(--painel-borda); border-radius:var(--raio-medio); padding:10px 12px; } .c-feedback h3{ margin:0 0 4px; } .c-feedback p{ margin:0; font-size:13px; }
+.c-gab-total td{ font-weight:700; border-top:2px solid var(--tabela-linha); }
+.c-gab-abre{ all:unset; box-sizing:border-box; width:100%; display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; }
+.c-gab-abre .c-ic{ width:14px; height:14px; transition:transform .15s; }
+.c-gab-abre[aria-expanded="true"] > .c-ic:first-child{ transform:rotate(90deg); }
+.c-gab-abre:focus-visible{ outline:2px solid var(--cor-foco, #3A5FCD); outline-offset:2px; border-radius:4px; }
+.c-gab-qtd{ font-weight:400; font-size:12px; color:var(--cor-texto-secundario); }
+.c-gab-abre .c-gab-r{ margin-left:auto; font-size:12px; }
+/* Saudação do Início como cabeçalho (Operador) */
+.c-saudacao{ display:flex; align-items:stretch; background:var(--cor-fundo-painel); border:1px solid var(--painel-borda); border-radius:var(--raio-medio); overflow:hidden; }
+.c-saudacao-quem{ padding:12px 16px; display:flex; flex-direction:column; justify-content:center; min-width:220px; border-left:3px solid var(--cor-acao-fundo); }
+.c-saudacao h1{ margin:0; font-size:20px; line-height:28px; }
+.c-saudacao p{ margin:0; font-size:12px; color:var(--cor-texto-secundario); }
+.c-meudia{ list-style:none; margin:0 0 0 auto; padding:0; display:grid; grid-template-columns:repeat(5, 120px); }
+.c-meudia li{ padding:10px 12px; display:flex; flex-direction:column; gap:2px; border-left:1px solid var(--tabela-linha); }
+.c-meudia small{ font-size:12px; color:var(--cor-texto-secundario); }
+.c-meudia b{ font-size:20px; line-height:24px; font-variant-numeric:tabular-nums; }
+.c-meudia em{ font-style:normal; font-size:12px; color:var(--cor-texto-secundario); display:inline-flex; align-items:center; gap:4px; }
+.c-meudia em .c-ic{ width:14px; height:14px; }
+.c-meudia-feito b{ color:var(--cor-texto-secundario); } .c-meudia-feito em{ color:var(--cor-status-sucesso-texto); }
+.c-meudia li[aria-current="step"]{ background:var(--cor-fundo-selecionado); box-shadow:inset 0 -2px 0 var(--cor-acao-fundo); }
+.c-meudia li[aria-current="step"] em{ color:var(--cor-texto-link); font-weight:600; }
+/* Critério contestado em destaque (Reanalisar) */
+.c-contestado{ border:1px solid var(--painel-borda); border-left:3px solid var(--cor-status-atencao-texto); border-radius:var(--raio-medio); background:var(--cor-fundo-sutil); }
+.c-contestado-cab{ display:flex; flex-direction:column; gap:2px; padding:10px 12px; border-bottom:1px solid var(--tabela-linha); }
+.c-contestado-cab b{ font-size:16px; }
+.c-contestado-meta{ font-size:12px; color:var(--cor-texto-secundario); display:inline-flex; align-items:center; gap:4px; }
+.c-contestado-lados{ display:grid; grid-template-columns:1fr 1fr; }
+.c-contestado-lados > div{ padding:10px 12px; min-width:0; }
+.c-contestado-lados > div + div{ border-left:1px solid var(--tabela-linha); }
+.c-contestado-quem{ display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:var(--cor-texto-secundario); }
+.c-contestado-lados p{ margin:4px 0 0; font-size:13px; }
+.c-contestado-lados a{ display:inline-flex; align-items:center; gap:4px; margin-top:6px; font-size:12px; color:var(--cor-texto-link); }
+/* DEC-088 (06/11) · sem rolagem a 1180×700 */
+.c-mural .c-lista-txt{ flex-direction:row; align-items:baseline; gap:var(--espaco-2); min-width:0; }
+.c-mural .c-lista-txt > .c-forte{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.c-mural .c-lista-txt > small{ white-space:nowrap; flex:none; }
+.c-mural .c-lista-txt > small::before{ content:"· "; }
+.c-cab-linha > .c-faixa{ flex:1; min-width:0; margin:0 var(--espaco-4); padding:var(--espaco-2) var(--espaco-3); align-items:center; }
+.c-cal td{ height:60px; }
+.c-reanalisar .c-janela-corpo{ gap:var(--espaco-3); padding-bottom:var(--espaco-3); }

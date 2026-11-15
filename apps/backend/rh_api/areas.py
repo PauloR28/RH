@@ -40,6 +40,7 @@ AREA_DA_FUNCAO = {
     "processos": PROCESSOS,
     "provas": PROVAS,
     "cx-curriculos": CURRICULOS,
+    "treinamentos": TREINAMENTOS,
 }
 
 

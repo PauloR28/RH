@@ -10,7 +10,6 @@ from ..schemas.documentos_biblioteca import (
     DocumentoBibliotecaUpdateRequest,
 )
 
-
 router = APIRouter(prefix="/documentos-biblioteca", tags=["documentos-biblioteca"], dependencies=[Depends(get_current_user)])
 
 

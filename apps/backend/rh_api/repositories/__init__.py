@@ -5,7 +5,6 @@ from .bootstrap import (
 )
 from .db_repository import DatabaseRepository
 
-
 __all__ = [
     "DatabaseRepository",
     "bootstrap_runtime_schema",

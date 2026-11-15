@@ -1,6 +1,7 @@
 // Tela inicial configurável por perfil (espelha apps/backend/rh_api/services/tela_inicial.py).
 // A configuração do perfil só ESCONDE ou reordena blocos: cada bloco continua
 // exigindo a permissão da área (quem não acessa a Caixa de CV não vê o bloco).
+import { useEffect, useState } from '../infraestrutura-react.js';
 import { requisitar } from '../services/api/core.js';
 
 export const PERFIS_INICIO_POR_SESSOES = new Set(['supervisor', 'qualidade', 'operador', 'candidato']);
@@ -33,12 +34,57 @@ export async function listarTelaInicialPerfis() {
   return requisitar('/settings/tela-inicial', { method: 'GET' });
 }
 
-export async function salvarTelaInicialPerfil(idPerfil, blocos) {
+export async function salvarTelaInicialPerfil(idPerfil, blocos, atalhosOcultos = []) {
   return requisitar(`/settings/tela-inicial/${encodeURIComponent(idPerfil)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ blocos }),
+    body: JSON.stringify({ blocos, atalhos_ocultos: atalhosOcultos }),
   });
+}
+
+// Início por sessões (item 9 da lista de 10/11/2026, opção B): atalhos que o perfil pode
+// esconder do Início. Esconder é só exibição: a pessoa continua abrindo a seção pelo menu.
+// "sessao" = permissão de sessão que libera o atalho (espelha SESSOES em features/monitoria/index.js).
+const ATALHOS_FIXOS_OPERADOR = [
+  { id: 'minha-escala', label: 'Minha escala', sessao: 'wfm' },
+  { id: 'trocas', label: 'Trocas', sessao: 'wfm' },
+  { id: 'minhas-monitorias', label: 'Minhas monitorias', sessao: 'monitoria' },
+];
+const ATALHOS_SESSOES = [
+  { id: 'curriculos', label: 'Caixa de Currículos' },
+  { id: 'processos', label: 'Processos' },
+  { id: 'provas', label: 'Provas' },
+  { id: 'gestao', label: 'Gestão' },
+  { id: 'drive', label: 'Drive' },
+  { id: 'treinamentos', label: 'Central de Treinamento' },
+  { id: 'monitoria', label: 'Monitorias' },
+  { id: 'equipe', label: 'Equipes e Turnos' },
+  { id: 'wfm', label: 'Turnos e Plantões' },
+  { id: 'relatorios', label: 'Relatórios e Históricos' },
+  { id: 'configuracoes', label: 'Configurações' },
+].map((a) => ({ ...a, sessao: a.id }));
+
+// Atalhos que o Início do perfil mostra hoje (mesmo recorte de inicio-operador.js e inicio-supervisor.js),
+// limitados às sessões liberadas para o perfil.
+export function atalhosDoInicioPorPerfil(perfilId, permissoes = []) {
+  const liberada = (sessao) => permissoes.includes(`sessao.${sessao}.acessar`);
+  let lista = ATALHOS_SESSOES;
+  if (perfilId === 'operador') lista = [...ATALHOS_FIXOS_OPERADOR, ...ATALHOS_SESSOES.filter((a) => !['wfm', 'monitoria'].includes(a.id))];
+  else if (perfilId === 'supervisor') lista = ATALHOS_SESSOES.filter((a) => a.id !== 'treinamentos');
+  return lista.filter((a) => liberada(a.sessao));
+}
+
+// Ids dos atalhos escondidos no Início do perfil logado (Set). Sem resposta do servidor, nada fica escondido.
+export function useAtalhosOcultos() {
+  const [ocultos, setOcultos] = useState(() => new Set());
+  useEffect(() => {
+    let ativo = true;
+    lerMinhaTelaInicial()
+      .then((cfg) => { if (ativo) setOcultos(new Set(Array.isArray(cfg?.atalhos_ocultos) ? cfg.atalhos_ocultos : [])); })
+      .catch(() => {});
+    return () => { ativo = false; };
+  }, []);
+  return ocultos;
 }
 
 // Blocos que o usuário vê, na ordem configurada: visível na configuração do

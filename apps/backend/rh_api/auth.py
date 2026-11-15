@@ -8,14 +8,21 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
+from conecta.infrastructure.security.token_denylist import InMemoryTokenDenylist
 from fastapi import HTTPException, status
 
-from conecta.infrastructure.security.token_denylist import InMemoryTokenDenylist
-
 from .config import get_settings
-from .rbac import WFM_PERFIS_EM_TESTE_FECHADO, aplicar_restricao_wfm_em_teste, wfm_participantes_liberado, PERMISSIONS_VERSION, ROLE_ADMIN, get_role_definition, get_role_permissions, sanitize_permissions
+from .rbac import (
+    PERMISSIONS_VERSION,
+    ROLE_ADMIN,
+    WFM_PERFIS_EM_TESTE_FECHADO,
+    aplicar_restricao_wfm_em_teste,
+    get_role_definition,
+    get_role_permissions,
+    sanitize_permissions,
+    wfm_participantes_liberado,
+)
 from .services.helpers import normalize_text
-
 
 logger = logging.getLogger(__name__)
 

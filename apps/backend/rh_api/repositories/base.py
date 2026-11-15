@@ -11,7 +11,6 @@ from fastapi import HTTPException, status
 
 from ..config import Settings
 from ..db import get_connection
-from ..task_queue import enfileirar
 from ..services.email_inbox_service import MANUAL_UPLOAD_ORIGIN
 from ..services.helpers import (
     clamp_limit,
@@ -32,7 +31,6 @@ from ..services.process_flow import (
     INTERVIEW_OPERATIONAL_STATUSES,
     PROCESS_STATUS_CLOSED,
     PROCESS_STATUS_TRAINING,
-    build_approved_candidate_locked_message,
     build_candidate_status_action_label,
     build_process_closed_message,
     build_terminal_candidate_locked_message,
@@ -41,21 +39,22 @@ from ..services.process_flow import (
     is_process_closed,
     is_terminal_candidate_status,
 )
+from ..task_queue import enfileirar
 from .bootstrap import (
     _select_process_row_from_rows,
     build_process_where_clause,
     describe_database_error,
-    ensure_candidate_metadata_table,
-    ensure_candidate_metadata_columns,
     ensure_candidate_attachments_table,
+    ensure_candidate_metadata_columns,
+    ensure_candidate_metadata_table,
     ensure_candidate_movements_table,
-    ensure_talent_bank_table,
     ensure_process_reference_columns,
-    get_next_id_banco,
+    ensure_talent_bank_table,
     get_gabaritos_payload_column,
+    get_next_id_banco,
     get_process_rows,
-    is_identity_column,
     is_deadlock_error,
+    is_identity_column,
     resolve_process_row_for_related_record,
     sort_process_rows,
 )

@@ -1,78 +1,44 @@
-import { html, useRef } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html } from '../../infraestrutura-react.js';
+import { Ic, Janela, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
 import { formatarDataHoraCurta, formatarNota } from './comum.js';
 
-// Peças compartilhadas pela lista de formulários e pela tela do formulário:
-// chips de situação/versão, abas de situação, linha de versão e comparação.
+// Peças compartilhadas pela lista de formulários e pela tela do formulário (redesign Fase 15, fatia 4, amostras Q2 e Q3
+// do lote 2): selo de situação, linha de versão (com caixinha para Comparar), comparação e confirmação.
 
 export const SITUACOES = {
-  ativo: { texto: 'Ativo', icone: 'check_circle', tom: 'ok', ajuda: 'Em uso. É a versão que aparece em Nova monitoria para esta operação.', acao: 'desativar' },
-  desativado: { texto: 'Desativado', icone: 'block', tom: 'atencao', ajuda: 'Não aparece em Nova monitoria. As monitorias antigas continuam com a versão em que foram feitas.', acao: 'ativar' },
+  ativo: { texto: 'Ativo', icone: 'check-circle', tom: 'sucesso', ajuda: 'Em uso. É a versão que aparece em Nova monitoria para esta operação.', acao: 'desativar' },
+  desativado: { texto: 'Desativado', icone: 'prohibit', tom: 'atencao', ajuda: 'Não aparece em Nova monitoria. As monitorias antigas continuam com a versão em que foram feitas.', acao: 'ativar' },
   arquivado: { texto: 'Arquivado', icone: 'archive', tom: 'neutro', ajuda: 'Fora de uso e guardado só para consulta. As monitorias antigas continuam intactas.', acao: 'restaurar' },
 };
 
 export const ROTULO_ACAO = { desativar: 'Desativar', ativar: 'Ativar', restaurar: 'Restaurar', arquivar: 'Arquivar' };
 
-// Situação com ícone + texto (nunca só cor); o ícone é decorativo.
-export function ChipSituacao({ situacao }) {
+// Situação com ícone + texto (nunca só cor). `extra` acrescenta "· v3" no mesmo selo.
+export function ChipSituacao({ situacao, extra = '' }) {
   const info = SITUACOES[situacao];
   if (!info) return null;
-  return html`<span class=${`mon-chip-sit mon-chip-sit--${info.tom}`}><span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(info.icone)}</span>${info.texto}</span>`;
+  return html`<${Selo} tom=${info.tom} icone=${info.icone}>${info.texto}${extra ? ` · ${extra}` : ''}<//>`;
 }
 
 export function ChipVersao({ ativa }) {
-  return html`<span class=${`mon-chip-ver ${ativa ? 'mon-chip-ver--atual' : ''}`}>${ativa ? 'Atual' : 'Arquivada'}</span>`;
+  return ativa ? html`<${Selo} tom="sucesso">Atual<//>` : html`<${Selo} tom="neutro">Arquivada<//>`;
 }
 
-// Abas de situação: tablist, setas trocam de aba, contagem no nome acessível ("Ativos, 5").
-export function AbasSituacao({ itens, ativa, aoMudar }) {
-  const refs = useRef({});
-  const aoTeclar = (ev, indice) => {
-    const passo = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
-    if (!passo) return;
-    ev.preventDefault();
-    const alvo = itens[(indice + passo + itens.length) % itens.length];
-    aoMudar(alvo.id);
-    refs.current[alvo.id]?.focus();
-  };
-  return html`
-    <div class="mon-abas-sit" role="tablist" aria-label="Situação do formulário">
-      ${itens.map((item, i) => {
-        const info = SITUACOES[item.id];
-        return html`
-          <button key=${item.id} type="button" role="tab" ref=${(el) => { refs.current[item.id] = el; }}
-            class=${`mon-aba-sit ${info ? `mon-aba-sit--${info.tom}` : 'mon-aba-sit--todos'} ${ativa === item.id ? 'is-active' : ''}`}
-            aria-selected=${ativa === item.id} tabIndex=${ativa === item.id ? 0 : -1}
-            aria-label=${`${item.rotulo}, ${item.total}`}
-            onClick=${() => aoMudar(item.id)} onKeyDown=${(ev) => aoTeclar(ev, i)}>
-            <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(info ? info.icone : 'format_list_bulleted')}</span>
-            <span>${item.rotulo}</span><span class="mon-aba-sit-num" aria-hidden="true">${item.total}</span>
-          </button>`;
-      })}
-    </div>`;
-}
-
-export function VersionRow({ versao, marcada, desabilitada, motivoDesabilitada, aoMarcar, aoVer, aoRestaurar }) {
+// Linha de versão (coluna da direita): caixinha para Comparar · vN · data e quem (ou o que mudou) · nota média.
+// Clique na linha abre a versão; "Restaurar" aparece nas versões arquivadas quando permitido.
+export function VersionRow({ versao, marcada, desabilitada, motivoDesabilitada, aoMarcar, aoVer, aoRestaurar, atual = false }) {
   const dataQuem = [formatarDataHoraCurta(versao.criado_em), versao.criado_por].filter(Boolean).join(' · ');
   const nota = versao.nota_media == null ? '—' : formatarNota(versao.nota_media);
-  return html`
-    <li class=${`mon-ver-linha ${marcada ? 'is-marcada' : ''}`}>
-      <input type="checkbox" checked=${marcada} disabled=${desabilitada && !marcada}
-        aria-label=${`Marcar v${versao.numero} para comparar`}
-        title=${desabilitada && !marcada ? motivoDesabilitada : `Marcar v${versao.numero} para comparar`}
-        onChange=${() => aoMarcar(versao.id_versao)} />
-      <div class="mon-ver-corpo">
-        <div class="mon-ver-topo"><strong>v${versao.numero}</strong><${ChipVersao} ativa=${versao.ativa} /></div>
-        <div class="mon-ver-meta">${dataQuem}</div>
-        ${versao.observacao ? html`<div class="mon-ver-obs" title=${versao.observacao}>${versao.observacao}</div>` : null}
-        <div class="mon-ver-meta">${versao.monitorias} monitoria(s) · nota média ${nota}</div>
-      </div>
-      <div class="mon-ver-acoes">
-        <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => aoVer(versao)}>Ver</button>
-        ${aoRestaurar && !versao.ativa ? html`<button type="button" class="btn btn-outline-secondary btn-sm" title="Cria uma nova versão com este conteúdo" onClick=${() => aoRestaurar(versao)}>Restaurar</button>` : null}
-      </div>
-    </li>`;
+  return html`<div class="c-fm-versao" role="listitem" aria-current=${atual ? 'true' : null} onClick=${(e) => { if (!e.target.closest('input, button')) aoVer?.(versao); }}>
+    <input type="checkbox" checked=${marcada} disabled=${(desabilitada && !marcada) || null}
+      aria-label=${`Marcar v${versao.numero} para comparar`} title=${desabilitada && !marcada ? motivoDesabilitada : `Marcar v${versao.numero} para comparar`}
+      onChange=${() => aoMarcar(versao.id_versao)} />
+    <b>v${versao.numero}</b>
+    <span><small title=${versao.observacao || dataQuem}>${versao.observacao || dataQuem}</small><small>${versao.monitorias ?? 0} monit. · nota ${nota}${versao.ativa ? ' · atual' : ''}</small></span>
+    ${aoRestaurar && !versao.ativa
+      ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" title="Cria uma nova versão com este conteúdo" onClick=${() => aoRestaurar(versao)}>Restaurar</button>`
+      : html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => aoVer?.(versao)}>Ver</button>`}
+  </div>`;
 }
 
 // Regra do "Comparar (n/2)": no máximo 2 marcadas; marcar a terceira troca a mais antiga das marcadas.
@@ -116,27 +82,31 @@ export function compararConfigs(antes, depois) {
   return mudancas;
 }
 
-const ROTULO_MUDANCA = { incluido: 'Incluído', removido: 'Removido', alterado: 'Alterado' };
+const ROTULO_MUDANCA = { incluido: ['Incluído', 'sucesso'], removido: ['Removido', 'perigo'], alterado: ['Alterado', 'informacao'] };
 
 export function ModalComparacao({ comparacao, aoFechar }) {
-  return html`
-    <${ModalPadrao} aberto=${Boolean(comparacao)} titulo=${comparacao ? `O que mudou da v${comparacao.antes.numero} para a v${comparacao.depois.numero}` : ''} onClose=${aoFechar}>
-      ${comparacao ? (comparacao.mudancas.length
-        ? html`<div class="mon-tabela-wrap"><table class="mon-tabela"><thead><tr><th scope="col">Mudança</th><th scope="col">Detalhe</th></tr></thead><tbody>
-            ${comparacao.mudancas.map((m, i) => html`<tr key=${i}><td><span class=${`mon-badge ${m.tipo === 'incluido' ? 'mon-badge--ok' : ''}`}>${ROTULO_MUDANCA[m.tipo]}</span></td><td>${m.texto}</td></tr>`)}
+  if (!comparacao) return null;
+  return html`<${Janela} titulo=${`O que mudou da v${comparacao.antes.numero} para a v${comparacao.depois.numero}`} tamanho="grande" onClose=${aoFechar}
+    rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${aoFechar}>Fechar</button>`}>
+    <div class="c-janela-corpo">
+      ${comparacao.mudancas.length
+        ? html`<div class="c-tabela-caixa"><table class="c-tabela"><thead><tr><th scope="col">Mudança</th><th scope="col" class="c-estica">Detalhe</th></tr></thead><tbody>
+            ${comparacao.mudancas.map((m, i) => html`<tr key=${i}><td><${Selo} tom=${ROTULO_MUDANCA[m.tipo][1]}>${ROTULO_MUDANCA[m.tipo][0]}<//></td><td class="c-estica c-quebra">${m.texto}</td></tr>`)}
           </tbody></table></div>`
-        : html`<p class="mon-muted">As duas versões têm o mesmo conteúdo.</p>`) : null}
-    </${ModalPadrao}>`;
+        : html`<p class="c-ajuda">As duas versões têm o mesmo conteúdo.</p>`}
+    </div>
+  <//>`;
 }
 
-// Diálogo de confirmação das ações de situação/versão (mesmo cromado do ModalPadrao).
+// Confirmação das ações de situação/versão.
 export function DialogoConfirmar({ aberto, titulo, descricao, textoConfirmar, perigo = false, ocupado = false, erro = '', aoCancelar, aoConfirmar }) {
-  return html`
-    <${ModalPadrao} aberto=${aberto} titulo=${titulo} subtitulo=${descricao} onClose=${ocupado ? () => null : aoCancelar}>
-      ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
-      <footer class="rh-modal-footer">
-        <button type="button" class="btn btn-outline-secondary" disabled=${ocupado} onClick=${aoCancelar}>Cancelar</button>
-        <button type="button" class=${`btn ${perigo ? 'btn-danger' : 'btn-primary'}`} disabled=${ocupado} onClick=${aoConfirmar}>${ocupado ? 'Processando…' : textoConfirmar}</button>
-      </footer>
-    </${ModalPadrao}>`;
+  if (!aberto) return null;
+  return html`<${Janela} titulo=${titulo} tamanho="pequena" onClose=${ocupado ? () => null : aoCancelar}
+    rodape=${html`<button type="button" class="c-botao c-botao--secundario" disabled=${ocupado || null} onClick=${aoCancelar}>Cancelar</button>
+      <button type="button" class=${`c-botao ${perigo ? 'c-botao--perigo' : 'c-botao--principal'}`} aria-busy=${ocupado ? 'true' : null} disabled=${ocupado || null} onClick=${aoConfirmar}>${ocupado ? 'Processando…' : textoConfirmar}</button>`}>
+    <div class="c-janela-corpo">
+      ${descricao ? html`<p>${descricao}</p>` : null}
+      ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
+    </div>
+  <//>`;
 }

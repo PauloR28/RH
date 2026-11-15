@@ -39,6 +39,10 @@ def test_v056_semeia_todas_as_permissoes_so_onde_o_dono_esta_vazio():
     for chave in PERMISSION_DEFINITIONS:
         if chave.startswith("chamados."):
             continue  # semeadas pela V059 (a V056 já aplicada não muda)
+        if chave in ms.PERMISSOES_POSTERIORES_A_V056:
+            continue  # criadas depois da V056: o dono vem da sincronização do catálogo
+        if chave.startswith(("diario.", "sessao.diario.")):
+            continue  # semeadas pela V068
         assert f"''{chave}''" in sql, chave
 
 

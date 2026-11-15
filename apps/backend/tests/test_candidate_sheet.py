@@ -6,13 +6,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-
 API_DIR = Path(__file__).resolve().parents[1]
 if str(API_DIR) not in sys.path:
     sys.path.insert(0, str(API_DIR))
 
-from rh_api.routers.processes import get_candidate_sheet, update_candidate_sheet
 from rh_api.repositories.candidate_sheet import CandidateSheetRepositoryMixin, _format_score
+from rh_api.routers.processes import get_candidate_sheet, update_candidate_sheet
 from rh_api.schemas.processes import CandidateSheetUpdateRequest
 
 

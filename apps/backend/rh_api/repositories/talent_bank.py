@@ -8,6 +8,7 @@ import pyodbc
 from fastapi import HTTPException, status
 
 from ..services.helpers import (
+    clamp_limit,
     normalize_compare_text,
     normalize_indication_type,
     normalize_text,
@@ -29,7 +30,6 @@ from .bootstrap import (
     get_process_row,
     insert_candidate_process_record,
 )
-
 
 # Palavras muito genericas para o matching por palavra-chave (nao carregam
 # significado de aderencia a vaga). Motor de busca textual simples e
@@ -79,7 +79,7 @@ class TalentBankRepositoryMixin:
             return items
 
         safe_page = max(1, int(page or 1))
-        safe_page_size = self._clamp_limit(page_size, default=20, maximum=100)
+        safe_page_size = clamp_limit(page_size, default=20, maximum=100)
         total = len(items)
         total_pages = max(1, math.ceil(total / safe_page_size))
         safe_page = min(safe_page, total_pages)

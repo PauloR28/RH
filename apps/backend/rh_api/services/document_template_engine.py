@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import re
 
-
 PLACEHOLDER_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
 
 MISSING_VALUE_PLACEHOLDER = "[não informado]"

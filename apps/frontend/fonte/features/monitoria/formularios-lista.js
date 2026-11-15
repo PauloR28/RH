@@ -1,7 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import {
   alterarSituacaoFormulario,
   ativarFormularioMatriz,
@@ -12,27 +9,17 @@ import {
   listarVersoesMatriz,
   restaurarVersaoMatriz,
 } from '../../services/api/monitoria.js';
-import { SelectOperacao, formatarDataHoraCurta, formatarNota } from './comum.js';
-import {
-  AbasSituacao,
-  ChipSituacao,
-  DialogoConfirmar,
-  ModalComparacao,
-  ROTULO_ACAO,
-  SITUACOES,
-  VersionRow,
-  alternarMarcadas,
-  compararConfigs,
-} from './formularios-comum.js';
+import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento } from '../../ui/components/ds.js?v=20261106-wfm';
+import { formatarData, formatarDataHoraCurta, formatarNota } from './comum.js';
+import { ChipSituacao, DialogoConfirmar, ModalComparacao, ROTULO_ACAO, SITUACOES, VersionRow, alternarMarcadas, compararConfigs } from './formularios-comum.js?v=20261109-telas-antigas';
 
-// Lista de formulários: porta de entrada da aba Formulários. Mostra todos os formulários do
-// escopo, filtra por situação/operação/busca e mostra o controle de versões do escolhido.
+// Lista de formulários (redesign Fase 15, fatia 4, amostra Q2 do lote 2): caixa com o filtro de situação (com contagem),
+// Operação e busca; tabela Formulário · Situação · Versão · Atualizado · Monit. · Nota · [Abrir ⋯]; coluna à direita de 320 px
+// com o escolhido (nome + selo, blocos e faixas, versões com caixinhas para Comparar, Abrir formulário e Duplicar).
 
 const POR_PAGINA = 50;
 const VERSOES_VISIVEIS = 5;
 export const ESTADO_LISTA_INICIAL = { situacao: 'todos', operacao: '', busca: '', pagina: 1, selecionado: 0 };
-
-const Icone = ({ nome }) => html`<span class="material-symbols-outlined" aria-hidden="true">${IconeSvg(nome)}</span>`;
 
 // Duplicar: nome, operação de destino e versão de origem (a atual por padrão).
 export function DialogoDuplicar({ formulario, operacoes, aoFechar, aoConcluir, showToast }) {
@@ -69,31 +56,30 @@ export function DialogoDuplicar({ formulario, operacoes, aoFechar, aoConcluir, s
       aoConcluir(r);
     } catch (e) {
       showToast(e?.message || 'Não foi possível duplicar.', 'danger');
-    } finally {
-      setOcupado(false);
-    }
+    } finally { setOcupado(false); }
   };
-  return html`
-    <${ModalPadrao} aberto=${true} titulo="Duplicar formulário" subtitulo=${`A cópia nasce inativa, a partir da v${versaoEscolhida?.numero || ''}. O original não muda.`} onClose=${aoFechar}>
-      <div class="mon-form-grid">
-        <label class="mon-campo">Nome da cópia<input class="form-control" maxlength="180" value=${nome} onInput=${(e) => setNome(e.target.value)} /></label>
-        <label class="mon-campo">Operação de destino<${SelectOperacao} contexto=${{ operacoes }} valor=${destino} todas=${false} onChange=${setDestino} /></label>
-        <label class="mon-campo">Versão de origem
-          <select class="form-select" value=${idVersao} onChange=${(e) => setIdVersao(e.target.value)}>
-            ${versoes.map((v) => html`<option key=${v.id_versao} value=${String(v.id_versao)}>v${v.numero}${v.ativa ? ' · atual' : ''}</option>`)}
-          </select>
-        </label>
+  return html`<${Janela} titulo="Duplicar formulário" onClose=${aoFechar}
+    rodape=${html`<button type="button" class="c-botao c-botao--secundario" onClick=${aoFechar}>Cancelar</button>
+      <button type="button" class="c-botao c-botao--principal" aria-busy=${ocupado ? 'true' : null} disabled=${!nome.trim() || !idVersao || ocupado || null} onClick=${confirmar}>${ocupado ? 'Duplicando…' : 'Duplicar'}</button>`}>
+    <div class="c-janela-corpo">
+      <p class="c-ajuda" style=${{ margin: 0 }}>A cópia nasce desativada${versaoEscolhida ? `, a partir da v${versaoEscolhida.numero}` : ''}. O original não muda.</p>
+      <${Campo} rotulo="Nome da cópia"><input class="c-entrada" maxlength="180" value=${nome} onInput=${(e) => setNome(e.target.value)} /><//>
+      <div class="c-form" style=${{ '--colunas': 2 }}>
+        <${Campo} rotulo="Operação de destino"><select class="c-entrada" value=${destino} onChange=${(e) => setDestino(e.target.value)}>${operacoes.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select><//>
+        <${Campo} rotulo="Versão de origem"><select class="c-entrada" value=${idVersao} onChange=${(e) => setIdVersao(e.target.value)}>
+          ${versoes.map((v) => html`<option key=${v.id_versao} value=${String(v.id_versao)}>v${v.numero}${v.ativa ? ' · atual' : ''}</option>`)}</select><//>
       </div>
-      <div class="mon-acoes-fixas"><button type="button" class="btn btn-primary" disabled=${!nome.trim() || !idVersao || ocupado} onClick=${confirmar}>${ocupado ? 'Duplicando…' : 'Duplicar'}</button></div>
-    </${ModalPadrao}>`;
+    </div>
+  <//>`;
 }
 
-export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, setEstado, aoAbrir, aoCriar, aoReload, recarga }) {
+export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, setEstado, aoAbrir, aoCriar, aoReload, recarga, aoEscolhido }) {
   const ativas = (contexto?.operacoes || []).filter((o) => o.ativo);
   const [dados, setDados] = useState(null); // { itens, total, contadores }
   const [erro, setErro] = useState('');
   const [buscaTexto, setBuscaTexto] = useState(estado.busca);
   const [versoes, setVersoes] = useState(null);
+  const [resumo, setResumo] = useState(null); // config da versão atual do escolhido (blocos e faixas)
   const [marcadas, setMarcadas] = useState([]);
   const [todasVersoes, setTodasVersoes] = useState(false);
   const [comparacao, setComparacao] = useState(null);
@@ -118,34 +104,36 @@ export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, 
   }, [estado.operacao, estado.situacao, estado.busca, estado.pagina, recarga, tick]);
 
   const itens = dados?.itens || [];
-  const selecionado = itens.find((f) => f.id_matriz === estado.selecionado) || null;
+  // Sem escolha, a coluna da direita mostra o primeiro da lista.
+  const selecionado = itens.find((f) => f.id_matriz === estado.selecionado) || itens[0] || null;
+  useEffect(() => { aoEscolhido?.(selecionado); }, [selecionado?.id_matriz]);
 
-  // Versões do formulário escolhido.
+  // Versões do formulário escolhido e o resumo (blocos e faixas) da versão atual.
   useEffect(() => {
     setMarcadas([]);
     setTodasVersoes(false);
+    setResumo(null);
     if (!selecionado) { setVersoes(null); return undefined; }
     let ativo = true;
     setVersoes(null);
     listarVersoesMatriz(selecionado.operacao, selecionado.id_matriz)
-      .then((r) => { if (ativo) setVersoes(r.itens || []); })
+      .then((r) => {
+        if (!ativo) return;
+        const lista = r.itens || [];
+        setVersoes(lista);
+        const atual = lista.find((v) => v.ativa) || lista[0];
+        if (atual) lerVersaoMatriz(atual.id_versao).then((v) => { if (ativo) setResumo(v.config || null); }).catch(() => {});
+      })
       .catch((e) => { if (ativo) { setVersoes([]); showToast(e?.message || 'Erro ao carregar as versões.', 'danger'); } });
     return () => { ativo = false; };
   }, [selecionado?.id_matriz, selecionado?.versoes, recarga, tick]);
 
-  const abas = useMemo(() => {
-    const c = dados?.contadores || { todos: 0, ativo: 0, desativado: 0, arquivado: 0 };
-    return [
-      { id: 'todos', rotulo: 'Todos', total: c.todos },
-      { id: 'ativo', rotulo: 'Ativos', total: c.ativo },
-      { id: 'desativado', rotulo: 'Desativados', total: c.desativado },
-      { id: 'arquivado', rotulo: 'Arquivados', total: c.arquivado },
-    ];
-  }, [dados]);
+  const c = dados?.contadores || { todos: 0, ativo: 0, desativado: 0, arquivado: 0 };
+  const opcoesSituacao = [['todos', 'Todos', c.todos], ['ativo', 'Ativos', c.ativo], ['desativado', 'Desativados', c.desativado], ['arquivado', 'Arquivados', c.arquivado]];
 
   const pedirAcao = async (f, acao) => {
     const base = {
-      desativar: `Ele deixa de aparecer em Nova monitoria. Versões e monitorias antigas ficam intactas.`,
+      desativar: 'Ele deixa de aparecer em Nova monitoria. Versões e monitorias antigas ficam intactas.',
       arquivar: `Tira de uso e guarda só para consulta. Versões e monitorias antigas ficam intactas.${f.situacao === 'ativo' ? ' A operação ficará sem formulário ativo.' : ''}`,
       restaurar: 'Volta para Desativado. Não liga sozinho.',
     };
@@ -169,14 +157,10 @@ export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, 
       setTick((x) => x + 1);
     } catch (e) {
       showToast(e?.message || 'Não foi possível concluir a ação.', 'danger');
-    } finally {
-      setOcupado(false);
-    }
+    } finally { setOcupado(false); }
   };
 
-  const restaurarVersao = async (v) => {
-    setConfirmando({ f: selecionado, acao: 'restaurar-versao', versao: v, descricao: `Criar uma nova versão com o conteúdo da v${v.numero}? O histórico continua intacto.` });
-  };
+  const restaurarVersao = (v) => setConfirmando({ f: selecionado, acao: 'restaurar-versao', versao: v, descricao: `Criar uma nova versão com o conteúdo da v${v.numero}? O histórico continua intacto.` });
   const executarRestaurarVersao = async () => {
     const { versao } = confirmando;
     setOcupado(true);
@@ -187,9 +171,7 @@ export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, 
       setTick((x) => x + 1);
     } catch (e) {
       showToast(e?.message || 'Não foi possível restaurar a versão.', 'danger');
-    } finally {
-      setOcupado(false);
-    }
+    } finally { setOcupado(false); }
   };
 
   const compararSelecionadas = async () => {
@@ -204,8 +186,9 @@ export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, 
     const info = SITUACOES[f.situacao];
     if (!podeEditar) return [];
     return [
-      { label: ROTULO_ACAO[info.acao], icon: info.acao === 'desativar' ? 'block' : info.acao === 'restaurar' ? 'history' : 'check_circle', onClick: () => pedirAcao(f, info.acao) },
-      f.situacao !== 'arquivado' ? { label: 'Arquivar', icon: 'archive', onClick: () => pedirAcao(f, 'arquivar') } : null,
+      { label: 'Duplicar', icon: 'copy', onClick: () => setDuplicando(f) },
+      { label: ROTULO_ACAO[info.acao], icon: info.acao === 'desativar' ? 'prohibit' : info.acao === 'restaurar' ? 'arrow-counter-clockwise' : 'check-circle', onClick: () => pedirAcao(f, info.acao) },
+      f.situacao !== 'arquivado' ? { label: 'Arquivar', icon: 'archive', perigo: true, onClick: () => pedirAcao(f, 'arquivar') } : null,
     ];
   };
 
@@ -215,102 +198,78 @@ export function TelaListaFormularios({ contexto, podeEditar, showToast, estado, 
   const totalPaginas = Math.max(1, Math.ceil((dados?.total || 0) / POR_PAGINA));
 
   return html`
-    <div class="mon-lf">
-      <div class="mon-lf-filtros">
-        <${AbasSituacao} itens=${abas} ativa=${estado.situacao} aoMudar=${(id) => atualizar({ situacao: id, pagina: 1 })} />
-        <div class="mon-lf-filtros-dir">
-          <label class="mon-lf-campo"><span class="visually-hidden">Operação</span>
-            <${SelectOperacao} contexto=${{ operacoes: ativas }} valor=${estado.operacao} onChange=${(v) => atualizar({ operacao: v, pagina: 1 })} />
-          </label>
-          <label class="mon-lf-campo mon-lf-busca"><span class="visually-hidden">Buscar formulário</span>
-            <input class="form-control" type="search" placeholder="Buscar formulário" value=${buscaTexto} onInput=${(e) => setBuscaTexto(e.target.value)} />
-          </label>
-          ${podeEditar ? html`<button type="button" class="btn btn-primary mon-btn-icone" disabled=${!itens.length} onClick=${() => aoCriar(selecionado || itens[0])}><${Icone} nome="add" />Criar formulário</button>` : null}
+    <div class="c-fm-corpo">
+      <div class="c-tabela-caixa">
+        <div class="c-filtros c-filtros--suave">
+          <${Segmento} mini=${true} rotulo="Situação do formulário" valor=${estado.situacao} aoMudar=${(id) => atualizar({ situacao: id, pagina: 1 })} opcoes=${opcoesSituacao} />
+          ${ativas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Operação" value=${estado.operacao} onChange=${(e) => atualizar({ operacao: e.target.value, pagina: 1 })}><option value="">Todas as operações</option>${ativas.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select>` : null}
+          <div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder="Buscar formulário" aria-label="Buscar formulário" value=${buscaTexto} onInput=${(e) => setBuscaTexto(e.target.value)} /></div>
         </div>
+        ${erro ? html`<${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${() => setTick((x) => x + 1)} />`
+          : !dados ? html`<${Esqueleto} linhas=${6} />`
+          : !itens.length ? html`<${Estado} icone="list-checks" titulo="Nenhum formulário nesta situação." rotuloAcao=${podeEditar && (c.todos || 0) > 0 ? 'Novo formulário' : undefined} aoAcao=${podeEditar ? () => aoCriar(null) : undefined} />`
+          : html`<table class="c-tabela">
+            <thead><tr><th scope="col" class="c-estica">Formulário</th><th scope="col">Situação</th><th scope="col">Versão</th><th scope="col" class="c-col-opc">Atualizado</th><th scope="col" class="c-num">Monit.</th><th scope="col" class="c-num">Nota</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
+            <tbody>${itens.map((f) => html`<tr key=${f.id_matriz} class="c-clicavel" aria-selected=${selecionado?.id_matriz === f.id_matriz ? 'true' : null}
+              onClick=${(e) => { if (!e.target.closest('button, .c-abre-menu')) atualizar({ selecionado: f.id_matriz }); }}>
+              <td class="c-estica" data-papel="titulo"><span class="c-duas"><span class="c-forte" title=${f.nome}>${f.nome}</span><small title=${`${f.operacao_nome}${f.origem ? ` · cópia de ${f.origem}` : ''}`}>${f.operacao_nome}${f.origem ? ` · cópia de ${f.origem}` : ''}</small></span></td>
+              <td data-papel="selo"><${ChipSituacao} situacao=${f.situacao} /></td>
+              <td class="c-forte" data-papel="info" data-prioridade="1" data-primeira="">v${f.versao_ativa ?? '—'}</td>
+              <td class="c-col-opc c-secundario" title=${`${formatarDataHoraCurta(f.atualizado_em)} · ${f.atualizado_por || '—'}`}>${formatarData(f.atualizado_em)}</td>
+              <td class="c-num" data-papel="info" data-prioridade="1">${f.monitorias}</td>
+              <td class="c-num">${f.nota_media == null ? '—' : formatarNota(f.nota_media)}</td>
+              <td class="c-acoes" data-papel="acoes"><div class="c-grupo">
+                <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => aoAbrir(f)}>Abrir</button>
+                <${MenuAcoes} rotulo=${`Mais ações de ${f.nome}`} acoes=${acoesLinha(f)} />
+              </div></td>
+            </tr>`)}</tbody>
+          </table>`}
+        ${dados && itens.length ? html`<div class="c-tabela-rodape">
+          <span role="status">Mostrando ${itens.length} de ${dados.total} formulários</span>
+          ${totalPaginas > 1 ? html`<span class="c-grupo">
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto" disabled=${estado.pagina <= 1 || null} onClick=${() => atualizar({ pagina: estado.pagina - 1 })}><${Ic} nome="caret-left" />Anterior</button>
+            <span>${estado.pagina} de ${totalPaginas}</span>
+            <button type="button" class="c-botao c-botao--texto c-botao--compacto" disabled=${estado.pagina >= totalPaginas || null} onClick=${() => atualizar({ pagina: estado.pagina + 1 })}>Próxima<${Ic} nome="caret-right" /></button>
+          </span>` : null}
+        </div>` : null}
       </div>
 
-      <div class="mon-lf-grade">
-        <section class="mon-lf-tabela-card" aria-label="Formulários">
-          ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro} <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onClick=${() => setTick((x) => x + 1)}>Tentar de novo</button></div>`
-            : !dados ? html`<div class="mon-lf-esqueleto" aria-busy="true" aria-label="Carregando">${Array.from({ length: 6 }, (_, i) => html`<div key=${i}></div>`)}</div>`
-            : !itens.length ? html`<div class="mon-lf-vazio" role="status"><p>Nenhum formulário nesta situação.</p>${podeEditar && (dados.contadores?.todos || 0) > 0 ? html`<button type="button" class="btn btn-primary" onClick=${() => aoCriar(null)}>Criar formulário</button>` : null}</div>`
-            : html`
-              <div class="mon-lf-rolagem">
-                <table class="mon-lf-tabela">
-                  <thead><tr>
-                    <th scope="col">Formulário</th><th scope="col">Situação</th><th scope="col">Versão</th><th scope="col">Atualizado</th>
-                    <th scope="col" class="num">Monit.</th><th scope="col" class="num">Nota</th><th scope="col"><span class="visually-hidden">Ações</span></th>
-                  </tr></thead>
-                  <tbody>
-                    ${itens.map((f) => html`
-                      <tr key=${f.id_matriz} class=${f.id_matriz === estado.selecionado ? 'is-selecionada' : ''} aria-current=${f.id_matriz === estado.selecionado ? 'true' : undefined}>
-                        <td>
-                          <button type="button" class="mon-lf-nome" title=${f.nome} onClick=${() => atualizar({ selecionado: f.id_matriz })}>${f.nome}</button>
-                          <div class="mon-lf-sub" title=${`${f.operacao_nome}${f.origem ? ` · duplicado de ${f.origem}` : ''}`}>${f.operacao_nome}${f.origem ? ` · duplicado de ${f.origem}` : ''}</div>
-                        </td>
-                        <td><${ChipSituacao} situacao=${f.situacao} /></td>
-                        <td><strong>v${f.versao_ativa ?? '—'}</strong><div class="mon-lf-sub">atual</div></td>
-                        <td>${formatarDataHoraCurta(f.atualizado_em)}<div class="mon-lf-sub">${f.atualizado_por || '—'}</div></td>
-                        <td class="num">${f.monitorias}</td>
-                        <td class="num">${f.nota_media == null ? '—' : formatarNota(f.nota_media)}</td>
-                        <td class="mon-lf-acoes">
-                          <button type="button" class="btn btn-outline-secondary btn-sm" onClick=${() => aoAbrir(f)}>Abrir</button>
-                          ${podeEditar ? html`<button type="button" class="mon-icone-btn" title="Duplicar" aria-label=${`Duplicar ${f.nome}`} onClick=${() => setDuplicando(f)}><${Icone} nome="content_copy" /></button>` : null}
-                          <${MenuAcoesProcesso} acoes=${acoesLinha(f)} ariaLabel=${`Mais ações de ${f.nome}`} />
-                        </td>
-                      </tr>`)}
-                  </tbody>
-                </table>
-              </div>
-              <div class="mon-lf-rodape">
-                <span role="status">Mostrando ${itens.length} de ${dados.total} formulários</span>
-                ${totalPaginas > 1 ? html`<span class="mon-lf-pag">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${estado.pagina <= 1} onClick=${() => atualizar({ pagina: estado.pagina - 1 })}>Anterior</button>
-                  <span>${estado.pagina} / ${totalPaginas}</span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${estado.pagina >= totalPaginas} onClick=${() => atualizar({ pagina: estado.pagina + 1 })}>Próxima</button>
-                </span>` : null}
-              </div>`}
-        </section>
-
-        <aside class="mon-lf-painel" aria-label="Formulário escolhido">
-          ${!selecionado ? html`<div class="mon-lf-painel-vazio"><p class="mon-lf-rotulo">Formulário escolhido</p><p class="mon-muted">Escolha um formulário na tabela para ver a situação e o controle de versões.</p></div>` : html`
-            <div class="mon-lf-painel-topo">
-              <div class="mon-lf-painel-linha">
-                <div><p class="mon-lf-rotulo">Formulário escolhido</p><h2 class="mon-lf-painel-nome" title=${selecionado.nome}>${selecionado.nome}</h2></div>
-                <${ChipSituacao} situacao=${selecionado.situacao} />
-              </div>
-              <p class="mon-muted mon-lf-ajuda">${info.ajuda}</p>
-              <div class="mon-lf-painel-botoes">
-                <button type="button" class="btn btn-primary" onClick=${() => aoAbrir(selecionado)}>Abrir formulário</button>
-                ${podeEditar ? html`
-                  <button type="button" class="btn btn-outline-secondary" onClick=${() => setDuplicando(selecionado)}>Duplicar</button>
-                  <button type="button" class="btn btn-outline-secondary" onClick=${() => pedirAcao(selecionado, info.acao)}>${ROTULO_ACAO[info.acao]}</button>` : null}
-              </div>
+      <aside class="c-fm-lado" aria-label="Formulário escolhido">
+        ${!selecionado ? html`<div class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Formulário escolhido</h3></div><div class="c-db-bloco-corpo"><p class="c-ajuda" style=${{ margin: 0 }}>Escolha um formulário na tabela.</p></div></div>` : html`
+          <div class="c-db-bloco">
+            <div class="c-db-bloco-cab"><h3 title=${selecionado.nome}>${selecionado.nome}</h3><${ChipSituacao} situacao=${selecionado.situacao} /></div>
+            <div class="c-db-bloco-corpo">
+              <p class="c-ajuda" style=${{ margin: 0 }}>${info.ajuda}</p>
+              ${resumo ? html`<table class="c-diario-ficha"><tbody>
+                <tr><td>Blocos</td><td style=${{ whiteSpace: 'normal' }}>${(resumo.blocos || []).map((b) => `${b.nome} (${formatarNota(b.valor)})`).join(' · ') || '—'}</td></tr>
+                <tr><td>Faixas</td><td style=${{ whiteSpace: 'normal' }}>${(resumo.faixas || []).map((f) => html`<span key=${f.label} style=${{ marginRight: '8px', display: 'inline-block' }}><span class="c-fm-faixa" style=${{ '--f': f.cor || 'var(--cor-acao-fundo)' }}></span>${f.label} ≥ ${f.min}</span>`)}</td></tr>
+              </tbody></table>` : html`<${Esqueleto} linhas=${2} />`}
             </div>
-            <div class="mon-lf-versoes-cab">
-              <span class="mon-lf-rotulo">Controle de versões</span>
-              <button type="button" class="btn btn-outline-secondary btn-sm" disabled=${marcadas.length !== 2} onClick=${compararSelecionadas} title="Marque duas versões para comparar">Comparar (${marcadas.length}/2)</button>
-            </div>
-            <ul class="mon-ver-lista">
-              ${versoes === null ? html`<li class="mon-muted" aria-busy="true">Carregando versões…</li>` : versoesVisiveis.map((v) => html`<${VersionRow} key=${v.id_versao} versao=${v}
-                marcada=${marcadas.includes(v.id_versao)} desabilitada=${cheio}
-                motivoDesabilitada="Já há 2 versões marcadas. Desmarque uma para escolher outra."
-                aoMarcar=${(id) => setMarcadas((m) => alternarMarcadas(m, id))}
-                aoVer=${() => aoAbrir(selecionado, v.id_versao)}
+          </div>
+          <div class="c-db-bloco" style=${{ borderTop: 'var(--borda-fina) solid var(--tabela-linha)' }}>
+            <div class="c-db-bloco-cab"><h3>Versões</h3>
+              <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${marcadas.length !== 2 || null} title="Marque duas versões para comparar" onClick=${compararSelecionadas}>Comparar (${marcadas.length}/2)</button></div>
+            <div class="c-db-bloco-corpo c-fm-versoes" role="list">
+              ${versoes === null ? html`<${Esqueleto} linhas=${3} />` : versoesVisiveis.map((v) => html`<${VersionRow} key=${v.id_versao} versao=${v}
+                marcada=${marcadas.includes(v.id_versao)} desabilitada=${cheio} motivoDesabilitada="Já há 2 versões marcadas. Desmarque uma para escolher outra."
+                aoMarcar=${(id) => setMarcadas((m) => alternarMarcadas(m, id))} aoVer=${() => aoAbrir(selecionado, v.id_versao)}
                 aoRestaurar=${podeEditar && selecionado.situacao !== 'arquivado' ? restaurarVersao : null} />`)}
-            </ul>
-            ${versoes && versoes.length > VERSOES_VISIVEIS ? html`<button type="button" class="btn btn-link btn-sm mon-lf-ver-todas" onClick=${() => setTodasVersoes((x) => !x)}>${todasVersoes ? 'Mostrar menos' : `Ver todas as ${versoes.length} versões`}</button>` : null}
-            <p class="mon-muted mon-lf-painel-rodape">Salvar cria uma nova versão. As anteriores ficam arquivadas.</p>`}
-        </aside>
-      </div>
+              ${versoes && versoes.length > VERSOES_VISIVEIS ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setTodasVersoes((x) => !x)}>${todasVersoes ? 'Mostrar menos' : `Ver todas as ${versoes.length} versões`}</button>` : null}
+            </div>
+          </div>
+          <div class="c-fm-lado-acoes">
+            <button type="button" class="c-botao c-botao--principal" onClick=${() => aoAbrir(selecionado)}>Abrir formulário</button>
+            ${podeEditar ? html`<button type="button" class="c-botao c-botao--secundario" onClick=${() => setDuplicando(selecionado)}><${Ic} nome="copy" />Duplicar</button>` : null}
+          </div>`}
+      </aside>
+    </div>
 
-      <${DialogoDuplicar} formulario=${duplicando} operacoes=${ativas} showToast=${showToast} aoFechar=${() => setDuplicando(null)}
-        aoConcluir=${() => { setDuplicando(null); setTick((x) => x + 1); aoReload?.(); }} />
-      <${DialogoConfirmar} aberto=${Boolean(confirmando)}
-        titulo=${confirmando ? (confirmando.acao === 'restaurar-versao' ? `Restaurar a v${confirmando.versao.numero}?` : `${ROTULO_ACAO[confirmando.acao]} "${confirmando.f.nome}"?`) : ''}
-        descricao=${confirmando?.descricao} textoConfirmar=${confirmando ? (confirmando.acao === 'restaurar-versao' ? 'Restaurar' : ROTULO_ACAO[confirmando.acao]) : ''}
-        perigo=${confirmando?.acao === 'arquivar'} ocupado=${ocupado} aoCancelar=${() => setConfirmando(null)}
-        aoConfirmar=${confirmando?.acao === 'restaurar-versao' ? executarRestaurarVersao : confirmarAcao} />
-      <${ModalComparacao} comparacao=${comparacao} aoFechar=${() => setComparacao(null)} />
-    </div>`;
+    <${DialogoDuplicar} formulario=${duplicando} operacoes=${ativas} showToast=${showToast} aoFechar=${() => setDuplicando(null)}
+      aoConcluir=${() => { setDuplicando(null); setTick((x) => x + 1); aoReload?.(); }} />
+    <${DialogoConfirmar} aberto=${Boolean(confirmando)}
+      titulo=${confirmando ? (confirmando.acao === 'restaurar-versao' ? `Restaurar a v${confirmando.versao.numero}?` : `${ROTULO_ACAO[confirmando.acao]} "${confirmando.f.nome}"?`) : ''}
+      descricao=${confirmando?.descricao} textoConfirmar=${confirmando ? (confirmando.acao === 'restaurar-versao' ? 'Restaurar' : ROTULO_ACAO[confirmando.acao]) : ''}
+      perigo=${confirmando?.acao === 'arquivar'} ocupado=${ocupado} aoCancelar=${() => setConfirmando(null)}
+      aoConfirmar=${confirmando?.acao === 'restaurar-versao' ? executarRestaurarVersao : confirmarAcao} />
+    <${ModalComparacao} comparacao=${comparacao} aoFechar=${() => setComparacao(null)} />`;
 }

@@ -1092,6 +1092,68 @@ class MonitoriaOrgRepositoryMixin:
             "intranets": intranets,
         }
 
+    # Módulos por operação (lista 10/11, item 16): o que aparece no menu da Operação para quem trabalha nela.
+    # Teto = tela Módulos (Tecnologia). Sem linha em operacoes_modulos = ligado. Só visibilidade: permissões não mudam.
+    def mon_get_modulos_operacao(self, user, chave: str) -> dict:
+        from ..modulos_catalogo import FUNCOES, FUNCOES_POR_OPERACAO, MODULO_OPERACAO
+        from ..services import acesso
+
+        chave = normalize_text(chave)
+        self._mon_exigir_operacao_no_escopo(user, chave)
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id_item, nome FROM dbo.operacoes WHERE chave = ?", (chave,))
+            op = cursor.fetchone()
+            if not op:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operação não encontrada.")
+            cursor.execute("SELECT funcao, ativo FROM dbo.operacoes_modulos WHERE operacao = ?", (chave,))
+            salvas = {str(f): bool(a) for f, a in cursor.fetchall()}
+        finally:
+            conn.close()
+        no_conecta = set(acesso.funcoes_ativas(MODULO_OPERACAO))
+        return {
+            "operacao": chave,
+            "operacao_nome": normalize_text(op[1]),
+            "itens": [
+                {"chave": f, "nome": FUNCOES[f][0], "descricao": FUNCOES[f][1],
+                 "no_conecta": f in no_conecta, "ativo": salvas.get(f, True)}
+                for f in FUNCOES_POR_OPERACAO
+            ],
+        }
+
+    def mon_set_modulos_operacao(self, actor, chave: str, funcoes: dict, *, ip: str = "") -> dict:
+        from ..modulos_catalogo import FUNCOES_POR_OPERACAO
+        from ..services import acesso
+
+        chave = normalize_text(chave)
+        self._mon_exigir_operacao_no_escopo(actor, chave)
+        desconhecidas = [f for f in funcoes if f not in FUNCOES_POR_OPERACAO]
+        if desconhecidas:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Módulo desconhecido: " + ", ".join(desconhecidas))
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            op = self._mon_exigir_operacao_ativa(cursor, chave)
+            cursor.execute("SELECT funcao, ativo FROM dbo.operacoes_modulos WHERE operacao = ?", (chave,))
+            anterior = {str(f): bool(a) for f, a in cursor.fetchall()}
+            autor = normalize_text(actor.nome)
+            for funcao, ativo in funcoes.items():
+                cursor.execute(
+                    "MERGE dbo.operacoes_modulos AS t USING (SELECT ? AS operacao, ? AS funcao) AS s "
+                    "ON t.operacao = s.operacao AND t.funcao = s.funcao "
+                    "WHEN MATCHED THEN UPDATE SET ativo = ?, atualizado_por = ?, atualizado_em = GETDATE() "
+                    "WHEN NOT MATCHED THEN INSERT (operacao, funcao, ativo, atualizado_por) VALUES (?, ?, ?, ?);",
+                    (chave, funcao, int(bool(ativo)), autor, chave, funcao, int(bool(ativo)), autor),
+                )
+            self.mon_log(cursor, actor, acao="configurar_modulos_operacao", operacao=chave, entidade="operacao", entidade_id=op["id_item"],
+                         anterior=anterior, posterior={f: bool(a) for f, a in funcoes.items()}, ip=ip)
+            conn.commit()
+        finally:
+            conn.close()
+        acesso.invalidar_cache()
+        return self.mon_get_modulos_operacao(actor, chave)
+
     def mon_set_ambiente(self, actor, chave: str, data: dict, *, ip: str = "") -> dict:
         """Aplica supervisores, pessoas da Qualidade, flag "possui qualidade" e intranets
         (ambientes SharePoint) à operação, reaproveitando as regras de `mon_set_vinculos`

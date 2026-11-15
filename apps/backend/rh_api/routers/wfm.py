@@ -14,41 +14,41 @@ from fastapi.responses import Response, StreamingResponse
 from ..auth import AuthenticatedUser
 from ..dependencies import exigir_relatorio_hub, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services import wfm_historico as historico
 from ..schemas.wfm import (
+    AplicarPausasRequest,
     AtestadoRequest,
     CapacidadePausasRequest,
     ConfigEscalaRequest,
-    CriarEscalaRequest,
-    DuplicarEscalaMesRequest,
-    DuplicarEscalaRequest,
-    DeclinarRequest,
-    DistribuirPausasRequest,
-    ExportarHistoricoRequest,
-    PersonalizacaoTurnoRequest,
-    PresencaLoteRequest,
-    SalvarPausasRequest,
     ContratoOperadorRequest,
     ContratoRequest,
+    CriarEscalaRequest,
+    DeclinarRequest,
+    DistribuirPausasRequest,
+    DuplicarEscalaMesRequest,
+    DuplicarEscalaRequest,
     EventoRequest,
+    ExportarHistoricoRequest,
     FecharRequest,
     HoraExtraRequest,
-    PresencaRequest,
-    PublicarRequest,
-    AplicarPausasRequest,
-    ReplicarPausasRequest,
     ImpactoDiasTurnoRequest,
     ImpactoTipoTurnoRequest,
+    PersonalizacaoTurnoRequest,
+    PresencaLoteRequest,
+    PresencaRequest,
+    PublicarRequest,
+    ReplicarPausasRequest,
     SalvarItensRequest,
+    SalvarPausasRequest,
     SkillRequest,
     SkillsOperadorRequest,
+    TipoEscalaRequest,
     TrocaDecidirRequest,
     TrocaDesfazerRequest,
     TrocaResponderRequest,
     TrocaSolicitarRequest,
-    TipoEscalaRequest,
     TurnoRequest,
 )
+from ..services import wfm_historico as historico
 
 router = APIRouter(prefix="/wfm", tags=["wfm"], dependencies=[Depends(get_current_user)])
 
@@ -192,7 +192,7 @@ def exportar_escala(operacao: str, ano_mes: str, request: Request, formato: str 
     return Response(content=conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
-_RELATORIOS_WFM = ("painel", "resumo", "escalas", "presencas", "trocas", "aprovacoes")
+_RELATORIOS_WFM = ("painel", "resumo", "escalas", "escalados", "presencas", "trocas", "aprovacoes")
 
 
 def _exigir_relatorio_wfm(user: AuthenticatedUser, tipo: str) -> None:
@@ -234,6 +234,12 @@ def listar_presencas(operacao: str, ano_mes: str, todas_equipes: bool = False, u
 @router.get("/presencas/pendencias", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
 def pendencias_presenca(operacao: str, data_ini: str, data_fim: str, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.wfm_pendencias_presenca(user, operacao, data_ini, data_fim)
+
+
+# Painel do dia: 1º login do dia no Conecta de quem a pessoa vê (só leitura; sem dado de ponto nem de pausa real).
+@router.get("/painel-dia/logins", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])
+def logins_do_dia(operacao: str, data: str, todas_equipes: bool = False, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.wfm_logins_dia(user, operacao, data, todas_equipes=todas_equipes)
 
 
 @router.put("/presencas", dependencies=[Depends(require_permissions("wfm.presenca.lancar"))])

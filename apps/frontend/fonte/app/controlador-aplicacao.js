@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js';
 import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js';
+import { useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
 import {
   baixarBlob,
   gerarIdResultado,
@@ -185,6 +186,7 @@ export const PERMISSOES_TELAS = {
   'screen-settings': 'configuracoes.visualizar',
   'screen-settings-users': 'usuarios.visualizar',
   'screen-settings-profiles': 'configuracoes.visualizar',
+  'screen-settings-acessos': 'configuracoes.visualizar',
   'screen-settings-operations': 'configuracoes.visualizar',
   'screen-settings-lgpd': 'configuracoes.visualizar',
   'screen-settings-motivos-eliminacao': 'configuracoes.visualizar',
@@ -225,6 +227,9 @@ export const PERMISSOES_TELAS = {
   'screen-tecnologia-modulos': 'configuracoes.visualizar',
   'screen-equipes-controle': 'equipes.controle.visualizar',
   'screen-relatorios': 'sessao.relatorios.acessar',
+  // Painel (14/11/2026): quem assiste e quem monta (Tecnologia).
+  'screen-painel': 'painel.visualizar',
+  'screen-settings-paineis': 'painel.configurar',
   'screen-wfm-painel': 'relhub.wfm.painel',
   // WFM — Turnos e Plantões
   'screen-wfm': 'wfm.escala.visualizar',
@@ -235,6 +240,11 @@ export const PERMISSOES_TELAS = {
   'screen-wfm-jornadas': 'wfm.cadastros.visualizar',
   'screen-wfm-auditoria': 'wfm.auditoria',
   'screen-wfm-trocas': 'wfm.troca.visualizar',
+  'screen-wfm-dia': 'wfm.presenca.lancar',
+  // Diário de bordo (08/11/2026): Hoje abre também para quem só lê as intercorrências (Qualidade).
+  'screen-diario': ['diario.visualizar', 'diario.intercorrencias'],
+  'screen-diario-historico': 'diario.visualizar',
+  'screen-diario-cadastros': 'diario.administrar',
   // Suporte TI (Chamados): lista = basta uma. O detalhe não tem entrada: o servidor decide (quem abriu nunca fica órfão).
   'screen-chamados': ['chamados.abrir', 'chamados.ver_operacao'],
   'screen-chamados-novo': 'chamados.abrir',
@@ -289,6 +299,7 @@ export const SESSAO_DA_TELA = {
   'screen-tecnologia-modulos': 'configuracoes',
   'screen-equipes-controle': 'equipe',
   'screen-relatorios': 'relatorios',
+  'screen-painel': 'painel',
   'screen-wfm-painel': 'wfm',
   'screen-wfm': 'wfm',
   'screen-wfm-minha-escala': 'wfm',
@@ -298,6 +309,10 @@ export const SESSAO_DA_TELA = {
   'screen-wfm-jornadas': 'wfm',
   'screen-wfm-auditoria': 'wfm',
   'screen-wfm-trocas': 'wfm',
+  'screen-wfm-dia': 'wfm',
+  'screen-diario': 'diario',
+  'screen-diario-historico': 'diario',
+  'screen-diario-cadastros': 'diario',
 };
 const logger = criarLogger('controlador-aplicacao');
 
@@ -1163,11 +1178,16 @@ export function useControladorAplicacao() {
     );
   };
 
+  // Módulo desativado (Tecnologia > Módulos) desliga TUDO o que é dele: as permissões efetivas vêm de GET /core/acesso,
+  // que já tira as de módulos/funções desligados (mesma regra que o servidor aplica nas rotas). Sem o dado ainda, vale o login.
+  const modulosAcesso = useModulos();
+  const permissoesEfetivas = modulosAcesso.carregado ? modulosAcesso.permissoes || [] : estado.permissoesUsuario || [];
+
   const possuiPermissao = (permissao) => {
     if (!permissao) return true;
     // Áreas inativas (Suporte TI, Treinamentos, Processos, Provas, CX de Currículos): suas permissões não valem (shared/areas.js).
     if (permissaoEmAreaInativa(permissao)) return false;
-    return (estado.permissoesUsuario || []).includes(permissao);
+    return permissoesEfetivas.includes(permissao);
   };
 
   const possuiAlgumaPermissao = (...permissoes) =>
@@ -1178,7 +1198,7 @@ export function useControladorAplicacao() {
     const permissoes = estado.permissoesUsuario || [];
     // Sem nenhuma chave "sessao.*" no token (sessão antiga), nada é restringido.
     if (!permissoes.some((permissao) => permissao.startsWith('sessao.'))) return true;
-    return permissoes.includes(`sessao.${sessao}.acessar`);
+    return permissoesEfetivas.includes(`sessao.${sessao}.acessar`);
   };
 
   const podeAcessarTela = (tela) => {

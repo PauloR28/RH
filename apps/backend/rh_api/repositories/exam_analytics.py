@@ -33,7 +33,6 @@ from ..services.process_flow import is_process_closed
 from .bootstrap import get_process_row
 from .exam_analytics_schema import ensure_exam_analytics_tables
 
-
 logger = logging.getLogger(__name__)
 
 

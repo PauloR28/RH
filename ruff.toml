@@ -1,0 +1,17 @@
+# Regras do ruff para o backend (CI: `ruff check apps/backend`).
+# Fixadas aqui para que uma versão nova do ruff não mude as regras sozinha.
+target-version = "py313"
+line-length = 200
+
+[lint]
+# Padrão clássico do ruff (erros de sintaxe, nomes indefinidos, imports sem uso) + ordem dos imports.
+select = ["E4", "E7", "E9", "F", "I"]
+# `l` como nome curto de linha/lista é comum no código e não esconde erro.
+ignore = ["E741"]
+
+[lint.per-file-ignores]
+# Os testes ajustam o sys.path/variáveis de ambiente antes de importar o app.
+"apps/backend/tests/*" = ["E402"]
+
+[lint.isort]
+known-first-party = ["rh_api"]

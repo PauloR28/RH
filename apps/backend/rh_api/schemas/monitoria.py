@@ -58,6 +58,11 @@ class AmbienteOperacaoRequest(BaseSchema):
     intranets: list[int] | None = None
 
 
+class ModulosOperacaoRequest(BaseSchema):
+    # função da Operação (monitoria, wfm, diario, treinamentos) -> ligada nesta operação
+    funcoes: dict[str, bool]
+
+
 class TransferirSupervisaoRequest(BaseSchema):
     operacao: str
     id_de: int
@@ -116,6 +121,7 @@ class MonitoriaCriarRequest(BaseSchema):
     id_interacao: str = Field(default="", max_length=120)
     nome_cliente: str = Field(default="", max_length=180)
     cpf_cliente: str = Field(default="", max_length=14)
+    contato_cliente: str = Field(default="", max_length=180)
     respostas: dict[str, str] = {}
     pilares: dict[str, dict[str, int]] = {}
     motivo_ncg: str = ""

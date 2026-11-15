@@ -12,7 +12,6 @@ from ..schemas.disc import (
     DiscFinalizarRequest,
 )
 
-
 router = APIRouter(prefix="/disc", tags=["disc"], dependencies=[Depends(get_current_user)])
 public_router = APIRouter(prefix="/disc-api", tags=["disc-public"])
 

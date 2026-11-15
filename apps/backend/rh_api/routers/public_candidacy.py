@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from ..dependencies import get_repository
 from ..repositories import DatabaseRepository
 
-
 router = APIRouter(tags=["public-candidacy"])
 
 

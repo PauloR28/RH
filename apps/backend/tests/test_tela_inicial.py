@@ -37,6 +37,13 @@ def test_config_invalida_volta_ao_padrao():
     assert normalizar_config({"blocos": "x"}) == config_padrao()
 
 
+def test_atalhos_ocultos_so_ids_validos_sem_repetir():
+    config = normalizar_config({"blocos": [], "atalhos_ocultos": ["wfm", "WFM", "minha-escala", "x y", "", None, 3]})
+    assert config["atalhos_ocultos"] == ["wfm", "minha-escala", "3"]
+    assert normalizar_config({"blocos": [], "atalhos_ocultos": "wfm"})["atalhos_ocultos"] == []
+    assert config_padrao()["atalhos_ocultos"] == []
+
+
 def test_perfis_de_sessoes():
     assert PERFIS_INICIO_POR_SESSOES == {"supervisor", "qualidade", "operador", "candidato"}
 

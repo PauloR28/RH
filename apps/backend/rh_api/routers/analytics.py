@@ -7,7 +7,6 @@ from ..auth import AuthenticatedUser
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
 
-
 router = APIRouter(tags=["analytics"], dependencies=[Depends(get_current_user)])
 
 

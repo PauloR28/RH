@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-
 from conecta.infrastructure.security.rate_limit import InMemoryRateLimiter
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from ..auth import AuthenticatedUser
 from ..config import get_settings
 from ..dependencies import audit_action, get_current_user, get_repository, require_permissions
 from ..repositories import DatabaseRepository
-from ..services.feedback_qualitativo import build_qualitative_feedback
 from ..schemas.generated_exams import (
     CancelExamRequest,
     DecisionRhRequest,
@@ -19,11 +17,11 @@ from ..schemas.generated_exams import (
     PublicCandidateDataRequest,
     PublicExamAccessRequest,
     PublicExamAnswersRequest,
-    PublicStageStartRequest,
     PublicExamTokenRequest,
+    PublicStageStartRequest,
     ReopenExamRequest,
 )
-
+from ..services.feedback_qualitativo import build_qualitative_feedback
 
 logger = logging.getLogger(__name__)
 

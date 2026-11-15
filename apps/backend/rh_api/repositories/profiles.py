@@ -4,9 +4,8 @@ from datetime import datetime
 
 from fastapi import HTTPException, status
 
-from ..services.helpers import normalize_compare_text, normalize_string_list, normalize_text, rows_to_dicts
 from ..services.cv import is_valid_email, is_valid_phone
-from .bootstrap import ensure_email_inbox_items_table
+from ..services.helpers import normalize_compare_text, normalize_string_list, normalize_text, rows_to_dicts
 from ..services.process_flow import (
     CANDIDATE_STATUS_APPROVED,
     CANDIDATE_STATUS_ELIMINATED,
@@ -14,6 +13,7 @@ from ..services.process_flow import (
     build_approved_candidate_locked_message,
     canonicalize_candidate_status,
 )
+from .bootstrap import ensure_email_inbox_items_table
 
 PROFILE_RECOMMENDATION_LABELS = {
     "indicado": "Indicado",
