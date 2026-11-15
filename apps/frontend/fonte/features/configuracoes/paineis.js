@@ -85,7 +85,7 @@ function Editor({ config, painel, aoFechar, aoSalvar }) {
               const atual = metricas.find((x) => x.metrica === m.id);
               return html`<li key=${m.id} data-off=${ligada ? null : ''}>
                 <label class="c-interruptor"><input type="checkbox" checked=${ligada} disabled=${bloqueada && !ligada ? true : null} aria-label=${`Mostrar ${m.nome}`} onChange=${(e) => ligar(m.id, e.target.checked)} /></label>
-                <span class="c-pg-estica"><span>${m.nome}</span><small>${bloqueada ? 'Esta unidade não usa esta função (tela Módulos)' : m.descricao}</small></span>
+                <span class="c-pg-estica"><span>${m.nome}</span><small>${bloqueada ? 'Esta unidade não usa esta função (tela Módulos)' : `Aba ${m.area} · ${m.descricao}`}</small></span>
                 <select class="c-entrada c-entrada--compacta" aria-label=${`Como mostrar ${m.nome}`} value=${atual?.forma || m.formas[0].id} disabled=${!ligada || m.formas.length < 2 || null} onChange=${(e) => mudarForma(m.id, e.target.value)}>
                   ${m.formas.map((f) => html`<option key=${f.id} value=${f.id}>${f.nome}</option>`)}
                 </select>
@@ -100,7 +100,7 @@ function Editor({ config, painel, aoFechar, aoSalvar }) {
           <div class="c-pg-perfis">
             ${config.perfis.map((p) => html`<label key=${p.id} class="c-marcar"><input type="checkbox" checked=${perfis.includes(p.id)} onChange=${(e) => marcarPerfil(p.id, e.target.checked)} />${p.nome}</label>`)}
           </div>
-          <p class="c-ajuda">A pessoa também precisa da permissão "Ver os painéis" e de acesso a esta unidade. Cada métrica pede ainda o acesso ao módulo de origem.</p>
+          <p class="c-ajuda">A pessoa também precisa da permissão de ver painéis (Perfis e permissões) e de acesso a esta unidade. Cada métrica pede ainda o acesso ao módulo de origem.</p>
         </section>
         <label class="c-interruptor"><input type="checkbox" checked=${ativo} onChange=${(e) => setAtivo(e.target.checked)} />Painel ligado</label>
       </div>

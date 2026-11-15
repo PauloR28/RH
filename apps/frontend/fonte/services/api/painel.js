@@ -13,3 +13,6 @@ export const lerFichaOperador = (idPainel, idOperador, periodo) =>
 export const lerConfigPaineis = () => requisitar('/painel/config', { method: 'GET' });
 export const salvarConfigPainel = (idPainel, corpo) =>
   requisitar(idPainel ? `/painel/config/${q(idPainel)}` : '/painel/config', { method: idPainel ? 'PUT' : 'POST', headers: JSON_HEADERS, body: JSON.stringify(corpo) });
+export const lerPresencaComparada = (idPainel, periodo, equipe, comparar) =>
+  requisitar(`/painel/${q(idPainel)}/presenca-comparada?periodo=${q(periodo)}&equipe=${q(equipe || '')}&comparar=${q(comparar)}`, { method: 'GET' });
+export const lerDiaPainel = (idPainel, data, equipe = '') => requisitar(`/painel/${q(idPainel)}/dia?data=${q(data)}&equipe=${q(equipe)}`, { method: 'GET' });

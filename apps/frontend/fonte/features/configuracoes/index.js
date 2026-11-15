@@ -67,7 +67,7 @@ import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-un
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261111-escalados';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
-import { ConfigPaineis } from './paineis.js?v=20261114-painel';
+import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

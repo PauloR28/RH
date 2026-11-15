@@ -7,80 +7,10 @@ import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm'
 import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js';
 import { obterEstadoModulos } from '../estado.js?v=20261112-modulo-unico2';
 
-const POR_PAGINA_SUB = 5;
-const POR_PAGINA_OPS = 10;
-const ROTULO_TROCA = { APROVADA: ['Aprovada', 'sucesso'], AGUARDANDO_B: ['Esperando o colega', 'atencao'], AGUARDANDO_APROVACAO: ['Esperando aprovação', 'atencao'],
-  REPROVADA: ['Reprovada', 'perigo'], RECUSADA: ['Recusada', 'perigo'], CANCELADA: ['Cancelada', 'neutro'], EXPIRADA: ['Expirada', 'neutro'], DESFEITA: ['Desfeita', 'neutro'] };
-const TOM_SIGLA = { P: 'sucesso', F: 'perigo', FJ: 'informacao', AT: 'informacao', FL: 'neutro', FE: 'neutro', FB: 'neutro', DO: 'neutro', SE: 'neutro' };
-const SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('pt-BR'));
-const pct = (v) => (v === null || v === undefined ? '—' : `${String(v).replace('.', ',')}%`);
-const nota = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
-const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
-const diaSemana = (iso) => {
-  if (!iso) return '';
-  if (iso === 'Hoje') return 'Hoje';
-  const d = new Date(`${iso}T12:00:00`);
-  return `${SEMANA[d.getDay()]}, ${ddmm(iso)}`;
-};
-const hhmm = (iso) => (iso ? iso.slice(11, 16) : '');
-
-function Indicador({ rotulo, valor, sufixo = '', nota: obs = '', tom = '' }) {
-  return html`<div class="c-indicador">
-    <span class="c-ind-rotulo">${rotulo}</span>
-    <span class="c-ind-valor">${valor}${sufixo ? html`<small>${sufixo}</small>` : null}</span>
-    <span class=${`c-ind-nota${tom ? ` c-tom-${tom}` : ''}`}>${obs}</span>
-  </div>`;
-}
-
-function Cartao({ titulo, acao = null, children }) {
-  return html`<article class="c-cartao c-pg-cartao">
-    <div class="c-cartao-cab"><h2>${titulo}</h2>${acao}</div>
-    ${children}
-  </article>`;
-}
-
-function Indisponivel({ texto }) {
-  return html`<div class="c-pg-vazio"><${Estado} titulo=${texto} /></div>`;
-}
-
-// Tabela curta dentro de uma linha aberta: sem barra de rolagem, texto quebra, 5 por página.
-function MiniTabela({ colunas, linhas, longa = false }) {
-  const [pagina, setPagina] = useState(1);
-  const paginas = Math.max(1, Math.ceil(linhas.length / POR_PAGINA_SUB));
-  const visiveis = linhas.slice((pagina - 1) * POR_PAGINA_SUB, pagina * POR_PAGINA_SUB);
-  return html`<div class="c-tabela-caixa c-pg-mini">
-    <table class="c-tabela c-tabela--compacta">
-      ${longa ? html`<colgroup>${colunas.map((c, i) => html`<col key=${c} style=${{ width: i === colunas.length - 1 ? '50%' : `${50 / (colunas.length - 1)}%` }} />`)}</colgroup>` : null}
-      <thead><tr>${colunas.map((c) => html`<th key=${c}>${c}</th>`)}</tr></thead>
-      <tbody>${visiveis.map((l, i) => html`<tr key=${i}>${l.map((c, j) => html`<td key=${j}>${c}</td>`)}</tr>`)}</tbody>
-    </table>
-    ${paginas > 1 ? html`<div class="c-tabela-rodape c-pg-rodape">
-      <span>${(pagina - 1) * POR_PAGINA_SUB + 1}–${Math.min(linhas.length, pagina * POR_PAGINA_SUB)} de ${linhas.length}</span>
-      <span class="c-grupo">
-        <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${pagina === 1 || null} onClick=${() => setPagina(pagina - 1)}>Anterior</button>
-        <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${pagina === paginas || null} onClick=${() => setPagina(pagina + 1)}>Próxima</button>
-      </span>
-    </div>` : null}
-  </div>`;
-}
-
-// Linha de lista: abre a sublista ao clicar (quando há detalhe). `fixa` = linha que nunca abre (ex.: Frequência).
-function Linha({ titulo, direita, detalhe = null, fixa = false }) {
-  const [aberta, setAberta] = useState(false);
-  if (fixa || !detalhe) {
-    return html`<li><div class="c-pg-linha">${fixa ? null : html`<span class="c-pg-sem-seta"></span>`}<span class="c-pg-estica">${titulo}</span>${direita}</div></li>`;
-  }
-  return html`<li>
-    <button type="button" class="c-pg-linha" aria-expanded=${aberta ? 'true' : 'false'} onClick=${() => setAberta(!aberta)}>
-      <span class="c-pg-seta"><${Ic} nome="caret-right" /></span><span class="c-pg-estica">${titulo}</span>${direita}
-    </button>
-    ${aberta ? html`<div class="c-pg-detalhe">${detalhe}</div>` : null}
-  </li>`;
-}
-
-const Contador = ({ n, tom = 'atencao' }) => html`<span class=${`c-selo c-selo--${n ? tom : 'neutro'}`}>${num(n)}</span>`;
+import {
+  POR_PAGINA_SUB, POR_PAGINA_OPS, ROTULO_TROCA, TOM_SIGLA, SEMANA, num, pct, nota, ddmm, diaSemana, hhmm, Indicador, Cartao, Indisponivel, MiniTabela, Linha, Contador,
+} from './pecas.js?v=20261115-painel-v6b';
+import { BLOCOS_V6 } from './blocos-v6.js?v=20261115-painel-v6b';
 
 // ── Blocos ──────────────────────────────────────────────────────────
 function BlocoPresenca({ d }) {
@@ -215,23 +145,6 @@ function BlocoOperadores({ d, abrirFicha, selecionado }) {
   </article>`;
 }
 
-function BlocoEntrevistas({ d, forma }) {
-  if (d.indisponivel) return html`<${Cartao} titulo="Entrevistas"><${Indisponivel} texto=${d.indisponivel} /></${Cartao}>`;
-  return html`<${Cartao} titulo="Entrevistas">
-    <div class=${`c-indicadores c-pg-cartao-indic${forma === 'numeros' ? ' c-pg-sem-linha' : ''}`}>
-      <${Indicador} rotulo="Marcadas" valor=${num(d.total)} nota="No período" />
-      <${Indicador} rotulo="Compareceram" valor=${num(d.compareceram)} nota=${d.total ? `${pct(Math.round((100 * d.compareceram) / d.total))} das marcadas` : '—'} tom="sucesso" />
-      <${Indicador} rotulo="Faltaram" valor=${num(d.faltaram)} nota="Não vieram" tom=${d.faltaram ? 'perigo' : ''} />
-      <${Indicador} rotulo="Canceladas" valor=${num(d.canceladas)} nota="Pelo RH ou pela pessoa" />
-      <${Indicador} rotulo="A acontecer" valor=${num(d.a_acontecer)} nota="Ainda sem resultado" />
-    </div>
-    ${forma !== 'numeros' ? html`<ul class="c-pg-lista">
-      <${Linha} titulo="Quem faltou" direita=${html`<${Contador} n=${d.lista_faltaram.length} tom="perigo" />`}
-        detalhe=${d.lista_faltaram.length ? html`<${MiniTabela} colunas=${['Candidato', 'Vaga', 'Quando']} linhas=${d.lista_faltaram.map((x) => [x.candidato, x.vaga || '—', x.quando])} />` : null} />
-    </ul>` : null}
-  </${Cartao}>`;
-}
-
 // ── Ficha do operador ───────────────────────────────────────────────
 function Ficha({ painel, operador, periodo, aoFechar, irPara }) {
   const [ficha, setFicha] = useState(null);
@@ -315,6 +228,9 @@ function Ficha({ painel, operador, periodo, aoFechar, irPara }) {
     </aside>`;
 }
 
+const ORDEM_AREAS = ['Turnos e Plantões', 'Monitoria', 'Equipes', 'Diário de Bordo', 'Entrevistas', 'Admissão'];
+const CHAVE_ABA = 'conecta_painel_aba';
+
 // ── Tela ────────────────────────────────────────────────────────────
 export function TelaPainel({ controlador }) {
   const [opcoes, setOpcoes] = useState(null);
@@ -325,6 +241,8 @@ export function TelaPainel({ controlador }) {
   const [carregando, setCarregando] = useState(false);
   const [erroDados, setErroDados] = useState('');
   const [ficha, setFicha] = useState(null);
+  const [aba, setAba] = useState(() => { try { return window.sessionStorage.getItem(CHAVE_ABA) || ''; } catch { return ''; } });
+  const trocarAba = (a) => { setAba(a); try { window.sessionStorage.setItem(CHAVE_ABA, a); } catch { /* sem armazenamento: só não lembra a aba */ } };
   const irPara = (tela) => controlador.irParaTelaProtegida(tela);
 
   useEffect(() => {
@@ -365,19 +283,23 @@ export function TelaPainel({ controlador }) {
     return novo;
   });
 
+  // Abas por área (amostra v6): só aparecem as áreas que têm métrica neste painel, na ordem combinada.
+  const areas = dados ? ORDEM_AREAS.filter((a) => dados.blocos.some((b) => b.area === a)) : [];
+  const abaVisivel = areas.includes(aba) ? aba : areas[0] || '';
   const blocos = [];
   if (dados) {
     let meias = [];
     const fechar = () => { if (meias.length) { blocos.push(html`<div key=${`g${blocos.length}`} class="c-colunas c-pg-grade">${meias}</div>`); meias = []; } };
-    dados.blocos.forEach((b) => {
-      const props = { key: b.metrica, d: b.dados, forma: b.forma, irPara };
+    dados.blocos.filter((b) => b.area === abaVisivel).forEach((b) => {
+      const props = { key: b.metrica, d: b.dados, forma: b.forma, irPara, painel: dados.painel, filtros: aplicado };
+      const V6 = BLOCOS_V6[b.metrica];
       const el = b.metrica === 'presenca' ? html`<${BlocoPresenca} ...${props} />`
         : b.metrica === 'frequencia' ? html`<${BlocoFrequencia} ...${props} />`
           : b.metrica === 'monitorias' ? html`<${BlocoMonitorias} ...${props} />`
             : b.metrica === 'diario' ? html`<${BlocoDiario} ...${props} />`
               : b.metrica === 'escalas' ? html`<${BlocoEscalas} ...${props} />`
                 : b.metrica === 'operadores' ? html`<${BlocoOperadores} ...${props} abrirFicha=${setFicha} selecionado=${ficha?.id_operador} />`
-                  : b.metrica === 'rh_entrevistas' ? html`<${BlocoEntrevistas} ...${props} />` : null;
+                  : V6 ? html`<${V6} ...${props} />` : null;
       if (!el) return;
       if (b.largura === 'meia') meias.push(el); else { fechar(); blocos.push(el); }
     });
@@ -417,7 +339,11 @@ export function TelaPainel({ controlador }) {
       ${erroDados ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erroDados}</p></div></div>` : null}
       ${carregando && !dados ? html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${8} /></div>` : null}
       ${dados && !dados.blocos.length ? html`<div class="c-tabela-caixa"><${Estado} titulo="Nenhuma métrica deste painel está liberada para o seu perfil." texto="Cada métrica pede também o acesso ao módulo de origem (Turnos e Plantões, Monitoria, Diário de bordo)." /></div>` : null}
-      <div class=${`c-pg-pilha${carregando ? ' c-pg-carregando' : ''}`} aria-busy=${carregando ? 'true' : 'false'}>${blocos}</div>`;
+      ${areas.length > 1 ? html`<div class="c-abas c-pg-abas" role="tablist" aria-label="Áreas do painel">
+        ${areas.map((a) => html`<button key=${a} type="button" role="tab" class="c-aba" aria-selected=${a === abaVisivel ? 'true' : 'false'} onClick=${() => trocarAba(a)}>
+          ${a}<span class="c-conta">${dados.blocos.filter((b) => b.area === a).length}</span></button>`)}
+      </div>` : null}
+      <div class=${`c-pg-pilha${carregando ? ' c-pg-carregando' : ''}`} role=${areas.length > 1 ? 'tabpanel' : null} aria-busy=${carregando ? 'true' : 'false'}>${blocos}</div>`;
   }
 
   return html`<${PainelRh} screenId="screen-painel" navAtiva="screen-painel" subtituloMarca="Painel" placeholderBusca="Painel" controlador=${controlador}>
