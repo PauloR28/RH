@@ -27,7 +27,8 @@ import {
 import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
 import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
-import { excluirItemConfiguracao, redefinirMfaUsuario } from '../../services/api/settings.js';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261116-modulos';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261116-modulos';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
 import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-modulo-unico2';
 import { listarOperacoes } from '../../services/api/operations.js';
@@ -64,7 +65,7 @@ import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
 import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
-import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-relatorios2';
+import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-modulos';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
 import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
@@ -711,6 +712,21 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [drawerUsuarioAberto, setDrawerUsuarioAberto] = useState(false);
   const [modoEdicaoUsuario, setModoEdicaoUsuario] = useState(false);
   const [confirmandoExclusaoUsuario, setConfirmandoExclusaoUsuario] = useState(false);
+  // Bloco "Módulos" do cadastro (16/nov/2026): o que veio do servidor e o que está marcado no formulário.
+  const [modulosUsuario, setModulosUsuario] = useState({ itens: [], valores: {}, carregando: false, erro: '' });
+
+  useEffect(() => {
+    if (!drawerUsuarioAberto || !formUsuario.perfil) return undefined;
+    let vivo = true;
+    // Usuário novo: id 0 = só o padrão do perfil escolhido.
+    const id = criandoUsuario ? 0 : formUsuario.id_usuario;
+    if (id === undefined || id === null || id === '') return undefined;
+    setModulosUsuario((atual) => ({ ...atual, carregando: true, erro: '' }));
+    lerModulosUsuario(id, formUsuario.perfil)
+      .then((dados) => { if (vivo) setModulosUsuario({ itens: dados?.modulos || [], valores: valoresDosModulos(dados?.modulos), carregando: false, erro: '' }); })
+      .catch((falha) => { if (vivo) setModulosUsuario({ itens: [], valores: {}, carregando: false, erro: falha?.message || 'Não foi possível carregar os módulos.' }); });
+    return () => { vivo = false; };
+  }, [drawerUsuarioAberto, criandoUsuario, formUsuario.id_usuario, formUsuario.perfil]);
 
   const permissoesPorModulo = useMemo(() => agruparPermissoes(permissoes), [permissoes]);
   const permissoesFiltradasPorModulo = useMemo(() => {
@@ -1021,8 +1037,14 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         const vigenciaIni = vinculosMon.vigencia_ini || `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
         await vincularContratoOperadorWfm(idUsuario, { operacao: operacoesSelecionadas[0], id_contrato: Number(vinculosMon.id_contrato), vigencia_ini: vigenciaIni });
       };
+      const mudouModulos = mudancasModulos(modulosUsuario.itens, modulosUsuario.valores);
+      const gravarModulos = async (idUsuario) => {
+        if (!idUsuario || !Object.keys(mudouModulos).length) return;
+        await salvarModulosUsuario(idUsuario, mudouModulos, formUsuario.justificativa || 'Módulos alterados no cadastro do usuário.');
+      };
       if (formUsuario.id_usuario) {
         await atualizarUsuario(formUsuario.id_usuario, payload);
+        await gravarModulos(formUsuario.id_usuario);
         if (perfilMonitoria) await gravarVinculosMonitoria(formUsuario.id_usuario);
         await gravarContratoWfm(formUsuario.id_usuario);
         if (formUsuario.senha) {
@@ -1034,6 +1056,17 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         setFeedback('Usuário atualizado com sucesso.');
       } else {
         const criado = await criarUsuario({ ...payload, senha: formUsuario.senha });
+        if (criado?.id_usuario) {
+          try {
+            await gravarModulos(criado.id_usuario);
+          } catch (falhaModulos) {
+            setCriandoUsuario(false);
+            setDrawerUsuarioAberto(false);
+            await carregarAba(abaRenderizada);
+            setErro(`Usuário criado, mas os módulos não foram salvos: ${falhaModulos?.message || 'erro desconhecido'}. Abra o usuário para completar.`);
+            return;
+          }
+        }
         if (perfilMonitoria && criado?.id_usuario) {
           try {
             await gravarVinculosMonitoria(criado.id_usuario);
@@ -2118,6 +2151,18 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           vinculos=${vinculosMon}
                           setVinculos=${setVinculosMon}
                           bloqueado=${somenteLeitura}
+                        />
+                      </div>
+                      <div class="c-campo c-cheio">
+                        <${BlocoModulos}
+                          modo="pessoa"
+                          itens=${modulosUsuario.itens}
+                          valores=${modulosUsuario.valores}
+                          aoMudar=${(valores) => setModulosUsuario((atual) => ({ ...atual, valores }))}
+                          desabilitado=${somenteLeitura}
+                          nomePerfil=${(perfis.find((p) => p.id === formUsuario.perfil) || {}).nome || formUsuario.perfil}
+                          carregando=${modulosUsuario.carregando}
+                          erro=${modulosUsuario.erro}
                         />
                       </div>
                       <div class="c-campo">

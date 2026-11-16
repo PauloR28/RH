@@ -153,17 +153,38 @@ def permissoes_atuais(perfil: str | None) -> frozenset[str] | None:
     return atual.permissoes.get(normalize_role_id(perfil))
 
 
+def modulo_da_excecao(e: "Excecao") -> str | None:
+    """`modulo.<chave>.abrir` sem unidade -> chave do módulo; outra exceção -> None."""
+    if e.unidade is None and e.chave.startswith("modulo.") and e.chave.endswith(".abrir"):
+        return e.chave[len("modulo."):-len(".abrir")]
+    return None
+
+
+def decisao_modulos(id_usuario: int | None, perfil: str | None) -> dict[str, bool]:
+    """Liberação explícita de módulo, em camadas (a de baixo vence): V060 do perfil -> exceção do perfil -> V060 da pessoa
+    -> exceção da pessoa (16/nov/2026: a pessoa pode ganhar OU perder um módulo). True = libera, False = tira.
+    Módulo sem decisão aqui segue só as permissões do perfil."""
+    atual = foto()
+    decisao: dict[str, bool] = {m: True for m in atual.modulos_perfil.get(perfil or "", frozenset())}
+    for e in atual.excecoes:
+        if e.alvo_tipo == "perfil" and perfil and e.id_perfil == perfil and (m := modulo_da_excecao(e)):
+            decisao[m] = e.efeito == "conceder"
+    if id_usuario:
+        decisao.update({m: True for m in atual.modulos_usuario.get(int(id_usuario), frozenset())})
+        for e in atual.excecoes:
+            if e.alvo_tipo == "usuario" and e.id_usuario == int(id_usuario) and (m := modulo_da_excecao(e)):
+                decisao[m] = e.efeito == "conceder"
+    return decisao
+
+
 def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
     """Módulos liberados (V060) somados às exceções `modulo.<chave>.abrir` (V071). 'retirar' tira."""
-    atual = foto()
-    extras = set(atual.modulos_perfil.get(perfil or "", frozenset()))
-    if id_usuario:
-        extras |= atual.modulos_usuario.get(int(id_usuario), frozenset())
-    for e in excecoes_de(perfil, id_usuario):
-        if e.chave.startswith("modulo.") and e.chave.endswith(".abrir") and e.unidade is None:
-            modulo = e.chave[len("modulo."):-len(".abrir")]
-            (extras.add if e.efeito == "conceder" else extras.discard)(modulo)
-    return frozenset(extras)
+    return frozenset(m for m, v in decisao_modulos(id_usuario, perfil).items() if v)
+
+
+def modulos_retirados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
+    """Módulos tirados de propósito (exceção 'retirar'): somem do seletor mesmo que as permissões do perfil os abram."""
+    return frozenset(m for m, v in decisao_modulos(id_usuario, perfil).items() if not v)
 
 
 def excecoes_de(perfil: str | None, id_usuario: int | None) -> list[Excecao]:

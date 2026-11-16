@@ -9,6 +9,7 @@ from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
 from ..schemas.auth import DecideEmailChangeRequest
 from ..schemas.common import SuccessResponse
+from ..schemas.modulos import ModulosValoresRequest
 from ..schemas.security import (
     ConfigurationItemRequest,
     LgpdRequestCreate,
@@ -23,7 +24,7 @@ from ..schemas.security import (
     UserStatusRequest,
     UserUpdateRequest,
 )
-from ..services import acesso_cache
+from ..services import acesso_cache, modulos_pessoa
 from ..services.http_cache import aplicar_cache_http
 
 
@@ -452,3 +453,36 @@ def update_notification_automation_settings(
 @router.get("/health", response_model=SuccessResponse)
 def settings_health() -> SuccessResponse:
     return SuccessResponse(message="Modulo de configuracoes ativo.")
+
+
+# ---------------------------------------------------------------- módulos por pessoa e por perfil (16/nov/2026)
+@router.get("/users/{id_usuario}/modulos", dependencies=[Depends(require_permissions("usuarios.visualizar"))])
+def ler_modulos_usuario(id_usuario: int, perfil: str = Query(default="", max_length=60)):
+    """Bloco "Módulos" do cadastro: valor de cada módulo, de onde vem (perfil/pessoa/tirado) e se está desligado no Conecta.
+    `perfil` = perfil escolhido no formulário ainda não salvo."""
+    return modulos_pessoa.estado_usuario(id_usuario, perfil or None)
+
+
+@router.put("/users/{id_usuario}/modulos", dependencies=[Depends(require_permissions("usuarios.editar"))])
+def salvar_modulos_usuario(id_usuario: int, payload: ModulosValoresRequest, request: Request,
+                           user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    resultado = modulos_pessoa.salvar_usuario(id_usuario, payload.modulos, autor=user.username)
+    audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_usuario_alterado", entidade="usuario", entidade_id=str(id_usuario),
+                 valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": {m["chave"]: m["valor"] for m in resultado["modulos"]}},
+                 justificativa=payload.justificativa, request=request)
+    return resultado
+
+
+@router.get("/security/roles/{id_perfil}/modulos", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def ler_modulos_perfil(id_perfil: str):
+    return modulos_pessoa.estado_perfil(id_perfil)
+
+
+@router.put("/security/roles/{id_perfil}/modulos", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def salvar_modulos_perfil(id_perfil: str, payload: ModulosValoresRequest, request: Request,
+                          user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    resultado = modulos_pessoa.salvar_perfil(id_perfil, payload.modulos, autor=user.username)
+    audit_action(repository, user, modulo="Sistema", acao="modulo_acesso_perfil_alterado", entidade="perfil", entidade_id=id_perfil,
+                 valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": {m["chave"]: m["valor"] for m in resultado["modulos"]}},
+                 justificativa=payload.justificativa, request=request)
+    return resultado

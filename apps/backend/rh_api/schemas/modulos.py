@@ -70,3 +70,9 @@ class PadronizarAcessosRequest(BaseSchema):
     modulo: str = Field(max_length=30)
     escopo: str = Field(default="padrao", max_length=80)
     justificativa: str = Field(default="", max_length=400)
+
+
+class ModulosValoresRequest(BaseSchema):
+    """Bloco "Módulos" do cadastro do usuário / de Perfis e Permissões (16/nov/2026): {chave do módulo: ligado}."""
+    modulos: dict[str, bool] = Field(default_factory=dict, max_length=10)
+    justificativa: str = Field(default="", max_length=400)

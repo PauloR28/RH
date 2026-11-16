@@ -23,13 +23,13 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..rbac import ROLE_ADMIN, get_role_definition
-from ..services import acesso
+from ..services import acesso, wfm_scope
 from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
 from ..services import painel_regras as regras
 from ..services.helpers import normalize_text
 from ..services.wfm_historico import FUSO_BRASIL
-from .painel_metricas import PainelMetricasMixin
+from .painel_metricas import PainelMetricasMixin, like_escalas
 from .painel_schema import ensure_painel_schema
 
 CACHE_SEG = 30
@@ -75,6 +75,46 @@ def _http(codigo: int, detalhe: str) -> HTTPException:
 def limpar_cache() -> None:
     with _cache_lock:
         _cache.clear()
+
+
+def _peso_presenca(p: dict) -> int:
+    # Mesmo critério do Diário: operador em mais de uma escala no dia vale o status mais "presente".
+    st = p.get("status") or ""
+    return 0 if st == "PRESENTE" else (2 if not st else 1)
+
+
+def juntar_coletas(partes: list[dict]) -> dict:
+    """Junta o `_wfm_rel_coletar` da operação e de cada escala dela num só dado (cada operador/dia conta uma vez)."""
+    if len(partes) == 1:
+        return partes[0]
+    ops = {o["id_usuario"]: o for o in partes[0]["operadores"]}
+    dias: dict[tuple, dict] = {}
+    presencas: dict[tuple, dict] = {}
+    extras: dict[tuple, int] = {}
+    versoes, trocas, aprovacoes = [], [], []
+    for p in partes:
+        com_escala = {d["id_operador"] for d in p["dias_escala"]}
+        for o in p["operadores"]:
+            # Escala criada reúne também perfis de TI: só entra quem de fato tem dia nela.
+            if o["id_usuario"] not in ops and o["id_usuario"] in com_escala:
+                ops[o["id_usuario"]] = o
+        for d in p["dias_escala"]:
+            k = (d["id_operador"], d["data"])
+            if k not in dias or (d["trabalha"] and not dias[k]["trabalha"]):
+                dias[k] = d
+        for k, v in p["presencas"].items():
+            if k not in presencas or _peso_presenca(v) < _peso_presenca(presencas[k]):
+                presencas[k] = v
+        for k, m in p["extras"].items():
+            extras[k] = extras.get(k, 0) + m
+        versoes += p["versoes"]
+        trocas += p["trocas"]
+        aprovacoes += p["aprovacoes"]
+    operadores = sorted(ops.values(), key=lambda o: o["nome"])
+    return {
+        "operadores": operadores, "nomes": {o["id_usuario"]: o["nome"] for o in operadores}, "dias_escala": list(dias.values()),
+        "presencas": presencas, "extras": extras, "versoes": versoes, "trocas": trocas, "aprovacoes": aprovacoes,
+    }
 
 
 def _do_cache(chave: tuple, produzir):
@@ -212,11 +252,35 @@ class PainelRepositoryMixin(PainelMetricasMixin):
     def _pn_wfm(self, cursor, user, operacao: str, ini: date, fim: date) -> dict:
         """Mesma base dos relatórios de Turnos e Plantões. Unidade sem escala: devolve o motivo em vez de quebrar o painel."""
         try:
-            operacao = self._wfm_exigir_operacao(cursor, user, operacao)
-            cursor.connection.commit()
-            return {"dado": self._wfm_rel_coletar(cursor, user, operacao, ini, fim, None)}
+            return {"dado": self._pn_coletar(cursor, user, operacao, ini, fim)}
         except HTTPException as exc:
             return {"dado": None, "motivo": str(exc.detail)}
+
+    def _pn_coletar(self, cursor, user, operacao: str, ini: date, fim: date, id_operador: int | None = None) -> dict:
+        """A escala do mês pode estar numa escala própria da operação ("CRF::ESCALA-CRF") e não na chave da operação:
+        o painel soma a operação e todas as escalas dela, como o Diário de bordo. `dado["chaves"]` lista as chaves usadas."""
+        base = self._wfm_exigir_operacao(cursor, user, operacao)
+        cursor.connection.commit()
+        partes = [self._wfm_rel_coletar(cursor, user, base, ini, fim, id_operador)]
+        chaves = [base]
+        if not wfm_scope.eh_tipo_escala(base):
+            cursor.execute("SELECT chave FROM dbo.wfm_tipos_escala WHERE chave LIKE ? ORDER BY chave", (like_escalas(base),))
+            for (chave,) in cursor.fetchall():
+                try:
+                    chave = self._wfm_exigir_operacao(cursor, user, normalize_text(chave))
+                    cursor.connection.commit()
+                except HTTPException:
+                    continue  # escala excluída: fica fora, como nas telas de Turnos e Plantões
+                partes.append(self._wfm_rel_coletar(cursor, user, chave, ini, fim, id_operador))
+                chaves.append(chave)
+        return {**juntar_coletas(partes), "chaves": chaves}
+
+    def _pn_pausas_programadas(self, cursor, chaves: list[str], dia: date) -> dict[int, list[dict]]:
+        saida: dict[int, list[dict]] = {}
+        for chave in chaves:
+            for id_op, pausas in self._wfm_pausas_programadas(cursor, chave, dia).items():
+                saida.setdefault(id_op, pausas)
+        return saida
 
     def _pn_monitorias(self, user, operacao: str, ini: date, fim: date, *, com_respostas: bool = False) -> list[dict]:
         return self._mon_linhas_escopo(user, {"operacao": operacao, "data_inicio": ini.isoformat(), "data_fim": fim.isoformat()}, com_respostas=com_respostas)
@@ -417,7 +481,7 @@ class PainelRepositoryMixin(PainelMetricasMixin):
     def _pn_proximas_folgas(self, cursor, user, operacao: str, hoje: date, ids: set[int]) -> dict[int, str]:
         """Próxima folga de cada um nos próximos 31 dias (escala publicada)."""
         try:
-            futuro = self._wfm_rel_coletar(cursor, user, operacao, hoje, hoje + timedelta(days=31), None)
+            futuro = self._pn_coletar(cursor, user, operacao, hoje, hoje + timedelta(days=31))
         except HTTPException:
             return {}
         saida: dict[int, str] = {}
@@ -438,14 +502,13 @@ class PainelRepositoryMixin(PainelMetricasMixin):
             painel = self._pn_exigir_painel(cursor, user, id_painel)
             if not any(m["metrica"] == "operadores" for m in self._pn_metricas_liberadas(user, painel)):
                 raise _http(status.HTTP_403_FORBIDDEN, "Este painel não mostra a lista de operadores para o seu perfil.")
-            operacao = self._wfm_exigir_operacao(cursor, user, painel["operacao"])
-            conn.commit()
-            dado = self._wfm_rel_coletar(cursor, user, operacao, ini, fim, int(id_operador))
+            dado = self._pn_coletar(cursor, user, painel["operacao"], ini, fim, int(id_operador))
+            operacao, chaves = dado["chaves"][0], dado["chaves"]
             if not dado["operadores"]:
                 raise _http(status.HTTP_404_NOT_FOUND, "Operador não encontrado nesta unidade ou fora do seu escopo.")
             op = dado["operadores"][0]
             v = self._wfm_rel_agregar(dado)[int(id_operador)]
-            mes = self._wfm_rel_coletar(cursor, user, operacao, mes_ini, mes_fim, int(id_operador))
+            mes = self._pn_coletar(cursor, user, operacao, mes_ini, mes_fim, int(id_operador))
             dias_mes = {d["data"]: d for d in mes["dias_escala"]}
             calendario = []
             for n in range((mes_fim - mes_ini).days + 1):
@@ -464,9 +527,9 @@ class PainelRepositoryMixin(PainelMetricasMixin):
             # Hoje: 1º login no Conecta (presença automática; senão o último acesso do dia) e pausas PREVISTAS.
             entrada = None
             cursor.execute(
-                "SELECT MIN(criado_em) FROM dbo.wfm_auditoria WHERE acao = 'presenca_automatica' AND operacao = ? AND id_usuario = ? "
-                "AND criado_em >= ? AND criado_em < ?",
-                (operacao, int(id_operador), hoje, hoje + timedelta(days=1)),
+                "SELECT MIN(criado_em) FROM dbo.wfm_auditoria WHERE acao = 'presenca_automatica' AND (operacao = ? OR operacao LIKE ?) "
+                "AND id_usuario = ? AND criado_em >= ? AND criado_em < ?",
+                (operacao, like_escalas(operacao), int(id_operador), hoje, hoje + timedelta(days=1)),
             )
             r = cursor.fetchone()
             if r and r[0]:
@@ -475,7 +538,7 @@ class PainelRepositoryMixin(PainelMetricasMixin):
                 cursor.execute("SELECT ultimo_acesso_em FROM dbo.usuarios WHERE id_usuario = ? AND ultimo_acesso_em >= ?", (int(id_operador), hoje))
                 r = cursor.fetchone()
                 entrada = r[0].strftime("%H:%M") if r and r[0] else None
-            pausas = self._wfm_pausas_programadas(cursor, operacao, hoje).get(int(id_operador), [])
+            pausas = self._pn_pausas_programadas(cursor, chaves, hoje).get(int(id_operador), [])
             hoje_esc = dias_mes.get(hoje)
             mon = []
             if regras.tem_base(regras.METRICAS["monitorias"], set(user.permissions)):

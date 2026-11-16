@@ -69,3 +69,21 @@
 .c-perfis-edicao { display: flex; align-items: center; gap: var(--espaco-3); padding: var(--espaco-2) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); font-size: 13px; }
 .c-perfis-edicao-acoes { margin-left: auto; display: flex; gap: var(--espaco-2); }
 .c-perfis-motivo { width: 280px; }
+
+/* Bloco "Módulos" (16/nov/2026): cadastro do usuário e Perfis e Permissões. Dobrável, só tokens. */
+.c-modulos-acesso { display: grid; gap: var(--espaco-2); }
+.c-modulos-acesso > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); min-height: var(--altura-controle-compacto); padding: 0 var(--espaco-4); border: var(--borda-fina) solid var(--cor-borda-campo); border-radius: var(--raio-medio); cursor: pointer; list-style: none; }
+.c-modulos-acesso > summary::-webkit-details-marker { display: none; }
+.c-modulos-acesso > summary::after { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--cor-texto-secundario); border-bottom: 2px solid var(--cor-texto-secundario); transform: rotate(45deg); margin-left: var(--espaco-2); flex: none; }
+.c-modulos-acesso[open] > summary::after { transform: rotate(-135deg); }
+.c-modulos-acesso > summary:focus-visible { outline: 2px solid var(--cor-acao-fundo); outline-offset: 2px; }
+.c-modulos-acesso .c-modulos-resumo { margin-left: auto; color: var(--cor-texto-secundario); font-size: var(--texto-rotulo-tamanho); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-modulos-acesso ul { list-style: none; margin: 0; padding: 0; border: var(--borda-fina) solid var(--cor-borda-padrao); border-radius: var(--raio-medio); }
+.c-modulos-acesso li { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); padding: var(--espaco-2) var(--espaco-4); min-height: 48px; }
+.c-modulos-acesso li + li { border-top: var(--borda-fina) solid var(--cor-borda-padrao); }
+.c-modulos-acesso .c-mod-nome { display: grid; min-width: 0; }
+.c-modulos-acesso .c-mod-nome strong { font-weight: var(--fonte-peso-negrito); }
+.c-modulos-acesso .c-mod-nome small { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-modulos-acesso li[aria-disabled="true"] { color: var(--cor-texto-desligado); }
+.c-modulos-acesso li .c-grupo { flex-wrap: nowrap; }
+.c-modulos-perfil { display: grid; gap: var(--espaco-2); margin-bottom: var(--espaco-4); }

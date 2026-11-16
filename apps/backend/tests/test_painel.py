@@ -121,3 +121,40 @@ def test_toda_metrica_tem_area_e_forma_conhecida():
     for m in r.METRICAS.values():
         assert m.area in r.ORDEM_AREAS, m.id
         assert all(f in r.NOME_FORMA for f in m.formas), m.id
+
+
+# ---------------------------------------------------------------- 16/nov/2026: escala própria da operação ("CRF::ESCALA-CRF")
+def _coleta(ops, dias, presencas=None):
+    return {"operadores": [{"id_usuario": i, "nome": f"Op {i}", "equipe": ""} for i in ops], "nomes": {}, "dias_escala": dias,
+            "presencas": presencas or {}, "extras": {}, "versoes": [], "trocas": [], "aprovacoes": []}
+
+
+def test_painel_soma_a_operacao_e_as_escalas_dela():
+    """Bug do Painel zerado: a escala de novembro estava só em "CRF::ESCALA-CRF" e o painel lia só "CRF"."""
+    from rh_api.repositories.painel import juntar_coletas
+
+    hoje = date(2026, 11, 16)
+    base = _coleta([1, 2], [])  # a chave da operação não tem escala no mês
+    escala = _coleta([1, 2, 9], [{"id_operador": 1, "data": hoje, "trabalha": True}, {"id_operador": 2, "data": hoje, "trabalha": False}],
+                     {(1, hoje): {"status": "PRESENTE"}})
+    dado = juntar_coletas([base, escala])
+    assert sorted(o["id_usuario"] for o in dado["operadores"]) == [1, 2]  # o 9 (sem dia na escala) não entra
+    assert len(dado["dias_escala"]) == 2 and dado["presencas"][(1, hoje)]["status"] == "PRESENTE"
+
+
+def test_painel_operador_em_duas_escalas_conta_uma_vez():
+    from rh_api.repositories.painel import juntar_coletas
+
+    hoje = date(2026, 11, 16)
+    a = _coleta([1], [{"id_operador": 1, "data": hoje, "trabalha": False}], {(1, hoje): {"status": "FALTA"}})
+    b = _coleta([1], [{"id_operador": 1, "data": hoje, "trabalha": True}], {(1, hoje): {"status": "PRESENTE"}})
+    dado = juntar_coletas([a, b])
+    assert dado["dias_escala"] == [{"id_operador": 1, "data": hoje, "trabalha": True}]
+    assert dado["presencas"][(1, hoje)]["status"] == "PRESENTE"
+
+
+def test_like_das_escalas_escapa_curinga():
+    from rh_api.repositories.painel_metricas import like_escalas
+
+    assert like_escalas("CRF") == "CRF::%"
+    assert like_escalas("WFMTI_01") == "WFMTI[_]01::%"

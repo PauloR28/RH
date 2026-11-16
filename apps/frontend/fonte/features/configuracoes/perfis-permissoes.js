@@ -1,5 +1,7 @@
 import { html, useMemo, useState } from '../../infraestrutura-react.js';
 import { Ic, Janela } from '../../ui/components/ds.js';
+import { lerModulosPerfil, salvarModulosPerfil } from '../../services/api/settings.js?v=20261116-modulos';
+import { ModulosDoPerfil } from './modulos-acesso.js?v=20261116-modulos';
 
 // Perfis e permissões no desenho do rebranding (DEC-073, v3.1): Perfil (lista em caixa branca)
 // → Área (abas) → faixa "Acesso à seção" → Módulo (lista com ligadas/total) → Permissões
@@ -198,6 +200,8 @@ export function PerfisPermissoes({
                 : null}
             </div>
           </div>
+
+          <${ModulosDoPerfil} perfilId=${perfilId} podeEditar=${podeEditar} lerModulos=${lerModulosPerfil} salvarModulos=${salvarModulosPerfil} />
 
           <div class=${`c-tabela-caixa ${!ehTela && !secaoLigada && !termo ? 'c-pv--off' : ''}`.trim()}>
             <div class="c-abas c-pv-abas" role="tablist" aria-label="Áreas">
