@@ -4,4 +4,4 @@ export {
   TelaProcessosDecisoesPendentes,
   TelaProcessosEncerrados,
   TelaProcessos,
-} from './processos/index.js?v=20260929-qa-lucas';
+} from './processos/index.js?v=20261116-hook-prova';

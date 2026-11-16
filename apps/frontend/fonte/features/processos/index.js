@@ -153,7 +153,7 @@ import {
 
 const MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO =
   'Este candidato já foi aprovado. Para alterar sua situação, será necessário um novo cadastro ou atualização manual.';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261116-hook-prova').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 const AVISO_URL_PUBLICA_NAO_CONFIGURADA =

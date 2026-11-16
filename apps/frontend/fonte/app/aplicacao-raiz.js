@@ -83,7 +83,7 @@ const TELAS_SEM_SHELL_FIXO = new Set([
 ]);
 
 const importarGestao = () => import('../features/telas-gestao.js?v=20261112-modulo-unico2');
-const importarProcessos = () => import('../features/telas-processos.js?v=20260929-qa-lucas');
+const importarProcessos = () => import('../features/telas-processos.js?v=20261116-hook-prova');
 const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
 
 const TelaAnaliseCandidatos = carregarTela(importarGestao, 'TelaAnaliseCandidatos');
@@ -97,14 +97,14 @@ const TelaDetalhesProcesso = carregarTela(importarProcessos, 'TelaDetalhesProces
 const TelaProcessosDecisoesPendentes = carregarTela(importarProcessos, 'TelaProcessosDecisoesPendentes');
 const TelaProcessosEncerrados = carregarTela(importarProcessos, 'TelaProcessosEncerrados');
 const TelaProcessos = carregarTela(importarProcessos, 'TelaProcessos');
-const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20260930-processo-individual'), 'TelaCandidatos');
-const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20260930-processo-individual'), 'TelaDetalhesCandidato');
+const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20261116-hook-prova'), 'TelaCandidatos');
+const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20261116-hook-prova'), 'TelaDetalhesCandidato');
 const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
 const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
 const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260929-qa-lucas'), 'TelaOneDriveArquivos');
 const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
 const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
-const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20260930-processo-individual'), 'TelaProvasResultados');
+const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20261116-hook-prova'), 'TelaProvasResultados');
 const TelaResultadosAnaliticosProcesso = carregarTela(
   () => import('../features/resultados-analiticos/index.js?v=20260904-identidade-conecta'),
   'TelaResultadosAnaliticosProcesso',

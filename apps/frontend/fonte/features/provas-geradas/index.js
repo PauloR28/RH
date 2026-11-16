@@ -840,6 +840,10 @@ export function ModalGerarProva({
     return [{ value: formulario.nivel, label: formulario.nivel }, ...OPCOES_NIVEL];
   }, [formulario.nivel]);
 
+  // Todo hook antes do `return null` (16/nov/2026): este useState ficava depois e, ao abrir o modal, o React via mais hooks
+  // que na renderização anterior e quebrava a tela inteira (erro #310 em Processos > Provas e resultados).
+  const [extraindoCv, setExtraindoCv] = useState(false);
+
   if (!aberto) return null;
 
   const atualizarCampo = (campo, valor) => {
@@ -929,7 +933,6 @@ export function ModalGerarProva({
     };
   };
 
-  const [extraindoCv, setExtraindoCv] = useState(false);
   const podePreencherComCv = Boolean(contexto.processoIndividual && contexto.candidato?.id_teste);
 
   const preencherComCv = async () => {

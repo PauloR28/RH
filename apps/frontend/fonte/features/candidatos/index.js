@@ -64,7 +64,7 @@ import {
 } from '../../shared/helpers-visuais.js';
 import { obterReferenciaProcesso } from '../../shared/process-reference.js';
 import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20260930-processo-individual').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261116-hook-prova').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 import { IconeSvg } from '../../ui/icone.js';
