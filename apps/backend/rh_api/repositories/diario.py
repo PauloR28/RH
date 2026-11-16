@@ -340,6 +340,7 @@ class DiarioRepositoryMixin:
                     "ver": user.has_permission("diario.visualizar"), "intercorrencias": user.has_any_permission("diario.visualizar", "diario.intercorrencias"),
                     "preencher": user.has_permission("diario.preencher"), "reabrir": user.has_permission("diario.reabrir"),
                     "exportar": user.has_permission("diario.exportar"), "administrar": user.has_permission("diario.administrar"),
+                    "criar_demanda": user.has_permission("diario.demandas.criar"),
                 },
             }
         finally:
@@ -907,6 +908,31 @@ class DiarioRepositoryMixin:
             return self._db_cadastros(cursor, self._db_exigir_operacao(cursor, user, operacao))
         finally:
             conn.close()
+
+    def diario_criar_tipo_demanda(self, user, operacao: str, nome: str) -> dict:
+        """Supervisor cria um tipo de demanda no turno (diario.demandas.criar). Só cria, ativo, no fim da lista; editar e
+        desativar continuam em Cadastros (diario.administrar). Exige a operação no escopo do Diário da pessoa."""
+        conn, cursor = self._db_abrir()
+        try:
+            operacao = self._db_exigir_operacao(cursor, user, operacao)
+        finally:
+            conn.close()
+        return self.diario_salvar_cadastro(user, operacao, None, "demanda", nome, True, None)
+
+    def diario_remover_tipo_demanda(self, user, id_item: int) -> dict:
+        """Remove (desliga) um tipo de demanda: some dos turnos novos; dias que já usaram continuam com o número e o histórico.
+        Nada é apagado do banco; quem cuida dos Cadastros pode religar."""
+        conn, cursor = self._db_abrir()
+        try:
+            cursor.execute("SELECT operacao, nome FROM dbo.diario_cadastro WHERE id_item = ? AND tipo = 'demanda'", (int(id_item),))
+            linha = cursor.fetchone()
+            if not linha:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de demanda não encontrado.")
+            operacao = self._db_exigir_operacao(cursor, user, linha[0])
+            nome = linha[1]
+        finally:
+            conn.close()
+        return self.diario_salvar_cadastro(user, operacao, int(id_item), "demanda", nome, False, None)
 
     def diario_salvar_cadastro(self, user, operacao: str, id_item: int | None, tipo: str, nome: str, ativo: bool, ordem: int | None) -> dict:
         nome = _txt(nome, 120)

@@ -458,6 +458,7 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("diario.reabrir", GRUPO_DIARIO, "Reabrir turno concluído ou dia encerrado do Diário de bordo, com motivo.", critical=True),
         _permission("diario.exportar", GRUPO_DIARIO, "Exportar o histórico do Diário de bordo e as alterações de um dia.", critical=True),
         _permission("diario.administrar", GRUPO_DIARIO, "Cadastros do Diário de bordo (tipos de demanda, canais, ferramentas) e importação dos registros antigos.", critical=True),
+        _permission("diario.demandas.criar", GRUPO_DIARIO, "Criar e remover tipos de demanda direto no turno do Diário de bordo (sem acesso aos outros cadastros)."),
         _permission("diario.intercorrencias", GRUPO_DIARIO, "Consultar só as intercorrências do Diário de bordo (sem demandas, nível de serviço nem ABS)."),
         # Painel (14/nov/2026): visão analítica por módulo e operação. A Tecnologia monta cada painel (métricas, forma, quem vê);
         # cada bloco ainda exige a permissão de base do módulo de origem (o painel não abre dado que a pessoa não podia ver).
@@ -867,7 +868,7 @@ for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
 
 # Diário de bordo (D2, 08/nov/2026): Supervisor preenche; Gestor consulta, reabre e exporta; Qualidade só lê as intercorrências;
 # Administrador recebe o catálogo inteiro (inclui `diario.administrar`). Técnicos de TI não veem o conteúdo (grupo é do módulo Operação).
-ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"diario.visualizar", "diario.preencher"})
+ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update({"diario.visualizar", "diario.preencher", "diario.demandas.criar"})
 ROLE_PERMISSIONS.setdefault(ROLE_MANAGER, set()).update({"diario.visualizar", "diario.reabrir", "diario.exportar"})
 ROLE_PERMISSIONS.setdefault(ROLE_QUALIDADE, set()).update({"diario.intercorrencias"})
 # Chave-mestra da sessão (liga/desliga em Perfis e Permissões): quem recebe alguma chave do diário recebe a sessão.

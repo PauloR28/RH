@@ -19,6 +19,11 @@
 .c-db-campo { width: 72px; height: 28px; padding: 0 var(--espaco-2); text-align: right; font-variant-numeric: tabular-nums; }
 .c-db-campo--vazio { border-style: dashed; }
 .c-db-campo--erro { border-color: var(--cor-status-atencao-texto); }
+/* Remover tipo de demanda (16/11): lixeira discreta, aparece ao passar o mouse ou pelo teclado; não muda a altura da linha. */
+.c-db-tab .c-db-remover { height: auto; min-height: 0; padding: 0; margin-left: var(--espaco-1); vertical-align: middle; color: var(--cor-texto-secundario); opacity: 0; }
+.c-db-tab .c-db-remover .c-ic { width: 14px; height: 14px; }
+.c-db-tab tr:hover .c-db-remover, .c-db-tab .c-db-remover:focus-visible { opacity: 1; }
+.c-db-tab .c-db-remover:hover { color: var(--cor-status-perigo-texto); }
 .c-db-calc { font-weight: var(--fonte-peso-negrito); font-variant-numeric: tabular-nums; }
 .c-db-nada { color: var(--cor-texto-secundario); }
 .c-db-tab tfoot td { font-weight: var(--fonte-peso-negrito); background: var(--cor-fundo-sutil); }

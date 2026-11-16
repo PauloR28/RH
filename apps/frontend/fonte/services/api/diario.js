@@ -36,6 +36,8 @@ export const lerHistoricoDiario = (operacao, anoMes) => requisitar(`/diario/hist
 export const exportarHistoricoDiario = (operacao, anoMes, formato = 'xlsx') =>
   requisitarArquivo('/diario/historico/exportar', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ operacao, ano_mes: anoMes, formato }) });
 
+export const criarTipoDemandaDiario = (operacao, nome) => enviar('/diario/tipos-demanda', 'POST', { operacao, nome });
+export const removerTipoDemandaDiario = (idItem) => enviar(`/diario/tipos-demanda/${q(idItem)}/remover`, 'POST', {});
 export const listarCadastrosDiario = (operacao) => requisitar(`/diario/cadastros?operacao=${q(operacao)}`, { method: 'GET' });
 export const salvarCadastroDiario = (idItem, corpo) => (idItem ? enviar(`/diario/cadastros/${q(idItem)}`, 'PUT', corpo) : enviar('/diario/cadastros', 'POST', corpo));
 export const importarDiario = (operacao, arquivos, gravar) => enviar('/diario/importar', 'POST', { operacao, arquivos, gravar });

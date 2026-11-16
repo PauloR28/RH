@@ -250,35 +250,36 @@ def _nstr(texto: str) -> str:
     return " + ".join(partes)
 
 
-def _permissoes_diario() -> list:
+# V068 já está aplicada e é imutável: permissões do Diário criadas depois são semeadas pela própria migration delas.
+PERMISSOES_POSTERIORES_A_V068 = frozenset({"diario.demandas.criar"})  # V073
+
+
+def _permissoes_diario(chaves: frozenset[str] | None = None) -> list:
     from ..rbac import PERMISSION_DEFINITIONS
 
-    return [d for chave, d in PERMISSION_DEFINITIONS.items() if chave.startswith(("diario.", "sessao.diario."))]
+    if chaves is not None:
+        return [d for chave, d in PERMISSION_DEFINITIONS.items() if chave in chaves]
+    return [d for chave, d in PERMISSION_DEFINITIONS.items()
+            if chave.startswith(("diario.", "sessao.diario.")) and chave not in PERMISSOES_POSTERIORES_A_V068]
 
 
-def _perfis_iniciais() -> list[tuple[str, str]]:
+def _perfis_iniciais(chaves: frozenset[str] | None = None) -> list[tuple[str, str]]:
     from ..rbac import ROLE_PERMISSIONS
 
     pares = []
-    for perfil, chaves in sorted(ROLE_PERMISSIONS.items()):
-        for chave in sorted(chaves):
-            if chave.startswith(("diario.", "sessao.diario.")):
+    for perfil, lista in sorted(ROLE_PERMISSIONS.items()):
+        for chave in sorted(lista):
+            if chaves is not None:
+                if chave in chaves:
+                    pares.append((perfil, chave))
+            elif chave.startswith(("diario.", "sessao.diario.")) and chave not in PERMISSOES_POSTERIORES_A_V068:
                 pares.append((perfil, chave))
     return pares
 
 
-def schema_statements() -> list[str]:
-    instrucoes = [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS]
-    instrucoes += [_index_sql(*item) for item in _INDICES]
-    for tipo, nome, chave, ordem in CADASTROS_PADRAO:
-        chave_sql = f"'{chave}'" if chave else "NULL"
-        instrucoes.append(
-            f"IF NOT EXISTS (SELECT 1 FROM dbo.diario_cadastro WHERE operacao = '{OPERACAO_INICIAL}' AND tipo = '{tipo}' AND nome = {_nstr(nome)})\n"
-            f"    INSERT INTO dbo.diario_cadastro (operacao, tipo, nome, chave_prototipo, ordem, ativo, criado_por)\n"
-            f"    VALUES ('{OPERACAO_INICIAL}', '{tipo}', {_nstr(nome)}, {chave_sql}, {ordem}, 1, N'V068');"
-        )
-    # Permissões do módulo: só insere quando falta; nunca sobrescreve dono/abre_modulo nem o que o admin marcou em Perfis.
-    for d in _permissoes_diario():
+def _permissoes_sql(chaves: frozenset[str] | None = None) -> list[str]:
+    instrucoes: list[str] = []
+    for d in _permissoes_diario(chaves):
         dono = modulo_dono_padrao(d.key, d.module)
         abre = 1 if abre_modulo_padrao(d.key) else 0
         instrucoes.append(
@@ -294,7 +295,7 @@ def schema_statements() -> list[str]:
             f"    EXEC(N'UPDATE dbo.permissoes SET modulo_dono = ''{dono}'', abre_modulo = {abre} "
             f"WHERE chave = ''{d.key}'' AND modulo_dono IS NULL;');"
         )
-    for perfil, chave in _perfis_iniciais():
+    for perfil, chave in _perfis_iniciais(chaves):
         instrucoes.append(
             "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"
             "BEGIN\n"
@@ -308,9 +309,65 @@ def schema_statements() -> list[str]:
     return instrucoes
 
 
+def schema_statements() -> list[str]:
+    instrucoes = [_create_table_sql(nome, corpo) for nome, corpo in _TABELAS]
+    instrucoes += [_index_sql(*item) for item in _INDICES]
+    for tipo, nome, chave, ordem in CADASTROS_PADRAO:
+        chave_sql = f"'{chave}'" if chave else "NULL"
+        instrucoes.append(
+            f"IF NOT EXISTS (SELECT 1 FROM dbo.diario_cadastro WHERE operacao = '{OPERACAO_INICIAL}' AND tipo = '{tipo}' AND nome = {_nstr(nome)})\n"
+            f"    INSERT INTO dbo.diario_cadastro (operacao, tipo, nome, chave_prototipo, ordem, ativo, criado_por)\n"
+            f"    VALUES ('{OPERACAO_INICIAL}', '{tipo}', {_nstr(nome)}, {chave_sql}, {ordem}, 1, N'V068');"
+        )
+    # Permissões do módulo: só insere quando falta; nunca sobrescreve dono/abre_modulo nem o que o admin marcou em Perfis.
+    instrucoes += _permissoes_sql()
+    return instrucoes
+
+
+# ---------------------------------------------------------------- V073 (16/nov/2026)
+# Tipo de demanda "E-mail geral" em toda operação que já usa o Diário, e a permissão própria para o supervisor criar
+# tipos de demanda no turno (diario.demandas.criar). Aditiva: só insere o que falta.
+TIPOS_DEMANDA_V073: tuple[tuple[str, str], ...] = (("E-mail geral", "emailGeral"),)
+
+
+def schema_statements_v073() -> list[str]:
+    instrucoes = []
+    for nome, chave in TIPOS_DEMANDA_V073:
+        instrucoes.append(
+            "IF OBJECT_ID('dbo.diario_cadastro', 'U') IS NOT NULL\n"
+            "    INSERT INTO dbo.diario_cadastro (operacao, tipo, nome, chave_prototipo, ordem, ativo, criado_por)\n"
+            f"    SELECT o.operacao, 'demanda', {_nstr(nome)}, '{chave}',\n"
+            "           (SELECT ISNULL(MAX(x.ordem), 0) + 10 FROM dbo.diario_cadastro x WHERE x.operacao = o.operacao AND x.tipo = 'demanda'), 1, N'V073'\n"
+            "    FROM (SELECT DISTINCT operacao FROM dbo.diario_cadastro) o\n"
+            f"    WHERE NOT EXISTS (SELECT 1 FROM dbo.diario_cadastro c WHERE c.operacao = o.operacao AND c.tipo = 'demanda' AND c.nome = {_nstr(nome)});"
+        )
+    return instrucoes + _permissoes_sql(PERMISSOES_POSTERIORES_A_V068)
+
+
 def ensure_diario_schema(cursor) -> None:
-    for instrucao in schema_statements():
+    for instrucao in schema_statements() + schema_statements_v073():
         cursor.execute(instrucao)
+
+
+def render_migration_sql_v073() -> str:
+    cabecalho = (
+        "-- Conecta - Diario de bordo: tipo de demanda \"E-mail geral\" e permissao diario.demandas.criar (V073).\n"
+        "-- Aditiva e idempotente. Gerada de rh_api/repositories/diario_schema.py (um teste garante que coincide).\n"
+        "-- O tipo entra em toda operacao que ja tem cadastros do Diario; a permissao e o valor inicial do Supervisor\n"
+        "-- so entram quando faltam (nunca sobrescreve Perfis e Permissoes).\n\n"
+    )
+    return cabecalho + "\n\n".join(schema_statements_v073()) + "\n"
+
+
+def render_rollback_sql_v073() -> str:
+    return (
+        "-- Rollback da V073. Remove a permissao diario.demandas.criar. O tipo \"E-mail geral\" so sai se nunca foi usado.\n"
+        "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL DELETE FROM dbo.perfil_permissoes WHERE chave_permissao = 'diario.demandas.criar';\n"
+        "IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL DELETE FROM dbo.permissoes WHERE chave = 'diario.demandas.criar';\n"
+        "IF OBJECT_ID('dbo.diario_cadastro', 'U') IS NOT NULL\n"
+        "    DELETE c FROM dbo.diario_cadastro c WHERE c.tipo = 'demanda' AND c.criado_por = N'V073'\n"
+        "      AND NOT EXISTS (SELECT 1 FROM dbo.diario_demanda d WHERE d.id_item = c.id_item);\n"
+    )
 
 
 def render_migration_sql() -> str:

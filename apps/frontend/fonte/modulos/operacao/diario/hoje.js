@@ -6,7 +6,9 @@ import {
   editarIntercorrenciaDiario,
   encerrarDiaDiario,
   excluirIntercorrenciaDiario,
+  criarTipoDemandaDiario,
   excluirParcialDiario,
+  removerTipoDemandaDiario,
   lerAlteracoesDiario,
   lerDiaDiario,
   marcarEdicaoTurno,
@@ -17,11 +19,11 @@ import {
   salvarTurnoDiario,
 } from '../../../services/api/diario.js';
 import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial } from './janelas.js';
+import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial, JanelaRemoverTipo, JanelaTipoDemanda } from './janelas.js';
 import { JanelaFechamento } from './fechamento.js';
 import { GavetaAlteracoes, descreverAlteracao } from './historico.js';
 import {
-  ENCERRAMENTOS, ROTULO_CANAL, ROTULO_TURNO, ROTULO_TURNO_CURTO, TURNOS, avisosDoTurno, consolidar, dataHoraBr, diaCurto, hhmm, nf,
+  ENCERRAMENTOS, ROTULO_CANAL, ROTULO_TURNO, ROTULO_TURNO_CURTO, TURNOS, avisosDoTurno, consolidar, dataHoraBr, nsConsolidado, diaCurto, hhmm, nf,
   numeroOuVazio, pct, pctCampo, pctOuVazio, somarDias, tratadas,
 } from './regras.js';
 
@@ -172,7 +174,9 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
           <thead><tr><th class="c-col-nome" scope="col">Tipo de demanda</th><th class="c-num" scope="col">Início do turno</th><th class="c-num" scope="col">Fim do turno</th><th class="c-num" scope="col">Tratadas</th><th class="c-estica" scope="col"><span class="c-oculto">Aviso</span></th></tr></thead>
           <tbody>${demandas.map((c) => {
             const l = linhas.find((x) => x.id_item === c.id_item); const tr = tratadas(l.inicio, l.fim); const av = avisoDe[c.id_item];
-            return html`<tr key=${c.id_item}><td class="c-col-nome c-forte">${c.nome}${c.ativo ? null : html` <small class="c-secundario">(desligado)</small>`}</td>
+            return html`<tr key=${c.id_item}><td class="c-col-nome c-forte">${c.nome}${c.ativo ? null : html` <small class="c-secundario">(desligado)</small>`}
+              ${c.ativo && editavel && (pode.criar_demanda || pode.administrar) ? html` <button type="button" class="c-botao c-botao--texto c-db-remover" aria-label=${`Remover o tipo ${c.nome}`} title="Remover este tipo da lista"
+                onClick=${() => abrir({ tipo: 'remover-tipo', item: c, antes: salvar })}><${Ic} nome="trash" /></button>` : null}</td>
               <td class="c-num">${campo(c, 'inicio', 'Início')}</td><td class="c-num">${campo(c, 'fim', 'Fim')}</td>
               <td class="c-num">${tr === null ? html`<span class="c-db-nada" title="Não informado">—</span>` : html`<span class="c-db-calc">${tr}</span>`}</td>
               <td class="c-estica">${av && av.tipo === 'fim_maior' ? html`<span class="c-db-obs" title="Entraram demandas novas durante o turno? Explique em Observações."><${Ic} nome="warning" />${av.texto}</span>`
@@ -180,6 +184,7 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
           })}</tbody>
           <tfoot><tr><td class="c-col-nome">Total</td><td class="c-num">${soma('inicio')}</td><td class="c-num">${soma('fim')}</td><td class="c-num">${somaTrat}</td><td class="c-estica c-db-nada c-db-regra">Tratadas = início − fim (calcula sozinho)</td></tr></tfoot>
         </table>
+        ${editavel && (pode.criar_demanda || pode.administrar) ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => abrir({ tipo: 'tipo-demanda', antes: salvar })}><${Ic} nome="plus" />Novo tipo de demanda</button>` : null}
         <div class="c-campo c-db-obs-turno"><label class="c-rotulo" for=${`db-obs-${turno.turno}`}>Observações do turno <span class="c-opcional">(${avisos.length ? 'obrigatório para concluir com avisos' : 'opcional'})</span></label>
           <textarea class="c-entrada c-db-obs-texto" id=${`db-obs-${turno.turno}`} rows="2" readOnly=${!editavel || null} placeholder="Ex.: Reclame Aqui (portal) recebeu 4 novos às 18:20" value=${obs} maxLength="1000"
             onInput=${(e) => { setObs(e.target.value); setSujo(true); }}></textarea></div>
@@ -190,6 +195,8 @@ function CorpoTurno({ dados, turno, pode, onSalvo, onMudarVivo, recarregar, abri
             <span class="c-db-pct"><input class=${`c-entrada c-db-campo${ns[c.id_item] === '' ? ' c-db-campo--vazio' : ''}`} id=${`ns-${turno.turno}-${c.id_item}`} inputmode="decimal" placeholder="—" readOnly=${!editavel || null}
               value=${ns[c.id_item]} onInput=${(e) => { setNs((x) => ({ ...x, [c.id_item]: e.target.value.replace(/[^\d,.]/g, '') })); setSujo(true); }} /><span>%</span></span>
 </div>`)}
+          ${canaisNs.length > 1 ? (() => { const v = nsConsolidado(canaisNs.map((c) => pctOuVazio(ns[c.id_item]))); return html`<div class="c-campo"><span class="c-rotulo">Consolidado</span>
+            ${v === null ? html`<span class="c-db-nada" title="Aparece quando Digital e Voz estão preenchidos.">—</span>` : html`<b class="c-db-calc" title="Média de Digital e Voz.">${pct(v)}</b>`}</div>`; })() : null}
         </div>${canaisNs.some((c) => ns[c.id_item] === '') ? html`<span class="c-ajuda">Em branco = não informado (não conta como 0)</span>` : null}</div></section>
         <${BlocoParciais} dados=${dados} pode=${pode} abrir=${abrir} />
         <${BlocoIntercorrencias} dados=${dados} pode=${pode} abrir=${abrir} ferramentas=${ferramentas} operacao=${operacao} />
@@ -306,7 +313,10 @@ function CorpoDia({ dados, cons, pode, abrir, recarregar, operacao }) {
         <div class="c-db-rolar"><table class="c-tabela c-tabela--compacta c-db-fixa"><thead><tr><th scope="col">Canal</th>${TURNOS.map((t) => html`<th key=${t} class="c-num" scope="col">${t === 'intermediario' ? 'Interm.' : ROTULO_TURNO[t]}</th>`)}<th class="c-num" scope="col">Final do dia</th></tr></thead>
           <tbody>${cons.ns.map((n) => html`<tr key=${n.id_item}><td class="c-forte">${cad[n.id_item]?.nome}</td>
             ${TURNOS.map((t) => { const v = dados.vivos?.[t]?.ns?.[n.id_item] ?? dados.turnos.find((x) => x.turno === t)?.ns?.[n.id_item]; return html`<td key=${t} class="c-num">${v === null || v === undefined ? html`<span class="c-db-nada" title="Não informado">—</span>` : pct(v)}</td>`; })}
-            <td class="c-num c-forte">${pct(n.valor)}${deTurno(n.de, 'fechamento')}</td></tr>`)}</tbody></table></div></section>
+            <td class="c-num c-forte">${pct(n.valor)}${deTurno(n.de, 'fechamento')}</td></tr>`)}</tbody>
+          ${cons.ns.length > 1 ? html`<tfoot><tr><td title="Média de Digital e Voz. Aparece quando os dois estão preenchidos.">Consolidado</td>
+            ${TURNOS.map((t) => { const v = nsConsolidado(cons.ns.map((n) => dados.vivos?.[t]?.ns?.[n.id_item] ?? dados.turnos.find((x) => x.turno === t)?.ns?.[n.id_item] ?? null)); return html`<td key=${t} class="c-num">${v === null ? html`<span class="c-db-nada" title="Falta preencher um canal">—</span>` : pct(v)}</td>`; })}
+            <td class="c-num">${pct(cons.ns_consolidado)}</td></tr></tfoot>` : null}</table></div></section>
     </div>
     <div>
       <section class="c-db-bloco"><div class="c-db-bloco-cab"><h3>Absenteísmo (ABS)</h3>
@@ -423,6 +433,7 @@ export function AbaHoje({ contexto, operacao, setOperacao, data, setData, showTo
   const resumo = html`<div class="c-pd-resumo c-db-resumo" role="group" aria-label="O dia até agora">
     ${[['Início do dia', nf(cons.totais.inicio)], ['Tratadas', nf(cons.totais.tratadas)], ['Pendentes', nf(cons.totais.pendente)],
       ...cons.ns.map((n) => [`NS ${cad[n.id_item]?.nome || ''}`, pct(n.valor), tomNs(n.valor)]),
+      ...(cons.ns.length > 1 ? [['NS consolidado', pct(cons.ns_consolidado), tomNs(cons.ns_consolidado)]] : []),
       ['ABS', pct(abs?.abs)], ['Intercorrências', String(interc.length), interc.some((i) => !i.fim) ? 'perigo' : '']]
       .map(([r, n, tom]) => html`<div key=${r} class=${`c-pd-num${tom ? ` c-pd-num--${tom}` : ''}`}><b>${n}</b><small>${r}</small></div>`)}
   </div>`;
@@ -447,6 +458,10 @@ export function AbaHoje({ contexto, operacao, setOperacao, data, setData, showTo
                   onConfirmar=${(m) => depois(reabrirTurnoDiario(j.turno.id_turno, m), 'Turno reaberto.')} />`
                   : j.tipo === 'reabrir-dia' ? html`<${JanelaMotivo} titulo="Reabrir o dia" texto="O dia volta a aceitar mudanças e o motivo fica no histórico." salvarRotulo="Reabrir" onClose=${fechar}
                     onConfirmar=${(m) => depois(reabrirDiaDiario(dados.dia.id_dia, m), 'Dia reaberto.')} />`
+                    : j.tipo === 'tipo-demanda' ? html`<${JanelaTipoDemanda} existentes=${dados.cadastros.filter((c) => c.tipo === 'demanda').map((c) => c.nome)} onClose=${fechar}
+                      onCriar=${async (nome) => { await j.antes?.(); await depois(criarTipoDemandaDiario(operacao, nome), `Tipo "${nome}" criado.`); }} />`
+                    : j.tipo === 'remover-tipo' ? html`<${JanelaRemoverTipo} nome=${j.item.nome} onClose=${fechar}
+                      onRemover=${async () => { await j.antes?.(); await depois(removerTipoDemandaDiario(j.item.id_item), `Tipo "${j.item.nome}" removido.`); }} />`
                     : j.tipo === 'alteracoes' ? html`<${GavetaAlteracoes} dia=${dados.dia} podeExportar=${pode.exportar} onClose=${fechar} />` : null;
 
   const pass = dados.passagem_anterior;
