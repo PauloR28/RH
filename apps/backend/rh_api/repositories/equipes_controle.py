@@ -10,6 +10,8 @@ para o supervisor logado)."""
 
 from __future__ import annotations
 
+from collections import Counter
+from datetime import datetime
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -18,6 +20,7 @@ from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_indicadores as indicadores
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import MAX_SUPERVISORES_OPERADOR, operacoes_permitidas
+from ..services.wfm_historico import FUSO_BRASIL
 
 _JANELA_PADRAO_DIAS = 90
 
@@ -104,7 +107,7 @@ class EquipesControleRepositoryMixin:
                 "id_usuario": alvo,
                 "nome": _nome_completo(sup[0]),
                 "email": normalize_text(sup[0].get("email")),
-                "turno": normalize_text(sup[0].get("turno")),
+                "turno": self._eq_turnos_da_escala(cursor, [alvo]).get(alvo) or normalize_text(sup[0].get("turno")),
             }
             contexto["operadores"] = self._eq_operadores(cursor, alvo)
             return contexto
@@ -135,13 +138,15 @@ class EquipesControleRepositoryMixin:
         ops: dict[int, list[str]] = {}
         for id_usuario, operacao in cursor.fetchall():
             ops.setdefault(int(id_usuario), []).append(normalize_text(operacao))
+        da_escala = self._eq_turnos_da_escala(cursor, [int(r["id_usuario"]) for r in linhas])
         return [
             {
                 "id_usuario": int(r["id_usuario"]),
                 "nome": _nome_completo(r),
                 "email": normalize_text(r.get("email")),
                 "status": normalize_text(r.get("status")),
-                "turno": normalize_text(r.get("turno")),
+                # Mesma fonte da escala (Turnos e Plantões); o campo do cadastro só entra se não houver escala no mês.
+                "turno": da_escala.get(int(r["id_usuario"])) or normalize_text(r.get("turno")),
                 "id_equipe": r.get("id_equipe"),
                 "equipe_nome": normalize_text(r.get("equipe_nome")),
                 "operacoes": sorted(ops.get(int(r["id_usuario"]), [])),
@@ -149,6 +154,36 @@ class EquipesControleRepositoryMixin:
             }
             for r in linhas
         ]
+
+    def _eq_turnos_da_escala(self, cursor, ids: list[int]) -> dict[int, str]:
+        """Turno de trabalho de cada pessoa na escala do mês: o de hoje, se trabalha hoje; senão, o mais usado no mês."""
+        if not ids:
+            return {}
+        hoje = datetime.now(FUSO_BRASIL).date()
+        marcadores = ",".join("?" for _ in ids)
+        try:
+            cursor.execute(
+                f"""
+                SELECT ei.id_operador, t.nome, ei.data
+                FROM dbo.wfm_escala_itens ei
+                JOIN dbo.wfm_turnos t ON t.id_turno = ei.id_turno
+                WHERE ei.ano_mes = ? AND t.tipo = 'TRABALHO' AND ei.id_operador IN ({marcadores})
+                """,
+                (f"{hoje.year}-{hoje.month:02d}", *ids),
+            )
+            linhas = cursor.fetchall()
+        except Exception:  # noqa: BLE001 - Turnos e Plantões ausente no ambiente: fica o turno do cadastro
+            return {}
+        contagem: dict[int, Counter] = {}
+        de_hoje: dict[int, str] = {}
+        for id_op, nome, data in linhas:
+            nome = normalize_text(nome)
+            if not nome:
+                continue
+            contagem.setdefault(int(id_op), Counter())[nome] += 1
+            if data == hoje or str(data)[:10] == hoje.isoformat():
+                de_hoje[int(id_op)] = nome
+        return {i: de_hoje.get(i) or c.most_common(1)[0][0] for i, c in contagem.items()}
 
     def eq_candidatos(self, user, id_supervisor: int | None = None) -> list[dict]:
         """Operadores ativos das operações do supervisor que ainda não estão na equipe dele e têm vaga de supervisor."""

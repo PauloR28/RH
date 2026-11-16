@@ -84,6 +84,18 @@ function montarEstrutura(permissoes) {
   return areas.map((area) => ({ ...area, mods: [...area.mods].map(([nome, itens]) => ({ id: `${area.id}:${nome}`, nome, itens })) }));
 }
 
+// Relatórios de RH e de Sistema só aparecem para o perfil que já tem acesso àquela área (lista 16/11: o Supervisor via
+// "RH" em Relatórios e achava que era informação cruzada). Quem precisar liberar assim mesmo acha a chave pela busca.
+const BASE_RELATORIO = {
+  'relatorios:RH': ['sessao.curriculos.acessar', 'sessao.processos.acessar', 'sessao.provas.acessar', 'relatorios.visualizar', 'relatorios.exportar', 'candidatos.consultar_historico'],
+  'relatorios:Relatórios antigos': ['sessao.curriculos.acessar', 'sessao.processos.acessar', 'sessao.provas.acessar', 'relatorios.visualizar', 'relatorios.exportar'],
+  'relatorios:Sistema': ['logs.visualizar', 'sessao.configuracoes.acessar'],
+};
+const moduloVisivel = (m, ativas) => {
+  const base = BASE_RELATORIO[m.id];
+  return !base || base.some((c) => ativas.has(c)) || m.itens.some((p) => ativas.has(p.chave));
+};
+
 export function PerfisPermissoes({
   perfis, permissoes, ordemModulos, nomesModulos,
   perfilId, aoSelecionarPerfil,
@@ -105,7 +117,10 @@ export function PerfisPermissoes({
   const originais = useMemo(() => new Set(perfil?.permissoes || []), [perfil?.id, (perfil?.permissoes || []).join('|')]);
   const outro = perfis.find((p) => p.id === comparaCom) || null;
   const doOutro = useMemo(() => new Set(outro?.permissoes || []), [outro?.id]);
-  const estrutura = useMemo(() => montarEstrutura(permissoes), [permissoes]);
+  const estrutura = useMemo(() => montarEstrutura(permissoes).map((a) => {
+    const mods = a.mods.filter((m) => moduloVisivel(m, ativas));
+    return { ...a, mods, itens: mods.flatMap((m) => m.itens) };
+  }), [permissoes, ativas]);
   const porChave = useMemo(() => new Map(permissoes.map((p) => [p.chave, p])), [permissoes]);
   const contar = (itens) => itens.filter((p) => ativas.has(p.chave)).length;
   const totalAtivas = permissoes.filter((p) => ativas.has(p.chave)).length;
@@ -199,7 +214,7 @@ export function PerfisPermissoes({
                       ? html`<div class="c-pv-grade">${resultados.map((p) => {
                           const a = estrutura.find((ar) => ar.itens.includes(p));
                           const m = a?.mods.find((mm) => mm.itens.includes(p));
-                          return item(p, `${m?.nome || ''} › `);
+                          return item(p, `${m?.nome || moduloDe(p.chave, p.modulo)} › `);
                         })}</div>`
                       : html`<p class="c-secundario">Nenhuma permissão com esse nome.</p>`}
                   </div>`
