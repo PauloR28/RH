@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { registrarEnvioDiario } from '../../../services/api/diario.js';
+import { registrarEnvioDiario } from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Ic, Janela, Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { avisosDoTurno, consolidar, diaLongo, hhmm, nf, pct } from './regras.js';
 

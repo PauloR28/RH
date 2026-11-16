@@ -2,7 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
 import { IconeSvg } from '../../ui/icone.js';
 import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
-import { lerResumoHojeDiario } from '../../services/api/diario.js';
+import { lerResumoHojeDiario } from '../../services/api/diario.js?v=20261116-relatorio';
 import { pedirDiaDiario, pendenciasDiario } from '../../modulos/operacao/diario/ligacoes.js';
 import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261112-modulo-unico2';
 import { listarMural } from '../../services/api/mural.js';

@@ -1,5 +1,5 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { importarDiario, listarCadastrosDiario, salvarCadastroDiario } from '../../../services/api/diario.js';
+import { importarDiario, listarCadastrosDiario, salvarCadastroDiario } from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Campo, Esqueleto, Estado, Ic, JanelaForm, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { diaHist } from './regras.js';
 

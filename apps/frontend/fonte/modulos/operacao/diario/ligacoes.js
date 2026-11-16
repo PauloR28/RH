@@ -1,5 +1,5 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { intercorrenciasNoHorario, lerResumoHojeDiario } from '../../../services/api/diario.js';
+import { intercorrenciasNoHorario, lerResumoHojeDiario } from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Ic, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Ligações do Diário de bordo com o resto do Conecta (amostra quadro 6). Só leitura; cada uma some quando a pessoa não tem

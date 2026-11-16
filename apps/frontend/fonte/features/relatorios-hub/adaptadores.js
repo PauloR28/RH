@@ -3,7 +3,7 @@ import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogs
 import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js';
 import { lerHistoricoPaginado } from '../../services/api/history.js';
 import { listarLogsAuditoria } from '../../services/api/settings.js';
-import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js';
+import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js?v=20261116-relatorio';
 export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js';
 
 // Relatórios e Históricos — registro de relatórios. Cada item descreve: onde aparece (área), qual permissão o liga ao perfil

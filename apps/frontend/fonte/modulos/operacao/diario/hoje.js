@@ -17,7 +17,7 @@ import {
   salvarEncerramentoDiario,
   salvarParcialDiario,
   salvarTurnoDiario,
-} from '../../../services/api/diario.js';
+} from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial, JanelaRemoverTipo, JanelaTipoDemanda } from './janelas.js';
 import { JanelaFechamento } from './fechamento.js';

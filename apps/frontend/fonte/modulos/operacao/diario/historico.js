@@ -1,5 +1,5 @@
 import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
-import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js';
+import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { SinalTurno } from './hoje.js';
 import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js';

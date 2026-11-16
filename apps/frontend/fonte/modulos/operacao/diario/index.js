@@ -1,7 +1,7 @@
 import { html, useEffect, useState } from '../../../infraestrutura-react.js';
 import { PainelRh } from '../../../ui/componentes-compartilhados.js';
 import { useToast } from '../../../shared/hooks/use-toast.js';
-import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js';
+import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js?v=20261116-relatorio';
 import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { AbaHoje } from './hoje.js';
 import { AbaHistorico } from './historico.js';
