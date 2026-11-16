@@ -45,7 +45,7 @@ const ROTULO_CHAVE = {
   'equipes.controle.visualizar': 'Ver a própria equipe', 'equipes.membros.editar': 'Adicionar e remover pessoas', 'equipes.mural.publicar': 'Publicar no Mural',
   'relhub.wfm.historico': 'Histórico de alterações', 'relhub.monitoria.historico': 'Histórico de monitorias', 'relhub.wfm.resumo': 'Resumo por operador', 'relhub.wfm.aprovacoes': 'Aprovações de escala', 'relhub.wfm.presencas': 'Presenças',
   'relhub.wfm.painel': 'Painel', 'relhub.wfm.escalas': 'Escalas', 'relhub.wfm.escalados': 'Escalados', 'relhub.wfm.trocas': 'Trocas', 'relhub.monitoria.qualidade': 'Qualidade', 'relhub.monitoria.planos': 'Planos de ação', 'relhub.monitoria.dashboard': 'Dashboard',
-  'relhub.monitoria.logs': 'Logs', 'relhub.rh.processos': 'Processos', 'relhub.rh.candidatos': 'Candidatos', 'relhub.rh.ranking': 'Ranking', 'relhub.rh.funil': 'Funil', 'relhub.rh.exames': 'Exames e provas', 'relhub.sistema.logs': 'Logs do sistema',
+  'relhub.monitoria.logs': 'Logs', 'relhub.diario.dias': 'Resumo por dia', 'relhub.diario.demandas': 'Demandas por tipo', 'relhub.diario.intercorrencias': 'Intercorrências', 'relhub.diario.alteracoes': 'Histórico de alterações', 'relhub.rh.processos': 'Processos', 'relhub.rh.candidatos': 'Candidatos', 'relhub.rh.ranking': 'Ranking', 'relhub.rh.funil': 'Funil', 'relhub.rh.exames': 'Exames e provas', 'relhub.sistema.logs': 'Logs do sistema',
   'relatorios.visualizar': 'Ver (antigo)', 'relatorios.exportar': 'Exportar (antigo)', 'documentos_templates.visualizar': 'Ver e gerar', 'operacoes.editar': 'Cadastrar e inativar', 'etapas.configurar': 'Configurar etapas', 'trilhas.configurar': 'Configurar trilhas',
 };
 
@@ -62,7 +62,7 @@ function moduloDe(chave, modulo) {
   if (modulo === 'Geral') return 'Início';
   if (a === 'wfm') return { escala: 'Escala', tipos_escala: 'Escala', presenca: 'Presença e cadastros', cadastros: 'Presença e cadastros', contratos: 'Presença e cadastros', troca: 'Trocas', relatorios: 'Relatórios e auditoria', auditoria: 'Relatórios e auditoria' }[b] || 'Outras';
   if (a === 'monitoria') return { visualizar: 'Monitorias', criar: 'Monitorias', feedback_aplicar: 'Monitorias', contestar: 'Monitorias', reanalisar: 'Monitorias', plano_acao: 'Planos de ação', plano_acao_visualizar: 'Planos de ação', dashboard: 'Análise', relatorios: 'Análise', exportar: 'Análise', logs: 'Análise' }[b] || 'Configuração';
-  if (a === 'relhub') return { wfm: 'Turnos e Plantões', monitoria: 'Monitoria', rh: 'RH', sistema: 'Sistema' }[b] || 'Outros';
+  if (a === 'relhub') return { wfm: 'Turnos e Plantões', monitoria: 'Monitoria', diario: 'Diário de bordo', rh: 'RH', sistema: 'Sistema' }[b] || 'Outros';
   if (a === 'relatorios') return 'Relatórios antigos';
   if (modulo === 'Templates de Documentos') return 'Templates';
   return modulo;
