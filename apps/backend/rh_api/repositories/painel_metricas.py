@@ -27,6 +27,11 @@ ROTULO_TROCA_RECUSA = {"RECUSADA": "Recusada pelo colega", "REPROVADA": "Reprova
 STATUS_FALTA = ("FALTA", "FALTA_JUSTIFICADA")
 
 
+def like_escalas(operacao: str) -> str:
+    """Padrão LIKE das escalas próprias da operação ("CRF::ESCALA-CRF"), com `_`, `%` e `[` da chave escapados."""
+    return operacao.replace("[", "[[]").replace("%", "[%]").replace("_", "[_]") + "::%"
+
+
 def _dm(d: Any) -> str:
     if isinstance(d, datetime):
         d = d.date()
@@ -188,19 +193,19 @@ class PainelMetricasMixin:
             return {"indisponivel": fonte.get("motivo") or "Esta unidade não tem escala em Turnos e Plantões."}
         ctx = {"wfm": fonte, "equipe": equipe}
         ops = self._pn_ops(ctx)
-        operacao = painel["operacao"]
+        operacao = dado["chaves"][0]
         escalados = [d for d in dado["dias_escala"] if d["trabalha"] and d["data"] == dia and d["id_operador"] in ops]
         entrada: dict[int, str] = {}
         if escalados:
             ids = [d["id_operador"] for d in escalados]
             marc = ",".join("?" for _ in ids)
             cursor.execute(
-                f"SELECT id_usuario, MIN(criado_em) FROM dbo.wfm_auditoria WHERE acao = 'presenca_automatica' AND operacao = ? "
+                f"SELECT id_usuario, MIN(criado_em) FROM dbo.wfm_auditoria WHERE acao = 'presenca_automatica' AND (operacao = ? OR operacao LIKE ?) "
                 f"AND criado_em >= ? AND criado_em < ? AND id_usuario IN ({marc}) GROUP BY id_usuario",
-                (operacao, dia, dia + timedelta(days=1), *ids),
+                (operacao, like_escalas(operacao), dia, dia + timedelta(days=1), *ids),
             )
             entrada = {int(r[0]): r[1].strftime("%H:%M") for r in cursor.fetchall() if r[1]}
-        pausas = self._wfm_pausas_programadas(cursor, operacao, dia)
+        pausas = self._pn_pausas_programadas(cursor, dado["chaves"], dia)
         grupos: dict[str, list[dict]] = {"presentes": [], "faltaram": [], "atestado": [], "sem_lancamento": []}
         for d in sorted(escalados, key=lambda x: ops[x["id_operador"]]["nome"]):
             i = d["id_operador"]
@@ -222,11 +227,12 @@ class PainelMetricasMixin:
         if not dado:
             return self._pn_sem_dado(ctx)
         ops = self._pn_ops(ctx)
-        operacao = ctx["painel"]["operacao"]
+        operacao = dado["chaves"][0]
         fim = min(ctx["fim"], ctx["hoje"]) if ctx["ini"] <= ctx["hoje"] else ctx["fim"]
         cursor.execute(
-            "SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND data BETWEEN ? AND ? ORDER BY data, inicio",
-            (operacao, ctx["ini"], fim),
+            "SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE (operacao = ? OR operacao LIKE ?) "
+            "AND data BETWEEN ? AND ? ORDER BY data, inicio",
+            (operacao, like_escalas(operacao), ctx["ini"], fim),
         )
         contagem: Counter = Counter()
         pessoas: dict[int, list[dict]] = {}
@@ -253,7 +259,7 @@ class PainelMetricasMixin:
         primeiro = min([12] + ocupados[:1])
         ultimo = max([47] + ocupados[-1:])
         return {
-            "capacidade": self._wfm_capacidade(cursor, operacao), "dias": len(dias), "media_por_dia": len(dias) > 1,
+            "capacidade": max(self._wfm_capacidade(cursor, c) for c in dado["chaves"]), "dias": len(dias), "media_por_dia": len(dias) > 1,
             "slots": [{"slot": s, "inicio": _hm(s * 30), "fim": _hm(s * 30 + 30), "valor": round(contagem[s] / n_dias, 1), "pessoas": pessoas.get(s, [])}
                       for s in range(primeiro, ultimo + 1)],
         }
