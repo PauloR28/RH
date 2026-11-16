@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js';
 import { baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261116-diario';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261116-diario2';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
