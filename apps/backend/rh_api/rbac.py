@@ -191,6 +191,10 @@ RELATORIOS_HUB: tuple[tuple[str, str, str, bool], ...] = (
     ("relhub.rh.funil", "Dashboard de funil de recrutamento.", "relatorios.visualizar", False),
     ("relhub.rh.exames", "Histórico de exames e provas.", "candidatos.consultar_historico", False),
     ("relhub.sistema.logs", "Logs de auditoria do sistema.", "logs.visualizar", True),
+    ("relhub.diario.dias", "Diário de bordo: resumo por dia (turnos, tratadas, pendentes, NS, ABS, intercorrências, encerramento).", "diario.visualizar", False),
+    ("relhub.diario.demandas", "Diário de bordo: demandas por tipo e por dia (início, tratadas e pendente).", "diario.visualizar", False),
+    ("relhub.diario.intercorrencias", "Diário de bordo: intercorrências do período (ferramenta, canal, duração, ação e chamado).", "diario.visualizar", False),
+    ("relhub.diario.alteracoes", "Diário de bordo: histórico de alterações (quem mudou o quê, antes, depois e motivo).", "diario.visualizar", True),
 )
 RELHUB_PERMISSAO_BASE: dict[str, str] = {chave: base for chave, _d, base, _c in RELATORIOS_HUB}
 

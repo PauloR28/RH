@@ -205,6 +205,16 @@ def exportar_historico(payload: DiarioExportarRequest, request: Request, user: A
                              "Access-Control-Expose-Headers": "Content-Disposition"})
 
 
+# ------------------------------------------------------------------ Relatórios e Históricos (16/nov/2026)
+@router.get("/relatorio", dependencies=[Depends(require_permissions(_VER))])
+def relatorio(tipo: str, data_ini: str, data_fim: str, operacao: str = "", user: AuthenticatedUser = Depends(get_current_user),
+              repository: DatabaseRepository = Depends(get_repository)):
+    # A chave do relatório (relhub.diario.*) liga o relatório no perfil; a de base (diario.visualizar) já foi conferida acima.
+    if not user.has_permission(f"relhub.diario.{tipo}"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Este relatório não está liberado para o seu perfil.")
+    return repository.diario_relatorio(user, tipo, operacao, data_ini, data_fim)
+
+
 # ------------------------------------------------------------------ novo tipo de demanda direto no turno (supervisor)
 @router.post("/tipos-demanda", dependencies=[Depends(require_permissions(_CRIAR_DEMANDA, _ADMIN))])
 def criar_tipo_demanda(payload: DiarioTipoDemandaRequest, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):

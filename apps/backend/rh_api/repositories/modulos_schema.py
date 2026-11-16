@@ -90,6 +90,7 @@ PERMISSOES_POSTERIORES_A_V056 = frozenset({
     "relhub.wfm.resumo", "relhub.wfm.trocas",
     "sessao.equipe.acessar", "sessao.relatorios.acessar",
     "painel.configurar", "painel.visualizar", "sessao.painel.acessar",  # V072
+    "relhub.diario.alteracoes", "relhub.diario.demandas", "relhub.diario.dias", "relhub.diario.intercorrencias",  # 16/nov
 })
 
 

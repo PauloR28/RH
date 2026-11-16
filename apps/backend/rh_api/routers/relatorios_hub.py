@@ -40,6 +40,10 @@ _EXPORTAR = {
     "relhub.rh.funil": "relatorios.exportar",
     "relhub.rh.exames": "candidatos.consultar_historico",
     "relhub.sistema.logs": "logs.exportar",
+    "relhub.diario.dias": "diario.exportar",
+    "relhub.diario.demandas": "diario.exportar",
+    "relhub.diario.intercorrencias": "diario.exportar",
+    "relhub.diario.alteracoes": "diario.exportar",
 }
 
 

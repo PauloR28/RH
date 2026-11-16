@@ -34,6 +34,42 @@ def _nome(user) -> str:
             or normalize_text(getattr(user, "username", "")))
 
 
+RELATORIOS_DIARIO = ("dias", "demandas", "intercorrencias", "alteracoes")
+LIMITE_REL_DIARIO = 5000
+ROTULO_ENTIDADE = {"turno": "Turno", "dia": "Dia", "intercorrencia": "Intercorrência", "parcial": "Parcial", "abs": "ABS", "envio": "Envio",
+                   "exportacao": "Exportação", "cadastro": "Cadastro", "demanda": "Demanda", "ns": "Nível de serviço"}
+ROTULO_ACAO = {"editou_mesmo_assim": "editou por cima de outra pessoa"}
+
+
+def _col(chave: str, rotulo: str, tipo: str = "texto") -> dict:
+    return {"chave": chave, "rotulo": rotulo, "tipo": tipo}
+
+
+def _br_data(valor: Any) -> str:
+    if not valor:
+        return ""
+    v = valor.date() if isinstance(valor, datetime) else valor
+    return v.strftime("%d/%m/%Y") if isinstance(v, date) else str(valor)[:10]
+
+
+def _hora(valor: Any) -> str:
+    return valor.strftime("%H:%M") if isinstance(valor, datetime) else ""
+
+
+def _texto_curto(valor: Any) -> str:
+    """Antes/depois guardados em JSON viram "chave: valor, ..." (mesma leitura da gaveta de alterações)."""
+    if valor is None:
+        return ""
+    texto = normalize_text(valor)
+    try:
+        obj = json.loads(texto)
+    except (ValueError, TypeError):
+        return texto
+    if isinstance(obj, dict):
+        return ", ".join(f"{k}: {'—' if v is None else v}" for k, v in obj.items())
+    return texto
+
+
 def _hoje() -> date:
     return datetime.now(FUSO_BRASIL).date()
 
@@ -969,6 +1005,122 @@ class DiarioRepositoryMixin:
             return {"id_item": id_item}
         finally:
             conn.close()
+
+    # ------------------------------------------------------------------ Relatórios e Históricos (16/nov/2026)
+    def diario_relatorio(self, user, tipo: str, operacao: str, data_ini: str, data_fim: str) -> dict:
+        """Planilha de um relatório do Diário para a página Relatórios e Históricos: {colunas, linhas, aviso}.
+        tipo: dias | demandas | intercorrencias | alteracoes. Sem operação = todas as operações do Diário no escopo."""
+        if tipo not in RELATORIOS_DIARIO:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Relatório desconhecido.")
+        try:
+            ini, fim = date.fromisoformat(str(data_ini)[:10]), date.fromisoformat(str(data_fim)[:10])
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Período inválido.") from exc
+        if fim < ini or (fim - ini).days > 366:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Escolha um período de até 1 ano.")
+        conn, cursor = self._db_abrir()
+        try:
+            ops = self._db_operacoes_do_diario(cursor, user)
+            if normalize_text(operacao):
+                chave = self._db_exigir_operacao(cursor, user, operacao)
+                ops = [o for o in ops if o["chave"] == chave]
+            nomes = {o["chave"]: o["nome"] for o in ops}
+            if not nomes:
+                return {"colunas": [], "linhas": [], "aviso": ""}
+            if tipo in ("dias", "demandas"):
+                return self._db_rel_dias(cursor, user, tipo, nomes, ini, fim)
+            marcas = ",".join("?" for _ in nomes)
+            if tipo == "intercorrencias":
+                return self._db_rel_intercorrencias(cursor, nomes, marcas, ini, fim)
+            return self._db_rel_alteracoes(cursor, nomes, marcas, ini, fim)
+        finally:
+            conn.close()
+
+    def _db_rel_intercorrencias(self, cursor, nomes: dict[str, str], marcas: str, ini: date, fim: date) -> dict:
+        cursor.execute(
+            "SELECT operacao, turno, ferramenta, canal, inicio, fim, descricao, acao, chamado, criado_por FROM dbo.diario_intercorrencia "
+            f"WHERE excluida = 0 AND operacao IN ({marcas}) AND inicio >= ? AND inicio < ? ORDER BY inicio",
+            (*nomes, ini, fim + timedelta(days=1)),
+        )
+        linhas = []
+        for op, turno, ferr, canal, ini_i, fim_i, desc, acao, chamado, por in cursor.fetchall():
+            minutos = int((fim_i - ini_i).total_seconds() // 60) if fim_i and ini_i and fim_i >= ini_i else None
+            linhas.append({
+                "operacao": nomes.get(normalize_text(op), op), "data": _br_data(ini_i), "turno": r.ROTULO_TURNO.get(normalize_text(turno), turno),
+                "ferramenta": normalize_text(ferr), "canal": r.ROTULO_CANAL.get(normalize_text(canal), canal), "inicio": _hora(ini_i),
+                "fim": _hora(fim_i) if fim_i else "Em aberto", "duracao": minutos, "descricao": normalize_text(desc), "acao": normalize_text(acao),
+                "chamado": normalize_text(chamado), "registrado_por": normalize_text(por),
+            })
+        colunas = [_col("operacao", "Operação"), _col("data", "Data"), _col("turno", "Turno"), _col("ferramenta", "Ferramenta"), _col("canal", "Canal"),
+                   _col("inicio", "Início"), _col("fim", "Fim"), _col("duracao", "Duração (min)", "numero"), _col("descricao", "Descrição"),
+                   _col("acao", "Ação tomada"), _col("chamado", "Chamado"), _col("registrado_por", "Registrado por")]
+        return {"colunas": colunas, "linhas": linhas, "aviso": ""}
+
+    def _db_rel_alteracoes(self, cursor, nomes: dict[str, str], marcas: str, ini: date, fim: date) -> dict:
+        cursor.execute(
+            f"SELECT TOP {LIMITE_REL_DIARIO + 1} operacao, data, turno, entidade, acao, campo, antes, depois, motivo, usuario_nome, criado_em "
+            f"FROM dbo.diario_alteracao WHERE operacao IN ({marcas}) AND criado_em >= ? AND criado_em < ? ORDER BY criado_em DESC, id_alteracao DESC",
+            (*nomes, ini, fim + timedelta(days=1)),
+        )
+        todas = cursor.fetchall()
+        linhas = [{
+            "quando": f"{_br_data(em)} {_hora(em)}", "operacao": nomes.get(normalize_text(op), op), "dia": _br_data(dia) if dia else "",
+            "turno": r.ROTULO_TURNO.get(normalize_text(turno), normalize_text(turno)), "quem": normalize_text(quem),
+            "o_que": f"{ROTULO_ENTIDADE.get(normalize_text(ent), normalize_text(ent))} · {ROTULO_ACAO.get(normalize_text(ac), normalize_text(ac).replace('_', ' '))}",
+            "campo": normalize_text(campo), "antes": _texto_curto(antes), "depois": _texto_curto(depois), "motivo": normalize_text(motivo),
+        } for op, dia, turno, ent, ac, campo, antes, depois, motivo, quem, em in todas[:LIMITE_REL_DIARIO]]
+        colunas = [_col("quando", "Data/hora"), _col("operacao", "Operação"), _col("dia", "Dia do diário"), _col("turno", "Turno"), _col("quem", "Quem"),
+                   _col("o_que", "O quê"), _col("campo", "Campo"), _col("antes", "Antes"), _col("depois", "Depois"), _col("motivo", "Motivo")]
+        aviso = f"Mostrando as {LIMITE_REL_DIARIO} alterações mais recentes; reduza o período para ver o restante." if len(todas) > LIMITE_REL_DIARIO else ""
+        return {"colunas": colunas, "linhas": linhas, "aviso": aviso}
+
+    def _db_rel_dias(self, cursor, user, tipo: str, nomes: dict[str, str], ini: date, fim: date) -> dict:
+        linhas: list[dict] = []
+        canais: list[str] = []
+        rot_estado = {"concluido": "Concluído", "rascunho": "Rascunho", "reaberto": "Reaberto", "vazio": "Não feito"}
+        for op, nome_op in nomes.items():
+            cursor.execute("SELECT data FROM dbo.diario_dia WHERE operacao = ? AND data BETWEEN ? AND ? ORDER BY data", (op, ini, fim))
+            for (data,) in cursor.fetchall():
+                d = self._db_montar_dia(cursor, user, op, data, self._db_dia_linha(cursor, op, data))
+                cad = {c["id_item"]: c["nome"] for c in d["cadastros"]}
+                cons = d["consolidado"] or {"demandas": [], "ns": [], "totais": {}, "ns_consolidado": None}
+                if tipo == "demandas":
+                    for x in cons["demandas"]:
+                        if x["inicio"] is None and x["tratadas"] is None and x["pendente"] is None:
+                            continue
+                        linhas.append({"operacao": nome_op, "data": _br_data(data), "tipo": cad.get(x["id_item"], ""), "inicio": x["inicio"],
+                                       "tratadas": x["tratadas"], "pendente": x["pendente"]})
+                    continue
+                dia = d["dia"] or {}
+                estados = {t["turno"]: ("Reaberto" if t["reaberto_vezes"] and t["estado"] != "vazio" else rot_estado.get(t["estado"], t["estado"])) for t in d["turnos"]}
+                autores = {t["salvo_por"] for t in d["turnos"] if t.get("salvo_por")} | {t["concluido_por"] for t in d["turnos"] if t.get("concluido_por")}
+                envio = ("Enviado" if dia.get("envio_enviado_em") else "Copiado" if dia.get("envio_copiado_em")
+                         else "Baixado" if dia.get("envio_baixado_em") else "Não marcado")
+                linha = {
+                    "operacao": nome_op, "data": _br_data(data), "situacao": "Encerrado" if dia.get("status") == "encerrado" else "Aberto",
+                    **{t: estados.get(t, "Não feito") for t in r.TURNOS},
+                    "inicio": cons["totais"].get("inicio"), "tratadas": cons["totais"].get("tratadas"), "pendentes": cons["totais"].get("pendente"),
+                    "ns_consolidado": cons.get("ns_consolidado"), "abs": ((d["abs"] or {}).get("vigente") or {}).get("abs"),
+                    "intercorrencias": len([i for i in d["intercorrencias"] if not i["excluida"] and not i.get("de_outro_dia")]),
+                    "encerramento": r.ROTULO_ENCERRAMENTO.get(dia.get("encerramento_tipo") or "", ""), "envio": envio,
+                    "quem": ", ".join(sorted(autores)), "passagem": dia.get("passagem") or "",
+                }
+                for n in cons["ns"]:
+                    rotulo = cad.get(n["id_item"], "")
+                    if rotulo not in canais:
+                        canais.append(rotulo)
+                    linha[f"ns:{rotulo}"] = n["valor"]
+                linhas.append(linha)
+        if tipo == "demandas":
+            colunas = [_col("operacao", "Operação"), _col("data", "Dia"), _col("tipo", "Tipo de demanda"), _col("inicio", "Início do dia", "numero"),
+                       _col("tratadas", "Tratadas", "numero"), _col("pendente", "Pendente no fim", "numero")]
+            return {"colunas": colunas, "linhas": linhas, "aviso": ""}
+        colunas = [_col("operacao", "Operação"), _col("data", "Dia"), _col("situacao", "Situação"),
+                   *[_col(t, r.ROTULO_TURNO[t]) for t in r.TURNOS], _col("inicio", "Início do dia", "numero"), _col("tratadas", "Tratadas", "numero"),
+                   _col("pendentes", "Pendentes", "numero"), *[_col(f"ns:{c}", f"NS {c}", "percentual") for c in canais],
+                   _col("ns_consolidado", "NS consolidado", "percentual"), _col("abs", "ABS", "percentual"), _col("intercorrencias", "Intercorrências", "numero"),
+                   _col("encerramento", "Encerramento"), _col("envio", "Envio ao grupo"), _col("quem", "Quem preencheu"), _col("passagem", "Passagem")]
+        return {"colunas": colunas, "linhas": linhas, "aviso": ""}
 
     # ------------------------------------------------------------------ importação dos .json do protótipo (D7)
     def diario_importar(self, user, operacao: str, arquivos: list[Any], gravar: bool) -> dict:
