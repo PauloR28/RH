@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261112-modulo-unico2';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261116-grade-larga';

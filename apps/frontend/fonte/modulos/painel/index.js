@@ -289,7 +289,13 @@ export function TelaPainel({ controlador }) {
   const blocos = [];
   if (dados) {
     let meias = [];
-    const fechar = () => { if (meias.length) { blocos.push(html`<div key=${`g${blocos.length}`} class="c-colunas c-pg-grade">${meias}</div>`); meias = []; } };
+    // Tela larga (16/nov/2026): 2 ou 4 cartões ficam 2 por linha; os demais, 3 por linha, e a última linha estica (sem buraco).
+    const fechar = () => {
+      if (!meias.length) return;
+      const porLinha = meias.length === 2 || meias.length === 4 ? 2 : 3;
+      blocos.push(html`<div key=${`g${blocos.length}`} class=${`c-colunas c-pg-grade c-pg-grade--${porLinha}`}>${meias}</div>`);
+      meias = [];
+    };
     dados.blocos.filter((b) => b.area === abaVisivel).forEach((b) => {
       const props = { key: b.metrica, d: b.dados, forma: b.forma, irPara, painel: dados.painel, filtros: aplicado };
       const V6 = BLOCOS_V6[b.metrica];

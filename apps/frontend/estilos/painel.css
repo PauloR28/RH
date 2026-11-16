@@ -7,6 +7,16 @@
 .c-pg-filtros .c-entrada { min-width: 160px; }
 .c-pg-pendente { box-shadow: 0 0 0 2px var(--cor-foco-anel); }
 .c-pg-grade { grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); }
+/* Tela larga (16/nov/2026): sem buraco ao lado do último cartão. Grade de 6 partes: 2 por linha (span 3) ou 3 por linha
+   (span 2), e a última linha estica para fechar a largura. Notebook (< 1600px) continua como antes. */
+@media (min-width: 1600px) {
+  .c-pg-grade--2, .c-pg-grade--3 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .c-pg-grade--2 > * { grid-column: span 3; }
+  .c-pg-grade--3 > * { grid-column: span 2; }
+  .c-pg-grade--3 > :last-child:nth-child(3n + 1) { grid-column: span 6; }
+  .c-pg-grade--3 > :nth-last-child(2):nth-child(3n + 1),
+  .c-pg-grade--3 > :last-child:nth-child(3n + 2) { grid-column: span 3; }
+}
 .c-pg-cartao { display: flex; flex-direction: column; }
 .c-pg-cartao-indic { border: 0; border-bottom: var(--borda-fina) solid var(--tabela-linha); border-radius: 0; }
 .c-pg-cartao-indic.c-pg-sem-linha { border-bottom: 0; }
