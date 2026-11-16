@@ -116,3 +116,11 @@ def test_desligado_vence_excecao_e_perfil():
     _cenario(desligadas={"CRF": frozenset({"wfm"})})
     # Mesmo com a permissão no perfil, a camada de fora fecha (decisão de 12/nov: desligado vence).
     assert dec.decidir({"wfm.escala.aprovar"}, "wfm.escala.aprovar", unidade="CRF").camada == "funcao"
+
+
+def test_permissao_do_rh_nao_e_julgada_pelas_funcoes_da_operacao_da_pessoa():
+    # Bug 16/nov/2026 (produção): Gestora vinculada à CRF (Operação, onde Processos fica desligado) perdia as sessões do RH.
+    _cenario(funcoes_operacao={"wfm", "monitoria"})
+    perms = {"sessao.processos.acessar"}
+    assert dec.decidir(perms, "sessao.processos.acessar", unidades_do_usuario={"CRF"}).pode
+    assert dec.permissoes_efetivas(perms, perfil="gestor", id_usuario=7, unidades_do_usuario={"CRF"}) == frozenset(perms)

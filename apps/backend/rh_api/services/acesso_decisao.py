@@ -21,6 +21,7 @@ import threading
 from dataclasses import dataclass
 from typing import AbstractSet, Iterable
 
+from ..modulos_catalogo import MODULO_CORE
 from . import acesso
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,13 @@ def _funcao_fechada(permissao: str, unidade: str | None, unidades_do_usuario: Ab
     if not funcao:
         return ""
     alvo = [unidade] if unidade else sorted(unidades_do_usuario or ())
+    # Só contam as unidades do MESMO módulo da permissão (16/nov/2026). Antes, uma permissão do RH (ex.:
+    # sessao.processos.acessar) era julgada pelas funções da Operação da pessoa (CRF etc.), onde Processos fica
+    # desligado, e sumia: a Gestora com Operação e RH perdia todas as sessões do RH e o RH saía do seletor.
+    # Permissão do `core` (comum a todos os módulos) continua seguindo a unidade, como antes.
+    dono = acesso.modulo_da_permissao(permissao)
+    if dono != MODULO_CORE:
+        alvo = [u for u in alvo if acesso_cache.modulo_da_unidade(u) in (None, dono)]
     if not alvo:
         return ""
     ligadas = [u for u in alvo if acesso.funcao_ligada_na_unidade(funcao, u, acesso_cache.modulo_da_unidade(u))]
