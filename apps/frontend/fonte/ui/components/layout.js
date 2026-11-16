@@ -9,7 +9,7 @@ import { IconeSvg } from '../icone.js';
 import { useModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
 import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261112-modulo-unico2';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-modulo-unico2';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261116-inicio-operacao';
 import { MolduraConecta } from './moldura.js?v=20261116-logo';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };

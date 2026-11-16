@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261116-hook-prova';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261116-inicio-operacao';

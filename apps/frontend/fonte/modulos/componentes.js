@@ -31,7 +31,8 @@ export function SeletorModulo({ controlador, modulos }) {
     setAberto(false);
     if (chave === modulos.moduloAtual) return;
     selecionarModulo(chave);
-    controlador.irParaTelaProtegida(telaInicialDoModulo(chave, controlador.podeAcessarTela));
+    // Operação e RH abrem no Início (16/11/2026, pedido do Paulo: a Operação abria direto em Monitorias).
+    controlador.irParaTelaProtegida(chave === MODULO_TECNOLOGIA ? telaInicialDoModulo(chave, controlador.podeAcessarTela) : 'screen-menu');
   };
 
   return html`
