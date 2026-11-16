@@ -41,9 +41,15 @@ def _ordem() -> list[str]:
 
 
 def abertos_pelas_permissoes(perfil: str) -> set[str]:
-    """Módulos que as permissões do perfil já abrem (sem olhar se o módulo está ligado no Conecta)."""
-    perms = acesso_cache.foto().permissoes.get(perfil, frozenset())
-    return {m for chave in perms if (m := acesso.modulo_aberto_por(chave)) and m != MODULO_CORE}
+    """Módulos que as permissões do perfil abrem DE FATO no seletor: as mesmas regras de `acesso.modulos_visiveis`
+    (permissões de área inativa não valem; permissão ligada a uma função desligada no módulo não abre).
+    Bug de 16/nov/2026: antes contava as permissões cruas, o bloco mostrava o RH "ligado pelo perfil" e, ao ligar, não
+    gravava exceção, mas no seletor o RH não aparecia (ex.: Gestor com Processos/Provas/Currículos desligados)."""
+    perms = acesso.filtrar_permissoes(acesso_cache.foto().permissoes.get(perfil, frozenset()))
+    return {
+        m for chave in perms
+        if (m := acesso.modulo_aberto_por(chave)) and m != MODULO_CORE and acesso._abre_com_funcao_ligada(chave, m)
+    }
 
 
 def _administra_tecnologia(perfil: str) -> bool:

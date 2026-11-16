@@ -64,3 +64,14 @@ def test_nao_tira_tecnologia_de_quem_administra():
 def test_modulo_invalido_recusado():
     with pytest.raises(HTTPException):
         modulos_pessoa._validar({"core": True})
+
+
+def test_permissao_que_nao_abre_no_seletor_nao_conta_como_do_perfil(monkeypatch):
+    # Bug 16/nov/2026: o perfil tem uma permissão que "abriria" o RH, mas ela não vale (área/função desligada).
+    # O bloco não pode mostrar o RH como "pelo perfil": ligar tem de gravar a exceção da pessoa.
+    monkeypatch.setattr(acesso, "modulo_aberto_por", lambda chave: "rh" if chave == "painel.visualizar" else None)
+    monkeypatch.setattr(acesso, "_abre_com_funcao_ligada", lambda chave, modulo: False)
+    cache.definir_carregador(lambda: _foto())
+    estado = {m["chave"]: m for m in modulos_pessoa.estado_usuario(7, "gestor")["modulos"]}
+    assert (estado["rh"]["do_perfil"], estado["rh"]["valor"]) == (False, False)
+    assert "rh" not in modulos_pessoa.abertos_pelas_permissoes("gestor")
