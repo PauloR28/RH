@@ -208,3 +208,17 @@ export async function enviarPlanilhaUsuarios(arquivo, confirmar = false) {
   if (confirmar) invalidarCacheApi('settings:roles', 'settings:users');
   return resultado;
 }
+
+// Módulos por pessoa e por perfil (16/nov/2026): bloco "Módulos" do cadastro e de Perfis e Permissões.
+export const lerModulosUsuario = (idUsuario, perfil = '') =>
+  requisitar(`/settings/users/${encodeURIComponent(idUsuario)}/modulos${montarQuery({ perfil })}`, { method: 'GET' });
+export const salvarModulosUsuario = (idUsuario, modulos, justificativa = '') =>
+  requisitar(`/settings/users/${encodeURIComponent(idUsuario)}/modulos`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modulos, justificativa }),
+  });
+export const lerModulosPerfil = (idPerfil) =>
+  requisitar(`/settings/security/roles/${encodeURIComponent(idPerfil)}/modulos`, { method: 'GET' });
+export const salvarModulosPerfil = (idPerfil, modulos, justificativa = '') =>
+  requisitar(`/settings/security/roles/${encodeURIComponent(idPerfil)}/modulos`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modulos, justificativa }),
+  });

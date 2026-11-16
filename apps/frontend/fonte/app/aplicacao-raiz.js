@@ -110,7 +110,7 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261116-relatorios2'),
+  () => import('../features/configuracoes/index.js?v=20261116-modulos'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-modulo-unico2');

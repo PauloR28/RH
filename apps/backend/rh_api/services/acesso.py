@@ -304,16 +304,18 @@ def _abre_com_funcao_ligada(chave: str, modulo: str) -> bool:
     return funcao in funcoes_ativas(modulo)
 
 
-def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = ()) -> list[str]:
+def modulos_visiveis(permissoes: Iterable[str], extras: Iterable[str] = (), retirados: Iterable[str] = ()) -> list[str]:
     """Módulos (exceto core) que o conjunto de permissões abre MAIS os liberados para o perfil/usuário em Tecnologia
     (`extras`, V060), apenas módulos ativos, na ordem de exibição. Liberar um módulo só o torna visível: as telas dentro dele
-    continuam dependendo das permissões do perfil. Permissão ligada a uma função desligada no módulo não o abre."""
+    continuam dependendo das permissões do perfil. Permissão ligada a uma função desligada no módulo não o abre.
+    `retirados` (exceção 'retirar' do perfil ou da pessoa, 16/nov/2026) some mesmo que as permissões o abram."""
     est = estado()
     abertos = {
         m for p in permissoes
         if (m := modulo_aberto_por(p)) and m != MODULO_CORE and modulo_ativo(m) and _abre_com_funcao_ligada(p, m)
     }
     abertos |= {m for m in extras if m in MODULOS_VALIDOS and m != MODULO_CORE and modulo_ativo(m)}
+    abertos -= set(retirados)
     return sorted(abertos, key=lambda m: (est.ordem.get(m, 99), m))
 
 
@@ -325,6 +327,16 @@ def modulos_liberados(id_usuario: int | None, perfil: str | None) -> frozenset[s
     from . import acesso_cache
 
     return frozenset(m for m in acesso_cache.modulos_liberados(id_usuario, perfil) if m in MODULOS_VALIDOS)
+
+
+def modulos_retirados(id_usuario: int | None, perfil: str | None) -> frozenset[str]:
+    """Módulos tirados do perfil ou da pessoa (exceção 'retirar'). Base da Tecnologia nunca é tirada de quem a administra
+    por `configuracoes.visualizar`: isso é decidido na gravação (modulos_pessoa), aqui só se lê."""
+    if not id_usuario and not perfil:
+        return frozenset()
+    from . import acesso_cache
+
+    return frozenset(m for m in acesso_cache.modulos_retirados(id_usuario, perfil) if m in MODULOS_VALIDOS)
 
 
 def pode(permissoes: Iterable[str], permissao: str) -> bool:
@@ -343,11 +355,11 @@ def modulo_padrao(visiveis: list[str], efetivas: Iterable[str], extras: Iterable
     return visiveis[0]
 
 
-def descrever(permissoes: Iterable[str], extras: Iterable[str] = (), operacoes: Iterable[str] = ()) -> dict:
+def descrever(permissoes: Iterable[str], extras: Iterable[str] = (), operacoes: Iterable[str] = (), retirados: Iterable[str] = ()) -> dict:
     """Payload de `GET /core/acesso`: módulos, padrão e permissões efetivas (já sem as de módulos desativados)."""
     efetivas = filtrar_permissoes(permissoes)
     est = estado()
-    visiveis = modulos_visiveis(efetivas, extras)
+    visiveis = modulos_visiveis(efetivas, extras, retirados)
     modulos = [
         {
             "chave": chave,
