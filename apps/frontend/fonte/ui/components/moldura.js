@@ -36,7 +36,6 @@ export function MolduraConecta({
   secoes = [],
   configuracoes = null,
   secaoAtual = null,
-  logoUrl = '',
   irPara,
   irParaInicio,
   sair,
@@ -65,10 +64,6 @@ export function MolduraConecta({
   const visiveis = secoes.filter((secao) => !noMais.has(secao.chave));
   const doMais = secoes.filter((secao) => noMais.has(secao.chave));
   const chavesSecoes = secoes.map((secao) => `${secao.chave}:${secao.ativo ? 1 : 0}`).join('|');
-
-  useEffect(() => {
-    setLogoComErro(false);
-  }, [logoUrl]);
 
   // Largura do topo mudou (janela, zoom) ou as seções mudaram: recomeça a medida.
   useEffect(() => {
@@ -192,7 +187,7 @@ export function MolduraConecta({
 
   const logo = logoComErro
     ? html`<strong class="c-moldura-logo-texto">Conecta</strong>`
-    : html`<img src=${logoUrl || '/estilos/marca/conecta_branco.svg'} alt="Conecta" onError=${() => setLogoComErro(true)} />`;
+    : html`<img src="/estilos/marca/conecta_branco.svg" alt="Conecta" onError=${() => setLogoComErro(true)} />`;
 
   return html`
     <header class="c-topo c-moldura-topo" data-tour-id="layout-sidebar" ref=${topoRef}>

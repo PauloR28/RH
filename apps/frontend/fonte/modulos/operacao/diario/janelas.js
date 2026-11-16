@@ -23,6 +23,37 @@ export function JanelaMotivo({ titulo, texto, rotulo = 'Motivo', salvarRotulo = 
   <//>`;
 }
 
+export function JanelaTipoDemanda({ existentes = [], onClose, onCriar }) {
+  const [nome, setNome] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const enviar = async (ev) => {
+    ev.preventDefault();
+    const n = nome.trim();
+    if (!n) { setErro('Escreva o nome do tipo.'); return; }
+    if (existentes.some((x) => x.toLowerCase() === n.toLowerCase())) { setErro('Já existe um tipo com esse nome.'); return; }
+    setSalvando(true); setErro('');
+    try { await onCriar(n); onClose(); } catch (e) { setErro(msg(e)); setSalvando(false); }
+  };
+  return html`<${JanelaForm} titulo="Novo tipo de demanda" tamanho="pequena" onClose=${onClose} onSubmit=${enviar} erro=${erro} salvando=${salvando} salvarRotulo="Criar tipo">
+    <p class="c-ajuda" style=${{ margin: 0 }}>O tipo entra agora nos turnos desta operação. Para mudar o nome ou desligar, peça a quem cuida dos Cadastros.</p>
+    <${Campo} rotulo="Nome" cheio=${true}><input class="c-entrada" autofocus maxLength="120" placeholder="Ex.: E-mail geral" value=${nome} onInput=${(e) => setNome(e.target.value)} /><//>
+  <//>`;
+}
+
+export function JanelaRemoverTipo({ nome, onClose, onRemover }) {
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const enviar = async (ev) => {
+    ev.preventDefault();
+    setSalvando(true); setErro('');
+    try { await onRemover(); onClose(); } catch (e) { setErro(msg(e)); setSalvando(false); }
+  };
+  return html`<${JanelaForm} titulo=${`Remover "${nome}"?`} tamanho="pequena" onClose=${onClose} onSubmit=${enviar} erro=${erro} salvando=${salvando} salvarRotulo="Remover">
+    <p class="c-ajuda" style=${{ margin: 0 }}>O tipo sai da lista dos próximos turnos. Os dias que já usaram continuam com os números no histórico. Quem cuida dos Cadastros pode religar.</p>
+  <//>`;
+}
+
 export function JanelaIntercorrencia({ operacao, data, item, ferramentas, onClose, onSalvar }) {
   const ativas = ferramentas.filter((f) => f.ativo || f.id_item === item?.id_ferramenta);
   const agora = new Date();

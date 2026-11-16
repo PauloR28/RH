@@ -6,12 +6,11 @@ import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../icone.js';
-import { assinarTemaOperacao, obterLogoOperacao } from '../../shared/tema-operacao.js';
 import { useModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
 import { telaEmAreaInativa } from '../../shared/areas.js';
 import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261112-modulo-unico2';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261112-modulo-unico2';
-import { MolduraConecta } from './moldura.js?v=20261108-admin';
+import { MolduraConecta } from './moldura.js?v=20261116-logo';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -428,8 +427,6 @@ export function BarraLateral({
   // vertical na barra lateral, mas não numa barra de menus horizontal.
   const [grupoAberto, setGrupoAberto] = useState(null);
   const [logoComErro, setLogoComErro] = useState(false);
-  const [logoOperacao, setLogoOperacao] = useState(() => obterLogoOperacao());
-  useEffect(() => assinarTemaOperacao((tema) => { setLogoOperacao(tema.logoUrl || ''); setLogoComErro(false); }), []);
   const referenciaNav = useRef(null);
 
   useEffect(() => {
@@ -523,7 +520,6 @@ export function BarraLateral({
         secoes=${secoesTec}
         configuracoes=${null}
         secaoAtual=${secaoAtivaTec && secaoAtivaTec.abas.length ? { ...secaoAtivaTec, telaAtual: navAtiva } : null}
-        logoUrl=${logoOperacao}
         irPara=${irParaTec}
         irParaInicio=${() => irParaTec(inicioTec?.tela || telaInicialDoModulo(MODULO_TECNOLOGIA, controlador.podeAcessarTela))}
         sair=${() => controlador.sair()}
@@ -607,7 +603,6 @@ export function BarraLateral({
         secoes=${secoesMoldura}
         configuracoes=${secaoConfiguracoes}
         secaoAtual=${secaoAtiva ? { ...secaoAtiva, telaAtual: navAtiva } : null}
-        logoUrl=${logoOperacao}
         irPara=${irPara}
         irParaInicio=${() => controlador.irParaMenu()}
         sair=${() => controlador.sair()}
@@ -643,7 +638,7 @@ export function BarraLateral({
                 <img
                   alt="Conecta Central 24h"
                   class="rh-modern-logo"
-                  src=${logoOperacao || '/estilos/logo_conecta_horizontal.png'}
+                  src="/estilos/marca/conecta_colorido.svg"
                   onError=${() => setLogoComErro(true)}
                 />
               `}

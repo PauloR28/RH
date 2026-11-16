@@ -7,7 +7,7 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261112-acessos';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261116-logo';
 import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
 import { moduloParaAbrir } from '../modulos/registro.js?v=20261112-modulo-unico2';
 import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-modulo-unico2';
@@ -110,16 +110,16 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261112-acessos2'),
+  () => import('../features/configuracoes/index.js?v=20261116-relatorios2'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-modulo-unico2');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261111-escalados'), 'TelaRelatoriosHub');
+const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261116-diario'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261112-modulo-unico2'), 'TelaEquipesControle');
-const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261108-diario'), 'TelaDiario');
+const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261116-diario'), 'TelaDiario');
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261115-painel-v6b'), 'TelaPainel');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261112-modulo-unico2'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');

@@ -45,7 +45,7 @@ const ROTULO_CHAVE = {
   'equipes.controle.visualizar': 'Ver a própria equipe', 'equipes.membros.editar': 'Adicionar e remover pessoas', 'equipes.mural.publicar': 'Publicar no Mural',
   'relhub.wfm.historico': 'Histórico de alterações', 'relhub.monitoria.historico': 'Histórico de monitorias', 'relhub.wfm.resumo': 'Resumo por operador', 'relhub.wfm.aprovacoes': 'Aprovações de escala', 'relhub.wfm.presencas': 'Presenças',
   'relhub.wfm.painel': 'Painel', 'relhub.wfm.escalas': 'Escalas', 'relhub.wfm.escalados': 'Escalados', 'relhub.wfm.trocas': 'Trocas', 'relhub.monitoria.qualidade': 'Qualidade', 'relhub.monitoria.planos': 'Planos de ação', 'relhub.monitoria.dashboard': 'Dashboard',
-  'relhub.monitoria.logs': 'Logs', 'relhub.rh.processos': 'Processos', 'relhub.rh.candidatos': 'Candidatos', 'relhub.rh.ranking': 'Ranking', 'relhub.rh.funil': 'Funil', 'relhub.rh.exames': 'Exames e provas', 'relhub.sistema.logs': 'Logs do sistema',
+  'relhub.monitoria.logs': 'Logs', 'relhub.diario.dias': 'Resumo por dia', 'relhub.diario.demandas': 'Demandas por tipo', 'relhub.diario.intercorrencias': 'Intercorrências', 'relhub.diario.alteracoes': 'Histórico de alterações', 'relhub.rh.processos': 'Processos', 'relhub.rh.candidatos': 'Candidatos', 'relhub.rh.ranking': 'Ranking', 'relhub.rh.funil': 'Funil', 'relhub.rh.exames': 'Exames e provas', 'relhub.sistema.logs': 'Logs do sistema',
   'relatorios.visualizar': 'Ver (antigo)', 'relatorios.exportar': 'Exportar (antigo)', 'documentos_templates.visualizar': 'Ver e gerar', 'operacoes.editar': 'Cadastrar e inativar', 'etapas.configurar': 'Configurar etapas', 'trilhas.configurar': 'Configurar trilhas',
 };
 
@@ -62,7 +62,7 @@ function moduloDe(chave, modulo) {
   if (modulo === 'Geral') return 'Início';
   if (a === 'wfm') return { escala: 'Escala', tipos_escala: 'Escala', presenca: 'Presença e cadastros', cadastros: 'Presença e cadastros', contratos: 'Presença e cadastros', troca: 'Trocas', relatorios: 'Relatórios e auditoria', auditoria: 'Relatórios e auditoria' }[b] || 'Outras';
   if (a === 'monitoria') return { visualizar: 'Monitorias', criar: 'Monitorias', feedback_aplicar: 'Monitorias', contestar: 'Monitorias', reanalisar: 'Monitorias', plano_acao: 'Planos de ação', plano_acao_visualizar: 'Planos de ação', dashboard: 'Análise', relatorios: 'Análise', exportar: 'Análise', logs: 'Análise' }[b] || 'Configuração';
-  if (a === 'relhub') return { wfm: 'Turnos e Plantões', monitoria: 'Monitoria', rh: 'RH', sistema: 'Sistema' }[b] || 'Outros';
+  if (a === 'relhub') return { wfm: 'Turnos e Plantões', monitoria: 'Monitoria', diario: 'Diário de bordo', rh: 'RH', sistema: 'Sistema' }[b] || 'Outros';
   if (a === 'relatorios') return 'Relatórios antigos';
   if (modulo === 'Templates de Documentos') return 'Templates';
   return modulo;
@@ -83,6 +83,18 @@ function montarEstrutura(permissoes) {
   });
   return areas.map((area) => ({ ...area, mods: [...area.mods].map(([nome, itens]) => ({ id: `${area.id}:${nome}`, nome, itens })) }));
 }
+
+// Relatórios de RH e de Sistema só aparecem para o perfil que já tem acesso àquela área (lista 16/11: o Supervisor via
+// "RH" em Relatórios e achava que era informação cruzada). Quem precisar liberar assim mesmo acha a chave pela busca.
+const BASE_RELATORIO = {
+  'relatorios:RH': ['sessao.curriculos.acessar', 'sessao.processos.acessar', 'sessao.provas.acessar', 'relatorios.visualizar', 'relatorios.exportar', 'candidatos.consultar_historico'],
+  'relatorios:Relatórios antigos': ['sessao.curriculos.acessar', 'sessao.processos.acessar', 'sessao.provas.acessar', 'relatorios.visualizar', 'relatorios.exportar'],
+  'relatorios:Sistema': ['logs.visualizar', 'sessao.configuracoes.acessar'],
+};
+const moduloVisivel = (m, ativas) => {
+  const base = BASE_RELATORIO[m.id];
+  return !base || base.some((c) => ativas.has(c)) || m.itens.some((p) => ativas.has(p.chave));
+};
 
 export function PerfisPermissoes({
   perfis, permissoes, ordemModulos, nomesModulos,
@@ -105,7 +117,10 @@ export function PerfisPermissoes({
   const originais = useMemo(() => new Set(perfil?.permissoes || []), [perfil?.id, (perfil?.permissoes || []).join('|')]);
   const outro = perfis.find((p) => p.id === comparaCom) || null;
   const doOutro = useMemo(() => new Set(outro?.permissoes || []), [outro?.id]);
-  const estrutura = useMemo(() => montarEstrutura(permissoes), [permissoes]);
+  const estrutura = useMemo(() => montarEstrutura(permissoes).map((a) => {
+    const mods = a.mods.filter((m) => moduloVisivel(m, ativas));
+    return { ...a, mods, itens: mods.flatMap((m) => m.itens) };
+  }), [permissoes, ativas]);
   const porChave = useMemo(() => new Map(permissoes.map((p) => [p.chave, p])), [permissoes]);
   const contar = (itens) => itens.filter((p) => ativas.has(p.chave)).length;
   const totalAtivas = permissoes.filter((p) => ativas.has(p.chave)).length;
@@ -199,7 +214,7 @@ export function PerfisPermissoes({
                       ? html`<div class="c-pv-grade">${resultados.map((p) => {
                           const a = estrutura.find((ar) => ar.itens.includes(p));
                           const m = a?.mods.find((mm) => mm.itens.includes(p));
-                          return item(p, `${m?.nome || ''} › `);
+                          return item(p, `${m?.nome || moduloDe(p.chave, p.modulo)} › `);
                         })}</div>`
                       : html`<p class="c-secundario">Nenhuma permissão com esse nome.</p>`}
                   </div>`

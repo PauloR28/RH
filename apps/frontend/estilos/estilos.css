@@ -2,7 +2,7 @@
 @import url('./tokens.css?v=20261106-redesign');
 @import url('./base.css?v=20261015-fluido');
 @import url('./layout.css?v=20261026-ajustes');
-@import url('./screens.css?v=20261026-ajustes');
+@import url('./screens.css?v=20261116-logo');
 @import url('./process-details.css?v=20260914-design-system');
 @import url('./exam-steps.css?v=20260906-central-treinamentos');
 @import url('./exam-analytics.css?v=20260906-central-treinamentos');
@@ -28,6 +28,6 @@
 @import url('./redesign-painel-dia.css?v=20261111-escala');
 @import url('./redesign-admin.css?v=20261111-zoom');
 @import url('./redesign-telas-antigas.css?v=20261111-espacos');
-@import url('./conecta-diario-bordo.css?v=20261111-zoom');
+@import url('./conecta-diario-bordo.css?v=20261116-diario');
 @import url('./painel.css?v=20261115-painel-v6b');
 @import url('./print.css');

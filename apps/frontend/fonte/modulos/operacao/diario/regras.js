@@ -41,6 +41,13 @@ export function avisosDoTurno(linhas) {
   return avisos;
 }
 
+// NS consolidado = média simples dos canais (Digital e Voz). Só aparece quando TODOS os canais estão preenchidos.
+export function nsConsolidado(valores) {
+  const v = (valores || []).map((x) => (x === '' ? null : x));
+  if (v.length < 2 || v.some((x) => x === null || x === undefined || !Number.isFinite(Number(x)))) return null;
+  return Math.round((v.reduce((s, x) => s + Number(x), 0) / v.length) * 100) / 100;
+}
+
 // Consolidado do dia com os valores que estão na tela (mesma regra do servidor).
 export function consolidar(turnos, idsDemanda, idsNs) {
   const linhas = idsDemanda.map((id) => {
@@ -63,6 +70,7 @@ export function consolidar(turnos, idsDemanda, idsNs) {
     demandas: linhas,
     totais: { inicio: somaOuVazio(linhas.map((l) => l.inicio)), tratadas: somaOuVazio(linhas.map((l) => l.tratadas)), pendente: somaOuVazio(linhas.map((l) => l.pendente)) },
     ns,
+    ns_consolidado: nsConsolidado(ns.map((n) => n.valor)),
   };
 }
 

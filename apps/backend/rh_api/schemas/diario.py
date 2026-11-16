@@ -81,6 +81,11 @@ class DiarioCadastroRequest(BaseSchema):
     ordem: int | None = None
 
 
+class DiarioTipoDemandaRequest(BaseSchema):
+    operacao: str
+    nome: str
+
+
 class DiarioImportarRequest(BaseSchema):
     operacao: str
     arquivos: list[Any] = Field(default_factory=list)

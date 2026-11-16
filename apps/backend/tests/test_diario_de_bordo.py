@@ -221,3 +221,26 @@ def test_permissoes_iniciais_do_diario():
     assert "diario.administrar" in adm
     for ti in ("tecnico_junior", "tecnico_pleno", "tecnico_senior", "analista_ti"):
         assert not {p for p in get_role_permissions(ti) if p.startswith(("diario.", "sessao.diario."))}, ti  # TI mantém o sistema sem ver o conteúdo
+
+
+# ------------------------------------------------------------------ 16/nov/2026: NS consolidado e tipos de demanda (V073)
+def test_ns_consolidado_e_a_media_e_so_existe_com_todos_os_canais():
+    assert r.ns_consolidado([100, 30]) == 65.0
+    assert r.ns_consolidado([92.4, 88.1]) == 90.25
+    assert r.ns_consolidado([100, None]) is None
+    assert r.ns_consolidado([95]) is None
+    dia = r.consolidar_dia({"abertura": {"demandas": {}, "ns": {1: 90, 2: 80}}, "fechamento": {"demandas": {}, "ns": {1: 70}}}, [], [1, 2])
+    assert dia["ns_consolidado"] == 75.0  # último preenchido de cada canal: 70 e 80
+
+
+def test_migration_v073_gerada_do_codigo_aditiva_e_v068_congelada():
+    from rh_api.repositories.diario_schema import render_migration_sql_v073, render_rollback_sql_v073, schema_statements_v073
+
+    sql = render_migration_sql_v073()
+    assert (MIGRATIONS / "V073__diario_tipos_demanda.sql").read_text(encoding="utf-8") == sql
+    assert (MIGRATIONS / "V073__diario_tipos_demanda.rollback.sql").read_text(encoding="utf-8") == render_rollback_sql_v073()
+    assert all(ord(c) < 128 for c in sql)
+    assert "DROP " not in sql.upper() and "DELETE " not in sql.upper()
+    assert all(s.lstrip().startswith("IF ") for s in schema_statements_v073())
+    assert "diario.demandas.criar" in sql and "'supervisor', 'diario.demandas.criar'" in sql
+    assert "diario.demandas.criar" not in render_migration_sql()

@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js';
 import { baixarArquivo } from '../monitoria/comum.js';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261111-escalados';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261116-diario';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -25,7 +25,8 @@ const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
       : id.startsWith('monitoria.') ? 'monitoria.exportar'
         : id === 'rh.exames' ? 'candidatos.consultar_historico'
           : id.startsWith('rh.') ? 'relatorios.exportar'
-            : 'logs.exportar');
+            : id.startsWith('diario.') ? 'diario.exportar'
+              : 'logs.exportar');
 // Relatórios com gráficos que têm tela própria na seção (abre lá; sem acesso à seção, fica embutido aqui).
 const DESTINO_SECAO = { 'wfm.painel': 'screen-wfm-painel', 'monitoria.dashboard': 'screen-monitoria-dashboard' };
 
@@ -34,6 +35,9 @@ const DESTINO_SECAO = { 'wfm.painel': 'screen-wfm-painel', 'monitoria.dashboard'
 const COLUNAS_DESLIGADAS = {
   'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas', 'Trocas aprovadas'],
   'wfm.escalas': ['Aprovada por'],
+  'diario.dias': ['Situação', 'Início do dia', 'Encerramento', 'Envio ao grupo', 'Passagem', 'Abertura', 'Intermediário', 'Fechamento'],
+  'diario.intercorrencias': ['Registrado por'],
+  'diario.alteracoes': ['Dia do diário'],
   'wfm.presencas': ['Horas escaladas', 'Lançado por'],
   'wfm.trocas': ['Turno (solicitante)', 'Horário (solicitante)', 'Pausas (solicitante)', 'Turno (colega)', 'Horário (colega)', 'Pausas (colega)', 'Decidido por', 'Decidido em', 'Justificativa da decisão'],
   'monitoria.historico': ['Data do contato', 'Equipe', 'Operação', 'Contestação', 'Anulada', 'Confirmação'],

@@ -115,6 +115,14 @@ def turno_pela_hora(momento: datetime | time) -> str:
 
 
 # ------------------------------------------------------------------ dia
+def ns_consolidado(valores: Iterable[Any]) -> float | None:
+    """NS consolidado = média simples dos canais (Digital e Voz). Só existe quando TODOS os canais estão preenchidos."""
+    lista = list(valores)
+    if len(lista) < 2 or any(v is None for v in lista):
+        return None
+    return round(sum(float(v) for v in lista) / len(lista), 2)
+
+
 def consolidar_dia(turnos: Mapping[str, Mapping[str, Any]], ids_demanda: Iterable[int], ids_ns: Iterable[int]) -> dict:
     """Consolidado do dia (mesma regra do protótipo, com vazio != 0).
 
@@ -156,6 +164,7 @@ def consolidar_dia(turnos: Mapping[str, Mapping[str, Any]], ids_demanda: Iterabl
             "pendente": soma_ou_vazio(l["pendente"] for l in linhas),
         },
         "ns": ns,
+        "ns_consolidado": ns_consolidado(n["valor"] for n in ns),
     }
 
 
