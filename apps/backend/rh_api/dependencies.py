@@ -11,6 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .auth import AuthenticatedUser, validate_access_token
 from .config import get_settings
+from .modulos_catalogo import MODULO_OPERACAO, MODULO_RH, MODULO_TECNOLOGIA
 from .rbac import ACCESS_DENIED_MESSAGE, is_critical_permission
 from .repositories import DatabaseRepository
 from .services import acesso as acesso_modulos
@@ -58,6 +59,18 @@ def _refresh_monitoria_scope(user: AuthenticatedUser, request: Request | None) -
     return replace(user, operacoes=operacoes)
 
 
+CABECALHO_MODULO = "X-Conecta-Modulo"
+MODULOS_COM_UNIDADES = frozenset({MODULO_RH, MODULO_OPERACAO, MODULO_TECNOLOGIA})
+
+
+def _modulo_do_pedido(request: Request | None) -> str:
+    """Módulo que o navegador diz estar aberto. Valor desconhecido ou `core` = sem filtro."""
+    if request is None:
+        return ""
+    valor = str(request.headers.get(CABECALHO_MODULO) or "").strip().lower()
+    return valor if valor in MODULOS_COM_UNIDADES else ""
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     request: Request = None,
@@ -95,6 +108,10 @@ def get_current_user(
             logger.exception("Regra única de acesso falhou para o usuário %s; usando a regra de hoje.", user.id_usuario)
     if permissoes_efetivas != user.permissions:
         user = replace(user, permissions=permissoes_efetivas)
+    # Módulo aberto (Módulo › Unidade, decisão do Paulo 16/nov/2026): a pessoa só enxerga as unidades do módulo em que está.
+    modulo_aberto = _modulo_do_pedido(request)
+    if modulo_aberto != user.modulo_aberto:
+        user = replace(user, modulo_aberto=modulo_aberto)
     user_id_var.set(str(user.id_usuario or user.username))
     if request is not None:
         # Dependências síncronas rodam em outra thread: o contextvar não volta ao

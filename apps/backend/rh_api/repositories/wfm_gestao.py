@@ -46,7 +46,7 @@ class WfmGestaoRepositoryMixin:
         return [
             {"chave": normalize_text(r[0]), "nome": normalize_text(r[1])}
             for r in cursor.fetchall()
-            if wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, normalize_text(r[0]))
+            if wfm_scope.pode_ver(user, normalize_text(r[0]))
         ]
 
     # ------------------------------------------------------------------
@@ -226,7 +226,7 @@ class WfmGestaoRepositoryMixin:
         jornada padrão e turnos de trabalho da original. Não copia colaboradores nem lançamentos."""
         self._wfm_exigir_criar(user)
         operacao_destino = normalize_text(operacao_destino)
-        if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, operacao_destino):
+        if not wfm_scope.pode_ver(user, operacao_destino):
             raise _http(status.HTTP_403_FORBIDDEN, "A operação de destino está fora do seu escopo de acesso.")
         conn = self._connect()
         try:

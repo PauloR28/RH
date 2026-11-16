@@ -72,6 +72,9 @@ class AuthenticatedUser:
     # Vertente Monitoria: senha definida pelo criador do usuário; até trocá-la
     # no primeiro acesso, nenhuma rota (fora /auth/*) é liberada.
     deve_trocar_senha: bool = False
+    # Módulo aberto no navegador (cabeçalho X-Conecta-Modulo, 16/nov/2026). Vazio = pedido sem módulo (cliente antigo,
+    # rotina interna): nenhum filtro por módulo, como antes. Só filtra a LISTA de unidades; nunca concede nada.
+    modulo_aberto: str = ""
 
     def has_permission(self, permission: str) -> bool:
         return permission in self.permissions

@@ -6,7 +6,7 @@ import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261111-notif';
 import { IconeSvg } from '../icone.js';
-import { useModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
+import { useModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 import { telaEmAreaInativa } from '../../shared/areas.js';
 import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261112-modulo-unico2';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261116-inicio-operacao';

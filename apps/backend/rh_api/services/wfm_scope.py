@@ -58,6 +58,53 @@ def pode_ver_operacao(perfil: str, operacoes_usuario: Iterable[str], operacao: s
     return bool(operacao) and operacao_base(operacao) in permitidas
 
 
+# ---------------------------------------------------------------- módulo aberto (Módulo › Unidade, 16/nov/2026)
+# Decisão do Paulo: cada unidade pertence a UM módulo (V070) e só aparece no módulo dela. A escala do setor de TI
+# (módulo Tecnologia) não aparece na Operação para ninguém, nem Administrador nem Gestor, inclusive nos relatórios.
+# Só fecha: nunca abre uma unidade que o perfil não veria. Pedido sem módulo (cliente antigo) = como antes.
+
+
+def _modulos_das_unidades() -> dict[str, str]:
+    """Chave da unidade -> módulo dono (cache em memória da Central de Acessos). Falha = vazio (nenhum filtro)."""
+    try:
+        from . import acesso_cache
+
+        return {chave: u.modulo for chave, u in acesso_cache.foto().unidades.items()}
+    except Exception:  # noqa: BLE001 - sem cadastro de unidades, vale a regra de antes
+        return {}
+
+
+def unidade_no_modulo(operacao: str | None, modulo_aberto: str, donos: dict[str, str] | None = None) -> bool:
+    """A unidade (ou o tipo de escala dela, `TI::PLANTAO`) aparece no módulo aberto? Unidade sem dono conhecido: sim."""
+    if not modulo_aberto:
+        return True
+    donos = _modulos_das_unidades() if donos is None else donos
+    dono = donos.get(operacao_base(operacao)) or donos.get(operacao_base(operacao).upper())
+    return not dono or dono == modulo_aberto
+
+
+def operacoes_do_usuario(user, donos: dict[str, str] | None = None) -> frozenset[str] | None:
+    """`operacoes_permitidas` já cortada pelo módulo aberto. `None` = todas (só quando nenhum módulo corta nada)."""
+    permitidas = operacoes_permitidas(user.perfil, user.operacoes)
+    modulo = getattr(user, "modulo_aberto", "")
+    if not modulo:
+        return permitidas
+    donos = _modulos_das_unidades() if donos is None else donos
+    if permitidas is None:
+        fora = {chave for chave, dono in donos.items() if dono and dono != modulo}
+        if not fora:
+            return None
+        return frozenset(chave for chave in donos if chave not in fora)
+    return frozenset(op for op in permitidas if unidade_no_modulo(op, modulo, donos))
+
+
+def pode_ver(user, operacao: str | None, donos: dict[str, str] | None = None) -> bool:
+    """`pode_ver_operacao` + módulo aberto. Use nas rotas: recebe o usuário inteiro."""
+    return pode_ver_operacao(user.perfil, user.operacoes, operacao) and unidade_no_modulo(
+        operacao, getattr(user, "modulo_aberto", ""), donos
+    )
+
+
 def conflito_de_interesse(id_usuario: int | None, id_operador: int, perfil: str = "") -> bool:
     """O Analista de TI (gestor único do setor) aprova/edita a própria escala por decisão do RH."""
     if perfil == ROLE_ANALISTA_TI:

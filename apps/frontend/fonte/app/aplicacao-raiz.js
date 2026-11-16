@@ -8,7 +8,7 @@ import {
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
 import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261116-inicio-operacao';
-import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
+import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
 import { moduloParaAbrir } from '../modulos/registro.js?v=20261112-modulo-unico2';
 import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-modulo-unico2';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';

@@ -186,7 +186,7 @@ class WfmRepositoryMixin:
         operacao = normalize_text(operacao)
         if not operacao:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe a operação.")
-        if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, operacao):
+        if not wfm_scope.pode_ver(user, operacao):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta operação está fora do seu escopo de acesso.")
         if wfm_scope.eh_tipo_escala(operacao) or escala:
             cursor.execute("SELECT TOP 1 1 FROM dbo.wfm_operacao_config WHERE operacao = ? AND excluida = 1", (operacao,))
@@ -315,7 +315,7 @@ class WfmRepositoryMixin:
             excluidas = {chave for chave, exc in cfg_fora if exc}
         finally:
             conn.close()
-        permitidas = wfm_scope.operacoes_permitidas(user.perfil, user.operacoes)
+        permitidas = wfm_scope.operacoes_do_usuario(user)
         operacoes = []
         for o in todas:
             if permitidas is not None and o["chave"] not in permitidas:
@@ -333,7 +333,8 @@ class WfmRepositoryMixin:
             ]
         return {
             "perfil": user.perfil,
-            "global": permitidas is None,
+            "global": wfm_scope.operacoes_permitidas(user.perfil, user.operacoes) is None,
+            "modulo_aberto": user.modulo_aberto,
             "operacoes": operacoes,
             "id_usuario": user.id_usuario,
             "categorias_skill": list(CATEGORIAS_SKILL),
@@ -1343,7 +1344,7 @@ class WfmRepositoryMixin:
                 sql += " AND operacao = ?"
                 params.append(operacao)
             else:
-                permitidas = wfm_scope.operacoes_permitidas(user.perfil, user.operacoes)
+                permitidas = wfm_scope.operacoes_do_usuario(user)
                 if permitidas is not None:
                     if not permitidas:
                         return []
