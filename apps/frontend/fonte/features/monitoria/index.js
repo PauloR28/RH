@@ -1,6 +1,6 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261112-acessos';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261116-logo';
 import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261112-modulo-unico2';
 import { TelaInicioOperador } from './inicio-operador.js?v=20261112-modulo-unico2';
 import { useAtalhosOcultos } from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';

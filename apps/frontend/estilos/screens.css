@@ -1388,6 +1388,7 @@
   width: 63px;
   height: 56px;
   border-radius: 0px;
+  object-fit: contain;
 }
 
 .exam-screen-caption {

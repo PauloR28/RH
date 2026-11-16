@@ -214,7 +214,7 @@ export function TelaCandidaturaPublica() {
             <img
               alt="Central 24h"
               class="rh-public-application-logo"
-              src="/estilos/logo_conecta_padrao.png"
+              src="/estilos/marca/conecta_colorido_assinatura.svg"
             />
           </div>
         </header>
