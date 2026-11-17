@@ -1,0 +1,82 @@
+"""Alcance de cada perfil (reestruturação da configuração, Etapa 5 — 17/nov/2026).
+
+Antes, as regras perguntavam o NOME do perfil ("é Supervisor?", "é Operador?"). Agora perguntam o ALCANCE: até onde a
+pessoa enxerga e o que pode gerir. Assim um perfil novo (Etapa 9: perfis no banco) funciona só escolhendo o alcance,
+sem mexer no código.
+
+Níveis de alcance por área (WFM e Monitoria):
+  * ``todos``   vê todas as unidades (do módulo aberto).
+  * ``unidade`` vê tudo nas unidades a que está ligado.
+  * ``equipe``  vê só a própria equipe (operadores que supervisiona) nas suas unidades.
+  * ``proprio`` vê só a si mesmo.
+
+Os valores abaixo reproduzem EXATAMENTE as regras de antes (mesmos perfis, mesmos limites).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .rbac import (
+    ROLE_ADMIN,
+    ROLE_ANALISTA_TI,
+    ROLE_CONTROL_DESK,
+    ROLE_MANAGER,
+    ROLE_OPERATOR,
+    ROLE_QUALIDADE,
+    ROLE_SUPERVISOR,
+    ROLE_TEC_JUNIOR,
+    ROLE_TEC_PLENO,
+    ROLE_TEC_SENIOR,
+)
+
+TODOS = "todos"
+UNIDADE = "unidade"
+EQUIPE = "equipe"
+PROPRIO = "proprio"
+NIVEIS = (TODOS, UNIDADE, EQUIPE, PROPRIO)
+
+
+@dataclass(frozen=True)
+class Alcance:
+    wfm: str = UNIDADE
+    monitoria: str = UNIDADE
+    gere_escala: bool = False  # monta a escala de uma operação (antes: PERFIS_GESTAO)
+    aprova_propria_escala: bool = False  # gestor único do setor: aprova escala em que consta (antes: Analista de TI)
+    min_unidades: int = 0  # Monitoria: mínimo de operações ligadas
+    max_unidades: int | None = None  # Monitoria: máximo de operações ligadas (None = sem limite)
+    exige_supervisor: bool = False  # Monitoria: precisa de supervisor responsável (antes: Operador)
+    gerencia: frozenset[str] = frozenset()  # perfis que pode criar/alterar na Monitoria (§2.6)
+    rotulo: str = ""  # nome usado nas mensagens de vínculo
+
+
+_PADRAO = Alcance()
+_PARTICIPANTE = Alcance(wfm=PROPRIO)
+
+ALCANCES: dict[str, Alcance] = {
+    ROLE_ADMIN: Alcance(
+        wfm=TODOS, monitoria=TODOS,
+        gerencia=frozenset({ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
+    ),
+    ROLE_MANAGER: Alcance(wfm=TODOS, monitoria=TODOS, gere_escala=True),
+    ROLE_CONTROL_DESK: Alcance(monitoria=TODOS, gere_escala=True),
+    ROLE_SUPERVISOR: Alcance(
+        wfm=EQUIPE, monitoria=EQUIPE, gere_escala=True, min_unidades=1, max_unidades=3, rotulo="Supervisor",
+        gerencia=frozenset({ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
+    ),
+    ROLE_QUALIDADE: Alcance(min_unidades=1, max_unidades=2, rotulo="Qualidade", gerencia=frozenset({ROLE_OPERATOR})),
+    ROLE_OPERATOR: Alcance(wfm=PROPRIO, monitoria=PROPRIO, min_unidades=1, max_unidades=1, exige_supervisor=True, rotulo="Operador"),
+    ROLE_TEC_JUNIOR: _PARTICIPANTE,
+    ROLE_TEC_PLENO: _PARTICIPANTE,
+    ROLE_TEC_SENIOR: _PARTICIPANTE,
+    ROLE_ANALISTA_TI: Alcance(gere_escala=True, aprova_propria_escala=True),
+}
+
+
+def alcance(perfil: str | None) -> Alcance:
+    return ALCANCES.get(str(perfil or ""), _PADRAO)
+
+
+def perfis_com(**filtro) -> frozenset[str]:
+    """Perfis cujo alcance bate com o filtro. Ex.: perfis_com(wfm=TODOS)."""
+    return frozenset(p for p, a in ALCANCES.items() if all(getattr(a, k) == v for k, v in filtro.items()))

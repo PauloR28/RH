@@ -18,18 +18,11 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ..rbac import (
-    ROLE_ADMIN,
-    ROLE_ANALISTA_TI,
-    ROLE_CONTROL_DESK,
-    ROLE_MANAGER,
-    ROLE_SUPERVISOR,
-    WFM_PERFIS_PARTICIPANTES,
-)
+from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
 
-PERFIS_GLOBAIS = frozenset({ROLE_ADMIN, ROLE_MANAGER})
+PERFIS_GLOBAIS = perfis_com(wfm=TODOS)  # Etapa 5: vem do alcance (antes: Admin e Gestor por nome)
 # Perfis que gerem a escala de uma operação (Analista de TI = Gestor do setor de TI, limitado à operação TI).
-PERFIS_GESTAO = (ROLE_MANAGER, ROLE_CONTROL_DESK, ROLE_SUPERVISOR, ROLE_ANALISTA_TI)
+PERFIS_GESTAO = tuple(p for p in ALCANCES if alcance(p).gere_escala)
 SEPARADOR_TIPO = "::"
 # Operações cuja escala principal não existe: só há as escalas criadas (tipos). Ex.: setor de TI.
 OPERACOES_SO_TIPOS = frozenset({"TI"})
@@ -46,7 +39,7 @@ def eh_tipo_escala(operacao: str | None) -> bool:
 
 def operacoes_permitidas(perfil: str, operacoes_usuario: Iterable[str]) -> frozenset[str] | None:
     """`None` = todas as operações; conjunto (possivelmente vazio) = restrito."""
-    if perfil in PERFIS_GLOBAIS:
+    if alcance(perfil).wfm == TODOS:
         return None
     return frozenset(item for item in operacoes_usuario if item)
 
@@ -107,7 +100,7 @@ def pode_ver(user, operacao: str | None, donos: dict[str, str] | None = None) ->
 
 def conflito_de_interesse(id_usuario: int | None, id_operador: int, perfil: str = "") -> bool:
     """O Analista de TI (gestor único do setor) aprova/edita a própria escala por decisão do RH."""
-    if perfil == ROLE_ANALISTA_TI:
+    if alcance(perfil).aprova_propria_escala:
         return False
     return id_usuario is not None and id_usuario == id_operador
 
@@ -122,11 +115,11 @@ def pode_ver_escala_de(
     equipe_supervisor: Iterable[int] = (),
 ) -> bool:
     """Leitura da escala de UM operador."""
-    if perfil in WFM_PERFIS_PARTICIPANTES:
+    if alcance(perfil).wfm == PROPRIO:
         return id_usuario is not None and id_operador == id_usuario and pode_ver_operacao(perfil, operacoes_usuario, operacao)
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False
-    if perfil == ROLE_SUPERVISOR:
+    if alcance(perfil).wfm == EQUIPE:
         return id_operador == id_usuario or id_operador in set(equipe_supervisor)
     return True
 
@@ -141,20 +134,20 @@ def pode_editar_escala_de(
     equipe_supervisor: Iterable[int] = (),
 ) -> bool:
     """Edição da escala / lançamento de presença de UM operador (a chave wfm.* é conferida na rota)."""
-    if perfil in WFM_PERFIS_PARTICIPANTES:
+    if alcance(perfil).wfm == PROPRIO:
         return False
     if conflito_de_interesse(id_usuario, id_operador, perfil):
         return False
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False
-    if perfil == ROLE_SUPERVISOR:
+    if alcance(perfil).wfm == EQUIPE:
         return id_operador in set(equipe_supervisor)
     return True
 
 
 def _gere(perfil: str) -> bool:
     """Quem pode gerir algo do WFM, se tiver a chave: todos menos os participantes (Operador e Técnicos), que só veem a si."""
-    return perfil not in WFM_PERFIS_PARTICIPANTES
+    return alcance(perfil).wfm != PROPRIO
 
 
 def pode_editar_cadastros(perfil: str) -> bool:
@@ -185,15 +178,15 @@ def pode_aprovar_escala(
     repositório). Quem enviou PODE aprovar a escala que enviou (decisão do Paulo, 09/11/2026; o histórico guarda
     quem enviou e quem aprovou). Quem consta na escala como operador não aprova — exceto o Analista de TI, gestor
     único do setor. `id_enviou` fica na assinatura por compatibilidade."""
-    if perfil in WFM_PERFIS_PARTICIPANTES:
+    if alcance(perfil).wfm == PROPRIO:
         return False, "Seu perfil não aprova escalas."
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False, "Esta operação está fora do seu escopo de acesso."
     # Quem aprova é configurável por escala (perfis e/ou usuários); sem configuração vale Supervisor ou Gestor.
-    if aprovadores and (aprovadores.get("perfis") or aprovadores.get("usuarios")) and perfil != ROLE_ANALISTA_TI:
+    if aprovadores and (aprovadores.get("perfis") or aprovadores.get("usuarios")) and not alcance(perfil).aprova_propria_escala:
         if perfil not in set(aprovadores.get("perfis") or ()) and id_usuario not in set(aprovadores.get("usuarios") or ()):
             return False, "Você não está entre os aprovadores configurados para esta escala."
-    if perfil != ROLE_ANALISTA_TI:
+    if not alcance(perfil).aprova_propria_escala:
         if id_usuario is not None and id_usuario in set(ids_na_escala):
             return False, "Você consta nesta escala como operador e não pode aprová-la."
     return True, ""
@@ -212,13 +205,13 @@ def pode_decidir_troca(
     """Aprovar/reprovar/desfazer uma troca entre A e B. Nunca quem é parte da troca (conflito de
     interesse); decide quem tem a chave wfm.troca.aprovar; Supervisor só se A ou B for da sua equipe; Control
     Desk só nas operações vinculadas; Gestor/RH e Administrador em qualquer operação."""
-    if perfil in WFM_PERFIS_PARTICIPANTES:
+    if alcance(perfil).wfm == PROPRIO:
         return False
     if id_usuario is not None and id_usuario in (id_a, id_b):
         return False
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False
-    if perfil == ROLE_SUPERVISOR:
+    if alcance(perfil).wfm == EQUIPE:
         equipe = set(equipe_supervisor)
         return id_a in equipe or id_b in equipe
     return True
@@ -236,11 +229,11 @@ def pode_ver_troca(
 ) -> bool:
     """Leitura de uma troca (inclui o motivo de bloqueio/alerta): só os dois operadores e os gestores
     (Supervisor da equipe, Control Desk, Gestor/RH). Qualquer outro perfil não vê."""
-    if perfil in WFM_PERFIS_PARTICIPANTES:
+    if alcance(perfil).wfm == PROPRIO:
         return id_usuario in (id_a, id_b) and pode_ver_operacao(perfil, operacoes_usuario, operacao)
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False
-    if perfil == ROLE_SUPERVISOR:
+    if alcance(perfil).wfm == EQUIPE:
         equipe = set(equipe_supervisor)
         return id_a in equipe or id_b in equipe
     return True
