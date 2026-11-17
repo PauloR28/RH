@@ -200,6 +200,8 @@ export const PERMISSOES_TELAS = {
   'screen-settings-fit-cultural': 'fit_cultural.editar',
   'screen-settings-raciocinio-logico': 'provas.questoes_criar',
   'screen-settings-administracao': 'configuracoes.visualizar',
+  // Configurações do Conecta (Etapa 7): entra quem pode abrir ao menos uma seção.
+  'screen-settings-conecta': ['configuracoes.visualizar', 'logs.visualizar', 'notificacoes.configurar', 'lgpd.visualizar', 'documentos_templates.editar'],
   'screen-settings-sharepoint-ambiente': 'configuracoes.editar',
   'screen-provas-configuracao': 'configuracoes.visualizar',
   'screen-generated-exams': 'provas.visualizar',

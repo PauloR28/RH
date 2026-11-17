@@ -2,7 +2,7 @@ import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { formatarPontuacaoDetalhada } from '../../utilitarios.js';
 import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js';
 import { EmptyState } from './feedback.js';
-import { SectionCard } from './layout.js?v=20261117-acessos-unica';
+import { SectionCard } from './layout.js?v=20261117-config';
 import { IconeSvg } from '../icone.js';
 
 export function ModalPadrao({

@@ -5,7 +5,7 @@ import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { montarHashDaTela } from '../../rotas.js';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261117-acessos-unica';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261117-config';
 import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261112-modulo-unico2';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
@@ -30,8 +30,7 @@ const GRUPOS_ATALHOS = [
   {
     rotulo: 'SISTEMA',
     itens: [
-      { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
-      { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
+      { tela: 'screen-settings-conecta', icone: 'settings', titulo: 'Configurações do Conecta', texto: 'Integrações, catálogos, LGPD, ajuda, logs e notificações.' },
     ],
   },
   {

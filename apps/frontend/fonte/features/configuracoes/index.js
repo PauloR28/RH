@@ -30,7 +30,7 @@ import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261116-modulos';
 import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261116-modulos';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261117-acessos-unica';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261117-config';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -67,7 +67,7 @@ import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/co
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-modulos';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
-import { CentralAcessos } from './central-acessos.js?v=20261117-acessos-unica';
+import { CentralAcessos } from './central-acessos.js?v=20261117-config';
 import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
@@ -86,7 +86,7 @@ const ABAS = [
   { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
   { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
   { id: 'paineis', tela: 'screen-settings-paineis', label: 'Painéis', permissao: 'painel.configurar', icon: 'insights' },
-  { id: 'operacoes', tela: 'screen-settings-operations', label: 'Unidades', permissao: 'configuracoes.visualizar', icon: 'apartment' },
+  { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operação', permissao: 'configuracoes.visualizar', icon: 'apartment' },
   { id: 'notificacoes', tela: 'screen-settings-notifications', label: 'Notificações', permissao: 'notificacoes.configurar', icon: 'notifications_active' },
   { id: 'logs', tela: 'screen-settings-logs', label: 'Logs', permissao: 'logs.visualizar', icon: 'history_edu' },
   // Administração da Monitoria (função do Administrador): equipes/catálogos. Os logs da Monitoria

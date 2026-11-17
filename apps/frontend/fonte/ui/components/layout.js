@@ -8,9 +8,10 @@ import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notific
 import { IconeSvg } from '../icone.js';
 import { useModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261117-acessos-unica';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261117-config';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261116-inicio-operacao';
 import { MolduraConecta } from './moldura.js?v=20261116-logo';
+import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261117-config';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -475,8 +476,8 @@ export function BarraLateral({
     const ativaTec = (tela) => navAtiva === tela
       || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
       || (ehWfm(tela) && ehWfm(navAtiva));
-    const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
-    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-acessos', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const ROTULO_ADM = {};
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-acessos', 'screen-settings-operations', TELA_CONFIGURACOES_CONECTA];
     const soltas = [];
     const itensAdm = [];
     menuTec.forEach((entrada) => {
@@ -1579,12 +1580,18 @@ export function PainelRh({
     setSemIntro((atual) => (atual === !tem ? atual : !tem));
   });
 
+  // Configurações do Conecta (Etapa 7): no módulo Tecnologia, as telas que viraram seção abrem dentro da página única.
+  const estadoModulos = useModulos();
+  const emConfiguracoes = TELAS_CONFIGURACOES_CONECTA.has(screenId) && ehModuloTecnologia(estadoModulos);
+  const conteudo = emConfiguracoes
+    ? html`<${MolduraConfiguracoes} controlador=${controlador} telaAtual=${screenId}>${children}</${MolduraConfiguracoes}>`
+    : children;
   return html`
     <section class="active screen" id=${screenId}>
       <${BotaoVoltarGlobal} />
       <div class="rh-modern-shell">
         <${BarraLateral}
-          navAtiva=${navAtiva}
+          navAtiva=${emConfiguracoes ? TELA_CONFIGURACOES_CONECTA : navAtiva}
           subtituloMarca=${subtituloMarca}
           placeholderBusca=${placeholderBusca}
           controlador=${controlador}
@@ -1597,7 +1604,7 @@ export function PainelRh({
           <main class="rh-modern-page" ref=${paginaRef}>
             <${BuscaPaginaContext.Provider} value=${buscaPaginaContexto}>
               <${AcoesPaginaContext.Provider} value=${acaoPaginaContexto}>
-                ${children}
+                ${conteudo}
               </${AcoesPaginaContext.Provider}>
             </${BuscaPaginaContext.Provider}>
             ${false

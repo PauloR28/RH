@@ -52,6 +52,7 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-operations': MODULO_TECNOLOGIA,
   'screen-settings-logs': MODULO_TECNOLOGIA,
   'screen-settings-administracao': MODULO_TECNOLOGIA,
+  'screen-settings-conecta': MODULO_TECNOLOGIA,
 };
 
 // Operação interna da equipe de TI: a tela "Escalas e Plantões" emprestada do WFM é filtrada por ela em Tecnologia.
@@ -90,12 +91,8 @@ export const MENU_TECNOLOGIA = [
     icone: 'settings',
     itens: [
       { tela: 'screen-settings-paineis', label: 'Painéis', icone: 'chart-bar', permissao: 'painel.configurar' },
-      { tela: 'screen-settings-administracao', label: 'Parâmetros e integrações', icone: 'verified_user', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-etapas', label: 'Etapas do Processo', icone: 'checklist', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-motivos-eliminacao', label: 'Motivos de Eliminação', icone: 'person_remove', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-modelos-email', label: 'Modelos de E-mail', icone: 'mail', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-lgpd', label: 'LGPD e Retenção', icone: 'shield_lock', permissao: 'lgpd.visualizar' },
-      { tela: 'screen-settings-document-templates', label: 'Central de Ajuda', icone: 'help', permissao: 'documentos_templates.editar' },
+      // Configurações do Conecta (Etapa 7): Integrações, Catálogos, LGPD, Central de Ajuda, Logs e Notificações numa página só.
+      { tela: 'screen-settings-conecta', label: 'Configurações', icone: 'gear-six', permissao: '' },
     ],
   },
   {
@@ -104,7 +101,6 @@ export const MENU_TECNOLOGIA = [
     label: 'Auditoria',
     icone: 'history_edu',
     itens: [
-      { tela: 'screen-settings-logs', label: 'Logs', icone: 'history_edu', permissao: 'logs.visualizar' },
       { tela: 'screen-wfm-auditoria', label: 'Auditoria de Plantões', icone: 'history', permissao: 'wfm.auditoria' },
     ],
   },

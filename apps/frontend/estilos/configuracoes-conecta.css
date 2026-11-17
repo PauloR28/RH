@@ -1,0 +1,11 @@
+/* Configurações do Conecta (Etapa 7, amostra aprovada 17/nov/2026). Só tokens; reaproveita o molde .c-acessos. */
+.c-cfg-topo { margin-bottom: var(--espaco-4); }
+.c-cfg-topo h1 { margin: 0 0 var(--espaco-2); font-size: var(--texto-titulo-pagina-tamanho, 1.5rem); font-weight: var(--fonte-peso-semi); }
+.c-cfg-topo p { margin: 0; color: var(--cor-texto-secundario); }
+.c-cfg-secao { justify-content: flex-start; color: inherit; text-decoration: none; }
+.c-cfg-secao[aria-current='page'] { background: var(--cor-fundo-selecionado); border-color: var(--cor-borda-padrao); }
+.c-cfg-conteudo { min-width: 0; display: grid; gap: var(--espaco-4); }
+.c-cfg-abas { display: flex; flex-wrap: wrap; gap: var(--espaco-2); }
+/* Campos com fundo de destaque (pedido do Paulo: nada "chapado"). */
+.c-cfg-bloco { background: var(--cor-fundo-sutil); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio, 8px); padding: var(--espaco-4); display: grid; gap: var(--espaco-4); }
+.c-cfg-bloco .c-entrada { background: var(--cor-fundo-painel); }
