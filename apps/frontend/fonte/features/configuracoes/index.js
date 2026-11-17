@@ -30,7 +30,7 @@ import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261116-modulos';
 import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261116-modulos';
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261112-modulo-unico2';
+import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261117-acessos-unica';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
@@ -67,7 +67,7 @@ import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/co
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-modulos';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
-import { CentralAcessos } from './central-acessos.js?v=20261112-acessos2';
+import { CentralAcessos } from './central-acessos.js?v=20261117-acessos-unica';
 import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).

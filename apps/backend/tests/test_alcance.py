@@ -34,3 +34,32 @@ def test_cada_flag_troca_exatamente_o_perfil_de_antes():
     assert al.perfis_com(total=True) == {r.ROLE_ADMIN}
     assert al.perfis_com(avalia_monitoria=True) == {r.ROLE_QUALIDADE}
     assert al.perfis_com(chamados=al.TODOS) == {r.ROLE_ADMIN, r.ROLE_MANAGER}
+
+
+def test_alcance_gravado_vence_o_padrao_do_codigo():
+    al.definir_carregador(lambda: {(r.ROLE_QUALIDADE, "wfm"): al.EQUIPE})
+    try:
+        assert al.alcance(r.ROLE_QUALIDADE).wfm == al.EQUIPE
+        assert al.alcance(r.ROLE_QUALIDADE).monitoria == al.UNIDADE
+        assert al.alcance_padrao(r.ROLE_QUALIDADE).wfm == al.UNIDADE
+    finally:
+        al.definir_carregador(None)
+
+
+def test_migration_v074_coincide_com_o_schema():
+    from pathlib import Path
+
+    from rh_api.repositories import alcance_schema as s
+    pasta = Path(__file__).resolve().parents[3] / "infra/sql/migrations"
+    assert (pasta / "V074__perfis_alcance.sql").read_text(encoding="utf-8") == s.render_migration_sql()
+    assert (pasta / "V074__perfis_alcance.rollback.sql").read_text(encoding="utf-8") == s.render_rollback_sql()
+
+
+def test_tela_acessos_mostra_alcance_e_base():
+    from rh_api import acesso_catalogo as cat
+    from rh_api.services import central_acessos as ca
+    perfis = [{"id": r.ROLE_SUPERVISOR}, {"id": r.ROLE_OPERATOR}]
+    a = ca._alcance_da_funcao(cat.POR_ID["wfm"], perfis)
+    assert a["area"] == "wfm" and a["valores"] == {r.ROLE_SUPERVISOR: al.EQUIPE, r.ROLE_OPERATOR: al.PROPRIO}
+    assert ca._alcance_da_funcao(cat.POR_ID["mural"], perfis) is None
+    assert ca._sempre_ligada(cat.POR_ID["logs"], "tecnologia") and not ca._sempre_ligada(cat.POR_ID["mural"], "tecnologia")

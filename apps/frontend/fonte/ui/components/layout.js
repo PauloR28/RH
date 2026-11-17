@@ -8,7 +8,7 @@ import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notific
 import { IconeSvg } from '../icone.js';
 import { useModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261112-modulo-unico2';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261117-acessos-unica';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261116-inicio-operacao';
 import { MolduraConecta } from './moldura.js?v=20261116-logo';
 
@@ -238,12 +238,6 @@ export function BarraLateral({
       permissao: 'usuarios.visualizar',
     },
     {
-      tela: 'screen-settings-profiles',
-      icone: 'admin_panel_settings',
-      label: 'Perfis e permissões',
-      permissao: 'configuracoes.visualizar',
-    },
-    {
       tela: 'screen-settings-acessos',
       icone: 'lock',
       label: 'Acessos',
@@ -258,7 +252,7 @@ export function BarraLateral({
     {
       tela: 'screen-settings-operations',
       icone: 'apartment',
-      label: 'Unidades',
+      label: 'Operação',
       permissao: 'configuracoes.visualizar',
     },
     {
@@ -482,7 +476,7 @@ export function BarraLateral({
       || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
       || (ehWfm(tela) && ehWfm(navAtiva));
     const ROTULO_ADM = { 'screen-settings-logs': 'Registro de alterações', 'screen-settings-administracao': 'Parâmetros' };
-    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-profiles', 'screen-settings-acessos', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-acessos', 'screen-settings-operations', 'screen-settings-logs', 'screen-settings-administracao'];
     const soltas = [];
     const itensAdm = [];
     menuTec.forEach((entrada) => {

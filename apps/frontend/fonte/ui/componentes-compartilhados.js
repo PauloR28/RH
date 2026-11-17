@@ -12,7 +12,7 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261116-logo';
+} from './components/layout.js?v=20261117-acessos-unica';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,

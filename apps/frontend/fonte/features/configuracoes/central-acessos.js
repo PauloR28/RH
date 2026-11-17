@@ -17,6 +17,9 @@ function listaModulos() {
 
 const chavePerm = (funcao, chave, perfil) => `p|${funcao}|${chave}|${perfil}`;
 const chaveFunc = (funcao) => `f|${funcao}`;
+const chaveAlc = (area, perfil) => `a|${area}|${perfil}`;
+// Alcance (Etapa 6 da reestruturação, 17/nov/2026): 1ª linha da tabela, até onde cada perfil enxerga nesta função.
+const NIVEIS_ALCANCE = [['todos', 'Todos'], ['unidade', 'Unidade'], ['equipe', 'Equipe'], ['proprio', 'Próprio']];
 
 export function CentralAcessos({ controlador }) {
   const podeEditar = Boolean(controlador?.possuiPermissao?.('configuracoes.editar'));
@@ -97,6 +100,7 @@ export function CentralAcessos({ controlador }) {
   const salvar = async () => {
     const mudancas = Object.entries(rascunho).map(([k, v]) => {
       const partes = k.split('|');
+      if (partes[0] === 'a') return { tipo: 'alcance', area: partes[1], perfil: partes[2], nivel: v };
       return partes[0] === 'f' ? { tipo: 'funcao', funcao: partes[1], ligada: v } : { tipo: 'perm', chave: partes[2], perfil: partes[3], valor: v };
     });
     setSalvando(true); setErro('');
@@ -231,7 +235,15 @@ export function CentralAcessos({ controlador }) {
                 ${aberta ? html`<div class="c-acessos-funcao-corpo">
                   ${f.acoes.length ? html`<div class="c-tabela-caixa c-acessos-tabela"><table class="c-tabela c-tabela--compacta">
                     <thead><tr><th scope="col">Ação</th>${perfis.map((p) => html`<th key=${p.id} scope="col">${p.nome}</th>`)}</tr></thead>
-                    <tbody>${f.acoes.map((a) => html`<tr key=${a.chave}><th scope="row" title=${a.chave}>${a.nome}</th>
+                    <tbody>${f.alcance ? html`<tr class="c-acessos-alcance"><th scope="row">Alcance <small>(o que enxerga)</small></th>
+                      ${perfis.map((p) => {
+    const k = chaveAlc(f.alcance.area, p.id);
+    const original = f.alcance.valores?.[p.id] || 'unidade';
+    const atual = rascunho[k] !== undefined ? rascunho[k] : original;
+    return html`<td key=${p.id}><select class=${`c-entrada c-entrada--compacta ${rascunho[k] !== undefined ? 'is-alterada' : ''}`.trim()} value=${atual}
+                          disabled=${!podeEditar || !on} aria-label=${`${f.nome}, alcance de ${p.nome}`} onChange=${(e) => alternar(k, e.target.value, original)}>
+                          ${NIVEIS_ALCANCE.map(([v, t]) => html`<option key=${v} value=${v}>${t}</option>`)}</select></td>`;
+  })}</tr>` : null}${f.acoes.map((a) => html`<tr key=${a.chave}><th scope="row" title=${a.chave}>${a.nome}</th>
                       ${perfis.map((p) => {
     const v = valor(f, a, p.id);
     const original = Boolean(a.valores?.[p.id]);

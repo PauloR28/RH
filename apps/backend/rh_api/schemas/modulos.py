@@ -51,12 +51,14 @@ class WfmParticipantesRequest(BaseSchema):
 class MudancaAcessoRequest(BaseSchema):
     """Central de Acessos (Etapa 6): uma célula (perm) ou a chave de uma função (funcao)."""
 
-    tipo: Literal["perm", "funcao"]
+    tipo: Literal["perm", "funcao", "alcance"]
     chave: str = Field(default="", max_length=120)
     perfil: str = Field(default="", max_length=60)
     valor: bool = False
     funcao: str = Field(default="", max_length=40)
     ligada: bool = True
+    area: str = Field(default="", max_length=20)  # alcance (Etapa 6, 17/nov/2026): wfm | monitoria | chamados
+    nivel: str = Field(default="", max_length=10)  # todos | unidade | equipe | proprio
 
 
 class LoteAcessosRequest(BaseSchema):

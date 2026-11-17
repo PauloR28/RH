@@ -5,7 +5,7 @@ import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { montarHashDaTela } from '../../rotas.js';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261112-modulo-unico2';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261117-acessos-unica';
 import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261112-modulo-unico2';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
@@ -23,14 +23,13 @@ const GRUPOS_ATALHOS = [
     rotulo: 'PESSOAS E ACESSO',
     itens: [
       { tela: 'screen-settings-users', icone: 'group', titulo: 'Usuários', texto: 'Criar, editar, bloquear e redefinir senha.' },
-      { tela: 'screen-settings-profiles', icone: 'admin_panel_settings', titulo: 'Perfis e permissões', texto: 'Permissões de todos os módulos.' },
-      { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operações', texto: 'Cadastro, tema, logo e vínculos.' },
+      { tela: 'screen-settings-acessos', icone: 'lock', titulo: 'Acessos', texto: 'Módulos, funções, alcance e permissões, num lugar só.' },
+      { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operação', texto: 'Cadastro, tema, logo e vínculos.' },
     ],
   },
   {
     rotulo: 'SISTEMA',
     itens: [
-      { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Funções de cada módulo e atribuição de acesso.' },
       { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
       { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
     ],
@@ -66,7 +65,7 @@ function Inicio({ controlador }) {
   const ativos = resumo?.modulos_ativos;
   const todosAtivos = ativos === total;
   const carregando = !resumo && !falhou;
-  const podeModulos = controlador.podeAcessarTela(TELA_MODULOS_TECNOLOGIA);
+  const podeModulos = controlador.podeAcessarTela('screen-settings-acessos');
   const podeUsuarios = controlador.podeAcessarTela('screen-settings-users');
 
   return html`
@@ -74,8 +73,8 @@ function Inicio({ controlador }) {
       <${CabecalhoConsole} titulo=${TITULOS['screen-tecnologia'][0]} subtitulo=${TITULOS['screen-tecnologia'][1]} />
       <div class="cx-resumos cx-resumos--duas">
         ${podeModulos ? html`<${CardResumoLink} icone="grid_view" tom="verde" rotulo="Módulos ativos" valor=${`${ativos} de ${total}`}
-          nota=${todosAtivos ? 'todos ativos' : `${total - ativos} desativado(s)`} notaTom=${todosAtivos ? 'sucesso' : 'atencao'} acao="Ver módulos"
-          href=${montarHashDaTela(TELA_MODULOS_TECNOLOGIA)} aoAbrir=${abrir(TELA_MODULOS_TECNOLOGIA)} carregando=${carregando} falhou=${falhou} />` : null}
+          nota=${todosAtivos ? 'todos ativos' : `${total - ativos} desativado(s)`} notaTom=${todosAtivos ? 'sucesso' : 'atencao'} acao="Ver acessos"
+          href=${montarHashDaTela('screen-settings-acessos')} aoAbrir=${abrir('screen-settings-acessos')} carregando=${carregando} falhou=${falhou} />` : null}
         ${podeUsuarios ? html`<${CardResumoLink} icone="group" tom="azul" rotulo="Usuários ativos" valor=${`${resumo?.usuarios_ativos}`}
           nota=${`${resumo?.usuarios_bloqueados} bloqueado(s)`} acao="Ver usuários"
           href=${montarHashDaTela('screen-settings-users')} aoAbrir=${abrir('screen-settings-users')} carregando=${carregando} falhou=${falhou} />` : null}

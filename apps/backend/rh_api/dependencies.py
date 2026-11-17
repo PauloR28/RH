@@ -37,9 +37,9 @@ def _refresh_monitoria_scope(user: AuthenticatedUser, request: Request | None) -
     caminho = request.url.path
     if caminho.startswith("/wfm"):
         # WFM: só Administrador e Gestor são globais; Control Desk e demais usam os vínculos ATUAIS.
-        from .services.wfm_scope import PERFIS_GLOBAIS as _globais_wfm
+        from .alcance import TODOS, alcance
 
-        if user.perfil in _globais_wfm:
+        if alcance(user.perfil).wfm == TODOS:
             return user
     elif not caminho.startswith("/monitoria") or escopo_global(user.perfil):
         return user

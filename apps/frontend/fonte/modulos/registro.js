@@ -79,9 +79,8 @@ export const MENU_TECNOLOGIA = [
     icone: 'manage_accounts',
     itens: [
       { tela: 'screen-settings-users', label: 'Usuários', icone: 'person', permissao: 'usuarios.visualizar' },
-      { tela: 'screen-settings-profiles', label: 'Perfis e permissões', icone: 'admin_panel_settings', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-acessos', label: 'Acessos', icone: 'lock', permissao: 'configuracoes.visualizar' },
-      { tela: 'screen-settings-operations', label: 'Unidades', icone: 'apartment', permissao: 'configuracoes.visualizar' },
+      { tela: 'screen-settings-operations', label: 'Operação', icone: 'apartment', permissao: 'configuracoes.visualizar' },
     ],
   },
   {
@@ -90,7 +89,6 @@ export const MENU_TECNOLOGIA = [
     label: 'Sistema',
     icone: 'settings',
     itens: [
-      { tela: TELA_MODULOS_TECNOLOGIA, label: 'Módulos', icone: 'grid_view', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-paineis', label: 'Painéis', icone: 'chart-bar', permissao: 'painel.configurar' },
       { tela: 'screen-settings-administracao', label: 'Parâmetros e integrações', icone: 'verified_user', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-etapas', label: 'Etapas do Processo', icone: 'checklist', permissao: 'configuracoes.visualizar' },

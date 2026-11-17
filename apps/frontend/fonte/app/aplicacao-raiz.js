@@ -7,10 +7,10 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261116-inicio-operacao';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261117-acessos-unica';
 import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
-import { moduloParaAbrir } from '../modulos/registro.js?v=20261112-modulo-unico2';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-modulo-unico2';
+import { moduloParaAbrir } from '../modulos/registro.js?v=20261117-acessos-unica';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261117-acessos-unica';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -123,7 +123,7 @@ const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.j
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261116-grade-larga'), 'TelaPainel');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261112-modulo-unico2'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261112-modulo-unico2'), 'TelaTecnologia');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261117-acessos-unica'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261109-telas-antigas'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
