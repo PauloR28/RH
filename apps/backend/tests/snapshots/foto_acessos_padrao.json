@@ -3,14 +3,27 @@
   "operacao": [
    "monitoria",
    "wfm",
-   "diario"
+   "diario",
+   "equipes",
+   "paineis"
   ],
   "rh": [
    "gestao",
-   "drive"
+   "drive",
+   "admissao",
+   "documentos",
+   "modelos_documentos",
+   "politicas"
   ],
   "tecnologia": [
-   "wfm"
+   "wfm",
+   "relatorios",
+   "mural",
+   "emails",
+   "lgpd",
+   "notificacoes",
+   "calendario",
+   "ajuda"
   ]
  },
  "modulos_ativos": [
@@ -135,9 +148,6 @@
      "politicas.editar",
      "politicas.visualizar"
     ],
-    "processos": [
-     "etapas.configurar"
-    ],
     "relatorios": [
      "relatorios.exportar",
      "relatorios.visualizar",
@@ -171,10 +181,6 @@
     ],
     "tela_inicial": [
      "inicio.visualizar"
-    ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar",
-     "trilhas.configurar"
     ],
     "unidades": [
      "operacoes.editar",
@@ -243,6 +249,7 @@
     "entrevistas.editar",
     "entrevistas.marcar_presenca",
     "entrevistas.visualizar",
+    "etapas.configurar",
     "fit_cultural.editar",
     "fit_cultural.visualizar",
     "processos.criar",
@@ -263,6 +270,8 @@
     "sessao.curriculos.acessar",
     "sessao.processos.acessar",
     "sessao.provas.acessar",
+    "sessao.treinamentos.acessar",
+    "trilhas.configurar",
     "vagas.cancelar",
     "vagas.criar",
     "vagas.editar",
@@ -274,7 +283,7 @@
     "vagas.visualizar"
    ],
    "perfil": "administrador",
-   "total_permissoes": 130
+   "total_permissoes": 127
   },
   "analista_ti": {
    "funcoes": {
@@ -345,9 +354,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.editar",
      "operacoes.visualizar"
@@ -399,10 +405,11 @@
    "perdidas_por_regra": [
     "chamados.atender",
     "chamados.atribuir",
-    "chamados.dashboard"
+    "chamados.dashboard",
+    "sessao.treinamentos.acessar"
    ],
    "perfil": "analista_ti",
-   "total_permissoes": 76
+   "total_permissoes": 75
   },
   "control_desk": {
    "funcoes": {
@@ -635,18 +642,17 @@
     ],
     "tela_inicial": [
      "inicio.visualizar"
-    ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
     ]
    },
    "modulo_padrao": "core",
    "modulos": [],
    "nome": "Funcionário",
    "origem": "codigo",
-   "perdidas_por_regra": [],
+   "perdidas_por_regra": [
+    "sessao.treinamentos.acessar"
+   ],
    "perfil": "funcionario",
-   "total_permissoes": 6
+   "total_permissoes": 5
   },
   "gestor": {
    "funcoes": {
@@ -729,9 +735,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.visualizar"
     ],
@@ -778,6 +781,7 @@
     "sessao.curriculos.acessar",
     "sessao.processos.acessar",
     "sessao.provas.acessar",
+    "sessao.treinamentos.acessar",
     "vagas.cancelar",
     "vagas.criar",
     "vagas.editar_limitado",
@@ -787,7 +791,7 @@
     "vagas.visualizar"
    ],
    "perfil": "gestor",
-   "total_permissoes": 67
+   "total_permissoes": 66
   },
   "operador": {
    "funcoes": {
@@ -808,9 +812,6 @@
     ],
     "tela_inicial": [
      "inicio.visualizar"
-    ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
     ]
    },
    "modulo_padrao": "operacao",
@@ -819,9 +820,11 @@
    ],
    "nome": "Operador",
    "origem": "codigo",
-   "perdidas_por_regra": [],
+   "perdidas_por_regra": [
+    "sessao.treinamentos.acessar"
+   ],
    "perfil": "operador",
-   "total_permissoes": 9
+   "total_permissoes": 8
   },
   "qualidade": {
    "funcoes": {
@@ -934,9 +937,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.visualizar"
     ]
@@ -978,10 +978,11 @@
     "sessao.curriculos.acessar",
     "sessao.processos.acessar",
     "sessao.provas.acessar",
+    "sessao.treinamentos.acessar",
     "vagas.visualizar"
    ],
    "perfil": "rh",
-   "total_permissoes": 40
+   "total_permissoes": 39
   },
   "supervisor": {
    "funcoes": {
@@ -1044,9 +1045,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.visualizar"
     ],
@@ -1079,10 +1077,11 @@
     "chamados.ver_operacao",
     "entrevistas.marcar_presenca",
     "entrevistas.visualizar",
-    "processos.visualizar"
+    "processos.visualizar",
+    "sessao.treinamentos.acessar"
    ],
    "perfil": "supervisor",
-   "total_permissoes": 59
+   "total_permissoes": 58
   },
   "tecnico_junior": {
    "funcoes": {
@@ -1145,9 +1144,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.editar",
      "operacoes.visualizar"
@@ -1176,10 +1172,11 @@
    "perdidas_por_regra": [
     "chamados.atender",
     "chamados.atribuir",
-    "chamados.dashboard"
+    "chamados.dashboard",
+    "sessao.treinamentos.acessar"
    ],
    "perfil": "tecnico_junior",
-   "total_permissoes": 48
+   "total_permissoes": 47
   },
   "tecnico_pleno": {
    "funcoes": {
@@ -1242,9 +1239,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.editar",
      "operacoes.visualizar"
@@ -1273,10 +1267,11 @@
    "perdidas_por_regra": [
     "chamados.atender",
     "chamados.atribuir",
-    "chamados.dashboard"
+    "chamados.dashboard",
+    "sessao.treinamentos.acessar"
    ],
    "perfil": "tecnico_pleno",
-   "total_permissoes": 48
+   "total_permissoes": 47
   },
   "tecnico_senior": {
    "funcoes": {
@@ -1339,9 +1334,6 @@
     "tela_inicial": [
      "inicio.visualizar"
     ],
-    "treinamentos": [
-     "sessao.treinamentos.acessar"
-    ],
     "unidades": [
      "operacoes.editar",
      "operacoes.visualizar"
@@ -1370,10 +1362,11 @@
    "perdidas_por_regra": [
     "chamados.atender",
     "chamados.atribuir",
-    "chamados.dashboard"
+    "chamados.dashboard",
+    "sessao.treinamentos.acessar"
    ],
    "perfil": "tecnico_senior",
-   "total_permissoes": 48
+   "total_permissoes": 47
   }
  },
  "regra_unica": true,

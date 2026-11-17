@@ -7,7 +7,7 @@ as linhas que faltam, nunca sobrescreve uma escolha já feita em Tecnologia. O p
 
 from __future__ import annotations
 
-from ..modulos_catalogo import FUNCOES_POR_MODULO, funcao_padrao_ativa
+from ..modulos_catalogo import _NOVAS_ETAPA4, FUNCOES_POR_MODULO, funcao_padrao_ativa
 
 _CREATE = (
     "IF OBJECT_ID('dbo.modulos_funcoes', 'U') IS NULL\n"
@@ -26,7 +26,9 @@ _CREATE = (
 
 # Funções que entraram depois da V062 (item 16, nov/2026): o bootstrap as semeia, mas a V062 já aplicada não muda.
 # Sem a linha no banco, o padrão do catálogo vale (ligadas), então nenhuma migration nova precisa semeá-las.
-_DEPOIS_DA_V062 = frozenset({("operacao", "diario"), ("operacao", "treinamentos")})
+_DEPOIS_DA_V062 = frozenset({("operacao", "diario"), ("operacao", "treinamentos")}) | frozenset(
+    (m, f) for m, fs in _NOVAS_ETAPA4.items() for f in fs
+)
 
 
 def schema_statements(*, so_v062: bool = False) -> list[str]:
