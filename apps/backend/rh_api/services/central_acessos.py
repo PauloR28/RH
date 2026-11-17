@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from ..acesso_catalogo import FUNCOES_CATALOGO, POR_ID, Funcao, permissoes_da_funcao
+from ..acesso_catalogo import FUNCOES_CATALOGO, FUNCOES_VISIVEIS, POR_ID, Funcao, permissoes_da_funcao
 from ..config import get_settings
 from ..db import get_connection
 from ..modulos_catalogo import FUNCOES_POR_MODULO, FUNCOES_POR_OPERACAO, MODULO_CORE, MODULO_TECNOLOGIA, MODULOS_VALIDOS
@@ -137,7 +137,7 @@ def matriz(modulo: str, escopo: str = "padrao") -> dict:
     else:
         exc = {}
     funcoes = []
-    for f in FUNCOES_CATALOGO:
+    for f in FUNCOES_VISIVEIS:
         ligada_modulo = no_modulo[f.id]
         ligada = ligada_modulo and (por_unidade.get((alvo, f.id), True) if tipo == "unidade" else True)
         acoes = []

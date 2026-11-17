@@ -177,24 +177,13 @@ def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
     return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())
 
 
-# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Só prefixos exclusivos de uma
-# função; permissão compartilhada (ex.: `candidatos.`) ou de núcleo fica sem função e a camada não fecha nada para ela.
-PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = {
-    "monitoria": ("monitoria.", "sessao.monitoria."),
-    "wfm": ("wfm.", "sessao.wfm."),
-    "diario": ("diario.", "sessao.diario."),
-    "treinamentos": ("trilhas.", "sessao.treinamentos."),
-    "suporte": ("chamados.",),
-    "processos": ("processos.", "vagas.", "entrevistas.", "sessao.processos."),
-    "provas": ("provas.", "fit_cultural.", "sessao.provas."),
-    "cx-curriculos": ("sessao.curriculos.",),
-    "gestao": ("sessao.gestao.",),
-    "drive": ("sessao.drive.",),
-}
+# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Desde 17/nov/2026 vem do
+# catálogo ÚNICO (`acesso_catalogo`): cada função do catálogo com `motor` empresta seus prefixos e chaves ao motor.
+# Permissão de função sem motor (ex.: `candidatos.`, Relatórios) fica sem função e a camada não fecha nada para ela.
+from .acesso_catalogo import motor_da_permissao, prefixos_do_motor  # noqa: E402
+
+PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = prefixos_do_motor()
 
 
 def funcao_da_permissao(chave: str) -> str | None:
-    for funcao, prefixos in PREFIXOS_DA_FUNCAO.items():
-        if any(chave.startswith(p) for p in prefixos):
-            return funcao
-    return None
+    return motor_da_permissao(chave)

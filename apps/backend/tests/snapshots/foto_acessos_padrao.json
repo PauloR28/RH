@@ -75,10 +75,7 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.configurar",
-     "painel.visualizar",
-     "sessao.gestao.acessar",
-     "sessao.painel.acessar"
+     "sessao.gestao.acessar"
     ],
     "lgpd": [
      "lgpd.anonimizar",
@@ -128,6 +125,11 @@
      "onedrive.upload",
      "onedrive.visualizar",
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.configurar",
+     "painel.visualizar",
+     "sessao.painel.acessar"
     ],
     "politicas": [
      "politicas.editar",
@@ -292,7 +294,6 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.configurar",
      "sessao.gestao.acessar"
     ],
     "lgpd": [
@@ -316,6 +317,9 @@
     ],
     "onedrive": [
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.configurar"
     ],
     "relatorios": [
      "relatorios.exportar",
@@ -669,9 +673,7 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.visualizar",
-     "sessao.gestao.acessar",
-     "sessao.painel.acessar"
+     "sessao.gestao.acessar"
     ],
     "lgpd": [
      "lgpd.visualizar"
@@ -693,6 +695,10 @@
     "onedrive": [
      "onedrive.visualizar",
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.visualizar",
+     "sessao.painel.acessar"
     ],
     "relatorios": [
      "relatorios.exportar",
@@ -1096,7 +1102,6 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.configurar",
      "sessao.gestao.acessar"
     ],
     "lgpd": [
@@ -1120,6 +1125,9 @@
     ],
     "onedrive": [
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.configurar"
     ],
     "relatorios": [
      "relatorios.exportar",
@@ -1191,7 +1199,6 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.configurar",
      "sessao.gestao.acessar"
     ],
     "lgpd": [
@@ -1215,6 +1222,9 @@
     ],
     "onedrive": [
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.configurar"
     ],
     "relatorios": [
      "relatorios.exportar",
@@ -1286,7 +1296,6 @@
     ],
     "indicadores": [
      "dashboard.visualizar",
-     "painel.configurar",
      "sessao.gestao.acessar"
     ],
     "lgpd": [
@@ -1310,6 +1319,9 @@
     ],
     "onedrive": [
      "sessao.drive.acessar"
+    ],
+    "paineis": [
+     "painel.configurar"
     ],
     "relatorios": [
      "relatorios.exportar",
