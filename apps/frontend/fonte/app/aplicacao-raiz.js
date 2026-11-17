@@ -7,11 +7,12 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261117-config';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261117-config2';
 import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
-import { moduloParaAbrir } from '../modulos/registro.js?v=20261117-config';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261117-config';
-import { TELA_CONFIGURACOES_CONECTA, primeiraTelaConfiguracoes } from '../features/configuracoes/configuracoes-conecta.js?v=20261117-config';
+import { moduloParaAbrir } from '../modulos/registro.js?v=20261117-config2';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261117-config2';
+import { TELA_CONFIGURACOES_CONECTA, primeiraTelaConfiguracoes } from '../features/configuracoes/configuracoes-conecta.js?v=20261117-config2';
+import { SessaoOciosa } from '../features/configuracoes/sessao-ociosa.js?v=20261117-config2';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -155,6 +156,9 @@ const TelaAdministracao = carregarTela(
 );
 const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
 const TelaLgpd = carregarTela(importarCatalogoDedicado, 'TelaLgpd');
+const importarSegurancaBackup = () => import('../features/configuracoes/seguranca-backup.js?v=20261117-config');
+const TelaSegurancaConecta = carregarTela(importarSegurancaBackup, 'TelaSegurancaConecta');
+const TelaBackupConecta = carregarTela(importarSegurancaBackup, 'TelaBackupConecta');
 const TelaMotivosEliminacao = carregarTela(importarCatalogoDedicado, 'TelaMotivosEliminacao');
 const TelaModelosEmail = carregarTela(importarCatalogoDedicado, 'TelaModelosEmail');
 const TelaEtapasProcesso = carregarTela(importarCatalogoDedicado, 'TelaEtapasProcesso');
@@ -506,6 +510,14 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     `;
   }
 
+  if (telaResolvida === 'screen-settings-seguranca') {
+    return html`<${TelaSegurancaConecta} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-backup') {
+    return html`<${TelaBackupConecta} controlador=${controlador} />`;
+  }
+
   if (telaResolvida === 'screen-settings-lgpd') {
     return html`<${TelaLgpd} controlador=${controlador} />`;
   }
@@ -665,6 +677,7 @@ export function Aplicacao() {
       </${Suspense}>
       <${TemaOperacao} controlador=${controlador} />
       <${TrocaSenhaObrigatoria} controlador=${controlador} />
+      <${SessaoOciosa} controlador=${controlador} />
     </${React.Fragment}>
   `;
 }

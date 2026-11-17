@@ -133,7 +133,9 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
 
 def _build_token(user: AuthenticatedUser) -> str:
     settings = get_settings()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.auth_token_ttl_minutes)
+    from .services.seguranca_config import sessao_maxima_minutos
+
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=sessao_maxima_minutos(settings.auth_token_ttl_minutes))
     token_payload = {
         **_build_user_payload(user),
         "exp": int(expires_at.timestamp()),

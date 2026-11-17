@@ -8,10 +8,10 @@ import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notific
 import { IconeSvg } from '../icone.js';
 import { useModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 import { telaEmAreaInativa } from '../../shared/areas.js';
-import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261117-config';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261117-config2';
 import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261116-inicio-operacao';
 import { MolduraConecta } from './moldura.js?v=20261116-logo';
-import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261117-config';
+import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261117-config2';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };

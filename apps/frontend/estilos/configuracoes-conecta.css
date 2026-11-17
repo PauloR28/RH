@@ -6,6 +6,20 @@
 .c-cfg-secao[aria-current='page'] { background: var(--cor-fundo-selecionado); border-color: var(--cor-borda-padrao); }
 .c-cfg-conteudo { min-width: 0; display: grid; gap: var(--espaco-4); }
 .c-cfg-abas { display: flex; flex-wrap: wrap; gap: var(--espaco-2); }
-/* Campos com fundo de destaque (pedido do Paulo: nada "chapado"). */
-.c-cfg-bloco { background: var(--cor-fundo-sutil); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio, 8px); padding: var(--espaco-4); display: grid; gap: var(--espaco-4); }
+/* Campos com fundo de destaque (pedido do Paulo: nada "chapado"); igual à amostra aprovada. */
+.c-cfg-bloco { display: grid; gap: var(--espaco-4); padding: var(--espaco-4); background: var(--cor-fundo-sutil); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio); }
+.c-cfg-bloco > h3 { margin: 0; display: flex; align-items: center; gap: var(--espaco-2); font-size: var(--texto-corpo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-padrao); }
+.c-cfg-bloco > h3 .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); color: var(--cor-texto-secundario); }
 .c-cfg-bloco .c-entrada { background: var(--cor-fundo-painel); }
+.c-cfg-bloco .c-campo { gap: var(--espaco-1); }
+.c-cfg-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espaco-4); }
+.c-cfg-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); padding: var(--espaco-3) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-pequeno); }
+.c-cfg-linha small { display: block; color: var(--cor-texto-secundario); font-size: var(--texto-rotulo-tamanho); }
+.c-cfg-numero { display: inline-flex; align-items: center; gap: var(--espaco-2); }
+.c-cfg-numero .c-entrada { width: 96px; text-align: right; }
+.c-cfg-bloco .c-selo--neutro { background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-cfg-cartao { display: grid; gap: var(--espaco-4); padding: var(--espaco-4); }
+.c-cfg-cartao > header h2 { margin: 0; font-size: var(--texto-titulo-secao-tamanho); font-weight: var(--fonte-peso-semi); }
+.c-cfg-cartao > header p { margin: var(--espaco-1) 0 0; color: var(--cor-texto-secundario); }
+.c-cfg-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); }
+@media (max-width: 599.98px) { .c-cfg-par { grid-template-columns: minmax(0, 1fr); } .c-cfg-linha { flex-wrap: wrap; } }

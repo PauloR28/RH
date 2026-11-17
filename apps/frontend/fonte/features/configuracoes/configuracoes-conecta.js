@@ -15,7 +15,9 @@ export const ABAS_CATALOGOS = [
 ];
 
 export const SECOES_CONFIGURACOES = [
+  { id: 'seguranca', label: 'Segurança', descricao: 'Senha, inatividade e sessão', icone: 'shield-check', telas: ['screen-settings-seguranca'] },
   { id: 'logs', label: 'Logs', descricao: 'Acesso, alterações, erros, APIs', icone: 'clock-counter-clockwise', telas: ['screen-settings-logs', 'screen-settings-monitoria-logs'] },
+  { id: 'backup', label: 'Backup', descricao: 'Situação, avisos e registro', icone: 'hard-drives', telas: ['screen-settings-backup'] },
   { id: 'notificacoes', label: 'Notificações', descricao: 'Tipos, som e navegador', icone: 'bell', telas: ['screen-settings-notifications'] },
   { id: 'integracoes', label: 'Integrações', descricao: 'Microsoft 365, SharePoint, e-mail', icone: 'link', telas: ['screen-settings-administracao', 'screen-settings-sharepoint-ambiente'] },
   { id: 'lgpd', label: 'LGPD', descricao: 'Políticas e retenção', icone: 'scales', telas: ['screen-settings-lgpd'] },

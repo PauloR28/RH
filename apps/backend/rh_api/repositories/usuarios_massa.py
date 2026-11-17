@@ -23,6 +23,7 @@ from ..alcance import alcance
 from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_DEFINITIONS, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
 from ..services.helpers import normalize_text
 from ..services.monitoria_scope import pode_gerenciar_perfil, pode_ver_operacao, validar_vinculos
+from ..services.seguranca_config import tamanho_minimo_senha
 
 MAX_LINHAS = 500
 MAX_BYTES = 2 * 1024 * 1024
@@ -252,8 +253,8 @@ class UsuariosMassaRepositoryMixin:
             return None, "Tipo de acesso deve ser Microsoft ou Local."
         senha = dados["senha"]
         if acesso == "local":
-            if len(senha) < 8:
-                return None, "Acesso Local exige senha inicial com pelo menos 8 caracteres."
+            if len(senha) < tamanho_minimo_senha():
+                return None, f"Acesso Local exige senha inicial com pelo menos {tamanho_minimo_senha()} caracteres."
         else:
             senha = ""
 

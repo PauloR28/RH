@@ -486,3 +486,64 @@ def salvar_modulos_perfil(id_perfil: str, payload: ModulosValoresRequest, reques
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": {m["chave"]: m["valor"] for m in resultado["modulos"]}},
                  justificativa=payload.justificativa, request=request)
     return resultado
+
+
+# ── Configurações do Conecta › Segurança e Backup (reestruturação, Etapa 7b — 17/nov/2026) ──
+@router.get("/seguranca", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_seguranca():
+    """Política global de senha, inatividade e sessão (as pessoais ficam no perfil de cada um)."""
+    from ..config import get_settings
+    from ..services import seguranca_config
+
+    dados = seguranca_config.ler()
+    return {**dados, "sessao_maxima_servidor": get_settings().auth_token_ttl_minutes, "campos": {
+        chave: {"padrao": v[0], "minimo": v[1], "maximo": v[2], "descricao": v[3]} for chave, v in seguranca_config.CAMPOS.items()
+    }}
+
+
+@router.put("/seguranca", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def put_seguranca(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    from ..services import seguranca_config
+
+    anterior = seguranca_config.ler()
+    validos = {k: v for k, v in (payload or {}).items() if k in seguranca_config.CAMPOS or k in seguranca_config.LIGADOS}
+    conn = repository._connect()
+    try:
+        novos = seguranca_config.salvar(conn.cursor(), validos, ator=user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(
+        repository, user, modulo="Configurações", acao="configurar_seguranca", entidade="seguranca", entidade_id="global",
+        valor_anterior=anterior, valor_novo=novos,
+    )
+    return novos
+
+
+@router.get("/seguranca/inatividade/previa", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_previa_inatividade(repository: DatabaseRepository = Depends(get_repository)):
+    """Quem seria bloqueado, excluído ou avisado hoje (não muda nada)."""
+    from ..services import inatividade
+
+    return inatividade.previa(repository)
+
+
+@router.get("/backup", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_backup(repository: DatabaseRepository = Depends(get_repository)):
+    """Situação do backup (só leitura; quem faz o backup é a tarefa agendada do servidor)."""
+    from ..services import backup_status
+
+    return backup_status.situacao(repository)
+
+
+@router.get("/seguranca/sessao")
+def get_seguranca_sessao(user: AuthenticatedUser = Depends(get_current_user)):
+    """Só o que o navegador precisa para sair sozinho sem uso (vale para todos que estão logados)."""
+    from ..services import seguranca_config
+
+    dados = seguranca_config.ler()
+    return {"ociosa_minutos": dados["sessao_ociosa_minutos"], "aviso_minutos": dados["sessao_aviso_minutos"]}
