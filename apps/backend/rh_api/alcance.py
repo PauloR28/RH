@@ -48,6 +48,9 @@ class Alcance:
     exige_supervisor: bool = False  # Monitoria: precisa de supervisor responsável (antes: Operador)
     gerencia: frozenset[str] = frozenset()  # perfis que pode criar/alterar na Monitoria (§2.6)
     rotulo: str = ""  # nome usado nas mensagens de vínculo
+    total: bool = False  # passa por cima dos limites de escopo e hierarquia (antes: "é Administrador?")
+    avalia_monitoria: bool = False  # faz a avaliação/contestação como Qualidade (antes: "é Qualidade?")
+    chamados: str = UNIDADE  # alcance nos chamados de TI (antes: PERFIS_GLOBAIS de chamados.py)
 
 
 _PADRAO = Alcance()
@@ -55,16 +58,16 @@ _PARTICIPANTE = Alcance(wfm=PROPRIO)
 
 ALCANCES: dict[str, Alcance] = {
     ROLE_ADMIN: Alcance(
-        wfm=TODOS, monitoria=TODOS,
+        wfm=TODOS, monitoria=TODOS, chamados=TODOS, total=True,
         gerencia=frozenset({ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
     ),
-    ROLE_MANAGER: Alcance(wfm=TODOS, monitoria=TODOS, gere_escala=True),
+    ROLE_MANAGER: Alcance(wfm=TODOS, monitoria=TODOS, chamados=TODOS, gere_escala=True),
     ROLE_CONTROL_DESK: Alcance(monitoria=TODOS, gere_escala=True),
     ROLE_SUPERVISOR: Alcance(
         wfm=EQUIPE, monitoria=EQUIPE, gere_escala=True, min_unidades=1, max_unidades=3, rotulo="Supervisor",
         gerencia=frozenset({ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
     ),
-    ROLE_QUALIDADE: Alcance(min_unidades=1, max_unidades=2, rotulo="Qualidade", gerencia=frozenset({ROLE_OPERATOR})),
+    ROLE_QUALIDADE: Alcance(avalia_monitoria=True, min_unidades=1, max_unidades=2, rotulo="Qualidade", gerencia=frozenset({ROLE_OPERATOR})),
     ROLE_OPERATOR: Alcance(wfm=PROPRIO, monitoria=PROPRIO, min_unidades=1, max_unidades=1, exige_supervisor=True, rotulo="Operador"),
     ROLE_TEC_JUNIOR: _PARTICIPANTE,
     ROLE_TEC_PLENO: _PARTICIPANTE,

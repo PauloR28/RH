@@ -7,7 +7,7 @@ from datetime import date
 
 from fastapi import status
 
-from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR
+from ..alcance import EQUIPE, PROPRIO, alcance
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import pode_ver_operacao
 from .monitoria import _http, _iso
@@ -44,9 +44,9 @@ class MonitoriaPlanosRepositoryMixin:
     def _mon_plano_visivel(self, user, plano: dict, supervisionados: set[int]) -> bool:
         if not pode_ver_operacao(user.perfil, user.operacoes, normalize_text(plano["operacao"])):
             return False
-        if user.perfil == ROLE_OPERATOR:
+        if alcance(user.perfil).monitoria == PROPRIO:
             return user.id_usuario == int(plano["id_operador"])
-        if user.perfil == ROLE_SUPERVISOR:
+        if alcance(user.perfil).monitoria == EQUIPE:
             return int(plano["id_operador"]) in supervisionados
         return True
 
@@ -81,7 +81,7 @@ class MonitoriaPlanosRepositoryMixin:
                 if operacao not in ops:
                     raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O operador não pertence a esta operação.")
                 operador_nome = " ".join(x for x in (normalize_text(op[0]), normalize_text(op[1])) if x)
-                if user.perfil == ROLE_SUPERVISOR and id_operador not in self.mon_operadores_supervisionados(user.id_usuario):
+                if alcance(user.perfil).monitoria == EQUIPE and id_operador not in self.mon_operadores_supervisionados(user.id_usuario):
                     raise _http(status.HTTP_403_FORBIDDEN, "Você só pode criar planos para operadores que supervisiona.")
                 nota_antes = self._mon_media_valida(cursor, id_operador)
             self._mon_exigir_permissao_operacao(user, operacao)
@@ -124,8 +124,8 @@ class MonitoriaPlanosRepositoryMixin:
             if not row:
                 raise _http(status.HTTP_404_NOT_FOUND, "Plano de ação não encontrado.")
             plano = rows_to_dicts(cursor, [row])[0]
-            supervisionados = self.mon_operadores_supervisionados(user.id_usuario) if user.perfil == ROLE_SUPERVISOR and user.id_usuario else set()
-            if not self._mon_plano_visivel(user, plano, supervisionados) or user.perfil == ROLE_OPERATOR:
+            supervisionados = self.mon_operadores_supervisionados(user.id_usuario) if alcance(user.perfil).monitoria == EQUIPE and user.id_usuario else set()
+            if not self._mon_plano_visivel(user, plano, supervisionados) or alcance(user.perfil).monitoria == PROPRIO:
                 raise _http(status.HTTP_404_NOT_FOUND, "Plano de ação não encontrado.")
             self._mon_exigir_operacao_ativa(cursor, normalize_text(plano["operacao"]))
             atual = normalize_text(plano["status"])

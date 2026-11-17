@@ -19,7 +19,8 @@ from typing import Any
 import pyodbc
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES, WFM_PERFIS_TI
+from ..alcance import EQUIPE, PROPRIO, alcance
+from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_TI
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services import wfm_trocas as troca_regras
@@ -325,7 +326,7 @@ class WfmRepositoryMixin:
                 # A operação segue disponível para Cadastros/Jornadas/Presença mesmo com a escala principal desativada ou
                 # excluída; as telas de escala escondem as marcadas com `escala_ativa=False`.
                 # Quem só é escalado (Operador, Técnicos) não enxerga escala principal desativada/excluída.
-                if not (user.perfil in WFM_PERFIS_PARTICIPANTES and o["chave"] in principais_inativas):
+                if not (alcance(user.perfil).wfm == PROPRIO and o["chave"] in principais_inativas):
                     operacoes.append({**o, "escala_ativa": o["chave"] not in principais_inativas, "escala_excluida": o["chave"] in excluidas})
             operacoes += [
                 {"chave": chave, "nome": f"{o['nome']} · {nome}", "tipo_escala": True}
@@ -1023,7 +1024,7 @@ class WfmRepositoryMixin:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não tem permissão para esta ação.")
 
     def _wfm_exigir_edicao_do_operador(self, cursor, user, operacao: str, id_operador: int) -> None:
-        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
         if not wfm_scope.pode_editar_escala_de(
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
             operacao=operacao, id_operador=int(id_operador), equipe_supervisor=equipe,
@@ -1045,7 +1046,7 @@ class WfmRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             self._wfm_operador_da_operacao(cursor, operacao, id_operador)
-            if user.perfil != ROLE_ADMIN:
+            if not alcance(user.perfil).total:
                 self._wfm_exigir_edicao_do_operador(cursor, user, operacao, id_operador)
             cursor.execute("SELECT codigo FROM dbo.wfm_contratos WHERE id_contrato = ? AND operacao = ? AND ativo = 1", (int(id_contrato), operacao))
             contrato = cursor.fetchone()
@@ -1085,7 +1086,7 @@ class WfmRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             self._wfm_operador_da_operacao(cursor, operacao, id_operador)
-            if user.perfil != ROLE_ADMIN:
+            if not alcance(user.perfil).total:
                 self._wfm_exigir_edicao_do_operador(cursor, user, operacao, id_operador)
             ids = sorted({int(i) for i in ids_skill})
             if ids:
@@ -1260,7 +1261,7 @@ class WfmRepositoryMixin:
             try:
                 cursor = conn.cursor()
                 todos = self._wfm_todos_operadores(cursor, operacao)
-                equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+                equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
                 editaveis = [
                     op for op in todos
                     if wfm_scope.pode_editar_escala_de(

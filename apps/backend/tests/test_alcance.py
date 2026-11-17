@@ -25,3 +25,12 @@ def test_mensagens_de_vinculo_iguais_as_de_antes():
     assert ms.validar_vinculos(r.ROLE_SUPERVISOR, [], []) == ["O Supervisor precisa estar vinculado a ao menos 1 operação."]
     assert ms.validar_vinculos(r.ROLE_QUALIDADE, [], []) == ["A Qualidade precisa estar vinculada a ao menos 1 operação."]
     assert ms.validar_vinculos(r.ROLE_QUALIDADE, ["A", "B", "C"], []) == ["Qualidade pode ter no máximo 2 operações."]
+
+
+def test_cada_flag_troca_exatamente_o_perfil_de_antes():
+    assert al.perfis_com(wfm=al.EQUIPE) == {r.ROLE_SUPERVISOR}
+    assert al.perfis_com(monitoria=al.EQUIPE) == {r.ROLE_SUPERVISOR}
+    assert al.perfis_com(monitoria=al.PROPRIO) == {r.ROLE_OPERATOR}
+    assert al.perfis_com(total=True) == {r.ROLE_ADMIN}
+    assert al.perfis_com(avalia_monitoria=True) == {r.ROLE_QUALIDADE}
+    assert al.perfis_com(chamados=al.TODOS) == {r.ROLE_ADMIN, r.ROLE_MANAGER}

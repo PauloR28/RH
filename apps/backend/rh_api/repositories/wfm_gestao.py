@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_SUPERVISOR
+from ..alcance import EQUIPE, alcance
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from ..services.wfm_montagem import dias_do_mes
@@ -182,7 +182,7 @@ class WfmGestaoRepositoryMixin:
             cursor.execute("SELECT id_turno FROM dbo.wfm_turnos WHERE operacao = ? AND ativo = 1", (operacao,))
             turnos_ativos = {int(r[0]) for r in cursor.fetchall()}
             validos = {op["id_usuario"] for op in self._wfm_todos_operadores(cursor, operacao)}
-            if user.perfil == ROLE_SUPERVISOR:
+            if alcance(user.perfil).wfm == EQUIPE:
                 validos &= set(self._wfm_equipe_ids(cursor, user.id_usuario, operacao))
         finally:
             conn.close()

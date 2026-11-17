@@ -16,6 +16,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from ..alcance import EQUIPE, alcance
 from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition
 from ..services import monitoria_indicadores as indicadores
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -53,7 +54,7 @@ class EquipesControleRepositoryMixin:
 
     def _eq_resolver_supervisor(self, cursor, user, id_supervisor: int | None) -> int | None:
         """Supervisor logado = ele mesmo (o parâmetro é ignorado). Demais perfis: o escolhido, se estiver no escopo."""
-        if user.perfil == ROLE_SUPERVISOR:
+        if alcance(user.perfil).wfm == EQUIPE:
             if not user.id_usuario:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário sem identificação.")
             return int(user.id_usuario)
@@ -85,7 +86,7 @@ class EquipesControleRepositoryMixin:
         try:
             cursor = conn.cursor()
             alvo = self._eq_resolver_supervisor(cursor, user, id_supervisor)
-            eh_supervisor = user.perfil == ROLE_SUPERVISOR
+            eh_supervisor = alcance(user.perfil).wfm == EQUIPE
             contexto: dict[str, Any] = {
                 "perfil": user.perfil,
                 "eh_supervisor": eh_supervisor,

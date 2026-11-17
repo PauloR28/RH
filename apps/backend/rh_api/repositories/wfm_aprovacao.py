@@ -17,6 +17,7 @@ import unicodedata
 
 from fastapi import HTTPException, status
 
+from ..alcance import alcance
 from ..rbac import ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
@@ -83,7 +84,7 @@ class WfmAprovacaoRepositoryMixin:
             ),
             "pode_aprovar": (
                 not fechada and com_itens and tem_aprovar and pode_aprovar_perfil
-                and (estado == EM_APROVACAO or (estado == RASCUNHO and user.perfil == ROLE_ANALISTA_TI))
+                and (estado == EM_APROVACAO or (estado == RASCUNHO and alcance(user.perfil).aprova_propria_escala))
             ),
             "pode_declinar": not fechada and tem_aprovar and pode_aprovar_perfil and estado == EM_APROVACAO,
             "pode_cancelar": (
@@ -338,7 +339,7 @@ class WfmAprovacaoRepositoryMixin:
             if not snapshot["itens"]:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "A escala está vazia: nada a aprovar.")
             ap = self._wfm_aprov_efetivo(cab, snapshot)
-            direta = ap["estado"] == RASCUNHO and user.perfil == ROLE_ANALISTA_TI  # gestor único do TI aprova a própria
+            direta = ap["estado"] == RASCUNHO and alcance(user.perfil).aprova_propria_escala  # gestor único do TI aprova a própria
             if ap["estado"] == APROVADA:
                 raise _http(status.HTTP_409_CONFLICT, "Esta escala já está aprovada.")
             if ap["estado"] != EM_APROVACAO and not direta:

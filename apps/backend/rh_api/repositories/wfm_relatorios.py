@@ -23,7 +23,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR
+from ..alcance import EQUIPE, alcance
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from ..services.monitoria_export import gerar_csv, gerar_xlsx
@@ -174,13 +174,13 @@ class WfmRelatoriosRepositoryMixin:
             "OR (CAST(t.criado_em AS DATE) BETWEEN ? AND ?)) ORDER BY t.criado_em DESC",
             (operacao, ini, fim, ini, fim, ini, fim),
         )
-        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
         trocas = []
         for r in cursor.fetchall():
             id_a, id_b = int(r[1]), int(r[2])
             # O Administrador não lê o detalhe da troca na tela de pedidos, mas o histórico de relatórios é de leitura geral.
             # `todos_da_escala` (relatório Escalados do Supervisor): a escala inteira, como na exportação da escala.
-            if user.perfil != ROLE_ADMIN and not todos_da_escala and not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
+            if not alcance(user.perfil).total and not todos_da_escala and not wfm_scope.pode_ver_troca(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=operacao, id_a=id_a, id_b=id_b, equipe_supervisor=equipe):
                 continue
             if id_operador is not None and id_operador not in (id_a, id_b):
                 continue
@@ -551,11 +551,11 @@ class WfmRelatoriosRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)  # escalas desativadas continuam consultáveis (histórico)
             conn.commit()
             # Escalados: o Supervisor vê a escala completa (todas as equipes), como na exportação da escala.
-            dado = self._wfm_rel_coletar(cursor, user, operacao, ini, fim, id_operador, todos_da_escala=tipo == "escalados" and user.perfil == ROLE_SUPERVISOR)
+            dado = self._wfm_rel_coletar(cursor, user, operacao, ini, fim, id_operador, todos_da_escala=tipo == "escalados" and alcance(user.perfil).wfm == EQUIPE)
             anterior = None
             dado_equipes = None
             if tipo == "painel" and id_operador is None:  # comparação entre equipes: todas as equipes da escala, mesmo para o Supervisor
-                dado_equipes = dado if user.perfil != ROLE_SUPERVISOR else self._wfm_rel_coletar(cursor, user, operacao, ini, fim, None, todos_da_escala=True)
+                dado_equipes = dado if alcance(user.perfil).wfm != EQUIPE else self._wfm_rel_coletar(cursor, user, operacao, ini, fim, None, todos_da_escala=True)
             if tipo in ("resumo", "painel"):  # comparação com o período imediatamente anterior, de mesma duração
                 dias_periodo = (fim - ini).days + 1
                 anterior = self._wfm_rel_coletar(cursor, user, operacao, ini - timedelta(days=dias_periodo), ini - timedelta(days=1), id_operador)
