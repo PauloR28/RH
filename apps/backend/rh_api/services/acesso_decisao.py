@@ -118,6 +118,8 @@ def _funcao_fechada(permissao: str, unidade: str | None, unidades_do_usuario: Ab
     funcao = funcao_da_permissao(permissao)
     if not funcao:
         return ""
+    if not acesso.funcao_ligada_em_algum_modulo(funcao):
+        return f"Função '{funcao}' desligada em todos os módulos."
     alvo = [unidade] if unidade else sorted(unidades_do_usuario or ())
     # Só contam as unidades do MESMO módulo da permissão (16/nov/2026). Antes, uma permissão do RH (ex.:
     # sessao.processos.acessar) era julgada pelas funções da Operação da pessoa (CRF etc.), onde Processos fica

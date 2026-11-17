@@ -89,10 +89,13 @@ def get_minha_tela_inicial(
 def save_tela_inicial_perfil(
     id_perfil: str,
     payload: TelaInicialConfigRequest,
+    modulo: str = "rh",
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    result = repository.save_tela_inicial_perfil(id_perfil, payload.model_dump(), actor=user.username)
+    """Salva o Início de UM módulo (rh, operacao ou tecnologia) do perfil; os outros módulos ficam como estavam."""
+    result = repository.save_tela_inicial_perfil(id_perfil, payload.model_dump(), actor=user.username, modulo=modulo)
+    parte = (result.get("modulos") or {}).get(modulo) or {}
     audit_action(
         repository,
         user,
@@ -100,7 +103,7 @@ def save_tela_inicial_perfil(
         acao="configurar_tela_inicial_perfil",
         entidade="perfil",
         entidade_id=id_perfil,
-        valor_novo={"blocos": result.get("blocos"), "atalhos_ocultos": result.get("atalhos_ocultos")},
+        valor_novo={"modulo": modulo, "blocos": parte.get("blocos"), "atalhos_ocultos": parte.get("atalhos_ocultos")},
     )
     return result
 
@@ -486,3 +489,151 @@ def salvar_modulos_perfil(id_perfil: str, payload: ModulosValoresRequest, reques
                  valor_anterior={"modulos": resultado["anteriores"]}, valor_novo={"modulos": {m["chave"]: m["valor"] for m in resultado["modulos"]}},
                  justificativa=payload.justificativa, request=request)
     return resultado
+
+
+# ── Configurações do Conecta › Segurança e Backup (reestruturação, Etapa 7b — 17/nov/2026) ──
+@router.get("/seguranca", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_seguranca():
+    """Política global de senha, inatividade e sessão (as pessoais ficam no perfil de cada um)."""
+    from ..config import get_settings
+    from ..services import seguranca_config
+
+    dados = seguranca_config.ler()
+    return {**dados, "sessao_maxima_servidor": get_settings().auth_token_ttl_minutes, "campos": {
+        chave: {"padrao": v[0], "minimo": v[1], "maximo": v[2], "descricao": v[3]} for chave, v in seguranca_config.CAMPOS.items()
+    }}
+
+
+@router.put("/seguranca", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def put_seguranca(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    from ..services import seguranca_config
+
+    anterior = seguranca_config.ler()
+    validos = {k: v for k, v in (payload or {}).items() if k in seguranca_config.CAMPOS or k in seguranca_config.LIGADOS}
+    conn = repository._connect()
+    try:
+        novos = seguranca_config.salvar(conn.cursor(), validos, ator=user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(
+        repository, user, modulo="Configurações", acao="configurar_seguranca", entidade="seguranca", entidade_id="global",
+        valor_anterior=anterior, valor_novo=novos,
+    )
+    return novos
+
+
+@router.get("/seguranca/inatividade/previa", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_previa_inatividade(repository: DatabaseRepository = Depends(get_repository)):
+    """Quem seria bloqueado, excluído ou avisado hoje (não muda nada)."""
+    from ..services import inatividade
+
+    return inatividade.previa(repository)
+
+
+@router.get("/backup", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
+def get_backup(repository: DatabaseRepository = Depends(get_repository)):
+    """Situação do backup (só leitura; quem faz o backup é a tarefa agendada do servidor)."""
+    from ..services import backup_status
+
+    return backup_status.situacao(repository)
+
+
+@router.get("/seguranca/sessao")
+def get_seguranca_sessao(user: AuthenticatedUser = Depends(get_current_user)):
+    """Só o que o navegador precisa para sair sozinho sem uso (vale para todos que estão logados)."""
+    from ..services import seguranca_config
+
+    dados = seguranca_config.ler()
+    return {"ociosa_minutos": dados["sessao_ociosa_minutos"], "aviso_minutos": dados["sessao_aviso_minutos"]}
+
+
+# ── Configurações do Conecta › LGPD: todos os dados sensíveis num lugar só (Etapa 7c — 17/nov/2026) ──
+def _lgpd_tipos_com_valores(cursor, repository) -> list[dict]:
+    from ..config import get_settings
+    from ..services import lgpd_catalogo as cat
+    from ..services import seguranca_config
+    from ..services.log_archiver import configuracao as config_logs
+
+    proprios = cat.ler(cursor)
+    candidatos = repository.get_lgpd_retencao_config()
+    seg = seguranca_config.ler()
+    logs = config_logs(get_settings())
+    saida = []
+    for tipo in cat.TIPOS:
+        item = cat.descrever(tipo)
+        if tipo.origem == "catalogo":
+            item.update(proprios[tipo.id], unidade="meses")
+        elif tipo.origem == "candidatos":
+            meses = candidatos["meses_banco_talentos"] if tipo.id == "banco_talentos" else candidatos["meses_candidatura"]
+            ativo = bool(candidatos["ativo"]) and (tipo.id != "cvs_email" or bool(candidatos["excluir_cvs_nao_vinculados"]))
+            item.update(ativo=ativo, meses=meses, acao=tipo.acao, unidade="meses")
+        elif tipo.origem == "seguranca":
+            item.update(ativo=bool(seg["inatividade_ativa"]), meses=seg["inatividade_exclusao_dias"], acao=tipo.acao, unidade="dias")
+        elif tipo.origem == "logs":
+            item.update(ativo=bool(logs["habilitado"]), meses=logs["dias"], acao=tipo.acao, unidade="dias")
+        else:
+            item.update(ativo=False, meses=tipo.meses, acao=tipo.acao, unidade="meses")
+        saida.append(item)
+    return saida
+
+
+@router.get("/lgpd/dados", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def get_lgpd_dados(repository: DatabaseRepository = Depends(get_repository)):
+    """Todos os tipos de dado sensível do Conecta, com prazo e o que acontece depois."""
+    conn = repository._connect()
+    try:
+        return {"tipos": _lgpd_tipos_com_valores(conn.cursor(), repository), "candidatos": repository.get_lgpd_retencao_config()}
+    finally:
+        conn.close()
+
+
+@router.put("/lgpd/dados", dependencies=[Depends(require_permissions("lgpd.configurar"))])
+def put_lgpd_dados(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    from ..services import lgpd_catalogo as cat
+
+    mudancas = {k: v for k, v in ((payload or {}).get("mudancas") or {}).items() if isinstance(v, dict)}
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        anterior = cat.ler(cursor)
+        novos = cat.salvar(cursor, mudancas, ator=user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(
+        repository, user, modulo="LGPD", acao="configurar_dados_sensiveis", entidade="lgpd", entidade_id="catalogo",
+        valor_anterior=anterior, valor_novo=novos,
+    )
+    return {"tipos": novos}
+
+
+@router.get("/lgpd/dados/simulacao", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def get_lgpd_dados_simulacao(repository: DatabaseRepository = Depends(get_repository)):
+    """Quantos registros de cada tipo já passaram do prazo (só leitura, não apaga nada)."""
+    from datetime import datetime
+
+    from ..services import lgpd_catalogo as cat
+
+    agora = datetime.now()
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        valores = {t["id"]: t for t in _lgpd_tipos_com_valores(cursor, repository)}
+        contagens = {}
+        for tipo in cat.TIPOS:
+            try:
+                contagens[tipo.id] = cat.contar(cursor, tipo, valores[tipo.id]["meses"], agora)
+            except Exception:  # noqa: BLE001 - coluna que ainda não existe neste banco: sem número
+                contagens[tipo.id] = None
+    finally:
+        conn.close()
+    return {"contagens": contagens}

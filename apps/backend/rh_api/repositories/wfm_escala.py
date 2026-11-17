@@ -24,7 +24,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ANALISTA_TI, ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..alcance import EQUIPE, PROPRIO, alcance
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -150,7 +150,7 @@ class WfmEscalaRepositoryMixin:
             op["supervisores"] = supervisores.get(op["id_usuario"], [])
         if todos_da_escala:
             return todos
-        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
         return [
             op
             for op in todos
@@ -241,14 +241,14 @@ class WfmEscalaRepositoryMixin:
             operadores = self._wfm_operadores_visiveis(cursor, user, operacao)
             # Supervisor: além da própria equipe, pode CONSULTAR (somente leitura) a escala das demais equipes — em fins de
             # semana e feriados ele responde pela operação toda. Editar continua restrito à equipe (checado em wfm_salvar_itens).
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR and not propria)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE and not propria)
             if ver_todas:
                 equipe_propria = self._wfm_equipe_ids(cursor, user.id_usuario, operacao)
                 operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=True)
                 for op in operadores:
                     op["minha_equipe"] = op["id_usuario"] in equipe_propria
             ids = [op["id_usuario"] for op in operadores]
-            somente_propria = user.perfil in WFM_PERFIS_PARTICIPANTES or (propria and user.has_permission("wfm.escala.propria"))
+            somente_propria = alcance(user.perfil).wfm == PROPRIO or (propria and user.has_permission("wfm.escala.propria"))
             itens: list[dict] = []
             fonte = "rascunho"
             if somente_propria:
@@ -453,7 +453,7 @@ class WfmEscalaRepositoryMixin:
             todos_operadores = self._wfm_todos_operadores(cursor, operacao)
             operadores = {op["id_usuario"] for op in todos_operadores}
             nomes_operadores = {op["id_usuario"]: op["nome"] for op in todos_operadores}
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             conflitos: list[dict] = []
             mudancas: list[tuple[str, dict, dict | None, dict | None]] = []
             for item in itens:
@@ -786,7 +786,7 @@ class WfmEscalaRepositoryMixin:
                     )
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detalhe)
             # Conflito de interesse: quem está na escala como operador não a publica (o Analista de TI é exceção).
-            if user.perfil != ROLE_ANALISTA_TI and any(i["id_operador"] == user.id_usuario for i in snapshot["itens"]):
+            if not alcance(user.perfil).aprova_propria_escala and any(i["id_operador"] == user.id_usuario for i in snapshot["itens"]):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Você consta nesta escala como operador e não pode publicá-la.")
             todos = self._wfm_todos_operadores(cursor, operacao)
             resumo = self._wfm_resumo_violacoes(self._wfm_violacoes(cursor, operacao, ano_mes, todos))
@@ -937,7 +937,7 @@ class WfmEscalaRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE)
             ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
             if not ids:
                 return []
@@ -948,7 +948,7 @@ class WfmEscalaRepositoryMixin:
                 (operacao, dias[0], dias[-1], *ids),
             )
             # O operador não sabe que existe presença automática: o texto e a origem ficam só para quem gere a escala.
-            ocultar = user.perfil in WFM_PERFIS_PARTICIPANTES
+            ocultar = alcance(user.perfil).wfm == PROPRIO
             return [
                 {"id_operador": int(r[0]), "data": r[1].isoformat(), "status": normalize_text(r[2]),
                  "observacao": None if ocultar and normalize_text(r[4]) == PRESENCA_AUTOMATICA else (normalize_text(r[3]) or None),
@@ -1001,7 +1001,7 @@ class WfmEscalaRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE)
             ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
             resposta = {"data": dia.isoformat(), "fonte": "login_conecta", "itens": []}
             if not ids:
@@ -1138,7 +1138,7 @@ class WfmEscalaRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao)
             conn.commit()
             # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE)
             ids = [op["id_usuario"] for op in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)]
             if not ids:
                 return []
@@ -1284,7 +1284,7 @@ class WfmEscalaRepositoryMixin:
             # O arquivo segue o filtro da tela: o Supervisor só leva as demais equipes com "Todas as equipes" ligado (mesma
             # leitura de wfm_get_escala) e, se a tela mandou a lista de quem está visível (filtros de equipe, supervisor,
             # cargo, nome), só esses entram. A lista nunca amplia o escopo: é cruzada com quem o usuário pode ver.
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE)
             operadores = self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)
             if ids_operadores is not None:
                 filtro = {int(i) for i in ids_operadores}
@@ -1356,7 +1356,7 @@ class WfmEscalaRepositoryMixin:
         try:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             cursor.execute(
                 "SELECT DISTINCT i.id_operador FROM dbo.wfm_escala_itens i JOIN dbo.wfm_turnos t ON t.id_turno = i.id_turno "
                 "WHERE i.operacao = ? AND i.data = ? AND t.tipo = 'TRABALHO'",

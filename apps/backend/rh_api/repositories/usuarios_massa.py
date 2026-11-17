@@ -19,9 +19,11 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from ..alcance import alcance
 from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_DEFINITIONS, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
 from ..services.helpers import normalize_text
 from ..services.monitoria_scope import pode_gerenciar_perfil, pode_ver_operacao, validar_vinculos
+from ..services.seguranca_config import tamanho_minimo_senha
 
 MAX_LINHAS = 500
 MAX_BYTES = 2 * 1024 * 1024
@@ -82,7 +84,7 @@ class UsuariosMassaRepositoryMixin:
         finally:
             conn.close()
         turnos = [t["valor"] for t in self.mon_list_catalogo("turno")]
-        perfis = [r.name for r in _perfis_visiveis() if r.id != ROLE_ADMIN or actor.perfil == ROLE_ADMIN]
+        perfis = [r.name for r in _perfis_visiveis() if r.id != ROLE_ADMIN or alcance(actor.perfil).total]
 
         # carregamento tardio: openpyxl só entra na memória quando a planilha é realmente gerada
         from openpyxl import Workbook
@@ -242,17 +244,17 @@ class UsuariosMassaRepositoryMixin:
         papel = ctx["perfis"].get(_norm(dados["perfil"]))
         if not papel:
             return None, f"Perfil não reconhecido: {dados['perfil']}."
-        if papel.id == ROLE_ADMIN and actor.perfil != ROLE_ADMIN:
+        if papel.id == ROLE_ADMIN and not alcance(actor.perfil).total:
             return None, "Somente o Administrador cria usuários Administradores."
-        if papel.id in _PERFIS_MONITORIA and actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, papel.id):
+        if papel.id in _PERFIS_MONITORIA and not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, papel.id):
             return None, "Seu perfil não pode criar este nível de usuário."
         acesso = {"microsoft": "microsoft", "local": "local"}.get(_norm(dados["acesso"]))
         if not acesso:
             return None, "Tipo de acesso deve ser Microsoft ou Local."
         senha = dados["senha"]
         if acesso == "local":
-            if len(senha) < 8:
-                return None, "Acesso Local exige senha inicial com pelo menos 8 caracteres."
+            if len(senha) < tamanho_minimo_senha():
+                return None, f"Acesso Local exige senha inicial com pelo menos {tamanho_minimo_senha()} caracteres."
         else:
             senha = ""
 

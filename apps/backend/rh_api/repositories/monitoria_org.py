@@ -12,7 +12,8 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
+from ..alcance import alcance
+from ..rbac import ROLE_CONTROL_DESK, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_engine import config_padrao
 from ..services.monitoria_scope import (
@@ -408,7 +409,7 @@ class MonitoriaOrgRepositoryMixin:
             if operacao:
                 self._mon_exigir_operacao_no_escopo(user, operacao)
                 self._mon_exigir_operacao_ativa(cursor, operacao)
-            elif not (user.perfil == ROLE_ADMIN or user.has_permission("monitoria.configurar")):
+            elif not (alcance(user.perfil).total or user.has_permission("monitoria.configurar")):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente o Administrador altera os turnos.")
             ativo = 1 if data.get("ativo", True) else 0
             ordem = int(data.get("ordem") or 0)
@@ -548,7 +549,7 @@ class MonitoriaOrgRepositoryMixin:
             if not row:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
             perfil = get_role_definition(row[0]).id
-            if actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, perfil):
+            if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode alterar este nível de usuário.")
 
             anterior = self._mon_vinculos(cursor, id_usuario)
@@ -725,7 +726,7 @@ class MonitoriaOrgRepositoryMixin:
             nome_usuario = normalize_text(row[1])
             if perfil not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A transferência de operação vale para Operador e Supervisor.")
-            if actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, perfil):
+            if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode alterar este nível de usuário.")
             for chave in (origem, destino):
                 self._mon_exigir_operacao_no_escopo(actor, chave)
@@ -921,7 +922,7 @@ class MonitoriaOrgRepositoryMixin:
             if perfil not in self._PERFIS_MONITORIA:
                 continue
             id_usuario = int(row["id_usuario"])
-            if actor.perfil != ROLE_ADMIN:
+            if not alcance(actor.perfil).total:
                 if not pode_gerenciar_perfil(actor.perfil, perfil):
                     continue
                 if perfil != ROLE_CONTROL_DESK and not (set(ops.get(id_usuario, [])) & set(permitidas or [])):
@@ -948,7 +949,7 @@ class MonitoriaOrgRepositoryMixin:
 
     def mon_create_usuario(self, actor, data: dict, *, ip: str = "") -> dict:
         perfil = get_role_definition(data.get("perfil")).id
-        if actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, perfil):
+        if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode criar este nível de usuário.")
         if perfil not in self._PERFIS_MONITORIA:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nível de usuário inválido para a Monitoria.")
@@ -1011,10 +1012,10 @@ class MonitoriaOrgRepositoryMixin:
         if not row:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
         perfil_atual = get_role_definition(row[0]).id
-        if actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, perfil_atual):
+        if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil_atual):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode alterar este nível de usuário.")
         novo_perfil = get_role_definition(data.get("perfil") or perfil_atual).id
-        if novo_perfil != perfil_atual and actor.perfil != ROLE_ADMIN and not pode_gerenciar_perfil(actor.perfil, novo_perfil):
+        if novo_perfil != perfil_atual and not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, novo_perfil):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode atribuir este nível.")
         self.update_system_user(
             int(id_usuario),

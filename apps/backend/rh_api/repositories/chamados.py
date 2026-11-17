@@ -14,12 +14,13 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_MANAGER, ROLE_OPERATOR
+from ..alcance import TODOS, alcance, perfis_com
+from ..rbac import ROLE_ADMIN, ROLE_OPERATOR
 from ..services import chamados_regras as rg
 from ..services import chamados_storage as st
 from ..services.helpers import clamp_limit, normalize_text, rows_to_dicts
 
-PERFIS_GLOBAIS = frozenset({ROLE_ADMIN, ROLE_MANAGER})
+PERFIS_GLOBAIS = perfis_com(chamados=TODOS)  # Etapa 5: vem do alcance
 CATEGORIA_NOTIFICACAO = "chamados"
 FASES = {
     "aberto": (rg.ABERTO, rg.EM_ANDAMENTO, rg.AGUARDANDO),
@@ -78,7 +79,7 @@ class ChamadosRepositoryMixin:
 
     def _ch_operacoes_do_usuario(self, cursor, user) -> list[dict]:
         """Operações em que o usuário pode abrir/ver chamados: [{chave, nome}]. Global = todas as ativas."""
-        if user.perfil in PERFIS_GLOBAIS:
+        if alcance(user.perfil).chamados == TODOS:
             cursor.execute("SELECT chave, nome FROM dbo.operacoes WHERE ativo = 1 AND chave IS NOT NULL ORDER BY nome")
         elif user.id_usuario:
             cursor.execute(
@@ -124,7 +125,7 @@ class ChamadosRepositoryMixin:
     def _ch_acesso(self, cursor, user, id_chamado: int) -> tuple[dict, bool]:
         """Carrega o chamado e garante que o usuário pode vê-lo. Fora do escopo = 404 (não revela que existe)."""
         ch = self._ch_carregar(cursor, id_chamado)
-        global_ = user.perfil in PERFIS_GLOBAIS
+        global_ = alcance(user.perfil).chamados == TODOS
         operacoes = {o["chave"] for o in self._ch_operacoes_do_usuario(cursor, user)} if not global_ else set()
         if not self._ch_pode_ver(user, ch, operacoes, global_=global_):
             if not any(p.startswith("chamados.") for p in user.permissions):
@@ -532,7 +533,7 @@ class ChamadosRepositoryMixin:
             if escopo == "operacao":
                 if not user.has_permission("chamados.ver_operacao"):
                     raise _http(status.HTTP_403_FORBIDDEN, "Você não tem permissão para ver os chamados da operação.")
-                if user.perfil not in PERFIS_GLOBAIS:
+                if alcance(user.perfil).chamados != TODOS:
                     chaves = [o["chave"] for o in self._ch_operacoes_do_usuario(cursor, user)]
                     if not chaves:
                         return {"itens": [], "total": 0, "page": 1, "page_size": clamp_limit(page_size, 20, 100),

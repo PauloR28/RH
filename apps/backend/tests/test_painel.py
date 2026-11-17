@@ -24,7 +24,7 @@ def test_migracao_igual_ao_bootstrap():
 def test_permissoes_e_donos():
     for chave in ("sessao.painel.acessar", "painel.visualizar", "painel.configurar"):
         assert chave in PERMISSION_DEFINITIONS
-        assert cat.funcao_de(chave).id == "indicadores"
+        assert cat.funcao_de(chave).id == "paineis"
     assert PERMISSION_DEFINITIONS["painel.configurar"].critical
     assert modulo_dono_padrao("painel.visualizar", "Painel") == MODULO_CORE
     assert modulo_dono_padrao("painel.configurar", "Painel") == MODULO_TECNOLOGIA

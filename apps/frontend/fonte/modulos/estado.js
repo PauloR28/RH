@@ -5,7 +5,7 @@ import { useEffect, useState } from '../infraestrutura-react.js';
 import { lerSessaoAutenticacao } from '../services/api/core.js';
 import { lerAcessoCore } from '../services/api/modulos.js';
 import { definirAreasInativas } from '../shared/areas.js';
-import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261112-modulo-unico2';
+import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261117-config2';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
 
@@ -80,6 +80,7 @@ export async function carregarAcessoModulos() {
     definirAreasInativas(acesso.areas_inativas);
     definirFuncoesModulos(acesso.funcoes);
     const visiveis = (acesso.modulos || []).filter((m) => m.visivel).map((m) => m.chave);
+    const moduloAtual = escolherModuloAtual(visiveis, lerModuloSalvo(token), acesso.modulo_padrao);
     publicar({
       carregado: true,
       carregando: false,
@@ -87,9 +88,11 @@ export async function carregarAcessoModulos() {
       modulos: acesso.modulos || [],
       visiveis,
       moduloPadrao: acesso.modulo_padrao || MODULO_CORE,
-      moduloAtual: escolherModuloAtual(visiveis, lerModuloSalvo(token), acesso.modulo_padrao),
+      moduloAtual,
       permissoes: acesso.permissoes || [],
     });
+    // Guarda já o módulo de entrada: a camada de API manda ele ao servidor (X-Conecta-Modulo) desde o primeiro pedido.
+    salvarModulo(moduloAtual);
   } catch {
     // Backend antigo (sem /core/acesso) ou indisponível: comportamento de antes.
     publicar({ ...ESTADO_VAZIO, erro: true, token });

@@ -100,8 +100,14 @@ def test_funcao_desligada_na_unidade_fecha_mesmo_com_permissao():
 def test_funcao_desligada_no_modulo_da_unidade_fecha():
     _cenario(funcoes_operacao={"wfm"})  # Operação sem Monitoria
     assert not dec.decidir({"monitoria.realizar"}, "monitoria.realizar", unidade="CRF").pode
-    # TI é da Tecnologia: Monitoria não é do catálogo de lá, então a camada não se aplica.
-    assert dec.decidir({"monitoria.realizar"}, "monitoria.realizar", unidade="TI").pode
+    # Etapa 4 (17/nov/2026): Monitoria desligada em todos os módulos onde existe fecha para todos, inclusive na TI.
+    assert not dec.decidir({"monitoria.realizar"}, "monitoria.realizar", unidade="TI").pode
+
+
+def test_funcao_ligada_em_outro_modulo_segue_a_regra_da_unidade():
+    _cenario(funcoes_operacao={"monitoria"})  # WFM desligado na Operação, mas ligado na Tecnologia
+    assert not dec.decidir({"wfm.escala.criar"}, "wfm.escala.criar", unidade="CRF").pode
+    assert dec.decidir({"wfm.escala.criar"}, "wfm.escala.criar").pode  # sem unidade: ainda ligado em algum módulo
 
 
 def test_sem_unidade_fecha_so_se_desligada_em_todas_as_unidades_da_pessoa():

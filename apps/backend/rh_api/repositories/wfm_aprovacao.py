@@ -17,6 +17,7 @@ import unicodedata
 
 from fastapi import HTTPException, status
 
+from ..alcance import alcance
 from ..rbac import ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
@@ -83,7 +84,7 @@ class WfmAprovacaoRepositoryMixin:
             ),
             "pode_aprovar": (
                 not fechada and com_itens and tem_aprovar and pode_aprovar_perfil
-                and (estado == EM_APROVACAO or (estado == RASCUNHO and user.perfil == ROLE_ANALISTA_TI))
+                and (estado == EM_APROVACAO or (estado == RASCUNHO and alcance(user.perfil).aprova_propria_escala))
             ),
             "pode_declinar": not fechada and tem_aprovar and pode_aprovar_perfil and estado == EM_APROVACAO,
             "pode_cancelar": (
@@ -338,7 +339,7 @@ class WfmAprovacaoRepositoryMixin:
             if not snapshot["itens"]:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "A escala está vazia: nada a aprovar.")
             ap = self._wfm_aprov_efetivo(cab, snapshot)
-            direta = ap["estado"] == RASCUNHO and user.perfil == ROLE_ANALISTA_TI  # gestor único do TI aprova a própria
+            direta = ap["estado"] == RASCUNHO and alcance(user.perfil).aprova_propria_escala  # gestor único do TI aprova a própria
             if ap["estado"] == APROVADA:
                 raise _http(status.HTTP_409_CONFLICT, "Esta escala já está aprovada.")
             if ap["estado"] != EM_APROVACAO and not direta:
@@ -440,7 +441,7 @@ class WfmAprovacaoRepositoryMixin:
             nomes_tipo = {normalize_text(r[0]): normalize_text(r[1]) for r in cursor.fetchall()}
             itens = []
             for operacao, ano_mes in candidatas:
-                if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, operacao):
+                if not wfm_scope.pode_ver(user, operacao):
                     continue
                 cab = self._wfm_cabecalho(cursor, operacao, ano_mes)
                 snapshot = self._wfm_snapshot(cursor, operacao, ano_mes)
@@ -468,7 +469,7 @@ class WfmAprovacaoRepositoryMixin:
     # ------------------------------------------------------------------
     def wfm_list_tipos_escala(self, user, operacao_base: str = "TI") -> list[dict]:
         base = normalize_text(operacao_base) or "TI"
-        if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, base):
+        if not wfm_scope.pode_ver(user, base):
             raise _http(status.HTTP_403_FORBIDDEN, "Esta operação está fora do seu escopo de acesso.")
         conn = self._connect()
         try:
@@ -504,7 +505,7 @@ class WfmAprovacaoRepositoryMixin:
                 if not row:
                     raise _http(status.HTTP_404_NOT_FOUND, "Tipo de escala não encontrado.")
                 chave = normalize_text(row[0])
-                if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, chave):
+                if not wfm_scope.pode_ver(user, chave):
                     raise _http(status.HTTP_403_FORBIDDEN, "Esta operação está fora do seu escopo de acesso.")
                 cursor.execute("SELECT 1 FROM dbo.wfm_tipos_escala t WHERE t.nome = ? AND t.operacao_base = ? AND t.id_tipo <> ? AND NOT EXISTS (SELECT 1 FROM dbo.wfm_operacao_config oc WHERE oc.operacao = t.chave AND oc.excluida = 1)", (nome, row[4], int(id_tipo)))
                 if cursor.fetchone():
@@ -518,7 +519,7 @@ class WfmAprovacaoRepositoryMixin:
                 resolved = int(id_tipo)
             else:
                 base = normalize_text(data.get("operacao_base")) or "TI"
-                if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, base):
+                if not wfm_scope.pode_ver(user, base):
                     raise _http(status.HTTP_403_FORBIDDEN, "Esta operação está fora do seu escopo de acesso.")
                 cursor.execute("SELECT chave FROM dbo.operacoes WHERE chave = ?", (base,))
                 existente = cursor.fetchone()
@@ -565,7 +566,7 @@ class WfmAprovacaoRepositoryMixin:
             if not row:
                 raise _http(status.HTTP_404_NOT_FOUND, "Tipo de escala não encontrado.")
             chave, nome = normalize_text(row[0]), normalize_text(row[1])
-            if not wfm_scope.pode_ver_operacao(user.perfil, user.operacoes, chave):
+            if not wfm_scope.pode_ver(user, chave):
                 raise _http(status.HTTP_403_FORBIDDEN, "Esta operação está fora do seu escopo de acesso.")
             for tabela in ("wfm_escala_itens", "wfm_escala_versoes", "wfm_trocas", "wfm_presencas", "wfm_atestados", "wfm_horas_extras", "wfm_pausas"):
                 cursor.execute(f"SELECT TOP 1 1 FROM dbo.{tabela} WHERE operacao = ?", (chave,))

@@ -17,11 +17,29 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from ..acesso_catalogo import FUNCOES_CATALOGO, POR_ID, Funcao, permissoes_da_funcao
+from .. import alcance as alc
+from ..acesso_catalogo import FUNCOES_CATALOGO, FUNCOES_VISIVEIS, POR_ID, Funcao, permissoes_da_funcao
 from ..config import get_settings
 from ..db import get_connection
-from ..modulos_catalogo import FUNCOES_POR_MODULO, FUNCOES_POR_OPERACAO, MODULO_CORE, MODULO_TECNOLOGIA, MODULOS_VALIDOS
+from ..modulos_catalogo import FUNCOES_POR_MODULO, FUNCOES_POR_OPERACAO, FUNCOES_SEMPRE_LIGADAS, MODULO_CORE, MODULO_TECNOLOGIA, MODULOS_VALIDOS
 from . import acesso, acesso_cache
+
+
+def _sempre_ligada(f: Funcao, modulo: str) -> bool:
+    """Base da Tecnologia (Etapa 4, 17/nov/2026): as 8 funções sem botão, para o administrador nunca ficar trancado."""
+    return modulo == MODULO_TECNOLOGIA and (f.base or f.id in FUNCOES_SEMPRE_LIGADAS)
+
+
+def _alcance_da_funcao(f: Funcao, perfis: list[dict]) -> dict | None:
+    """1ª linha da tabela (Etapa 6): até onde cada perfil enxerga nesta função. Só nas funções que usam alcance."""
+    area = alc.AREA_DA_FUNCAO.get(f.id)
+    if not area:
+        return None
+    return {
+        "area": area,
+        "valores": {p["id"]: getattr(alc.alcance(p["id"]), area) for p in perfis},
+        "padrao": {p["id"]: getattr(alc.alcance_padrao(p["id"]), area) for p in perfis},
+    }
 
 
 def _erro(codigo: int, texto: str) -> HTTPException:
@@ -137,7 +155,7 @@ def matriz(modulo: str, escopo: str = "padrao") -> dict:
     else:
         exc = {}
     funcoes = []
-    for f in FUNCOES_CATALOGO:
+    for f in FUNCOES_VISIVEIS:
         ligada_modulo = no_modulo[f.id]
         ligada = ligada_modulo and (por_unidade.get((alvo, f.id), True) if tipo == "unidade" else True)
         acoes = []
@@ -146,7 +164,8 @@ def matriz(modulo: str, escopo: str = "padrao") -> dict:
             valores = {pid: exc.get((pid, chave), v) for pid, v in padrao.items()}
             acoes.append({"chave": chave, "nome": PERMISSION_DEFINITIONS[chave].description, "padrao": padrao, "valores": valores})
         funcoes.append({
-            "id": f.id, "n": f.n, "nome": f.nome, "base": f.base and modulo == MODULO_TECNOLOGIA, "futura": f.futura,
+            "id": f.id, "n": f.n, "nome": f.nome, "base": _sempre_ligada(f, modulo), "futura": f.futura,
+            "alcance": _alcance_da_funcao(f, perfis) if tipo == "padrao" else None,
             "motor": bool(f.motor), "ligada": ligada, "ligada_no_modulo": ligada_modulo, "acoes": acoes,
         })
     return {"modulo": modulo, "escopo": escopo, "tipo": tipo, "perfil_da_pessoa": perfil_pessoa,
@@ -164,14 +183,31 @@ def salvar_lote(modulo: str, escopo: str, mudancas: list[dict], *, autor: str) -
     # Recusa cedo (antes de abrir o banco) o que nunca pode ser gravado: desligar função base da Tecnologia.
     for m in mudancas:
         f = POR_ID.get(str(m.get("funcao"))) if m.get("tipo") == "funcao" else None
-        if f and f.base and modulo == MODULO_TECNOLOGIA and not bool(m.get("ligada")) and tipo != "pessoa":
+        if f and _sempre_ligada(f, modulo) and not bool(m.get("ligada")) and tipo != "pessoa":
             raise _erro(status.HTTP_409_CONFLICT, f"{f.nome} é base da Tecnologia e não pode ser desligada.")
+    for m in mudancas:
+        if m.get("tipo") == "alcance":
+            if tipo != "padrao":
+                raise _erro(status.HTTP_400_BAD_REQUEST, "O alcance vale para o perfil todo: escolha \"Vale para: todos\".")
+            if m.get("area") not in alc.AREAS or m.get("nivel") not in alc.NIVEIS or not m.get("perfil"):
+                raise _erro(status.HTTP_400_BAD_REQUEST, "Alcance inválido.")
     foto = acesso_cache.foto()
     aplicadas = []
     conn = get_connection(get_settings(), autocommit=False)
     try:
         cursor = conn.cursor()
         for m in mudancas:
+            if m.get("tipo") == "alcance":
+                from ..repositories.alcance_schema import ensure_alcance_schema
+
+                ensure_alcance_schema(cursor)
+                perfil, area, nivel = str(m["perfil"]), str(m["area"]), str(m["nivel"])
+                cursor.execute("DELETE FROM dbo.perfis_alcance WHERE id_perfil = ? AND area = ?", (perfil, area))
+                if nivel != getattr(alc.alcance_padrao(perfil), area):  # igual ao padrão do código não grava
+                    cursor.execute("INSERT INTO dbo.perfis_alcance (id_perfil, area, nivel, atualizado_por) VALUES (?, ?, ?, ?)",
+                                   (perfil, area, nivel, autor[:180]))
+                aplicadas.append({"tipo": "alcance", "perfil": perfil, "area": area, "nivel": nivel})
+                continue
             if m.get("tipo") == "funcao":
                 f = POR_ID.get(str(m.get("funcao")))
                 if not f:
@@ -179,7 +215,7 @@ def salvar_lote(modulo: str, escopo: str, mudancas: list[dict], *, autor: str) -
                 ligada = bool(m.get("ligada"))
                 if tipo == "pessoa":
                     raise _erro(status.HTTP_400_BAD_REQUEST, "Ligar e desligar função é por módulo ou por unidade.")
-                if f.base and modulo == MODULO_TECNOLOGIA and not ligada:
+                if _sempre_ligada(f, modulo) and not ligada:
                     raise _erro(status.HTTP_409_CONFLICT, f"{f.nome} é base da Tecnologia e não pode ser desligada.")
                 if tipo == "padrao":
                     chave = _chave_tabela(f, modulo=modulo)
@@ -236,6 +272,7 @@ def salvar_lote(modulo: str, escopo: str, mudancas: list[dict], *, autor: str) -
         conn.close()
     acesso.invalidar_cache()
     acesso_cache.invalidar()
+    alc.invalidar()
     return {"aplicadas": aplicadas}
 
 

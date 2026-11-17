@@ -35,6 +35,7 @@ from ..rbac import (
     sanitize_permissions,
 )
 from ..services.helpers import normalize_compare_text, normalize_text, rows_to_dicts, safe_json_loads
+from ..services.seguranca_config import mensagem_senha_curta, tamanho_minimo_senha
 from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
 
 AUTH_PROVIDER_LOCAL = "local"
@@ -944,8 +945,8 @@ class SecurityRepositoryMixin:
     def update_own_password(self, id_usuario: int, senha_atual: str, nova_senha: str) -> dict:
         safe_current = normalize_text(senha_atual)
         safe_new = normalize_text(nova_senha)
-        if not safe_new or len(safe_new) < 8:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A nova senha deve ter pelo menos 8 caracteres.")
+        if not safe_new or len(safe_new) < tamanho_minimo_senha():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
 
         conn = self._connect()
         try:
@@ -1028,8 +1029,8 @@ class SecurityRepositoryMixin:
 
     def activate_local_login(self, id_usuario: int, nova_senha: str) -> dict:
         safe_new = normalize_text(nova_senha)
-        if len(safe_new) < 8:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A nova senha deve ter pelo menos 8 caracteres.")
+        if len(safe_new) < tamanho_minimo_senha():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
 
         conn = self._connect()
         try:

@@ -21,7 +21,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_SUPERVISOR, WFM_PERFIS_PARTICIPANTES
+from ..alcance import EQUIPE, PROPRIO, alcance
 from ..services import wfm_scope
 from ..services import wfm_trocas as regras
 from ..services.helpers import normalize_text
@@ -207,7 +207,7 @@ class WfmTrocasRepositoryMixin:
         return dict(zip(chaves, r))
 
     def _tr_exigir_visivel(self, cursor, user, troca: dict) -> None:
-        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if user.perfil == ROLE_SUPERVISOR else set()
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if alcance(user.perfil).wfm == EQUIPE else set()
         if not user.has_permission("wfm.troca.visualizar") or not wfm_scope.pode_ver_troca(
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=troca["operacao"],
             id_a=troca["id_solicitante"], id_b=troca["id_alvo"], equipe_supervisor=equipe,
@@ -216,7 +216,7 @@ class WfmTrocasRepositoryMixin:
 
     def _tr_exigir_decisor(self, cursor, user, troca: dict) -> None:
         self._wfm_exigir_chave(user, "wfm.troca.aprovar", "wfm.troca.desfazer")
-        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if user.perfil == ROLE_SUPERVISOR else set()
+        equipe = self._wfm_equipe_ids(cursor, user.id_usuario, troca["operacao"]) if alcance(user.perfil).wfm == EQUIPE else set()
         if not wfm_scope.pode_decidir_troca(
             perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes, operacao=troca["operacao"],
             id_a=troca["id_solicitante"], id_b=troca["id_alvo"], equipe_supervisor=equipe,
@@ -296,7 +296,7 @@ class WfmTrocasRepositoryMixin:
     # Colegas (para o formulário do Operador)
     # ------------------------------------------------------------------
     def wfm_list_colegas_troca(self, user, operacao: str) -> list[dict]:
-        if user.perfil not in WFM_PERFIS_PARTICIPANTES:
+        if alcance(user.perfil).wfm != PROPRIO:
             raise _http(status.HTTP_403_FORBIDDEN, "Somente o Operador solicita trocas.")
         conn = self._connect()
         try:
@@ -366,7 +366,7 @@ class WfmTrocasRepositoryMixin:
     # Solicitar
     # ------------------------------------------------------------------
     def wfm_solicitar_troca(self, user, operacao: str, id_alvo: int, data_a: Any, data_b: Any, motivo: str = "", *, ip: str = "") -> dict:
-        if user.perfil not in WFM_PERFIS_PARTICIPANTES or user.id_usuario is None:
+        if alcance(user.perfil).wfm != PROPRIO or user.id_usuario is None:
             raise _http(status.HTTP_403_FORBIDDEN, "Somente o Operador solicita trocas.")
         data_a, data_b = _data(data_a), _data(data_b or data_a)
         id_a, id_b = int(user.id_usuario), int(id_alvo)
@@ -440,7 +440,7 @@ class WfmTrocasRepositoryMixin:
             self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             self._wfm_expirar_trocas(cursor, operacao)
             troca = self._tr_linha(cursor, id_troca)
-            if user.perfil not in WFM_PERFIS_PARTICIPANTES or user.id_usuario != troca["id_alvo"]:
+            if alcance(user.perfil).wfm != PROPRIO or user.id_usuario != troca["id_alvo"]:
                 raise _http(status.HTTP_403_FORBIDDEN, "Somente o colega convidado responde esta troca.")
             if troca["estado"] != regras.AGUARDANDO_B:
                 conn.commit()
@@ -488,7 +488,7 @@ class WfmTrocasRepositoryMixin:
         try:
             cursor = conn.cursor()
             troca = self._tr_linha(cursor, id_troca)
-            if user.id_usuario != troca["id_solicitante"] or user.perfil not in WFM_PERFIS_PARTICIPANTES:
+            if user.id_usuario != troca["id_solicitante"] or alcance(user.perfil).wfm != PROPRIO:
                 raise _http(status.HTTP_403_FORBIDDEN, "Somente quem pediu a troca pode cancelá-la.")
             if troca["estado"] not in regras.ESTADOS_ATIVOS:
                 raise _http(status.HTTP_409_CONFLICT, f"Esta troca não pode mais ser cancelada (estado: {troca['estado']}).")
@@ -681,7 +681,7 @@ class WfmTrocasRepositoryMixin:
             ids = [int(r[0]) for r in cursor.fetchall()][:200]
             nomes = {o["id_usuario"]: o["nome"] for o in self._wfm_todos_operadores(cursor, operacao)}
             modelos = self._wfm_turnos_modelo(cursor, operacao)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             sups = {s["id_usuario"]: s for s in self._wfm_supervisores_da_operacao(cursor, operacao)}
             cursor.execute("SELECT id_turno, id_supervisor FROM dbo.wfm_turnos WHERE operacao = ? AND id_supervisor IS NOT NULL", (operacao,))
             resp_turno = {int(r[0]): {"supervisor": sups[int(r[1])]["nome"], "equipe": sups[int(r[1])]["equipe"]} for r in cursor.fetchall() if int(r[1]) in sups}
@@ -723,8 +723,8 @@ class WfmTrocasRepositoryMixin:
                         "bloqueios": json.loads(t["bloqueios_json"]) if t["bloqueios_json"] else [],
                         "decidido_por": t["decidido_por"], "justificativa": t["justificativa"],
                         "criado_em": t["criado_em"].isoformat() if t["criado_em"] else None,
-                        "pode_responder": t["estado"] == regras.AGUARDANDO_B and user.id_usuario == t["id_alvo"] and user.perfil in WFM_PERFIS_PARTICIPANTES,
-                        "pode_cancelar": t["estado"] in regras.ESTADOS_ATIVOS and user.id_usuario == t["id_solicitante"] and user.perfil in WFM_PERFIS_PARTICIPANTES,
+                        "pode_responder": t["estado"] == regras.AGUARDANDO_B and user.id_usuario == t["id_alvo"] and alcance(user.perfil).wfm == PROPRIO,
+                        "pode_cancelar": t["estado"] in regras.ESTADOS_ATIVOS and user.id_usuario == t["id_solicitante"] and alcance(user.perfil).wfm == PROPRIO,
                         "pode_decidir": t["estado"] == regras.AGUARDANDO_APROVACAO and sou_decisor and user.has_permission("wfm.troca.aprovar"),
                         "pode_desfazer": t["estado"] == regras.APROVADA and sou_decisor and user.has_permission("wfm.troca.desfazer"),
                         "linha_do_tempo": linha,
