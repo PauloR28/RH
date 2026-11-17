@@ -547,3 +547,90 @@ def get_seguranca_sessao(user: AuthenticatedUser = Depends(get_current_user)):
 
     dados = seguranca_config.ler()
     return {"ociosa_minutos": dados["sessao_ociosa_minutos"], "aviso_minutos": dados["sessao_aviso_minutos"]}
+
+
+# ── Configurações do Conecta › LGPD: todos os dados sensíveis num lugar só (Etapa 7c — 17/nov/2026) ──
+def _lgpd_tipos_com_valores(cursor, repository) -> list[dict]:
+    from ..config import get_settings
+    from ..services import lgpd_catalogo as cat
+    from ..services import seguranca_config
+    from ..services.log_archiver import configuracao as config_logs
+
+    proprios = cat.ler(cursor)
+    candidatos = repository.get_lgpd_retencao_config()
+    seg = seguranca_config.ler()
+    logs = config_logs(get_settings())
+    saida = []
+    for tipo in cat.TIPOS:
+        item = cat.descrever(tipo)
+        if tipo.origem == "catalogo":
+            item.update(proprios[tipo.id], unidade="meses")
+        elif tipo.origem == "candidatos":
+            meses = candidatos["meses_banco_talentos"] if tipo.id == "banco_talentos" else candidatos["meses_candidatura"]
+            ativo = bool(candidatos["ativo"]) and (tipo.id != "cvs_email" or bool(candidatos["excluir_cvs_nao_vinculados"]))
+            item.update(ativo=ativo, meses=meses, acao=tipo.acao, unidade="meses")
+        elif tipo.origem == "seguranca":
+            item.update(ativo=bool(seg["inatividade_ativa"]), meses=seg["inatividade_exclusao_dias"], acao=tipo.acao, unidade="dias")
+        elif tipo.origem == "logs":
+            item.update(ativo=bool(logs["habilitado"]), meses=logs["dias"], acao=tipo.acao, unidade="dias")
+        else:
+            item.update(ativo=False, meses=tipo.meses, acao=tipo.acao, unidade="meses")
+        saida.append(item)
+    return saida
+
+
+@router.get("/lgpd/dados", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def get_lgpd_dados(repository: DatabaseRepository = Depends(get_repository)):
+    """Todos os tipos de dado sensível do Conecta, com prazo e o que acontece depois."""
+    conn = repository._connect()
+    try:
+        return {"tipos": _lgpd_tipos_com_valores(conn.cursor(), repository), "candidatos": repository.get_lgpd_retencao_config()}
+    finally:
+        conn.close()
+
+
+@router.put("/lgpd/dados", dependencies=[Depends(require_permissions("lgpd.configurar"))])
+def put_lgpd_dados(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    from ..services import lgpd_catalogo as cat
+
+    mudancas = {k: v for k, v in ((payload or {}).get("mudancas") or {}).items() if isinstance(v, dict)}
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        anterior = cat.ler(cursor)
+        novos = cat.salvar(cursor, mudancas, ator=user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(
+        repository, user, modulo="LGPD", acao="configurar_dados_sensiveis", entidade="lgpd", entidade_id="catalogo",
+        valor_anterior=anterior, valor_novo=novos,
+    )
+    return {"tipos": novos}
+
+
+@router.get("/lgpd/dados/simulacao", dependencies=[Depends(require_permissions("lgpd.visualizar"))])
+def get_lgpd_dados_simulacao(repository: DatabaseRepository = Depends(get_repository)):
+    """Quantos registros de cada tipo já passaram do prazo (só leitura, não apaga nada)."""
+    from datetime import datetime
+
+    from ..services import lgpd_catalogo as cat
+
+    agora = datetime.now()
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        valores = {t["id"]: t for t in _lgpd_tipos_com_valores(cursor, repository)}
+        contagens = {}
+        for tipo in cat.TIPOS:
+            try:
+                contagens[tipo.id] = cat.contar(cursor, tipo, valores[tipo.id]["meses"], agora)
+            except Exception:  # noqa: BLE001 - coluna que ainda não existe neste banco: sem número
+                contagens[tipo.id] = None
+    finally:
+        conn.close()
+    return {"contagens": contagens}

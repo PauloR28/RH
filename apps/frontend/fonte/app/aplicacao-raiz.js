@@ -155,7 +155,8 @@ const TelaAdministracao = carregarTela(
   'TelaAdministracao',
 );
 const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
-const TelaLgpd = carregarTela(importarCatalogoDedicado, 'TelaLgpd');
+// LGPD (Etapa 7c): todos os dados sensíveis do Conecta numa tela só.
+const TelaLgpd = carregarTela(() => import('../features/configuracoes/lgpd-central.js?v=20261117-config3'), 'TelaLgpdCentral');
 const importarSegurancaBackup = () => import('../features/configuracoes/seguranca-backup.js?v=20261117-config');
 const TelaSegurancaConecta = carregarTela(importarSegurancaBackup, 'TelaSegurancaConecta');
 const TelaBackupConecta = carregarTela(importarSegurancaBackup, 'TelaBackupConecta');
