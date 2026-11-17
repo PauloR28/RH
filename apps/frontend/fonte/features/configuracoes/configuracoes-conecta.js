@@ -16,6 +16,7 @@ export const ABAS_CATALOGOS = [
 
 export const SECOES_CONFIGURACOES = [
   { id: 'seguranca', label: 'Segurança', descricao: 'Senha, inatividade e sessão', icone: 'shield-check', telas: ['screen-settings-seguranca'] },
+  { id: 'inicio', label: 'Início dos módulos', descricao: 'O que cada perfil vê ao entrar', icone: 'house', telas: ['screen-settings-inicio'] },
   { id: 'logs', label: 'Logs', descricao: 'Acesso, alterações, erros, APIs', icone: 'clock-counter-clockwise', telas: ['screen-settings-logs', 'screen-settings-monitoria-logs'] },
   { id: 'backup', label: 'Backup', descricao: 'Situação, avisos e registro', icone: 'hard-drives', telas: ['screen-settings-backup'] },
   { id: 'notificacoes', label: 'Notificações', descricao: 'Tipos, som e navegador', icone: 'bell', telas: ['screen-settings-notifications'] },

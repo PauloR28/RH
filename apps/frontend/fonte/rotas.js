@@ -31,6 +31,7 @@ export const ROTAS_POR_TELA = {
   'screen-settings-administracao': 'configuracoes/administracao',
   'screen-settings-conecta': 'configuracoes/conecta',
   'screen-settings-seguranca': 'configuracoes/seguranca',
+  'screen-settings-inicio': 'configuracoes/inicio',
   'screen-settings-backup': 'configuracoes/backup',
   'screen-settings-sharepoint-ambiente': 'configuracoes/administracao/parametros/sharepoint/novo-ambiente',
   'screen-provas-configuracao': 'processos/provas-configuracao',

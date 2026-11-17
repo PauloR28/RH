@@ -201,6 +201,7 @@ export const PERMISSOES_TELAS = {
   'screen-settings-raciocinio-logico': 'provas.questoes_criar',
   'screen-settings-administracao': 'configuracoes.visualizar',
   'screen-settings-seguranca': 'configuracoes.visualizar',
+  'screen-settings-inicio': 'configuracoes.visualizar',
   'screen-settings-backup': 'configuracoes.visualizar',
   // Configurações do Conecta (Etapa 7): entra quem pode abrir ao menos uma seção.
   'screen-settings-conecta': ['configuracoes.visualizar', 'logs.visualizar', 'notificacoes.configurar', 'lgpd.visualizar', 'documentos_templates.editar'],

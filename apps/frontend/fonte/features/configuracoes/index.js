@@ -32,7 +32,6 @@ import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-aces
 import { definirModuloDaPermissao } from '../../services/api/modulos.js';
 import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261117-config2';
 import { listarOperacoes } from '../../services/api/operations.js';
-import { PainelTelaInicialPerfil } from './tela-inicial-config.js?v=20261111-atalhos-ocultos';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-modulo-unico2';
 import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
@@ -2362,7 +2361,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         aoMover=${moverPermissaoDeModulo}
         wfmFechado=${!!perfilSelecionado?.wfm_fechado}
         avisos=${html`${erro ? html`<${Faixa} tom="perigo" icone="warning-octagon">${erro}<//>` : null}${feedback ? html`<${Faixa} tom="sucesso" icone="check-circle">${feedback}<//>` : null}`}
-        telaInicial=${perfilSelecionado ? html`<${PainelTelaInicialPerfil} perfil=${perfilSelecionado} permissoes=${permissoesPerfilDraft} podeEditar=${podeEditarPerfis && perfisDesbloqueados} />` : null}
       />
     `;
   };

@@ -1,9 +1,9 @@
 import { html, useEffect, useState } from '../../infraestrutura-react.js';
 import { EmptyState, LoadingState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { AvatarUsuario } from '../../ui/components/layout.js?v=20261117-config2';
-import { TelaInicioSupervisor } from './inicio-supervisor.js?v=20261112-modulo-unico2';
+import { AvatarUsuario } from '../../ui/components/layout.js?v=20261117-inicio';
+import { TelaInicioOperacao } from './inicio-operacao.js?v=20261117-inicio';
 import { TelaInicioOperador } from './inicio-operador.js?v=20261112-modulo-unico2';
-import { useAtalhosOcultos } from '../../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
+import { useAtalhosOcultos } from '../../shared/tela-inicial.js?v=20261117-inicio';
 import { IconeSvg } from '../../ui/icone.js';
 import { resolverAvatarUrl } from '../../shared/avatares.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
@@ -220,14 +220,15 @@ function useTrocasParaMim(habilitado) {
   return total;
 }
 
-export function TelaInicioPorSessoes({ controlador }) {
+export function TelaInicioPorSessoes({ controlador, moduloOperacao = false }) {
   const estado = controlador.estado;
   const nome = estado.nomeUsuarioAutenticado || estado.usuarioAutenticado || '';
   const avatar = resolverAvatarUrl(estado.avatarUsuario);
   const alertas = useAlertasMonitoria(controlador);
   const trocasPendentes = useTrocasParaMim(controlador.possuiPermissao('wfm.troca.visualizar'));
-  // Atalhos escondidos em Perfis > Tela inicial: só saem do Início, a seção continua no menu.
-  const atalhosOcultos = useAtalhosOcultos();
+  // Atalhos escondidos em Configurações › Início dos módulos: só saem do Início, a seção continua no menu.
+  const ehOperadorPerfil = estado.perfilUsuario === 'operador';
+  const atalhosOcultos = useAtalhosOcultos(ehOperadorPerfil || moduloOperacao ? 'operacao' : 'rh');
 
   // O Operador só usa a Central de Treinamento como autoatendimento dos
   // próprios treinamentos atribuídos (sem onboarding.criar/editar/gerenciar) —
@@ -248,9 +249,10 @@ export function TelaInicioPorSessoes({ controlador }) {
   const sessoes = sessoesDoUsuario(controlador, {
     ocultarTreinamentosSemAgenda: ehOperador && !temTreinamentoAgendado,
   });
-  // Supervisor: Início no desenho novo (atalhos, Escala de hoje, Precisa de você e Mural) — amostra de 08/11/2026.
-  if (estado.perfilUsuario === 'supervisor') {
-    return html`<${TelaInicioSupervisor} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} atalhosOcultos=${atalhosOcultos} />`;
+  // Início da Operação (Etapa 8, 17/11/2026): Supervisor e todo perfil no módulo Operação (menos o Operador, que tem o
+  // Início próprio). Mesmo desenho do Início do Supervisor de 08/11, com os blocos de Configurações › Início dos módulos.
+  if (estado.perfilUsuario === 'supervisor' || (moduloOperacao && !ehOperador)) {
+    return html`<${TelaInicioOperacao} controlador=${controlador} sessoes=${sessoes} alertasMonitoria=${alertas.total} trocasPendentes=${trocasPendentes} />`;
   }
   // Operador: Início no desenho novo (cabeçalho com "Seu dia", atalhos e Precisa de você) — amostra da Fase 14 (DEC-086).
   if (ehOperador) return html`<${TelaInicioOperador} controlador=${controlador} sessoes=${sessoes} atalhosOcultos=${atalhosOcultos} />`;

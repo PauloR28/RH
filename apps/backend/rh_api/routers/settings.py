@@ -89,10 +89,13 @@ def get_minha_tela_inicial(
 def save_tela_inicial_perfil(
     id_perfil: str,
     payload: TelaInicialConfigRequest,
+    modulo: str = "rh",
     user: AuthenticatedUser = Depends(get_current_user),
     repository: DatabaseRepository = Depends(get_repository),
 ):
-    result = repository.save_tela_inicial_perfil(id_perfil, payload.model_dump(), actor=user.username)
+    """Salva o Início de UM módulo (rh, operacao ou tecnologia) do perfil; os outros módulos ficam como estavam."""
+    result = repository.save_tela_inicial_perfil(id_perfil, payload.model_dump(), actor=user.username, modulo=modulo)
+    parte = (result.get("modulos") or {}).get(modulo) or {}
     audit_action(
         repository,
         user,
@@ -100,7 +103,7 @@ def save_tela_inicial_perfil(
         acao="configurar_tela_inicial_perfil",
         entidade="perfil",
         entidade_id=id_perfil,
-        valor_novo={"blocos": result.get("blocos"), "atalhos_ocultos": result.get("atalhos_ocultos")},
+        valor_novo={"modulo": modulo, "blocos": parte.get("blocos"), "atalhos_ocultos": parte.get("atalhos_ocultos")},
     )
     return result
 
