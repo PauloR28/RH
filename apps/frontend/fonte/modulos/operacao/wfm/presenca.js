@@ -81,7 +81,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
 
   const nomes = useMemo(() => Object.fromEntries((dados?.operadores || []).map((o) => [o.id_usuario, o.nome])), [dados]);
   const semana = `${br(dias[0]).slice(0, 5)} a ${br(dias[6])}`;
-  const pagina = (conteudo, extra = {}) => (embutido ? html`<div class="c-embutido" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</div>` : html`<main class="c-pagina c-conteudo" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</main>`);
+  const pagina = (conteudo, extra = {}) => (embutido ? html`<div class="c-embutido" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</div>` : html`<main class="c-pagina c-conteudo c-tela-cheia" aria-busy=${extra.ocupado ? 'true' : null}>${conteudo}</main>`);
   const cabecalho = html`<div class="c-cab-linha">${embutido ? null : html`<h1>Presença</h1>`}
     ${opcoesEscala && opcoesEscala.length > 1 && aoTrocarEscala ? html`<select class="c-entrada c-entrada--compacta c-trocar-escala" aria-label="Trocar de escala" value=${operacao} onChange=${(e) => aoTrocarEscala(e.target.value)}>${opcoesEscala.map(([v, r]) => html`<option key=${v} value=${v}>${r}</option>`)}</select>` : null}
     ${pode && dados ? html`<div class="c-cab-dir">
@@ -182,7 +182,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
               </div></td></tr>`)}</tbody></table>
         </div>
       </section>` : null}
-      <div class="c-tabela-caixa">
+      <div class="c-tabela-caixa c-caixa-cheia">
         <div class="c-filtros c-filtros--suave">
           <${Navegar} grupo="Semana" rotulo=${semana} rotuloAnterior="Semana anterior" rotuloProximo="Próxima semana" aoAnterior=${() => setAncora(somar(ancora, -7))} aoProximo=${() => setAncora(somar(ancora, 7))} />
           <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => setAncora(new Date())}>Esta semana</button>
@@ -195,7 +195,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
           </select>
           <span class="c-contador" aria-live="polite">${operadores.length} de ${dados.operadores.length}</span>
         </div>
-        <table class="c-tabela c-tabela--fixa c-semana c-presenca">
+        <div class="c-rolagem"><table class="c-tabela c-tabela--fixa c-semana c-presenca">
           <thead><tr><th scope="col" class="c-col-nome">Colaborador</th>${dias.map((d, i) => html`<th key=${d} scope="col" class=${`c-dia-sem ${d === hoje ? 'c-hoje' : ''}`}>${SEMANA[i]} ${br(d).slice(0, 5)}</th>`)}</tr></thead>
           <tbody>${operadores.length ? operadores.map((op) => html`<tr key=${op.id_usuario}><td class="c-forte c-col-nome">${op.nome}</td>
             ${dias.map((d) => {
@@ -212,7 +212,7 @@ export function TelaPresenca({ controlador, operacao, showToast, aoMudarPendenci
     const falta = d <= hoje && total > 0 && presentes < total;
     return html`<td key=${d} class=${`c-dia-sem ${d === hoje ? 'c-hoje' : ''} ${falta ? 'c-falta' : ''}`}>${total ? html`${presentes}<small> de ${total}</small>` : '—'}</td>`;
   })}</tr></tfoot>
-        </table>
+        </table></div>
         <div class="c-legenda">
           ${PRINCIPAIS.map((k) => html`<span key=${k}><span class=${`c-sigla c-selo--${TOM_SIGLA[k]}`}>${SIGLA_PRESENCA[k]}</span>${ROTULO_STATUS_PRESENCA[k]}</span>`)}
           <span><span class="c-pendente">—</span>Sem lançamento</span>

@@ -2049,7 +2049,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       <th>Operação</th>
                       <th>Entrada</th>
                       <th>Último acesso</th>
-                      <th class="c-estica">Situação</th>
+                      <th>Situação</th>
                       <th class="c-acoes"><span class="c-oculto">Ações</span></th>
                     </tr>
                   </thead>

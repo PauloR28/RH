@@ -8,16 +8,16 @@ import { definirSelos } from '../../../ui/components/selos-subbarra.js';
 import { Segmento } from '../../../ui/components/ds.js?v=20261106-wfm';
 import { SeletorPeriodo, mesAtual, useContextoWfm } from './comum.js?v=20261112-modulo-unico2';
 import { TelaEscala } from './escala.js?v=20261112-modulo-unico2';
-import { TelaPresenca } from './presenca.js?v=20261112-modulo-unico2';
+import { TelaPresenca } from './presenca.js?v=20261121-telas-grandes';
 import { TelaCadastros } from './cadastros.js?v=20261112-modulo-unico2';
-import { TelaEscalaPausas } from './pausas.js?v=20261112-modulo-unico2';
+import { TelaEscalaPausas } from './pausas.js?v=20261121-telas-grandes';
 import { TelaEscalaTabela } from './tabela.js?v=20261112-modulo-unico2';
 import { TelaMinhaEscala } from './minha.js?v=20261112-modulo-unico2';
 import { ListaEscalas } from './escalas.js?v=20261112-modulo-unico2';
 import { ModalConfigEscala } from './configuracao.js?v=20261112-modulo-unico2';
 import { TelaTrocas } from './trocas.js?v=20261112-modulo-unico2';
 import { TelaRelatorios } from './relatorios.js?v=20261112-modulo-unico2';
-import { TelaPainelDia } from './painel-dia.js?v=20261112-modulo-unico2';
+import { TelaPainelDia } from './painel-dia.js?v=20261121-telas-grandes';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
 // Toda restrição (operação, equipe, perfil, conflito de interesse) é aplicada no backend;

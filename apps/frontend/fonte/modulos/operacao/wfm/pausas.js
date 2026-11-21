@@ -193,9 +193,46 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
   const [rotuloEstado, tomEstado, iconeEstado] = escala?.status ? estadoEscala(escala) : [];
 
   const rotulosRapidos = [['todos', 'Todos', baseEscalados.length + baseSem.length], ['sem', 'Sem pausas', nSem], ['nao', 'Não salvas', nNao]];
+  // Tabela de pausas: rola por dentro da caixa (c-rolagem), a página não rola (21/11).
+  const tabelaPausas = html`<table class="c-tabela c-tabela-digita" aria-label=${`Pausas de ${brData(dia)}`}>
+      <thead><tr>
+        ${podeEditar ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel} disabled=${!visiveis.length || null}
+          ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}
+        <th scope="col" class="c-estica">Colaborador</th><th scope="col">Turno</th>
+        ${dados.pausas_padrao.map((p, i) => html`<th scope="col" key=${p.ordem} title=${`${ROTULO_TIPO[p.tipo] || 'Pausa'} · ${p.duracao_min} min`}>${i + 1}ª pausa</th>`)}
+        <th scope="col">Situação</th>
+        ${podeEditar ? html`<th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th>` : null}
+      </tr></thead>
+      <tbody>
+        ${visiveis.map((op) => {
+          const pausas = pausasDe(op); const pend = !!edicao[op.id_operador]; const conf = pausas.some((p) => emConflito.has(`${op.id_operador}:${p.ordem}`));
+          return html`<tr key=${op.id_operador} class=${pend ? 'c-pausa-mudou' : ''} aria-selected=${sel[op.id_operador] ? 'true' : null}>
+            ${podeEditar ? html`<td><label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!sel[op.id_operador]} onChange=${() => setSel({ ...sel, [op.id_operador]: !sel[op.id_operador] })} /></label></td>` : null}
+            <td class="c-forte c-estica" title=${[op.equipe, (op.supervisores || []).map((s) => s.nome).join(', ')].filter(Boolean).join(' · ') || null}>${op.nome}${op.erros?.length ? html`<span class="c-ajuda c-tom-atencao" style=${{ display: 'block' }}>${op.erros[0]}</span>` : null}</td>
+            <td class="c-num-esq" title=${op.turno.dias_rotulo || null}>${op.turno.codigo} <span class="c-secundario">${op.turno.entrada}–${op.turno.saida}</span></td>
+            ${dados.pausas_padrao.map((padrao) => { const p = pausas.find((x) => x.ordem === padrao.ordem);
+              return html`<td key=${padrao.ordem}>${p
+                ? (podeEditar ? html`<input class=${`c-entrada c-entrada--compacta c-pausa-hora ${p.inicio ? '' : 'c-pausa-hora--vazia'}`} type="time" step="300" aria-label=${`${op.nome}, ${padrao.ordem}ª pausa`} value=${p.inicio} onInput=${(e) => mudar(op, padrao.ordem, e.target.value)} />` : html`<span class="c-num-esq">${p.inicio}</span>`)
+                : (podeEditar && padrao.ordem === 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-add" onClick=${() => iniciar(op)}>+ Definir</button>` : html`<span class="c-secundario">—</span>`)}</td>`; })}
+            <td>${conf ? html`<${Selo} tom="perigo">Acima do limite<//>` : pend ? html`<${Selo} tom="informacao">Não salva<//>` : !pausas.length ? html`<${Selo} tom="atencao">Sem pausa<//>` : null}</td>
+            ${podeEditar ? html`<td class="c-acoes"><${MenuAcoes} rotulo=${`Mais ações para ${op.nome}`} acoes=${[
+              { label: 'Duplicar para outros colaboradores', icon: 'copy', disabled: !pausas.length || pend, onClick: () => setDuplicando(op) },
+            ]} /></td>` : null}
+          </tr>`; })}
+        ${visiveisSem.map((op) => html`<tr key=${`s${op.id_operador}`} data-sem-escala="">
+          ${podeEditar ? html`<td></td>` : null}
+          <td class="c-estica c-secundario">${op.nome}</td>
+          <td class="c-secundario" title=${op.motivo || null}>Sem escala</td>
+          <td class="c-secundario" colspan=${nCols}>${op.motivo || 'Sem escala · sem pausa'}</td>
+          <td></td>
+          ${podeEditar ? html`<td></td>` : null}
+        </tr>`)}
+        ${visiveis.length + visiveisSem.length ? null : html`<tr><td class="c-secundario" colspan=${colunas}>Nenhum colaborador com estes filtros.</td></tr>`}
+      </tbody>
+    </table>`;
 
   return html`
-    <main class="c-pagina c-conteudo">
+    <main class="c-pagina c-conteudo c-tela-cheia">
       <div class="c-cab-linha c-cab-escala">
         ${voltar}
         <h1 title=${nomeEscala}>${nomeEscala}</h1>
@@ -210,7 +247,7 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
         acao=${podeEditar ? html`<button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${ocupado || null} onClick=${distribuirConflito}>Distribuir automático</button>` : null}>
         <b>${opsEmConflito} pessoa(s)</b> em pausa ao mesmo tempo acima do limite de ${capacidade}. Ajuste os horários ou deixe o sistema distribuir.<//>` : null}
 
-      <div class="c-tabela-caixa c-pausas-caixa" role="region" aria-label="Pausas do dia">
+      <div class="c-tabela-caixa c-caixa-cheia" role="region" aria-label="Pausas do dia">
         <div class="c-filtros c-filtros--suave c-filtros--quebra">
           <${Segmento} rotulo="Visão" valor="pausas" aoMudar=${(v) => { if (v === 'semana' || v === 'mes') aoMes?.(v); else if (v === 'dia') aoDia?.(); }}
             opcoes=${[['semana', 'Semana'], ['mes', 'Mês'], ...(aoDia ? [['dia', 'Do dia']] : []), ['pausas', 'Pausas']]} />
@@ -228,43 +265,8 @@ export function TelaEscalaPausas({ controlador, contexto, operacao, anoMes, show
 
         ${!operadores.length && !semEscala.length
           ? html`<${Estado} icone="pause-circle" titulo="Ninguém neste dia" texto="Não há colaboradores nesta escala. Monte a escala de turnos primeiro." />`
-          : html`<div class=${podeEditar ? 'c-pausas' : ''}>
-            <table class="c-tabela c-tabela-digita" aria-label=${`Pausas de ${brData(dia)}`}>
-              <thead><tr>
-                ${podeEditar ? html`<th scope="col" style=${{ width: '40px' }}><label class="c-marcar"><input type="checkbox" aria-label="Selecionar todos os colaboradores" checked=${todosSel} disabled=${!visiveis.length || null}
-                  ref=${(el) => { if (el) el.indeterminate = marcados.length > 0 && !todosSel; }} onChange=${alternarTodos} /></label></th>` : null}
-                <th scope="col" class="c-estica">Colaborador</th><th scope="col">Turno</th>
-                ${dados.pausas_padrao.map((p, i) => html`<th scope="col" key=${p.ordem} title=${`${ROTULO_TIPO[p.tipo] || 'Pausa'} · ${p.duracao_min} min`}>${i + 1}ª pausa</th>`)}
-                <th scope="col">Situação</th>
-                ${podeEditar ? html`<th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th>` : null}
-              </tr></thead>
-              <tbody>
-                ${visiveis.map((op) => {
-                  const pausas = pausasDe(op); const pend = !!edicao[op.id_operador]; const conf = pausas.some((p) => emConflito.has(`${op.id_operador}:${p.ordem}`));
-                  return html`<tr key=${op.id_operador} class=${pend ? 'c-pausa-mudou' : ''} aria-selected=${sel[op.id_operador] ? 'true' : null}>
-                    ${podeEditar ? html`<td><label class="c-marcar"><input type="checkbox" aria-label=${`Selecionar ${op.nome}`} checked=${!!sel[op.id_operador]} onChange=${() => setSel({ ...sel, [op.id_operador]: !sel[op.id_operador] })} /></label></td>` : null}
-                    <td class="c-forte c-estica" title=${[op.equipe, (op.supervisores || []).map((s) => s.nome).join(', ')].filter(Boolean).join(' · ') || null}>${op.nome}${op.erros?.length ? html`<span class="c-ajuda c-tom-atencao" style=${{ display: 'block' }}>${op.erros[0]}</span>` : null}</td>
-                    <td class="c-num-esq" title=${op.turno.dias_rotulo || null}>${op.turno.codigo} <span class="c-secundario">${op.turno.entrada}–${op.turno.saida}</span></td>
-                    ${dados.pausas_padrao.map((padrao) => { const p = pausas.find((x) => x.ordem === padrao.ordem);
-                      return html`<td key=${padrao.ordem}>${p
-                        ? (podeEditar ? html`<input class=${`c-entrada c-entrada--compacta c-pausa-hora ${p.inicio ? '' : 'c-pausa-hora--vazia'}`} type="time" step="300" aria-label=${`${op.nome}, ${padrao.ordem}ª pausa`} value=${p.inicio} onInput=${(e) => mudar(op, padrao.ordem, e.target.value)} />` : html`<span class="c-num-esq">${p.inicio}</span>`)
-                        : (podeEditar && padrao.ordem === 1 ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-dia-add" onClick=${() => iniciar(op)}>+ Definir</button>` : html`<span class="c-secundario">—</span>`)}</td>`; })}
-                    <td>${conf ? html`<${Selo} tom="perigo">Acima do limite<//>` : pend ? html`<${Selo} tom="informacao">Não salva<//>` : !pausas.length ? html`<${Selo} tom="atencao">Sem pausa<//>` : null}</td>
-                    ${podeEditar ? html`<td class="c-acoes"><${MenuAcoes} rotulo=${`Mais ações para ${op.nome}`} acoes=${[
-                      { label: 'Duplicar para outros colaboradores', icon: 'copy', disabled: !pausas.length || pend, onClick: () => setDuplicando(op) },
-                    ]} /></td>` : null}
-                  </tr>`; })}
-                ${visiveisSem.map((op) => html`<tr key=${`s${op.id_operador}`} data-sem-escala="">
-                  ${podeEditar ? html`<td></td>` : null}
-                  <td class="c-estica c-secundario">${op.nome}</td>
-                  <td class="c-secundario" title=${op.motivo || null}>Sem escala</td>
-                  <td class="c-secundario" colspan=${nCols}>${op.motivo || 'Sem escala · sem pausa'}</td>
-                  <td></td>
-                  ${podeEditar ? html`<td></td>` : null}
-                </tr>`)}
-                ${visiveis.length + visiveisSem.length ? null : html`<tr><td class="c-secundario" colspan=${colunas}>Nenhum colaborador com estes filtros.</td></tr>`}
-              </tbody>
-            </table>
+          : html`<div class=${podeEditar ? 'c-pausas' : 'c-pausas c-pausas--so-tabela'}>
+            <div class="c-rolagem">${tabelaPausas}</div>
             ${podeEditar ? html`<${PainelDefinir} dia=${dia} anoMes=${anoMes} dados=${dados} operadores=${operadores} semEscala=${semEscala} marcados=${marcados} turnos=${turnos} equipes=${equipes}
               ocupado=${ocupado} executar=${executar} operacao=${operacao} resumoAplicacao=${resumoAplicacao} enfileirar=${enfileirar}
               capacidade=${capacidade} podeCapacidade=${podeCapacidade} aoCapacidade=${alterarCapacidade} ocup=${ocup} faixa=${faixa} />` : null}

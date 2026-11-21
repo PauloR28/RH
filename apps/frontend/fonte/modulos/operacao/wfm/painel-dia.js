@@ -424,7 +424,7 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
         onClick=${marcarLote}><${Ic} nome="list-checks" />Marcar P em quem logou <span class="c-conta">${loteAlvo.length}</span></button>` : null}
     </div></div>`;
 
-  const pagina = (conteudo) => html`<main class="c-pagina c-conteudo c-pd" ref=${mainRef} style=${{ position: 'relative' }}>${cabecalho}${conteudo}</main>`;
+  const pagina = (conteudo) => html`<main class="c-pagina c-conteudo c-pd c-tela-cheia" ref=${mainRef} style=${{ position: 'relative' }}>${cabecalho}${conteudo}</main>`;
   if (erro) return pagina(html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} rotuloAcao="Tentar de novo" aoAcao=${() => carregar()} /></div>`);
 
   const filtros = html`<div class="c-filtros c-filtros--suave">
@@ -472,13 +472,13 @@ export function TelaPainelDia({ controlador, contexto, operacao, showToast, aoTr
   const algumVisivel = grupos.some((g) => g.linhas.some((l) => passa(l, filtro)));
 
   return html`${pagina(html`
-    <div class="c-tabela-caixa">
+    <div class="c-tabela-caixa c-caixa-cheia">
       ${filtros}
       ${dia === hoje ? html`<${FaixaDiarioPainel} controlador=${controlador} operacao=${operacao} />` : null}
       ${resumo}
-      ${vazio ? html`<${Estado} icone="calendar-blank" titulo=${linhas.length ? 'Ninguém com estes filtros.' : 'Ninguém escalado para trabalhar neste dia.'}
+      <div class="c-rolagem" onScroll=${() => { if (menu) setMenu(null); }}>${vazio ? html`<${Estado} icone="calendar-blank" titulo=${linhas.length ? 'Ninguém com estes filtros.' : 'Ninguém escalado para trabalhar neste dia.'}
           rotuloAcao=${linhas.length ? 'Limpar filtros' : null} aoAcao=${linhas.length ? () => { setBusca(''); setEquipe(''); setTurno(''); setSoMinha(false); setFiltro('todos'); } : null} />`
-        : html`${tabela}${algumVisivel ? null : html`<${Estado} titulo="Ninguém neste número agora." rotuloAcao="Ver todos os escalados" aoAcao=${() => setFiltro('todos')} />`}`}
+        : html`${tabela}${algumVisivel ? null : html`<${Estado} titulo="Ninguém neste número agora." rotuloAcao="Ver todos os escalados" aoAcao=${() => setFiltro('todos')} />`}`}</div>
       <div class="c-tabela-rodape c-pd-legenda">
         <span class="c-pd-l-prox">próxima pausa</span>
         <span>pausas previstas na escala</span>
