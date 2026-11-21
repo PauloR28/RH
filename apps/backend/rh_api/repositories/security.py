@@ -53,6 +53,11 @@ _EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _AVATAR_ILUSTRADO_PATTERN = re.compile(r"^avatar-(0[1-9]|[12]\d|3\d|40)$")
 
 
+def _nome_maiusculo(value) -> str:
+    """Nome e sobrenome de usuário são sempre gravados em MAIÚSCULAS ("fulano de tal" -> "FULANO DE TAL")."""
+    return normalize_text(value).upper()
+
+
 def _normalize_email(value) -> str:
     return normalize_text(value).lower()
 
@@ -919,7 +924,7 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def update_own_name(self, id_usuario: int, nome: str) -> dict:
-        safe_name = normalize_text(nome)
+        safe_name = _nome_maiusculo(nome)
         if not safe_name:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um nome válido.")
 
@@ -981,7 +986,7 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def update_own_surname(self, id_usuario: int, sobrenome: str) -> dict:
-        safe_surname = normalize_text(sobrenome)
+        safe_surname = _nome_maiusculo(sobrenome)
         if len(safe_surname) > 180:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Sobrenome muito longo.")
 
@@ -1516,8 +1521,8 @@ class SecurityRepositoryMixin:
         )
 
     def create_system_user(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
-        safe_name = normalize_text(data.get("nome"))
-        safe_surname = normalize_text(data.get("sobrenome"))
+        safe_name = _nome_maiusculo(data.get("nome"))
+        safe_surname = _nome_maiusculo(data.get("sobrenome"))
         safe_email = _normalize_email(data.get("email"))
         safe_login = normalize_text(data.get("login")) or safe_email
         safe_password = normalize_text(data.get("senha") or data.get("password"))
@@ -1727,8 +1732,8 @@ class SecurityRepositoryMixin:
                 )
             new_values = {
                 "login": normalize_text(data.get("login")) or previous["login"],
-                "nome": normalize_text(data.get("nome")) or previous["nome"],
-                "sobrenome": normalize_text(data.get("sobrenome")) if "sobrenome" in data else previous.get("sobrenome", ""),
+                "nome": _nome_maiusculo(data.get("nome") or previous["nome"]),
+                "sobrenome": _nome_maiusculo(data.get("sobrenome") if "sobrenome" in data else previous.get("sobrenome", "")),
                 "email": requested_email,
                 "perfil_id": role.id,
                 "cargo": normalize_text(data.get("cargo")) if "cargo" in data else previous.get("cargo", ""),
