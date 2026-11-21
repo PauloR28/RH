@@ -172,6 +172,42 @@ class WfmEscalaRepositoryMixin:
         )
         return [{"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip()} for r in cursor.fetchall()]
 
+    def _wfm_marcas_troca(self, cursor, operacao: str, ids: list[int], ini: date, fim: date) -> dict[tuple[int, str], dict]:
+        """Células que vieram de uma troca APROVADA entre dois operadores: (id_operador, data ISO) -> com quem e quem aprovou.
+
+        Só marca a célula enquanto ela ainda tem o turno que veio da troca (se alguém mexeu depois, a marca some).
+        """
+        if not ids:
+            return {}
+        marcadores = ",".join("?" for _ in ids)
+        cursor.execute(
+            f"SELECT id_troca, id_solicitante, id_alvo, data_a, data_b, base_json, decidido_por, decidido_em FROM dbo.wfm_trocas "
+            f"WHERE operacao = ? AND estado = 'APROVADA' AND ((data_a BETWEEN ? AND ?) OR (data_b BETWEEN ? AND ?)) "
+            f"AND (id_solicitante IN ({marcadores}) OR id_alvo IN ({marcadores})) ORDER BY id_troca",
+            (operacao, ini, fim, ini, fim, *ids, *ids),
+        )
+        linhas = cursor.fetchall()
+        if not linhas:
+            return {}
+        nomes = {o["id_usuario"]: o["nome"] for o in self._wfm_todos_operadores(cursor, operacao)}
+        marcas: dict[tuple[int, str], dict] = {}
+        for r in linhas:
+            id_a, id_b = int(r[1]), int(r[2])
+            datas = sorted({r[3].isoformat(), r[4].isoformat()})
+            try:
+                base = {(int(b["id_operador"]), str(b["data"])): b.get("id_turno") for b in json.loads(r[5] or "[]")}
+            except (ValueError, TypeError, KeyError):
+                base = {}
+            for eu, outro in ((id_a, id_b), (id_b, id_a)):
+                for d in datas:
+                    marcas[(eu, d)] = {
+                        "id_troca": int(r[0]), "com": nomes.get(outro) or "outro operador",
+                        "turno_esperado": base.get((outro, d)),
+                        "datas": datas, "aprovada_por": normalize_text(r[6]) or None,
+                        "aprovada_em": r[7].isoformat() if r[7] else None,
+                    }
+        return marcas
+
     def _wfm_cabecalho(self, cursor, operacao: str, ano_mes: str, *, criar: bool = False) -> dict:
         vazio_aprov = {"estado": "RASCUNHO", "enviado_por": None, "enviado_por_nome": None, "enviado_em": None,
                        "decidido_por": None, "decidido_em": None, "motivo": None, "hash": None}
@@ -305,6 +341,13 @@ class WfmEscalaRepositoryMixin:
                             "manual": bool(r[8]),
                         }
                     )
+            # Trocas aprovadas: marca discreta na célula ("trocado com ...") para o supervisor lembrar por que mudou.
+            if itens:
+                marcas = self._wfm_marcas_troca(cursor, operacao, sorted({i["id_operador"] for i in itens}), dias[0], dias[-1])
+                for i in itens:
+                    m = marcas.get((i["id_operador"], i["data"]))
+                    if m and (m["turno_esperado"] is None or m["turno_esperado"] == i["id_turno"]):
+                        i["troca"] = {k: v for k, v in m.items() if k != "turno_esperado"}
             pausas_equipe: list[dict] = []
             if ids and not somente_propria:
                 cursor.execute(

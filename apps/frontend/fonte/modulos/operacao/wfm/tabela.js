@@ -20,7 +20,7 @@ import { MenuCompartilharEscala } from './compartilhar.js?v=20261112-modulo-unic
 import { ModalConfigEscala } from './configuracao.js?v=20261112-modulo-unico2';
 import { GavetaAjusteDia } from './ajuste.js?v=20261112-modulo-unico2';
 import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261112-modulo-unico2';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261112-modulo-unico2';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261121-troca-escala';
 import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
