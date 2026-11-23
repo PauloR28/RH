@@ -394,6 +394,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
   const cancelarAjuste = () => { const c = celSel; setCelSel(null); if (c) setTimeout(() => celulaEl(c)?.focus(), 0); };
   const escolherTurno = (idTurno) => { if (celSel) mudar(celSel.id, celSel.data, idTurno); };
   const turnoDaSel = celSel ? idTurnoDe(celSel.id, celSel.data) : null;
+  const trocaSel = celSel && !(`${celSel.id}:${celSel.data}` in pendentes) ? itensPorChave[`${celSel.id}:${celSel.data}`]?.troca : null;
 
   const aprov = dados.aprovacao;
   const aprovada = !!(aprov?.exige && aprov.estado === 'APROVADA');
@@ -429,14 +430,16 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
     const dsr = !t || t.tipo === 'DSR';
     const evs = eventosPorDia[d] || [];
     const manual = !dsr && (pend ? !diaDoTurno(t, d) : !!itensPorChave[chave]?.manual);
-    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${infoDia(d).dia}, ${dsr ? 'DSR' : t.nome}${manual ? ', configurado à mão fora dos dias do turno' : ''}${pend ? ', alteração não salva' : ''}${viol ? `, ${viol.length} violação(ões)` : ''}`;
+    const troca = pend ? null : itensPorChave[chave]?.troca; // veio de troca aprovada entre dois operadores
+    const trocaTexto = troca ? `Trocado com ${troca.com}${troca.aprovada_por ? ` · aprovada por ${troca.aprovada_por}` : ''}${troca.aprovada_em ? ` em ${new Date(troca.aprovada_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}` : '';
+    const rotulo = `${op.nome}, ${SEMANA_NOME[doIso(d).getDay()]} ${infoDia(d).dia}, ${dsr ? 'DSR' : t.nome}${manual ? ', configurado à mão fora dos dias do turno' : ''}${troca ? `, ${trocaTexto}` : ''}${pend ? ', alteração não salva' : ''}${viol ? `, ${viol.length} violação(ões)` : ''}`;
     const sel = celSel?.id === op.id_usuario && celSel?.data === d;
     const conteudo = visao === 'semana'
-      ? (dsr ? html`<span class="c-folga">DSR</span>` : html`<span class="c-bloco" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}><b>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</b><small>${t.codigo}</small></span>`)
-      : (dsr ? html`<span class="c-turno c-turno--dsr">DSR</span>` : html`<span class="c-turno c-turno--cor" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}>${t.codigo}</span>`);
+      ? (dsr ? html`<span class="c-folga">DSR</span>` : html`<span class="c-bloco" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}><b>${t.entrada ? `${t.entrada}–${t.saida}` : t.nome}</b><small>${troca ? html`<${Ic} nome="arrows-left-right" className="c-troca-marca" />` : null}${t.codigo}</small></span>`)
+      : (dsr ? html`<span class="c-turno c-turno--dsr">DSR</span>` : html`<span class="c-turno c-turno--cor" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}>${troca ? html`<${Ic} nome="arrows-left-right" className="c-troca-marca" />` : null}${t.codigo}</span>`);
     const classeTd = [visao === 'semana' ? 'c-dia-sem' : 'c-dia', d === hojeIso ? 'c-hoje' : '', evs.length ? 'c-feriado' : '', infoDia(d).fimDeSemana && visao === 'mes' ? 'c-fds' : '',
-      pend ? 'c-cel-pendente' : '', viol ? 'c-cel-violacao' : '', manual ? 'c-cel-manual' : '', sel ? 'c-cel-sel' : ''].filter(Boolean).join(' ');
-    return html`<td key=${d} class=${classeTd} title=${viol ? viol.map((v) => v.mensagem).join('\n') : (dsr ? (evs.map((e) => e.descricao).join(' · ') || undefined) : descreverTurno(t))}>
+      pend ? 'c-cel-pendente' : '', viol ? 'c-cel-violacao' : '', manual ? 'c-cel-manual' : '', troca ? 'c-cel-troca' : '', sel ? 'c-cel-sel' : ''].filter(Boolean).join(' ');
+    return html`<td key=${d} class=${classeTd} title=${[viol ? viol.map((v) => v.mensagem).join('\n') : (dsr ? (evs.map((e) => e.descricao).join(' · ') || '') : descreverTurno(t)), trocaTexto].filter(Boolean).join('\n') || undefined}>
       ${editavel
         ? html`<button type="button" class="c-cel-botao" data-r=${r} data-c=${c} data-id=${op.id_usuario} data-d=${d} tabIndex=${r === focoR && c === Math.min(foco.c, diasMostrados.length - 1) ? 0 : -1} aria-label=${rotulo} aria-pressed=${sel ? 'true' : 'false'}
             onFocus=${() => setFoco({ r, c })} onClick=${() => { setCelSel({ id: op.id_usuario, nome: op.nome, data: d }); setTimeout(() => document.querySelector('[data-faixa-primeiro]')?.focus(), 0); }}>${conteudo}</button>`
@@ -546,6 +549,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
 
         ${celSel ? html`<div class="c-ajuste-dia" role="status" aria-live="polite">
           <span class="c-forte">Dia ${Number(celSel.data.slice(8))} · ${celSel.nome}</span>
+          ${trocaSel ? html`<span class="c-ajuste-troca"><${Ic} nome="arrows-left-right" className="c-troca-marca" />Trocou com <b>${trocaSel.com}</b>${trocaSel.datas?.length > 1 ? ` (dias ${trocaSel.datas.map((x) => `${x.slice(8)}/${x.slice(5, 7)}`).join(' e ')})` : ''}${trocaSel.aprovada_por ? ` · aprovada por ${trocaSel.aprovada_por}` : ''}${trocaSel.aprovada_em ? ` em ${new Date(trocaSel.aprovada_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}</span>` : null}
           <span class="c-sec">escolha o turno:</span>
           <span class="c-ajuste-turnos">
             ${turnosOrdenados.map((t, i) => html`<button key=${t.id_turno} type="button" class="c-botao c-botao--secundario c-botao--compacto" data-faixa-primeiro=${i === 0 ? '' : undefined} aria-pressed=${turnoDaSel === t.id_turno ? 'true' : 'false'} title=${descreverTurno(t)} onClick=${() => escolherTurno(t.id_turno)}>
@@ -561,6 +565,7 @@ export function TelaEscala({ controlador, contexto, operacao, anoMes, showToast,
         ${!semItens ? html`<div class="c-legenda">
           ${turnosDoMes.map((t) => html`<span key=${t.id_turno} title=${descreverTurno(t)}><span class="c-traco" style=${{ '--t': t.cor || 'var(--cor-acao-fundo)' }}></span>${t.codigo} · ${t.nome}</span>`)}
           <span>DSR · descanso semanal</span>
+          ${(dados?.itens || []).some((i) => i.troca) ? html`<span class="c-legenda-troca"><${Ic} nome="arrows-left-right" className="c-troca-marca" />trocado com colega (passe o mouse para ver)</span>` : null}
           ${aprovada ? html`<span><${Ic} nome="check-circle" />Aprovada por ${aprov.decidido_por || '—'} em ${dataHora(aprov.decidido_em)}</span>` : null}
           <span class="c-legenda-fim">${editavel ? 'Clique numa célula para ajustar o dia · tracejado = não salvo' : 'Somente leitura'}</span>
         </div>` : null}

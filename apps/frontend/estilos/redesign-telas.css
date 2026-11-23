@@ -101,6 +101,12 @@
 .c-escala-grade td.c-cel-sel .c-cel-botao { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-acao-fundo); }
 .c-escala-grade td.c-cel-pendente .c-cel-botao { outline: var(--borda-fina) dashed var(--cor-status-atencao-texto); outline-offset: -3px; }
 .c-escala-grade td.c-cel-violacao::after { content: ''; position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 8px solid var(--cor-status-perigo-texto); border-left: 8px solid transparent; pointer-events: none; }
+/* Troca aprovada entre dois operadores: ícone pequeno antes do código do turno (texto completo no title da célula). */
+.c-troca-marca { display: inline-flex; vertical-align: -2px; margin-right: 2px; color: var(--cor-texto-link); }
+.c-troca-marca svg { width: 12px; height: 12px; }
+.c-ajuste-troca { flex-basis: 100%; order: 9; display: flex; align-items: center; gap: var(--espaco-1); padding: var(--espaco-1) var(--espaco-2); border-radius: var(--raio-pequeno); background: var(--cor-fundo-painel); color: var(--cor-texto-secundario); }
+.c-ajuste-troca b { color: var(--cor-texto-padrao); }
+.c-legenda-troca { display: inline-flex; align-items: center; gap: var(--espaco-1); }
 .c-escala-grade td.c-cel-manual .c-bloco b::after, .c-escala-grade td.c-cel-manual .c-turno::after { content: '*'; margin-left: 2px; }
 .c-escala-grade tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); text-align: center; }
 .c-escala-grade tfoot td:first-child { text-align: left; color: var(--cor-texto-secundario); }

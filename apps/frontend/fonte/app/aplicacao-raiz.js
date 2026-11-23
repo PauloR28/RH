@@ -121,7 +121,7 @@ const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261121-telas-grandes'), 'TelaEquipesControle');
 const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261116-diario'), 'TelaDiario');
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261116-grade-larga'), 'TelaPainel');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261121-telas-grandes'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261121-troca-telas'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261112-modulo-unico2'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
