@@ -20,7 +20,7 @@ import pyodbc
 from fastapi import HTTPException, status
 
 from ..alcance import EQUIPE, PROPRIO, alcance
-from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_TI
+from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, WFM_PERFIS_TI, perfis_com_papel
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_scope
 from ..services import wfm_trocas as troca_regras
@@ -232,7 +232,8 @@ class WfmRepositoryMixin:
 
     def _wfm_perfis_participantes(self, operacao: str) -> tuple[str, ...]:
         # Escalas criadas (tipos) reúnem os dois grupos: o vínculo à operação separa Operadores (atendimento) de Técnicos/Analista (TI).
-        return PERFIS_ESCALA_COMUM + PERFIS_ESCALA_TI if wfm_scope.eh_tipo_escala(operacao) else PERFIS_ESCALA_COMUM
+        # Perfis criados pela tela entram como o perfil com que funcionam (Etapa 9).
+        return perfis_com_papel(*(PERFIS_ESCALA_COMUM + PERFIS_ESCALA_TI if wfm_scope.eh_tipo_escala(operacao) else PERFIS_ESCALA_COMUM))
 
     def _wfm_participantes_sql(self, operacao: str) -> tuple[str, tuple]:
         """Filtro SQL (sobre `u`) dos participantes da escala + parâmetros (operação-base e perfis)."""
@@ -471,9 +472,9 @@ class WfmRepositoryMixin:
             SELECT u.id_usuario, u.nome, u.sobrenome, u.id_equipe, e.nome FROM dbo.usuarios u
             JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
             LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
-            WHERE u.perfil_id = ? AND ISNULL(u.status, 'Ativo') = 'Ativo' ORDER BY u.nome, u.sobrenome
-            """,
-            (wfm_scope.operacao_base(operacao), ROLE_SUPERVISOR),
+            WHERE u.perfil_id IN (%s) AND ISNULL(u.status, 'Ativo') = 'Ativo' ORDER BY u.nome, u.sobrenome
+            """ % ",".join("?" for _ in perfis_com_papel(ROLE_SUPERVISOR)),
+            (wfm_scope.operacao_base(operacao), *perfis_com_papel(ROLE_SUPERVISOR)),
         )
         sups = [
             {"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(),

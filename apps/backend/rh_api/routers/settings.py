@@ -16,6 +16,8 @@ from ..schemas.security import (
     LgpdRetencaoConfigRequest,
     LgpdRetencaoExecutarRequest,
     NotificationAutomationSettingsRequest,
+    PerfilEdicaoRequest,
+    PerfilNovoRequest,
     QuickTrainingUserCreateRequest,
     RolePermissionsUpdateRequest,
     TelaInicialConfigRequest,
@@ -47,6 +49,41 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 @router.get("/security/roles", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])
 def get_roles(repository: DatabaseRepository = Depends(get_repository)):
     return repository.list_roles()
+
+
+# Etapa 9 (21/nov/2026): janela Perfis da tela Acessos. Criar copia permissões, alcance, Início e módulos de outro perfil.
+@router.post("/security/roles", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def create_role(
+    payload: PerfilNovoRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    resultado = repository.create_role(payload.model_dump(), actor=user)
+    audit_action(repository, user, modulo="Acessos", acao="criar_perfil", entidade="perfil", entidade_id=resultado["id"], valor_novo={**payload.model_dump(), "id": resultado["id"]})
+    return resultado
+
+
+@router.put("/security/roles/{id_perfil}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def update_role(
+    id_perfil: str,
+    payload: PerfilEdicaoRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    resultado = repository.update_role(id_perfil, payload.model_dump(), actor=user)
+    audit_action(repository, user, modulo="Acessos", acao="editar_perfil", entidade="perfil", entidade_id=id_perfil, valor_novo=payload.model_dump())
+    return resultado
+
+
+@router.delete("/security/roles/{id_perfil}", dependencies=[Depends(require_permissions("configuracoes.editar"))])
+def delete_role(
+    id_perfil: str,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    resultado = repository.delete_role(id_perfil, actor=user)
+    audit_action(repository, user, modulo="Acessos", acao="apagar_perfil", entidade="perfil", entidade_id=id_perfil, valor_novo=resultado)
+    return resultado
 
 
 @router.get("/security/permissions", dependencies=[Depends(require_permissions("configuracoes.visualizar"))])

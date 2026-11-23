@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..alcance import EQUIPE, PROPRIO, alcance
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, get_role_definition
+from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, papel, perfis_com_papel
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_engine import (
@@ -660,10 +660,10 @@ class MonitoriaRepositoryMixin:
                 FROM dbo.usuarios u
                 JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
                 LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
-                WHERE u.perfil_id = ? AND u.status = 'Ativo'
+                WHERE u.perfil_id IN (%s) AND u.status = 'Ativo'
                 ORDER BY u.nome
-                """,
-                (operacao, ROLE_OPERATOR),
+                """ % ",".join("?" for _ in perfis_com_papel(ROLE_OPERATOR)),
+                (operacao, *perfis_com_papel(ROLE_OPERATOR)),
             )
             operadores = rows_to_dicts(cursor, cursor.fetchall())
             cursor.execute("SELECT id_operador, id_supervisor FROM dbo.usuarios_supervisores")
@@ -832,7 +832,7 @@ class MonitoriaRepositoryMixin:
                 (id_operador,),
             )
             op = cursor.fetchone()
-            if not op or get_role_definition(op[3]).id != ROLE_OPERATOR or normalize_text(op[4]).lower() != "ativo":
+            if not op or papel(op[3]) != ROLE_OPERATOR or normalize_text(op[4]).lower() != "ativo":
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selecione um operador ativo.")
             if id_operador == user.id_usuario:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O avaliador não pode monitorar a si mesmo.")
@@ -975,9 +975,9 @@ class MonitoriaRepositoryMixin:
         cursor.execute(
             """
             SELECT u.email FROM dbo.usuarios u JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario
-            WHERE u.perfil_id = ? AND uo.operacao = ? AND u.status = 'Ativo'
-            """,
-            (ROLE_QUALIDADE, operacao),
+            WHERE u.perfil_id IN (%s) AND uo.operacao = ? AND u.status = 'Ativo'
+            """ % ",".join("?" for _ in perfis_com_papel(ROLE_QUALIDADE)),
+            (*perfis_com_papel(ROLE_QUALIDADE), operacao),
         )
         emails |= {normalize_text(r[0]) for r in cursor.fetchall()}
         for email in sorted(e for e in emails if e):

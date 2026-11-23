@@ -15,7 +15,7 @@ from pathlib import Path
 from fastapi import status
 
 from ..alcance import EQUIPE, PROPRIO, alcance
-from ..rbac import ROLE_SUPERVISOR, get_role_definition, get_role_permissions
+from ..rbac import ROLE_SUPERVISOR, get_role_definition, get_role_permissions, papel
 from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -349,7 +349,7 @@ class MonitoriaAnaliseRepositoryMixin:
                 cursor.execute("SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (id_dest,))
                 ops = [normalize_text(r[0]) for r in cursor.fetchall()]
                 supervisionados = set()
-                if perfil == ROLE_SUPERVISOR:
+                if papel(perfil) == ROLE_SUPERVISOR:
                     cursor.execute("SELECT id_operador FROM dbo.usuarios_supervisores WHERE id_supervisor = ?", (id_dest,))
                     supervisionados = {int(r[0]) for r in cursor.fetchall()}
                 if "monitoria.visualizar" not in get_role_permissions(perfil):

@@ -66,7 +66,7 @@ import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/co
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
 import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-modulos';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
-import { CentralAcessos } from './central-acessos.js?v=20261117-config';
+import { CentralAcessos } from './central-acessos.js?v=20261121-perfis';
 import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).

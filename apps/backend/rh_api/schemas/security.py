@@ -112,3 +112,17 @@ class LgpdRetencaoConfigRequest(BaseSchema):
 
 class LgpdRetencaoExecutarRequest(BaseSchema):
     confirmacao: str = Field(default="", max_length=20)
+
+
+class PerfilNovoRequest(BaseSchema):
+    """Etapa 9: perfil criado pela janela Perfis (tela Acessos)."""
+
+    nome: str = Field(min_length=2, max_length=80)
+    descricao: str = Field(default="", max_length=500)
+    funciona_como: str = Field(min_length=2, max_length=40)
+    copiar_de: str = Field(default="", max_length=40)
+
+
+class PerfilEdicaoRequest(BaseSchema):
+    nome: str = Field(min_length=2, max_length=80)
+    descricao: str = Field(default="", max_length=500)

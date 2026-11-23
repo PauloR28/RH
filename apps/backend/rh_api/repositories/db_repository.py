@@ -34,6 +34,7 @@ from .monitoria_planos import MonitoriaPlanosRepositoryMixin
 from .mural import MuralRepositoryMixin
 from .onboarding import OnboardingRepositoryMixin
 from .painel import PainelRepositoryMixin
+from .perfis_admin import PerfisAdminRepositoryMixin
 from .pipeline import PipelineRepositoryMixin
 from .policies import PolicyRepositoryMixin
 from .processes import ProcessRepositoryMixin
@@ -94,6 +95,7 @@ class DatabaseRepository(
     DiarioRepositoryMixin,
     PainelRepositoryMixin,
     TelaInicialRepositoryMixin,
+    PerfisAdminRepositoryMixin,
     LgpdRetencaoRepositoryMixin,
     ChamadosRepositoryMixin,
     ChamadosAdminRepositoryMixin,

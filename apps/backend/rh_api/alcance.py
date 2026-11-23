@@ -136,7 +136,10 @@ def definir_carregador(carregador: Callable[[], dict[tuple[str, str], str]] | No
 
 
 def alcance_padrao(perfil: str | None) -> Alcance:
-    return ALCANCES.get(str(perfil or ""), _PADRAO)
+    # Perfil criado pela tela (Etapa 9): começa com o alcance do perfil com que funciona.
+    from .rbac import papel
+
+    return ALCANCES.get(str(perfil or ""), None) or ALCANCES.get(papel(perfil), _PADRAO)
 
 
 def alcance(perfil: str | None) -> Alcance:

@@ -5,6 +5,7 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import { Ic, Segmento, Selo } from '../../ui/components/ds.js';
 import { definirModuloAtivo } from '../../services/api/modulos.js';
 import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js';
+import { JanelaPerfis } from './perfis-janela.js?v=20261121-perfis';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 
 const POR_PAGINA = 5;
@@ -38,6 +39,7 @@ export function CentralAcessos({ controlador }) {
   const [pagina, setPagina] = useState(1);
   const [salvando, setSalvando] = useState(false);
   const [confirmarPadronizar, setConfirmarPadronizar] = useState(false);
+  const [perfisAberta, setPerfisAberta] = useState(false);
 
   const carregar = async (mod = modulo, esc = escopo) => {
     setCarregando(true);
@@ -152,7 +154,11 @@ export function CentralAcessos({ controlador }) {
           <h1>Acessos</h1>
           <p>Escolha um módulo, depois diga para quem vale a regra. O que você salvar vale na hora, sem sair e entrar de novo.</p>
         </div>
+        <div class="c-pagina-acoes">
+          <button type="button" class="c-botao c-botao--secundario" onClick=${() => setPerfisAberta(true)}><${Ic} nome="users" />Perfis</button>
+        </div>
       </div>
+      ${perfisAberta ? html`<${JanelaPerfis} podeEditar=${podeEditar} aoFechar=${() => setPerfisAberta(false)} aoMudar=${() => { if (!Object.keys(rascunho).length) carregar(); }} />` : null}
 
       ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
       ${aviso ? html`<div class="c-faixa c-faixa--informacao" role="status"><${Ic} nome="check" /><div class="c-faixa-txt"><p>${aviso}</p></div></div>` : null}

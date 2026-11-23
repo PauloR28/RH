@@ -137,6 +137,10 @@ def matriz(modulo: str, escopo: str = "padrao") -> dict:
     try:
         cursor = conn.cursor()
         perfis = [{"id": str(i), "nome": str(n)} for i, n in _ler(cursor, "SELECT id_perfil, nome FROM dbo.perfis WHERE ativo = 1 ORDER BY nome")]
+        # Etapa 9: perfil criado pela tela fica logo depois do perfil com que funciona.
+        from ..rbac import get_role_definition, papel
+
+        perfis.sort(key=lambda p: (get_role_definition(papel(p["id"])).name.lower(), p["id"] != papel(p["id"]), p["nome"].lower()))
         no_modulo, por_unidade = _estado_funcoes(cursor, modulo)
         perfil_pessoa = None
         if tipo == "pessoa":

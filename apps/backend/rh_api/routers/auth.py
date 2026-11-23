@@ -19,7 +19,7 @@ from ..auth import (
 )
 from ..config import get_settings
 from ..dependencies import audit_action, get_current_user, get_repository
-from ..rbac import get_role_definition, get_role_permissions
+from ..rbac import get_role_definition, get_role_permissions, papel
 from ..repositories import DatabaseRepository
 from ..schemas.auth import (
     ActivateLocalLoginRequest,
@@ -172,6 +172,7 @@ def _build_login_response(token: str, user: AuthenticatedUser) -> LoginResponse:
         cargo=user.cargo,
         email=user.email,
         perfil=user.perfil,
+        papel=papel(user.perfil),
         perfil_nome=user.perfil_nome,
         nivel=user.nivel,
         permissoes=sorted(user.permissions),
@@ -597,6 +598,7 @@ def me(
         cargo=user.cargo,
         email=user.email,
         perfil=user.perfil,
+        papel=papel(user.perfil),
         perfil_nome=user.perfil_nome,
         nivel=user.nivel,
         permissoes=sorted(user.permissions),
@@ -613,6 +615,7 @@ def _build_session_response(user: AuthenticatedUser) -> SessionResponse:
         cargo=user.cargo,
         email=user.email,
         perfil=user.perfil,
+        papel=papel(user.perfil),
         perfil_nome=user.perfil_nome,
         nivel=user.nivel,
         permissoes=sorted(user.permissions),

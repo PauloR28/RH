@@ -18,7 +18,7 @@ import unicodedata
 from fastapi import HTTPException, status
 
 from ..alcance import alcance
-from ..rbac import ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR
+from ..rbac import ROLE_ANALISTA_TI, ROLE_MANAGER, ROLE_SUPERVISOR, papel, perfis_com_papel
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from .wfm_escala import _exigir_ano_mes
@@ -118,12 +118,12 @@ class WfmAprovacaoRepositoryMixin:
             SELECT DISTINCT u.id_usuario, u.nome, u.sobrenome, u.perfil_id FROM dbo.usuarios u
             LEFT JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
             WHERE ISNULL(u.status, 'Ativo') = 'Ativo' AND (
-                u.perfil_id = ? OR (u.perfil_id IN (?, ?) AND uo.operacao IS NOT NULL))
+                u.perfil_id IN (%s) OR (u.perfil_id IN (%s) AND uo.operacao IS NOT NULL))
             ORDER BY u.nome, u.sobrenome
-            """,
-            (wfm_scope.operacao_base(operacao), ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_ANALISTA_TI),
+            """ % (",".join("?" for _ in perfis_com_papel(ROLE_MANAGER)), ",".join("?" for _ in perfis_com_papel(ROLE_SUPERVISOR, ROLE_ANALISTA_TI))),
+            (wfm_scope.operacao_base(operacao), *perfis_com_papel(ROLE_MANAGER), *perfis_com_papel(ROLE_SUPERVISOR, ROLE_ANALISTA_TI)),
         )
-        return [{"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(), "perfil": normalize_text(r[3])} for r in cursor.fetchall()]
+        return [{"id_usuario": int(r[0]), "nome": f"{normalize_text(r[1])} {normalize_text(r[2])}".strip(), "perfil": papel(normalize_text(r[3]))} for r in cursor.fetchall()]
 
     def wfm_get_config_escala(self, user, operacao: str) -> dict:
         conn = self._connect()

@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261117-inicio';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261121-perfis';

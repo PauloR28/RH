@@ -14,7 +14,7 @@ from pathlib import Path
 from fastapi import HTTPException, status
 
 from ..alcance import EQUIPE, PROPRIO, alcance
-from ..rbac import ROLE_QUALIDADE
+from ..rbac import ROLE_QUALIDADE, perfis_com_papel
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import pode_ver_operacao
@@ -142,8 +142,8 @@ class MonitoriaFluxoRepositoryMixin:
     def _mon_emails_qualidade(self, cursor, operacao: str) -> list[str]:
         cursor.execute(
             "SELECT u.email FROM dbo.usuarios u JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario "
-            "WHERE u.perfil_id = ? AND uo.operacao = ? AND u.status = 'Ativo'",
-            (ROLE_QUALIDADE, operacao),
+            f"WHERE u.perfil_id IN ({','.join('?' for _ in perfis_com_papel(ROLE_QUALIDADE))}) AND uo.operacao = ? AND u.status = 'Ativo'",  # noqa: S608 - só marcadores
+            (*perfis_com_papel(ROLE_QUALIDADE), operacao),
         )
         return [normalize_text(r[0]) for r in cursor.fetchall()]
 

@@ -20,7 +20,8 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..alcance import alcance
-from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_DEFINITIONS, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
+from ..rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, perfis_ativos
+from ..rbac import papel as papel_de
 from ..services.helpers import normalize_text
 from ..services.monitoria_scope import pode_gerenciar_perfil, pode_ver_operacao, validar_vinculos
 from ..services.seguranca_config import tamanho_minimo_senha
@@ -68,7 +69,7 @@ def _lista(valor: str) -> list[str]:
 
 
 def _perfis_visiveis() -> list:
-    return [r for r in ROLE_DEFINITIONS.values() if not r.hidden]
+    return [r for r in perfis_ativos() if not r.hidden]  # Etapa 9: inclui os perfis criados e tira os apagados
 
 
 class UsuariosMassaRepositoryMixin:
@@ -207,7 +208,7 @@ class UsuariosMassaRepositoryMixin:
             cursor.execute("SELECT id_usuario, email, nome, sobrenome, perfil_id, status FROM dbo.usuarios")
             supervisores = {}
             for id_usuario, email, nome, sobrenome, perfil, st in cursor.fetchall():
-                if normalize_text(perfil) == ROLE_SUPERVISOR and normalize_text(st) == "Ativo" and normalize_text(email):
+                if papel_de(normalize_text(perfil)) == ROLE_SUPERVISOR and normalize_text(st) == "Ativo" and normalize_text(email):
                     supervisores[normalize_text(email).lower()] = {"id": int(id_usuario), "nome": f"{normalize_text(nome)} {normalize_text(sobrenome)}".strip(), "operacoes": set()}
             cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
             por_id = {s["id"]: s for s in supervisores.values()}
@@ -246,7 +247,7 @@ class UsuariosMassaRepositoryMixin:
             return None, f"Perfil não reconhecido: {dados['perfil']}."
         if papel.id == ROLE_ADMIN and not alcance(actor.perfil).total:
             return None, "Somente o Administrador cria usuários Administradores."
-        if papel.id in _PERFIS_MONITORIA and not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, papel.id):
+        if papel_de(papel.id) in _PERFIS_MONITORIA and not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, papel.id):
             return None, "Seu perfil não pode criar este nível de usuário."
         acesso = {"microsoft": "microsoft", "local": "local"}.get(_norm(dados["acesso"]))
         if not acesso:
@@ -278,7 +279,7 @@ class UsuariosMassaRepositoryMixin:
             if sup["id"] not in [s["id"] for s in supervisores]:
                 supervisores.append(sup)
         id_equipe, turno, canais = None, None, []
-        if papel.id in _PERFIS_MONITORIA:
+        if papel_de(papel.id) in _PERFIS_MONITORIA:
             erros = validar_vinculos(papel.id, operacoes, [s["id"] for s in supervisores])
             if erros:
                 return None, " ".join(erros)
@@ -287,16 +288,16 @@ class UsuariosMassaRepositoryMixin:
                     return None, f"O supervisor {sup['nome']} não está vinculado à operação informada."
             if dados["equipe"]:
                 achada = [e for e in ctx["equipes"] if e["ativo"] and e["operacao"] in operacoes and _norm(e["nome"]) == _norm(dados["equipe"])]
-                if papel.id != ROLE_OPERATOR or not achada:
+                if papel_de(papel.id) != ROLE_OPERATOR or not achada:
                     return None, f"Equipe não encontrada na operação (só para Operador): {dados['equipe']}."
                 id_equipe = achada[0]["id"]
             if dados["turno"]:
                 turno = ctx["turnos"].get(_norm(dados["turno"]))
-                if not turno or papel.id not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
+                if not turno or papel_de(papel.id) not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
                     return None, f"Turno inválido (Operador/Supervisor): {dados['turno']}."
             for item in _lista(dados["canais"]):
                 achado = [c for c in ctx["canais"] if c["ativo"] and c["operacao"] in operacoes and _norm(c["nome"]) == _norm(item)]
-                if not achado or papel.id not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
+                if not achado or papel_de(papel.id) not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
                     return None, f"Canal não encontrado na operação (Operador/Supervisor): {item}."
                 if achado[0]["id"] not in canais:
                     canais.append(achado[0]["id"])

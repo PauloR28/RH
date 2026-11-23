@@ -51,6 +51,7 @@ class LoginResponse(BaseSchema):
     cargo: str = ""
     email: str = ""
     perfil: str = "administrador"
+    papel: str = ""  # Etapa 9: perfil do código com que o perfil funciona
     perfil_nome: str = "Administrador"
     nivel: str = "Completo"
     permissoes: list[str] = []
@@ -67,6 +68,7 @@ class SessionResponse(BaseSchema):
     cargo: str = ""
     email: str = ""
     perfil: str = "administrador"
+    papel: str = ""  # Etapa 9: perfil do código com que o perfil funciona
     perfil_nome: str = "Administrador"
     nivel: str = "Completo"
     permissoes: list[str] = []

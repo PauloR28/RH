@@ -366,7 +366,8 @@ export function criarEstadoInicial() {
     sobrenomeUsuarioAutenticado: sessao.sobrenome || '',
     cargoUsuarioAutenticado: sessao.cargo || '',
     emailUsuarioAutenticado: sessao.email || '',
-    perfilUsuario: sessao.perfil || '',
+    // Etapa 9: perfil criado pela tela segue as telas do perfil com que funciona (papel); o nome mostrado é o dele.
+    perfilUsuario: sessao.papel || sessao.perfil || '',
     perfilUsuarioNome: sessao.perfil_nome || '',
     nivelPerfilUsuario: sessao.nivel || '',
     permissoesUsuario: Array.isArray(sessao.permissoes) ? sessao.permissoes : [],
@@ -1064,7 +1065,7 @@ export function useControladorAplicacao() {
             sessao?.cargo || lerSessaoAutenticacao().cargo || '',
           emailUsuarioAutenticado:
             sessao?.email || lerSessaoAutenticacao().email || '',
-          perfilUsuario: sessao?.perfil || lerSessaoAutenticacao().perfil || '',
+          perfilUsuario: sessao?.papel || sessao?.perfil || lerSessaoAutenticacao().papel || '',
           perfilUsuarioNome:
             sessao?.perfil_nome || lerSessaoAutenticacao().perfil_nome || '',
           nivelPerfilUsuario: sessao?.nivel || lerSessaoAutenticacao().nivel || '',
@@ -1335,7 +1336,7 @@ export function useControladorAplicacao() {
       sobrenomeUsuarioAutenticado: sessao?.sobrenome || '',
       cargoUsuarioAutenticado: sessao?.cargo || '',
       emailUsuarioAutenticado: sessao?.email || '',
-      perfilUsuario: sessao?.perfil || '',
+      perfilUsuario: sessao?.papel || sessao?.perfil || '',
       perfilUsuarioNome: sessao?.perfil_nome || '',
       nivelPerfilUsuario: sessao?.nivel || '',
       permissoesUsuario: Array.isArray(sessao?.permissoes)

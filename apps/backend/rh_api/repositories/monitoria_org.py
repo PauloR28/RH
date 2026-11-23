@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..alcance import alcance
-from ..rbac import ROLE_CONTROL_DESK, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
+from ..rbac import ROLE_CONTROL_DESK, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition, papel
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_engine import config_padrao
 from ..services.monitoria_scope import (
@@ -590,7 +590,7 @@ class MonitoriaOrgRepositoryMixin:
             for id_sup in supervisores:
                 cursor.execute("SELECT perfil_id, status FROM dbo.usuarios WHERE id_usuario = ?", (id_sup,))
                 sup = cursor.fetchone()
-                if not sup or get_role_definition(sup[0]).id != ROLE_SUPERVISOR:
+                if not sup or papel(sup[0]) != ROLE_SUPERVISOR:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Supervisor responsável inválido.")
                 cursor.execute("SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (id_sup,))
                 ops_sup = {normalize_text(r[0]) for r in cursor.fetchall()}
@@ -648,7 +648,7 @@ class MonitoriaOrgRepositoryMixin:
             for id_sup in (id_de, id_para):
                 cursor.execute("SELECT perfil_id FROM dbo.usuarios WHERE id_usuario = ?", (id_sup,))
                 achado = cursor.fetchone()
-                if not achado or get_role_definition(achado[0]).id != ROLE_SUPERVISOR:
+                if not achado or papel(achado[0]) != ROLE_SUPERVISOR:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Ambos precisam ser Supervisores.")
             cursor.execute("SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (id_para,))
             ops_para = {normalize_text(r[0]) for r in cursor.fetchall()}
@@ -724,7 +724,7 @@ class MonitoriaOrgRepositoryMixin:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
             perfil = get_role_definition(row[0]).id
             nome_usuario = normalize_text(row[1])
-            if perfil not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
+            if papel(perfil) not in (ROLE_OPERATOR, ROLE_SUPERVISOR):
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A transferência de operação vale para Operador e Supervisor.")
             if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode alterar este nível de usuário.")
@@ -741,7 +741,7 @@ class MonitoriaOrgRepositoryMixin:
             def _exigir_supervisor_ativo(id_sup: int, operacao: str | None) -> None:
                 cursor.execute("SELECT perfil_id, status FROM dbo.usuarios WHERE id_usuario = ?", (int(id_sup),))
                 sup = cursor.fetchone()
-                if not sup or get_role_definition(sup[0]).id != ROLE_SUPERVISOR or normalize_text(sup[1]).lower() != "ativo":
+                if not sup or papel(sup[0]) != ROLE_SUPERVISOR or normalize_text(sup[1]).lower() != "ativo":
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Supervisor escolhido é inválido ou está inativo.")
                 if operacao:
                     cursor.execute("SELECT 1 FROM dbo.usuarios_operacoes WHERE id_usuario = ? AND operacao = ?", (int(id_sup), operacao))
@@ -749,7 +749,7 @@ class MonitoriaOrgRepositoryMixin:
                         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O supervisor escolhido precisa estar vinculado à operação de destino.")
 
             reatribuidos = 0
-            if perfil == ROLE_OPERATOR:
+            if papel(perfil) == ROLE_OPERATOR:
                 novos_supervisores = sorted({int(item) for item in (supervisores or []) if item})
                 if not novos_supervisores:
                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Escolha o supervisor responsável na operação de destino.")
@@ -805,7 +805,7 @@ class MonitoriaOrgRepositoryMixin:
 
             # Operações, equipe e canais da origem.
             cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ? AND operacao = ?", (int(id_usuario), origem))
-            if perfil == ROLE_OPERATOR:
+            if papel(perfil) == ROLE_OPERATOR:
                 cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (int(id_usuario),))
             cursor.execute("INSERT INTO dbo.usuarios_operacoes (id_usuario, operacao) VALUES (?, ?)", (int(id_usuario), destino))
             if anterior.get("id_equipe"):
@@ -919,13 +919,13 @@ class MonitoriaOrgRepositoryMixin:
         resultado = []
         for row in usuarios:
             perfil = get_role_definition(row["perfil_id"]).id
-            if perfil not in self._PERFIS_MONITORIA:
+            if papel(perfil) not in self._PERFIS_MONITORIA:
                 continue
             id_usuario = int(row["id_usuario"])
             if not alcance(actor.perfil).total:
                 if not pode_gerenciar_perfil(actor.perfil, perfil):
                     continue
-                if perfil != ROLE_CONTROL_DESK and not (set(ops.get(id_usuario, [])) & set(permitidas or [])):
+                if papel(perfil) != ROLE_CONTROL_DESK and not (set(ops.get(id_usuario, [])) & set(permitidas or [])):
                     continue
             resultado.append(
                 {
@@ -951,7 +951,7 @@ class MonitoriaOrgRepositoryMixin:
         perfil = get_role_definition(data.get("perfil")).id
         if not alcance(actor.perfil).total and not pode_gerenciar_perfil(actor.perfil, perfil):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu perfil não pode criar este nível de usuário.")
-        if perfil not in self._PERFIS_MONITORIA:
+        if papel(perfil) not in self._PERFIS_MONITORIA:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nível de usuário inválido para a Monitoria.")
         operacoes = sorted({normalize_text(item) for item in (data.get("operacoes") or []) if normalize_text(item)})
         supervisores = sorted({int(item) for item in (data.get("supervisores") or [])})
@@ -1038,7 +1038,7 @@ class MonitoriaOrgRepositoryMixin:
         cursor.execute("SELECT id_usuario, nome, sobrenome, perfil_id, status FROM dbo.usuarios ORDER BY nome")
         itens = []
         for row in rows_to_dicts(cursor, cursor.fetchall()):
-            perfil = get_role_definition(row["perfil_id"]).id
+            perfil = papel(row["perfil_id"])  # perfil criado pela tela entra como o perfil com que funciona (Etapa 9)
             if perfil in perfis:
                 nome = normalize_text(row["nome"])
                 sobrenome = normalize_text(row.get("sobrenome"))

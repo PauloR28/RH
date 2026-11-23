@@ -67,7 +67,9 @@ def pode_ver_detalhe_monitoria(
 
 
 def pode_gerenciar_perfil(ator_perfil: str, alvo_perfil: str) -> bool:
-    return alvo_perfil in _PODE_GERENCIAR.get(ator_perfil, frozenset())
+    from ..rbac import papel  # perfis criados pela tela seguem o perfil com que funcionam (Etapa 9)
+
+    return papel(alvo_perfil) in _PODE_GERENCIAR.get(papel(ator_perfil), frozenset())
 
 
 def validar_vinculos(

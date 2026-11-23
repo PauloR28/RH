@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..alcance import EQUIPE, alcance
-from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition
+from ..rbac import ROLE_OPERATOR, ROLE_SUPERVISOR, papel
 from ..services import monitoria_indicadores as indicadores
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import MAX_SUPERVISORES_OPERADOR, operacoes_permitidas
@@ -39,7 +39,7 @@ class EquipesControleRepositoryMixin:
         cursor.execute(
             "SELECT id_usuario, nome, sobrenome, perfil_id, status FROM dbo.usuarios WHERE ISNULL(status, 'Ativo') = 'Ativo' ORDER BY nome"
         )
-        candidatos = [r for r in rows_to_dicts(cursor, cursor.fetchall()) if get_role_definition(r["perfil_id"]).id == ROLE_SUPERVISOR]
+        candidatos = [r for r in rows_to_dicts(cursor, cursor.fetchall()) if papel(r["perfil_id"]) == ROLE_SUPERVISOR]
         cursor.execute("SELECT id_usuario, operacao FROM dbo.usuarios_operacoes")
         ops: dict[int, set[str]] = {}
         for id_usuario, operacao in cursor.fetchall():
@@ -211,7 +211,7 @@ class EquipesControleRepositoryMixin:
             )
             saida = []
             for r in rows_to_dicts(cursor, cursor.fetchall()):
-                if get_role_definition(r["perfil_id"]).id != ROLE_OPERATOR:
+                if papel(r["perfil_id"]) != ROLE_OPERATOR:
                     continue
                 if normalize_text(r.get("status")) not in ("", "Ativo"):
                     continue
@@ -235,7 +235,7 @@ class EquipesControleRepositoryMixin:
     def _eq_exigir_operador_valido(self, cursor, id_operador: int) -> dict:
         cursor.execute("SELECT id_usuario, nome, sobrenome, perfil_id FROM dbo.usuarios WHERE id_usuario = ?", (int(id_operador),))
         linhas = rows_to_dicts(cursor, cursor.fetchall())
-        if not linhas or get_role_definition(linhas[0]["perfil_id"]).id != ROLE_OPERATOR:
+        if not linhas or papel(linhas[0]["perfil_id"]) != ROLE_OPERATOR:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operador não encontrado.")
         return linhas[0]
 
@@ -329,7 +329,7 @@ class EquipesControleRepositoryMixin:
         return [
             {"id_usuario": int(r["id_usuario"]), "nome": _nome_completo(r)}
             for r in rows_to_dicts(cursor, cursor.fetchall())
-            if get_role_definition(r["perfil_id"]).id == ROLE_SUPERVISOR
+            if papel(r["perfil_id"]) == ROLE_SUPERVISOR
         ]
 
     def eq_supervisores_destino(self, user) -> list[dict]:
