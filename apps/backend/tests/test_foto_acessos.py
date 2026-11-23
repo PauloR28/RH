@@ -21,7 +21,6 @@ SNAPSHOT = Path(__file__).parent / "snapshots" / "foto_acessos_padrao.json"
 @pytest.fixture()
 def padroes_do_codigo(monkeypatch):
     monkeypatch.delenv("RH_AREAS_INATIVAS", raising=False)
-    monkeypatch.setenv("RH_ACESSO_REGRA_UNICA", "1")  # produção (confirmado pelo Paulo em 16/11/2026)
     monkeypatch.setenv("RH_WFM_LIBERAR_PARTICIPANTES", "0")
     acesso.definir_carregador(lambda: acesso.EstadoModulos())
     acesso_cache.definir_carregador(lambda: acesso_cache.FotoAcessos())

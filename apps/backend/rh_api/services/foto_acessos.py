@@ -33,8 +33,7 @@ def _permissoes_do_perfil(perfil: str) -> tuple[frozenset[str], str]:
 def foto_do_perfil(perfil: str) -> dict[str, Any]:
     gravadas, origem = _permissoes_do_perfil(perfil)
     efetivas = acesso.filtrar_permissoes(gravadas)
-    if acesso_decisao.regra_unica_manda():
-        efetivas = acesso_decisao.permissoes_efetivas(efetivas, perfil=perfil, id_usuario=None, unidades_do_usuario=frozenset())
+    efetivas = acesso_decisao.permissoes_efetivas(efetivas, perfil=perfil, id_usuario=None, unidades_do_usuario=frozenset())
     extras = acesso.modulos_liberados(None, perfil)
     retirados = acesso.modulos_retirados(None, perfil)
     visiveis = acesso.modulos_visiveis(efetivas, extras, retirados)
@@ -58,7 +57,7 @@ def montar_foto(perfis: list[str] | None = None) -> dict[str, Any]:
     lista = perfis or sorted(p for p in ROLE_DEFINITIONS if p != ROLE_CANDIDATE)
     return {
         "versao": VERSAO,
-        "regra_unica": acesso_decisao.regra_unica_manda(),
+        "regra_unica": True,  # sempre (Etapa 10); a chave fica na foto para comparar com fotos antigas
         "modulos_ativos": sorted(acesso.estado().ativos),
         "funcoes_menu": {m: acesso.funcoes_ativas(m) for m in ("rh", "operacao", "tecnologia")},
         "perfis": {p: foto_do_perfil(p) for p in lista},

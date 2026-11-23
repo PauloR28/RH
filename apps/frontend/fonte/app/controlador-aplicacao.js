@@ -185,7 +185,6 @@ export const PERMISSOES_TELAS = {
   'screen-mural': 'mural.visualizar',
   'screen-settings': 'configuracoes.visualizar',
   'screen-settings-users': 'usuarios.visualizar',
-  'screen-settings-profiles': 'configuracoes.visualizar',
   'screen-settings-acessos': 'configuracoes.visualizar',
   'screen-settings-operations': 'configuracoes.visualizar',
   'screen-settings-lgpd': 'configuracoes.visualizar',

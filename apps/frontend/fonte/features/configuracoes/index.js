@@ -6,7 +6,6 @@ import {
   aprovarSolicitacaoAlteracaoEmailApi,
   atualizarAutomacaoNotificacoes,
   atualizarItemConfiguracao,
-  atualizarPermissoesPerfil,
   atualizarUsuario,
   criarItemConfiguracao,
   criarUsuario,
@@ -18,7 +17,6 @@ import {
   listarCatalogoConfiguracoes,
   listarLogsAuditoria,
   listarPerfis,
-  listarPermissoes,
   listarSolicitacoesAlteracaoEmailApi,
   listarUsuarios,
   redefinirSenhaUsuario,
@@ -28,9 +26,7 @@ import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
 import { formatarDataHora } from '../../shared/helpers-visuais.js';
 import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
 import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261116-modulos';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261116-modulos';
-import { definirModuloDaPermissao } from '../../services/api/modulos.js';
-import { NOMES_MODULOS } from '../../modulos/registro.js?v=20261117-config2';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261123-limpeza';
 import { listarOperacoes } from '../../services/api/operations.js';
 import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
 import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-modulo-unico2';
@@ -64,10 +60,9 @@ import { ModalCadastroEmMassa } from './usuarios-massa.js';
 import { SelectMultiplo } from '../monitoria/comum.js';
 import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
 import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
-import { PerfisPermissoes } from './perfis-permissoes.js?v=20261116-modulos';
 import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 import { CentralAcessos } from './central-acessos.js?v=20261121-perfis';
-import { ConfigPaineis } from './paineis.js?v=20261115-painel-v6';
+import { ConfigPaineis } from './paineis.js?v=20261123-limpeza';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
@@ -82,7 +77,6 @@ function nomeModuloUnidade(chave) {
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
-  { id: 'perfis', tela: 'screen-settings-profiles', label: 'Perfis e permissões', permissao: 'configuracoes.visualizar', icon: 'admin_panel_settings' },
   { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
   { id: 'paineis', tela: 'screen-settings-paineis', label: 'Painéis', permissao: 'painel.configurar', icon: 'insights' },
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operação', permissao: 'configuracoes.visualizar', icon: 'apartment' },
@@ -93,59 +87,6 @@ const ABAS = [
   { id: 'equipes-catalogos', tela: 'screen-settings-monitoria-equipes', label: 'Equipes e catálogos', permissao: 'monitoria.equipes', icon: 'groups', somenteAdmin: true },
   { id: 'ambiente', tela: 'screen-settings-environment', label: 'Ambiente', permissao: '', icon: 'tune' },
 ];
-// Redesign da tela de Perfis e permissões (Correções.txt, rodada 10/set/2026):
-// os ~20 módulos granulares de permissão (rbac.py) são agrupados nestas 7
-// "sessões" — o mesmo recorte que o usuário navega no Conecta — para que o
-// perfil selecionado mostre uma sessão por vez em vez de todos os módulos
-// abertos ao mesmo tempo (era o que tornava a tela "absurdamente longa").
-const SESSOES_PERMISSAO = [
-  { id: 'curriculos', modulo: 'rh', label: 'Caixa de Currículos', icon: 'badge', modulos: ['Candidatos', 'Vagas'] },
-  { id: 'processos', modulo: 'rh', label: 'Processos', icon: 'checklist', modulos: ['Processos', 'Entrevistas', 'Etapas e Trilhas'] },
-  { id: 'provas', modulo: 'rh', label: 'Provas', icon: 'quiz', modulos: ['Provas', 'Fit Cultural'] },
-  { id: 'gestao', modulo: 'core', label: 'Gestão', icon: 'analytics', modulos: ['Geral', 'Relatórios', 'Calendário', 'Notificações', 'Mural'] },
-  { id: 'relatorios', modulo: 'core', label: 'Relatórios e Históricos', icon: 'table_chart', modulos: ['Relatórios e Históricos'] },
-  { id: 'painel', modulo: 'core', label: 'Painel', icon: 'insights', modulos: ['Painel'] },
-  { id: 'drive', modulo: 'core', label: 'Drive', icon: 'cloud', modulos: ['OneDrive', 'Documentos'] },
-  { id: 'treinamentos', modulo: 'core', label: 'Treinamentos', icon: 'school', modulos: ['Onboarding'] },
-  { id: 'monitoria', modulo: 'operacao', label: 'Monitoria', icon: 'fact_check', modulos: ['Monitoria'] },
-  { id: 'wfm', modulo: 'operacao', label: 'Turnos e Plantões', icon: 'calendar_month', modulos: ['WFM'] },
-  { id: 'equipe', modulo: 'operacao', label: 'Equipes e Turnos', icon: 'groups', modulos: ['Equipes'] },
-  { id: 'diario', modulo: 'operacao', label: 'Diário de bordo', icon: 'notebook', modulos: ['Diário de bordo'] },
-  { id: 'chamados', modulo: 'tecnologia', label: 'Suporte TI (Chamados)', icon: 'support_agent', modulos: ['Chamados'] },
-  {
-    id: 'configuracoes',
-    modulo: 'tecnologia',
-    label: 'Configurações',
-    icon: 'settings',
-    modulos: ['Configurações', 'Usuários', 'LGPD', 'E-mails', 'Templates de Documentos', 'Central de Ajuda', 'Operações', 'Logs', 'Políticas'],
-  },
-];
-
-// Modularização: a árvore de Perfis e permissões agrupa as sessões por MÓDULO (RH, Operação, Tecnologia e Núcleo).
-const ORDEM_MODULOS_PERMISSAO = ['rh', 'operacao', 'tecnologia', 'core'];
-const NOME_MODULO_PERMISSAO = { ...NOMES_MODULOS, core: 'Núcleo' };
-
-// Ícone por perfil na árvore de Perfis e permissões — antes todo perfil usava
-// o mesmo ícone genérico "badge"; um por papel ajuda a distinguir a lista
-// de relance. IDs batem com rbac.py (ROLE_INTERN, ROLE_DP, etc.).
-const ICONE_POR_PERFIL = {
-  estagiario: 'school',
-  dp: 'assignment_ind',
-  gestor: 'supervisor_account',
-  rh: 'groups',
-  candidato: 'person_search',
-  administrador: 'admin_panel_settings',
-  funcionario: 'badge',
-  supervisor: 'shield_person',
-  operador: 'support_agent',
-  qualidade: 'fact_check',
-  control_desk: 'monitoring',
-  tecnico_junior: 'support_agent',
-  tecnico_pleno: 'support_agent',
-  tecnico_senior: 'support_agent',
-  analista_ti: 'admin_panel_settings',
-};
-
 function ToggleSwitch({ checked, disabled, onChange }) {
   return html`
     <label class=${`c24-toggle-switch ${disabled ? 'is-disabled' : ''}`.trim()}>
@@ -428,19 +369,6 @@ function formatarCsv(valor) {
   return String(valor || '');
 }
 
-function agruparPermissoes(permissoes) {
-  return normalizarLista(permissoes).reduce((mapa, permissao) => {
-    const modulo = permissao.modulo || 'Outros';
-    mapa[modulo] = mapa[modulo] || [];
-    mapa[modulo].push(permissao);
-    return mapa;
-  }, {});
-}
-
-function permissaoEstaAtiva(perfil, chave) {
-  return normalizarLista(perfil?.permissoes).includes(chave);
-}
-
 function formatarPayloadLog(valor) {
   if (valor === undefined || valor === null || valor === '') return '-';
   if (typeof valor === 'object') return JSON.stringify(valor, null, 2);
@@ -604,7 +532,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [perfis, setPerfis] = useState([]);
   // Perfis mantidos por compatibilidade (ex.: Funcionário, do app) não aparecem nas listas.
   const perfisVisiveis = useMemo(() => perfis.filter((perfil) => !perfil.oculto), [perfis]);
-  const [permissoes, setPermissoes] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
   const [formEndereco, setFormEndereco] = useState({ ...ENDERECO_PRINCIPAL_INICIAL });
   const [editandoEndereco, setEditandoEndereco] = useState(false);
@@ -675,15 +602,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [paginaUsuarios, setPaginaUsuarios] = useState(1);
   // Tabela densa de 25 por página (DEC-072).
   const [tamanhoPaginaUsuarios] = useState(25);
-  const [perfilSelecionadoId, setPerfilSelecionadoId] = useState('');
-  const [permissoesPerfilDraft, setPermissoesPerfilDraft] = useState([]);
-  const [buscaPermissao, setBuscaPermissao] = useState('');
-  const [mostrarSomenteAtivas, setMostrarSomenteAtivas] = useState(false);
-  const [perfilComparadoId, setPerfilComparadoId] = useState('');
-  const [comparacaoPerfis, setComparacaoPerfis] = useState({ a: '', b: '' });
-  const [justificativaPerfil, setJustificativaPerfil] = useState('');
-  const [sessaoPermissaoAtiva, setSessaoPermissaoAtiva] = useState(SESSOES_PERMISSAO[0].id);
-  const [perfisDesbloqueados, setPerfisDesbloqueados] = useState(false);
   const [tipoCatalogo, setTipoCatalogo] = useState('');
   const [listaCatalogoRecolhida, setListaCatalogoRecolhida] = useState(true);
   const [formItem, setFormItem] = useState(FORM_ITEM_INICIAL);
@@ -727,32 +645,9 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     return () => { vivo = false; };
   }, [drawerUsuarioAberto, criandoUsuario, formUsuario.id_usuario, formUsuario.perfil]);
 
-  const permissoesPorModulo = useMemo(() => agruparPermissoes(permissoes), [permissoes]);
-  const permissoesFiltradasPorModulo = useMemo(() => {
-    const termo = normalizarBusca(buscaPermissao);
-    return Object.entries(permissoesPorModulo)
-      .map(([modulo, itens]) => [
-        modulo,
-        itens.filter((permissao) => {
-          const ativa = permissoesPerfilDraft.includes(permissao.chave);
-          if (mostrarSomenteAtivas && !ativa) return false;
-          if (!termo) return true;
-          return textoCampos(modulo, permissao.chave, permissao.descricao).includes(termo);
-        }),
-      ])
-      .filter(([, itens]) => itens.length > 0);
-  }, [permissoesPorModulo, buscaPermissao, mostrarSomenteAtivas, permissoesPerfilDraft]);
   const secaoCatalogoAtiva = useMemo(
     () => catalogo.find((secao) => secao.tipo === tipoCatalogo) || catalogo[0] || null,
     [catalogo, tipoCatalogo],
-  );
-  const perfilSelecionado = useMemo(
-    () => perfis.find((perfil) => perfil.id === perfilSelecionadoId) || null,
-    [perfis, perfilSelecionadoId],
-  );
-  const perfilComparado = useMemo(
-    () => perfis.find((perfil) => perfil.id === perfilComparadoId) || null,
-    [perfis, perfilComparadoId],
   );
   const abaRenderizada = abasPermitidas.some((aba) => aba.id === abaAtiva)
     ? abaAtiva
@@ -799,24 +694,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       setAbaAtiva(abasPermitidas[0]?.id || 'usuarios');
     }
   }, [abasPermitidas.map((aba) => aba.id).join('|'), abaAtiva]);
-
-  useEffect(() => {
-    if (!perfis.length) {
-      setPerfilSelecionadoId('');
-      return;
-    }
-    if (perfilSelecionadoId && !perfis.some((perfil) => perfil.id === perfilSelecionadoId)) {
-      setPerfilSelecionadoId('');
-      return;
-    }
-    // Perfis e permissões abre já com um perfil selecionado (o primeiro da lista, ou o último aberto).
-    if (!perfilSelecionadoId && abaRenderizada === 'perfis' && perfisVisiveis.length) setPerfilSelecionadoId(perfisVisiveis[0].id);
-  }, [perfis, perfilSelecionadoId, abaRenderizada]);
-
-  useEffect(() => {
-    setPermissoesPerfilDraft(normalizarLista(perfilSelecionado?.permissoes));
-    setJustificativaPerfil('');
-  }, [perfilSelecionado?.id, normalizarLista(perfilSelecionado?.permissoes).join('|')]);
 
   useEffect(() => {
     if (criandoUsuario) return;
@@ -870,15 +747,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       if (aba === 'usuarios' && controlador.possuiPermissao('usuarios.alterar_email')) {
         tarefas.push(carregarSolicitacoesEmailPendentes());
       }
-      // Perfis mostra quantas pessoas usam cada perfil (DEC-073): a lista de usuários vem do cache.
-      if (aba === 'perfis' && controlador.possuiPermissao('usuarios.visualizar')) {
-        tarefas.push(listarUsuarios().then((valor) => setUsuarios(normalizarLista(valor))));
-      }
-      if ((aba === 'usuarios' || aba === 'perfis') && controlador.possuiPermissao('configuracoes.visualizar')) {
+      if (aba === 'usuarios' && controlador.possuiPermissao('configuracoes.visualizar')) {
         tarefas.push(listarPerfis().then((valor) => setPerfis(normalizarLista(valor))));
-      }
-      if (aba === 'perfis' && controlador.possuiPermissao('configuracoes.visualizar')) {
-        tarefas.push(listarPermissoes().then((valor) => setPermissoes(normalizarLista(valor))));
       }
       if ((aba === 'operacoes' || aba === 'catalogos') && controlador.possuiPermissao('configuracoes.visualizar')) {
         tarefas.push(
@@ -1568,63 +1438,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
   };
 
-  const salvarPermissoesPerfil = async () => {
-    if (!perfilSelecionado) return;
-    setSalvando(true);
-    setErro('');
-    setFeedback('');
-    try {
-      const resultado = await atualizarPermissoesPerfil(perfilSelecionado.id, {
-        permissoes: permissoesPerfilDraft,
-        justificativa: justificativaPerfil,
-      });
-      const ignoradasWfm = normalizarLista(resultado?.ignoradas_wfm);
-      await carregarAba(abaRenderizada);
-      if (ignoradasWfm.length) {
-        // Gravadas, mas sem efeito: o WFM está fechado para este perfil na fase de teste (não é falha de gravação).
-        setErro(`Permissões salvas, mas ${ignoradasWfm.length} de Turnos e Plantões (WFM) não ficam ativas para ${perfilSelecionado.nome}: o WFM está fechado para participantes. Libere em Tecnologia > Módulos.`);
-      } else {
-        setFeedback('Permissões do perfil atualizadas.');
-      }
-    } catch (error) {
-      setErro(error?.message || 'Não foi possível salvar as permissões do perfil.');
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  const alternarPermissao = (chave) => {
-    setPermissoesPerfilDraft((atuais) => {
-      const conjunto = new Set(atuais);
-      if (conjunto.has(chave)) conjunto.delete(chave);
-      else conjunto.add(chave);
-      return Array.from(conjunto).sort();
-    });
-  };
-
-  const alterarGrupoPermissoes = (itens, ativo) => {
-    setPermissoesPerfilDraft((atuais) => {
-      const conjunto = new Set(atuais);
-      normalizarLista(itens).forEach((permissao) => {
-        if (ativo) conjunto.add(permissao.chave);
-        else conjunto.delete(permissao.chave);
-      });
-      return Array.from(conjunto).sort();
-    });
-  };
-
-  const selecionarPerfilPermissoes = (idPerfil) => {
-    setPerfilSelecionadoId(idPerfil);
-    setPerfilComparadoId((atual) => (atual === idPerfil ? '' : atual));
-  };
-
-  const abrirUsuariosDoPerfil = () => {
-    if (!perfilSelecionado) return;
-    setFiltrosUsuarios((atuais) => ({ ...atuais, perfil: perfilSelecionado.id }));
-    setPaginaUsuarios(1);
-    setAbaAtiva('usuarios');
-  };
-
   // O CSV sai exatamente das linhas filtradas na tela (antes o servidor devolvia os últimos
   // 500 eventos sem filtro algum, e o arquivo não batia com o que o usuário via).
   const exportarLogs = () => {
@@ -1712,51 +1525,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     setPainelFiltrosUsuariosAberto(false);
   };
 
-  const usuariosPorPerfil = useMemo(() => {
-    return usuarios.reduce((mapa, usuario) => {
-      const id = usuario.perfil || usuario.perfil_id || '';
-      if (!id) return mapa;
-      mapa[id] = mapa[id] || [];
-      mapa[id].push(usuario);
-      return mapa;
-    }, {});
-  }, [usuarios]);
-
-  const contagemUsuariosPorPerfil = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(usuariosPorPerfil).map(([idPerfil, usuariosPerfil]) => [idPerfil, usuariosPerfil.length]),
-    );
-  }, [usuariosPorPerfil]);
-
-  const perfilMaisUsado = useMemo(() => {
-    const ordenados = Object.entries(contagemUsuariosPorPerfil).sort((a, b) => b[1] - a[1]);
-    const idPerfil = ordenados[0]?.[0] || '';
-    return perfis.find((perfil) => perfil.id === idPerfil)?.nome || '-';
-  }, [contagemUsuariosPorPerfil, perfis]);
-
-  const usuariosPerfilSelecionado = useMemo(
-    () => (perfilSelecionado ? usuariosPorPerfil[perfilSelecionado.id] || [] : []),
-    [perfilSelecionado?.id, usuariosPorPerfil],
-  );
-
-  const permissoesOriginaisPerfil = useMemo(
-    () => normalizarLista(perfilSelecionado?.permissoes),
-    [perfilSelecionado?.id, perfilSelecionado?.permissoes],
-  );
-
-  const alteracoesPendentesPerfil = useMemo(() => {
-    const originais = new Set(permissoesOriginaisPerfil);
-    const rascunho = new Set(permissoesPerfilDraft);
-    let total = 0;
-    rascunho.forEach((chave) => {
-      if (!originais.has(chave)) total += 1;
-    });
-    originais.forEach((chave) => {
-      if (!rascunho.has(chave)) total += 1;
-    });
-    return total;
-  }, [permissoesOriginaisPerfil, permissoesPerfilDraft]);
-
   const itensCatalogo = normalizarLista(secaoCatalogoAtiva?.items);
   const itensCatalogoFiltrados = useMemo(() => {
     const busca = normalizarBusca(filtrosCatalogo.busca);
@@ -1842,7 +1610,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       icon: 'admin_panel_settings',
       label: 'Perfis',
       value: perfis.length,
-      helper: `${permissoes.length} permissões mapeadas`,
+      helper: 'Crie e renomeie em Acessos › Perfis',
       tone: 'indigo',
     },
     {
@@ -2315,53 +2083,6 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           </form>
         </${ModalPadrao}>
       </main>
-    `;
-  };
-
-  const renderPerfis = () => {
-    const podeEditarPerfis = controlador.possuiPermissao('configuracoes.editar');
-    // Módulos que o perfil abre: só as permissões marcadas como `abre_modulo` (regra do módulo visível), com o rascunho atual.
-    const modulosQueOPerfilAbre = ORDEM_MODULOS_PERMISSAO.filter((modulo) =>
-      modulo !== 'core' && permissoes.some((permissao) => permissao.abre_modulo && permissao.modulo_dono === modulo && permissoesPerfilDraft.includes(permissao.chave)));
-    const moverPermissaoDeModulo = async (chave, modulo) => {
-      setErro('');
-      try {
-        await definirModuloDaPermissao(chave, modulo);
-        setPermissoes((atuais) => atuais.map((permissao) => (permissao.chave === chave ? { ...permissao, modulo_dono: modulo } : permissao)));
-        setFeedback(`Permissão ${chave} movida para o módulo ${NOME_MODULO_PERMISSAO[modulo] || modulo}.`);
-      } catch (error) {
-        setErro(error?.message || 'Não foi possível mover a permissão de módulo.');
-      }
-    };
-    if (!perfis.length) return html`<${EmptyPanel} icon="groups" title="Sem perfis" text="Nenhum perfil foi retornado pelo backend." />`;
-    return html`
-      <${PerfisPermissoes}
-        perfis=${perfisVisiveis}
-        permissoes=${permissoes}
-        ordemModulos=${ORDEM_MODULOS_PERMISSAO}
-        nomesModulos=${NOME_MODULO_PERMISSAO}
-        perfilId=${perfilSelecionado?.id || ''}
-        aoSelecionarPerfil=${selecionarPerfilPermissoes}
-        draft=${permissoesPerfilDraft}
-        desbloqueado=${perfisDesbloqueados}
-        podeEditar=${podeEditarPerfis}
-        aoDesbloquear=${() => setPerfisDesbloqueados((atual) => !atual)}
-        aoAlternar=${alternarPermissao}
-        aoGrupo=${alterarGrupoPermissoes}
-        contagemUsuarios=${contagemUsuariosPorPerfil}
-        usuariosCarregados=${usuarios.length > 0}
-        aoVerUsuarios=${abrirUsuariosDoPerfil}
-        pendentes=${alteracoesPendentesPerfil}
-        salvando=${salvando}
-        aoSalvar=${salvarPermissoesPerfil}
-        aoRestaurar=${() => setPermissoesPerfilDraft(permissoesOriginaisPerfil)}
-        justificativa=${justificativaPerfil}
-        aoJustificativa=${setJustificativaPerfil}
-        podeMover=${perfisDesbloqueados && podeEditarPerfis}
-        aoMover=${moverPermissaoDeModulo}
-        wfmFechado=${!!perfilSelecionado?.wfm_fechado}
-        avisos=${html`${erro ? html`<${Faixa} tom="perigo" icone="warning-octagon">${erro}<//>` : null}${feedback ? html`<${Faixa} tom="sucesso" icone="check-circle">${feedback}<//>` : null}`}
-      />
     `;
   };
 
@@ -4250,9 +3971,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             `
         : abaRenderizada === 'usuarios'
           ? renderUsuarios()
-          : abaRenderizada === 'perfis'
-            ? renderPerfis()
-            : abaRenderizada === 'acessos'
+          : abaRenderizada === 'acessos'
               ? html`<${CentralAcessos} controlador=${controlador} />`
             : abaRenderizada === 'paineis'
               ? html`<${ConfigPaineis} />`

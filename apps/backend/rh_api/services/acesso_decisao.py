@@ -1,4 +1,4 @@
-"""Regra ÚNICA de decisão de acesso (Central de Acessos, Etapa 1 — modo sombra).
+"""Regra ÚNICA de decisão de acesso (Central de Acessos).
 
 Responde uma pergunta só: "esta pessoa pode fazer isto, nesta unidade?". As camadas vão de fora para dentro e cada uma
 só FECHA a porta; nenhuma camada de dentro reabre o que uma de fora fechou (desenho aprovado em 12/nov/2026):
@@ -8,23 +8,18 @@ só FECHA a porta; nenhuma camada de dentro reabre o que uma de fora fechou (des
   3. função   — ligada no módulo e na unidade (entra na Etapa 4; hoje função é só visibilidade de menu);
   4. perfil   — a permissão do perfil, depois das exceções (exceções entram na Etapa 5).
 
-Nesta etapa a função NÃO decide nada de verdade: `dependencies.require_permissions` continua usando a regra de hoje e
-chama `comparar_em_sombra`, que só registra no log quando as duas respostas divergem. Desligar: RH_ACESSO_SOMBRA=0.
+Ela decide os acessos de todo pedido (`dependencies.get_current_user` → `permissoes_efetivas`). O modo sombra e a chave
+RH_ACESSO_REGRA_UNICA saíram na limpeza da reestruturação (Etapa 10, nov/2026): em produção ela já mandava.
 Tudo aqui é em memória (usa o cache de `services/acesso.py`): nenhuma ida ao banco por pedido.
 """
 
 from __future__ import annotations
 
-import logging
-import os
-import threading
 from dataclasses import dataclass
 from typing import AbstractSet, Iterable
 
 from ..modulos_catalogo import MODULO_CORE
 from . import acesso
-
-logger = logging.getLogger(__name__)
 
 CAMADA_MODULO = "modulo"
 CAMADA_UNIDADE = "unidade"
@@ -151,11 +146,6 @@ def decidir_rota(
     return verificar(decidir(permissoes, p, unidades_do_usuario=unidades_do_usuario).pode for p in lista)
 
 
-def regra_unica_manda() -> bool:
-    """Chave da Etapa 5. Desligada (padrão) = só sombra. RH_ACESSO_REGRA_UNICA=1 = a regra única decide os acessos."""
-    return os.environ.get("RH_ACESSO_REGRA_UNICA", "0").strip().lower() in {"1", "true", "sim", "on", "mandar"}
-
-
 def permissoes_efetivas(
     permissoes: AbstractSet[str], *, perfil: str | None, id_usuario: int | None, unidades_do_usuario: AbstractSet[str] | None
 ) -> frozenset[str]:
@@ -174,52 +164,3 @@ def permissoes_efetivas(
     acesso_cache._memo_efetivas[chave] = efetivas
     return efetivas
 
-
-# ---------------------------------------------------------------- modo sombra
-_lock = threading.Lock()
-_contagem = {"comparacoes": 0, "divergencias": 0}
-
-
-def sombra_ligada() -> bool:
-    return os.environ.get("RH_ACESSO_SOMBRA", "1").strip().lower() not in {"0", "false", "nao", "não", "off"}
-
-
-def comparar_em_sombra(
-    permissoes: AbstractSet[str],
-    requeridas: Iterable[str],
-    *,
-    exigir_todas: bool,
-    resposta_atual: bool,
-    rota: str = "",
-    usuario: str = "",
-    unidades_do_usuario: AbstractSet[str] | None = None,
-) -> bool | None:
-    """Roda a regra nova ao lado da atual. Nunca muda a resposta e nunca levanta erro. Devolve a resposta nova (ou None)."""
-    if not sombra_ligada():
-        return None
-    try:
-        lista = tuple(requeridas)
-        nova = decidir_rota(permissoes, lista, exigir_todas=exigir_todas, unidades_do_usuario=unidades_do_usuario)
-    except Exception:  # noqa: BLE001 - a sombra jamais pode derrubar um pedido
-        logger.exception("acesso_sombra_erro rota=%s", rota)
-        return None
-    with _lock:
-        _contagem["comparacoes"] += 1
-        if nova != resposta_atual:
-            _contagem["divergencias"] += 1
-    if nova != resposta_atual:
-        logger.warning(
-            "acesso_sombra_divergencia rota=%s usuario=%s requeridas=%s atual=%s nova=%s",
-            rota, usuario, ",".join(lista), resposta_atual, nova,
-        )
-    return nova
-
-
-def situacao_sombra() -> dict:
-    with _lock:
-        return {"ligada": sombra_ligada(), **_contagem}
-
-
-def zerar_sombra() -> None:
-    with _lock:
-        _contagem.update(comparacoes=0, divergencias=0)

@@ -112,7 +112,7 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261121-perfis'),
+  () => import('../features/configuracoes/index.js?v=20261123-limpeza'),
   'TelaConfiguracoesSistema',
 );
 const importarMonitoria = () => import('../features/monitoria/index.js?v=20261117-inicio');
@@ -139,7 +139,7 @@ const TelaTemplatesDocumentos = carregarTela(
 );
 const TelaCentralAjuda = carregarTela(() => import('../features/ajuda/guia.js?v=20260921-ajuda'), 'TelaCentralAjuda');
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20260922-ministrante-busca'),
+  () => import('../features/treinamentos/index.js?v=20261123-limpeza'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
@@ -151,7 +151,7 @@ const TelaProvasConfiguracao = carregarTela(
   'TelaProvasConfiguracao',
 );
 const TelaAdministracao = carregarTela(
-  () => import('../features/administracao/index.js?v=20260921-alertas'),
+  () => import('../features/administracao/index.js?v=20261123-limpeza'),
   'TelaAdministracao',
 );
 const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
@@ -499,7 +499,6 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
   if (
     telaResolvida === 'screen-settings' ||
     telaResolvida === 'screen-settings-users' ||
-    telaResolvida === 'screen-settings-profiles' ||
     telaResolvida === 'screen-settings-acessos' ||
     telaResolvida === 'screen-settings-paineis' ||
     telaResolvida === 'screen-settings-operations' ||

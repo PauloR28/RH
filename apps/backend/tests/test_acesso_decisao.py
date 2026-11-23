@@ -1,8 +1,6 @@
-"""Central de Acessos, Etapa 1: regra única (acesso.decidir) em modo sombra."""
+"""Central de Acessos: regra única (acesso.decidir). O modo sombra saiu na Etapa 10 (nov/2026)."""
 
 from __future__ import annotations
-
-import logging
 
 import pytest
 
@@ -13,10 +11,8 @@ from rh_api.services import acesso_decisao as dec
 
 @pytest.fixture(autouse=True)
 def tudo_ativo(monkeypatch):
-    monkeypatch.delenv("RH_ACESSO_SOMBRA", raising=False)
     acesso.definir_carregador(lambda: acesso.EstadoModulos())
     acesso_cache.definir_carregador(lambda: acesso_cache.FotoAcessos(ok=True))
-    dec.zerar_sombra()
     yield
     acesso.definir_carregador(None)
     acesso_cache.definir_carregador(None)
@@ -48,25 +44,6 @@ def test_mesma_semantica_de_require_permissions(exigir_todas):
     esperado = (all if exigir_todas else any)(p in perms for p in ("a.ver", "b.ver"))
     assert dec.decidir_rota(perms, ("a.ver", "b.ver"), exigir_todas=exigir_todas) is esperado
     assert dec.decidir_rota(perms, ()) is True
-
-
-def test_sombra_conta_e_avisa_divergencia(caplog):
-    with caplog.at_level(logging.WARNING):
-        assert dec.comparar_em_sombra({"a.ver"}, ("a.ver",), exigir_todas=False, resposta_atual=True) is True
-        dec.comparar_em_sombra({"a.ver"}, ("a.ver",), exigir_todas=False, resposta_atual=False, rota="GET /x")
-    assert dec.situacao_sombra() == {"ligada": True, "comparacoes": 2, "divergencias": 1}
-    assert "acesso_sombra_divergencia rota=GET /x" in caplog.text
-
-
-def test_sombra_desligada_nao_faz_nada(monkeypatch):
-    monkeypatch.setenv("RH_ACESSO_SOMBRA", "0")
-    assert dec.comparar_em_sombra({"a.ver"}, ("a.ver",), exigir_todas=False, resposta_atual=False) is None
-    assert dec.situacao_sombra()["comparacoes"] == 0
-
-
-def test_sombra_nunca_levanta_erro(monkeypatch):
-    monkeypatch.setattr(dec, "decidir_rota", lambda *a, **k: 1 / 0)
-    assert dec.comparar_em_sombra({"a.ver"}, ("a.ver",), exigir_todas=False, resposta_atual=True) is None
 
 
 # ---------------------------------------------------------------- Etapa 4: camada função

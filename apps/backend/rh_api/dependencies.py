@@ -98,8 +98,8 @@ def get_current_user(
             user = replace(user, permissions=atuais)
     # Módulo desativado: as permissões dele deixam de valer já neste pedido (sem relogin). Com todos ativos, não muda nada.
     permissoes_efetivas = acesso_modulos.filtrar_permissoes(user.permissions)
-    # Etapa 5: com a chave ligada, a regra única decide o conjunto final (função por unidade e exceções incluídas).
-    if acesso_decisao.regra_unica_manda() and user.id_usuario:
+    # A regra única decide o conjunto final (função por unidade e exceções incluídas).
+    if user.id_usuario:
         try:
             permissoes_efetivas = acesso_decisao.permissoes_efetivas(
                 permissoes_efetivas, perfil=user.perfil, id_usuario=user.id_usuario, unidades_do_usuario=user.operacoes,
@@ -174,16 +174,6 @@ def require_permissions(
         has_access = AuthorizationPolicy(user.permissions).allows(
             *required_permissions,
             require_all=require_all,
-        )
-        # Central de Acessos, Etapa 1: a regra única roda ao lado e só registra divergência. Não muda a resposta.
-        acesso_decisao.comparar_em_sombra(
-            user.permissions,
-            required_permissions,
-            exigir_todas=require_all,
-            resposta_atual=has_access,
-            rota=f"{request.method} {request.url.path}" if request is not None else "",
-            usuario=str(user.id_usuario or user.username),
-            unidades_do_usuario=user.operacoes,
         )
         if has_access:
             return user

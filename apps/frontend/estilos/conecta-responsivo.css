@@ -174,7 +174,6 @@
   .c-legenda > span[style*='margin-left'] { margin-left: 0 !important; }
   .c-abas { overflow-x: auto; scrollbar-width: none; }
   .c-abas::-webkit-scrollbar { display: none; }
-  .c-pv { grid-template-columns: minmax(0, 1fr); }
   .c-cab-linha .c-busca { flex: 1 1 100%; order: 7; }
 }
 
@@ -208,4 +207,4 @@ html { scroll-padding-top: calc(var(--altura-topo) + 40px + var(--espaco-2)); }
 /* Mínimo de 12 px em todo texto (DEC-037). Eram 11 px em 10 lugares, e <small> dentro de 14 px dava 11,7. */
 small { font-size: 12px; }
 .c-folga, .c-presenca .c-futuro, .c-bloco small, .c-grafico svg text, .c-rel-lista a small,
-.c-diario-numeros small, .c-diario-numeros em, .c-linha-tempo .c-selo, .c-pv-abas .c-aba small, .c-pv-mods small { font-size: 12px; }
+.c-diario-numeros small, .c-diario-numeros em, .c-linha-tempo .c-selo { font-size: 12px; }

@@ -344,7 +344,6 @@ export function BarraLateral({
   const telasRelacionadasConfiguracoes = [
     'screen-settings',
     'screen-settings-users',
-    'screen-settings-profiles',
     'screen-settings-acessos',
     'screen-settings-paineis',
     'screen-settings-operations',
@@ -464,7 +463,7 @@ export function BarraLateral({
   // inativa); só muda o desenho: seções no topo e telas da seção na sub-barra.
   // O módulo Tecnologia continua com o menu próprio (desenho antigo, abaixo).
   // Módulo Tecnologia na moldura nova (DEC-072): Início · Administração (sub-barra com
-  // Usuários · Perfis e permissões · Operações · Registro de alterações · Parâmetros · demais)
+  // Usuários · Acessos · Operações · Registro de alterações · Parâmetros · demais)
   // e as entradas soltas de antes (Relatórios, Escalas e Plantões, Suporte TI).
   if (emTecnologia) {
     const irParaTec = (tela) => {

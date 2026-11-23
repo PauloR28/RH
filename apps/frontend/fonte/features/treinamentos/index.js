@@ -1466,9 +1466,9 @@ export function TelaTreinamentos({ controlador, telaAtual = 'screen-training-tri
               Quem pode criar/gerenciar treinamentos é definido pelas permissões de papel, na mesma tela usada para o
               resto do Conecta.
             </p>
-            <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => controlador.irParaTelaProtegida('screen-settings-profiles')}>
+            <button type="button" class="btn btn-outline-primary btn-sm" onClick=${() => controlador.irParaTelaProtegida('screen-settings-acessos')}>
               <span class="material-symbols-outlined">${IconeSvg('admin_panel_settings')}</span>
-              Ir para Configurações → Segurança
+              Ir para Acessos
             </button>
           </${SectionCard}>
         `

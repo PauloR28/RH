@@ -36,10 +36,10 @@ const STATUS_BADGE_AMBIENTE = {
 
 const MODULOS_DISPONIVEIS = [
   {
-    tela: 'screen-settings-profiles',
+    tela: 'screen-settings-acessos',
     icone: 'admin_panel_settings',
-    titulo: 'Perfis e permissões',
-    descricao: 'Regras de acesso por perfil (Administrador, Gestor, RH, Supervisor).',
+    titulo: 'Acessos',
+    descricao: 'Quem vê o quê, por módulo e por perfil. O botão Perfis cria e renomeia perfis.',
     permissao: 'configuracoes.visualizar',
   },
   {

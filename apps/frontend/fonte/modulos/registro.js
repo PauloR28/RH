@@ -46,7 +46,6 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-lgpd': MODULO_RH,
   'screen-settings-document-templates': MODULO_RH,
   'screen-settings-users': MODULO_TECNOLOGIA,
-  'screen-settings-profiles': MODULO_TECNOLOGIA,
   'screen-settings-acessos': MODULO_TECNOLOGIA, // Central de Acessos (Etapa 6): Gestão Global fica na Tecnologia
   'screen-settings-paineis': MODULO_TECNOLOGIA, // Painéis (14/11/2026): quem monta os painéis é a Tecnologia
   'screen-settings-operations': MODULO_TECNOLOGIA,
