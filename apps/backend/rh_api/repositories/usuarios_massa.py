@@ -308,7 +308,7 @@ class UsuariosMassaRepositoryMixin:
                 return None, "Equipe, turno e canais só se aplicam a Operador e Supervisor."
         vistos.add(email)
         return {
-            "nome": dados["nome"], "sobrenome": dados["sobrenome"], "email": email, "login": email, "cargo": dados["cargo"],
+            "nome": normalize_text(dados["nome"]).upper(), "sobrenome": normalize_text(dados["sobrenome"]).upper(), "email": email, "login": email, "cargo": dados["cargo"],
             "perfil": papel.id, "perfil_nome": papel.name, "provedor_autenticacao": acesso, "senha": senha,
             "operacoes": operacoes, "supervisores": [s["id"] for s in supervisores], "supervisores_nomes": [s["nome"] for s in supervisores],
             "id_equipe": id_equipe, "turno": turno, "canais": canais,
