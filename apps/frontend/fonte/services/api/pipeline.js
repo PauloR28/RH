@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261124-equipes';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261124-equipes2';
 
 export async function lerPipelineCandidatos(idProcesso = '', search = '') {
   const params = new URLSearchParams();

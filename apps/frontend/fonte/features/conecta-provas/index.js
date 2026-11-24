@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
 
-﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
 import {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -14,15 +14,15 @@ import {
   lerSessaoConectaProvas,
   marcarRevisaoConectaProvas,
   salvarRespostasConectaProvas,
-} from '../../servico-api.js?v=20261124-equipes';
-import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261124-equipes';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes';
+} from '../../servico-api.js?v=20261124-equipes2';
+import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261124-equipes2';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes2';
 import {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
 
 const CHAVE_TOKEN_PUBLICO = 'conecta_provas_token';
 const CHAVE_TIMER_PUBLICO = 'conecta_provas_timer';

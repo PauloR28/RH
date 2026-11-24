@@ -1,8 +1,8 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
-import { EmptyState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
-import { listarGuia } from '../../services/api/monitoria.js?v=20261124-equipes';
-import { GUIA_SESSOES } from './conteudo-guia.js?v=20261124-equipes';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { EmptyState, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
+import { listarGuia } from '../../services/api/monitoria.js?v=20261124-equipes2';
+import { GUIA_SESSOES } from './conteudo-guia.js?v=20261124-equipes2';
 
 // Central de Ajuda — guia de processos do Conecta organizado por sessão.
 

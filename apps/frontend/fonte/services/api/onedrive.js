@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261124-equipes';
+import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261124-equipes2';
 
 export async function listarArquivosOneDrive(caminho = '') {
   const params = new URLSearchParams();

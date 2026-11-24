@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-equipes';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-equipes2';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261124-equipes';
+} from '../../perguntas.js?v=20261124-equipes2';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes';
+} from '../../app/controlador-aplicacao.js?v=20261124-equipes2';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes';
+} from '../../shared/helpers-visuais.js?v=20261124-equipes2';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261124-equipes';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261124-equipes2';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261124-equipes';
+} from '../../shared/process-reference.js?v=20261124-equipes2';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js?v=20261124-equipes';
-import { isProcessClosed } from '../../shared/process-flow.js?v=20261124-equipes';
+} from './services/personalizacao-inteligente.js?v=20261124-equipes2';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261124-equipes2';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

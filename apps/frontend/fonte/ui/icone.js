@@ -1,5 +1,5 @@
-import { html, React } from '../infraestrutura-react.js?v=20261124-equipes';
-import { ICONES } from './icones-svg.js?v=20261124-equipes';
+import { html, React } from '../infraestrutura-react.js?v=20261124-equipes2';
+import { ICONES } from './icones-svg.js?v=20261124-equipes2';
 
 // Fase 09 (DEC-050): desenhos do Phosphor, duas tonalidades, em grade 256 × 256,
 // preenchidos com currentColor (antes: traço de 2 px em 24 × 24).

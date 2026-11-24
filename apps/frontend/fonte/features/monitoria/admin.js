@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261124-equipes2';
 import {
   ativarFormularioMatriz,
   lerVersaoMatriz,
@@ -6,9 +6,9 @@ import {
   listarVersoesMatriz,
   restaurarVersaoMatriz,
   salvarMatriz,
-} from '../../services/api/monitoria.js?v=20261124-equipes';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes';
-import { formatarNota } from './comum.js?v=20261124-equipes';
+} from '../../services/api/monitoria.js?v=20261124-equipes2';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes2';
+import { formatarNota } from './comum.js?v=20261124-equipes2';
 import {
   ChipSituacao,
   DialogoConfirmar,
@@ -16,8 +16,8 @@ import {
   VersionRow,
   alternarMarcadas,
   compararConfigs,
-} from './formularios-comum.js?v=20261124-equipes';
-import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261124-equipes';
+} from './formularios-comum.js?v=20261124-equipes2';
+import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261124-equipes2';
 
 const Fragment = React.Fragment;
 

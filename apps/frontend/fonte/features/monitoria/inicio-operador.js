@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
-import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261124-equipes';
-import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261124-equipes';
-import { listarMonitorias } from '../../services/api/monitoria.js?v=20261124-equipes';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
+import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261124-equipes2';
+import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261124-equipes2';
+import { listarMonitorias } from '../../services/api/monitoria.js?v=20261124-equipes2';
 
 // Início do Operador (redesign Fase 15, fatia 4, lote 3 · amostra Fase 14, quadro 1): cabeçalho em caixa com a saudação,
 // "Operador · <dia>" e a faixa "Seu dia" (Entrada · pausas · Saída do turno de hoje, da escala publicada); o que já passou

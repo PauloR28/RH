@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
-import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261124-equipes';
-import { aMin, brData, deMin, doIso, paraIso, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261124-equipes';
-import { estadoEscala } from './escala.js?v=20261124-equipes';
-import { Campo, Esqueleto, Estado, Faixa, Ic, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-equipes2';
+import { aplicarPausasWfm, definirCapacidadePausasWfm, distribuirPausasWfm, lerEscalaWfm, lerPausasDiaWfm, salvarPausasWfm } from '../../../services/api/wfm.js?v=20261124-equipes2';
+import { aMin, brData, deMin, doIso, paraIso, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261124-equipes2';
+import { estadoEscala } from './escala.js?v=20261124-equipes2';
+import { Campo, Esqueleto, Estado, Faixa, Ic, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes2';
 
 // Aba "Pausas" da escala (redesign Fase 15, amostra Q2 do lote 1): as 3 pausas de cada colaborador escalado no dia (2 de 10 min
 // e 1 de 20 min, todas contadas como jornada). Tabela com o horário editável na linha + painel de 300 px na mesma caixa

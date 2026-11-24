@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
 import {
   atualizarStatusCandidato,
   compararResultadosAnaliticos,
@@ -9,12 +9,12 @@ import {
   salvarPerfilIdealResultadosAnaliticos,
   salvarMapeamentosResultadosAnaliticos,
   salvarPesosResultadosAnaliticos,
-} from '../../servico-api.js?v=20261124-equipes';
-import { navegarParaTela } from '../../app/controlador-aplicacao.js?v=20261124-equipes';
+} from '../../servico-api.js?v=20261124-equipes2';
+import { navegarParaTela } from '../../app/controlador-aplicacao.js?v=20261124-equipes2';
 import {
   obterProcessoResultadosAnaliticosPorRota,
   obterRotaAtual,
-} from '../../rotas.js?v=20261124-equipes';
+} from '../../rotas.js?v=20261124-equipes2';
 import {
   EmptyState,
   GrupoPaginacao,
@@ -24,8 +24,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
 
 
 function numero(value, digits = 1) {

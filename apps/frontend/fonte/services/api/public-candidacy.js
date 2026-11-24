@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261124-equipes';
+import { requisitar } from './core.js?v=20261124-equipes2';
 
 export async function lerPaginaPublicaCandidatura(slug) {
   return requisitar(

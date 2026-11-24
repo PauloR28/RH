@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
-import { construirModeloPaginacao } from '../../utilitarios.js?v=20261124-equipes';
-import { IconeSvg } from '../icone.js?v=20261124-equipes';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { construirModeloPaginacao } from '../../utilitarios.js?v=20261124-equipes2';
+import { IconeSvg } from '../icone.js?v=20261124-equipes2';
 
 function BotaoPaginacao({ pagina, ativa, onClick }) {
   return html`

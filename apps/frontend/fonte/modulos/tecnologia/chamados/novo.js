@@ -1,9 +1,9 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
-import { criarChamado } from '../../../services/api/chamados.js?v=20261124-equipes';
-import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261124-equipes';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes2';
+import { criarChamado } from '../../../services/api/chamados.js?v=20261124-equipes2';
+import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261124-equipes2';
 import {
   AcoesCompartilhar, EstadoErro, Icone, ORDEM_URGENCIA, ROTULO_URGENCIA, TELA_LISTA, irParaChamado, tamanhoLegivel, textoCompartilhar, useMetaChamados,
-} from './comum.js?v=20261124-equipes';
+} from './comum.js?v=20261124-equipes2';
 
 // Novo chamado: uma linha de solicitante (somente leitura), grade de 3 colunas e as ações no cabeçalho (sempre visíveis).
 // O piso de urgência (PA parada / célula inteira) é reforçado no backend.

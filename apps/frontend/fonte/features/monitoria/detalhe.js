@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-equipes';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-equipes2';
 import {
   excluirMonitoria,
   restaurarMonitoria,
@@ -13,12 +13,12 @@ import {
   listarDestinatarios,
   reanalisarContestacao,
   replicarContestacao,
-} from '../../services/api/monitoria.js?v=20261124-equipes';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-equipes';
-import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261124-equipes';
-import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261124-equipes';
-import { JanelaPlano } from './redesign-feedback-planos.js?v=20261124-equipes';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261124-equipes';
+} from '../../services/api/monitoria.js?v=20261124-equipes2';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-equipes2';
+import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261124-equipes2';
+import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261124-equipes2';
+import { JanelaPlano } from './redesign-feedback-planos.js?v=20261124-equipes2';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261124-equipes2';
 
 // Detalhe de UMA monitoria (redesign Fase 15, fatia 4, amostra Q1 do lote 2): painel lateral de 640 px (padrão c-diario da
 // Fase 14) em todas as listas. Cabeçalho com ID + situação, linha curta operador · operação · data · avaliador e ⋯ (Exportar,

@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes';
+} from '../../infraestrutura-react.js?v=20261124-equipes2';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes';
+} from '../../app/controlador-aplicacao.js?v=20261124-equipes2';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes';
+} from '../../shared/helpers-visuais.js?v=20261124-equipes2';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261124-equipes';
-import { validarCardPipeline } from '../../shared/validacoes.js?v=20261124-equipes';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261124-equipes';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes';
+} from '../../shared/process-flow.js?v=20261124-equipes2';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261124-equipes2';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261124-equipes2';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes2';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js?v=20261124-equipes';
+} from '../processos/state.js?v=20261124-equipes2';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261124-equipes';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+} from '../../shared/process-reference.js?v=20261124-equipes2';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
 
 const ETAPAS_PIPELINE = [
   'Triagem',
