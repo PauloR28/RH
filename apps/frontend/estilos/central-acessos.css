@@ -53,3 +53,8 @@
 @media (max-width: 599.98px) {
   .c-acessos-vale, .c-acessos-busca { flex: 1 1 100%; }
 }
+/* Alcance (Etapa 6, 17/nov/2026): 1ª linha da tabela da função. */
+.c-acessos-alcance th small { color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); font-weight: var(--fonte-peso-normal); }
+.c-acessos-alcance td { line-height: normal; padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
+.c-acessos-alcance .c-entrada { min-width: 104px; }
+.c-acessos-alcance .c-entrada.is-alterada { border-color: var(--cor-foco-anel); }

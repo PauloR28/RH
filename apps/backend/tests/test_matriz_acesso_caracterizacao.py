@@ -15,6 +15,7 @@ import pytest
 # Mudança aprovada (decisão 2 do RH, com D-10): os perfis de TI GANHAM administração completa dos módulos core e
 # tecnologia. Só podem ganhar (nunca perder) e só permissões desses dois módulos; nenhum outro perfil pode mudar.
 PERFIS_APROVADOS = frozenset(m.PERFIS_TI)
+TELAS_REMOVIDAS = frozenset({"screen-settings-profiles"})
 _NOVAS = ("chamados.", "equipes.", "sessao.equipe.", "ambiente.seguranca", "relhub.", "sessao.relatorios.", "diario.", "sessao.diario.", "painel.", "sessao.painel.")  # Painel (14/nov/2026): chaves NOVAS, só adicionadas
 
 
@@ -86,9 +87,11 @@ def test_telas_liberadas_por_perfil_nao_mudaram(atual, base):
     divergencias = []
     # Telas NOVAS (ex.: as do módulo Tecnologia) não existiam no snapshot: só se compara o universo de telas de antes.
     universo = set(base["telas"]["permissao"]) | set(base["telas"]["sessao"])
+    # Telas que SAÍRAM de propósito: Perfis e permissões (Etapa 10, nov/2026; Acessos faz o mesmo).
+    universo -= TELAS_REMOVIDAS
     for estado, perfis in base["estados"].items():
         for perfil, dados in perfis.items():
-            antes = set(dados["telas_liberadas"])
+            antes = set(dados["telas_liberadas"]) - TELAS_REMOVIDAS
             depois = {t for t in atual["estados"][estado][perfil]["telas_liberadas"] if t in universo}
             if perfil in PERFIS_APROVADOS:
                 # Os perfis de TI passam a ter chaves `sessao.*`; antes não tinham nenhuma e, por isso, o frontend não

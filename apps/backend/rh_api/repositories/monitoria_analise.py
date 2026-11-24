@@ -14,7 +14,8 @@ from pathlib import Path
 
 from fastapi import status
 
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_SUPERVISOR, get_role_definition, get_role_permissions
+from ..alcance import EQUIPE, PROPRIO, alcance
+from ..rbac import ROLE_SUPERVISOR, get_role_definition, get_role_permissions, papel
 from ..services import monitoria_indicadores as ind
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -176,7 +177,7 @@ class MonitoriaAnaliseRepositoryMixin:
             "por_operador": ind.agrupar(linhas, "operador", faixas=faixas),
             "papel": user.perfil,
         }
-        if user.perfil == ROLE_OPERATOR:
+        if alcance(user.perfil).monitoria == PROPRIO:
             # Operador: os próprios dados + apenas a MÉDIA da operação (sem rankings/nomes).
             base = self._mon_linhas_escopo(user, {k: v for k, v in filtros.items() if k not in ("id_operador", "id_equipe")}, so_operacao=True, com_respostas=False)
             validas = [float(l["nota"]) for l in base if ind.eh_valida(l)]
@@ -190,13 +191,13 @@ class MonitoriaAnaliseRepositoryMixin:
             resposta["top"] = []
         else:
             base_op = linhas
-            if user.perfil == ROLE_SUPERVISOR:
+            if alcance(user.perfil).monitoria == EQUIPE:
                 # Detalhe só da(s) própria(s) equipe(s); visão geral consolidada da operação inteira.
                 base_op = self._mon_linhas_escopo(user, filtros, so_operacao=True)
                 resposta["visao_operacao"] = ind.resumo(base_op, faixas=faixas, agora=agora)
                 resposta["visao_operacao"].pop("distribuicao_faixas", None)
             resposta["top"] = ind.top_n(base_op, top)
-            if user.perfil == ROLE_SUPERVISOR:
+            if alcance(user.perfil).monitoria == EQUIPE:
                 resposta["por_operacao"] = ind.agrupar(base_op, "operacao", faixas=faixas)
         return resposta
 
@@ -348,7 +349,7 @@ class MonitoriaAnaliseRepositoryMixin:
                 cursor.execute("SELECT operacao FROM dbo.usuarios_operacoes WHERE id_usuario = ?", (id_dest,))
                 ops = [normalize_text(r[0]) for r in cursor.fetchall()]
                 supervisionados = set()
-                if perfil == ROLE_SUPERVISOR:
+                if papel(perfil) == ROLE_SUPERVISOR:
                     cursor.execute("SELECT id_operador FROM dbo.usuarios_supervisores WHERE id_supervisor = ?", (id_dest,))
                     supervisionados = {int(r[0]) for r in cursor.fetchall()}
                 if "monitoria.visualizar" not in get_role_permissions(perfil):
@@ -425,7 +426,7 @@ class MonitoriaAnaliseRepositoryMixin:
         filtros = filtros or {}
         condicoes: list[str] = []
         params: list = []
-        if user.perfil != ROLE_ADMIN:
+        if not alcance(user.perfil).total:
             permitidas = operacoes_permitidas(user.perfil, user.operacoes)
             if not permitidas:
                 return {"itens": [], "total": 0, "pagina": 1, "por_pagina": por_pagina}

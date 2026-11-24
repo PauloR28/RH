@@ -391,36 +391,6 @@ tr[aria-selected='true'] td { background: var(--cor-fundo-selecionado); }
 .c-legenda .c-ponto-critica { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--cor-status-perigo-texto); }
 
 /* ── 16. Perfis e permissões v3 (DEC-073): Área → Módulo → Permissões, 1 tela ── */
-.c-pv { display: grid; grid-template-columns: 190px 1fr; min-height: 380px; }
-.c-pv-abas { padding: 0 var(--espaco-2); overflow: hidden; }
-.c-pv-abas .c-aba { height: 40px; padding: 0 10px; gap: 6px; font-size: 13px; }
-.c-pv-abas .c-aba small { font-size: 11px; font-weight: var(--fonte-peso-normal); color: var(--cor-texto-secundario); }
-.c-pv-mods { display: flex; flex-direction: column; gap: 2px; padding: var(--espaco-2); border-right: var(--borda-fina) solid var(--tabela-linha); font-size: 13px; }
-.c-pv-mods a { display: flex; align-items: center; height: 30px; padding: 0 var(--espaco-2); border-radius: var(--raio-pequeno); color: var(--cor-texto-padrao); text-decoration: none; white-space: nowrap; }
-.c-pv-mods a[hidden] { display: none; }
-.c-pv-mods a:hover { background: var(--cor-fundo-sutil); }
-.c-pv-mods a[aria-current] { background: var(--cor-fundo-selecionado); color: var(--cor-texto-link); font-weight: var(--fonte-peso-semi); }
-.c-pv-mods small { margin-left: auto; font-size: 11px; color: var(--cor-texto-secundario); font-weight: var(--fonte-peso-normal); }
-.c-pv-painel { padding: var(--espaco-3) var(--espaco-4); }
-.c-pv-cab { display: flex; align-items: center; gap: var(--espaco-2); height: 32px; margin-bottom: var(--espaco-2); font-size: 14px; }
-.c-pv-cab .c-secundario { font-size: 12px; }
-.c-pv-todas { margin-left: auto; display: none; gap: var(--espaco-1); }
-.c-pv--editando .c-pv-todas { display: flex; }
-.c-pv-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--espaco-6, 24px); }
-.c-pv-item { height: 34px; font-size: 13px; border-bottom: var(--borda-fina) solid var(--tabela-linha); min-width: 0; }
-.c-pv-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.c-pv-item input:disabled { cursor: default; opacity: .9; }
-.c-pv-item input:disabled + span { cursor: default; }
-.c-pv-critica { width: 6px; height: 6px; border-radius: 50%; background: var(--cor-status-perigo-texto); flex: none; }
-.c-pv-item.c-mudou span { color: var(--cor-status-atencao-texto); font-weight: var(--fonte-peso-semi); }
-.c-pv-item[hidden], .c-pv-painel[hidden] { display: none; }
 .c-rel-lista--caixa { padding: var(--espaco-2); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); }
 .c-rel-lista--caixa h3 { padding: 0 var(--espaco-2); margin-top: var(--espaco-1); }
-.c-pv-faixa { display: flex; align-items: center; gap: var(--espaco-4); min-height: 44px; padding: 0 var(--espaco-4); border-bottom: var(--borda-fina) solid var(--tabela-linha); background: var(--cor-fundo-sutil); font-size: 13px; }
-.c-pv-faixa[hidden] { display: none; }
-.c-pv-faixa .c-pv-sec span { font-weight: var(--fonte-peso-semi); }
-.c-pv-faixa .c-pv-sec.c-mudou span { color: var(--cor-status-atencao-texto); }
-.c-pv-off { display: none; margin-left: auto; font-size: 12px; color: var(--cor-texto-secundario); }
-.c-pv-faixa--off .c-pv-off { display: inline; }
-.c-pv--off .c-pv { opacity: .45; pointer-events: none; }
 .c-aba.c-aba--off { color: var(--cor-texto-desabilitado, #9AA3B5); text-decoration: line-through; text-decoration-thickness: 1px; }

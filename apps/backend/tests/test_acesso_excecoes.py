@@ -37,7 +37,6 @@ def _foto(excecoes=(), perfis=None, perfil_do_usuario=None, desligadas=None):
 
 @pytest.fixture(autouse=True)
 def limpar(monkeypatch):
-    monkeypatch.delenv("RH_ACESSO_REGRA_UNICA", raising=False)
     yield
     acesso.definir_carregador(None)
     cache.definir_carregador(None)
@@ -92,14 +91,7 @@ def _usuario(monkeypatch, **kw):
     return user
 
 
-def test_chave_desligada_nao_muda_nada(monkeypatch):
-    _usuario(monkeypatch)
-    _foto([E("perfil", "supervisor", None, None, "wfm.relatorios", "retirar")], perfis={"supervisor": frozenset({"wfm.relatorios"})})
-    assert dependencies.get_current_user(_Cred(), None).permissions == {"wfm.relatorios"}
-
-
-def test_chave_ligada_a_regra_unica_decide(monkeypatch):
-    monkeypatch.setenv("RH_ACESSO_REGRA_UNICA", "1")
+def test_a_regra_unica_decide(monkeypatch):
     _usuario(monkeypatch)
     _foto([E("perfil", "supervisor", None, None, "wfm.relatorios", "retirar")], perfis={"supervisor": frozenset({"wfm.relatorios"})})
     assert dependencies.get_current_user(_Cred(), None).permissions == frozenset()

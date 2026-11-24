@@ -16,7 +16,8 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR, get_role_definition
+from ..alcance import EQUIPE, PROPRIO, alcance
+from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, papel, perfis_com_papel
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_engine import (
@@ -659,10 +660,10 @@ class MonitoriaRepositoryMixin:
                 FROM dbo.usuarios u
                 JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario AND uo.operacao = ?
                 LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
-                WHERE u.perfil_id = ? AND u.status = 'Ativo'
+                WHERE u.perfil_id IN (%s) AND u.status = 'Ativo'
                 ORDER BY u.nome
-                """,
-                (operacao, ROLE_OPERATOR),
+                """ % ",".join("?" for _ in perfis_com_papel(ROLE_OPERATOR)),
+                (operacao, *perfis_com_papel(ROLE_OPERATOR)),
             )
             operadores = rows_to_dicts(cursor, cursor.fetchall())
             cursor.execute("SELECT id_operador, id_supervisor FROM dbo.usuarios_supervisores")
@@ -671,7 +672,7 @@ class MonitoriaRepositoryMixin:
                 supervisores.setdefault(int(id_operador), []).append(int(id_supervisor))
         finally:
             conn.close()
-        if user.perfil == ROLE_SUPERVISOR:
+        if alcance(user.perfil).monitoria == EQUIPE:
             operadores = [o for o in operadores if user.id_usuario in supervisores.get(int(o["id_usuario"]), [])]
         return [
             {
@@ -831,7 +832,7 @@ class MonitoriaRepositoryMixin:
                 (id_operador,),
             )
             op = cursor.fetchone()
-            if not op or get_role_definition(op[3]).id != ROLE_OPERATOR or normalize_text(op[4]).lower() != "ativo":
+            if not op or papel(op[3]) != ROLE_OPERATOR or normalize_text(op[4]).lower() != "ativo":
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selecione um operador ativo.")
             if id_operador == user.id_usuario:
                 raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "O avaliador não pode monitorar a si mesmo.")
@@ -843,7 +844,7 @@ class MonitoriaRepositoryMixin:
                 (id_operador,),
             )
             supervisores = [{"id_usuario": r[0], "nome": normalize_text(r[1])} for r in cursor.fetchall()]
-            if user.perfil == ROLE_SUPERVISOR and user.id_usuario not in {s["id_usuario"] for s in supervisores}:
+            if alcance(user.perfil).monitoria == EQUIPE and user.id_usuario not in {s["id_usuario"] for s in supervisores}:
                 raise _http(status.HTTP_403_FORBIDDEN, "Você só pode monitorar operadores que supervisiona.")
 
             # Campos do contato
@@ -974,9 +975,9 @@ class MonitoriaRepositoryMixin:
         cursor.execute(
             """
             SELECT u.email FROM dbo.usuarios u JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario
-            WHERE u.perfil_id = ? AND uo.operacao = ? AND u.status = 'Ativo'
-            """,
-            (ROLE_QUALIDADE, operacao),
+            WHERE u.perfil_id IN (%s) AND uo.operacao = ? AND u.status = 'Ativo'
+            """ % ",".join("?" for _ in perfis_com_papel(ROLE_QUALIDADE)),
+            (*perfis_com_papel(ROLE_QUALIDADE), operacao),
         )
         emails |= {normalize_text(r[0]) for r in cursor.fetchall()}
         for email in sorted(e for e in emails if e):
@@ -1004,7 +1005,7 @@ class MonitoriaRepositoryMixin:
                 return None
             condicoes.append(f"{alias}.operacao IN ({','.join('?' for _ in permitidas)})")
             params.extend(sorted(permitidas))
-        if user.perfil == ROLE_OPERATOR:
+        if alcance(user.perfil).monitoria == PROPRIO:
             if user.id_usuario is None:
                 return None
             condicoes.append(f"{alias}.id_operador = ?")
@@ -1013,7 +1014,7 @@ class MonitoriaRepositoryMixin:
                 # Opcional (não é o padrão): o Operador vê a monitoria assim que ela é feita
                 # (Correções.txt 21/set); contestar/confirmar continuam exigindo o feedback aplicado.
                 condicoes.append(f"EXISTS (SELECT 1 FROM dbo.monitoria_feedbacks f WHERE f.id_monitoria = {alias}.id_monitoria)")
-        elif user.perfil == ROLE_SUPERVISOR:
+        elif alcance(user.perfil).monitoria == EQUIPE:
             if user.id_usuario is None:
                 return None
             condicoes.append(f"{alias}.id_operador IN (SELECT id_operador FROM dbo.usuarios_supervisores WHERE id_supervisor = ?)")
@@ -1135,7 +1136,7 @@ class MonitoriaRepositoryMixin:
         return {"por": normalize_text(row[0]), "motivo": normalize_text(row[1]), "em": _iso(row[2])}
 
     def _mon_exigir_admin(self, user) -> None:
-        if user.perfil != ROLE_ADMIN:
+        if not alcance(user.perfil).total:
             raise _http(status.HTTP_403_FORBIDDEN, "Somente o Administrador pode excluir ou restaurar monitorias.")
 
     def mon_excluir_monitoria(self, user, ref: str, *, motivo: str, confirmacao: str, ip: str = "") -> dict:
@@ -1233,7 +1234,7 @@ class MonitoriaRepositoryMixin:
             if not row:
                 raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
             m = rows_to_dicts(cursor, [row])[0]
-            supervisionados = self.mon_operadores_supervisionados(user.id_usuario) if user.perfil == ROLE_SUPERVISOR and user.id_usuario else set()
+            supervisionados = self.mon_operadores_supervisionados(user.id_usuario) if alcance(user.perfil).monitoria == EQUIPE and user.id_usuario else set()
             permitido = pode_ver_detalhe_monitoria(
                 perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
                 operacao=normalize_text(m["operacao"]), id_operador=int(m["id_operador"]), operadores_supervisionados=supervisionados,
@@ -1248,7 +1249,7 @@ class MonitoriaRepositoryMixin:
 
             # Excluída logicamente: só o Administrador ainda abre (para conferir ou restaurar).
             exclusao = self._mon_exclusao(cursor, id_m)
-            if exclusao and user.perfil != ROLE_ADMIN:
+            if exclusao and not alcance(user.perfil).total:
                 raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
 
             cursor.execute("SELECT status, resultado, sla_tipo, sla_inicio, sla_limite FROM dbo.monitoria_estado WHERE id_monitoria = ?", (id_m,))

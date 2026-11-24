@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261121-troca-telas';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261124-correcoes';

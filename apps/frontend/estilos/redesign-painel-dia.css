@@ -32,6 +32,20 @@
 .c-pd-agora { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--cor-acao-fundo); pointer-events: none; }
 .c-hoje-dupla { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--espaco-4); align-items: start; }
 .c-hoje-dupla .c-mural .c-lista li { min-height: 32px; padding-top: var(--espaco-1); padding-bottom: var(--espaco-1); }
+.c-hoje-dupla--so { grid-template-columns: minmax(0, 1fr); }
+/* Início da Operação (Etapa 8, amostra aprovada em 17/11/2026): várias operações, só a 1ª aberta em "Todas" */
+.c-hoje-op { display: flex; align-items: center; gap: var(--espaco-2); width: 100%; height: 32px; padding: 0; background: none; border: 0; border-top: var(--borda-fina) solid var(--tabela-linha); color: inherit; font: inherit; font-size: var(--texto-rotulo-tamanho); text-align: left; cursor: pointer; }
+.c-hoje-op .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); color: var(--cor-texto-secundario); }
+.c-hoje-op:hover { background: var(--cor-fundo-sutil); }
+.c-hoje-op:focus-visible { outline: var(--borda-foco) solid var(--cor-foco-anel); outline-offset: -2px; }
+.c-hoje-grade > .c-hoje-op:first-of-type { border-top: 0; }
+/* Precisa de você: botão Ver menor que a linha, com folga em cima e embaixo; colunas juntas */
+.c-hoje-pend td { padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
+.c-hoje-pend .c-acoes .c-botao { height: 24px; min-height: 24px; padding: 0 var(--espaco-3); font-size: var(--texto-rotulo-tamanho); }
+.c-hoje-pend--op { table-layout: auto; }
+.c-hoje-pend--op th, .c-hoje-pend--op td { white-space: nowrap; padding-left: var(--espaco-3); padding-right: var(--espaco-3); }
+.c-hoje-pend--op td:first-child { white-space: normal; }
+@media (max-width: 900px) { .c-hoje-dupla { grid-template-columns: minmax(0, 1fr); } }
 
 /* ── Painel do dia ── */
 .c-pd-atual { display: inline-flex; align-items: center; gap: var(--espaco-1); font-size: 12px; }

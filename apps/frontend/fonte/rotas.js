@@ -16,7 +16,6 @@ export const ROTAS_POR_TELA = {
   'screen-talent-bank': 'banco-talentos',
   'screen-onedrive-files': 'onedrive',
   'screen-settings-users': 'configuracoes/usuario',
-  'screen-settings-profiles': 'configuracoes/perfis-permissoes',
   'screen-settings-acessos': 'configuracoes/acessos',
   'screen-settings-operations': 'configuracoes/operacoes',
   'screen-settings-lgpd': 'configuracoes/lgpd',
@@ -29,6 +28,10 @@ export const ROTAS_POR_TELA = {
   'screen-settings-onboarding': 'configuracoes/onboarding',
   'screen-settings-document-templates': 'configuracoes/templates-documentos',
   'screen-settings-administracao': 'configuracoes/administracao',
+  'screen-settings-conecta': 'configuracoes/conecta',
+  'screen-settings-seguranca': 'configuracoes/seguranca',
+  'screen-settings-inicio': 'configuracoes/inicio',
+  'screen-settings-backup': 'configuracoes/backup',
   'screen-settings-sharepoint-ambiente': 'configuracoes/administracao/parametros/sharepoint/novo-ambiente',
   'screen-provas-configuracao': 'processos/provas-configuracao',
   'screen-settings': 'configuracoes/usuario',
@@ -163,6 +166,8 @@ export function obterTelaPorRota(rotaAtual = obterRotaAtual()) {
   if (rota === 'conecta-provas' || rota.startsWith('conecta-provas/')) {
     return 'screen-conecta-provas';
   }
+  // Etapa 10 (nov/2026): Perfis e permissões saiu; link antigo abre Acessos, que faz o mesmo.
+  if (rota === 'configuracoes/perfis-permissoes') return 'screen-settings-acessos';
   if (rota.startsWith('candidatar/')) return 'screen-public-candidacy';
   if (rota.startsWith('disc-teste/')) return 'screen-disc-teste';
   if (rota.startsWith('fit-cultural-teste/')) return 'screen-fit-cultural-teste';

@@ -25,6 +25,7 @@
  "GET /ready",
  "GET /runtime-config.js",
  "GET /settings/health",
+ "GET /settings/seguranca/sessao",
  "GET /settings/tela-inicial/minha",
  "GET /sistema/orientacoes",
  "GET /version",

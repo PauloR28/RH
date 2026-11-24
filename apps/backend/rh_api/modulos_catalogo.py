@@ -131,20 +131,44 @@ FUNCOES: dict[str, tuple[str, str]] = {
     "suporte": ("Suporte TI", "Chamados, fila, indicadores e configurações de TI."),
     "diario": ("Diário de bordo", "Registro do dia, demandas e intercorrências da operação."),
     "treinamentos": ("Treinamentos", "Trilhas e cursos da operação."),
+    # Etapa 4 da reestruturação (17/nov/2026, aprovada pelo Paulo): 13 funções com tela e permissões próprias ganham
+    # botão que desliga de verdade. Cada uma tem UM botão, no seu módulo de casa; desligada lá, fecha para todos.
+    "equipes": ("Equipes", "Equipes da operação e seus integrantes."),
+    "paineis": ("Painéis", "Painéis de TV por unidade."),
+    "admissao": ("Admissão", "Onboarding de novos colaboradores."),
+    "documentos": ("Documentos", "Documentos dos colaboradores."),
+    "modelos_documentos": ("Modelos de documentos", "Modelos usados para gerar documentos."),
+    "politicas": ("Políticas", "Políticas internas da empresa."),
+    "relatorios": ("Relatórios", "Central de relatórios do Conecta."),
+    "mural": ("Mural", "Avisos e comunicados do mural."),
+    "emails": ("E-mails", "Modelos e envios de e-mail."),
+    "lgpd": ("LGPD", "Pedidos e políticas de dados pessoais."),
+    "notificacoes": ("Notificações", "Avisos dentro do Conecta."),
+    "calendario": ("Calendário", "Calendário e eventos."),
+    "ajuda": ("Central de Ajuda", "Base de conhecimento e arquivos de ajuda."),
 }
+# Funções base (Etapa 4, 17/nov/2026): sempre ligadas, sem botão, para o administrador nunca ficar trancado fora.
+FUNCOES_SEMPRE_LIGADAS: frozenset[str] = frozenset(
+    {"usuarios", "perfis", "modulos", "administracao", "unidades", "seguranca", "logs", "tela_inicial"}
+)
 _FUNCOES_MENU_LEGADO = ("cx-curriculos", "processos", "provas", "gestao", "drive", "monitoria", "wfm")
 FUNCOES_POR_MODULO: dict[str, tuple[str, ...]] = {
-    MODULO_RH: _FUNCOES_MENU_LEGADO,
-    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO + ("diario", "treinamentos"),
-    MODULO_TECNOLOGIA: ("suporte", "wfm"),
+    MODULO_RH: _FUNCOES_MENU_LEGADO + ("admissao", "documentos", "modelos_documentos", "politicas"),
+    MODULO_OPERACAO: _FUNCOES_MENU_LEGADO + ("diario", "treinamentos", "equipes", "paineis"),
+    MODULO_TECNOLOGIA: ("suporte", "wfm", "relatorios", "mural", "emails", "lgpd", "notificacoes", "calendario", "ajuda"),
+}
+_NOVAS_ETAPA4: dict[str, tuple[str, ...]] = {
+    MODULO_RH: ("admissao", "documentos", "modelos_documentos", "politicas"),
+    MODULO_OPERACAO: ("equipes", "paineis"),
+    MODULO_TECNOLOGIA: ("relatorios", "mural", "emails", "lgpd", "notificacoes", "calendario", "ajuda"),
 }
 # Funções da Operação que cada operação pode desligar só para si (lista 10/11, item 16; tabela operacoes_modulos, V069).
 FUNCOES_POR_OPERACAO: tuple[str, ...] = ("monitoria", "wfm", "diario", "treinamentos")
 # Padrão = o menu de hoje (nada muda até alguém mexer): RH mostra as funções de RH; Operação, Monitoria e WFM; Tecnologia, Suporte e Escalas.
 FUNCOES_PADRAO_ATIVAS: dict[str, frozenset[str]] = {
-    MODULO_RH: frozenset({"cx-curriculos", "processos", "provas", "gestao", "drive"}),
-    MODULO_OPERACAO: frozenset({"monitoria", "wfm", "diario", "treinamentos"}),
-    MODULO_TECNOLOGIA: frozenset({"suporte", "wfm"}),
+    MODULO_RH: frozenset({"cx-curriculos", "processos", "provas", "gestao", "drive", *_NOVAS_ETAPA4[MODULO_RH]}),
+    MODULO_OPERACAO: frozenset({"monitoria", "wfm", "diario", "treinamentos", *_NOVAS_ETAPA4[MODULO_OPERACAO]}),
+    MODULO_TECNOLOGIA: frozenset({"suporte", "wfm", *_NOVAS_ETAPA4[MODULO_TECNOLOGIA]}),
 }
 
 
@@ -160,6 +184,7 @@ MODULO_DONO_DA_FUNCAO: dict[str, str] = {
     "monitoria": MODULO_OPERACAO,
     "wfm": MODULO_OPERACAO,
     "suporte": MODULO_TECNOLOGIA,
+    **{f: m for m, fs in _NOVAS_ETAPA4.items() for f in fs},
 }
 # Chave de sessão que abre cada função (algumas são do `core` por padrão, por isso precisam ser ligadas ao dono aqui).
 SESSAO_DA_FUNCAO: dict[str, str] = {
@@ -170,6 +195,9 @@ SESSAO_DA_FUNCAO: dict[str, str] = {
     "drive": "sessao.drive.acessar",
     "monitoria": "sessao.monitoria.acessar",
     "wfm": "sessao.wfm.acessar",
+    "equipes": "sessao.equipe.acessar",
+    "paineis": "sessao.painel.acessar",
+    "relatorios": "sessao.relatorios.acessar",
 }
 
 
@@ -177,24 +205,13 @@ def funcao_padrao_ativa(modulo: str, funcao: str) -> bool:
     return funcao in FUNCOES_PADRAO_ATIVAS.get(modulo, frozenset())
 
 
-# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Só prefixos exclusivos de uma
-# função; permissão compartilhada (ex.: `candidatos.`) ou de núcleo fica sem função e a camada não fecha nada para ela.
-PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = {
-    "monitoria": ("monitoria.", "sessao.monitoria."),
-    "wfm": ("wfm.", "sessao.wfm."),
-    "diario": ("diario.", "sessao.diario."),
-    "treinamentos": ("trilhas.", "sessao.treinamentos."),
-    "suporte": ("chamados.",),
-    "processos": ("processos.", "vagas.", "entrevistas.", "sessao.processos."),
-    "provas": ("provas.", "fit_cultural.", "sessao.provas."),
-    "cx-curriculos": ("sessao.curriculos.",),
-    "gestao": ("sessao.gestao.",),
-    "drive": ("sessao.drive.",),
-}
+# Central de Acessos, Etapa 4: função de cada permissão (camada "função" da regra única). Desde 17/nov/2026 vem do
+# catálogo ÚNICO (`acesso_catalogo`): cada função do catálogo com `motor` empresta seus prefixos e chaves ao motor.
+# Permissão de função sem motor (ex.: `candidatos.`, Relatórios) fica sem função e a camada não fecha nada para ela.
+from .acesso_catalogo import motor_da_permissao, prefixos_do_motor  # noqa: E402
+
+PREFIXOS_DA_FUNCAO: dict[str, tuple[str, ...]] = prefixos_do_motor()
 
 
 def funcao_da_permissao(chave: str) -> str | None:
-    for funcao, prefixos in PREFIXOS_DA_FUNCAO.items():
-        if any(chave.startswith(p) for p in prefixos):
-            return funcao
-    return None
+    return motor_da_permissao(chave)

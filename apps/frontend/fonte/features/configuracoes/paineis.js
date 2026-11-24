@@ -100,7 +100,7 @@ function Editor({ config, painel, aoFechar, aoSalvar }) {
           <div class="c-pg-perfis">
             ${config.perfis.map((p) => html`<label key=${p.id} class="c-marcar"><input type="checkbox" checked=${perfis.includes(p.id)} onChange=${(e) => marcarPerfil(p.id, e.target.checked)} />${p.nome}</label>`)}
           </div>
-          <p class="c-ajuda">A pessoa também precisa da permissão de ver painéis (Perfis e permissões) e de acesso a esta unidade. Cada métrica pede ainda o acesso ao módulo de origem.</p>
+          <p class="c-ajuda">A pessoa também precisa da permissão de ver painéis (em Acessos) e de acesso a esta unidade. Cada métrica pede ainda o acesso ao módulo de origem.</p>
         </section>
         <label class="c-interruptor"><input type="checkbox" checked=${ativo} onChange=${(e) => setAtivo(e.target.checked)} />Painel ligado</label>
       </div>

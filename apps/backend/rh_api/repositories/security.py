@@ -22,19 +22,25 @@ from fastapi import HTTPException, status
 from ..auth import AuthenticatedUser
 from ..passwords import hash_password, verify_password
 from ..rbac import (
+    PERFIS_FIXOS,
     PERMISSION_DEFINITIONS,
     ROLE_ADMIN,
     ROLE_DEFINITIONS,
     ROLE_EMPLOYEE,
     ROLE_INTERN,
     SETTINGS_CATALOGS,
+    RoleDefinition,
     aplicar_restricao_wfm_em_teste,
     get_role_definition,
     get_role_permissions,
     normalize_role_id,
+    papel,
+    perfil_existe,
+    perfis_ativos,
     sanitize_permissions,
 )
 from ..services.helpers import normalize_compare_text, normalize_text, rows_to_dicts, safe_json_loads
+from ..services.seguranca_config import mensagem_senha_curta, tamanho_minimo_senha
 from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
 
 AUTH_PROVIDER_LOCAL = "local"
@@ -51,6 +57,11 @@ def _provedor_permite(provedor, metodo: str) -> bool:
     return p in ("", AUTH_PROVIDER_AMBOS) or p == metodo
 _EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _AVATAR_ILUSTRADO_PATTERN = re.compile(r"^avatar-(0[1-9]|[12]\d|3\d|40)$")
+
+
+def _nome_maiusculo(value) -> str:
+    """Nome e sobrenome de usuário são sempre gravados em MAIÚSCULAS ("fulano de tal" -> "FULANO DE TAL")."""
+    return normalize_text(value).upper()
 
 
 def _normalize_email(value) -> str:
@@ -92,6 +103,23 @@ def _json_dump(value) -> str:
         return json.dumps(value, ensure_ascii=False, default=str)
     except TypeError:
         return str(value)
+
+
+def _perfil_valido(pedido) -> RoleDefinition:
+    """Perfil pedido para um usuário: precisa existir (código ou criado) e não estar apagado (Etapa 9).
+    Antes, um id desconhecido virava Administrador sem aviso."""
+    if not perfil_existe(pedido):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Perfil não existe ou foi apagado.")
+    return get_role_definition(pedido)
+
+
+def _contar_pessoas_por_perfil(cursor) -> dict[str, int]:
+    cursor.execute("SELECT perfil_id, COUNT(*) FROM dbo.usuarios GROUP BY perfil_id")
+    contagem: dict[str, int] = {}
+    for perfil_id, total in cursor.fetchall():
+        chave = normalize_role_id(perfil_id)
+        contagem[chave] = contagem.get(chave, 0) + int(total)
+    return contagem
 
 
 def _garantir_fronteira_administrador(actor, *perfis_alvo: str | None) -> None:
@@ -306,6 +334,7 @@ class SecurityRepositoryMixin:
             "cargo": normalize_text(row.get("cargo")),
             "email": normalize_text(row.get("email")),
             "perfil": role.id,
+            "papel": papel(role.id),  # Etapa 9: perfil do código com que funciona (o front decide telas por ele)
             "perfil_nome": normalize_text(row.get("perfil_nome")) or role.name,
             "nivel": normalize_text(row.get("nivel")) or role.level,
             "status": status_value,
@@ -919,7 +948,7 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def update_own_name(self, id_usuario: int, nome: str) -> dict:
-        safe_name = normalize_text(nome)
+        safe_name = _nome_maiusculo(nome)
         if not safe_name:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um nome válido.")
 
@@ -944,8 +973,8 @@ class SecurityRepositoryMixin:
     def update_own_password(self, id_usuario: int, senha_atual: str, nova_senha: str) -> dict:
         safe_current = normalize_text(senha_atual)
         safe_new = normalize_text(nova_senha)
-        if not safe_new or len(safe_new) < 8:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A nova senha deve ter pelo menos 8 caracteres.")
+        if not safe_new or len(safe_new) < tamanho_minimo_senha():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
 
         conn = self._connect()
         try:
@@ -981,7 +1010,7 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def update_own_surname(self, id_usuario: int, sobrenome: str) -> dict:
-        safe_surname = normalize_text(sobrenome)
+        safe_surname = _nome_maiusculo(sobrenome)
         if len(safe_surname) > 180:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Sobrenome muito longo.")
 
@@ -1028,8 +1057,8 @@ class SecurityRepositoryMixin:
 
     def activate_local_login(self, id_usuario: int, nova_senha: str) -> dict:
         safe_new = normalize_text(nova_senha)
-        if len(safe_new) < 8:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A nova senha deve ter pelo menos 8 caracteres.")
+        if len(safe_new) < tamanho_minimo_senha():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
 
         conn = self._connect()
         try:
@@ -1312,9 +1341,15 @@ class SecurityRepositoryMixin:
         conn = self._connect()
         try:
             cursor = conn.cursor()
+            # Etapa 9: perfis do código (menos os apagados) + os criados pela tela, com "funciona como" e quantas pessoas têm.
+            pessoas = _contar_pessoas_por_perfil(cursor)
             return [
                 {
                     "id": role.id,
+                    "funciona_como": papel(role.id),
+                    "criado": role.id not in ROLE_DEFINITIONS,
+                    "fixo": role.id in PERFIS_FIXOS,
+                    "pessoas": pessoas.get(role.id, 0),
                     "nome": role.name,
                     "nivel": role.level,
                     "descricao": role.description,
@@ -1323,7 +1358,7 @@ class SecurityRepositoryMixin:
                     # WFM fechado na fase de teste para este perfil: as permissões WFM marcadas não valem até liberar em Tecnologia.
                     "wfm_fechado": bool(aplicar_restricao_wfm_em_teste(role.id, ["wfm.escala.visualizar"]) == []),
                 }
-                for role in ROLE_DEFINITIONS.values()
+                for role in perfis_ativos()
             ]
         finally:
             conn.close()
@@ -1352,7 +1387,7 @@ class SecurityRepositoryMixin:
         actor: AuthenticatedUser | dict | None = None,
     ) -> dict:
         safe_role = normalize_role_id(role_id)
-        if safe_role not in ROLE_DEFINITIONS:
+        if not perfil_existe(safe_role):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil não encontrado.")
         _garantir_fronteira_administrador(actor, safe_role)
 
@@ -1516,12 +1551,12 @@ class SecurityRepositoryMixin:
         )
 
     def create_system_user(self, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
-        safe_name = normalize_text(data.get("nome"))
-        safe_surname = normalize_text(data.get("sobrenome"))
+        safe_name = _nome_maiusculo(data.get("nome"))
+        safe_surname = _nome_maiusculo(data.get("sobrenome"))
         safe_email = _normalize_email(data.get("email"))
         safe_login = normalize_text(data.get("login")) or safe_email
         safe_password = normalize_text(data.get("senha") or data.get("password"))
-        role = get_role_definition(data.get("perfil") or data.get("perfil_id") or ROLE_INTERN)
+        role = _perfil_valido(data.get("perfil") or data.get("perfil_id") or ROLE_INTERN)
         _garantir_fronteira_administrador(actor, role.id)
         safe_cargo = normalize_text(data.get("cargo"))
         safe_status = normalize_text(data.get("status")) or "Ativo"
@@ -1717,7 +1752,8 @@ class SecurityRepositoryMixin:
         try:
             cursor = conn.cursor()
             previous = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
-            role = get_role_definition(data.get("perfil") or data.get("perfil_id") or previous["perfil"])
+            pedido = data.get("perfil") or data.get("perfil_id")
+            role = _perfil_valido(pedido) if pedido and normalize_role_id(pedido) != normalize_role_id(previous["perfil"]) else get_role_definition(previous["perfil"])
             _garantir_fronteira_administrador(actor, previous["perfil"], role.id)
             requested_email = _normalize_email(data.get("email")) or previous["email"]
             if not _EMAIL_PATTERN.fullmatch(requested_email):
@@ -1727,8 +1763,8 @@ class SecurityRepositoryMixin:
                 )
             new_values = {
                 "login": normalize_text(data.get("login")) or previous["login"],
-                "nome": normalize_text(data.get("nome")) or previous["nome"],
-                "sobrenome": normalize_text(data.get("sobrenome")) if "sobrenome" in data else previous.get("sobrenome", ""),
+                "nome": _nome_maiusculo(data.get("nome") or previous["nome"]),
+                "sobrenome": _nome_maiusculo(data.get("sobrenome") if "sobrenome" in data else previous.get("sobrenome", "")),
                 "email": requested_email,
                 "perfil_id": role.id,
                 "cargo": normalize_text(data.get("cargo")) if "cargo" in data else previous.get("cargo", ""),

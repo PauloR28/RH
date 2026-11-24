@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from ..alcance import alcance
 from ..auth import AuthenticatedUser
 from ..dependencies import get_current_user, get_repository, require_permissions
-from ..rbac import ACCESS_DENIED_MESSAGE, ROLE_ADMIN
+from ..rbac import ACCESS_DENIED_MESSAGE
 from ..repositories import DatabaseRepository
 from ..schemas.sistema import (
     AmbienteSharePointRequest,
@@ -32,7 +33,7 @@ def put_orientacoes_guiadas(
     repository: DatabaseRepository = Depends(get_repository),
 ):
     """Só o Administrador liga ou desliga o guia de ajuda para todos os perfis."""
-    if user.perfil != ROLE_ADMIN:
+    if not alcance(user.perfil).total:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)
     return repository.definir_orientacoes_guiadas(payload.ativo, actor=user)
 
@@ -134,7 +135,7 @@ def resetar_dados_conecta(
     # Restrito ao papel Administrador em código — não pode ser delegado via a
     # tela de Perfis e permissões, mesmo que alguém marque a permissão acima
     # para outro papel (Correções.txt: "botão... fica restrito ao ADM apenas").
-    if user.perfil != ROLE_ADMIN:
+    if not alcance(user.perfil).total:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ACCESS_DENIED_MESSAGE)
     return repository.resetar_dados_conecta(
         actor=user,

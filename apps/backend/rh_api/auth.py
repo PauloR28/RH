@@ -72,6 +72,9 @@ class AuthenticatedUser:
     # Vertente Monitoria: senha definida pelo criador do usuário; até trocá-la
     # no primeiro acesso, nenhuma rota (fora /auth/*) é liberada.
     deve_trocar_senha: bool = False
+    # Módulo aberto no navegador (cabeçalho X-Conecta-Modulo, 16/nov/2026). Vazio = pedido sem módulo (cliente antigo,
+    # rotina interna): nenhum filtro por módulo, como antes. Só filtra a LISTA de unidades; nunca concede nada.
+    modulo_aberto: str = ""
 
     def has_permission(self, permission: str) -> bool:
         return permission in self.permissions
@@ -130,7 +133,9 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
 
 def _build_token(user: AuthenticatedUser) -> str:
     settings = get_settings()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.auth_token_ttl_minutes)
+    from .services.seguranca_config import sessao_maxima_minutos
+
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=sessao_maxima_minutos(settings.auth_token_ttl_minutes))
     token_payload = {
         **_build_user_payload(user),
         "exp": int(expires_at.timestamp()),

@@ -47,7 +47,7 @@ class WfmHistoricoRepositoryMixin:
         if filtro.operacao:
             filtro.operacao = self._wfm_exigir_operacao(cursor, user, filtro.operacao)
             return None
-        return wfm_scope.operacoes_permitidas(user.perfil, user.operacoes)
+        return wfm_scope.operacoes_do_usuario(user)
 
     @staticmethod
     def _hist_dicts(cursor) -> list[dict]:

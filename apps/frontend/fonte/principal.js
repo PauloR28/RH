@@ -60,7 +60,7 @@ const root = createRoot(container);
 
 async function iniciarAplicacao() {
   try {
-    const { Aplicacao } = await import('./aplicacao.js?v=20261121-troca-telas');
+    const { Aplicacao } = await import('./aplicacao.js?v=20261124-correcoes');
 
     root.render(html`
       <${ErrorBoundary}>

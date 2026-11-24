@@ -5,8 +5,10 @@ import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
 import { useToast } from '../../shared/hooks/use-toast.js';
 import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261005-redesign16';
 import { montarHashDaTela } from '../../rotas.js';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261112-modulo-unico2';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261117-config2';
 import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261112-modulo-unico2';
+import { requisitar } from '../../services/api/core.js';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261117-inicio';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.
@@ -23,16 +25,14 @@ const GRUPOS_ATALHOS = [
     rotulo: 'PESSOAS E ACESSO',
     itens: [
       { tela: 'screen-settings-users', icone: 'group', titulo: 'Usuários', texto: 'Criar, editar, bloquear e redefinir senha.' },
-      { tela: 'screen-settings-profiles', icone: 'admin_panel_settings', titulo: 'Perfis e permissões', texto: 'Permissões de todos os módulos.' },
-      { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operações', texto: 'Cadastro, tema, logo e vínculos.' },
+      { tela: 'screen-settings-acessos', icone: 'lock', titulo: 'Acessos', texto: 'Módulos, funções, alcance e permissões, num lugar só.' },
+      { tela: 'screen-settings-operations', icone: 'apartment', titulo: 'Operação', texto: 'Cadastro, tema, logo e vínculos.' },
     ],
   },
   {
     rotulo: 'SISTEMA',
     itens: [
-      { tela: TELA_MODULOS_TECNOLOGIA, icone: 'grid_view', titulo: 'Módulos', texto: 'Funções de cada módulo e atribuição de acesso.' },
-      { tela: 'screen-settings-administracao', icone: 'verified_user', titulo: 'Parâmetros e integrações', texto: 'Microsoft 365, SharePoint e e-mail.' },
-      { tela: 'screen-settings-modelos-email', icone: 'tune', titulo: 'Catálogos e modelos', texto: 'Modelos de e-mail, motivos e etapas.' },
+      { tela: 'screen-settings-conecta', icone: 'settings', titulo: 'Configurações do Conecta', texto: 'Integrações, catálogos, LGPD, ajuda, logs e notificações.' },
     ],
   },
   {
@@ -45,9 +45,41 @@ const GRUPOS_ATALHOS = [
   },
 ];
 
+const ESTADO_BACKUP = { ok: ['Em dia', 'sucesso'], atrasado: ['Atrasado', 'atencao'], falha: ['Falhou', 'perigo'], sem_registro: ['Sem registro', 'atencao'] };
+
+// Situação do sistema (Etapa 8): backup e inatividade, as mesmas leituras de Configurações › Backup e › Segurança.
+function SituacaoSistema({ controlador }) {
+  const [dados, setDados] = useState(null);
+  const [falhou, setFalhou] = useState(false);
+  useEffect(() => {
+    let ativo = true;
+    Promise.all([
+      requisitar('/settings/backup', { method: 'GET' }).catch(() => null),
+      requisitar('/settings/seguranca/inatividade/previa', { method: 'GET' }).catch(() => null),
+    ]).then(([backup, previa]) => { if (ativo) { setDados({ backup, previa }); setFalhou(!backup && !previa); } });
+    return () => { ativo = false; };
+  }, []);
+  const abrir = (tela) => () => controlador.irParaTelaProtegida(tela);
+  const carregando = !dados;
+  const [rotuloBackup, tomBackup] = ESTADO_BACKUP[dados?.backup?.estado] || ESTADO_BACKUP.sem_registro;
+  const quando = dados?.backup?.ultimo?.fim ? new Date(dados.backup.ultimo.fim).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'sem backup no histórico';
+  const previa = dados?.previa;
+  return html`<div class="cx-resumos cx-resumos--duas">
+    <${CardResumoLink} icone="cloud" tom="azul" rotulo="Backup" valor=${rotuloBackup} nota=${`Último: ${quando}`} notaTom=${tomBackup}
+      acao="Ver backup" href=${montarHashDaTela('screen-settings-backup')} aoAbrir=${abrir('screen-settings-backup')} carregando=${carregando} falhou=${falhou || (dados && !dados.backup)} />
+    <${CardResumoLink} icone="lock" tom="verde" rotulo="Inatividade (hoje)" valor=${previa ? `${previa.bloquear} a bloquear` : '—'}
+      nota=${previa ? (previa.ativa ? `${previa.excluir} a excluir · ${previa.avisar} a avisar` : 'regra desligada') : ''} notaTom=${previa?.bloquear || previa?.excluir ? 'atencao' : 'sucesso'}
+      acao="Ver segurança" href=${montarHashDaTela('screen-settings-seguranca')} aoAbrir=${abrir('screen-settings-seguranca')} carregando=${carregando} falhou=${falhou || (dados && !previa)} />
+  </div>`;
+}
+
 function Inicio({ controlador }) {
   const [resumo, setResumo] = useState(null);
   const [falhou, setFalhou] = useState(false);
+  // Blocos e atalhos escolhidos em Configurações › Início dos módulos (null = carregando; os atalhos já podem aparecer).
+  const config = useInicioDoModulo('tecnologia');
+  const blocos = config?.blocos || ['resumo', 'situacao', 'atalhos'];
+  const ocultos = config?.atalhosOcultos || new Set();
 
   // Uma única chamada leve (contagens no servidor); os atalhos aparecem na hora, sem esperar os números.
   useEffect(() => {
@@ -59,34 +91,39 @@ function Inicio({ controlador }) {
   const resolver = (tela) => (tela === 'wfm' ? (funcaoLigada('tecnologia', 'wfm') ? telaWfmParaTecnologia(controlador.podeAcessarTela) : '') : tela);
   const abrir = (tela) => () => controlador.irParaTelaProtegida(tela);
   const grupos = GRUPOS_ATALHOS
-    .map((g) => ({ ...g, itens: g.itens.map((i) => ({ ...i, destino: resolver(i.tela) })).filter((i) => i.destino && controlador.podeAcessarTela(i.destino)) }))
+    .map((g) => ({ ...g, itens: g.itens.filter((i) => !ocultos.has(i.tela)).map((i) => ({ ...i, destino: resolver(i.tela) })).filter((i) => i.destino && controlador.podeAcessarTela(i.destino)) }))
     .filter((g) => g.itens.length);
 
   const total = resumo?.modulos_total;
   const ativos = resumo?.modulos_ativos;
   const todosAtivos = ativos === total;
   const carregando = !resumo && !falhou;
-  const podeModulos = controlador.podeAcessarTela(TELA_MODULOS_TECNOLOGIA);
+  const podeModulos = controlador.podeAcessarTela('screen-settings-acessos');
   const podeUsuarios = controlador.podeAcessarTela('screen-settings-users');
 
-  return html`
-    <${PaginaConsole} className="cx-adm">
-      <${CabecalhoConsole} titulo=${TITULOS['screen-tecnologia'][0]} subtitulo=${TITULOS['screen-tecnologia'][1]} />
-      <div class="cx-resumos cx-resumos--duas">
+  const pedacos = {
+    resumo: () => ((podeModulos || podeUsuarios) ? html`<div key="resumo" class="cx-resumos cx-resumos--duas">
         ${podeModulos ? html`<${CardResumoLink} icone="grid_view" tom="verde" rotulo="Módulos ativos" valor=${`${ativos} de ${total}`}
-          nota=${todosAtivos ? 'todos ativos' : `${total - ativos} desativado(s)`} notaTom=${todosAtivos ? 'sucesso' : 'atencao'} acao="Ver módulos"
-          href=${montarHashDaTela(TELA_MODULOS_TECNOLOGIA)} aoAbrir=${abrir(TELA_MODULOS_TECNOLOGIA)} carregando=${carregando} falhou=${falhou} />` : null}
+          nota=${todosAtivos ? 'todos ativos' : `${total - ativos} desativado(s)`} notaTom=${todosAtivos ? 'sucesso' : 'atencao'} acao="Ver acessos"
+          href=${montarHashDaTela('screen-settings-acessos')} aoAbrir=${abrir('screen-settings-acessos')} carregando=${carregando} falhou=${falhou} />` : null}
         ${podeUsuarios ? html`<${CardResumoLink} icone="group" tom="azul" rotulo="Usuários ativos" valor=${`${resumo?.usuarios_ativos}`}
           nota=${`${resumo?.usuarios_bloqueados} bloqueado(s)`} acao="Ver usuários"
           href=${montarHashDaTela('screen-settings-users')} aoAbrir=${abrir('screen-settings-users')} carregando=${carregando} falhou=${falhou} />` : null}
-      </div>
-      <div class="cx-grupos" style=${{ '--cx-colunas': Math.max(1, grupos.length) }}>
+      </div>` : null),
+    situacao: () => (controlador.possuiPermissao('configuracoes.visualizar') ? html`<${SituacaoSistema} key="situacao" controlador=${controlador} />` : null),
+    atalhos: () => (grupos.length ? html`<div key="atalhos" class="cx-grupos" style=${{ '--cx-colunas': Math.max(1, grupos.length) }}>
         ${grupos.map((g) => html`
           <${GrupoAtalhos} key=${g.rotulo} rotulo=${g.rotulo}>
             ${g.itens.map((i) => html`<${AtalhoLinha} key=${i.titulo} icone=${i.icone} nome=${i.titulo} descricao=${i.texto}
               href=${montarHashDaTela(i.destino)} aoAbrir=${abrir(i.destino)} />`)}
           </${GrupoAtalhos}>`)}
-      </div>
+      </div>` : null),
+  };
+
+  return html`
+    <${PaginaConsole} className="cx-adm">
+      <${CabecalhoConsole} titulo=${TITULOS['screen-tecnologia'][0]} subtitulo=${TITULOS['screen-tecnologia'][1]} />
+      ${blocos.map((id) => pedacos[id]?.() || null)}
     </${PaginaConsole}>`;
 }
 

@@ -207,6 +207,7 @@ export function lerSessaoAutenticacao() {
     nome: payload.nome || '',
     email: payload.email || '',
     perfil: payload.perfil || '',
+    papel: payload.papel || payload.perfil || '',
     perfil_nome: payload.perfil_nome || '',
     nivel: payload.nivel || '',
     permissoes: Array.isArray(payload.permissoes) ? payload.permissoes : [],
@@ -229,6 +230,7 @@ export function salvarSessaoAutenticacao(token, sessaoOuUsuario) {
       nome: sessao.nome || '',
       email: sessao.email || '',
       perfil: sessao.perfil || '',
+      papel: sessao.papel || sessao.perfil || '',
       perfil_nome: sessao.perfil_nome || '',
       nivel: sessao.nivel || '',
       permissoes: Array.isArray(sessao.permissoes) ? sessao.permissoes : [],
@@ -289,6 +291,15 @@ async function lerMensagemErro(resposta) {
   return resposta.text().catch(() => '');
 }
 
+function lerModuloAberto(token) {
+  try {
+    const salvo = JSON.parse(window.sessionStorage.getItem('conecta_modulo_atual') || 'null');
+    return salvo && salvo.token === token ? String(salvo.chave || '') : '';
+  } catch {
+    return '';
+  }
+}
+
 async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
   const { autenticado = true } = configuracao;
   const headers = new Headers(opcoes.headers || {});
@@ -296,6 +307,10 @@ async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
 
   if (autenticado && sessao.token) {
     headers.set('Authorization', `Bearer ${sessao.token}`);
+    // Módulo aberto (16/11/2026): o servidor mostra só as unidades do módulo em que a pessoa está (escala de TI só na
+    // Tecnologia). Mesma chave de modulos/estado.js, lida aqui direto para não criar import circular.
+    const modulo = lerModuloAberto(sessao.token);
+    if (modulo && !headers.has('X-Conecta-Modulo')) headers.set('X-Conecta-Modulo', modulo);
   }
 
   let resposta;

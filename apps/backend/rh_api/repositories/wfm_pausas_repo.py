@@ -13,7 +13,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_SUPERVISOR
+from ..alcance import EQUIPE, alcance
 from ..services import wfm_dias_semana as dias_semana
 from ..services import wfm_pausas as regras
 from ..services import wfm_scope
@@ -121,7 +121,7 @@ class WfmPausasRepositoryMixin:
             programadas = self._wfm_pausas_programadas(cursor, operacao, dia)
             prog = self._wfm_programacao(escalados, programadas)
             # Supervisor com todas_equipes=True: leitura das demais equipes (somente leitura; editar segue restrito à equipe).
-            ver_todas = bool(todas_equipes and user.perfil == ROLE_SUPERVISOR)
+            ver_todas = bool(todas_equipes and alcance(user.perfil).wfm == EQUIPE)
             cadastro = {o["id_usuario"]: o for o in self._wfm_operadores_visiveis(cursor, user, operacao, todos_da_escala=ver_todas)}
             visiveis = {i: o["nome"] for i, o in cadastro.items()}
             cursor.execute("SELECT codigo, weekdays FROM dbo.wfm_turnos WHERE operacao = ? AND excluido = 0", (operacao,))
@@ -187,7 +187,7 @@ class WfmPausasRepositoryMixin:
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             self._wfm_exigir_periodo_editavel(cursor, user, operacao, dia)
             escalados = self._wfm_escalados_do_dia(cursor, operacao, dia)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             autor = normalize_text(user.nome) or user.username
             erros: list[str] = []
             gravar: list[tuple[int, list[dict]]] = []
@@ -247,7 +247,7 @@ class WfmPausasRepositoryMixin:
                         programados += 1
                         operadores += r["operadores"]
                 except HTTPException as exc:
-                    if exc.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN) and user.perfil == ROLE_ADMIN:
+                    if exc.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN) and alcance(user.perfil).total:
                         raise
                     pulados += 1
             dia = date.fromordinal(dia.toordinal() + 1)
@@ -266,7 +266,7 @@ class WfmPausasRepositoryMixin:
             capacidade = self._wfm_capacidade(cursor, operacao)
             escalados = self._wfm_escalados_do_dia(cursor, operacao, dia)
             programadas = self._wfm_pausas_programadas(cursor, operacao, dia)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             alvos = []
             for id_op, turno in escalados.items():
                 if ids is not None and id_op not in ids:
@@ -326,7 +326,7 @@ class WfmPausasRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             capacidade = self._wfm_capacidade(cursor, operacao)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             for id_op in ids:
                 if not wfm_scope.pode_editar_escala_de(perfil=user.perfil, id_usuario=user.id_usuario, operacoes_usuario=user.operacoes,
                                                        operacao=operacao, id_operador=int(id_op), equipe_supervisor=equipe):
@@ -400,7 +400,7 @@ class WfmPausasRepositoryMixin:
             cursor = conn.cursor()
             operacao = self._wfm_exigir_operacao(cursor, user, operacao, escrita=True)
             capacidade = self._wfm_capacidade(cursor, operacao)
-            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if user.perfil == ROLE_SUPERVISOR else set()
+            equipe = self._wfm_equipe_ids(cursor, user.id_usuario, operacao) if alcance(user.perfil).wfm == EQUIPE else set()
             modelo = self._wfm_pausas_programadas(cursor, operacao, origem)
             modelo = {
                 i: p for i, p in modelo.items()

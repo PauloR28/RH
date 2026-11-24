@@ -11,7 +11,7 @@ import {
   lerWfmParticipantes,
   listarFuncoesModulos,
 } from '../../services/api/modulos.js?v=20261014-funcoes';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261112-modulo-unico2';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261116-modulo-unidade';
 import {
   CHAVE_WFM_PARTICIPANTES, alternarRascunho, chaveFuncao, chaveModulo, consequenciasDoLote, contarLigadas, descreverLote,
   listarPendencias, paraPayloadLote, pendenciasDoModulo, valorExibido,
