@@ -232,6 +232,11 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
         """
     )
 
+    from .perfis_schema import ensure_perfis_schema
+
+    ensure_perfis_schema(cursor)
+    # Etapa 9: os 15 perfis do código são criados se faltarem. Nome, descrição e "ativo" não são mais forçados: o nome
+    # pode ser trocado pela tela e o perfil apagado pela tela fica com ativo = 0 (não volta sozinho).
     for role in ROLE_DEFINITIONS.values():
         cursor.execute(
             """
@@ -241,11 +246,7 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
                 VALUES (?, ?, ?, ?, 1, 1, GETDATE(), GETDATE())
             END
             ELSE
-            BEGIN
-                UPDATE perfis
-                SET nome = ?, nivel = ?, descricao = ?, ativo = 1, sistema = 1, atualizado_em = GETDATE()
-                WHERE id_perfil = ?
-            END
+                UPDATE perfis SET nivel = ?, sistema = 1 WHERE id_perfil = ? AND (sistema = 0 OR ISNULL(nivel, '') <> ?)
             """,
             (
                 role.id,
@@ -253,10 +254,9 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
                 role.name,
                 role.level,
                 role.description,
-                role.name,
                 role.level,
-                role.description,
                 role.id,
+                role.level,
             ),
         )
 

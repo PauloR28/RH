@@ -10,10 +10,19 @@ from rh_api.rbac import PERMISSION_DEFINITIONS
 from rh_api.services import acesso_cache, central_acessos
 
 
-def test_catalogo_tem_49_funcoes_unicas():
-    assert len(cat.FUNCOES_CATALOGO) == 49
-    assert len({f.id for f in cat.FUNCOES_CATALOGO}) == 49
-    assert [f.n for f in sorted(cat.FUNCOES_CATALOGO, key=lambda f: f.n)] == list(range(1, 50))
+def test_catalogo_unico_tem_66_funcoes():
+    assert len(cat.FUNCOES_CATALOGO) == 66
+    assert len({f.id for f in cat.FUNCOES_CATALOGO}) == 66
+    assert [f.n for f in sorted(cat.FUNCOES_CATALOGO, key=lambda f: f.n)] == list(range(1, 67))
+    assert {f.id for f in cat.FUNCOES_CATALOGO if f.descartada} == {"zona_risco", "analise_ia"}
+    assert len(cat.FUNCOES_VISIVEIS) == 64
+    assert cat.POR_ID["unidades"].nome == "Operação"
+
+
+def test_prefixos_da_funcao_vem_do_catalogo():
+    from rh_api import modulos_catalogo as mc
+    assert mc.PREFIXOS_DA_FUNCAO == cat.prefixos_do_motor()
+    assert set(mc.PREFIXOS_DA_FUNCAO) == set(mc.FUNCOES)
 
 
 def test_toda_permissao_esta_em_uma_funcao_so():
@@ -25,7 +34,8 @@ def test_toda_permissao_esta_em_uma_funcao_so():
 
 def test_base_da_tecnologia_e_futuras():
     assert {f.id for f in cat.FUNCOES_CATALOGO if f.base} == {"usuarios", "perfis", "modulos"}
-    assert {f.id for f in cat.FUNCOES_CATALOGO if f.futura} == {"chat", "certificados"}
+    assert {f.id for f in cat.FUNCOES_CATALOGO if f.futura} == {
+        "chat", "certificados", "backup", "emails_admin", "pastas", "telefonia"}
 
 
 @pytest.fixture

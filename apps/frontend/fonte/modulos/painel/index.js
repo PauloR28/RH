@@ -5,7 +5,7 @@ import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura
 import { PainelRh } from '../../ui/componentes-compartilhados.js';
 import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';
 import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js';
-import { obterEstadoModulos } from '../estado.js?v=20261112-modulo-unico2';
+import { obterEstadoModulos } from '../estado.js?v=20261116-modulo-unidade';
 
 import {
   POR_PAGINA_SUB, POR_PAGINA_OPS, ROTULO_TROCA, TOM_SIGLA, SEMANA, num, pct, nota, ddmm, diaSemana, hhmm, Indicador, Cartao, Indisponivel, MiniTabela, Linha, Contador,

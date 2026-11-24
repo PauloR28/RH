@@ -47,28 +47,7 @@
 .c-usuario-vinculos .mon-vinculos > p, .c-usuario-vinculos .mon-muted { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); margin: 0; }
 
 /* ── Perfis e permissões (DEC-073) ─────────────────────────────────── */
-.c-perfis .c-rel-lista--caixa { position: sticky; top: var(--espaco-4); }
-.c-perfis-direita { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
-.c-perfis-resumo { font-size: 12px; white-space: nowrap; }
-.c-perfis-resumo a { color: inherit; }
-.c-perfis-busca { width: 200px; }
-.c-perfis-compara { width: 180px; }
 
-.c-perfis .c-pv-abas { overflow-x: auto; scrollbar-width: none; }
-.c-perfis .c-pv-abas .c-aba { background: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; }
-.c-perfis .c-pv-abas .c-aba[aria-selected='true'] { color: var(--cor-texto-link); box-shadow: inset 0 -2px 0 var(--cor-acao-fundo); font-weight: var(--fonte-peso-semi); }
-.c-pv-item { gap: var(--espaco-2); }
-.c-pv-item .c-pv-outro { margin-left: auto; flex: none; font-size: 11px; color: var(--cor-status-atencao-texto); white-space: nowrap; }
-.c-pv-item.c-pv-difere { background: var(--cor-status-atencao-fundo); }
-.c-pv-item .c-pv-dono { width: 120px; margin-left: auto; flex: none; }
-.c-pv-aviso { font-size: 12px; color: var(--cor-status-atencao-texto); }
-.c-pv-limpar { margin-left: auto; }
-.c-perfis-tela { min-height: 380px; }
-.c-perfis-legenda { padding: 0; margin: 0; }
-.c-perfis-legenda .c-pv-critica { display: inline-block; margin-right: var(--espaco-1); }
-.c-perfis-edicao { display: flex; align-items: center; gap: var(--espaco-3); padding: var(--espaco-2) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--painel-borda); border-radius: var(--painel-raio); font-size: 13px; }
-.c-perfis-edicao-acoes { margin-left: auto; display: flex; gap: var(--espaco-2); }
-.c-perfis-motivo { width: 280px; }
 
 /* Bloco "Módulos" (16/nov/2026): cadastro do usuário e Perfis e Permissões. Dobrável, só tokens. */
 .c-modulos-acesso { display: grid; gap: var(--espaco-2); }
@@ -86,4 +65,3 @@
 .c-modulos-acesso .c-mod-nome small { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
 .c-modulos-acesso li[aria-disabled="true"] { color: var(--cor-texto-desligado); }
 .c-modulos-acesso li .c-grupo { flex-wrap: nowrap; }
-.c-modulos-perfil { display: grid; gap: var(--espaco-2); margin-bottom: var(--espaco-4); }

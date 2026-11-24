@@ -13,7 +13,8 @@ from pathlib import Path
 
 from fastapi import HTTPException, status
 
-from ..rbac import ROLE_ADMIN, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
+from ..alcance import EQUIPE, PROPRIO, alcance
+from ..rbac import ROLE_QUALIDADE, perfis_com_papel
 from ..services import monitoria_workflow as wf
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.monitoria_scope import pode_ver_operacao
@@ -72,19 +73,19 @@ class MonitoriaFluxoRepositoryMixin:
     def _mon_exigir_gestor_da_monitoria(self, cursor, user, m: dict, *, permitir_qualidade: bool) -> None:
         """Supervisor responsável (vínculo atual), Qualidade da operação (quando
         permitido) ou Administrador. Fora disso: 404 (não revela a existência)."""
-        if user.perfil == ROLE_ADMIN:
+        if alcance(user.perfil).total:
             return
         if not pode_ver_operacao(user.perfil, user.operacoes, m["operacao"]):
             raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
-        if user.perfil == ROLE_SUPERVISOR and self._mon_eh_supervisor_responsavel(cursor, user, int(m["id_operador"])):
+        if alcance(user.perfil).monitoria == EQUIPE and self._mon_eh_supervisor_responsavel(cursor, user, int(m["id_operador"])):
             return
-        if permitir_qualidade and user.perfil == ROLE_QUALIDADE:
+        if permitir_qualidade and alcance(user.perfil).avalia_monitoria:
             return
         raise _http(status.HTTP_403_FORBIDDEN, "Você não é o responsável por esta monitoria.")
 
     @staticmethod
     def _mon_exigir_operador_dono(user, m: dict) -> None:
-        if user.perfil != ROLE_OPERATOR or user.id_usuario != int(m["id_operador"]):
+        if alcance(user.perfil).monitoria != PROPRIO or user.id_usuario != int(m["id_operador"]):
             raise _http(status.HTTP_404_NOT_FOUND, "Monitoria não encontrada.")
 
     @staticmethod
@@ -141,8 +142,8 @@ class MonitoriaFluxoRepositoryMixin:
     def _mon_emails_qualidade(self, cursor, operacao: str) -> list[str]:
         cursor.execute(
             "SELECT u.email FROM dbo.usuarios u JOIN dbo.usuarios_operacoes uo ON uo.id_usuario = u.id_usuario "
-            "WHERE u.perfil_id = ? AND uo.operacao = ? AND u.status = 'Ativo'",
-            (ROLE_QUALIDADE, operacao),
+            f"WHERE u.perfil_id IN ({','.join('?' for _ in perfis_com_papel(ROLE_QUALIDADE))}) AND uo.operacao = ? AND u.status = 'Ativo'",  # noqa: S608 - só marcadores
+            (*perfis_com_papel(ROLE_QUALIDADE), operacao),
         )
         return [normalize_text(r[0]) for r in cursor.fetchall()]
 

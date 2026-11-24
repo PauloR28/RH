@@ -31,9 +31,10 @@ def test_migration_v062_e_aditiva_ascii_e_idempotente():
 def test_padrao_reproduz_o_menu_de_antes():
     # MODULO_DO_GRUPO do frontend: RH = cx-curriculos/processos/provas/gestao/drive; Operação = monitoria/wfm
     # (+ diario e treinamentos desde o item 16 de 10/11: já apareciam no menu da Operação, agora são configuráveis)
-    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_RH] == {"cx-curriculos", "processos", "provas", "gestao", "drive"}
-    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_OPERACAO] == {"monitoria", "wfm", "diario", "treinamentos"}
-    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_TECNOLOGIA] == {"suporte", "wfm"}
+    novas = cat._NOVAS_ETAPA4  # Etapa 4 (17/nov/2026): ligadas por padrão, nada muda até alguém desligar
+    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_RH] == {"cx-curriculos", "processos", "provas", "gestao", "drive", *novas[cat.MODULO_RH]}
+    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_OPERACAO] == {"monitoria", "wfm", "diario", "treinamentos", *novas[cat.MODULO_OPERACAO]}
+    assert cat.FUNCOES_PADRAO_ATIVAS[cat.MODULO_TECNOLOGIA] == {"suporte", "wfm", *novas[cat.MODULO_TECNOLOGIA]}
     for modulo, ligadas in cat.FUNCOES_PADRAO_ATIVAS.items():
         assert ligadas <= set(cat.FUNCOES_POR_MODULO[modulo])
     assert set(cat.FUNCOES) == {f for funcoes in cat.FUNCOES_POR_MODULO.values() for f in funcoes}
@@ -59,7 +60,7 @@ def test_listagem_marca_ativas_e_mantem_modulos_protegidos(estado_falso):
     por_modulo = {m["modulo"]: m for m in modulos_admin.listar_funcoes()}
     assert [f["chave"] for f in por_modulo["rh"]["funcoes"] if f["ativo"]] == ["monitoria"]
     assert por_modulo["tecnologia"]["protegido"] is True
-    assert {f["chave"] for f in por_modulo["tecnologia"]["funcoes"]} == {"suporte", "wfm"}
+    assert {f["chave"] for f in por_modulo["tecnologia"]["funcoes"]} == {"suporte", "wfm", *cat._NOVAS_ETAPA4[cat.MODULO_TECNOLOGIA]}
 
 
 def test_definir_funcao_recusa_funcao_fora_do_modulo():

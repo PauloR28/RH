@@ -96,6 +96,18 @@ def _run_lgpd_retention_job(settings: Settings) -> None:
         logger.exception("Falha ao executar o job de retenção LGPD.")
 
 
+def _run_inatividade_job(settings: Settings) -> None:
+    """Política de inatividade (Configurações › Segurança, Etapa 7b): bloqueia e exclui quem ficou sem acesso.
+    Só age com a política ligada; blindado como os demais jobs."""
+    try:
+        from .repositories import DatabaseRepository
+        from .services import inatividade
+
+        inatividade.executar(DatabaseRepository(settings))
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao executar a política de inatividade.")
+
+
 def start_scheduler(settings: Settings):
     """Inicia um `BackgroundScheduler` (APScheduler) com o job periódico de
     lembretes/alertas automáticos, se a biblioteca estiver disponível e a
@@ -187,6 +199,17 @@ def start_scheduler(settings: Settings):
             minute=30,
             args=(settings,),
             id="retencao_lgpd",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_inatividade_job,
+            trigger="cron",
+            hour=7,  # 04:00 no horário de Brasília (UTC-3), depois da retenção LGPD
+            minute=0,
+            args=(settings,),
+            id="politica_inatividade",
             replace_existing=True,
             coalesce=True,
             max_instances=1,

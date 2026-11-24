@@ -5,7 +5,8 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import { Ic, Segmento, Selo } from '../../ui/components/ds.js';
 import { definirModuloAtivo } from '../../services/api/modulos.js';
 import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261112-modulo-unico2';
+import { JanelaPerfis } from './perfis-janela.js?v=20261121-perfis';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
 
 const POR_PAGINA = 5;
 const MODULOS_PADRAO = [{ chave: 'tecnologia', nome: 'Tecnologia', ativo: true, protegido: true }, { chave: 'rh', nome: 'RH', ativo: true }, { chave: 'operacao', nome: 'Operação', ativo: true }];
@@ -17,6 +18,9 @@ function listaModulos() {
 
 const chavePerm = (funcao, chave, perfil) => `p|${funcao}|${chave}|${perfil}`;
 const chaveFunc = (funcao) => `f|${funcao}`;
+const chaveAlc = (area, perfil) => `a|${area}|${perfil}`;
+// Alcance (Etapa 6 da reestruturação, 17/nov/2026): 1ª linha da tabela, até onde cada perfil enxerga nesta função.
+const NIVEIS_ALCANCE = [['todos', 'Todos'], ['unidade', 'Unidade'], ['equipe', 'Equipe'], ['proprio', 'Próprio']];
 
 export function CentralAcessos({ controlador }) {
   const podeEditar = Boolean(controlador?.possuiPermissao?.('configuracoes.editar'));
@@ -35,6 +39,7 @@ export function CentralAcessos({ controlador }) {
   const [pagina, setPagina] = useState(1);
   const [salvando, setSalvando] = useState(false);
   const [confirmarPadronizar, setConfirmarPadronizar] = useState(false);
+  const [perfisAberta, setPerfisAberta] = useState(false);
 
   const carregar = async (mod = modulo, esc = escopo) => {
     setCarregando(true);
@@ -97,6 +102,7 @@ export function CentralAcessos({ controlador }) {
   const salvar = async () => {
     const mudancas = Object.entries(rascunho).map(([k, v]) => {
       const partes = k.split('|');
+      if (partes[0] === 'a') return { tipo: 'alcance', area: partes[1], perfil: partes[2], nivel: v };
       return partes[0] === 'f' ? { tipo: 'funcao', funcao: partes[1], ligada: v } : { tipo: 'perm', chave: partes[2], perfil: partes[3], valor: v };
     });
     setSalvando(true); setErro('');
@@ -148,7 +154,11 @@ export function CentralAcessos({ controlador }) {
           <h1>Acessos</h1>
           <p>Escolha um módulo, depois diga para quem vale a regra. O que você salvar vale na hora, sem sair e entrar de novo.</p>
         </div>
+        <div class="c-pagina-acoes">
+          <button type="button" class="c-botao c-botao--secundario" onClick=${() => setPerfisAberta(true)}><${Ic} nome="users" />Perfis</button>
+        </div>
       </div>
+      ${perfisAberta ? html`<${JanelaPerfis} podeEditar=${podeEditar} aoFechar=${() => setPerfisAberta(false)} aoMudar=${() => { if (!Object.keys(rascunho).length) carregar(); }} />` : null}
 
       ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}
       ${aviso ? html`<div class="c-faixa c-faixa--informacao" role="status"><${Ic} nome="check" /><div class="c-faixa-txt"><p>${aviso}</p></div></div>` : null}
@@ -231,7 +241,15 @@ export function CentralAcessos({ controlador }) {
                 ${aberta ? html`<div class="c-acessos-funcao-corpo">
                   ${f.acoes.length ? html`<div class="c-tabela-caixa c-acessos-tabela"><table class="c-tabela c-tabela--compacta">
                     <thead><tr><th scope="col">Ação</th>${perfis.map((p) => html`<th key=${p.id} scope="col">${p.nome}</th>`)}</tr></thead>
-                    <tbody>${f.acoes.map((a) => html`<tr key=${a.chave}><th scope="row" title=${a.chave}>${a.nome}</th>
+                    <tbody>${f.alcance ? html`<tr class="c-acessos-alcance"><th scope="row">Alcance <small>(o que enxerga)</small></th>
+                      ${perfis.map((p) => {
+    const k = chaveAlc(f.alcance.area, p.id);
+    const original = f.alcance.valores?.[p.id] || 'unidade';
+    const atual = rascunho[k] !== undefined ? rascunho[k] : original;
+    return html`<td key=${p.id}><select class=${`c-entrada c-entrada--compacta ${rascunho[k] !== undefined ? 'is-alterada' : ''}`.trim()} value=${atual}
+                          disabled=${!podeEditar || !on} aria-label=${`${f.nome}, alcance de ${p.nome}`} onChange=${(e) => alternar(k, e.target.value, original)}>
+                          ${NIVEIS_ALCANCE.map(([v, t]) => html`<option key=${v} value=${v}>${t}</option>`)}</select></td>`;
+  })}</tr>` : null}${f.acoes.map((a) => html`<tr key=${a.chave}><th scope="row" title=${a.chave}>${a.nome}</th>
                       ${perfis.map((p) => {
     const v = valor(f, a, p.id);
     const original = Boolean(a.valores?.[p.id]);

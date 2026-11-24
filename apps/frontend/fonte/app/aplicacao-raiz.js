@@ -1,5 +1,5 @@
 import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
-import { usaInicioPorSessoes } from '../shared/tela-inicial.js?v=20261111-atalhos-ocultos';
+import { usaInicioPorSessoes } from '../shared/tela-inicial.js?v=20261117-inicio';
 import { CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO } from '../shared/relatorios-hub.js';
 import {
   navegarParaTela,
@@ -7,10 +7,12 @@ import {
   useControladorAplicacao,
 } from './controlador-aplicacao.js';
 import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261116-inicio-operacao';
-import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261112-modulo-unico2';
-import { moduloParaAbrir } from '../modulos/registro.js?v=20261112-modulo-unico2';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261112-modulo-unico2';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261117-inicio';
+import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
+import { moduloParaAbrir } from '../modulos/registro.js?v=20261117-config2';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261117-config2';
+import { TELA_CONFIGURACOES_CONECTA, primeiraTelaConfiguracoes } from '../features/configuracoes/configuracoes-conecta.js?v=20261117-inicio';
+import { SessaoOciosa } from '../features/configuracoes/sessao-ociosa.js?v=20261117-config2';
 import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
 import {
   buscarPoliticaPendente,
@@ -110,10 +112,10 @@ const TelaResultadosAnaliticosProcesso = carregarTela(
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261116-modulos'),
+  () => import('../features/configuracoes/index.js?v=20261123-limpeza'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261112-modulo-unico2');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261117-inicio');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
@@ -123,7 +125,7 @@ const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.j
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261116-grade-larga'), 'TelaPainel');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261112-modulo-unico2'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261112-modulo-unico2'), 'TelaTecnologia');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261117-inicio'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
 const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261109-telas-antigas'), 'TelaMural');
 const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
@@ -137,7 +139,7 @@ const TelaTemplatesDocumentos = carregarTela(
 );
 const TelaCentralAjuda = carregarTela(() => import('../features/ajuda/guia.js?v=20260921-ajuda'), 'TelaCentralAjuda');
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20260922-ministrante-busca'),
+  () => import('../features/treinamentos/index.js?v=20261123-limpeza'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
@@ -149,11 +151,16 @@ const TelaProvasConfiguracao = carregarTela(
   'TelaProvasConfiguracao',
 );
 const TelaAdministracao = carregarTela(
-  () => import('../features/administracao/index.js?v=20260921-alertas'),
+  () => import('../features/administracao/index.js?v=20261123-limpeza'),
   'TelaAdministracao',
 );
 const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
-const TelaLgpd = carregarTela(importarCatalogoDedicado, 'TelaLgpd');
+// LGPD (Etapa 7c): todos os dados sensíveis do Conecta numa tela só.
+const TelaLgpd = carregarTela(() => import('../features/configuracoes/lgpd-central.js?v=20261117-config3'), 'TelaLgpdCentral');
+const importarSegurancaBackup = () => import('../features/configuracoes/seguranca-backup.js?v=20261117-config');
+const TelaSegurancaConecta = carregarTela(importarSegurancaBackup, 'TelaSegurancaConecta');
+const TelaBackupConecta = carregarTela(importarSegurancaBackup, 'TelaBackupConecta');
+const TelaInicioModulos = carregarTela(() => import('../features/configuracoes/inicio-modulos.js?v=20261117-inicio'), 'TelaInicioModulos');
 const TelaMotivosEliminacao = carregarTela(importarCatalogoDedicado, 'TelaMotivosEliminacao');
 const TelaModelosEmail = carregarTela(importarCatalogoDedicado, 'TelaModelosEmail');
 const TelaEtapasProcesso = carregarTela(importarCatalogoDedicado, 'TelaEtapasProcesso');
@@ -199,6 +206,11 @@ function resolverTelaProtegida(telaAtual, controlador) {
 
   if (telaAtual === 'screen-processes-open') {
     return 'screen-processes';
+  }
+
+  // Configurações do Conecta (Etapa 7): a entrada do menu abre a 1ª seção que a pessoa pode ver.
+  if (telaAtual === TELA_CONFIGURACOES_CONECTA) {
+    return primeiraTelaConfiguracoes(controlador) || 'screen-forbidden';
   }
 
   // Relatórios e Históricos: telas antigas que migraram só redirecionam (a página nova confere as permissões de cada relatório).
@@ -377,6 +389,11 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
     // Correções (27/set/2026): a Início completa vale para todos os perfis,
     // filtrada pelas permissões e pela configuração do perfil; só Supervisor,
     // Qualidade, Operador (e Candidato) seguem na Início por sessões.
+    // Etapa 8 (17/11/2026): no módulo Operação, todo perfil abre o Início da Operação (o Operador, o "Seu dia").
+    const modulosInicio = obterEstadoModulos();
+    if (modulosInicio.carregado && modulosInicio.moduloAtual === 'operacao' && perfilInicio !== 'candidato') {
+      return html`<${TelaInicioPorSessoes} controlador=${controlador} moduloOperacao=${true} />`;
+    }
     if (usaInicioPorSessoes(perfilInicio)) {
       return html`<${TelaInicioPorSessoes} controlador=${controlador} />`;
     }
@@ -482,7 +499,6 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
   if (
     telaResolvida === 'screen-settings' ||
     telaResolvida === 'screen-settings-users' ||
-    telaResolvida === 'screen-settings-profiles' ||
     telaResolvida === 'screen-settings-acessos' ||
     telaResolvida === 'screen-settings-paineis' ||
     telaResolvida === 'screen-settings-operations' ||
@@ -498,6 +514,18 @@ function ConteudoAplicacao({ controlador, telaAtual, telaResolvida }) {
         telaAtual=${telaResolvida}
       />
     `;
+  }
+
+  if (telaResolvida === 'screen-settings-seguranca') {
+    return html`<${TelaSegurancaConecta} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-inicio') {
+    return html`<${TelaInicioModulos} controlador=${controlador} />`;
+  }
+
+  if (telaResolvida === 'screen-settings-backup') {
+    return html`<${TelaBackupConecta} controlador=${controlador} />`;
   }
 
   if (telaResolvida === 'screen-settings-lgpd') {
@@ -659,6 +687,7 @@ export function Aplicacao() {
       </${Suspense}>
       <${TemaOperacao} controlador=${controlador} />
       <${TrocaSenhaObrigatoria} controlador=${controlador} />
+      <${SessaoOciosa} controlador=${controlador} />
     </${React.Fragment}>
   `;
 }

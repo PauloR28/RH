@@ -397,11 +397,11 @@ export const GUIA_SESSOES = [
       },
       {
         titulo: 'Ajustar perfis e permissões',
-        onde: 'Configurações > Perfis e permissões',
+        onde: 'Tecnologia > Acessos',
         passos: [
-          'Escolha o perfil e a sessão. A chave-mestra da sessão libera ou bloqueia a sessão inteira para o perfil.',
-          'Marque ou desmarque as permissões e informe a justificativa.',
-          'Quem já estava logado precisa sair e entrar de novo para receber a mudança.',
+          'Escolha o módulo à esquerda. Depois escolha para quem vale: padrão, uma unidade ou uma pessoa.',
+          'Marque ou desmarque o que cada perfil pode fazer e clique em Salvar. Vale na hora, sem sair e entrar de novo.',
+          'Para criar, renomear ou apagar um perfil, use o botão Perfis no alto da tela.',
         ],
       },
       {

@@ -17,35 +17,20 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ..rbac import (
-    ROLE_ADMIN,
-    ROLE_CONTROL_DESK,
-    ROLE_MANAGER,
-    ROLE_OPERATOR,
-    ROLE_QUALIDADE,
-    ROLE_SUPERVISOR,
-)
+from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
 
-PERFIS_GLOBAIS = frozenset({ROLE_ADMIN, ROLE_MANAGER, ROLE_CONTROL_DESK})
+PERFIS_GLOBAIS = perfis_com(monitoria=TODOS)  # Etapa 5: vem do alcance
 
 # Limite de operações vinculadas por perfil (respostas do RH, 20/set/2026).
-LIMITE_OPERACOES: dict[str, int | None] = {
-    ROLE_OPERATOR: 1,
-    ROLE_SUPERVISOR: 3,
-    ROLE_QUALIDADE: 2,
-}
+LIMITE_OPERACOES: dict[str, int | None] = {p: a.max_unidades for p, a in ALCANCES.items() if a.max_unidades is not None}
 MAX_SUPERVISORES_OPERADOR = 2
 
 # Hierarquia de quem pode criar/alterar quem dentro da Monitoria (§2.6).
-_PODE_GERENCIAR: dict[str, frozenset[str]] = {
-    ROLE_ADMIN: frozenset({ROLE_ADMIN, ROLE_MANAGER, ROLE_SUPERVISOR, ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
-    ROLE_SUPERVISOR: frozenset({ROLE_QUALIDADE, ROLE_CONTROL_DESK, ROLE_OPERATOR}),
-    ROLE_QUALIDADE: frozenset({ROLE_OPERATOR}),
-}
+_PODE_GERENCIAR: dict[str, frozenset[str]] = {p: a.gerencia for p, a in ALCANCES.items() if a.gerencia}
 
 
 def escopo_global(perfil: str) -> bool:
-    return perfil in PERFIS_GLOBAIS
+    return alcance(perfil).monitoria == TODOS
 
 
 def operacoes_permitidas(perfil: str, operacoes_usuario: Iterable[str]) -> frozenset[str] | None:
@@ -74,15 +59,17 @@ def pode_ver_detalhe_monitoria(
     """Detalhe de UMA monitoria (critérios, notas, observações...)."""
     if not pode_ver_operacao(perfil, operacoes_usuario, operacao):
         return False
-    if perfil == ROLE_OPERATOR:
+    if alcance(perfil).monitoria == PROPRIO:
         return id_usuario is not None and id_operador == id_usuario
-    if perfil == ROLE_SUPERVISOR:
+    if alcance(perfil).monitoria == EQUIPE:
         return id_operador in set(operadores_supervisionados)
     return True  # admin, gestor, control desk, qualidade (já validado por operação)
 
 
 def pode_gerenciar_perfil(ator_perfil: str, alvo_perfil: str) -> bool:
-    return alvo_perfil in _PODE_GERENCIAR.get(ator_perfil, frozenset())
+    from ..rbac import papel  # perfis criados pela tela seguem o perfil com que funcionam (Etapa 9)
+
+    return papel(alvo_perfil) in _PODE_GERENCIAR.get(papel(ator_perfil), frozenset())
 
 
 def validar_vinculos(
@@ -92,17 +79,17 @@ def validar_vinculos(
 ) -> list[str]:
     """Erros de vínculo organizacional coerentes com o perfil do usuário."""
     erros: list[str] = []
-    limite = LIMITE_OPERACOES.get(perfil)
-    if perfil == ROLE_OPERATOR and len(operacoes) != 1:
-        erros.append("O Operador deve estar vinculado a exatamente 1 operação.")
+    a = alcance(perfil)
+    limite = a.max_unidades
+    nome = a.rotulo or "Este perfil"
+    if limite is not None and a.min_unidades == limite and len(operacoes) != limite:
+        erros.append(f"O {nome} deve estar vinculado a exatamente {limite} operação.")
     elif limite is not None and len(operacoes) > limite:
-        nome = {ROLE_SUPERVISOR: "Supervisor", ROLE_QUALIDADE: "Qualidade"}.get(perfil, "Este perfil")
         erros.append(f"{nome} pode ter no máximo {limite} operações.")
-    if perfil == ROLE_SUPERVISOR and not operacoes:
-        erros.append("O Supervisor precisa estar vinculado a ao menos 1 operação.")
-    if perfil == ROLE_QUALIDADE and not operacoes:
-        erros.append("A Qualidade precisa estar vinculada a ao menos 1 operação.")
-    if perfil == ROLE_OPERATOR:
+    elif a.min_unidades and not operacoes:
+        artigo = "A" if nome == "Qualidade" else "O"
+        erros.append(f"{artigo} {nome} precisa estar {'vinculada' if artigo == 'A' else 'vinculado'} a ao menos 1 operação.")
+    if a.exige_supervisor:
         if not supervisores:
             erros.append("O Operador precisa de ao menos 1 supervisor responsável.")
         if len(set(supervisores)) > MAX_SUPERVISORES_OPERADOR:

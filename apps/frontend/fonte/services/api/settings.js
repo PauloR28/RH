@@ -222,3 +222,25 @@ export const salvarModulosPerfil = (idPerfil, modulos, justificativa = '') =>
   requisitar(`/settings/security/roles/${encodeURIComponent(idPerfil)}/modulos`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modulos, justificativa }),
   });
+
+// Etapa 9 (21/nov/2026): janela Perfis da tela Acessos. Toda mudança limpa a lista de perfis guardada.
+const JSON_PERFIS = { 'Content-Type': 'application/json' };
+export async function criarPerfil(dados) {
+  const r = await requisitar('/settings/security/roles', { method: 'POST', headers: JSON_PERFIS, body: JSON.stringify(dados) });
+  invalidarCacheApi('settings:roles');
+  return r;
+}
+export async function editarPerfil(id, dados) {
+  const r = await requisitar(`/settings/security/roles/${encodeURIComponent(id)}`, { method: 'PUT', headers: JSON_PERFIS, body: JSON.stringify(dados) });
+  invalidarCacheApi('settings:roles');
+  return r;
+}
+export async function apagarPerfil(id) {
+  const r = await requisitar(`/settings/security/roles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  invalidarCacheApi('settings:roles');
+  return r;
+}
+export async function listarPerfisAtualizados() {
+  invalidarCacheApi('settings:roles');
+  return listarPerfis();
+}

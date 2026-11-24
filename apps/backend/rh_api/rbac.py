@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .modulos_catalogo import MODULO_CORE, MODULO_TECNOLOGIA, modulo_dono_padrao
 
@@ -997,7 +997,124 @@ def normalize_role_id(value: str | None) -> str:
 
 
 def get_role_definition(role_id: str | None) -> RoleDefinition:
-    return ROLE_DEFINITIONS.get(normalize_role_id(role_id), ROLE_DEFINITIONS[ROLE_ADMIN])
+    chave = normalize_role_id(role_id)
+    if chave in ROLE_DEFINITIONS:
+        do_banco = _perfis_banco().get(chave)  # nome/descrição trocados pela tela (Etapa 9)
+        if do_banco and (do_banco["nome"] != ROLE_DEFINITIONS[chave].name or (do_banco["descricao"] and do_banco["descricao"] != ROLE_DEFINITIONS[chave].description)):
+            return replace(ROLE_DEFINITIONS[chave], name=do_banco["nome"], description=do_banco["descricao"] or ROLE_DEFINITIONS[chave].description)
+        return ROLE_DEFINITIONS[chave]
+    novo = perfis_criados().get(chave)
+    if novo:
+        base = ROLE_DEFINITIONS.get(novo["funciona_como"], ROLE_DEFINITIONS[ROLE_ADMIN])
+        return RoleDefinition(id=chave, name=novo["nome"], level=base.level, description=novo["descricao"] or base.description)
+    return ROLE_DEFINITIONS[ROLE_ADMIN]
+
+
+# ── Perfis no banco (reestruturação, Etapa 9 — amostra aprovada em 21/nov/2026) ──────────────────────────────────────
+# Os 15 perfis acima continuam no código (mesmo id). Perfis criados pela tela ficam em dbo.perfis (sistema = 0) e dizem
+# como o Conecta os trata nas regras sobre a PESSOA (quem lidera equipe, quem é avaliado na Monitoria, quem entra na
+# escala): ``funciona_como`` = um dos perfis do código. ``papel(perfil)`` devolve esse perfil do código; as regras que antes
+# perguntavam "é Supervisor?" perguntam ``papel(x) == ROLE_SUPERVISOR``. Perfil do código "apagado" pela tela fica com
+# ativo = 0 (o bootstrap não o recria) e some das listas.
+import logging as _logging  # noqa: E402
+import threading as _threading  # noqa: E402
+import time as _time  # noqa: E402
+
+_logger_perfis = _logging.getLogger(__name__)
+_TTL_PERFIS = 30.0
+_lock_perfis = _threading.Lock()
+_cache_perfis: tuple[float, dict] | None = None
+_carregador_perfis = None
+PERFIS_FIXOS = frozenset({ROLE_ADMIN, ROLE_CANDIDATE})  # não podem ser apagados nem renomeados
+
+
+def _ler_perfis_do_banco() -> dict:
+    from .config import get_settings
+    from .db import get_connection
+
+    conn = get_connection(get_settings(), autocommit=True)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "IF COL_LENGTH('dbo.perfis', 'funciona_como') IS NOT NULL "
+            "SELECT id_perfil, nome, descricao, ativo, sistema, funciona_como FROM dbo.perfis"
+        )
+        linhas = cursor.fetchall() if cursor.description else []
+    finally:
+        conn.close()
+    return {
+        str(i).strip().lower(): {"nome": str(n or i), "descricao": str(d or ""), "ativo": bool(a), "sistema": bool(si), "funciona_como": normalize_role_id(f)}
+        for i, n, d, a, si, f in linhas
+    }
+
+
+def _perfis_banco() -> dict:
+    global _cache_perfis
+    agora = _time.monotonic()
+    atual = _cache_perfis
+    if atual is not None and atual[0] > agora:
+        return atual[1]
+    with _lock_perfis:
+        try:
+            dados = (_carregador_perfis or _ler_perfis_do_banco)()
+        except Exception as exc:  # noqa: BLE001 - sem banco: só os perfis do código
+            _logger_perfis.info("Perfis do banco indisponíveis (%s); usando só os do código.", exc)
+            dados = {}
+        _cache_perfis = (agora + _TTL_PERFIS, dados)
+        return dados
+
+
+def invalidar_perfis() -> None:
+    global _cache_perfis
+    with _lock_perfis:
+        _cache_perfis = None
+
+
+def definir_carregador_perfis(carregador) -> None:
+    """Só para testes: função que devolve {id: {nome, descricao, ativo, sistema, funciona_como}}."""
+    global _carregador_perfis
+    _carregador_perfis = carregador
+    invalidar_perfis()
+
+
+def perfis_criados() -> dict[str, dict]:
+    """Perfis criados pela tela (ativos), com ``funciona_como`` válido."""
+    return {
+        i: d for i, d in _perfis_banco().items()
+        if not d["sistema"] and d["ativo"] and i not in ROLE_DEFINITIONS and d["funciona_como"] in ROLE_DEFINITIONS
+    }
+
+
+def perfil_removido(role_id: str | None) -> bool:
+    """Perfil do código "apagado" pela tela (ativo = 0 no banco)."""
+    d = _perfis_banco().get(normalize_role_id(role_id))
+    return bool(d) and normalize_role_id(role_id) in ROLE_DEFINITIONS and not d["ativo"]
+
+
+def papel(role_id: str | None) -> str:
+    """Perfil do código com que este perfil funciona (o próprio, para os 15 do código)."""
+    chave = normalize_role_id(role_id)
+    if chave in ROLE_DEFINITIONS:
+        return chave
+    novo = perfis_criados().get(chave)
+    return novo["funciona_como"] if novo else chave
+
+
+def perfis_com_papel(*papeis: str) -> tuple[str, ...]:
+    """Todos os perfis (do código e criados) que funcionam como algum destes. Para filtros SQL ``perfil_id IN (...)``."""
+    alvo = set(papeis)
+    return tuple(sorted(alvo | {i for i, d in perfis_criados().items() if d["funciona_como"] in alvo}))
+
+
+def perfis_ativos() -> list[RoleDefinition]:
+    """Perfis que aparecem nas listas: os do código (menos ocultos e apagados) e os criados."""
+    lista = [r for r in ROLE_DEFINITIONS.values() if not perfil_removido(r.id)]
+    return lista + [get_role_definition(i) for i in perfis_criados()]
+
+
+def perfil_existe(role_id: str | None) -> bool:
+    chave = normalize_role_id(role_id)
+    return (chave in ROLE_DEFINITIONS and not perfil_removido(chave)) or chave in perfis_criados()
 
 
 def wfm_participantes_liberado() -> bool:
@@ -1011,14 +1128,15 @@ def aplicar_restricao_wfm_em_teste(role_id: str | None, permissions) -> list[str
     """Na fase de teste do WFM, tira as permissões WFM de Operador/Técnico/Qualidade MESMO que estejam gravadas no banco
     (`perfil_permissoes`, semeado em rodadas anteriores) ou dentro de um token antigo. Não faz nada quando o WFM está liberado."""
     lista = list(permissions or [])
-    if normalize_role_id(role_id) not in WFM_PERFIS_EM_TESTE_FECHADO or wfm_participantes_liberado():
+    if papel(role_id) not in WFM_PERFIS_EM_TESTE_FECHADO or wfm_participantes_liberado():
         return lista
     return [p for p in lista if not (p.startswith("wfm.") or p == "sessao.wfm.acessar")]
 
 
 def get_role_permissions(role_id: str | None) -> set[str]:
-    papel = normalize_role_id(role_id)
-    return set(aplicar_restricao_wfm_em_teste(papel, ROLE_PERMISSIONS.get(papel, set())))
+    # Perfil criado pela tela: as permissões gravadas no banco valem (copiadas na criação); sem elas, as do perfil base.
+    base = papel(role_id)
+    return set(aplicar_restricao_wfm_em_teste(base, ROLE_PERMISSIONS.get(base, set())))
 
 
 def is_known_permission(permission: str | None) -> bool:

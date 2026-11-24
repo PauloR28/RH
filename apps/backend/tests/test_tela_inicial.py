@@ -66,3 +66,38 @@ def test_gravar_e_ler_por_perfil():
             conn.commit()
         finally:
             conn.close()
+
+
+# ── Etapa 8: Início por módulo ──
+from rh_api.services.tela_inicial import BLOCOS_POR_MODULO, MODULOS_INICIO, configs_por_modulo, gravar_modulo  # noqa: E402
+
+
+def test_cada_modulo_tem_seus_blocos():
+    assert MODULOS_INICIO == ("rh", "operacao", "tecnologia")
+    assert [b["id"] for b in BLOCOS_POR_MODULO["operacao"]] == ["atalhos", "escala_hoje", "precisa_de_voce", "suas_operacoes"]
+    assert all(b["visivel"] for b in config_padrao("operacao")["blocos"])
+    # Bloco de outro módulo não entra.
+    ids = [b["id"] for b in normalizar_config({"blocos": [{"id": "caixa_cv"}, {"id": "escala_hoje", "visivel": False}]}, "operacao")["blocos"]]
+    assert ids == ["escala_hoje", "atalhos", "precisa_de_voce", "suas_operacoes"]
+
+
+def test_formato_antigo_vira_rh_e_os_outros_ficam_no_padrao():
+    antigo = {"blocos": [{"id": "mural", "visivel": False}], "atalhos_ocultos": ["wfm"]}
+    por_modulo = configs_por_modulo(antigo)
+    assert por_modulo["rh"]["blocos"][0] == {"id": "mural", "visivel": False}
+    assert por_modulo["rh"]["atalhos_ocultos"] == ["wfm"]
+    assert por_modulo["operacao"] == config_padrao("operacao")
+    assert configs_por_modulo(None)["rh"] == config_padrao()
+
+
+def test_gravar_um_modulo_nao_mexe_nos_outros():
+    antigo = {"blocos": [{"id": "mural", "visivel": False}], "atalhos_ocultos": ["wfm"]}
+    op = normalizar_config({"blocos": [{"id": "suas_operacoes", "visivel": False}], "atalhos_ocultos": ["diario"]}, "operacao")
+    novo = gravar_modulo(antigo, "operacao", op)
+    assert novo["blocos"] == antigo["blocos"] and novo["atalhos_ocultos"] == ["wfm"]
+    por_modulo = configs_por_modulo(novo)
+    assert por_modulo["operacao"]["blocos"][0] == {"id": "suas_operacoes", "visivel": False}
+    assert por_modulo["operacao"]["atalhos_ocultos"] == ["diario"]
+    assert por_modulo["tecnologia"] == config_padrao("tecnologia")
+    # Só Operação salva: RH segue no padrão.
+    assert configs_por_modulo(gravar_modulo({}, "operacao", op))["rh"] == config_padrao()

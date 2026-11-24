@@ -189,6 +189,13 @@ def funcoes_ativas(modulo: str) -> list[str]:
     return [f for f in FUNCOES_POR_MODULO.get(modulo, ()) if f in ligadas and funcao_disponivel(f) and _dono_da_funcao_ativo(f)]
 
 
+def funcao_ligada_em_algum_modulo(funcao: str) -> bool:
+    """Etapa 4 (17/nov/2026): função desligada em TODOS os módulos onde existe fecha para todo mundo, inclusive para quem
+    não tem unidade (Admin, Gestor). "Desligado vence permissão pessoal" (decisão do Paulo, 12/nov)."""
+    modulos = [m for m, funcoes in FUNCOES_POR_MODULO.items() if funcao in funcoes]
+    return not modulos or any(funcao in funcoes_ativas(m) for m in modulos)
+
+
 def funcao_ligada_na_unidade(funcao: str, unidade: str, modulo_da_unidade: str | None) -> bool:
     """Camada "função" (Etapa 4): a função está ligada no módulo da unidade E na própria unidade?
 

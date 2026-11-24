@@ -97,3 +97,52 @@ def test_ver_troca_so_os_dois_operadores_e_gestores():
     assert ve(ROLE_SUPERVISOR, 1) and not ve(ROLE_SUPERVISOR, 1, equipe=[99])
     assert ve(ROLE_MANAGER, 9) and ve(ROLE_CONTROL_DESK, 9)
     assert ve(ROLE_ADMIN, 9)  # quem lê depende da chave wfm.troca.visualizar (conferida no repositório)
+
+
+# ---------------------------------------------------------------- módulo aberto (Módulo › Unidade, 16/nov/2026)
+from types import SimpleNamespace  # noqa: E402
+
+DONOS = {"A": "operacao", "B": "operacao", "TI": "tecnologia"}
+
+
+def _user(perfil, operacoes=(), modulo=""):
+    return SimpleNamespace(perfil=perfil, operacoes=frozenset(operacoes), modulo_aberto=modulo)
+
+
+def test_admin_e_gestor_nao_veem_escala_de_ti_na_operacao():
+    for perfil in (ROLE_ADMIN, ROLE_MANAGER):
+        u = _user(perfil, modulo="operacao")
+        assert sc.operacoes_do_usuario(u, DONOS) == frozenset({"A", "B"})
+        assert not sc.pode_ver(u, "TI", DONOS)
+        assert not sc.pode_ver(u, "TI::PLANTAO-SABADO", DONOS)
+        assert sc.pode_ver(u, "A", DONOS)
+
+
+def test_na_tecnologia_so_aparece_a_ti():
+    u = _user(ROLE_ADMIN, modulo="tecnologia")
+    assert sc.operacoes_do_usuario(u, DONOS) == frozenset({"TI"})
+    assert sc.pode_ver(u, "TI::SOBREAVISO", DONOS)
+    assert not sc.pode_ver(u, "A", DONOS)
+
+
+def test_perfil_restrito_com_vinculo_na_ti_nao_ve_ti_na_operacao():
+    u = _user(ROLE_CONTROL_DESK, ["A", "TI"], modulo="operacao")
+    assert sc.operacoes_do_usuario(u, DONOS) == frozenset({"A"})
+    assert not sc.pode_ver(u, "TI", DONOS)
+
+
+def test_modulo_nunca_abre_o_que_o_perfil_nao_ve():
+    u = _user(ROLE_SUPERVISOR, ["A"], modulo="tecnologia")
+    assert sc.operacoes_do_usuario(u, DONOS) == frozenset()
+    assert not sc.pode_ver(u, "TI", DONOS)
+
+
+def test_sem_modulo_no_pedido_fica_como_antes():
+    u = _user(ROLE_ADMIN)
+    assert sc.operacoes_do_usuario(u, DONOS) is None
+    assert sc.pode_ver(u, "TI", DONOS)
+
+
+def test_unidade_sem_dono_conhecido_continua_visivel():
+    u = _user(ROLE_ADMIN, modulo="operacao")
+    assert sc.pode_ver(u, "NOVA", DONOS)
