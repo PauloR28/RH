@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js';
-import { Ic, Janela, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
-import { formatarDataHoraCurta, formatarNota } from './comum.js';
+import { html } from '../../infraestrutura-react.js?v=20261124-cache';
+import { Ic, Janela, Selo } from '../../ui/components/ds.js?v=20261124-cache';
+import { formatarDataHoraCurta, formatarNota } from './comum.js?v=20261124-cache';
 
 // Peças compartilhadas pela lista de formulários e pela tela do formulário (redesign Fase 15, fatia 4, amostras Q2 e Q3
 // do lote 2): selo de situação, linha de versão (com caixinha para Comparar), comparação e confirmação.

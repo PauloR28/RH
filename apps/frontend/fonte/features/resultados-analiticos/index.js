@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarStatusCandidato,
   compararResultadosAnaliticos,
@@ -9,12 +9,12 @@ import {
   salvarPerfilIdealResultadosAnaliticos,
   salvarMapeamentosResultadosAnaliticos,
   salvarPesosResultadosAnaliticos,
-} from '../../servico-api.js?v=20260721-exam-analytics-2';
-import { navegarParaTela } from '../../app/controlador-aplicacao.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { navegarParaTela } from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   obterProcessoResultadosAnaliticosPorRota,
   obterRotaAtual,
-} from '../../rotas.js';
+} from '../../rotas.js?v=20261124-cache';
 import {
   EmptyState,
   GrupoPaginacao,
@@ -24,8 +24,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 
 function numero(value, digits = 1) {

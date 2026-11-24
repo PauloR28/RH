@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarTrilhaOnboarding,
   criarTrilhaOnboarding,
@@ -6,16 +6,16 @@ import {
   lerProgressoOnboardingCandidato,
   listarTrilhasOnboarding,
   marcarItemOnboarding,
-} from '../../servico-api.js';
+} from '../../servico-api.js?v=20261124-cache';
 import {
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const ITEM_INICIAL = { titulo: '', descricao: '', obrigatorio: true };
 const FORM_INICIAL = { id_trilha: '', nome: '', descricao: '', ativo: true, itens: [] };

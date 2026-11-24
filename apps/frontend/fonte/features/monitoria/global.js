@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js';
-import { salvarSessaoAutenticacao } from '../../services/api/core.js';
-import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261124-cache';
+import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261124-cache';
+import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261124-cache';
 
 // Peças GLOBAIS da vertente Monitoria (montadas uma vez na raiz do app):
 //  * tema/logo por operação;

@@ -1,16 +1,16 @@
 // Painel (14/11/2026, amostra v3 aprovada pelo Paulo): visão analítica por módulo e unidade.
 // Cada painel é montado pela Tecnologia (Configurações › Painéis). Os filtros só valem ao clicar em "Aplicar filtros" e
 // tudo (números, listas e Diário de Bordo) segue o período escolhido. Rebranding: só peças c- e tokens (estilos/painel.css).
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
-import { PainelRh } from '../../ui/componentes-compartilhados.js';
-import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261106-wfm';
-import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js';
-import { obterEstadoModulos } from '../estado.js?v=20261116-modulo-unidade';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261124-cache';
+import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js?v=20261124-cache';
+import { obterEstadoModulos } from '../estado.js?v=20261124-cache';
 
 import {
   POR_PAGINA_SUB, POR_PAGINA_OPS, ROTULO_TROCA, TOM_SIGLA, SEMANA, num, pct, nota, ddmm, diaSemana, hhmm, Indicador, Cartao, Indisponivel, MiniTabela, Linha, Contador,
-} from './pecas.js?v=20261115-painel-v6b';
-import { BLOCOS_V6 } from './blocos-v6.js?v=20261115-painel-v6b';
+} from './pecas.js?v=20261124-cache';
+import { BLOCOS_V6 } from './blocos-v6.js?v=20261124-cache';
 
 // ── Blocos ──────────────────────────────────────────────────────────
 function BlocoPresenca({ d }) {

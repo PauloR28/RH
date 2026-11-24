@@ -3,9 +3,9 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../infraestrutura-react.js';
-import { IconeSvg } from './icone.js';
-import { requisitar } from '../services/api/core.js';
+} from '../infraestrutura-react.js?v=20261124-cache';
+import { IconeSvg } from './icone.js?v=20261124-cache';
+import { requisitar } from '../services/api/core.js?v=20261124-cache';
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT_ESTIMATE = 220;

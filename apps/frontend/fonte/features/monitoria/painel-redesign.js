@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { lerDashboard } from '../../services/api/monitoria.js';
-import { LineTrendChart } from '../../ui/components/charts.js';
-import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261106-wfm';
-import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261110-graficos';
-import { formatarNota } from './comum.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261124-cache';
+import { LineTrendChart } from '../../ui/components/charts.js?v=20261124-cache';
+import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261124-cache';
+import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261124-cache';
+import { formatarNota } from './comum.js?v=20261124-cache';
 
 // Monitoria › Painel (antigo Dashboard) no desenho novo, no mesmo molde do Painel de Turnos e Plantões
 // (DEC-069): filtros suaves na faixa de cima da caixa, uma faixa de indicadores, gráficos finos e tabelas

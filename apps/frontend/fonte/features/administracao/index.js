@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
@@ -8,10 +8,10 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
-import { ToggleSwitch } from '../../ui/components/primitives.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-cache';
 import {
   atualizarAmbienteSharePoint,
   excluirAmbienteSharePoint,
@@ -22,9 +22,9 @@ import {
   resetarDadosConecta,
   salvarParametroSistema,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js';
-import { listarOperacoes } from '../../services/api/operations.js';
-import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20260921-alertas';
+} from '../../services/api/sistema.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
+import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20261124-cache';
 
 // Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
 // ponto (rh-status-pill) usado em administracao/novo-ambiente.js.

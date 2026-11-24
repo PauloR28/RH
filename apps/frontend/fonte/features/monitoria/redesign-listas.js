@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   anexarEvidencia,
   baixarEvidencia,
@@ -9,10 +9,10 @@ import {
   lerMonitoria,
   listarMonitorias,
   reanalisarContestacao,
-} from '../../services/api/monitoria.js';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20260921-alertas';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
-import { STATUS_INFO, baixarArquivo, formatarHoras, formatarNota } from './comum.js';
+} from '../../services/api/monitoria.js?v=20261124-cache';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-cache';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-cache';
+import { STATUS_INFO, baixarArquivo, formatarHoras, formatarNota } from './comum.js?v=20261124-cache';
 
 // Monitoria no desenho novo (Fase 15, amostras Fase 12 "Histórico" e Fase 14 "Minhas monitorias" e
 // "Contestações"). Mesmas rotas e regras de antes: a monitoria nunca é editada; cada ação só acrescenta

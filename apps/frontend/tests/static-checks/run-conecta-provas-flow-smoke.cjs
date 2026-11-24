@@ -29,7 +29,7 @@ assert.ok(source.includes("const bloqueada = (!somenteCadastro && !cadastroConcl
 assert.ok(source.includes('concluirEtapaConectaProvas('));
 assert.ok(source.includes('montarPayloadTelemetria({ finalizarEtapa: true })'));
 assert.ok(source.includes('interromperEtapaConectaProvas('));
-assert.ok(apiAggregator.includes("generated-exams.js?v=20260902-correcoes-rh"));
+assert.match(apiAggregator, /generated-exams\.js\?v=[\w-]+/);
 assert.ok(generatedExamsApi.includes('export async function concluirEtapaConectaProvas'));
 // A cadeia de carregamento usa tag de versão (?v=) em cada elo, para o navegador baixar os arquivos novos.
 assert.match(indexHtml, /principal\.js\?v=[\w-]+/);

@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js';
-import { listarMural } from '../../services/api/mural.js';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { listarMural } from '../../services/api/mural.js?v=20261124-cache';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261124-cache';
 
 import {
   React,
@@ -9,12 +9,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   blocosVisiveisTelaInicial,
   configTelaInicialPadrao,
   lerMinhaTelaInicial,
-} from '../../shared/tela-inicial.js?v=20261117-inicio';
+} from '../../shared/tela-inicial.js?v=20261124-cache';
 
 const Fragment = React.Fragment;
 import {
@@ -25,13 +25,13 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js';
+} from '../../perguntas.js?v=20261124-cache';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js';
+} from '../prova/services/personalizacao-inteligente.js?v=20261124-cache';
 import {
   TAMANHO_HISTORICO,
   TAMANHO_RECENTES,
@@ -73,7 +73,7 @@ import {
   vincularEmailRecebidoProcesso,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from '../../app/controlador-aplicacao.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   baixarBlob,
   formatarDataParaInput,
@@ -81,47 +81,47 @@ import {
   formatarPercentualAfinidade,
   formatarPontuacaoDetalhada,
   obterItensPaginados,
-} from '../../utilitarios.js';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js';
-import { resolverAvatarUrl } from '../../shared/avatares.js';
+} from '../../utilitarios.js?v=20261124-cache';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-cache';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-cache';
 import {
   formatarDataHora,
   obterClasseAderencia,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 import {
   ModalCompartilharVaga,
   REQUISITOS_PUBLICOS_PADRAO,
   RESPONSABILIDADES_PUBLICAS_PADRAO,
   montarItensPublicosPadrao,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20260906-central-treinamentos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
+} from '../../shared/components/share-job-modal.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
 import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js';
-import { obterTourLogin } from '../../shared/tour-config.js';
+} from '../../shared/process-flow.js?v=20261124-cache';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261124-cache';
+import { obterTourLogin } from '../../shared/tour-config.js?v=20261124-cache';
 import {
   obterChaveProcesso,
   obterReferenciaProcessoDoCandidato,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js';
+} from '../../shared/process-reference.js?v=20261124-cache';
 import {
   quebrarListaTexto,
   validarFormularioProcesso,
   validarPerfilCandidato,
-} from '../../shared/validacoes.js';
-import { BlocoFiltro, CampoFiltro } from './components/filtros.js';
-import { listarOperacoes } from '../../services/api/operations.js';
-import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20260904-correcoes-txt3';
-import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js';
+} from '../../shared/validacoes.js?v=20261124-cache';
+import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
+import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261124-cache';
+import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261124-cache';
 import {
   AcceptanceDonutChart,
   AvatarUsuario,
@@ -137,8 +137,8 @@ import {
   SectionCard,
   WizardStepper,
   WizardSummaryStrip,
-} from '../../ui/componentes-compartilhados.js';
-import { TourGuiado } from '../../ui/tour-guiado.js?v=20261022-guia';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { TourGuiado } from '../../ui/tour-guiado.js?v=20261124-cache';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';
@@ -1937,7 +1937,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261117-inicio')
+    import('../monitoria/index.js?v=20261124-cache')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

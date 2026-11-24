@@ -1,5 +1,5 @@
-import { IconeSvg } from '../icone.js';
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { IconeSvg } from '../icone.js?v=20261124-cache';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 
 // Extraído de features/processos/index.js (Correções.txt item 3) para ser
 // reaproveitado também em telas fora de Processos, como Provas e Resultados.

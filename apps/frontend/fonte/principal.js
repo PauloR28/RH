@@ -1,5 +1,5 @@
-import { React, createRoot, html } from './infraestrutura-react.js';
-import { inicializarTema } from './shared/tema.js';
+import { React, createRoot, html } from './infraestrutura-react.js?v=20261124-cache';
+import { inicializarTema } from './shared/tema.js?v=20261124-cache';
 
 inicializarTema();
 
@@ -60,7 +60,7 @@ const root = createRoot(container);
 
 async function iniciarAplicacao() {
   try {
-    const { Aplicacao } = await import('./aplicacao.js?v=20261124-correcoes');
+    const { Aplicacao } = await import('./aplicacao.js?v=20261124-cache');
 
     root.render(html`
       <${ErrorBoundary}>

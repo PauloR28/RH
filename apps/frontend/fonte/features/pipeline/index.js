@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js';
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js';
-import { validarCardPipeline } from '../../shared/validacoes.js';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js';
+} from '../../shared/process-flow.js?v=20261124-cache';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261124-cache';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261124-cache';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-cache';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js';
+} from '../processos/state.js?v=20261124-cache';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../shared/process-reference.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const ETAPAS_PIPELINE = [
   'Triagem',

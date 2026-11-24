@@ -1,4 +1,4 @@
-import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js';
+import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js?v=20261124-cache';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

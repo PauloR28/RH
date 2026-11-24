@@ -1,4 +1,4 @@
-import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js';
+import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js?v=20261124-cache';
 
 export async function lerEntrevistas({
   idProcesso = '',

@@ -1,23 +1,23 @@
-import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js';
-import { usaInicioPorSessoes } from '../shared/tela-inicial.js?v=20261117-inicio';
-import { CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO } from '../shared/relatorios-hub.js';
+import { html, lazy, React, Suspense, useEffect, useState } from '../infraestrutura-react.js?v=20261124-cache';
+import { usaInicioPorSessoes } from '../shared/tela-inicial.js?v=20261124-cache';
+import { CHAVE_SELECAO_RELATORIO, TELA_ANTIGA_PARA_RELATORIO } from '../shared/relatorios-hub.js?v=20261124-cache';
 import {
   navegarParaTela,
   usarTelaAtual,
   useControladorAplicacao,
-} from './controlador-aplicacao.js';
-import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js';
-import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261117-inicio';
-import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
-import { moduloParaAbrir } from '../modulos/registro.js?v=20261117-config2';
-import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261117-config2';
-import { TELA_CONFIGURACOES_CONECTA, primeiraTelaConfiguracoes } from '../features/configuracoes/configuracoes-conecta.js?v=20261117-inicio';
-import { SessaoOciosa } from '../features/configuracoes/sessao-ociosa.js?v=20261117-config2';
-import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20260920-monitoria2';
+} from './controlador-aplicacao.js?v=20261124-cache';
+import { LoadingState, ModalPadrao } from '../ui/componentes-compartilhados.js?v=20261124-cache';
+import { BarraLateral, CartaoUsuarioTopo } from '../ui/components/layout.js?v=20261124-cache';
+import { obterEstadoModulos, selecionarModulo, useModulos } from '../modulos/estado.js?v=20261124-cache';
+import { moduloParaAbrir } from '../modulos/registro.js?v=20261124-cache';
+import { TELA_INICIO_TECNOLOGIA } from '../modulos/registro.js?v=20261124-cache';
+import { TELA_CONFIGURACOES_CONECTA, primeiraTelaConfiguracoes } from '../features/configuracoes/configuracoes-conecta.js?v=20261124-cache';
+import { SessaoOciosa } from '../features/configuracoes/sessao-ociosa.js?v=20261124-cache';
+import { TemaOperacao, TrocaSenhaObrigatoria } from '../features/monitoria/global.js?v=20261124-cache';
 import {
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
-} from '../servico-api.js';
+} from '../servico-api.js?v=20261124-cache';
 
 function carregarTela(importador, nomeExportado) {
   return lazy(() => importador().then((modulo) => ({ default: modulo[nomeExportado] })));
@@ -84,9 +84,9 @@ const TELAS_SEM_SHELL_FIXO = new Set([
   'screen-result',
 ]);
 
-const importarGestao = () => import('../features/telas-gestao.js?v=20261112-modulo-unico2');
-const importarProcessos = () => import('../features/telas-processos.js?v=20261116-hook-prova');
-const importarProva = () => import('../features/telas-prova.js?v=20260904-identidade-conecta');
+const importarGestao = () => import('../features/telas-gestao.js?v=20261124-cache');
+const importarProcessos = () => import('../features/telas-processos.js?v=20261124-cache');
+const importarProva = () => import('../features/telas-prova.js?v=20261124-cache');
 
 const TelaAnaliseCandidatos = carregarTela(importarGestao, 'TelaAnaliseCandidatos');
 const TelaBancoTalentos = carregarTela(importarGestao, 'TelaBancoTalentos');
@@ -99,78 +99,78 @@ const TelaDetalhesProcesso = carregarTela(importarProcessos, 'TelaDetalhesProces
 const TelaProcessosDecisoesPendentes = carregarTela(importarProcessos, 'TelaProcessosDecisoesPendentes');
 const TelaProcessosEncerrados = carregarTela(importarProcessos, 'TelaProcessosEncerrados');
 const TelaProcessos = carregarTela(importarProcessos, 'TelaProcessos');
-const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20261116-hook-prova'), 'TelaCandidatos');
-const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20261116-hook-prova'), 'TelaDetalhesCandidato');
-const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20260904-identidade-conecta'), 'TelaPipelineCandidatos');
-const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20260916-correcoes-txt'), 'TelaEntrevistas');
-const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20260929-qa-lucas'), 'TelaOneDriveArquivos');
-const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js'), 'TelaCandidaturaPublica');
-const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20260904-identidade-conecta'), 'TelaConectaProvas');
-const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20261116-hook-prova'), 'TelaProvasResultados');
+const TelaCandidatos = carregarTela(() => import('../features/candidatos/index.js?v=20261124-cache'), 'TelaCandidatos');
+const TelaDetalhesCandidato = carregarTela(() => import('../features/candidatos/index.js?v=20261124-cache'), 'TelaDetalhesCandidato');
+const TelaPipelineCandidatos = carregarTela(() => import('../features/tela-pipeline.js?v=20261124-cache'), 'TelaPipelineCandidatos');
+const TelaEntrevistas = carregarTela(() => import('../features/tela-entrevistas.js?v=20261124-cache'), 'TelaEntrevistas');
+const TelaOneDriveArquivos = carregarTela(() => import('../features/onedrive/index.js?v=20261124-cache'), 'TelaOneDriveArquivos');
+const TelaCandidaturaPublica = carregarTela(() => import('../features/public-candidacy/index.js?v=20261124-cache'), 'TelaCandidaturaPublica');
+const TelaConectaProvas = carregarTela(() => import('../features/conecta-provas/index.js?v=20261124-cache'), 'TelaConectaProvas');
+const TelaProvasResultados = carregarTela(() => import('../features/provas-geradas/index.js?v=20261124-cache'), 'TelaProvasResultados');
 const TelaResultadosAnaliticosProcesso = carregarTela(
-  () => import('../features/resultados-analiticos/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/resultados-analiticos/index.js?v=20261124-cache'),
   'TelaResultadosAnaliticosProcesso',
 );
 const TelaConfiguracoesSistema = carregarTela(
-  () => import('../features/configuracoes/index.js?v=20261124-correcoes'),
+  () => import('../features/configuracoes/index.js?v=20261124-cache'),
   'TelaConfiguracoesSistema',
 );
-const importarMonitoria = () => import('../features/monitoria/index.js?v=20261117-inicio');
+const importarMonitoria = () => import('../features/monitoria/index.js?v=20261124-cache');
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261116-diario2'), 'TelaRelatoriosHub');
-const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261121-telas-grandes'), 'TelaEquipesControle');
-const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261116-diario'), 'TelaDiario');
-const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261116-grade-larga'), 'TelaPainel');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261121-troca-telas'), 'TelaWfm');
-const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261112-modulo-unico2'), 'TelaChamados');
-const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261117-inicio'), 'TelaTecnologia');
-const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20260930-processo-individual'), 'TelaCalendario');
-const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261109-telas-antigas'), 'TelaMural');
-const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20260904-identidade-conecta'), 'TelaOnboarding');
+const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261124-cache'), 'TelaRelatoriosHub');
+const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261124-cache'), 'TelaEquipesControle');
+const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261124-cache'), 'TelaDiario');
+const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261124-cache'), 'TelaPainel');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261124-cache'), 'TelaWfm');
+const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261124-cache'), 'TelaChamados');
+const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261124-cache'), 'TelaTecnologia');
+const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20261124-cache'), 'TelaCalendario');
+const TelaMural = carregarTela(() => import('../features/mural/index.js?v=20261124-cache'), 'TelaMural');
+const TelaOnboarding = carregarTela(() => import('../features/onboarding/index.js?v=20261124-cache'), 'TelaOnboarding');
 const TelaDashboardFunil = carregarTela(
-  () => import('../features/dashboard-funil/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/dashboard-funil/index.js?v=20261124-cache'),
   'TelaDashboardFunil',
 );
 const TelaTemplatesDocumentos = carregarTela(
-  () => import('../features/documentos-template/index.js?v=20260921-ajuda'),
+  () => import('../features/documentos-template/index.js?v=20261124-cache'),
   'TelaTemplatesDocumentos',
 );
-const TelaCentralAjuda = carregarTela(() => import('../features/ajuda/guia.js?v=20260921-ajuda'), 'TelaCentralAjuda');
+const TelaCentralAjuda = carregarTela(() => import('../features/ajuda/guia.js?v=20261124-cache'), 'TelaCentralAjuda');
 const TelaTreinamentos = carregarTela(
-  () => import('../features/treinamentos/index.js?v=20261123-limpeza'),
+  () => import('../features/treinamentos/index.js?v=20261124-cache'),
   'TelaTreinamentos',
 );
 const TelaCriarTreinamento = carregarTela(
-  () => import('../features/treinamentos/wizard.js?v=20260922-ministrante-busca'),
+  () => import('../features/treinamentos/wizard.js?v=20261124-cache'),
   'TelaCriarTreinamento',
 );
 const TelaProvasConfiguracao = carregarTela(
-  () => import('../features/conecta-provas-configuracao/index.js?v=20260904-identidade-conecta'),
+  () => import('../features/conecta-provas-configuracao/index.js?v=20261124-cache'),
   'TelaProvasConfiguracao',
 );
 const TelaAdministracao = carregarTela(
-  () => import('../features/administracao/index.js?v=20261123-limpeza'),
+  () => import('../features/administracao/index.js?v=20261124-cache'),
   'TelaAdministracao',
 );
-const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20260916-correcoes-round3');
+const importarCatalogoDedicado = () => import('../features/catalogo-dedicado/index.js?v=20261124-cache');
 // LGPD (Etapa 7c): todos os dados sensíveis do Conecta numa tela só.
-const TelaLgpd = carregarTela(() => import('../features/configuracoes/lgpd-central.js?v=20261117-config3'), 'TelaLgpdCentral');
-const importarSegurancaBackup = () => import('../features/configuracoes/seguranca-backup.js?v=20261117-config');
+const TelaLgpd = carregarTela(() => import('../features/configuracoes/lgpd-central.js?v=20261124-cache'), 'TelaLgpdCentral');
+const importarSegurancaBackup = () => import('../features/configuracoes/seguranca-backup.js?v=20261124-cache');
 const TelaSegurancaConecta = carregarTela(importarSegurancaBackup, 'TelaSegurancaConecta');
 const TelaBackupConecta = carregarTela(importarSegurancaBackup, 'TelaBackupConecta');
-const TelaInicioModulos = carregarTela(() => import('../features/configuracoes/inicio-modulos.js?v=20261117-inicio'), 'TelaInicioModulos');
+const TelaInicioModulos = carregarTela(() => import('../features/configuracoes/inicio-modulos.js?v=20261124-cache'), 'TelaInicioModulos');
 const TelaMotivosEliminacao = carregarTela(importarCatalogoDedicado, 'TelaMotivosEliminacao');
 const TelaModelosEmail = carregarTela(importarCatalogoDedicado, 'TelaModelosEmail');
 const TelaEtapasProcesso = carregarTela(importarCatalogoDedicado, 'TelaEtapasProcesso');
 const TelaNovoAmbienteSharePoint = carregarTela(
-  () => import('../features/administracao/novo-ambiente.js?v=20260908-correcoes-ambiente'),
+  () => import('../features/administracao/novo-ambiente.js?v=20261124-cache'),
   'TelaNovoAmbienteSharePoint',
 );
-const importarDisc = () => import('../features/disc/index.js?v=20260916-correcoes-txt');
-const importarFitCultural = () => import('../features/fit-cultural/index.js?v=20260916-correcoes-txt');
-const importarRaciocinio = () => import('../features/raciocinio-logico/index.js?v=20260916-correcoes-txt');
+const importarDisc = () => import('../features/disc/index.js?v=20261124-cache');
+const importarFitCultural = () => import('../features/fit-cultural/index.js?v=20261124-cache');
+const importarRaciocinio = () => import('../features/raciocinio-logico/index.js?v=20261124-cache');
 const TelaDiscAdmin = carregarTela(importarDisc, 'TelaDiscAdmin');
 const TelaDiscTestePublico = carregarTela(importarDisc, 'TelaDiscTestePublico');
 const TelaFitCulturalAdmin = carregarTela(importarFitCultural, 'TelaFitCulturalAdmin');

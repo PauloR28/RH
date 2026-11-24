@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarEntrevista,
   atualizarSlotEntrevista,
@@ -12,36 +12,36 @@ import {
   lerEntrevistas,
   lerProcessos,
   lerSlotsEntrevista,
-} from '../../app/controlador-aplicacao.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js';
-import { copiarTexto } from '../../shared/browser-utils.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 import {
   ModalEdicaoEntrevista,
   STATUS_ENTREVISTA,
-} from '../../shared/components/interview-edit-modal.js';
+} from '../../shared/components/interview-edit-modal.js?v=20261124-cache';
 import {
   CANDIDATE_STATUS_PENDING_CONFIRMATION,
   canonicalizeCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js';
-import { validarFormularioEntrevista } from '../../shared/validacoes.js';
+} from '../../shared/process-flow.js?v=20261124-cache';
+import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261124-cache';
 import {
   LoadingState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
 import {
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js';
-import { obterItensPaginados } from '../../utilitarios.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../shared/process-reference.js?v=20261124-cache';
+import { obterItensPaginados } from '../../utilitarios.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const STATUS_SLOT_DISPONIVEL = 'Disponivel';
 const STATUS_SLOT_BLOQUEADO = 'Bloqueado';

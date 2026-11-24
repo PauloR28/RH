@@ -1,5 +1,5 @@
-import { html } from '../../infraestrutura-react.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html } from '../../infraestrutura-react.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 export function TabelaVazia({ colunas, texto, icone = '' }) {
   const carregando = String(texto || '').toLowerCase().includes('carregando');

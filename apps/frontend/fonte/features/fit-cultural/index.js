@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -6,12 +6,12 @@ import {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from '../../servico-api.js';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
-import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
+import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const FRASE_VAZIA = () => ({ frase: '' });
 const FORM_INICIAL = () => ({ id_valor: '', nome: '', descricao: '', ativo: true, frases: [FRASE_VAZIA()] });

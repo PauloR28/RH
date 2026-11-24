@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
-﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
+﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -14,15 +14,15 @@ import {
   lerSessaoConectaProvas,
   marcarRevisaoConectaProvas,
   salvarRespostasConectaProvas,
-} from '../../servico-api.js?v=20260721-exam-analytics-2';
-import { formatarTempoRestante } from '../../shared/helpers-visuais.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 import {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from '../../ui/componentes-compartilhados.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
 
 const CHAVE_TOKEN_PUBLICO = 'conecta_provas_token';
 const CHAVE_TIMER_PUBLICO = 'conecta_provas_timer';

@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
-import { formatarDocumentoRichText } from '../../regras-prova.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261124-cache';
 import {
   baixarModeloModulo,
   criarTreinamentoWizard,
@@ -8,17 +8,17 @@ import {
   uploadVideoModulo,
   validarModuloJson,
   alternarDownloadAnexo,
-} from '../../servico-api.js?v=20260906-central-treinamentos';
-import { listarOperacoes } from '../../services/api/operations.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
 import {
   atualizarTrilhaOnboarding,
   buscarParticipantesTreinamento,
   lerTrilhaOnboarding,
   listarOperacoesParaTreinamento,
   uploadImagemSecaoModulo,
-} from '../../services/api/onboarding.js';
-import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../services/api/onboarding.js?v=20261124-cache';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 function limparHtmlVazioModulo(valor) {
   const conteudo = String(valor || '').trim();

@@ -5,7 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarPerfilCandidato,
   atualizarStatusCandidato,
@@ -23,8 +23,8 @@ import {
   removerBancoTalentos,
   uploadCvCandidato,
   usarCandidatoDoBancoTalentos,
-} from '../../servico-api.js?v=20260721-exam-analytics-2';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-cache';
 import {
   LoadingState,
   MetricGrid,
@@ -34,17 +34,17 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
-import { PainelOnboardingCandidato } from '../onboarding/index.js';
-import { PainelResultadoDisc } from '../disc/index.js';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js';
-import { ModalGerarDocumento } from '../documentos-template/index.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
+import { PainelOnboardingCandidato } from '../onboarding/index.js?v=20261124-cache';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261124-cache';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261124-cache';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261124-cache';
+import { ModalGerarDocumento } from '../documentos-template/index.js?v=20261124-cache';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_APPROVED,
@@ -54,20 +54,20 @@ import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js';
+} from '../../shared/process-flow.js?v=20261124-cache';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-cache';
 import {
   formatarDataHora,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js';
-import { obterReferenciaProcesso } from '../../shared/process-reference.js';
-import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261116-hook-prova').then((modulo) => ({
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { obterReferenciaProcesso } from '../../shared/process-reference.js?v=20261124-cache';
+import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js?v=20261124-cache';
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261124-cache').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
-import { IconeSvg } from '../../ui/icone.js';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 function normalizarTexto(valor) {
   return String(valor || '')

@@ -4,7 +4,7 @@ export {
   IlustracaoEstadoVazio,
   LoadingState,
   MetricGrid,
-} from './components/feedback.js';
+} from './components/feedback.js?v=20261124-cache';
 export {
   AvatarUsuario,
   PainelRh,
@@ -12,19 +12,19 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261117-inicio';
+} from './components/layout.js?v=20261124-cache';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
   ModalPadrao,
-} from './components/modals.js';
-export { MinistrantePicker } from './components/ministrante-picker.js';
+} from './components/modals.js?v=20261124-cache';
+export { MinistrantePicker } from './components/ministrante-picker.js?v=20261124-cache';
 export {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from './components/exam-fields.js';
+} from './components/exam-fields.js?v=20261124-cache';
 export {
   Badge,
   Button,
@@ -33,8 +33,8 @@ export {
   Pagination,
   Table,
   ToastAlert,
-} from './components/primitives.js';
-export { WizardStepper, WizardSummaryStrip } from './components/wizard.js';
+} from './components/primitives.js?v=20261124-cache';
+export { WizardStepper, WizardSummaryStrip } from './components/wizard.js?v=20261124-cache';
 export {
   AcceptanceDonutChart,
   BarComparisonChart,
@@ -42,4 +42,4 @@ export {
   ScoreDistributionChart,
   ScoreRadarChart,
   StageFunnelChart,
-} from './components/charts.js';
+} from './components/charts.js?v=20261124-cache';

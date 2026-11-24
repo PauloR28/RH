@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
 import {
   aprovarEscalaWfm,
   cancelarEnvioEscalaWfm,
@@ -11,15 +11,15 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
-import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261112-modulo-unico2';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261112-modulo-unico2';
-import { ModalConfigEscala } from './configuracao.js?v=20261112-modulo-unico2';
-import { OutrasEscalas } from './outras.js?v=20261112-modulo-unico2';
-import { GavetaAjusteDia } from './ajuste.js?v=20261112-modulo-unico2';
-import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261112-modulo-unico2';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { tomarFocoPessoa } from './foco-pessoa.js';
+} from '../../../services/api/wfm.js?v=20261124-cache';
+import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261124-cache';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261124-cache';
+import { ModalConfigEscala } from './configuracao.js?v=20261124-cache';
+import { OutrasEscalas } from './outras.js?v=20261124-cache';
+import { GavetaAjusteDia } from './ajuste.js?v=20261124-cache';
+import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261124-cache';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-cache';
+import { tomarFocoPessoa } from './foco-pessoa.js?v=20261124-cache';
 
 // Escala aberta (redesign Fase 15, amostra "Escala padrão" da Fase 12): visões Semana e Mês. Supervisor/Control Desk/
 // Gestor editam; Qualidade lê; o Operador lê a própria escala PUBLICADA. Toda validação (jornada, interjornada, pausas,

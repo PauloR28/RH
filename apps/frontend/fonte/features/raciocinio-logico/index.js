@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -8,12 +8,12 @@ import {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from '../../servico-api.js';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
-import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
+import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const TIPOS = [
   { valor: 'sequencia_logica', label: 'Sequência lógica' },

@@ -1,6 +1,6 @@
-import { html, useContext, useEffect, useRef } from '../../infraestrutura-react.js';
-import { AcoesPaginaContext } from './layout.js?v=20261117-inicio';
-import { IconeSvg } from '../icone.js';
+import { html, useContext, useEffect, useRef } from '../../infraestrutura-react.js?v=20261124-cache';
+import { AcoesPaginaContext } from './layout.js?v=20261124-cache';
+import { IconeSvg } from '../icone.js?v=20261124-cache';
 
 // Primitivas de layout (Etapa 2 do redesign Tecnologia/WFM). Prefixo `lp-`, estilos em estilos/layout-primitivas.css.
 // Escala de espaçamento 4/8/12/16/24/32, controles de 36px, bordas de 1px, sem sombra. As telas montam tudo com estas peças.

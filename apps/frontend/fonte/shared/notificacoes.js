@@ -1,22 +1,22 @@
-import { useEffect, useState } from '../infraestrutura-react.js';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261124-cache';
 import {
   lerProcessos,
   lerEntrevistas,
   lerCandidatosProcessos,
   listarSolicitacoesAlteracaoEmailApi,
-} from '../app/controlador-aplicacao.js';
+} from '../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   obterEstadoNotificacoesUsuario,
   registrarEstadoNotificacoesUsuario,
-} from '../services/api/notifications.js?v=20260927-estado-usuario';
-import { listarOperacoes } from '../services/api/operations.js';
-import { listarUsuarios } from '../services/api/settings.js';
-import { lerSessaoAutenticacao } from '../services/api/core.js';
+} from '../services/api/notifications.js?v=20261124-cache';
+import { listarOperacoes } from '../services/api/operations.js?v=20261124-cache';
+import { listarUsuarios } from '../services/api/settings.js?v=20261124-cache';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261124-cache';
 
-import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js';
+import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261124-cache';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {

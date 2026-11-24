@@ -1,4 +1,4 @@
-import { requisitar } from './core.js';
+import { requisitar } from './core.js?v=20261124-cache';
 
 export async function listarModelosEmail() {
   return requisitar('/emails/modelos', { method: 'GET' });

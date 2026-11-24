@@ -1,13 +1,13 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   analisarCurriculoIa,
   lerConfiguracaoAnaliseCurriculoIa,
   lerUltimaAnaliseCurriculoIa,
   marcarAnaliseCurriculoIaRevisada,
-} from '../../servico-api.js?v=20260721-exam-analytics-2';
-import { SectionCard } from '../../ui/componentes-compartilhados.js';
-import { formatarDataHora } from '../../shared/helpers-visuais.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 
 const AVISO_REVISAO_HUMANA =

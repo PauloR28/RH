@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   atualizarTrilhaOnboarding,
   baixarPdfSlideTreinamento,
@@ -16,27 +16,27 @@ import {
   relatorioPresencaColaborador,
   relatorioTreinamentosStatus,
   salvarPresencaTreinamento,
-} from '../../servico-api.js?v=20260906-central-treinamentos';
-import { listarOperacoes } from '../../services/api/operations.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
 import {
   atribuirTreinamentoUsuarios,
   buscarParticipantesTreinamento,
   listarOperacoesParaTreinamento,
   vincularTrilhaProcesso,
-} from '../../services/api/onboarding.js';
-import { CHAVE_TRILHA_EDICAO } from './wizard.js';
-import { lerProcessos } from '../../services/api/processes.js';
+} from '../../services/api/onboarding.js?v=20261124-cache';
+import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261124-cache';
+import { lerProcessos } from '../../services/api/processes.js?v=20261124-cache';
 import {
   MinistrantePicker,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 // QA T2-TRE-01: quem recebe o treinamento pode ser um candidato, um usuário do
 // sistema (operador, funcionário...) ou uma operação inteira. Tudo vira uma

@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 import {
   enviarLogoOperacao,
   executarZonaDeRisco,
@@ -10,8 +10,8 @@ import {
   salvarConfigMonitoria,
   salvarCorOperacao,
   salvarGuia,
-} from '../../services/api/monitoria.js';
-import { SelectOperacao } from './comum.js';
+} from '../../services/api/monitoria.js?v=20261124-cache';
+import { SelectOperacao } from './comum.js?v=20261124-cache';
 
 // Central de Monitoria (Configurações, só Administrador): prazos e alertas, identidade
 // visual por operação e Zona de risco na aba "Geral"; guia de processos em aba própria.

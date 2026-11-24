@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 import {
   excluirTipoAtendimento,
   listarCatalogoMonitoria,
   listarTiposAtendimento,
   salvarTipoAtendimento,
-} from '../../services/api/monitoria.js';
-import { useContextoMonitoria } from '../monitoria/comum.js';
+} from '../../services/api/monitoria.js?v=20261124-cache';
+import { useContextoMonitoria } from '../monitoria/comum.js?v=20261124-cache';
 
 // Configurações > Parâmetros > "Tipos de atendimentos": cada tipo pertence a uma operação e a um
 // canal de atendimento (usados no formulário de Nova monitoria). As regras de escopo e de

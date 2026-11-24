@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js';
-import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261112-modulo-unico2';
-import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { listarUsuarios } from '../../services/api/settings.js';
+import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261124-cache';
+import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261124-cache';
+import { listarUsuarios } from '../../services/api/settings.js?v=20261124-cache';
 import {
   aplicarLoteModulos,
   definirAcessoModulosPerfil,
@@ -10,12 +10,12 @@ import {
   lerAcessosModulos,
   lerWfmParticipantes,
   listarFuncoesModulos,
-} from '../../services/api/modulos.js?v=20261014-funcoes';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261116-modulo-unidade';
+} from '../../services/api/modulos.js?v=20261124-cache';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261124-cache';
 import {
   CHAVE_WFM_PARTICIPANTES, alternarRascunho, chaveFuncao, chaveModulo, consequenciasDoLote, contarLigadas, descreverLote,
   listarPendencias, paraPayloadLote, pendenciasDoModulo, valorExibido,
-} from './pendencias.js';
+} from './pendencias.js?v=20261124-cache';
 
 // Tela Módulos (Tecnologia): lista de módulos à esquerda e, à direita, as funções do módulo escolhido (ligar/desligar), a ativação do
 // módulo e o WFM para participantes (fase de teste). As mudanças ficam em RASCUNHO e são salvas de uma vez (PUT /tecnologia/modulos/lote,

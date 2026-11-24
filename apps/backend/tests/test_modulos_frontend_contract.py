@@ -83,7 +83,9 @@ def test_um_unico_especificador_para_estado_registro_e_componentes():
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node não disponível")
 def test_regras_puras_do_registro_em_node():
     uri = json.dumps((FRONT / "modulos" / "registro.js").as_uri())
-    uri_areas = json.dumps((FRONT / "shared" / "areas.js").as_uri())
+    # Mesmo especificador (com ?v=) que o registro usa: senão o Node carrega outra instância de areas.js.
+    versao_areas = re.search(r"shared/areas\.js(\?v=[\w-]+)?'", (FRONT / "modulos" / "registro.js").read_text(encoding="utf-8")).group(1) or ""
+    uri_areas = json.dumps((FRONT / "shared" / "areas.js").as_uri() + versao_areas)
     codigo = (
         # As regras de módulo valem com as áreas de RH ativas; o padrão (todas inativas) é testado no fim do script.
         "import { definirAreasInativas } from " + uri_areas + ";\n"

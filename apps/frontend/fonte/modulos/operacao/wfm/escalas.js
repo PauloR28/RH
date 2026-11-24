@@ -1,7 +1,7 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js';
-import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
-import { dataHora, falhaAo } from './comum.js?v=20261112-modulo-unico2';
-import { CabPagina, Campo, Esqueleto, Estado, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
+import { aprovarEscalaWfm, criarEscalaWfm, declinarEscalaWfm, duplicarEscalaMesWfm, gestaoEscalasWfm, publicarEscalaWfm } from '../../../services/api/wfm.js?v=20261124-cache';
+import { dataHora, falhaAo } from './comum.js?v=20261124-cache';
+import { CabPagina, Campo, Esqueleto, Estado, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Selo } from '../../../ui/components/ds.js?v=20261124-cache';
 
 // Tela inicial da aba Escalas: a lista de escalas do mês (redesign Fase 15, amostra "Escalas" da Fase 12).
 //  - Quem cria escalas (Supervisor, Control Desk, Analista de TI): vê todas (ativas e inativas), abre a escala para montar,

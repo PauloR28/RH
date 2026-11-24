@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-cache';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js';
+} from '../../perguntas.js?v=20261124-cache';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js';
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261124-cache';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js';
+} from '../../shared/process-reference.js?v=20261124-cache';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js';
-import { isProcessClosed } from '../../shared/process-flow.js';
+} from './services/personalizacao-inteligente.js?v=20261124-cache';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261124-cache';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

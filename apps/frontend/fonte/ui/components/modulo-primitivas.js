@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
-import { IconeSvg } from '../icone.js';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { IconeSvg } from '../icone.js?v=20261124-cache';
 
 // Cabeçalho e abas do módulo Turnos e Plantões. Estilos: bloco `.mo-*` em estilos/console.css (só tokens do tema).
 

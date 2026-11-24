@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-cache';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261124-cache';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js';
-import { formatarDataHora } from '../../shared/helpers-visuais.js';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261116-modulos';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261123-limpeza';
-import { listarOperacoes } from '../../services/api/operations.js';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261112-modulo-unico2';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261022-guia';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261124-cache';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261124-cache';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-cache';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261124-cache';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261124-cache';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-cache';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261124-cache';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261124-cache';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-cache';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261111-notif';
-import { IconeSvg } from '../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20260930-label';
+} from '../../shared/notificacoes.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,16 +53,16 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261112-modulo-unico2';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261112-modulo-unico2';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js';
-import { ModalCadastroEmMassa } from './usuarios-massa.js';
-import { SelectMultiplo } from '../monitoria/comum.js';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261112-modulo-unico2';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261116-modulo-unidade';
-import { CentralAcessos } from './central-acessos.js?v=20261121-perfis';
-import { ConfigPaineis } from './paineis.js?v=20261123-limpeza';
+} from './monitoria-config.js?v=20261124-cache';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261124-cache';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261124-cache';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261124-cache';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-cache';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-cache';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261124-cache';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261124-cache';
+import { CentralAcessos } from './central-acessos.js?v=20261124-cache';
+import { ConfigPaineis } from './paineis.js?v=20261124-cache';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

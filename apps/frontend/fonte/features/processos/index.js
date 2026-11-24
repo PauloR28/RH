@@ -1,5 +1,5 @@
-import { IconeSvg } from '../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
 
 import {
   html,
@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   TAMANHO_DETALHE_PROCESSO,
   agendarEntrevista,
@@ -57,42 +57,42 @@ import {
   usarCandidatoDoBancoTalentos,
   retomarProcesso,
   cancelarProcesso,
-} from '../../app/controlador-aplicacao.js';
+} from '../../app/controlador-aplicacao.js?v=20261124-cache';
 import {
   baixarBlob,
   formatarDataCurta,
   formatarDataParaInput,
   obterItensPaginados,
-} from '../../utilitarios.js';
+} from '../../utilitarios.js?v=20261124-cache';
 import {
   formatarDataHora,
   formatarDataNascimento,
   montarResumoAnaliticoCv,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js';
+} from '../../shared/helpers-visuais.js?v=20261124-cache';
 import {
   abrirBlobEmNovaGuia,
   copiarTexto,
   montarUrlPublicaCandidatura,
   obterBasePublicaCandidatura,
   toDatetimeLocal,
-} from '../../shared/browser-utils.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+} from '../../shared/browser-utils.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 import {
   ModalCompartilharVaga,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20260904-identidade-conecta';
+} from '../../shared/components/share-job-modal.js?v=20261124-cache';
 import {
   DOCUMENTOS_APROVACAO_PADRAO,
   ModalAprovacaoCandidato,
   atualizarDocumentosNaMensagem,
-} from '../../shared/components/approval-modal.js';
+} from '../../shared/components/approval-modal.js?v=20261124-cache';
 import {
   ModalEdicaoEntrevista,
-} from '../../shared/components/interview-edit-modal.js';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js';
+} from '../../shared/components/interview-edit-modal.js?v=20261124-cache';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-cache';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-cache';
 import {
   CANDIDATE_STATUS_APPROVED,
   CANDIDATE_STATUS_ANALYSIS,
@@ -110,34 +110,34 @@ import {
   getCandidateActionState,
   isActiveCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js';
+} from '../../shared/process-flow.js?v=20261124-cache';
 import {
   quebrarListaTexto,
   validarFormularioEntrevista,
   validarFormularioProcesso,
-} from '../../shared/validacoes.js';
+} from '../../shared/validacoes.js?v=20261124-cache';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
   obterReferenciaProcessoDoCandidato,
-} from '../../shared/process-reference.js';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js';
-import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js';
+} from '../../shared/process-reference.js?v=20261124-cache';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261124-cache';
+import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261124-cache';
 import {
   criarProvaGerada,
   cancelarProvaGerada,
   deletarProvaGerada,
   lerProvaGerada,
   reabrirProvaGerada,
-} from '../../services/api/generated-exams.js?v=20260721-exam-analytics-2';
-import { criarAplicacaoDisc } from '../../services/api/disc.js';
-import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js';
+} from '../../services/api/generated-exams.js?v=20261124-cache';
+import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261124-cache';
+import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261124-cache';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROCESSO,
-} from '../../perguntas.js';
-import { CabecalhoSecaoColapsavel } from './components/section-toggle.js';
+} from '../../perguntas.js?v=20261124-cache';
+import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261124-cache';
 import {
   LoadingState,
   MetricGrid,
@@ -149,11 +149,11 @@ import {
   ScoreRadarChart,
   SectionCard,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
 
 const MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO =
   'Este candidato já foi aprovado. Para alterar sua situação, será necessário um novo cadastro ou atualização manual.';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261116-hook-prova').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261124-cache').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 const AVISO_URL_PUBLICA_NAO_CONFIGURADA =

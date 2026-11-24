@@ -1,4 +1,4 @@
-import { requisitar } from './core.js';
+import { requisitar } from './core.js?v=20261124-cache';
 
 export async function listarMural(statusFiltro = '') {
   const query = statusFiltro ? `?status_filtro=${encodeURIComponent(statusFiltro)}` : '';

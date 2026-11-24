@@ -1,14 +1,14 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js';
-import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../../ui/icone.js';
-import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261022-equipes';
-import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261023-ajustes';
-import { Icone } from './escala-ui.js?v=20261112-modulo-unico2';
-import { horasDec } from './comum.js?v=20261112-modulo-unico2';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261112-modulo-unico2';
-import { baixarArquivo } from '../../../features/monitoria/comum.js';
-import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261106-wfm';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261110-graficos';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
+import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../../ui/icone.js?v=20261124-cache';
+import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261124-cache';
+import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261124-cache';
+import { Icone } from './escala-ui.js?v=20261124-cache';
+import { horasDec } from './comum.js?v=20261124-cache';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261124-cache';
+import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261124-cache';
+import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261124-cache';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261124-cache';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.

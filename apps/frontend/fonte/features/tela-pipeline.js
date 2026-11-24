@@ -1,1 +1,1 @@
-export { TelaPipelineCandidatos } from './pipeline/index.js?v=20260904-identidade-conecta';
+export { TelaPipelineCandidatos } from './pipeline/index.js?v=20261124-cache';

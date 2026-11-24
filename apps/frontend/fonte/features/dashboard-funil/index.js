@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js';
-import { lerFunilDashboard } from '../../servico-api.js';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { lerFunilDashboard } from '../../servico-api.js?v=20261124-cache';
 import {
   EmptyState,
   LoadingState,
@@ -7,8 +7,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
 

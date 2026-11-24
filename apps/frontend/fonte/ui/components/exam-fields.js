@@ -1,19 +1,19 @@
-import { IconeSvg } from '../icone.js';
+import { IconeSvg } from '../icone.js?v=20261124-cache';
 
 ﻿import {
   html,
   useEffect,
   useRef,
   useState,
-} from '../../infraestrutura-react.js';
+} from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   baixarModeloExcel,
   converterArrayBufferParaBase64,
   formatarDocumentoRichText,
   obterCapacidadesDaTarefa,
   validarArquivoExcel,
-} from '../../regras-prova.js';
-import { useToast } from '../../shared/hooks/use-toast.js';
+} from '../../regras-prova.js?v=20261124-cache';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
 
 function escaparHtml(valor) {
   return String(valor || '')

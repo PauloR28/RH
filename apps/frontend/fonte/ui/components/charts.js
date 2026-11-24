@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js';
+import { html } from '../../infraestrutura-react.js?v=20261124-cache';
 
 const SEQUENCIAL = [
   'var(--color-chart-sequential-1)',

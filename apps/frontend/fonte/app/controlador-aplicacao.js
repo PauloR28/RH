@@ -1,11 +1,11 @@
-﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js';
-import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js';
-import { useModulos } from '../modulos/estado.js?v=20261116-modulo-unidade';
+﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-cache';
+import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js?v=20261124-cache';
+import { useModulos } from '../modulos/estado.js?v=20261124-cache';
 import {
   baixarBlob,
   gerarIdResultado,
   sanitizarNomeArquivo,
-} from '../utilitarios.js';
+} from '../utilitarios.js?v=20261124-cache';
 import {
   EVENTO_AUTENTICACAO_EXPIRADA,
   agendarEntrevista,
@@ -126,12 +126,12 @@ import {
   registrarSolicitacaoLgpd,
   retomarProcesso,
   cancelarProcesso,
-} from '../servico-api.js?v=20260902-perfil-drive-nav';
-import { criarLogger } from '../logger.js';
+} from '../servico-api.js?v=20261124-cache';
+import { criarLogger } from '../logger.js?v=20261124-cache';
 import {
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../perguntas.js';
+} from '../perguntas.js?v=20261124-cache';
 import {
   baixarPacoteDaProva,
   converterBase64ParaUint8Array,
@@ -140,7 +140,7 @@ import {
   montarPayloadGabarito,
   montarResumoRegrasDoCandidato,
   validarEntregaObrigatoriaDaProva,
-} from '../regras-prova.js';
+} from '../regras-prova.js?v=20261124-cache';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_ELIMINATED,
@@ -148,9 +148,9 @@ import {
   CANDIDATE_STATUS_WITHDREW,
   canonicalizeCandidateStatus,
   getCandidateVisibleStatus,
-} from '../shared/process-flow.js';
-import { encontrarProcessoPorReferencia } from '../shared/process-reference.js';
-import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js';
+} from '../shared/process-flow.js?v=20261124-cache';
+import { encontrarProcessoPorReferencia } from '../shared/process-reference.js?v=20261124-cache';
+import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js?v=20261124-cache';
 
 const CHAVE_ESTADO = 'rh_react_state_v1';
 const CHAVE_BARRA_LATERAL = 'rh_sidebar_collapsed_v1';

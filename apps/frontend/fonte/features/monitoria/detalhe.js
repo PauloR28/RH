@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20260921-alertas';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-cache';
 import {
   excluirMonitoria,
   restaurarMonitoria,
@@ -13,12 +13,12 @@ import {
   listarDestinatarios,
   reanalisarContestacao,
   replicarContestacao,
-} from '../../services/api/monitoria.js';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261106-wfm';
-import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js';
-import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261108-fatia2';
-import { JanelaPlano } from './redesign-feedback-planos.js?v=20261109-telas-antigas';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js';
+} from '../../services/api/monitoria.js?v=20261124-cache';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-cache';
+import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261124-cache';
+import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261124-cache';
+import { JanelaPlano } from './redesign-feedback-planos.js?v=20261124-cache';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261124-cache';
 
 // Detalhe de UMA monitoria (redesign Fase 15, fatia 4, amostra Q1 do lote 2): painel lateral de 640 px (padrão c-diario da
 // Fase 14) em todas as listas. Cabeçalho com ID + situação, linha curta operador · operação · data · avaliador e ⋯ (Exportar,

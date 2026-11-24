@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js';
-import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js';
-import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js';
-import { lerDashboard } from '../../services/api/monitoria.js';
-import { SelectOperacao, TagOperacao, formatarNota } from './comum.js';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
+import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js?v=20261124-cache';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261124-cache';
+import { SelectOperacao, TagOperacao, formatarNota } from './comum.js?v=20261124-cache';
 
 // Dashboard (4 modos: Geral, Equipe, Período, Operador). Tudo vem do servidor —
 // o motor único de indicadores (o mesmo dos relatórios e exportações).

@@ -57,4 +57,4 @@ def test_tema_inicial_script_exists_and_is_referenced_by_index_html():
     assert "data-bs-theme" in content
 
     index_html = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
-    assert '<script src="/fonte/tema-inicial.js"></script>' in index_html
+    assert re.search(r'<script src="/fonte/tema-inicial\.js(\?v=[\w-]+)?"></script>', index_html)

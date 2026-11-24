@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js';
+} from '../../perguntas.js?v=20261124-cache';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js';
+} from '../prova/services/personalizacao-inteligente.js?v=20261124-cache';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js';
+} from '../../regras-prova.js?v=20261124-cache';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20260902-correcoes-txt';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js';
-import { listarOperacoes } from '../../services/api/operations.js';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js';
-import { TelaConectaProvas } from '../conecta-provas/index.js';
-import { PainelResultadoDisc } from '../disc/index.js';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js';
-import { copiarTexto } from '../../shared/browser-utils.js';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js';
+} from '../../servico-api.js?v=20261124-cache';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261124-cache';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261124-cache';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261124-cache';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261124-cache';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261124-cache';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261124-cache';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261124-cache';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261124-cache';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261124-cache';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261124-cache';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js';
-import { IconeSvg } from '../../ui/icone.js';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js';
+} from '../../ui/componentes-compartilhados.js?v=20261124-cache';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';
