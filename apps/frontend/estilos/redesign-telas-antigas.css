@@ -18,7 +18,7 @@
 .c-dia-he .c-ic { width: 14px; height: 14px; }
 .c-dia-add { color: var(--cor-texto-secundario); font-weight: var(--fonte-peso-normal); padding: 0 var(--espaco-1); }
 .c-pausas { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: stretch; }
-.c-pausas > .c-tabela { align-self: start; }
+.c-pausas > .c-tabela, .c-pausas > .c-rolagem > .c-tabela { align-self: start; }
 .c-pausa-hora { width: 64px; height: 28px; text-align: center; font-variant-numeric: tabular-nums; }
 .c-pausa-hora--vazia { border-color: var(--cor-status-atencao-texto); }
 .c-pausa-mudou td:first-child { box-shadow: inset 3px 0 0 var(--cor-status-informacao-texto); }
@@ -252,7 +252,8 @@
    são telas de trabalho do Control Desk no computador); no celular continuam tabela, não viram cartão. */
 @media (max-width: 1179.98px) {
   .c-tabela-caixa:has(> .c-tabela-digita), .c-tabela-caixa:has(> .c-pausas > .c-tabela-digita) { overflow-x: auto; }
-  .c-pausas:has(> .c-tabela-digita) { grid-template-columns: minmax(0, 1fr); }
+  .c-pausas > .c-rolagem { overflow-x: auto; }
+  .c-pausas:has(> .c-tabela-digita), .c-pausas:has(> .c-rolagem) { grid-template-columns: minmax(0, 1fr); }
   .c-pausas > .c-pausas-painel { border-left: 0; border-top: var(--borda-fina) solid var(--tabela-linha); }
 }
 @media (max-width: 599.98px) {

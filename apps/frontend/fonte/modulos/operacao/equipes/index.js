@@ -13,7 +13,7 @@ import {
 import { TelaMural } from '../../../features/mural/index.js?v=20261109-telas-antigas';
 import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261112-modulo-unico2';
 import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261112-modulo-unico2';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261112-modulo-unico2';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261121-telas-grandes';
 import { TelaCadastros } from '../wfm/cadastros.js?v=20261112-modulo-unico2';
 import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261112-modulo-unico2';
 import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261106-wfm';

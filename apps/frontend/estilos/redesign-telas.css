@@ -101,6 +101,12 @@
 .c-escala-grade td.c-cel-sel .c-cel-botao { box-shadow: inset 0 0 0 var(--borda-foco) var(--cor-acao-fundo); }
 .c-escala-grade td.c-cel-pendente .c-cel-botao { outline: var(--borda-fina) dashed var(--cor-status-atencao-texto); outline-offset: -3px; }
 .c-escala-grade td.c-cel-violacao::after { content: ''; position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-top: 8px solid var(--cor-status-perigo-texto); border-left: 8px solid transparent; pointer-events: none; }
+/* Troca aprovada entre dois operadores: ícone pequeno antes do código do turno (texto completo no title da célula). */
+.c-troca-marca { display: inline-flex; vertical-align: -2px; margin-right: 2px; color: var(--cor-texto-link); }
+.c-troca-marca svg { width: 12px; height: 12px; }
+.c-ajuste-troca { flex-basis: 100%; order: 9; display: flex; align-items: center; gap: var(--espaco-1); padding: var(--espaco-1) var(--espaco-2); border-radius: var(--raio-pequeno); background: var(--cor-fundo-painel); color: var(--cor-texto-secundario); }
+.c-ajuste-troca b { color: var(--cor-texto-padrao); }
+.c-legenda-troca { display: inline-flex; align-items: center; gap: var(--espaco-1); }
 .c-escala-grade td.c-cel-manual .c-bloco b::after, .c-escala-grade td.c-cel-manual .c-turno::after { content: '*'; margin-left: 2px; }
 .c-escala-grade tfoot td { height: var(--altura-controle-compacto); font-weight: var(--fonte-peso-semi); background: var(--tabela-cabecalho-fundo); border-top: var(--borda-fina) solid var(--tabela-linha); text-align: center; }
 .c-escala-grade tfoot td:first-child { text-align: left; color: var(--cor-texto-secundario); }
@@ -156,9 +162,6 @@
 .c-tabela.c-tabela--junta tr > :last-child { width: 100%; text-align: left; }
 .c-tabela.c-tabela--junta .c-acoes > .c-grupo { justify-content: flex-start; }
 
-/* Escalas › Pausas: a caixa vai até o pé da tela e os botões ficam embaixo (sem faixa vazia). */
-.c-pausas-caixa { display: flex; flex-direction: column; min-height: calc(100vh / var(--c-zoom, 1) - var(--altura-topo) - 40px - 136px); }
-.c-pausas-caixa > .c-pausas { flex: 1 1 auto; }
 
 /* Minha escala: dias que já passaram ficam apagados (só consulta) — lista 10/11, item 12. */
 .c-minha tbody tr.c-dia-passou > td { background: var(--cor-fundo-sutil); color: var(--cor-texto-secundario); }
@@ -174,3 +177,49 @@
 @media (min-width: 1280px) and (max-width: 1919px) { :root { --c-zoom: .9; } html { zoom: .9; } }
 @media (min-width: 1920px) { :root { --c-zoom: 1.125; } html { zoom: 1.125; } }
 @media (min-width: 2400px) { :root { --c-zoom: 1.25; } html { zoom: 1.25; } }
+
+/* Sem permissão de editar, Pausas mostra só a tabela (sem o painel ao lado). */
+.c-pausas.c-pausas--so-tabela { grid-template-columns: minmax(0, 1fr); }
+
+/* Telas de trabalho que cabem na janela (21/11, Paulo): Pausas, Presença e Painel do dia.
+   A página não rola: cabeçalho, filtros, painel "Definir pausas" e botões ficam sempre à vista; só a tabela rola por dentro
+   (títulos das colunas e "Presentes no dia" presos). Janela muito baixa: a tabela guarda 320 px e aí a página rola. */
+@media (min-width: 600px) {
+  .c-pagina.c-tela-cheia { height: max(560px, calc(100vh / var(--c-zoom, 1) - var(--altura-topo) - 40px)); }
+  .c-tela-cheia > .c-caixa-cheia { display: flex; flex-direction: column; flex: 1 1 0; min-height: 320px; overflow: hidden; }
+  .c-tela-cheia > .c-cartao { flex: none; }
+  .c-tela-cheia > .c-cartao .c-tabela-caixa { max-height: 200px; }
+  .c-caixa-cheia > .c-rolagem { flex: 1 1 0; min-height: 0; overflow: auto; }
+  .c-caixa-cheia > :not(.c-rolagem):not(.c-pausas) { flex: none; }
+  .c-rolagem .c-tabela tfoot td { position: sticky; bottom: 0; z-index: 1; background: var(--cor-fundo-painel); box-shadow: inset 0 1px 0 var(--tabela-linha); }
+  .c-rolagem .c-tabela--fixa thead th:first-child, .c-rolagem .c-tabela--fixa tfoot td:first-child { z-index: 2; }
+}
+/* Pausas lado a lado (1180 px ou mais): tabela rola por dentro; o painel tem a altura da tabela, rola sozinho se faltar
+   espaço e os botões Aplicar/Distribuir ficam sempre no pé dele. Painel acompanha a tela: 300 px no notebook, até 440 px no monitor grande. */
+@media (min-width: 1180px) {
+  .c-caixa-cheia > .c-pausas { flex: 1 1 0; min-height: 0; grid-template-columns: minmax(0, 1fr) clamp(300px, 20vw, 440px); grid-template-rows: minmax(0, 1fr); }
+  .c-caixa-cheia > .c-pausas > .c-rolagem { min-height: 0; overflow: auto; }
+  .c-caixa-cheia .c-pausas-painel { min-height: 0; overflow: auto; }
+  .c-caixa-cheia > .c-pausas.c-pausas--so-tabela { grid-template-columns: minmax(0, 1fr); }
+  .c-caixa-cheia .c-pausas-acoes { position: sticky; bottom: calc(-1 * var(--espaco-3)); margin-bottom: calc(-1 * var(--espaco-3)); padding: var(--espaco-2) 0 var(--espaco-3); background: var(--cor-fundo-sutil); }
+}
+/* Monitor grande (21/11): o nome não fica com toda a sobra; o espaço é dividido entre as colunas (como em Usuários). */
+@media (min-width: 1920px) {
+  .c-rolagem > .c-tabela-digita .c-estica { width: auto; }
+}
+/* Barra de rolagem sempre à vista ao lado das tabelas que rolam por dentro (21/11, Paulo). */
+.c-rolagem { overflow-y: scroll; scrollbar-gutter: stable; }
+.c-rolagem::-webkit-scrollbar { width: 12px; height: 12px; }
+.c-rolagem::-webkit-scrollbar-track { background: var(--cor-fundo-sutil); border-left: var(--borda-fina) solid var(--tabela-linha); }
+.c-rolagem::-webkit-scrollbar-thumb { background: var(--cor-borda-campo); border: 3px solid var(--cor-fundo-sutil); border-radius: 8px; }
+.c-rolagem::-webkit-scrollbar-thumb:hover { background: var(--cor-texto-secundario); }
+@supports not selector(::-webkit-scrollbar) { .c-rolagem { scrollbar-color: var(--cor-borda-campo) var(--cor-fundo-sutil); } }
+
+/* Pausas abaixo de 1180 px: painel embaixo da tabela (como antes); a tabela rola por dentro até 60% da janela. */
+@media (min-width: 600px) and (max-width: 1179.98px) {
+  .c-pagina.c-tela-cheia:has(.c-pausas) { height: auto; }
+  .c-tela-cheia > .c-caixa-cheia:has(.c-pausas) { flex: none; min-height: 0; overflow: visible; }
+  .c-pausas > .c-rolagem { max-height: 60vh; overflow: auto; }
+}
+/* Monitor grande: com o zoom de 112,5%/125%, "100vh" da moldura passava da janela e a página sempre rolava um pouco. */
+.rh-modern-shell { min-height: calc(100vh / var(--c-zoom, 1)); }
