@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
-import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes2';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes2';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
+import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes3';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes3';
 import {
   excluirEquipeAdmin,
   exportarEquipesAdmin,
@@ -9,8 +9,8 @@ import {
   moverEquipe,
   previaMoverEquipe,
   salvarEquipeAdmin,
-} from '../../services/api/equipes-admin.js?v=20261124-equipes2';
-import { baixarBlob } from '../../utilitarios.js?v=20261124-equipes2';
+} from '../../services/api/equipes-admin.js?v=20261124-equipes3';
+import { baixarBlob } from '../../utilitarios.js?v=20261124-equipes3';
 
 // Tecnologia › Acessos › Equipes (24/11/2026, amostra 22_EQUIPES_TECNOLOGIA aprovada).
 // Cada operador fica em 1 equipe; o supervisor responsável recebe as pendências. Mover mostra antes o que migra.
@@ -325,15 +325,15 @@ export function AbaEquipesAdmin() {
             <div><dt>Apoio</dt><dd>${sel.apoio_nome || '—'}</dd></div>
             <div><dt>Turnos</dt><dd>${sel.turnos.join(' · ') || '—'}</dd></div>
           </dl>
-          ${membros.carregando ? html`<${Esqueleto} linhas=${4} />` : membros.itens.length ? html`<table class="c-tabela c-tabela--compacta">
+          ${membros.carregando ? html`<${Esqueleto} linhas=${4} />` : membros.itens.length ? html`<table class="c-tabela c-tabela--compacta c-tabela--membros">
             <thead><tr>
               <th style=${{ width: '32px' }}>${podeMoverSel ? html`<label class="c-marcar"><input type="checkbox" aria-label="Marcar todos" checked=${todosMarcados}
                 onChange=${() => setMarcados(todosMarcados ? new Set() : new Set(membros.itens.map((m) => m.id_usuario)))} /></label>` : null}</th>
-              <th>Operador</th><th>Turno (escala do mês)</th>
+              <th>Operador <span class="c-secundario">· turno do mês</span></th>
             </tr></thead>
             <tbody>${membros.itens.map((m) => html`<tr key=${m.id_usuario} aria-selected=${marcados.has(m.id_usuario) ? 'true' : null}>
               <td>${podeMoverSel ? html`<label class="c-marcar"><input type="checkbox" aria-label=${`Marcar ${m.nome}`} checked=${marcados.has(m.id_usuario)} onChange=${() => alternar(m.id_usuario)} /></label>` : null}</td>
-              <td class="c-forte">${m.nome}</td><td class="c-secundario">${m.turno || '—'}</td>
+              <td><span class="c-forte">${m.nome}</span><small title=${m.turno || ''}>${m.turno || 'Sem turno no mês'}</small></td>
             </tr>`)}</tbody>
           </table>` : html`<p class="c-secundario">Nenhum operador nesta equipe.</p>`}
         </div>

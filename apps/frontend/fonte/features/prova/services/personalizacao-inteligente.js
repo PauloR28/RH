@@ -1,4 +1,4 @@
-import { obterQuestaoPersonalizadaDoBanco } from '../../../banco-questoes.js?v=20261124-equipes2';
+import { obterQuestaoPersonalizadaDoBanco } from '../../../banco-questoes.js?v=20261124-equipes3';
 
 const CHAVE_HISTORICO_PERSONALIZACAO =
   'rh_exam_personalization_history_v1';
@@ -1676,4 +1676,4 @@ export function registrarHistoricoPersonalizacao(item) {
   }
 }
 
-export { corrigirRespostaDiscursivaInteligente } from './analise-resposta.js?v=20261124-equipes2';
+export { corrigirRespostaDiscursivaInteligente } from './analise-resposta.js?v=20261124-equipes3';

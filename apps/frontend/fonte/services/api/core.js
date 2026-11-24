@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261124-equipes2';
+import { criarLogger } from '../../logger.js?v=20261124-equipes3';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 

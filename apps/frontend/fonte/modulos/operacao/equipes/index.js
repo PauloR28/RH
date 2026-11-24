@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes2';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes2';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261124-equipes2';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes3';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261124-equipes3';
 import {
   adicionarOperadorEquipe,
   API_MURAL_EQUIPE,
@@ -9,15 +9,15 @@ import {
   listarCandidatosEquipe,
   listarSupervisoresDestinoEquipe,
   removerOperadorEquipe,
-} from '../../../services/api/equipes.js?v=20261124-equipes2';
-import { TelaMural } from '../../../features/mural/index.js?v=20261124-equipes2';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261124-equipes2';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261124-equipes2';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261124-equipes2';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261124-equipes2';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261124-equipes2';
-import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes2';
-import { tomarFocoPessoa } from '../wfm/foco-pessoa.js?v=20261124-equipes2';
+} from '../../../services/api/equipes.js?v=20261124-equipes3';
+import { TelaMural } from '../../../features/mural/index.js?v=20261124-equipes3';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261124-equipes3';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261124-equipes3';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261124-equipes3';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261124-equipes3';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261124-equipes3';
+import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes3';
+import { tomarFocoPessoa } from '../wfm/foco-pessoa.js?v=20261124-equipes3';
 
 // Equipes (redesign Fase 15, amostra "Equipe" da Fase 12): visão macro da própria equipe do Supervisor. Presença, escala e
 // horários reaproveitam as telas do WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural

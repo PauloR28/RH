@@ -1,22 +1,22 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261124-equipes2';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261124-equipes3';
 import {
   lerProcessos,
   lerEntrevistas,
   lerCandidatosProcessos,
   listarSolicitacoesAlteracaoEmailApi,
-} from '../app/controlador-aplicacao.js?v=20261124-equipes2';
+} from '../app/controlador-aplicacao.js?v=20261124-equipes3';
 import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   obterEstadoNotificacoesUsuario,
   registrarEstadoNotificacoesUsuario,
-} from '../services/api/notifications.js?v=20261124-equipes2';
-import { listarOperacoes } from '../services/api/operations.js?v=20261124-equipes2';
-import { listarUsuarios } from '../services/api/settings.js?v=20261124-equipes2';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261124-equipes2';
+} from '../services/api/notifications.js?v=20261124-equipes3';
+import { listarOperacoes } from '../services/api/operations.js?v=20261124-equipes3';
+import { listarUsuarios } from '../services/api/settings.js?v=20261124-equipes3';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261124-equipes3';
 
-import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261124-equipes2';
+import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261124-equipes3';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {

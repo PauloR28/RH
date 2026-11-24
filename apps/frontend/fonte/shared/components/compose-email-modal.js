@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
 import {
   enviarEmail,
   listarArquivosOneDrive,
   listarModelosEmail,
-} from '../../servico-api.js?v=20261124-equipes2';
-import { ModalPadrao, ToastAlert } from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
+} from '../../servico-api.js?v=20261124-equipes3';
+import { ModalPadrao, ToastAlert } from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
 
 const PADRAO_VARIAVEL = /{\s*([a-zA-Z0-9_]+)\s*}/g;
 

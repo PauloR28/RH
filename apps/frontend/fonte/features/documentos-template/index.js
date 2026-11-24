@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
 import {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -6,24 +6,24 @@ import {
   gerarDocumentoPorTemplate,
   listarTemplatesDocumentos,
   listarVariaveisTemplatesDocumentos,
-} from '../../servico-api.js?v=20261124-equipes2';
+} from '../../servico-api.js?v=20261124-equipes3';
 import {
   atualizarDocumentoBiblioteca,
   criarDocumentoBiblioteca,
   excluirDocumentoBiblioteca,
   listarDocumentosBiblioteca,
-} from '../../services/api/documentos-biblioteca.js?v=20261124-equipes2';
+} from '../../services/api/documentos-biblioteca.js?v=20261124-equipes3';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes2';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes2';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
-import { GuiaProcessos } from '../ajuda/guia.js?v=20261124-equipes2';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+import { GuiaProcessos } from '../ajuda/guia.js?v=20261124-equipes3';
 
 const FORM_INICIAL = { id_template: '', titulo: '', corpo_texto: '', ativo: true };
 const FORM_DOC_INICIAL = { id_documento: '', titulo: '', topico: '', area: '', descricao: '', url_arquivo: '', ativo: true };

@@ -1,7 +1,7 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes2';
-import { importarDiario, listarCadastrosDiario, salvarCadastroDiario } from '../../../services/api/diario.js?v=20261124-equipes2';
-import { Campo, Esqueleto, Estado, Ic, JanelaForm, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes2';
-import { diaHist } from './regras.js?v=20261124-equipes2';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes3';
+import { importarDiario, listarCadastrosDiario, salvarCadastroDiario } from '../../../services/api/diario.js?v=20261124-equipes3';
+import { Campo, Esqueleto, Estado, Ic, JanelaForm, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes3';
+import { diaHist } from './regras.js?v=20261124-equipes3';
 
 // Diário de bordo › Cadastros (só Administração, D5): tipos de demanda, canais e ferramentas por operação. Desligar não apaga
 // histórico (o item some das telas novas e continua nos dias em que foi usado). Mais a importação única dos .json antigos (D7).

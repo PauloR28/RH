@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { html } from '../../infraestrutura-react.js?v=20261124-equipes3';
 
 const LARGURAS_PADRAO = [80, 55, 70, 45, 90, 60, 40, 75, 50, 65];
 

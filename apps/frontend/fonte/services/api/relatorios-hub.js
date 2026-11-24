@@ -1,4 +1,4 @@
-import { requisitarArquivo } from './core.js?v=20261124-equipes2';
+import { requisitarArquivo } from './core.js?v=20261124-equipes3';
 
 // Relatórios e Históricos: exportação unificada (XLSX, CSV, PDF). Os dados vêm das rotas de origem de cada relatório.
 export const exportarRelatorioHub = (corpo) =>

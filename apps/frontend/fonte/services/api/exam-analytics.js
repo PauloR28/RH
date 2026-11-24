@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261124-equipes2';
+import { requisitar } from './core.js?v=20261124-equipes3';
 
 function queryString(params = {}) {
   const query = new URLSearchParams();

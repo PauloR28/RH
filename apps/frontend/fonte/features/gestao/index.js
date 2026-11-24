@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
-import { listarMural } from '../../services/api/mural.js?v=20261124-equipes2';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261124-equipes2';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+import { listarMural } from '../../services/api/mural.js?v=20261124-equipes3';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261124-equipes3';
 
 import {
   React,
@@ -9,12 +9,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes2';
+} from '../../infraestrutura-react.js?v=20261124-equipes3';
 import {
   blocosVisiveisTelaInicial,
   configTelaInicialPadrao,
   lerMinhaTelaInicial,
-} from '../../shared/tela-inicial.js?v=20261124-equipes2';
+} from '../../shared/tela-inicial.js?v=20261124-equipes3';
 
 const Fragment = React.Fragment;
 import {
@@ -25,13 +25,13 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261124-equipes2';
+} from '../../perguntas.js?v=20261124-equipes3';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261124-equipes2';
+} from '../prova/services/personalizacao-inteligente.js?v=20261124-equipes3';
 import {
   TAMANHO_HISTORICO,
   TAMANHO_RECENTES,
@@ -73,7 +73,7 @@ import {
   vincularEmailRecebidoProcesso,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes2';
+} from '../../app/controlador-aplicacao.js?v=20261124-equipes3';
 import {
   baixarBlob,
   formatarDataParaInput,
@@ -81,47 +81,47 @@ import {
   formatarPercentualAfinidade,
   formatarPontuacaoDetalhada,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261124-equipes2';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes2';
-import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-equipes2';
+} from '../../utilitarios.js?v=20261124-equipes3';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes3';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-equipes3';
 import {
   formatarDataHora,
   obterClasseAderencia,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes2';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261124-equipes2';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes2';
+} from '../../shared/helpers-visuais.js?v=20261124-equipes3';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261124-equipes3';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes3';
 import {
   ModalCompartilharVaga,
   REQUISITOS_PUBLICOS_PADRAO,
   RESPONSABILIDADES_PUBLICAS_PADRAO,
   montarItensPublicosPadrao,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261124-equipes2';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes2';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes2';
+} from '../../shared/components/share-job-modal.js?v=20261124-equipes3';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
 import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261124-equipes2';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261124-equipes2';
-import { obterTourLogin } from '../../shared/tour-config.js?v=20261124-equipes2';
+} from '../../shared/process-flow.js?v=20261124-equipes3';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261124-equipes3';
+import { obterTourLogin } from '../../shared/tour-config.js?v=20261124-equipes3';
 import {
   obterChaveProcesso,
   obterReferenciaProcessoDoCandidato,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261124-equipes2';
+} from '../../shared/process-reference.js?v=20261124-equipes3';
 import {
   quebrarListaTexto,
   validarFormularioProcesso,
   validarPerfilCandidato,
-} from '../../shared/validacoes.js?v=20261124-equipes2';
-import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261124-equipes2';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes2';
-import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261124-equipes2';
-import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261124-equipes2';
+} from '../../shared/validacoes.js?v=20261124-equipes3';
+import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261124-equipes3';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes3';
+import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261124-equipes3';
+import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261124-equipes3';
 import {
   AcceptanceDonutChart,
   AvatarUsuario,
@@ -137,8 +137,8 @@ import {
   SectionCard,
   WizardStepper,
   WizardSummaryStrip,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
-import { TourGuiado } from '../../ui/tour-guiado.js?v=20261124-equipes2';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { TourGuiado } from '../../ui/tour-guiado.js?v=20261124-equipes3';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';
@@ -1937,7 +1937,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261124-equipes2')
+    import('../monitoria/index.js?v=20261124-equipes3')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

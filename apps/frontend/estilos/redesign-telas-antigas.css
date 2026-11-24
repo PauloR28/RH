@@ -96,6 +96,9 @@
 .c-fm-versao--ro { grid-template-columns: 28px 1fr auto; cursor: default; }
 .c-fm-versao span { min-width: 0; }
 .c-fm-versao small { display: block; font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-fm-lado .c-tabela--membros { table-layout: fixed; width: 100%; }
+.c-fm-lado .c-tabela--membros td { white-space: normal; overflow-wrap: anywhere; }
+.c-fm-lado .c-tabela--membros td small { display: block; font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .c-fm-lado-acoes { display: flex; gap: var(--espaco-2); padding: var(--espaco-3) var(--espaco-4); border-top: var(--borda-fina) solid var(--tabela-linha); }
 .c-fm-lado-acoes .c-botao--principal { flex: 1; justify-content: center; }
 .c-fm-obs .c-entrada { width: 220px; }

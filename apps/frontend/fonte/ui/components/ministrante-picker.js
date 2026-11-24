@@ -1,5 +1,5 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
-import { buscarUsuariosMinistrante } from '../../services/api/onboarding.js?v=20261124-equipes2';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
+import { buscarUsuariosMinistrante } from '../../services/api/onboarding.js?v=20261124-equipes3';
 
 /** Busca rápida de usuário do sistema para o campo "ministrante" (Correções.txt,
  * rodada 22/set/2026) — continua aceitando texto livre (pessoa sem cadastro no

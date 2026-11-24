@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes2';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
 import {
   atualizarTrilhaOnboarding,
   baixarPdfSlideTreinamento,
@@ -16,27 +16,27 @@ import {
   relatorioPresencaColaborador,
   relatorioTreinamentosStatus,
   salvarPresencaTreinamento,
-} from '../../servico-api.js?v=20261124-equipes2';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes2';
+} from '../../servico-api.js?v=20261124-equipes3';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes3';
 import {
   atribuirTreinamentoUsuarios,
   buscarParticipantesTreinamento,
   listarOperacoesParaTreinamento,
   vincularTrilhaProcesso,
-} from '../../services/api/onboarding.js?v=20261124-equipes2';
-import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261124-equipes2';
-import { lerProcessos } from '../../services/api/processes.js?v=20261124-equipes2';
+} from '../../services/api/onboarding.js?v=20261124-equipes3';
+import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261124-equipes3';
+import { lerProcessos } from '../../services/api/processes.js?v=20261124-equipes3';
 import {
   MinistrantePicker,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes2';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes2';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes2';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes2';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes2';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes3';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
 
 // QA T2-TRE-01: quem recebe o treinamento pode ser um candidato, um usuário do
 // sistema (operador, funcionário...) ou uma operação inteira. Tudo vira uma
