@@ -129,3 +129,21 @@ def test_exportar_csv_uma_linha_por_operador_com_bom(monkeypatch):
     assert len(linhas) == 4  # cabeçalho + 2 operadores da Verde + Azul vazia (supervisor não entra como operador)
     assert "Ana Lima" in linhas[1] and "MAN · INT" in linhas[1]
     assert "Desativada" in linhas[3]
+
+
+def test_tabelas_usadas_existem_no_banco():
+    """Bug de 24/11: o código usava dbo.monitoria_planos, mas a tabela é dbo.monitoria_planos_acao.
+    Sem SQL Server nos testes, conferimos cada tabela citada contra os CREATE TABLE do projeto."""
+    import re
+    from pathlib import Path
+
+    raiz = Path(__file__).resolve().parents[3]
+    fonte = (raiz / "apps/backend/rh_api/repositories/equipes_admin.py").read_text(encoding="utf-8")
+    ddl = "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore")
+        for p in [*(raiz / "infra/sql/migrations").glob("V*.sql"), *(raiz / "apps/backend/rh_api/repositories").glob("*.py")]
+        if "rollback" not in p.name
+    )
+    citadas = set(re.findall(r"dbo\.([a-z_]+)", fonte))
+    faltando = sorted(t for t in citadas if t != "usuarios" and not re.search(rf"CREATE TABLE (?:dbo\.)?\[?{t}\]?\s*\(", ddl))
+    assert not faltando, f"Tabelas que não existem: {faltando}"

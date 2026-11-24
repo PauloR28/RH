@@ -427,7 +427,7 @@ class EquipesAdminRepositoryMixin:
             (*TROCAS_ABERTAS, *ids, *ids),
         )
         cont["trocas"] = int(cursor.fetchone()[0])
-        cursor.execute(f"SELECT COUNT(*) FROM dbo.monitoria_planos WHERE id_operador IN ({m}) AND status <> ?", (*ids, PLANO_CONCLUIDO))  # nosec B608
+        cursor.execute(f"SELECT COUNT(*) FROM dbo.monitoria_planos_acao WHERE id_operador IN ({m}) AND status <> ?", (*ids, PLANO_CONCLUIDO))  # nosec B608
         cont["planos"] = int(cursor.fetchone()[0])
         amanha = date.fromordinal(_hoje().toordinal() + 1)
         cursor.execute(f"SELECT COUNT(*), COUNT(DISTINCT id_operador) FROM dbo.wfm_escala_itens WHERE id_operador IN ({m}) AND data >= ?", (*ids, amanha))  # nosec B608
@@ -509,11 +509,11 @@ class EquipesAdminRepositoryMixin:
         Devolve quantos dias da escala mudaram. Nada até hoje é alterado."""
         marc = _marcadores(ids)
         cursor.execute(
-            f"SELECT id_plano, status FROM dbo.monitoria_planos WHERE id_operador IN ({marc}) AND status <> ? AND ISNULL(id_responsavel, 0) <> ?",  # nosec B608
+            f"SELECT id_plano, status FROM dbo.monitoria_planos_acao WHERE id_operador IN ({marc}) AND status <> ? AND ISNULL(id_responsavel, 0) <> ?",  # nosec B608
             (*ids, PLANO_CONCLUIDO, int(id_sup)),
         )
         for id_plano, st in cursor.fetchall():
-            cursor.execute("UPDATE dbo.monitoria_planos SET id_responsavel = ?, responsavel_nome = ? WHERE id_plano = ?", (id_sup, sup_nome, int(id_plano)))
+            cursor.execute("UPDATE dbo.monitoria_planos_acao SET id_responsavel = ?, responsavel_nome = ? WHERE id_plano = ?", (id_sup, sup_nome, int(id_plano)))
             cursor.execute(
                 "INSERT INTO dbo.monitoria_plano_historico (id_plano, evento, status_novo, detalhe, por) VALUES (?, 'responsavel', ?, ?, ?)",
                 (int(id_plano), normalize_text(st), f"Operador mudou para a equipe {equipe_nome}: responsável agora é {sup_nome}.", autor),
