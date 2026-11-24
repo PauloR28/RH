@@ -5,7 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes3';
+} from '../../infraestrutura-react.js?v=20261124-equipes4';
 import {
   atualizarPerfilCandidato,
   atualizarStatusCandidato,
@@ -23,8 +23,8 @@ import {
   removerBancoTalentos,
   uploadCvCandidato,
   usarCandidatoDoBancoTalentos,
-} from '../../servico-api.js?v=20261124-equipes3';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes3';
+} from '../../servico-api.js?v=20261124-equipes4';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes4';
 import {
   LoadingState,
   MetricGrid,
@@ -34,17 +34,17 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes3';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes3';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261124-equipes3';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
-import { PainelOnboardingCandidato } from '../onboarding/index.js?v=20261124-equipes3';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261124-equipes3';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261124-equipes3';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261124-equipes3';
-import { ModalGerarDocumento } from '../documentos-template/index.js?v=20261124-equipes3';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes4';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes4';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261124-equipes4';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes4';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes4';
+import { PainelOnboardingCandidato } from '../onboarding/index.js?v=20261124-equipes4';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261124-equipes4';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261124-equipes4';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261124-equipes4';
+import { ModalGerarDocumento } from '../documentos-template/index.js?v=20261124-equipes4';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_APPROVED,
@@ -54,20 +54,20 @@ import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261124-equipes3';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes3';
+} from '../../shared/process-flow.js?v=20261124-equipes4';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261124-equipes4';
 import {
   formatarDataHora,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes3';
-import { obterReferenciaProcesso } from '../../shared/process-reference.js?v=20261124-equipes3';
-import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js?v=20261124-equipes3';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261124-equipes3').then((modulo) => ({
+} from '../../shared/helpers-visuais.js?v=20261124-equipes4';
+import { obterReferenciaProcesso } from '../../shared/process-reference.js?v=20261124-equipes4';
+import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js?v=20261124-equipes4';
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261124-equipes4').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 
 function normalizarTexto(valor) {
   return String(valor || '')

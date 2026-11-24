@@ -1,7 +1,7 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
-import { IconeSvg } from '../icone.js?v=20261124-equipes3';
-import { montarCaminhoDaTela } from '../../rotas.js?v=20261124-equipes3';
-import { useSelosSubbarra } from './selos-subbarra.js?v=20261124-equipes3';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { IconeSvg } from '../icone.js?v=20261124-equipes4';
+import { montarCaminhoDaTela } from '../../rotas.js?v=20261124-equipes4';
+import { useSelosSubbarra } from './selos-subbarra.js?v=20261124-equipes4';
 
 // Moldura do redesign (Fase 15, DEC-063): topo escuro de 56 px com o logo e as
 // seções, engrenagem de Configurações à direita, e sub-barra clara de 40 px com

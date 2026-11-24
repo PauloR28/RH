@@ -4,7 +4,7 @@ import {
   montarChaveCacheApi,
   requisitar,
   requisitarArquivo,
-} from './core.js?v=20261124-equipes3';
+} from './core.js?v=20261124-equipes4';
 
 export async function lerAnalisesCandidatos(forcar = false) {
   const chaveCache = 'relatorios:analises-candidatos';

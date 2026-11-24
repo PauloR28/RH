@@ -6,7 +6,7 @@
 //  * Telas existentes de RH e Monitoria NÃO mudam de lugar: este registro só diz a que módulo cada grupo do menu pertence.
 //  * Se o acesso por módulo ainda não carregou (ou falhou), o menu se comporta exatamente como antes (sem filtro).
 
-import { AREA_CURRICULOS, AREA_PROCESSOS, AREA_PROVAS, areaAtiva } from '../shared/areas.js?v=20261124-equipes3';
+import { AREA_CURRICULOS, AREA_PROCESSOS, AREA_PROVAS, areaAtiva } from '../shared/areas.js?v=20261124-equipes4';
 
 export const MODULO_CORE = 'core';
 export const MODULO_RH = 'rh';

@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261124-equipes3';
+import { requisitar } from './core.js?v=20261124-equipes4';
 
 export async function listarParametrosSistema() {
   return requisitar('/sistema/parametros', { method: 'GET' });

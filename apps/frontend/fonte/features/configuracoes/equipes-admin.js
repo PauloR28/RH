@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
-import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes3';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes3';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes4';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
 import {
   excluirEquipeAdmin,
   exportarEquipesAdmin,
@@ -9,8 +9,8 @@ import {
   moverEquipe,
   previaMoverEquipe,
   salvarEquipeAdmin,
-} from '../../services/api/equipes-admin.js?v=20261124-equipes3';
-import { baixarBlob } from '../../utilitarios.js?v=20261124-equipes3';
+} from '../../services/api/equipes-admin.js?v=20261124-equipes4';
+import { baixarBlob } from '../../utilitarios.js?v=20261124-equipes4';
 
 // Tecnologia › Acessos › Equipes (24/11/2026, amostra 22_EQUIPES_TECNOLOGIA aprovada).
 // Cada operador fica em 1 equipe; o supervisor responsável recebe as pendências. Mover mostra antes o que migra.
@@ -97,15 +97,25 @@ function JanelaExcluirEquipe({ equipe, aoFechar, aoExcluir }) {
   <//>`;
 }
 
+const MODOS_ESCALA = [
+  { chave: 'levar', titulo: 'Levar o turno junto', texto: (t, sup) => `${t} passa a ser de ${sup}. A escala não muda.` },
+  { chave: 'manter', titulo: 'Manter a escala como está', texto: (t, sup, dono) => `Os dias continuam em ${t}, de ${dono}.` },
+  { chave: 'outro', titulo: 'Passar para outro turno', texto: (t, sup) => `Os dias vão para um turno de ${sup}, que já existe ou novo.` },
+  { chave: 'refazer', titulo: 'Montar escala nova', texto: (t, sup) => `Os dias ficam vazios para ${sup} montar.` },
+];
+
 function JanelaMover({ origem, operadores, equipes, aoFechar, aoMover }) {
   const destinos = equipes.filter((e) => e.operacao === origem.operacao && e.ativo && e.id_equipe !== origem.id_equipe && e.id_supervisor);
   const [idDestino, setIdDestino] = useState(destinos[0]?.id_equipe || '');
   const [previa, setPrevia] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [modo, setModo] = useState('');
   const [turnos, setTurnos] = useState({});
+  const [excluirOrigem, setExcluirOrigem] = useState(true);
   const [movendo, setMovendo] = useState(false);
   const ids = operadores.map((o) => o.id_usuario);
+  const fusao = operadores.length >= (origem.membros || 0);
 
   useEffect(() => {
     if (!idDestino) { setPrevia(null); return undefined; }
@@ -118,9 +128,11 @@ function JanelaMover({ origem, operadores, equipes, aoFechar, aoMover }) {
     return () => { vivo = false; };
   }, [idDestino]);
 
-  const semPar = (previa?.turnos || []).filter((t) => !t.id_destino_auto);
-  const faltam = semPar.filter((t) => !turnos[t.id_turno]).length;
   const sup = previa?.destino?.supervisor_nome || '';
+  const outros = (previa?.turnos || []);
+  const compartilhado = outros.filter((t) => t.ficam > 0);
+  const modoEfetivo = modo || (outros.length && !compartilhado.length ? 'levar' : 'manter');
+  const faltam = modoEfetivo === 'outro' ? outros.filter((t) => !t.id_destino_auto && !turnos[t.id_turno]).length : 0;
   const c = previa?.contagens || {};
   const desde = c.escala_desde ? c.escala_desde.split('-').reverse().slice(0, 2).join('/') : '';
   const linhas = [
@@ -128,16 +140,17 @@ function JanelaMover({ origem, operadores, equipes, aoFechar, aoMover }) {
     ['Contestações aguardando reanálise', c.monitorias_contestacao],
     ['Trocas aguardando resposta ou aprovação', c.trocas],
     ['Planos de ação abertos', c.planos],
-    [`Escala de ${desde} em diante`, c.escala_dias ? `${c.escala_pessoas} ${c.escala_pessoas === 1 ? 'pessoa' : 'pessoas'} · ${c.escala_dias} dias` : 0],
   ];
   const nomes = operadores.map((o) => o.nome);
   const resumoNomes = nomes.length <= 3 ? nomes.join(', ').replace(/, ([^,]*)$/, ' e $1') : `${nomes.slice(0, 2).join(', ')} e mais ${nomes.length - 2}`;
+  const rotTurnos = outros.length === 1 ? outros[0].rotulo.split(' · ')[0] : `os ${outros.length} turnos`;
+  const dono = outros[0]?.rotulo.split(' · ')[1] || origem.supervisor_nome || 'o supervisor de antes';
 
   const confirmar = async () => {
     setMovendo(true); setErro('');
     try {
-      const r = await moverEquipe({ ids_operadores: ids, id_equipe_destino: Number(idDestino), turnos });
-      aoMover(`${r.movidos} ${r.movidos === 1 ? 'operador movido' : 'operadores movidos'} para a equipe ${r.destino?.nome}. O que estava em aberto passou para ${r.destino?.supervisor_nome}.`);
+      const r = await moverEquipe({ ids_operadores: ids, id_equipe_destino: Number(idDestino), modo_escala: modoEfetivo, turnos, excluir_origem: fusao && excluirOrigem });
+      aoMover(`${r.movidos} ${r.movidos === 1 ? 'operador movido' : 'operadores movidos'} para a equipe ${r.destino?.nome}. O que estava em aberto passou para ${r.destino?.supervisor_nome}.${(r.equipes_excluidas || []).length ? ` ${r.equipes_excluidas.join(', ')} excluída.` : ''}`);
     } catch (falha) {
       setErro(msg(falha, 'Não foi possível mover.'));
     } finally {
@@ -153,7 +166,7 @@ function JanelaMover({ origem, operadores, equipes, aoFechar, aoMover }) {
     </button>`;
 
   return html`<${Janela} tamanho="grande" titulo=${`Mover ${ids.length} ${ids.length === 1 ? 'operador' : 'operadores'}`} onClose=${aoFechar} rodape=${rodape}>
-    <div class="c-janela-corpo">
+    <div class="c-janela-corpo c-eqa-mover">
       <p class="c-secundario">${resumoNomes} · saem da ${origem.nome}${origem.supervisor_nome ? ` (${origem.supervisor_nome})` : ''}</p>
       ${destinos.length ? html`<${Campo} rotulo="Equipe de destino" ajuda="Só equipes ativas da mesma operação, com supervisor responsável.">
         <select class="c-entrada" value=${idDestino} onChange=${(e) => setIdDestino(e.target.value)}>
@@ -162,27 +175,39 @@ function JanelaMover({ origem, operadores, equipes, aoFechar, aoMover }) {
       <//>` : html`<${Faixa} tom="atencao" icone="warning">Não há outra equipe ativa com supervisor nesta operação. Crie a equipe antes.<//>`}
       ${carregando ? html`<${Esqueleto} linhas=${4} />` : null}
       ${previa && !carregando ? html`
+        ${fusao ? html`<${Faixa} tom="informacao" icone="users"><b>Fusão:</b> todos os operadores da ${origem.nome} vão para a ${previa.destino.nome}.
+          <label class="c-marcar"><input type="checkbox" checked=${excluirOrigem} onChange=${(e) => setExcluirOrigem(e.target.checked)} />Excluir a ${origem.nome} ao concluir (fica vazia)</label><//>` : null}
         <div><p class="c-forte">Passa para ${sup} (o que está em aberto)</p>
           <table class="c-tabela c-tabela--compacta"><tbody>
             ${linhas.map(([rot, n]) => html`<tr key=${rot}><td><${Ic} nome="arrow-right" /> ${rot}</td><td class="c-num c-forte">${n || 0}</td></tr>`)}
           </tbody></table>
         </div>
-        ${semPar.length ? html`<${Faixa} tom="atencao" icone="warning"><b>${semPar.length === 1 ? '1 turno sem horário igual' : `${semPar.length} turnos sem horário igual`} na equipe ${previa.destino.nome}.</b> Escolha o turno de ${sup} para os dias de ${desde} em diante.<//>` : null}
-        ${previa.turnos.length ? html`<table class="c-tabela c-tabela--compacta">
-          <thead><tr><th>Turno de hoje</th><th>Vai para</th></tr></thead>
-          <tbody>${previa.turnos.map((t) => html`<tr key=${t.id_turno}>
-            <td>${t.rotulo}<br /><span class="c-secundario">${t.pessoas} ${t.pessoas === 1 ? 'pessoa' : 'pessoas'} · ${t.dias} dias</span></td>
-            <td>${t.id_destino_auto
-              ? html`<${Selo} tom="sucesso" icone="check-circle">Mesmo horário<//> ${(t.opcoes.find((o) => o.id_turno === t.id_destino_auto) || {}).rotulo || ''}`
-              : t.opcoes.length
-                ? html`<select class="c-entrada c-entrada--compacta" aria-label=${`Turno de destino para ${t.rotulo}`} value=${turnos[t.id_turno] || ''}
-                    onChange=${(e) => setTurnos((m) => ({ ...m, [t.id_turno]: Number(e.target.value) || undefined }))}>
-                    <option value="">Escolha o turno…</option>
-                    ${t.opcoes.map((o) => html`<option key=${o.id_turno} value=${o.id_turno}>${o.rotulo}</option>`)}
-                  </select>`
-                : html`<span class="c-secundario">${sup} não tem turno deste tipo. Cadastre em Turnos e Plantões.</span>`}</td>
-          </tr>`)}</tbody>
-        </table>` : null}
+        ${outros.length ? html`<div class="c-eqa-escala">
+          <div class="c-eqa-titulo"><span class="c-forte">Escala de ${desde} em diante · ${c.escala_pessoas} ${c.escala_pessoas === 1 ? 'pessoa' : 'pessoas'} · ${c.escala_dias} dias</span><span class="c-ajuda">Turno de hoje: ${outros.map((t) => t.rotulo).join(' | ')}</span></div>
+          <table class="c-tabela c-tabela--compacta c-tabela--opcoes"><tbody>
+            ${MODOS_ESCALA.map((m) => {
+              const bloqueado = m.chave === 'levar' && compartilhado.length;
+              return html`<tr key=${m.chave} aria-selected=${modoEfetivo === m.chave ? 'true' : null}>
+                <td><label class="c-marcar"><input type="radio" name="modo-escala" checked=${modoEfetivo === m.chave} disabled=${bloqueado ? true : null} onChange=${() => setModo(m.chave)} />
+                  <span><span class="c-forte">${m.titulo}</span>
+                  <small>${bloqueado ? `Indisponível: ${compartilhado[0].ficam} ${compartilhado[0].ficam === 1 ? 'operador que fica usa' : 'operadores que ficam usam'} este turno.` : m.texto(rotTurnos, sup, dono)}</small></span></label></td>
+              </tr>`;
+            })}
+          </tbody></table>
+          ${modoEfetivo === 'outro' ? html`<table class="c-tabela c-tabela--compacta">
+            <thead><tr><th>Turno de hoje</th><th>Vai para</th></tr></thead>
+            <tbody>${outros.map((t) => html`<tr key=${t.id_turno}>
+              <td>${t.rotulo}<br /><span class="c-secundario">${t.pessoas} ${t.pessoas === 1 ? 'pessoa' : 'pessoas'} · ${t.dias} dias</span></td>
+              <td><select class="c-entrada c-entrada--compacta" aria-label=${`Turno de destino para ${t.rotulo}`} value=${turnos[t.id_turno] || t.id_destino_auto || ''}
+                  onChange=${(e) => setTurnos((mapa) => ({ ...mapa, [t.id_turno]: e.target.value === 'novo' ? 'novo' : Number(e.target.value) || undefined }))}>
+                  <option value="">Escolha o turno…</option>
+                  <option value="novo">Criar turno novo de ${sup} (cópia, mesmo horário)</option>
+                  ${t.opcoes.map((o) => html`<option key=${o.id_turno} value=${o.id_turno}>${o.rotulo}</option>`)}
+                </select></td>
+            </tr>`)}</tbody>
+          </table>` : null}
+          ${modoEfetivo === 'refazer' ? html`<${Faixa} tom="atencao" icone="warning">${c.escala_dias} dias ficam vazios e ${c.trocas || 0} ${c.trocas === 1 ? 'troca em aberto é cancelada' : 'trocas em aberto são canceladas'}. Se o mês já foi publicado, publique de novo depois de montar.<//>` : null}
+        </div>` : null}
         <${Faixa} tom="informacao" icone="lock"><b>Não muda (histórico):</b> monitorias finalizadas, trocas já decididas, escala até hoje, avisos já enviados e registros de quem fez o quê.<//>
       ` : null}
       ${erro ? html`<div class="c-faixa c-faixa--perigo" role="alert"><${Ic} nome="warning" /><div class="c-faixa-txt"><p>${erro}</p></div></div>` : null}

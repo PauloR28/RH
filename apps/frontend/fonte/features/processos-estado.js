@@ -3,4 +3,4 @@ export {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
   CHAVE_PROCESSO_DETALHE,
-} from './processos/state.js?v=20261124-equipes3';
+} from './processos/state.js?v=20261124-equipes4';

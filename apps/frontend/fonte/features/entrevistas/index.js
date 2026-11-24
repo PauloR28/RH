@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes3';
+} from '../../infraestrutura-react.js?v=20261124-equipes4';
 import {
   atualizarEntrevista,
   atualizarSlotEntrevista,
@@ -12,36 +12,36 @@ import {
   lerEntrevistas,
   lerProcessos,
   lerSlotsEntrevista,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes3';
+} from '../../app/controlador-aplicacao.js?v=20261124-equipes4';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes3';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261124-equipes3';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes3';
+} from '../../shared/helpers-visuais.js?v=20261124-equipes4';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261124-equipes4';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes4';
 import {
   ModalEdicaoEntrevista,
   STATUS_ENTREVISTA,
-} from '../../shared/components/interview-edit-modal.js?v=20261124-equipes3';
+} from '../../shared/components/interview-edit-modal.js?v=20261124-equipes4';
 import {
   CANDIDATE_STATUS_PENDING_CONFIRMATION,
   canonicalizeCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261124-equipes3';
-import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261124-equipes3';
+} from '../../shared/process-flow.js?v=20261124-equipes4';
+import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261124-equipes4';
 import {
   LoadingState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
 import {
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261124-equipes3';
-import { obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes3';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+} from '../../shared/process-reference.js?v=20261124-equipes4';
+import { obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 
 const STATUS_SLOT_DISPONIVEL = 'Disponivel';
 const STATUS_SLOT_BLOQUEADO = 'Bloqueado';

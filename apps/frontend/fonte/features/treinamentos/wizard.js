@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261124-equipes3';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261124-equipes4';
 import {
   baixarModeloModulo,
   criarTreinamentoWizard,
@@ -8,17 +8,17 @@ import {
   uploadVideoModulo,
   validarModuloJson,
   alternarDownloadAnexo,
-} from '../../servico-api.js?v=20261124-equipes3';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes3';
+} from '../../servico-api.js?v=20261124-equipes4';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
 import {
   atualizarTrilhaOnboarding,
   buscarParticipantesTreinamento,
   lerTrilhaOnboarding,
   listarOperacoesParaTreinamento,
   uploadImagemSecaoModulo,
-} from '../../services/api/onboarding.js?v=20261124-equipes3';
-import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+} from '../../services/api/onboarding.js?v=20261124-equipes4';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 
 function limparHtmlVazioModulo(valor) {
   const conteudo = String(valor || '').trim();

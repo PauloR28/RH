@@ -1,7 +1,7 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-equipes3';
-import { formatarDataHora } from '../helpers-visuais.js?v=20261124-equipes3';
-import { isProcessClosed } from '../process-flow.js?v=20261124-equipes3';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
+import { html } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { formatarDataHora } from '../helpers-visuais.js?v=20261124-equipes4';
+import { isProcessClosed } from '../process-flow.js?v=20261124-equipes4';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
 
 export const STATUS_ENTREVISTA = [
   'Pendente',

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -147,3 +148,146 @@ def test_tabelas_usadas_existem_no_banco():
     citadas = set(re.findall(r"dbo\.([a-z_]+)", fonte))
     faltando = sorted(t for t in citadas if t != "usuarios" and not re.search(rf"CREATE TABLE (?:dbo\.)?\[?{t}\]?\s*\(", ddl))
     assert not faltando, f"Tabelas que não existem: {faltando}"
+
+
+class _Cursor:
+    """Cursor de mentira: guarda o SQL e devolve respostas simples (sem banco)."""
+
+    def __init__(self):
+        self.sqls = []
+        self._ultimo = ""
+
+    def execute(self, sql, params=()):
+        self.sqls.append((sql, params))
+        self._ultimo = sql
+        return self
+
+    def fetchall(self):
+        if "FROM dbo.wfm_escala_itens WHERE id_operador IN" in self._ultimo and "id_turno IN" not in self._ultimo:
+            return [(101, "crf", 10, date(2030, 1, 2), 4), (102, "crf", 10, date(2030, 1, 3), 4)]
+        return []
+
+    def fetchone(self):
+        if "OUTPUT INSERTED.id_turno" in self._ultimo:
+            return (77,)
+        if "SELECT operacao, codigo, nome FROM dbo.wfm_turnos" in self._ultimo:
+            return ("crf", "MANHA", "Manhã")
+        if "SELECT 1 FROM dbo.wfm_turnos" in self._ultimo:
+            return None
+        if "SELECT operacao, id_supervisor FROM dbo.wfm_turnos" in self._ultimo:
+            return ("crf", 20)
+        return (0,)
+
+
+def _repo_mover(turnos):
+    from rh_api.repositories.equipes_admin import EquipesAdminRepositoryMixin
+
+    cursor = _Cursor()
+    chamadas = []
+
+    class Conn:
+        def cursor(self):
+            return cursor
+
+        def commit(self):
+            chamadas.append("commit")
+
+        def rollback(self):
+            chamadas.append("rollback")
+
+        def close(self):
+            pass
+
+    class Repo(EquipesAdminRepositoryMixin):
+        def _connect(self):
+            return Conn()
+
+        def _eqa_validar_movimento(self, cursor, user, ids, id_destino):
+            return ({"id_equipe": 2, "nome": "Equipe Diogo", "operacao": "crf", "id_supervisor": 21, "supervisor_nome": "Diogo"},
+                    [{"id_usuario": 10, "nome": "Ana", "sobrenome": "", "id_equipe": 1}])
+
+        def _eqa_contagens(self, cursor, ids):
+            return {}
+
+        def _eqa_turnos_a_trocar(self, cursor, ids, destino):
+            return turnos
+
+        def wfm_audit(self, *a, **k):
+            chamadas.append(("audit", k.get("acao")))
+
+        def mon_log(self, *a, **k):
+            chamadas.append(("log", k.get("acao")))
+
+        def _wfm_invalidar_trocas(self, cursor, user, operacao, id_op, dia):
+            chamadas.append(("invalidar", id_op, dia))
+
+    return Repo(), cursor, chamadas
+
+
+_TURNO = {"id_turno": 4, "rotulo": "MANHÃ 08:00–14:20 · Humberto", "dias": 2, "pessoas": 1, "ficam": 0, "id_dono": 20,
+          "id_destino_auto": None, "opcoes": [{"id_turno": 9, "rotulo": "INT"}]}
+
+
+def test_mover_levar_passa_o_turno_e_nao_mexe_na_escala(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, cursor, chamadas = _repo_mover([dict(_TURNO)])
+    r = repo.eqa_mover(_user(), [10], 2, modo_escala="levar")
+    assert r["dias_escala_trocados"] == 0 and "commit" in chamadas
+    assert any("UPDATE dbo.wfm_turnos SET id_supervisor" in s and p[0] == 21 for s, p in cursor.sqls)
+    assert not any("UPDATE dbo.wfm_escala_itens" in s or "DELETE FROM dbo.wfm_escala_itens" in s for s, _ in cursor.sqls)
+
+
+def test_mover_levar_bloqueia_turno_de_quem_fica(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, cursor, chamadas = _repo_mover([{**_TURNO, "ficam": 3}])
+    with pytest.raises(HTTPException) as erro:
+        repo.eqa_mover(_user(), [10], 2, modo_escala="levar")
+    assert erro.value.status_code == 409 and "rollback" in chamadas and "commit" not in chamadas
+    assert not any("UPDATE dbo.usuarios" in s for s, _ in cursor.sqls)  # nada mudou antes do erro
+
+
+def test_mover_manter_nao_mexe_em_turno_nem_escala(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, cursor, _ = _repo_mover([dict(_TURNO)])
+    repo.eqa_mover(_user(), [10], 2, modo_escala="manter")
+    assert not any("dbo.wfm_turnos" in s and "UPDATE" in s for s, _ in cursor.sqls)
+    assert not any("wfm_escala_itens" in s and ("UPDATE" in s or "DELETE" in s) for s, _ in cursor.sqls)
+
+
+def test_mover_outro_novo_copia_turno_e_personalizacoes(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, cursor, chamadas = _repo_mover([dict(_TURNO)])
+    repo.eqa_mover(_user(), [10], 2, {4: "novo"}, modo_escala="outro")
+    insert = next(p for s, p in cursor.sqls if "INSERT INTO dbo.wfm_turnos" in s)
+    assert insert[0] == "MANHA-2" and insert[3] == 21
+    assert any("INSERT INTO dbo.wfm_turno_personalizacoes" in s and p[0] == 77 for s, p in cursor.sqls)
+    assert ("audit", "turno_copiar") in chamadas
+
+
+def test_mover_outro_exige_turno(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, _, _ = _repo_mover([dict(_TURNO)])
+    with pytest.raises(HTTPException) as erro:
+        repo.eqa_mover(_user(), [10], 2, {}, modo_escala="outro")
+    assert erro.value.status_code == 422
+
+
+def test_mover_refazer_apaga_dias_futuros_e_invalida_trocas(monkeypatch):
+    monkeypatch.setattr("rh_api.repositories.equipes_admin.ensure_equipes_admin_schema", lambda c: None)
+    repo, cursor, chamadas = _repo_mover([dict(_TURNO)])
+    r = repo.eqa_mover(_user(), [10], 2, modo_escala="refazer")
+    assert r["dias_escala_apagados"] == 2
+    assert sum("DELETE FROM dbo.wfm_escala_itens" in s for s, _ in cursor.sqls) == 2
+    assert [c for c in chamadas if isinstance(c, tuple) and c[0] == "invalidar"] == [("invalidar", 10, date(2030, 1, 2)), ("invalidar", 10, date(2030, 1, 3))]
+
+
+def test_mover_modo_invalido():
+    with pytest.raises(HTTPException):
+        _repo().eqa_mover(_user(), [10], 2, modo_escala="qualquer")
+
+
+def test_schema_mover_aceita_modos_e_turno_novo():
+    from rh_api.schemas.equipes import EquipeMoverRequest
+
+    r = EquipeMoverRequest(ids_operadores=[1], id_equipe_destino=2, modo_escala="outro", turnos={"4": "novo", "5": "9"}, excluir_origem=True)
+    assert r.turnos == {4: "novo", 5: 9} and r.excluir_origem

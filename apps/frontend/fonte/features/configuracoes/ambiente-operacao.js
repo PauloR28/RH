@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
-import { LoadingState } from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { LoadingState } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 import {
   enviarLogoOperacao,
   lerAmbienteOperacao,
@@ -13,9 +13,9 @@ import {
   salvarCorOperacao,
   salvarEquipeMonitoria,
   salvarModulosOperacao,
-} from '../../services/api/monitoria.js?v=20261124-equipes3';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-equipes3';
-import { CartaoLista } from './monitoria-config.js?v=20261124-equipes3';
+} from '../../services/api/monitoria.js?v=20261124-equipes4';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-equipes4';
+import { CartaoLista } from './monitoria-config.js?v=20261124-equipes4';
 
 // Aba "Configurar ambiente" da operação (Configurações > Operações): quem trabalha nela
 // (supervisores, Qualidade), se ela tem Qualidade, turnos/equipes e as intranets (ambientes

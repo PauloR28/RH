@@ -4,4 +4,4 @@ export {
   TelaProcessosDecisoesPendentes,
   TelaProcessosEncerrados,
   TelaProcessos,
-} from './processos/index.js?v=20261124-equipes3';
+} from './processos/index.js?v=20261124-equipes4';

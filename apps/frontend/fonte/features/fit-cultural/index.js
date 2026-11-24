@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
 import {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -6,12 +6,12 @@ import {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from '../../servico-api.js?v=20261124-equipes3';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
-import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261124-equipes3';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+} from '../../servico-api.js?v=20261124-equipes4';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes4';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes4';
+import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 
 const FRASE_VAZIA = () => ({ frase: '' });
 const FORM_INICIAL = () => ({ id_valor: '', nome: '', descricao: '', ativo: true, frases: [FRASE_VAZIA()] });

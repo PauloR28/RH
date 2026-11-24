@@ -3,7 +3,7 @@ import {
   invalidarCacheApi,
   lerCache,
   requisitar,
-} from './core.js?v=20261124-equipes3';
+} from './core.js?v=20261124-equipes4';
 
 export async function lerHistorico() {
   return requisitar('/history', { method: 'GET' });

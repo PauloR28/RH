@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes3';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
 import {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -8,20 +8,20 @@ import {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from '../../servico-api.js?v=20261124-equipes3';
+} from '../../servico-api.js?v=20261124-equipes4';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes3';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes3';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes3';
-import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261124-equipes3';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes3';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-equipes3';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes3';
+} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes4';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes4';
+import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261124-equipes4';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes4';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

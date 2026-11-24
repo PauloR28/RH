@@ -1,4 +1,4 @@
-import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js?v=20261124-equipes3';
+import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js?v=20261124-equipes4';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

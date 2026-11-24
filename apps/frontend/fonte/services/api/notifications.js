@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261124-equipes3';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261124-equipes4';
 
 export async function listarNotificacoes(apenasNaoLidas = false) {
   const query = apenasNaoLidas ? '?apenas_nao_lidas=true' : '';

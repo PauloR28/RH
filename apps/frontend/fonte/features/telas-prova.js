@@ -4,4 +4,4 @@ export {
   TelaConclusao,
   TelaProva,
   TelaResultado,
-} from './prova/index.js?v=20261124-equipes3';
+} from './prova/index.js?v=20261124-equipes4';

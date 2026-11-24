@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes3';
-import { aprovacoesPendentesWfm, pendenciasPresencaWfm } from '../../../services/api/wfm.js?v=20261124-equipes3';
+import { useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
+import { aprovacoesPendentesWfm, pendenciasPresencaWfm } from '../../../services/api/wfm.js?v=20261124-equipes4';
 
 // Total de presenças pendentes de confirmação (escalados até hoje, sem lançamento) da semana, vindo do servidor.
 // Alimenta o selo da aba Presença. Sem permissão de lançar presença ou sem operação, não consulta.

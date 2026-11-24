@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from .common import BaseSchema
 
 
@@ -24,5 +26,8 @@ class EquipeAdminSalvarRequest(BaseSchema):
 class EquipeMoverRequest(BaseSchema):
     ids_operadores: list[int]
     id_equipe_destino: int
-    # turno antigo -> turno do novo supervisor (só os que não têm turno com o mesmo horário).
-    turnos: dict[int, int] = {}
+    # O que fazer com a escala de amanhã em diante: levar | manter | outro | refazer (24/11: mover é uma fusão).
+    modo_escala: Literal["levar", "manter", "outro", "refazer"] = "outro"
+    # Só no modo "outro": turno antigo -> turno do novo supervisor (id) ou "novo" (cópia do antigo).
+    turnos: dict[int, int | Literal["novo"]] = {}
+    excluir_origem: bool = False

@@ -63,4 +63,7 @@ def previa(payload: EquipeMoverRequest, user: AuthenticatedUser = Depends(get_cu
 
 @router.post("/mover", dependencies=[Depends(require_permissions("equipes.mover"))])
 def mover(payload: EquipeMoverRequest, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
-    return repository.eqa_mover(user, payload.ids_operadores, payload.id_equipe_destino, payload.turnos, ip=_ip(request))
+    return repository.eqa_mover(
+        user, payload.ids_operadores, payload.id_equipe_destino, payload.turnos,
+        modo_escala=payload.modo_escala, excluir_origem=payload.excluir_origem, ip=_ip(request),
+    )

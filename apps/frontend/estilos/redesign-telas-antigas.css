@@ -99,6 +99,15 @@
 .c-fm-lado .c-tabela--membros { table-layout: fixed; width: 100%; }
 .c-fm-lado .c-tabela--membros td { white-space: normal; overflow-wrap: anywhere; }
 .c-fm-lado .c-tabela--membros td small { display: block; font-size: 12px; color: var(--cor-texto-secundario); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-tabela--opcoes td { white-space: normal; padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
+.c-eqa-mover, .c-eqa-escala { display: flex; flex-direction: column; gap: var(--espaco-4); }
+.c-eqa-mover p, .c-eqa-escala p { margin: 0; }
+.c-eqa-mover > div > p + .c-tabela { margin-top: var(--espaco-2); }
+.c-eqa-titulo .c-ajuda { display: block; margin-top: var(--espaco-1); font-weight: normal; }
+.c-tabela--opcoes .c-marcar { align-items: flex-start; }
+.c-tabela--opcoes .c-marcar input { margin-top: 2px; }
+.c-tabela--opcoes small { display: block; font-size: 12px; color: var(--cor-texto-secundario); margin-top: var(--espaco-1); }
+.c-tabela--opcoes tr[aria-selected="true"] { background: var(--cor-fundo-selecionado); }
 .c-fm-lado-acoes { display: flex; gap: var(--espaco-2); padding: var(--espaco-3) var(--espaco-4); border-top: var(--borda-fina) solid var(--tabela-linha); }
 .c-fm-lado-acoes .c-botao--principal { flex: 1; justify-content: center; }
 .c-fm-obs .c-entrada { width: 220px; }
