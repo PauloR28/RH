@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes';
 import {
   lerVinculosUsuarioMonitoria,
   listarCatalogoMonitoria,
@@ -12,9 +12,9 @@ import {
   salvarEquipeMonitoria,
   transferirOperacaoUsuario,
   transferirSupervisao,
-} from '../../services/api/monitoria.js?v=20261124-cache';
-import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js?v=20261124-cache';
-import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261124-cache';
+} from '../../services/api/monitoria.js?v=20261124-equipes';
+import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js?v=20261124-equipes';
+import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261124-equipes';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e

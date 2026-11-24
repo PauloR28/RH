@@ -1,8 +1,8 @@
-import { html, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { copiarTexto, montarUrlPublicaCandidatura, obterBasePublicaCandidatura } from '../browser-utils.js?v=20261124-cache';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { quebrarListaTexto } from '../../shared/validacoes.js?v=20261124-cache';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { html, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { copiarTexto, montarUrlPublicaCandidatura, obterBasePublicaCandidatura } from '../browser-utils.js?v=20261124-equipes';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { quebrarListaTexto } from '../../shared/validacoes.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
 
 const URL_CARREIRAS_PADRAO = 'https://central24horas.com.br/trabalhe-conosco';
 

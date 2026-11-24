@@ -1,17 +1,17 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261124-cache';
-import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js?v=20261124-cache';
-import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261124-cache';
-import { AbaHoje } from './hoje.js?v=20261124-cache';
-import { AbaHistorico } from './historico.js?v=20261124-cache';
-import { AbaCadastros } from './cadastros.js?v=20261124-cache';
-import { tomarDiaPedido } from './ligacoes.js?v=20261124-cache';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261124-equipes';
+import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js?v=20261124-equipes';
+import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261124-equipes';
+import { AbaHoje } from './hoje.js?v=20261124-equipes';
+import { AbaHistorico } from './historico.js?v=20261124-equipes';
+import { AbaCadastros } from './cadastros.js?v=20261124-equipes';
+import { tomarDiaPedido } from './ligacoes.js?v=20261124-equipes';
 
 // Diário de bordo (seção própria na barra de cima, D1 aprovada em 08/11/2026): Hoje · Histórico · Cadastros.
 // O registro do DIA DA OPERAÇÃO por turno (não é o "Diário do operador" de Equipes, que é sobre uma pessoa).
 
-export { pedirDiaDiario } from './ligacoes.js?v=20261124-cache';
+export { pedirDiaDiario } from './ligacoes.js?v=20261124-equipes';
 
 function Termos({ onAceitar }) {
   const [li, setLi] = useState(false);

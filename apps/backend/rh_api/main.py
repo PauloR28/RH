@@ -42,6 +42,7 @@ from .routers.document_templates import router as document_templates_router
 from .routers.documentos_biblioteca import router as documentos_biblioteca_router
 from .routers.email_send import router as email_send_router
 from .routers.equipes import router as equipes_router
+from .routers.equipes_admin import router as equipes_admin_router
 from .routers.monitoria import public_router as monitoria_public_router
 from .routers.monitoria import router as monitoria_router
 from .routers.mural import public_router as mural_public_router
@@ -475,6 +476,7 @@ def create_app() -> FastAPI:
     app.include_router(monitoria_router)
     app.include_router(wfm_router)
     app.include_router(equipes_router)
+    app.include_router(equipes_admin_router)
     app.include_router(diario_router)
     app.include_router(painel_router)
     app.include_router(relatorios_hub_router)

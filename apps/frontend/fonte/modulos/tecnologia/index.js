@@ -1,14 +1,14 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-cache';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-cache';
-import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261124-cache';
-import { montarHashDaTela } from '../../rotas.js?v=20261124-cache';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261124-cache';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261124-cache';
-import { requisitar } from '../../services/api/core.js?v=20261124-cache';
-import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261124-cache';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-equipes';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes';
+import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261124-equipes';
+import { montarHashDaTela } from '../../rotas.js?v=20261124-equipes';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261124-equipes';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261124-equipes';
+import { requisitar } from '../../services/api/core.js?v=20261124-equipes';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261124-equipes';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.

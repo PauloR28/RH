@@ -82,6 +82,7 @@ def render_rollback_modulos_sql() -> str:
 PERMISSOES_POSTERIORES_A_V056 = frozenset({
     "ambiente.seguranca",
     "equipes.controle.visualizar", "equipes.membros.editar", "equipes.mural.publicar",
+    "equipes.visualizar", "equipes.administrar", "equipes.mover", "equipes.exportar",  # V076
     "relhub.monitoria.dashboard", "relhub.monitoria.historico", "relhub.monitoria.logs", "relhub.monitoria.planos",
     "relhub.monitoria.qualidade",
     "relhub.rh.candidatos", "relhub.rh.exames", "relhub.rh.funil", "relhub.rh.processos", "relhub.rh.ranking",

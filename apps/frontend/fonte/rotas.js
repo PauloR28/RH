@@ -16,6 +16,7 @@ export const ROTAS_POR_TELA = {
   'screen-talent-bank': 'banco-talentos',
   'screen-onedrive-files': 'onedrive',
   'screen-settings-users': 'configuracoes/usuario',
+  'screen-settings-equipes': 'configuracoes/equipes',
   'screen-settings-acessos': 'configuracoes/acessos',
   'screen-settings-operations': 'configuracoes/operacoes',
   'screen-settings-lgpd': 'configuracoes/lgpd',

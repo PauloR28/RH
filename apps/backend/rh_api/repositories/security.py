@@ -350,6 +350,9 @@ class SecurityRepositoryMixin:
             "atualizado_em": row.get("atualizado_em"),
             "permissoes": permissions or [],
             "operacoes": operacoes or [],
+            # Filtro e coluna Equipe em Usuários (24/11). Vazios nas leituras que não trazem a equipe.
+            "id_equipe": row.get("id_equipe"),
+            "equipe_nome": normalize_text(row.get("equipe_nome")),
             "deve_trocar_senha": bool(row.get("deve_trocar_senha")),
             # Só o indicador (nunca o hash): a tela mostra "senha definida" sem expor o valor.
             "possui_senha": bool(row.get("possui_senha")),
@@ -1472,6 +1475,8 @@ class SecurityRepositoryMixin:
                     usuarios.provedor_autenticacao,
                     usuarios.ultimo_login_microsoft,
                     usuarios.avatar_ilustrado,
+                    usuarios.id_equipe,
+                    equipes_operacao.nome AS equipe_nome,
                     usuarios.criado_em,
                     usuarios.ultimo_acesso_em,
                     usuarios.criado_por,
@@ -1480,6 +1485,7 @@ class SecurityRepositoryMixin:
                     CASE WHEN usuarios.senha_hash IS NULL OR usuarios.senha_hash = '' THEN 0 ELSE 1 END AS possui_senha
                 FROM usuarios
                 LEFT JOIN perfis ON perfis.id_perfil = usuarios.perfil_id
+                LEFT JOIN dbo.equipes_operacao ON equipes_operacao.id_equipe = usuarios.id_equipe
                 ORDER BY usuarios.nome, usuarios.email
                 """
             )

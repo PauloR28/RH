@@ -1,1 +1,1 @@
-export * from '../infraestrutura-react.js?v=20261124-cache';
+export * from '../infraestrutura-react.js?v=20261124-equipes';

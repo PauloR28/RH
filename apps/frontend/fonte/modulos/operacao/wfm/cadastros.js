@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
 import {
   definirSkillsOperadorWfm,
   lerEscalaWfm,
@@ -19,12 +19,12 @@ import {
   impactoTipoTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261124-cache';
-import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261124-cache';
-import { semAcento } from './escala-ui.js?v=20261124-cache';
-import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261124-cache';
-import { TabelaHistorico } from './historico.js?v=20261124-cache';
-import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-cache';
+} from '../../../services/api/wfm.js?v=20261124-equipes';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261124-equipes';
+import { semAcento } from './escala-ui.js?v=20261124-equipes';
+import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261124-equipes';
+import { TabelaHistorico } from './historico.js?v=20261124-equipes';
+import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes';
 
 // Cadastros do WFM (redesign Fase 15, amostra Q3 do lote 1): lista lateral em caixa branca (como Relatórios) —
 // Escala › Turnos · Jornadas e limites · Calendário especial · Skills · Tipos de escala; Registro › Histórico de alterações.

@@ -302,9 +302,15 @@ class EquipesControleRepositoryMixin:
                 )
             if len(novos) > MAX_SUPERVISORES_OPERADOR:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="O supervisor escolhido já atingiu o limite para este operador.")
+            cursor.execute("SELECT id_equipe FROM dbo.usuarios WHERE id_usuario = ?", (int(id_operador),))
+            equipe_antes = cursor.fetchone()
             cursor.execute("DELETE FROM dbo.usuarios_supervisores WHERE id_operador = ? AND id_supervisor = ?", (int(id_operador), alvo))
             if id_novo_supervisor:
                 cursor.execute("INSERT INTO dbo.usuarios_supervisores (id_operador, id_supervisor) VALUES (?, ?)", (int(id_operador), int(id_novo_supervisor)))
+            # Equipes (24/11): equipe, planos de ação e escala futura acompanham o novo supervisor.
+            self.eqa_sincronizar_operadores(
+                cursor, user, {int(id_operador): {"id_equipe": equipe_antes[0] if equipe_antes else None, "supervisores": atuais}}, ip=ip,
+            )
             self.mon_log(
                 cursor, user, acao="equipe_remover_operador", modulo="Equipes", entidade="usuario", entidade_id=int(id_operador),
                 anterior={"supervisores": atuais}, posterior={"supervisores": novos}, detalhes={"operador": _nome_completo(operador)}, ip=ip,

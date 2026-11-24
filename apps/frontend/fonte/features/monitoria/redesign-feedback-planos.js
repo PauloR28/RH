@@ -1,9 +1,9 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { aplicarFeedback, criarPlano, lerMonitoria, lerPlano, listarMonitorias, listarOperadoresMonitoria, listarPlanos, revisarPlano } from '../../services/api/monitoria.js?v=20261124-cache';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-cache';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-cache';
-import { formatarData, formatarDataHoraCurta, formatarNota, hoje } from './comum.js?v=20261124-cache';
-import { textoPrazo } from './redesign-listas.js?v=20261124-cache';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { aplicarFeedback, criarPlano, lerMonitoria, lerPlano, listarMonitorias, listarOperadoresMonitoria, listarPlanos, revisarPlano } from '../../services/api/monitoria.js?v=20261124-equipes';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261124-equipes';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes';
+import { formatarData, formatarDataHoraCurta, formatarNota, hoje } from './comum.js?v=20261124-equipes';
+import { textoPrazo } from './redesign-listas.js?v=20261124-equipes';
 
 // Monitoria › Feedback e Planos de ação no desenho novo (Fase 15, fatia 4, amostras Q5 e Q6 do lote 1).
 // Mesmas rotas e regras de antes: a monitoria nunca é editada; o feedback só acrescenta o registro da conversa.

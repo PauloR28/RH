@@ -1,7 +1,7 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-cache';
-import { GrupoPaginacao } from './feedback.js?v=20261124-cache';
-import { ModalPadrao } from './modals.js?v=20261124-cache';
-import { IconeSvg } from '../icone.js?v=20261124-cache';
+import { html } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { GrupoPaginacao } from './feedback.js?v=20261124-equipes';
+import { ModalPadrao } from './modals.js?v=20261124-equipes';
+import { IconeSvg } from '../icone.js?v=20261124-equipes';
 
 
 export function Button({ label = '', icon = '', variant = 'primary', className = '', children, ...props }) {

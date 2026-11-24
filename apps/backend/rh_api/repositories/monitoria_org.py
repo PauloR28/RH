@@ -625,6 +625,9 @@ class MonitoriaOrgRepositoryMixin:
             cursor.execute("DELETE FROM dbo.usuarios_canais WHERE id_usuario = ?", (int(id_usuario),))
             for id_canal in canais:
                 cursor.execute("INSERT INTO dbo.usuarios_canais (id_usuario, id_item_canal) VALUES (?, ?)", (int(id_usuario), id_canal))
+            # Equipes (24/11): mudou equipe ou supervisor -> deixa os dois coerentes e passa o que está em aberto para o novo.
+            self.eqa_sincronizar_operadores(cursor, actor, {int(id_usuario): {
+                "id_equipe": anterior.get("id_equipe"), "supervisores": [s["id_usuario"] for s in anterior["supervisores"]]}}, ip=ip)
             novo = self._mon_vinculos(cursor, id_usuario)
             self.mon_log(cursor, actor, acao="alterar_vinculos_usuario", operacao=",".join(operacoes), entidade="usuario",
                          entidade_id=id_usuario, anterior=anterior, posterior=novo, ip=ip)
@@ -664,6 +667,12 @@ class MonitoriaOrgRepositoryMixin:
                 (operacao, id_de),
             )
             operadores = [r[0] for r in cursor.fetchall()]
+            antes_eq = {}
+            for id_operador in operadores:
+                cursor.execute("SELECT id_equipe FROM dbo.usuarios WHERE id_usuario = ?", (id_operador,))
+                linha_eq = cursor.fetchone()
+                cursor.execute("SELECT id_supervisor FROM dbo.usuarios_supervisores WHERE id_operador = ?", (id_operador,))
+                antes_eq[int(id_operador)] = {"id_equipe": linha_eq[0] if linha_eq else None, "supervisores": [int(r[0]) for r in cursor.fetchall()]}
             movidos = 0
             for id_operador in operadores:
                 cursor.execute("DELETE FROM dbo.usuarios_supervisores WHERE id_operador = ? AND id_supervisor = ?", (id_operador, id_de))
@@ -682,6 +691,8 @@ class MonitoriaOrgRepositoryMixin:
             cursor.execute("DELETE FROM dbo.usuarios_operacoes WHERE id_usuario = ? AND operacao = ?", (id_de, operacao))
             cursor.execute("INSERT INTO dbo.usuarios_operacoes_historico (id_usuario, operacao, acao, detalhe, por) VALUES (?, ?, 'desvincular', ?, ?)",
                            (id_de, operacao, f"supervisão assumida por #{id_para}", normalize_text(actor.nome)))
+            # Equipes (24/11): equipe, planos de ação e escala futura acompanham o novo supervisor.
+            self.eqa_sincronizar_operadores(cursor, actor, antes_eq, ip=ip)
             self.mon_log(cursor, actor, acao="transferir_supervisao", operacao=operacao, entidade="usuario", entidade_id=id_de,
                          detalhes={"para": id_para, "operadores": movidos, "justificativa": justificativa}, ip=ip)
             conn.commit()

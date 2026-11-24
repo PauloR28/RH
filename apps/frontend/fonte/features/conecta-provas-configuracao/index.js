@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-cache';
-import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
+import { html } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
 
 const DIRETRIZES = [
   {

@@ -6,7 +6,7 @@
 //  * Telas existentes de RH e Monitoria NÃO mudam de lugar: este registro só diz a que módulo cada grupo do menu pertence.
 //  * Se o acesso por módulo ainda não carregou (ou falhou), o menu se comporta exatamente como antes (sem filtro).
 
-import { AREA_CURRICULOS, AREA_PROCESSOS, AREA_PROVAS, areaAtiva } from '../shared/areas.js?v=20261124-cache';
+import { AREA_CURRICULOS, AREA_PROCESSOS, AREA_PROVAS, areaAtiva } from '../shared/areas.js?v=20261124-equipes';
 
 export const MODULO_CORE = 'core';
 export const MODULO_RH = 'rh';
@@ -46,6 +46,7 @@ export const MODULO_DA_TELA_CONFIGURACAO = {
   'screen-settings-lgpd': MODULO_RH,
   'screen-settings-document-templates': MODULO_RH,
   'screen-settings-users': MODULO_TECNOLOGIA,
+  'screen-settings-equipes': MODULO_TECNOLOGIA, // Equipes na Tecnologia (24/11)
   'screen-settings-acessos': MODULO_TECNOLOGIA, // Central de Acessos (Etapa 6): Gestão Global fica na Tecnologia
   'screen-settings-paineis': MODULO_TECNOLOGIA, // Painéis (14/11/2026): quem monta os painéis é a Tecnologia
   'screen-settings-operations': MODULO_TECNOLOGIA,
@@ -79,6 +80,7 @@ export const MENU_TECNOLOGIA = [
     icone: 'manage_accounts',
     itens: [
       { tela: 'screen-settings-users', label: 'Usuários', icone: 'person', permissao: 'usuarios.visualizar' },
+      { tela: 'screen-settings-equipes', label: 'Equipes', icone: 'groups', permissao: 'equipes.visualizar' },
       { tela: 'screen-settings-acessos', label: 'Acessos', icone: 'lock', permissao: 'configuracoes.visualizar' },
       { tela: 'screen-settings-operations', label: 'Operação', icone: 'apartment', permissao: 'configuracoes.visualizar' },
     ],

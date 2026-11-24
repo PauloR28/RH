@@ -1,7 +1,7 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
-import { IconeSvg } from '../../../ui/icone.js?v=20261124-cache';
-import { textoLegivel } from './compartilhar.js?v=20261124-cache';
-import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261124-cache';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
+import { IconeSvg } from '../../../ui/icone.js?v=20261124-equipes';
+import { textoLegivel } from './compartilhar.js?v=20261124-equipes';
+import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261124-equipes';
 
 // Peças compartilhadas da administração de escala (Escala do dia, Escala mensal e gaveta "Ajustar dia").
 // Só apresentação e estado local de interface; regras, API e permissões continuam nas telas. Estilos: bloco `.ea-*` em estilos/wfm.css.

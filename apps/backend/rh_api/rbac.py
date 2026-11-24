@@ -446,6 +446,11 @@ PERMISSION_DEFINITIONS: dict[str, PermissionDefinition] = {
         _permission("equipes.controle.visualizar", "Equipes", "Abrir o Controle de Equipes e Turnos (equipe, turno, presença, monitorias, escala e horários da própria equipe)."),
         _permission("equipes.membros.editar", "Equipes", "Adicionar e remover operadores da própria equipe (reflete no cadastro do operador).", critical=True),
         _permission("equipes.mural.publicar", "Equipes", "Publicar no Mural direto nas intranets das operações da própria equipe.", critical=True),
+        # Equipes na Tecnologia (24/nov/2026, V076): administração das equipes de todas as operações.
+        _permission("equipes.visualizar", "Equipes", "Ver as equipes das operações (Tecnologia > Acessos > Equipes)."),
+        _permission("equipes.administrar", "Equipes", "Criar, editar e desativar equipes (nome, supervisor responsável, apoio).", critical=True),
+        _permission("equipes.mover", "Equipes", "Mover operadores entre equipes. O que está em aberto passa para o novo supervisor.", critical=True),
+        _permission("equipes.exportar", "Equipes", "Exportar a lista de equipes e operadores."),
         # Ambiente > Segurança (senha) para usuários que não são da TI: a aba só aparece com esta chave.
         _permission("ambiente.seguranca", "Configurações", "Ver a aba Segurança (alterar senha) em Configurações > Ambiente."),
         # Chamados (Suporte TI), módulo Tecnologia. Nenhum perfil é fixo no código: estes são só os valores iniciais.
@@ -867,6 +872,19 @@ for _papel in PERFIS_TI:
 # Controle de Equipes e Turnos: Supervisor gere a própria equipe; Control Desk e Gestor/RH consultam (escolhem o supervisor).
 _EQUIPES_LEITURA = {"sessao.equipe.acessar", "equipes.controle.visualizar"}
 ROLE_PERMISSIONS.setdefault(ROLE_SUPERVISOR, set()).update(_EQUIPES_LEITURA | {"equipes.membros.editar", "equipes.mural.publicar"})
+# V076: valores iniciais da função Equipes (o Administrador já recebe o catálogo inteiro). Liga/desliga na tela Acessos.
+# (chave, descrição, crítica, perfis que começam com ela ligada). A V076 (repositories/equipes_admin_schema.py) lê daqui.
+PERMISSOES_EQUIPES_V076: tuple[tuple[str, str, bool, tuple[str, ...]], ...] = (
+    ("equipes.visualizar", "Ver as equipes das operações (Tecnologia > Acessos > Equipes).", False,
+     (ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_SUPERVISOR, ROLE_MANAGER, ROLE_QUALIDADE)),
+    ("equipes.administrar", "Criar, editar e desativar equipes (nome, supervisor responsável, apoio).", True, (ROLE_ADMIN, ROLE_CONTROL_DESK)),
+    ("equipes.mover", "Mover operadores entre equipes. O que está em aberto passa para o novo supervisor.", True,
+     (ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_SUPERVISOR)),
+    ("equipes.exportar", "Exportar a lista de equipes e operadores.", False, (ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_SUPERVISOR, ROLE_MANAGER)),
+)
+for _chave, _desc, _critica, _perfis in PERMISSOES_EQUIPES_V076:
+    for _perfil in _perfis:
+        ROLE_PERMISSIONS.setdefault(_perfil, set()).add(_chave)
 for _papel in (ROLE_CONTROL_DESK, ROLE_MANAGER):
     ROLE_PERMISSIONS.setdefault(_papel, set()).update(_EQUIPES_LEITURA)
 

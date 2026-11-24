@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { IconeSvg } from '../icone.js?v=20261124-cache';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { IconeSvg } from '../icone.js?v=20261124-equipes';
 
 // Peças do design system do rebranding (Fase 15) em React. Só desenham com as classes
 // `c-` de conecta-ds.css / conecta-telas.css; nenhuma regra de negócio mora aqui.

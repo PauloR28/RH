@@ -81,9 +81,13 @@
      "emails.enviar_modelo"
     ],
     "equipes": [
+     "equipes.administrar",
      "equipes.controle.visualizar",
+     "equipes.exportar",
      "equipes.membros.editar",
+     "equipes.mover",
      "equipes.mural.publicar",
+     "equipes.visualizar",
      "sessao.equipe.acessar"
     ],
     "indicadores": [
@@ -283,7 +287,7 @@
     "vagas.visualizar"
    ],
    "perfil": "administrador",
-   "total_permissoes": 127
+   "total_permissoes": 131
   },
   "analista_ti": {
    "funcoes": {
@@ -414,7 +418,11 @@
   "control_desk": {
    "funcoes": {
     "equipes": [
+     "equipes.administrar",
      "equipes.controle.visualizar",
+     "equipes.exportar",
+     "equipes.mover",
+     "equipes.visualizar",
      "sessao.equipe.acessar"
     ],
     "monitorias": [
@@ -473,7 +481,7 @@
    "origem": "codigo",
    "perdidas_por_regra": [],
    "perfil": "control_desk",
-   "total_permissoes": 37
+   "total_permissoes": 41
   },
   "dp": {
    "funcoes": {
@@ -675,6 +683,8 @@
     ],
     "equipes": [
      "equipes.controle.visualizar",
+     "equipes.exportar",
+     "equipes.visualizar",
      "sessao.equipe.acessar"
     ],
     "indicadores": [
@@ -791,7 +801,7 @@
     "vagas.visualizar"
    ],
    "perfil": "gestor",
-   "total_permissoes": 66
+   "total_permissoes": 68
   },
   "operador": {
    "funcoes": {
@@ -832,6 +842,9 @@
      "diario.intercorrencias",
      "sessao.diario.acessar"
     ],
+    "equipes": [
+     "equipes.visualizar"
+    ],
     "monitorias": [
      "monitoria.criar",
      "monitoria.dashboard",
@@ -869,7 +882,7 @@
    "origem": "codigo",
    "perdidas_por_regra": [],
    "perfil": "qualidade",
-   "total_permissoes": 20
+   "total_permissoes": 21
   },
   "rh": {
    "funcoes": {
@@ -998,8 +1011,11 @@
     ],
     "equipes": [
      "equipes.controle.visualizar",
+     "equipes.exportar",
      "equipes.membros.editar",
+     "equipes.mover",
      "equipes.mural.publicar",
+     "equipes.visualizar",
      "sessao.equipe.acessar"
     ],
     "indicadores": [
@@ -1081,7 +1097,7 @@
     "sessao.treinamentos.acessar"
    ],
    "perfil": "supervisor",
-   "total_permissoes": 58
+   "total_permissoes": 61
   },
   "tecnico_junior": {
    "funcoes": {

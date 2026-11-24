@@ -1,11 +1,11 @@
-﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-cache';
-import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js?v=20261124-cache';
-import { useModulos } from '../modulos/estado.js?v=20261124-cache';
+﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261124-equipes';
+import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js?v=20261124-equipes';
+import { useModulos } from '../modulos/estado.js?v=20261124-equipes';
 import {
   baixarBlob,
   gerarIdResultado,
   sanitizarNomeArquivo,
-} from '../utilitarios.js?v=20261124-cache';
+} from '../utilitarios.js?v=20261124-equipes';
 import {
   EVENTO_AUTENTICACAO_EXPIRADA,
   agendarEntrevista,
@@ -126,12 +126,12 @@ import {
   registrarSolicitacaoLgpd,
   retomarProcesso,
   cancelarProcesso,
-} from '../servico-api.js?v=20261124-cache';
-import { criarLogger } from '../logger.js?v=20261124-cache';
+} from '../servico-api.js?v=20261124-equipes';
+import { criarLogger } from '../logger.js?v=20261124-equipes';
 import {
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../perguntas.js?v=20261124-cache';
+} from '../perguntas.js?v=20261124-equipes';
 import {
   baixarPacoteDaProva,
   converterBase64ParaUint8Array,
@@ -140,7 +140,7 @@ import {
   montarPayloadGabarito,
   montarResumoRegrasDoCandidato,
   validarEntregaObrigatoriaDaProva,
-} from '../regras-prova.js?v=20261124-cache';
+} from '../regras-prova.js?v=20261124-equipes';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_ELIMINATED,
@@ -148,9 +148,9 @@ import {
   CANDIDATE_STATUS_WITHDREW,
   canonicalizeCandidateStatus,
   getCandidateVisibleStatus,
-} from '../shared/process-flow.js?v=20261124-cache';
-import { encontrarProcessoPorReferencia } from '../shared/process-reference.js?v=20261124-cache';
-import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js?v=20261124-cache';
+} from '../shared/process-flow.js?v=20261124-equipes';
+import { encontrarProcessoPorReferencia } from '../shared/process-reference.js?v=20261124-equipes';
+import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js?v=20261124-equipes';
 
 const CHAVE_ESTADO = 'rh_react_state_v1';
 const CHAVE_BARRA_LATERAL = 'rh_sidebar_collapsed_v1';
@@ -185,6 +185,7 @@ export const PERMISSOES_TELAS = {
   'screen-mural': 'mural.visualizar',
   'screen-settings': 'configuracoes.visualizar',
   'screen-settings-users': 'usuarios.visualizar',
+  'screen-settings-equipes': 'equipes.visualizar',
   'screen-settings-acessos': 'configuracoes.visualizar',
   'screen-settings-operations': 'configuracoes.visualizar',
   'screen-settings-lgpd': 'configuracoes.visualizar',

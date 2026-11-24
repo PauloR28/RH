@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-cache';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261124-cache';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-equipes';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261124-equipes';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261124-cache';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261124-cache';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261124-cache';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-cache';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261124-cache';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261124-cache';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-cache';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-cache';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261124-cache';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-cache';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261124-cache';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261124-cache';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-cache';
+} from '../../app/controlador-aplicacao.js?v=20261124-equipes';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261124-equipes';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261124-equipes';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261124-equipes';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261124-equipes';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261124-equipes';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-equipes';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261124-equipes';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261124-equipes';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-equipes';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261124-cache';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-cache';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-cache';
+} from '../../shared/notificacoes.js?v=20261124-equipes';
+import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,16 +53,17 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261124-cache';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261124-cache';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261124-cache';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261124-cache';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-cache';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-cache';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261124-cache';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261124-cache';
-import { CentralAcessos } from './central-acessos.js?v=20261124-cache';
-import { ConfigPaineis } from './paineis.js?v=20261124-cache';
+} from './monitoria-config.js?v=20261124-equipes';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261124-equipes';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261124-equipes';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261124-equipes';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-equipes';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-equipes';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261124-equipes';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261124-equipes';
+import { CentralAcessos } from './central-acessos.js?v=20261124-equipes';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261124-equipes';
+import { ConfigPaineis } from './paineis.js?v=20261124-equipes';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
@@ -77,6 +78,7 @@ function nomeModuloUnidade(chave) {
 
 const ABAS = [
   { id: 'usuarios', tela: 'screen-settings-users', label: 'Usuários', permissao: 'usuarios.visualizar', icon: 'person' },
+  { id: 'equipes', tela: 'screen-settings-equipes', label: 'Equipes', permissao: 'equipes.visualizar', icon: 'users' },
   { id: 'acessos', tela: 'screen-settings-acessos', label: 'Acessos', permissao: 'configuracoes.visualizar', icon: 'lock' },
   { id: 'paineis', tela: 'screen-settings-paineis', label: 'Painéis', permissao: 'painel.configurar', icon: 'insights' },
   { id: 'operacoes', tela: 'screen-settings-operations', label: 'Operação', permissao: 'configuracoes.visualizar', icon: 'apartment' },
@@ -596,6 +598,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     status: '',
     perfil: '',
     area: '',
+    equipe: '',
     acesso: '',
   });
   const [painelFiltrosUsuariosAberto, setPainelFiltrosUsuariosAberto] = useState(false);
@@ -1494,6 +1497,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
           textoSeguro(usuario?.departamento, ''),
         );
         if (!operacoesUsuario.includes(area) && !textoArea.includes(area)) return false;
+        // Equipe só vale com a operação escolhida (24/11).
+        if (filtrosUsuarios.equipe && String(usuario?.id_equipe || '') !== String(filtrosUsuarios.equipe)) return false;
       }
       if (acesso === 'parado30' && situacaoUsuario(usuario).chave !== 'parado30') return false;
       if (acesso === 'sem_acesso' && usuario?.ultimo_acesso) return false;
@@ -1516,11 +1521,25 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     filtrosUsuarios.status,
     filtrosUsuarios.perfil,
     filtrosUsuarios.area,
+    filtrosUsuarios.area ? filtrosUsuarios.equipe : '',
     filtrosUsuarios.acesso,
   ].filter((valor) => String(valor || '').trim()).length;
 
+  // Equipes da operação escolhida no filtro, tiradas dos próprios usuários (não depende da permissão de Equipes).
+  const equipesDaOperacaoFiltro = useMemo(() => {
+    const area = normalizarBusca(filtrosUsuarios.area);
+    if (!area) return [];
+    const mapa = new Map();
+    usuarios.forEach((u) => {
+      if (!u?.id_equipe || !u?.equipe_nome) return;
+      const ops = (Array.isArray(u?.operacoes) ? u.operacoes : []).map((item) => normalizarBusca(item));
+      if (ops.includes(area)) mapa.set(String(u.id_equipe), u.equipe_nome);
+    });
+    return [...mapa.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [usuarios, filtrosUsuarios.area]);
+
   const limparFiltrosUsuarios = () => {
-    setFiltrosUsuarios({ busca: '', status: '', perfil: '', area: '', acesso: '' });
+    setFiltrosUsuarios({ busca: '', status: '', perfil: '', area: '', equipe: '', acesso: '' });
     setPaginaUsuarios(1);
     setPainelFiltrosUsuariosAberto(false);
   };
@@ -1789,10 +1808,16 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
               <option value="">Perfil: todos</option>
               ${perfisVisiveis.map((perfil) => html`<option key=${perfil.id} value=${perfil.id}>${perfil.nome}</option>`)}
             </select>
-            <select class="c-entrada c-entrada--compacta" aria-label="Operação" value=${filtrosUsuarios.area} onChange=${(event) => atualizarFiltroUsuario('area', event.target.value)}>
+            <select class="c-entrada c-entrada--compacta" aria-label="Operação" value=${filtrosUsuarios.area} onChange=${(event) => { atualizarFiltroUsuario('area', event.target.value); atualizarFiltroUsuario('equipe', ''); }}>
               <option value="">Operação: todas</option>
               ${operacoesDisponiveis.map((operacao) => html`<option key=${operacao.id_item} value=${operacao.chave || operacao.nome}>${operacao.nome}</option>`)}
             </select>
+            ${filtrosUsuarios.area
+              ? html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" value=${filtrosUsuarios.equipe} onChange=${(event) => atualizarFiltroUsuario('equipe', event.target.value)}>
+                  <option value="">Equipe: todas</option>
+                  ${equipesDaOperacaoFiltro.map(([id, nome]) => html`<option key=${id} value=${id}>${nome}</option>`)}
+                </select>`
+              : html`<select class="c-entrada c-entrada--compacta" aria-label="Equipe" disabled title="Escolha a operação primeiro"><option>Equipe: escolha a operação</option></select>`}
             <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${situacaoFiltro} onChange=${(event) => mudarSituacaoFiltro(event.target.value)}>
               <option value="">Situação: todas</option>
               <option value="ativo">Ativos</option>
@@ -1814,6 +1839,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                       <th>E-mail</th>
                       <th>Perfil</th>
                       <th>Operação</th>
+                      <th>Equipe</th>
                       <th>Entrada</th>
                       <th>Último acesso</th>
                       <th>Situação</th>
@@ -1841,6 +1867,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                           <td class="c-secundario">${textoSeguro(usuario.email, textoSeguro(usuario.login))}</td>
                           <td>${textoSeguro(usuario.perfil_nome, textoSeguro(usuario.perfil))}</td>
                           <td>${operacoesDoUsuario(usuario)}</td>
+                          <td>${usuario.equipe_nome || html`<span class="c-secundario">—</span>`}</td>
                           <td class="c-secundario">${rotuloEntrada(usuario.provedor_autenticacao)}</td>
                           <td>${usuario.ultimo_acesso ? formatarAcessoCurto(usuario.ultimo_acesso) : html`<span class="c-secundario">nunca</span>`}</td>
                           <td><${Selo} tom=${situacao.tom} icone=${situacao.icone}>${situacao.rotulo}<//></td>
@@ -3891,7 +3918,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       mostrarAtalhos=${false}
       buscaGlobal=${abaRenderizada !== 'perfis'}
     >
-      ${['usuarios', 'perfis', 'acessos', 'paineis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
+      ${['usuarios', 'equipes', 'perfis', 'acessos', 'paineis', 'ambiente', 'operacoes'].includes(abaRenderizada) ? null : html`<${PageIntro}
         kicker="Console - Administração"
         title=${abasPermitidas.find((aba) => aba.id === abaRenderizada)?.label || 'Configurações'}
         actions=${abaRenderizada === 'usuarios'
@@ -3971,6 +3998,8 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
             `
         : abaRenderizada === 'usuarios'
           ? renderUsuarios()
+          : abaRenderizada === 'equipes'
+            ? html`<${AbaEquipesAdmin} />`
           : abaRenderizada === 'acessos'
               ? html`<${CentralAcessos} controlador=${controlador} />`
             : abaRenderizada === 'paineis'

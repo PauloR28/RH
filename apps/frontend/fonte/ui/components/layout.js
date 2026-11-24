@@ -1,17 +1,17 @@
-import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-cache';
-import { BuscaGlobalTopbar } from '../busca-global.js?v=20261124-cache';
-import { obterTourDaTela } from '../../shared/tour-config.js?v=20261124-cache';
-import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261124-cache';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-cache';
-import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-cache';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261124-cache';
-import { IconeSvg } from '../icone.js?v=20261124-cache';
-import { useModulos } from '../../modulos/estado.js?v=20261124-cache';
-import { telaEmAreaInativa } from '../../shared/areas.js?v=20261124-cache';
-import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261124-cache';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261124-cache';
-import { MolduraConecta } from './moldura.js?v=20261124-cache';
-import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261124-cache';
+import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes';
+import { BuscaGlobalTopbar } from '../busca-global.js?v=20261124-equipes';
+import { obterTourDaTela } from '../../shared/tour-config.js?v=20261124-equipes';
+import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261124-equipes';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-equipes';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-equipes';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261124-equipes';
+import { IconeSvg } from '../icone.js?v=20261124-equipes';
+import { useModulos } from '../../modulos/estado.js?v=20261124-equipes';
+import { telaEmAreaInativa } from '../../shared/areas.js?v=20261124-equipes';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261124-equipes';
+import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261124-equipes';
+import { MolduraConecta } from './moldura.js?v=20261124-equipes';
+import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261124-equipes';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -239,6 +239,12 @@ export function BarraLateral({
       permissao: 'usuarios.visualizar',
     },
     {
+      tela: 'screen-settings-equipes',
+      icone: 'groups',
+      label: 'Equipes',
+      permissao: 'equipes.visualizar',
+    },
+    {
       tela: 'screen-settings-acessos',
       icone: 'lock',
       label: 'Acessos',
@@ -344,6 +350,7 @@ export function BarraLateral({
   const telasRelacionadasConfiguracoes = [
     'screen-settings',
     'screen-settings-users',
+    'screen-settings-equipes',
     'screen-settings-acessos',
     'screen-settings-paineis',
     'screen-settings-operations',
@@ -476,7 +483,7 @@ export function BarraLateral({
       || (String(tela).startsWith('screen-chamados') && String(navAtiva).startsWith('screen-chamados'))
       || (ehWfm(tela) && ehWfm(navAtiva));
     const ROTULO_ADM = {};
-    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-acessos', 'screen-settings-operations', TELA_CONFIGURACOES_CONECTA];
+    const ORDEM_ADM = ['screen-settings-users', 'screen-settings-equipes', 'screen-settings-acessos', 'screen-settings-operations', TELA_CONFIGURACOES_CONECTA];
     const soltas = [];
     const itensAdm = [];
     menuTec.forEach((entrada) => {

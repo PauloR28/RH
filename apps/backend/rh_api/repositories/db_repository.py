@@ -19,6 +19,7 @@ from .disc import DiscRepositoryMixin
 from .document_templates import DocumentTemplateRepositoryMixin
 from .documentos_biblioteca import DocumentosBibliotecaRepositoryMixin
 from .email_inbox import EmailInboxRepositoryMixin
+from .equipes_admin import EquipesAdminRepositoryMixin
 from .equipes_controle import EquipesControleRepositoryMixin
 from .exam_analytics import ExamAnalyticsRepositoryMixin
 from .fit_cultural import FitCulturalRepositoryMixin
@@ -92,6 +93,7 @@ class DatabaseRepository(
     MonitoriaAnaliseRepositoryMixin,
     MonitoriaOrgRepositoryMixin,
     EquipesControleRepositoryMixin,
+    EquipesAdminRepositoryMixin,
     DiarioRepositoryMixin,
     PainelRepositoryMixin,
     TelaInicialRepositoryMixin,

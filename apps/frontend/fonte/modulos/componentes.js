@@ -1,8 +1,8 @@
-import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261124-cache';
-import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261124-cache';
-import { IconeSvg } from '../ui/icone.js?v=20261124-cache';
-import { selecionarModulo } from './estado.js?v=20261124-cache';
-import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261124-cache';
+import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261124-equipes';
+import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261124-equipes';
+import { IconeSvg } from '../ui/icone.js?v=20261124-equipes';
+import { selecionarModulo } from './estado.js?v=20261124-equipes';
+import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261124-equipes';
 
 // Peças de interface dos módulos usadas pela navbar (ui/components/layout.js): seletor de módulo e menu da Tecnologia.
 

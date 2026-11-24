@@ -235,6 +235,9 @@ def ensure_security_tables(cursor, settings: Settings) -> None:
     from .perfis_schema import ensure_perfis_schema
 
     ensure_perfis_schema(cursor)
+    from .equipes_admin_schema import ensure_equipes_admin_schema
+
+    ensure_equipes_admin_schema(cursor)
     # Etapa 9: os 15 perfis do código são criados se faltarem. Nome, descrição e "ativo" não são mais forçados: o nome
     # pode ser trocado pela tela e o perfil apagado pela tela fica com ativo = 0 (não volta sozinho).
     for role in ROLE_DEFINITIONS.values():

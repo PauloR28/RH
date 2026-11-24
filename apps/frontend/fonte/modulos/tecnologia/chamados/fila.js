@@ -1,11 +1,11 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-cache';
-import { assumirChamado, listarFilaChamados } from '../../../services/api/chamados.js?v=20261124-cache';
-import { listarOperacoes } from '../../../services/api/operations.js?v=20261124-cache';
-import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261124-cache';
-import { DetalheChamado } from './detalhe.js?v=20261124-cache';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes';
+import { assumirChamado, listarFilaChamados } from '../../../services/api/chamados.js?v=20261124-equipes';
+import { listarOperacoes } from '../../../services/api/operations.js?v=20261124-equipes';
+import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261124-equipes';
+import { DetalheChamado } from './detalhe.js?v=20261124-equipes';
 import {
   ORDEM_URGENCIA, PillSla, PillStatus, PillUrgencia, RodapePaginacao, ROTULO_STATUS, ROTULO_URGENCIA, useDebounce, useMetaChamados,
-} from './comum.js?v=20261124-cache';
+} from './comum.js?v=20261124-equipes';
 
 // Fila do Suporte (`chamados.atender`): todos os chamados, SLA vencido primeiro, depois urgência e prazo mais próximo.
 
