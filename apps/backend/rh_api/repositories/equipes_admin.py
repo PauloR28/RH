@@ -270,6 +270,38 @@ class EquipesAdminRepositoryMixin:
         finally:
             conn.close()
 
+    def eqa_excluir(self, user, id_equipe: int, *, ip: str = "") -> dict:
+        """Exclui uma equipe VAZIA. O histórico não muda: monitorias guardam o nome da equipe que tinham na hora."""
+        conn = self._connect()
+        try:
+            cursor = conn.cursor()
+            ensure_equipes_admin_schema(cursor)
+            anterior = self._eqa_equipe(cursor, int(id_equipe))
+            if not anterior:
+                raise _http(status.HTTP_404_NOT_FOUND, "Equipe não encontrada.")
+            self._eqa_exigir_operacao(user, anterior["operacao"])
+            cursor.execute(
+                "SELECT COUNT(*) FROM dbo.usuarios WHERE id_equipe = ? AND ISNULL(status, 'Ativo') = 'Ativo' AND id_usuario <> ?",
+                (int(id_equipe), int(anterior["id_supervisor"] or 0)),
+            )
+            membros = int(cursor.fetchone()[0])
+            if membros:
+                raise _http(
+                    status.HTTP_409_CONFLICT,
+                    f"Esta equipe tem {membros} {'operador' if membros == 1 else 'operadores'}. Mova todos para outra equipe antes de excluir.",
+                )
+            # Quem ainda aponta para a equipe (o supervisor, cadastros inativos) fica sem equipe.
+            cursor.execute("UPDATE dbo.usuarios SET id_equipe = NULL, atualizado_em = GETDATE() WHERE id_equipe = ?", (int(id_equipe),))
+            cursor.execute("DELETE FROM dbo.equipes_operacao WHERE id_equipe = ?", (int(id_equipe),))
+            self.mon_log(
+                cursor, user, acao="equipe_excluir", operacao=anterior["operacao"], modulo="Equipes",
+                entidade="equipe", entidade_id=int(id_equipe), anterior=anterior, posterior=None, ip=ip,
+            )
+            conn.commit()
+            return {"ok": True, "id_equipe": int(id_equipe)}
+        finally:
+            conn.close()
+
     # ------------------------------------------------------------------
     # Exportar
     # ------------------------------------------------------------------

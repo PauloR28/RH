@@ -9,6 +9,7 @@ export const membrosEquipeAdmin = (idEquipe) => requisitar(`/equipes-admin/${enc
 export const salvarEquipeAdmin = (dados, idEquipe = null) => requisitar(idEquipe ? `/equipes-admin/${encodeURIComponent(idEquipe)}` : '/equipes-admin', {
   method: idEquipe ? 'PUT' : 'POST', headers: JSON_HEADERS, body: JSON.stringify(dados),
 });
+export const excluirEquipeAdmin = (idEquipe) => requisitar(`/equipes-admin/${encodeURIComponent(idEquipe)}`, { method: 'DELETE' });
 export const previaMoverEquipe = (dados) => requisitar('/equipes-admin/mover/previa', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(dados) });
 export const moverEquipe = (dados) => requisitar('/equipes-admin/mover', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(dados) });
 export const exportarEquipesAdmin = (operacao = '') => requisitarArquivo(`/equipes-admin/exportar${q(operacao)}`, { method: 'GET' });

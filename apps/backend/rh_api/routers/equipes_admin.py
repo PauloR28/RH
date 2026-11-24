@@ -51,6 +51,11 @@ def editar(
     return repository.eqa_salvar(user, payload.model_dump(), id_equipe, ip=_ip(request))
 
 
+@router.delete("/{id_equipe}", dependencies=[Depends(require_permissions("equipes.administrar"))])
+def excluir(id_equipe: int, request: Request, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
+    return repository.eqa_excluir(user, id_equipe, ip=_ip(request))
+
+
 @router.post("/mover/previa", dependencies=[Depends(require_permissions("equipes.mover"))])
 def previa(payload: EquipeMoverRequest, user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)):
     return repository.eqa_previa(user, payload.ids_operadores, payload.id_equipe_destino)

@@ -70,7 +70,7 @@ def test_rotas_registradas():
     caminhos = {(m, r.path) for r in app.routes for m in getattr(r, "methods", set())}
     for item in [("GET", "/equipes-admin"), ("POST", "/equipes-admin"), ("PUT", "/equipes-admin/{id_equipe}"),
                  ("GET", "/equipes-admin/exportar"), ("GET", "/equipes-admin/{id_equipe}/membros"),
-                 ("POST", "/equipes-admin/mover/previa"), ("POST", "/equipes-admin/mover")]:
+                 ("DELETE", "/equipes-admin/{id_equipe}"), ("POST", "/equipes-admin/mover/previa"), ("POST", "/equipes-admin/mover")]:
         assert item in caminhos
 
 

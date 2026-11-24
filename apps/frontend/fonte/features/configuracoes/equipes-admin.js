@@ -2,6 +2,7 @@ import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.j
 import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261124-equipes2';
 import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes2';
 import {
+  excluirEquipeAdmin,
   exportarEquipesAdmin,
   listarEquipesAdmin,
   membrosEquipeAdmin,
@@ -70,6 +71,29 @@ function JanelaEquipe({ equipe, operacoes, supervisores, aoFechar, aoSalvar }) {
     <//>
     <p class="c-ajuda">Os turnos da equipe são os turnos do supervisor responsável (Turnos e Plantões › Cadastros).</p>
     <label class="c-grupo"><span class="c-interruptor"><input type="checkbox" checked=${form.ativo} onChange=${(e) => mudar('ativo', e.target.checked)} aria-label="Equipe ativa" /></span>Equipe ativa</label>
+  <//>`;
+}
+
+function JanelaExcluirEquipe({ equipe, aoFechar, aoExcluir }) {
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const temOperadores = equipe.membros > 0;
+  const excluir = async () => {
+    setSalvando(true); setErro('');
+    try { await excluirEquipeAdmin(equipe.id_equipe); aoExcluir(); }
+    catch (f) { setErro(msg(f, 'Não foi possível excluir a equipe.')); } finally { setSalvando(false); }
+  };
+  return html`<${Janela} titulo=${`Excluir ${equipe.nome}`} tamanho="pequena" onClose=${aoFechar}
+    rodape=${temOperadores
+      ? html`<button type="button" class="c-botao c-botao--secundario" onClick=${aoFechar}>Fechar</button>`
+      : html`<button type="button" class="c-botao c-botao--secundario" onClick=${aoFechar}>Cancelar</button><button type="button" class="c-botao c-botao--perigo" aria-busy=${salvando ? 'true' : null} disabled=${salvando || null} onClick=${excluir}><${Ic} nome="trash" />Excluir equipe</button>`}>
+    <div class="c-janela-corpo">
+      ${temOperadores
+        ? html`<${Faixa} tom="aviso" icone="warning"><b>Esta equipe tem ${equipe.membros} ${equipe.membros === 1 ? 'operador' : 'operadores'}.</b> Mova todos para outra equipe antes de excluir. Use "Mover" no painel da equipe.<//>`
+        : html`<p>Excluir a <b>${equipe.nome}</b> (${equipe.operacao_nome})? Ela sai da lista e não volta.</p>
+          <p class="c-ajuda">O histórico não muda: monitorias e relatórios já feitos continuam com o nome desta equipe.</p>`}
+      ${erro ? html`<${Faixa} tom="perigo" icone="warning">${erro}<//>` : null}
+    </div>
   <//>`;
 }
 
@@ -284,6 +308,7 @@ export function AbaEquipesAdmin() {
               <${MenuAcoes} acoes=${[
                 pode.administrar ? { label: 'Editar', icon: 'pencil-simple', onClick: () => setJanela({ tipo: 'editar', equipe: e }) } : null,
                 pode.exportar ? { label: 'Exportar a operação', icon: 'tray-arrow-down', onClick: () => exportarEquipesAdmin(e.operacao).then((r) => baixarBlob(r.filename || 'equipes.csv', r.blob)).catch((f) => setErro(msg(f, 'Não foi possível exportar.'))) } : null,
+                pode.administrar ? { label: 'Excluir', icon: 'trash', perigo: true, onClick: () => setJanela({ tipo: 'excluir', equipe: e }) } : null,
               ]} />
             </td>
           </tr>`)}</tbody>
@@ -321,6 +346,8 @@ export function AbaEquipesAdmin() {
 
     ${janela && (janela.tipo === 'nova' || janela.tipo === 'editar') ? html`<${JanelaEquipe} equipe=${janela.equipe || null} operacoes=${opsDaJanela}
       supervisores=${dados?.supervisores || {}} aoFechar=${() => fecharJanela()} aoSalvar=${(t) => fecharJanela(t)} />` : null}
+    ${janela?.tipo === 'excluir' ? html`<${JanelaExcluirEquipe} equipe=${janela.equipe} aoFechar=${() => fecharJanela()}
+      aoExcluir=${() => { if (idSel === janela.equipe.id_equipe) setIdSel(null); fecharJanela(`${janela.equipe.nome} excluída.`); }} />` : null}
     ${janela?.tipo === 'mover' ? html`<${JanelaMover} origem=${janela.equipe} equipes=${equipes}
       operadores=${membros.itens.filter((m) => marcados.has(m.id_usuario))} aoFechar=${() => fecharJanela()} aoMover=${(t) => fecharJanela(t)} />` : null}
   </main>`;
