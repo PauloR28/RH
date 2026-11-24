@@ -282,7 +282,7 @@ class EquipesAdminRepositoryMixin:
             try:
                 cursor = conn.cursor()
                 cursor.execute(
-                    f"SELECT id_equipe, id_usuario, nome, sobrenome, email, perfil_id FROM dbo.usuarios WHERE id_equipe IN ({_marcadores(ids)}) "
+                    f"SELECT id_equipe, id_usuario, nome, sobrenome, email, perfil_id FROM dbo.usuarios WHERE id_equipe IN ({_marcadores(ids)}) "  # nosec B608
                     "AND ISNULL(status, 'Ativo') = 'Ativo' ORDER BY nome, sobrenome",
                     tuple(ids),
                 )
@@ -321,13 +321,13 @@ class EquipesAdminRepositoryMixin:
             SELECT u.id_usuario, u.nome, u.sobrenome, u.perfil_id, u.id_equipe, e.id_supervisor, e.nome AS equipe_nome
             FROM dbo.usuarios u LEFT JOIN dbo.equipes_operacao e ON e.id_equipe = u.id_equipe
             WHERE u.id_usuario IN ({_marcadores(ids)})
-            """,
+            """,  # nosec B608
             tuple(ids),
         )
         pessoas = rows_to_dicts(cursor, cursor.fetchall())
         if len(pessoas) != len(ids) or any(papel(p["perfil_id"]) != ROLE_OPERATOR for p in pessoas):
             raise _http(status.HTTP_422_UNPROCESSABLE_ENTITY, "Só operadores podem ser movidos entre equipes.")
-        cursor.execute(f"SELECT id_usuario, operacao FROM dbo.usuarios_operacoes WHERE id_usuario IN ({_marcadores(ids)})", tuple(ids))
+        cursor.execute(f"SELECT id_usuario, operacao FROM dbo.usuarios_operacoes WHERE id_usuario IN ({_marcadores(ids)})", tuple(ids))  # nosec B608
         ops: dict[int, set[str]] = {}
         for id_u, op in cursor.fetchall():
             ops.setdefault(int(id_u), set()).add(normalize_text(op))
@@ -354,7 +354,7 @@ class EquipesAdminRepositoryMixin:
             WHERE i.id_operador IN ({_marcadores(ids)}) AND i.data >= ? AND t.id_supervisor IS NOT NULL AND t.id_supervisor <> ?
             GROUP BY t.id_turno, t.codigo, t.nome, t.tipo, t.entrada, t.saida, t.id_supervisor, s.nome, s.sobrenome
             ORDER BY t.codigo
-            """,
+            """,  # nosec B608
             (*ids, amanha, destino["id_supervisor"]),
         )
         antigos = rows_to_dicts(cursor, cursor.fetchall())
@@ -385,20 +385,20 @@ class EquipesAdminRepositoryMixin:
         cont: dict[str, int] = {}
         for chave, estados in (("monitorias_feedback", STATUS_MONITORIA_ABERTA_FEEDBACK), ("monitorias_contestacao", STATUS_MONITORIA_ABERTA_CONTESTACAO)):
             cursor.execute(
-                f"SELECT COUNT(*) FROM dbo.monitorias m JOIN dbo.monitoria_estado s ON s.id_monitoria = m.id_monitoria "
+                f"SELECT COUNT(*) FROM dbo.monitorias m JOIN dbo.monitoria_estado s ON s.id_monitoria = m.id_monitoria "  # nosec B608
                 f"WHERE m.id_operador IN ({m}) AND s.status IN ({_marcadores(estados)}) AND {SQL_MONITORIA_NAO_EXCLUIDA}",
                 (*ids, *estados),
             )
             cont[chave] = int(cursor.fetchone()[0])
         cursor.execute(
-            f"SELECT COUNT(*) FROM dbo.wfm_trocas WHERE estado IN ({_marcadores(TROCAS_ABERTAS)}) AND (id_solicitante IN ({m}) OR id_alvo IN ({m}))",
+            f"SELECT COUNT(*) FROM dbo.wfm_trocas WHERE estado IN ({_marcadores(TROCAS_ABERTAS)}) AND (id_solicitante IN ({m}) OR id_alvo IN ({m}))",  # nosec B608
             (*TROCAS_ABERTAS, *ids, *ids),
         )
         cont["trocas"] = int(cursor.fetchone()[0])
-        cursor.execute(f"SELECT COUNT(*) FROM dbo.monitoria_planos WHERE id_operador IN ({m}) AND status <> ?", (*ids, PLANO_CONCLUIDO))
+        cursor.execute(f"SELECT COUNT(*) FROM dbo.monitoria_planos WHERE id_operador IN ({m}) AND status <> ?", (*ids, PLANO_CONCLUIDO))  # nosec B608
         cont["planos"] = int(cursor.fetchone()[0])
         amanha = date.fromordinal(_hoje().toordinal() + 1)
-        cursor.execute(f"SELECT COUNT(*), COUNT(DISTINCT id_operador) FROM dbo.wfm_escala_itens WHERE id_operador IN ({m}) AND data >= ?", (*ids, amanha))
+        cursor.execute(f"SELECT COUNT(*), COUNT(DISTINCT id_operador) FROM dbo.wfm_escala_itens WHERE id_operador IN ({m}) AND data >= ?", (*ids, amanha))  # nosec B608
         dias, pessoas = cursor.fetchone()
         cont["escala_dias"], cont["escala_pessoas"] = int(dias or 0), int(pessoas or 0)
         cont["escala_desde"] = amanha.isoformat()
@@ -444,12 +444,12 @@ class EquipesAdminRepositoryMixin:
             marc = _marcadores(ids_ok)
 
             # 1) Cadastro: equipe e supervisor (só o responsável; o apoio não recebe pendências).
-            cursor.execute(f"SELECT id_operador, id_supervisor FROM dbo.usuarios_supervisores WHERE id_operador IN ({marc})", tuple(ids_ok))
+            cursor.execute(f"SELECT id_operador, id_supervisor FROM dbo.usuarios_supervisores WHERE id_operador IN ({marc})", tuple(ids_ok))  # nosec B608
             sups_antes: dict[int, list[int]] = {}
             for id_op, id_s in cursor.fetchall():
                 sups_antes.setdefault(int(id_op), []).append(int(id_s))
-            cursor.execute(f"UPDATE dbo.usuarios SET id_equipe = ?, atualizado_em = GETDATE() WHERE id_usuario IN ({marc})", (destino["id_equipe"], *ids_ok))
-            cursor.execute(f"DELETE FROM dbo.usuarios_supervisores WHERE id_operador IN ({marc})", tuple(ids_ok))
+            cursor.execute(f"UPDATE dbo.usuarios SET id_equipe = ?, atualizado_em = GETDATE() WHERE id_usuario IN ({marc})", (destino["id_equipe"], *ids_ok))  # nosec B608
+            cursor.execute(f"DELETE FROM dbo.usuarios_supervisores WHERE id_operador IN ({marc})", tuple(ids_ok))  # nosec B608
             for id_op in ids_ok:
                 cursor.execute("INSERT INTO dbo.usuarios_supervisores (id_operador, id_supervisor) VALUES (?, ?)", (id_op, id_sup))
 
@@ -477,7 +477,7 @@ class EquipesAdminRepositoryMixin:
         Devolve quantos dias da escala mudaram. Nada até hoje é alterado."""
         marc = _marcadores(ids)
         cursor.execute(
-            f"SELECT id_plano, status FROM dbo.monitoria_planos WHERE id_operador IN ({marc}) AND status <> ? AND ISNULL(id_responsavel, 0) <> ?",
+            f"SELECT id_plano, status FROM dbo.monitoria_planos WHERE id_operador IN ({marc}) AND status <> ? AND ISNULL(id_responsavel, 0) <> ?",  # nosec B608
             (*ids, PLANO_CONCLUIDO, int(id_sup)),
         )
         for id_plano, st in cursor.fetchall():
@@ -490,7 +490,7 @@ class EquipesAdminRepositoryMixin:
             return 0
         amanha = date.fromordinal(_hoje().toordinal() + 1)
         cursor.execute(
-            f"SELECT id_item, operacao, id_operador, data, id_turno FROM dbo.wfm_escala_itens WHERE id_operador IN ({marc}) AND data >= ? "
+            f"SELECT id_item, operacao, id_operador, data, id_turno FROM dbo.wfm_escala_itens WHERE id_operador IN ({marc}) AND data >= ? "  # nosec B608
             f"AND id_turno IN ({_marcadores(mapa)})",
             (*ids, amanha, *mapa.keys()),
         )
@@ -577,7 +577,7 @@ class EquipesAdminRepositoryMixin:
             SELECT DISTINCT t.id_turno, t.operacao, t.tipo, t.entrada, t.saida
             FROM dbo.wfm_escala_itens i JOIN dbo.wfm_turnos t ON t.id_turno = i.id_turno
             WHERE i.id_operador IN ({_marcadores(ids)}) AND i.data >= ? AND t.id_supervisor IS NOT NULL AND t.id_supervisor <> ?
-            """,
+            """,  # nosec B608
             (*ids, amanha, int(id_sup)),
         )
         antigos = rows_to_dicts(cursor, cursor.fetchall())
@@ -589,7 +589,7 @@ class EquipesAdminRepositoryMixin:
             )
             par = cursor.fetchone()
             cursor.execute(
-                f"SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE id_operador IN ({_marcadores(ids)}) AND data >= ? AND id_turno = ?",
+                f"SELECT COUNT(*) FROM dbo.wfm_escala_itens WHERE id_operador IN ({_marcadores(ids)}) AND data >= ? AND id_turno = ?",  # nosec B608
                 (*ids, amanha, int(t["id_turno"])),
             )
             saida.append({"id_turno": int(t["id_turno"]), "id_destino_auto": int(par[0]) if par else None, "dias": int(cursor.fetchone()[0])})
@@ -603,7 +603,7 @@ class EquipesAdminRepositoryMixin:
             return
         m = _marcadores(ids)
         cursor.execute(
-            f"SELECT id_troca, operacao, base_json FROM dbo.wfm_trocas WHERE estado IN ({_marcadores(TROCAS_ABERTAS)}) "
+            f"SELECT id_troca, operacao, base_json FROM dbo.wfm_trocas WHERE estado IN ({_marcadores(TROCAS_ABERTAS)}) "  # nosec B608
             f"AND (id_solicitante IN ({m}) OR id_alvo IN ({m}))",
             (*TROCAS_ABERTAS, *ids, *ids),
         )

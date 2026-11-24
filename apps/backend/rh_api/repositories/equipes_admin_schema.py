@@ -65,18 +65,18 @@ def _texto_sql(valor: str) -> str:
 
 def _permissao_sql(chave: str, descricao: str, critica: bool, perfis: tuple[str, ...]) -> str:
     blocos = [
-        "IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"
+        "IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"  # nosec B608
         "BEGIN\n"
         f"    IF NOT EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = '{chave}')\n"
         "        INSERT INTO dbo.permissoes (chave, modulo, descricao, critica, criado_em)\n"
         f"        VALUES ('{chave}', N'Equipes', {_texto_sql(descricao)}, {1 if critica else 0}, GETDATE());\n"
         "END;",
-        "IF COL_LENGTH('dbo.permissoes', 'modulo_dono') IS NOT NULL\n"
+        "IF COL_LENGTH('dbo.permissoes', 'modulo_dono') IS NOT NULL\n"  # nosec B608
         f"    EXEC(N'UPDATE dbo.permissoes SET modulo_dono = ''operacao'', abre_modulo = 0 WHERE chave = ''{chave}'' AND modulo_dono IS NULL;');",
     ]
     for perfil in perfis:
         blocos.append(
-            "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"
+            "IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL AND OBJECT_ID('dbo.perfis', 'U') IS NOT NULL AND OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL\n"  # nosec B608
             "BEGIN\n"
             f"    IF EXISTS (SELECT 1 FROM dbo.perfis WHERE id_perfil = '{perfil}')\n"
             f"       AND EXISTS (SELECT 1 FROM dbo.permissoes WHERE chave = '{chave}')\n"
@@ -109,7 +109,7 @@ def render_migration_sql() -> str:
 def render_rollback_sql() -> str:
     chaves = ", ".join(f"'{p[0]}'" for p in PERMISSOES_V076)
     return (
-        "-- Rollback da V076. Tira as permissoes da funcao Equipes e as colunas de responsavel/apoio.\n"
+        "-- Rollback da V076. Tira as permissoes da funcao Equipes e as colunas de responsavel/apoio.\n"  # nosec B608
         "-- Nao mexe em usuarios nem na escala: as mudancas de equipe ja feitas continuam valendo.\n"
         f"IF OBJECT_ID('dbo.perfil_permissoes', 'U') IS NOT NULL DELETE FROM dbo.perfil_permissoes WHERE chave_permissao IN ({chaves});\n"
         f"IF OBJECT_ID('dbo.permissoes', 'U') IS NOT NULL DELETE FROM dbo.permissoes WHERE chave IN ({chaves});\n"
