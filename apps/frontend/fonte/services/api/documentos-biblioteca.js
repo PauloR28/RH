@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-deploy';
+import { requisitar } from './core.js?v=20261125-operacao';
 
 export async function listarDocumentosBiblioteca() {
   return requisitar('/documentos-biblioteca', { method: 'GET' });

@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261125-deploy';
-import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261125-deploy';
-import { listarUsuarios } from '../../services/api/settings.js?v=20261125-deploy';
+import { html, useCallback, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
+import { ModalConfirmacaoAcao, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-operacao';
+import { DataTable, Section, Toolbar } from '../../ui/components/layout-primitivas.js?v=20261125-operacao';
+import { IconeCx, InterruptorCx, PilulaStatus } from '../../ui/components/console-primitivas.js?v=20261125-operacao';
+import { listarUsuarios } from '../../services/api/settings.js?v=20261125-operacao';
 import {
   aplicarLoteModulos,
   definirAcessoModulosPerfil,
@@ -10,12 +10,12 @@ import {
   lerAcessosModulos,
   lerWfmParticipantes,
   listarFuncoesModulos,
-} from '../../services/api/modulos.js?v=20261125-deploy';
-import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261125-deploy';
+} from '../../services/api/modulos.js?v=20261125-operacao';
+import { limparEstadoModulos, carregarAcessoModulos } from '../estado.js?v=20261125-operacao';
 import {
   CHAVE_WFM_PARTICIPANTES, alternarRascunho, chaveFuncao, chaveModulo, consequenciasDoLote, contarLigadas, descreverLote,
   listarPendencias, paraPayloadLote, pendenciasDoModulo, valorExibido,
-} from './pendencias.js?v=20261125-deploy';
+} from './pendencias.js?v=20261125-operacao';
 
 // Tela Módulos (Tecnologia): lista de módulos à esquerda e, à direita, as funções do módulo escolhido (ligar/desligar), a ativação do
 // módulo e o WFM para participantes (fase de teste). As mudanças ficam em RASCUNHO e são salvas de uma vez (PUT /tecnologia/modulos/lote,

@@ -1,5 +1,5 @@
-import { html, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { Janela } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { html, useState } from '../../../infraestrutura-react.js?v=20261125-operacao';
+import { Janela } from '../../../ui/components/ds.js?v=20261125-operacao';
 
 // Textos formais da troca de escala (pedido do operador e resumo do supervisor) e o diálogo de confirmação.
 // Troca em sábado/domingo usa o texto de final de semana (jornada e folgas 100% trocadas).

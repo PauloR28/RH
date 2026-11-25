@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { listarMural } from '../../services/api/mural.js?v=20261125-deploy';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-operacao';
+import { listarMural } from '../../services/api/mural.js?v=20261125-operacao';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261125-operacao';
 
 import {
   React,
@@ -9,12 +9,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-deploy';
+} from '../../infraestrutura-react.js?v=20261125-operacao';
 import {
   blocosVisiveisTelaInicial,
   configTelaInicialPadrao,
   lerMinhaTelaInicial,
-} from '../../shared/tela-inicial.js?v=20261125-deploy';
+} from '../../shared/tela-inicial.js?v=20261125-operacao';
 
 const Fragment = React.Fragment;
 import {
@@ -25,13 +25,13 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-deploy';
+} from '../../perguntas.js?v=20261125-operacao';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261125-deploy';
+} from '../prova/services/personalizacao-inteligente.js?v=20261125-operacao';
 import {
   TAMANHO_HISTORICO,
   TAMANHO_RECENTES,
@@ -73,7 +73,7 @@ import {
   vincularEmailRecebidoProcesso,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from '../../app/controlador-aplicacao.js?v=20261125-deploy';
+} from '../../app/controlador-aplicacao.js?v=20261125-operacao';
 import {
   baixarBlob,
   formatarDataParaInput,
@@ -81,47 +81,47 @@ import {
   formatarPercentualAfinidade,
   formatarPontuacaoDetalhada,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261125-deploy';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-deploy';
-import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-deploy';
+} from '../../utilitarios.js?v=20261125-operacao';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-operacao';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-operacao';
 import {
   formatarDataHora,
   obterClasseAderencia,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261125-deploy';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261125-deploy';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-deploy';
+} from '../../shared/helpers-visuais.js?v=20261125-operacao';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261125-operacao';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-operacao';
 import {
   ModalCompartilharVaga,
   REQUISITOS_PUBLICOS_PADRAO,
   RESPONSABILIDADES_PUBLICAS_PADRAO,
   montarItensPublicosPadrao,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261125-deploy';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-deploy';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-deploy';
+} from '../../shared/components/share-job-modal.js?v=20261125-operacao';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-operacao';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-operacao';
 import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-deploy';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261125-deploy';
-import { obterTourLogin } from '../../shared/tour-config.js?v=20261125-deploy';
+} from '../../shared/process-flow.js?v=20261125-operacao';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261125-operacao';
+import { obterTourLogin } from '../../shared/tour-config.js?v=20261125-operacao';
 import {
   obterChaveProcesso,
   obterReferenciaProcessoDoCandidato,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-deploy';
+} from '../../shared/process-reference.js?v=20261125-operacao';
 import {
   quebrarListaTexto,
   validarFormularioProcesso,
   validarPerfilCandidato,
-} from '../../shared/validacoes.js?v=20261125-deploy';
-import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261125-deploy';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
-import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261125-deploy';
-import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261125-deploy';
+} from '../../shared/validacoes.js?v=20261125-operacao';
+import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261125-operacao';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-operacao';
+import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261125-operacao';
+import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261125-operacao';
 import {
   AcceptanceDonutChart,
   AvatarUsuario,
@@ -137,8 +137,8 @@ import {
   SectionCard,
   WizardStepper,
   WizardSummaryStrip,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { TourGuiado } from '../../ui/tour-guiado.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-operacao';
+import { TourGuiado } from '../../ui/tour-guiado.js?v=20261125-operacao';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';
@@ -1937,7 +1937,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261125-deploy')
+    import('../monitoria/index.js?v=20261125-operacao')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

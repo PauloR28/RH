@@ -1,11 +1,11 @@
-﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-deploy';
-import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js?v=20261125-deploy';
-import { useModulos } from '../modulos/estado.js?v=20261125-deploy';
+﻿import { useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-operacao';
+import { montarHashDaTela, obterTelaPorHash, obterRotaAtual } from '../rotas.js?v=20261125-operacao';
+import { useModulos } from '../modulos/estado.js?v=20261125-operacao';
 import {
   baixarBlob,
   gerarIdResultado,
   sanitizarNomeArquivo,
-} from '../utilitarios.js?v=20261125-deploy';
+} from '../utilitarios.js?v=20261125-operacao';
 import {
   EVENTO_AUTENTICACAO_EXPIRADA,
   agendarEntrevista,
@@ -126,12 +126,12 @@ import {
   registrarSolicitacaoLgpd,
   retomarProcesso,
   cancelarProcesso,
-} from '../servico-api.js?v=20261125-deploy';
-import { criarLogger } from '../logger.js?v=20261125-deploy';
+} from '../servico-api.js?v=20261125-operacao';
+import { criarLogger } from '../logger.js?v=20261125-operacao';
 import {
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../perguntas.js?v=20261125-deploy';
+} from '../perguntas.js?v=20261125-operacao';
 import {
   baixarPacoteDaProva,
   converterBase64ParaUint8Array,
@@ -140,7 +140,7 @@ import {
   montarPayloadGabarito,
   montarResumoRegrasDoCandidato,
   validarEntregaObrigatoriaDaProva,
-} from '../regras-prova.js?v=20261125-deploy';
+} from '../regras-prova.js?v=20261125-operacao';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_ELIMINATED,
@@ -148,9 +148,9 @@ import {
   CANDIDATE_STATUS_WITHDREW,
   canonicalizeCandidateStatus,
   getCandidateVisibleStatus,
-} from '../shared/process-flow.js?v=20261125-deploy';
-import { encontrarProcessoPorReferencia } from '../shared/process-reference.js?v=20261125-deploy';
-import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js?v=20261125-deploy';
+} from '../shared/process-flow.js?v=20261125-operacao';
+import { encontrarProcessoPorReferencia } from '../shared/process-reference.js?v=20261125-operacao';
+import { permissaoEmAreaInativa, telaEmAreaInativa } from '../shared/areas.js?v=20261125-operacao';
 
 const CHAVE_ESTADO = 'rh_react_state_v1';
 const CHAVE_BARRA_LATERAL = 'rh_sidebar_collapsed_v1';

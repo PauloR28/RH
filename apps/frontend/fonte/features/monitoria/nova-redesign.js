@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
 import {
   calcularPrevia,
   descartarRascunho,
@@ -8,10 +8,10 @@ import {
   listarRascunhos,
   realizarMonitoria,
   salvarRascunho,
-} from '../../services/api/monitoria.js?v=20261125-deploy';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento } from '../../ui/components/ds.js?v=20261125-deploy';
-import { RESPOSTAS, formatarNota, hoje } from './comum.js?v=20261125-deploy';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-deploy';
+} from '../../services/api/monitoria.js?v=20261125-operacao';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento } from '../../ui/components/ds.js?v=20261125-operacao';
+import { RESPOSTAS, formatarNota, hoje } from './comum.js?v=20261125-operacao';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-operacao';
 
 // Nova monitoria no desenho novo (amostra Fase 12, DEC-068): etapas no topo com a nota viva à direita,
 // dados do contato numa linha fina sempre à vista, critérios em tabela e "Finalizar" só na Revisão.

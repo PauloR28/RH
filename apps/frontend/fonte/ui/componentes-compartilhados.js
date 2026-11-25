@@ -4,7 +4,7 @@ export {
   IlustracaoEstadoVazio,
   LoadingState,
   MetricGrid,
-} from './components/feedback.js?v=20261125-deploy';
+} from './components/feedback.js?v=20261125-operacao';
 export {
   AvatarUsuario,
   PainelRh,
@@ -12,19 +12,19 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261125-deploy';
+} from './components/layout.js?v=20261125-operacao';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
   ModalPadrao,
-} from './components/modals.js?v=20261125-deploy';
-export { MinistrantePicker } from './components/ministrante-picker.js?v=20261125-deploy';
+} from './components/modals.js?v=20261125-operacao';
+export { MinistrantePicker } from './components/ministrante-picker.js?v=20261125-operacao';
 export {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from './components/exam-fields.js?v=20261125-deploy';
+} from './components/exam-fields.js?v=20261125-operacao';
 export {
   Badge,
   Button,
@@ -33,8 +33,8 @@ export {
   Pagination,
   Table,
   ToastAlert,
-} from './components/primitives.js?v=20261125-deploy';
-export { WizardStepper, WizardSummaryStrip } from './components/wizard.js?v=20261125-deploy';
+} from './components/primitives.js?v=20261125-operacao';
+export { WizardStepper, WizardSummaryStrip } from './components/wizard.js?v=20261125-operacao';
 export {
   AcceptanceDonutChart,
   BarComparisonChart,
@@ -42,4 +42,4 @@ export {
   ScoreDistributionChart,
   ScoreRadarChart,
   StageFunnelChart,
-} from './components/charts.js?v=20261125-deploy';
+} from './components/charts.js?v=20261125-operacao';

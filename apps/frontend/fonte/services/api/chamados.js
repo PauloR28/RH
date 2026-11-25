@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261125-deploy';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-operacao';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

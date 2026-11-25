@@ -1,12 +1,12 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-operacao';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-operacao';
 import {
   aprovarEscalaWfm,
   cancelarEnvioEscalaWfm,
   declinarEscalaWfm,
   enviarAprovacaoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261125-deploy';
-import { dataHora } from './comum.js?v=20261125-deploy';
+} from '../../../services/api/wfm.js?v=20261125-operacao';
+import { dataHora } from './comum.js?v=20261125-operacao';
 
 // Aprovação da escala antes de publicar: Rascunho -> Em aprovação -> Aprovada -> (publicar).
 // Gestor ou Supervisor aprovam (nunca a própria escala; o Analista de TI é o gestor único do TI e aprova a sua).

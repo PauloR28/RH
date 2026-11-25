@@ -1,17 +1,17 @@
-import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { BuscaGlobalTopbar } from '../busca-global.js?v=20261125-deploy';
-import { obterTourDaTela } from '../../shared/tour-config.js?v=20261125-deploy';
-import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261125-deploy';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-deploy';
-import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-deploy';
-import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261125-deploy';
-import { IconeSvg } from '../icone.js?v=20261125-deploy';
-import { useModulos } from '../../modulos/estado.js?v=20261125-deploy';
-import { telaEmAreaInativa } from '../../shared/areas.js?v=20261125-deploy';
-import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261125-deploy';
-import { NavTecnologia, SeletorModulo, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261125-deploy';
-import { MolduraConecta } from './moldura.js?v=20261125-deploy';
-import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261125-deploy';
+import { createContext, html, useContext, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
+import { BuscaGlobalTopbar } from '../busca-global.js?v=20261125-operacao';
+import { obterTourDaTela } from '../../shared/tour-config.js?v=20261125-operacao';
+import { TourGuiado, orientacoesAtivas, useOrientacoesGlobais } from '../tour-guiado.js?v=20261125-operacao';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-operacao';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-operacao';
+import { lerCoresNotificacao, useResumoNotificacoes } from '../../shared/notificacoes.js?v=20261125-operacao';
+import { IconeSvg } from '../icone.js?v=20261125-operacao';
+import { useModulos } from '../../modulos/estado.js?v=20261125-operacao';
+import { telaEmAreaInativa } from '../../shared/areas.js?v=20261125-operacao';
+import { MODULO_TECNOLOGIA, grupoNoModulo, itemConfiguracaoNoModulo, montarMenuTecnologia, telaInicialDoModulo } from '../../modulos/registro.js?v=20261125-operacao';
+import { NavTecnologia, SeletorModulo, SeletorOperacao, ehModuloTecnologia } from '../../modulos/componentes.js?v=20261125-operacao';
+import { MolduraConecta } from './moldura.js?v=20261125-operacao';
+import { MolduraConfiguracoes, TELAS_CONFIGURACOES_CONECTA, TELA_CONFIGURACOES_CONECTA } from '../../features/configuracoes/configuracoes-conecta.js?v=20261125-operacao';
 
 const TEMA_ROTULO = { claro: 'Claro', escuro: 'Escuro' };
 const TEMA_ICONE = { claro: 'light_mode', escuro: 'dark_mode' };
@@ -602,12 +602,12 @@ export function BarraLateral({
     return html`
       <${MolduraConecta}
         secoes=${secoesMoldura}
-        configuracoes=${secaoConfiguracoes}
+        configuracoes=${(modulos.visiveis || []).includes('tecnologia') ? secaoConfiguracoes : null}
         secaoAtual=${secaoAtiva ? { ...secaoAtiva, telaAtual: navAtiva } : null}
         irPara=${irPara}
         irParaInicio=${() => controlador.irParaMenu()}
         sair=${() => controlador.sair()}
-        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} />`}
+        seletorModulo=${html`<${SeletorModulo} controlador=${controlador} modulos=${modulos} /><${SeletorOperacao} modulos=${modulos} />`}
         busca=${html`<${BuscaGlobalTopbar} placeholderBusca='Buscar no Conecta' controlador=${controlador} />`}
         usuario=${html`<${CartaoUsuarioTopo} controlador=${controlador} onOpenHelp=${onOpenHelp} mostrarAjuda=${mostrarAjuda} />`}
       />

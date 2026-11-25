@@ -1,6 +1,6 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-deploy';
-import { IconeSvg } from '../icone.js?v=20261125-deploy';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-operacao';
+import { IconeSvg } from '../icone.js?v=20261125-operacao';
 
 function limparHtmlVazio(valor) {
   const conteudo = String(valor || '').trim();

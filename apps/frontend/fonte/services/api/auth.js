@@ -4,7 +4,7 @@ import {
   possuiSessaoAutenticada,
   requisitar,
   salvarSessaoAutenticacao,
-} from './core.js?v=20261125-deploy';
+} from './core.js?v=20261125-operacao';
 
 export async function fazerLoginApi(usuario, senha, mfaCode = '') {
   const resultado = await requisitar(

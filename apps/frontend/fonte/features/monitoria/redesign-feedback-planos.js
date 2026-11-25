@@ -1,9 +1,9 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { aplicarFeedback, criarPlano, lerMonitoria, lerPlano, listarMonitorias, listarOperadoresMonitoria, listarPlanos, revisarPlano } from '../../services/api/monitoria.js?v=20261125-deploy';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261125-deploy';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { formatarData, formatarDataHoraCurta, formatarNota, hoje } from './comum.js?v=20261125-deploy';
-import { textoPrazo } from './redesign-listas.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
+import { aplicarFeedback, criarPlano, lerMonitoria, lerPlano, listarMonitorias, listarOperadoresMonitoria, listarPlanos, revisarPlano } from '../../services/api/monitoria.js?v=20261125-operacao';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261125-operacao';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-operacao';
+import { formatarData, formatarDataHoraCurta, formatarNota, hoje } from './comum.js?v=20261125-operacao';
+import { textoPrazo } from './redesign-listas.js?v=20261125-operacao';
 
 // Monitoria › Feedback e Planos de ação no desenho novo (Fase 15, fatia 4, amostras Q5 e Q6 do lote 1).
 // Mesmas rotas e regras de antes: a monitoria nunca é editada; o feedback só acrescenta o registro da conversa.

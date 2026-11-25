@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-operacao';
 
 export async function listarVariaveisTemplatesDocumentos() {
   return requisitar('/document-templates/variables', { method: 'GET' });

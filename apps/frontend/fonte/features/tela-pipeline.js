@@ -1,1 +1,1 @@
-export { TelaPipelineCandidatos } from './pipeline/index.js?v=20261125-deploy';
+export { TelaPipelineCandidatos } from './pipeline/index.js?v=20261125-operacao';

@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from ..auth import OperacaoEscolhida
+
 from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
 
 PERFIS_GLOBAIS = perfis_com(wfm=TODOS)  # Etapa 5: vem do alcance (antes: Admin e Gestor por nome)
@@ -39,9 +41,12 @@ def eh_tipo_escala(operacao: str | None) -> bool:
 
 def operacoes_permitidas(perfil: str, operacoes_usuario: Iterable[str]) -> frozenset[str] | None:
     """`None` = todas as operações; conjunto (possivelmente vazio) = restrito."""
-    if alcance(perfil).wfm == TODOS:
-        return None
-    return frozenset(item for item in operacoes_usuario if item)
+    escolhida = operacoes_usuario if isinstance(operacoes_usuario, OperacaoEscolhida) else None
+    vinculos = escolhida.originais if escolhida is not None else operacoes_usuario
+    base = None if alcance(perfil).wfm == TODOS else frozenset(item for item in vinculos if item)
+    if escolhida is not None:  # seletor de operação do topo: só a escolhida, dentro do que já via
+        return frozenset(escolhida) if base is None else frozenset(escolhida) & base
+    return base
 
 
 def pode_ver_operacao(perfil: str, operacoes_usuario: Iterable[str], operacao: str | None) -> bool:

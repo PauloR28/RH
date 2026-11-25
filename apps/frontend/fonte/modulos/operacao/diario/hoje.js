@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-operacao';
 import {
   concluirTurnoDiario,
   corrigirAbsDiario,
@@ -17,15 +17,15 @@ import {
   salvarEncerramentoDiario,
   salvarParcialDiario,
   salvarTurnoDiario,
-} from '../../../services/api/diario.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
-import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial, JanelaRemoverTipo, JanelaTipoDemanda } from './janelas.js?v=20261125-deploy';
-import { JanelaFechamento } from './fechamento.js?v=20261125-deploy';
-import { GavetaAlteracoes, descreverAlteracao } from './historico.js?v=20261125-deploy';
+} from '../../../services/api/diario.js?v=20261125-operacao';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-operacao';
+import { JanelaAbs, JanelaIntercorrencia, JanelaMotivo, JanelaParcial, JanelaRemoverTipo, JanelaTipoDemanda } from './janelas.js?v=20261125-operacao';
+import { JanelaFechamento } from './fechamento.js?v=20261125-operacao';
+import { GavetaAlteracoes, descreverAlteracao } from './historico.js?v=20261125-operacao';
 import {
   ENCERRAMENTOS, ROTULO_CANAL, ROTULO_TURNO, ROTULO_TURNO_CURTO, TURNOS, avisosDoTurno, consolidar, dataHoraBr, nsConsolidado, diaCurto, hhmm, nf,
   numeroOuVazio, pct, pctCampo, pctOuVazio, somarDias, tratadas,
-} from './regras.js?v=20261125-deploy';
+} from './regras.js?v=20261125-operacao';
 
 // Diário de bordo › Hoje (amostra aprovada em 08/11/2026, quadros 1, 2 e 4). Um diário por dia por operação, 3 turnos
 // (rascunho → concluído) e a visão Dia (consolidado + ABS + encerramento). Salva sozinho a cada mudança; erro de gravação

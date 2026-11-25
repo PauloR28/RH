@@ -1,8 +1,8 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
-import { SinalTurno } from './hoje.js?v=20261125-deploy';
-import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-operacao';
+import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261125-operacao';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-operacao';
+import { SinalTurno } from './hoje.js?v=20261125-operacao';
+import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261125-operacao';
 
 // Diário de bordo › Histórico (amostra quadro 5): 1 linha por dia e a gaveta com tudo o que mudou no dia (antes → depois).
 

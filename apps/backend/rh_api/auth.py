@@ -49,6 +49,21 @@ def revoke_access_token(token: str) -> None:
     _token_denylist.revoke(_token_key(safe_token), ttl_seconds)
 
 
+class OperacaoEscolhida(frozenset):
+    """`user.operacoes` estreitado pelo seletor de operação do topo (cabeçalho X-Conecta-Operacao, 25/nov/2026).
+
+    Contém só a operação escolhida e guarda em `originais` os vínculos de antes. Vale também para perfis globais
+    (Administrador, Gestor): eles passam a ver só a operação escolhida. Nunca abre nada: os escopos cruzam com
+    `originais` quando o perfil é restrito."""
+
+    originais: frozenset = frozenset()
+
+    def __new__(cls, escolhida, originais=()):
+        obj = super().__new__(cls, escolhida)
+        obj.originais = frozenset(originais)
+        return obj
+
+
 @dataclass(frozen=True)
 class AuthenticatedUser:
     username: str
@@ -92,6 +107,8 @@ class AuthenticatedUser:
             return True
         if not operacao:
             return True
+        if isinstance(self.operacoes, OperacaoEscolhida) and self.operacoes.originais and operacao not in self.operacoes.originais:
+            return False
         return operacao in self.operacoes
 
 

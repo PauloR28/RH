@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-deploy';
+} from '../../infraestrutura-react.js?v=20261125-operacao';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js?v=20261125-deploy';
+} from '../../app/controlador-aplicacao.js?v=20261125-operacao';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261125-deploy';
+} from '../../shared/helpers-visuais.js?v=20261125-operacao';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-deploy';
-import { validarCardPipeline } from '../../shared/validacoes.js?v=20261125-deploy';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261125-deploy';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-deploy';
+} from '../../shared/process-flow.js?v=20261125-operacao';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261125-operacao';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261125-operacao';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-operacao';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js?v=20261125-deploy';
+} from '../processos/state.js?v=20261125-operacao';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-operacao';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../shared/process-reference.js?v=20261125-operacao';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-operacao';
 
 const ETAPAS_PIPELINE = [
   'Triagem',

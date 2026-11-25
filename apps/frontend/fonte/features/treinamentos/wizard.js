@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-operacao';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-operacao';
 import {
   baixarModeloModulo,
   criarTreinamentoWizard,
@@ -8,17 +8,17 @@ import {
   uploadVideoModulo,
   validarModuloJson,
   alternarDownloadAnexo,
-} from '../../servico-api.js?v=20261125-deploy';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-operacao';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-operacao';
 import {
   atualizarTrilhaOnboarding,
   buscarParticipantesTreinamento,
   lerTrilhaOnboarding,
   listarOperacoesParaTreinamento,
   uploadImagemSecaoModulo,
-} from '../../services/api/onboarding.js?v=20261125-deploy';
-import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../services/api/onboarding.js?v=20261125-operacao';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261125-operacao';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-operacao';
 
 function limparHtmlVazioModulo(valor) {
   const conteudo = String(valor || '').trim();

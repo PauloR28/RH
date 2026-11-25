@@ -1,6 +1,6 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-deploy';
-import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261125-deploy';
-import { listarNotificacoes } from '../services/api/notifications.js?v=20261125-deploy';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-operacao';
+import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261125-operacao';
+import { listarNotificacoes } from '../services/api/notifications.js?v=20261125-operacao';
 
 // Bolinha vermelha do Suporte TI: quantas notificações NÃO LIDAS da categoria `chamados` o usuário tem.
 // Uma única consulta compartilhada por todos os componentes (tile do início e item da navbar), renovada a cada minuto.

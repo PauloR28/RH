@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-operacao';
 
 export async function listarPoliticas() {
   return requisitar('/policies', { method: 'GET' });
