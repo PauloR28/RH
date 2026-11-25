@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js?v=20261124-equipes4';
 import { baixarArquivo } from '../monitoria/comum.js?v=20261124-equipes4';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261124-equipes4';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261124-equipes4';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261124-equipes4';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261125-relatorios';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -17,7 +17,7 @@ import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from '
 // Painel e Dashboard abrem na própria seção (↗); se a pessoa não abre a seção, continuam aqui dentro, como antes.
 
 const TAMANHOS = [25, 50, 100];
-const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao'];
+const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 // Permissão de EXPORTAR por relatório (o servidor confere de novo em /relatorios-hub/exportar).
 const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
   : id.startsWith('wfm.') ? 'wfm.relatorios'
@@ -33,7 +33,8 @@ const DESTINO_SECAO = { 'wfm.painel': 'screen-wfm-painel', 'monitoria.dashboard'
 // Colunas que a tela abre DESLIGADAS (amostra aprovada da Fase 12). Os demais relatórios: até 10 colunas, todas; mais
 // que isso, as 8 primeiras. "Colunas" liga o resto e a escolha fica guardada neste navegador, por pessoa.
 const COLUNAS_DESLIGADAS = {
-  'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas', 'Trocas aprovadas'],
+  'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas'],
+  'wfm.escalados': [],
   'wfm.escalas': ['Aprovada por'],
   'diario.dias': ['Situação', 'Início do dia', 'Encerramento', 'Envio ao grupo', 'Passagem', 'Abertura', 'Intermediário', 'Fechamento'],
   'diario.intercorrencias': ['Registrado por'],
@@ -95,7 +96,9 @@ const COLUNA_DO_FILTRO = {
 const ROTULO_FILTRO = { equipe: 'Equipe', supervisor: 'Supervisor', operador: 'Operador', status: 'Status' };
 
 // Escolha de colunas guardada no navegador (conveniência; se o navegador não guardar, volta ao padrão).
-const chaveColunas = (usuario, id) => `c24_relhub_colunas:${usuario || 'anon'}:${id}`;
+// Relatório que ganhou colunas novas: a escolha antiga volta uma vez ao padrão, para as colunas novas aparecerem.
+const VERSAO_COLUNAS = { 'wfm.resumo': '20261125', 'wfm.escalados': '20261125', 'wfm.presencas': '20261125' };
+const chaveColunas = (usuario, id) => `c24_relhub_colunas:${usuario || 'anon'}:${id}${VERSAO_COLUNAS[id] ? `:${VERSAO_COLUNAS[id]}` : ''}`;
 const lerEscolha = (usuario, id) => { try { const v = JSON.parse(window.localStorage.getItem(chaveColunas(usuario, id)) || 'null'); return Array.isArray(v) ? v : null; } catch { return null; } };
 const gravarEscolha = (usuario, id, rotulos) => { try { window.localStorage.setItem(chaveColunas(usuario, id), JSON.stringify(rotulos)); } catch { /* sem storage */ } };
 function colunasPadrao(id, colunas) {
@@ -225,7 +228,7 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261124-equipes4').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261125-relatorios').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261124-equipes4'), import('../monitoria/comum.js?v=20261124-equipes4')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();

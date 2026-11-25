@@ -16,7 +16,7 @@ import { TelaMinhaEscala } from './minha.js?v=20261124-equipes4';
 import { ListaEscalas } from './escalas.js?v=20261124-equipes4';
 import { ModalConfigEscala } from './configuracao.js?v=20261124-equipes4';
 import { TelaTrocas } from './trocas.js?v=20261124-equipes4';
-import { TelaRelatorios } from './relatorios.js?v=20261124-equipes4';
+import { TelaRelatorios } from './relatorios.js?v=20261125-relatorios';
 import { TelaPainelDia } from './painel-dia.js?v=20261124-equipes4';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).

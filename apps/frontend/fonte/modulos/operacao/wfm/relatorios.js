@@ -23,18 +23,19 @@ const VISOES = [
   { id: 'trocas', rotulo: 'Trocas', icone: 'compare_arrows', dica: 'Pedidos, aprovações e reprovações' },
   { id: 'aprovacoes', rotulo: 'Aprovações', icone: 'verified', dica: 'Envio, aprovação, declínio e publicação' },
 ];
-const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao'];
+const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 const TAMANHOS = [25, 50, 100];
 const CORES_PRESENCA = ['var(--wfm-g-ok)', 'var(--wfm-g-perigo)', 'var(--wfm-g-aviso)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];
 const CORES_TROCA = ['var(--wfm-g-ok)', 'var(--wfm-g-marca)', 'var(--wfm-g-aviso)', 'var(--wfm-g-perigo)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];
 
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// Períodos que incluem o dia de hoje terminam HOJE (dias futuros só entram se o usuário escolher a data em "Personalizado").
 const PERIODOS = {
-  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(new Date(h.getFullYear(), h.getMonth() + 1, 0))]; } },
+  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(h)]; } },
   anterior: { rotulo: 'Mês anterior', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth() - 1, 1)), iso(new Date(h.getFullYear(), h.getMonth(), 0))]; } },
   trinta: { rotulo: 'Últimos 30 dias', calc: () => { const h = new Date(); const i = new Date(h); i.setDate(i.getDate() - 29); return [iso(i), iso(h)]; } },
-  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, `${h.getFullYear()}-12-31`]; } },
+  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, iso(h)]; } },
 };
 const br = (isoData) => (isoData ? isoData.split('-').reverse().join('/') : '');
 

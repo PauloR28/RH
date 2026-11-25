@@ -119,11 +119,11 @@ const importarMonitoria = () => import('../features/monitoria/index.js?v=2026112
 const TelaMonitoria = carregarTela(importarMonitoria, 'TelaMonitoria');
 const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralMonitoriaConfig');
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
-const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261124-equipes4'), 'TelaRelatoriosHub');
+const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261125-relatorios'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261124-equipes4'), 'TelaEquipesControle');
 const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261124-equipes4'), 'TelaDiario');
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261124-equipes4'), 'TelaPainel');
-const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261124-equipes4'), 'TelaWfm');
+const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261125-relatorios'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261124-equipes4'), 'TelaChamados');
 const TelaTecnologia = carregarTela(() => import('../modulos/tecnologia/index.js?v=20261124-equipes4'), 'TelaTecnologia');
 const TelaCalendario = carregarTela(() => import('../features/calendario/index.js?v=20261124-equipes4'), 'TelaCalendario');
