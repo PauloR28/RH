@@ -288,7 +288,7 @@ def test_diario_vale_para_qualquer_operacao_com_a_funcao_ligada(monkeypatch):
     # Newe nunca teve listas (só a CRF foi semeada): com o Diário ligado, ela aparece e ganha as listas padrão.
     ops, cursor = _ops_do_diario(monkeypatch, [("CRF", "CRF / Flamengo", 1), ("NEWE", "Newe", 0)], user=_Usuario({"NEWE"}))
     assert [o["chave"] for o in ops] == ["NEWE"]
-    assert len(cursor.inserts) == len(CADASTROS_PADRAO) + 1 and all(p == ("NEWE",) for _, p in cursor.inserts)
+    assert len(cursor.inserts) == len(CADASTROS_PADRAO) + 1 and all(p[0] == "NEWE" for _, p in cursor.inserts)
     assert cursor.commits == 1
 
 

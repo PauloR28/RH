@@ -23,7 +23,7 @@ from ..rbac import ACCESS_DENIED_MESSAGE
 from ..services import diario_regras as r
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.wfm_historico import FUSO_BRASIL
-from .diario_schema import ensure_diario_schema, listas_padrao_sql
+from .diario_schema import SQL_LISTA_PADRAO, ensure_diario_schema, listas_padrao_params
 
 VERSAO_TERMOS = "2026-11-08"
 MINUTOS_EDITANDO = 2  # "Fulano está editando": vale enquanto a pessoa salvou/abriu o turno nos últimos 2 minutos
@@ -173,8 +173,8 @@ class DiarioRepositoryMixin:
                 sem_listas.append(chave)
         if sem_listas:
             for chave in sem_listas:
-                for instrucao in listas_padrao_sql():
-                    cursor.execute(instrucao, (chave,))
+                for params in listas_padrao_params(chave):
+                    cursor.execute(SQL_LISTA_PADRAO, params)
             cursor.connection.commit()
         return ops
 
