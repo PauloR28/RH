@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-deploy';
+import { requisitar } from './core.js?v=20261125-acessos-salvar';
 
 function queryString(params = {}) {
   const query = new URLSearchParams();

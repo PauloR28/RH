@@ -1,8 +1,8 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-deploy';
-import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261125-deploy';
-import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-deploy';
-import { infoDia } from './comum.js?v=20261125-deploy';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-acessos-salvar';
+import { exportarEscalaWfm } from '../../../services/api/wfm.js?v=20261125-acessos-salvar';
+import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-acessos-salvar';
+import { infoDia } from './comum.js?v=20261125-acessos-salvar';
 
 // Compartilhar / exportar a escala do mês: planilha (xlsx) e CSV vêm do servidor (já filtrados pelo escopo do
 // usuário); PDF e imagem (PNG) são desenhados aqui, a partir da grade que o usuário está vendo, sem bibliotecas.

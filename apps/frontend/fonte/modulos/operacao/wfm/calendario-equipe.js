@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { useVisaoEquipes } from './escala-ui.js?v=20261125-deploy';
-import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, Navegar, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { useVisaoEquipes } from './escala-ui.js?v=20261125-acessos-salvar';
+import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261125-acessos-salvar';
+import { Esqueleto, Estado, Ic, Navegar, Selo } from '../../../ui/components/ds.js?v=20261125-acessos-salvar';
 
 // Equipes › Escala (redesign Fase 15, fatia 4, amostra Q4 do lote 2): calendário do mês (c-cal) em que cada dia mostra quantos
 // estão escalados; o dia escolhido ganha contorno e a coluna da direita (320 px) lista quem trabalha, código do turno, horário e

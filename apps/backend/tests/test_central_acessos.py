@@ -62,3 +62,25 @@ def test_base_da_tecnologia_nao_desliga(unidades):
     with pytest.raises(HTTPException) as erro:
         central_acessos.salvar_lote("tecnologia", "padrao", [{"tipo": "funcao", "funcao": "usuarios", "ligada": False}], autor="teste")
     assert erro.value.status_code == 409
+
+
+def test_salvar_alcance_nao_quebra_a_auditoria(monkeypatch):
+    """Bug 25/11: salvar o Alcance (ex.: Supervisor = Unidade) dava "Erro interno do servidor"."""
+    from types import SimpleNamespace
+
+    from rh_api.routers import tecnologia
+
+    aplicadas = [
+        {"tipo": "alcance", "perfil": "supervisor", "area": "wfm", "nivel": "unidade"},
+        {"tipo": "perm", "chave": "wfm.visualizar", "perfil": "supervisor", "valor": True, "padrao": True},
+        {"tipo": "funcao", "funcao": "wfm", "ligada": True},
+    ]
+    monkeypatch.setattr(tecnologia.central_acessos, "salvar_lote", lambda *a, **k: {"aplicadas": aplicadas})
+    auditados = []
+    monkeypatch.setattr(tecnologia, "audit_action", lambda *a, **k: auditados.append(k["entidade_id"]))
+    payload = SimpleNamespace(modulo="operacao", escopo="padrao", justificativa=None,
+                              mudancas=[])
+    r = tecnologia.salvar_acessos(payload, request=None, user=SimpleNamespace(username="ti"), repository=None)
+    assert r["aplicadas"] == aplicadas
+    assert auditados == ["operacao|padrao|supervisor|alcance:wfm", "operacao|padrao|supervisor|wfm.visualizar",
+                         "operacao|padrao|wfm"]

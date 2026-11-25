@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-acessos-salvar';
 
 // RH: banco de questões de raciocínio lógico/numérico.
 export async function listarPerguntasRaciocinio() {

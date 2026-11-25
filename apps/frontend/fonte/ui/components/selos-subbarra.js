@@ -1,4 +1,4 @@
-import { useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 
 // Contagens das abas da sub-barra (ex.: "Presença 3", "Escalas 2"). A tela que conhece o
 // número publica aqui; a moldura só desenha. Chave = id da tela (screen-*). 0 ou vazio = sem selo.

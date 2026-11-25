@@ -1,5 +1,5 @@
-import { html, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { ToastAlert } from '../../ui/components/primitives.js?v=20261125-deploy';
+import { html, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { ToastAlert } from '../../ui/components/primitives.js?v=20261125-acessos-salvar';
 
 /**
  * Hook compartilhado para substituir `window.alert()` por uma notificação

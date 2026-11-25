@@ -1,5 +1,5 @@
-import { html, React, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { IconeSvg } from '../icone.js?v=20261125-deploy';
+import { html, React, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../icone.js?v=20261125-acessos-salvar';
 
 const useId = React.useId;
 // Componentes compartilhados do redesenho do Console (Operações, Histórico, Escala, Ambiente).

@@ -98,3 +98,6 @@
 .c-subbarra-mais .c-menu-item { color: var(--cor-texto-padrao); }
 /* A sub-barra corta o que passa da borda; com o "Mais" aberto o menu precisa aparecer. */
 .c-moldura-subbarra:has(.c-subbarra-mais > [aria-expanded='true']) { overflow: visible; }
+
+/* Seletor de operação (25/11/2026): mesmo botão do seletor de módulo; nome longo corta com reticências. */
+.c-moldura-topo .mod-seletor--operacao .mod-seletor-nome { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

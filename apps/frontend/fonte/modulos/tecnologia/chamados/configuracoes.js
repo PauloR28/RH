@@ -1,10 +1,10 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   atualizarCategoriaChamado, atualizarEmailChamados, criarCategoriaChamado, criarEmailChamados, lerConfigChamados, listarEmailsChamados,
   removerEmailChamados, salvarConfigChamados,
-} from '../../../services/api/chamados.js?v=20261125-deploy';
-import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261125-deploy';
-import { EstadoErro, Icone } from './comum.js?v=20261125-deploy';
+} from '../../../services/api/chamados.js?v=20261125-acessos-salvar';
+import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261125-acessos-salvar';
+import { EstadoErro, Icone } from './comum.js?v=20261125-acessos-salvar';
 
 // Configurações (`chamados.configurar`): subnavegação à esquerda e uma seção por assunto. Nada fica fixo no código.
 // Alterar um prazo vale só para chamados novos. Cada seção de números tem o seu próprio Salvar.

@@ -112,6 +112,11 @@ def get_current_user(
     modulo_aberto = _modulo_do_pedido(request)
     if modulo_aberto != user.modulo_aberto:
         user = replace(user, modulo_aberto=modulo_aberto)
+    # Seletor de operação do topo (25/nov/2026): na Operação, só a operação escolhida (filtro no servidor).
+    if modulo_aberto == MODULO_OPERACAO and request is not None:
+        from .services import operacao_escolhida
+
+        user = operacao_escolhida.aplicar(user, request.headers.get(operacao_escolhida.CABECALHO_OPERACAO), modulo_aberto)
     user_id_var.set(str(user.id_usuario or user.username))
     if request is not None:
         # Dependências síncronas rodam em outra thread: o contextvar não volta ao

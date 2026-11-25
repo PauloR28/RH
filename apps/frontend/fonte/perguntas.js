@@ -2,8 +2,8 @@
   getQuestoes,
   getQuestoesParaBlueprint,
   obterResumoBancoQuestoes,
-} from './banco-questoes.js?v=20261125-deploy';
-import { ROTULOS_ETAPAS as STAGE_LABELS } from './rotulos-etapas.js?v=20261125-deploy';
+} from './banco-questoes.js?v=20261125-acessos-salvar';
+import { ROTULOS_ETAPAS as STAGE_LABELS } from './rotulos-etapas.js?v=20261125-acessos-salvar';
 
 function wordQ(
   stageKey,

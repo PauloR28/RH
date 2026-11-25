@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261125-deploy';
+import { criarLogger } from '../../logger.js?v=20261125-acessos-salvar';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 
@@ -300,6 +300,15 @@ function lerModuloAberto(token) {
   }
 }
 
+function lerOperacaoAberta(token) {
+  try {
+    const salvo = JSON.parse(window.sessionStorage.getItem('conecta_operacao_atual') || 'null');
+    return salvo && salvo.token === token ? String(salvo.chave || '') : '';
+  } catch {
+    return '';
+  }
+}
+
 async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
   const { autenticado = true } = configuracao;
   const headers = new Headers(opcoes.headers || {});
@@ -311,6 +320,9 @@ async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
     // Tecnologia). Mesma chave de modulos/estado.js, lida aqui direto para não criar import circular.
     const modulo = lerModuloAberto(sessao.token);
     if (modulo && !headers.has('X-Conecta-Modulo')) headers.set('X-Conecta-Modulo', modulo);
+    // Seletor de operação do topo (25/11/2026): na Operação, o servidor devolve só a operação escolhida.
+    const operacao = modulo === 'operacao' ? lerOperacaoAberta(sessao.token) : '';
+    if (operacao && !headers.has('X-Conecta-Operacao')) headers.set('X-Conecta-Operacao', operacao);
   }
 
   let resposta;
