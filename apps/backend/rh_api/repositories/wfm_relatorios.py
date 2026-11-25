@@ -24,10 +24,12 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from ..alcance import EQUIPE, alcance
+from ..services import monitoria_indicadores as mi
 from ..services import wfm_scope
 from ..services.helpers import normalize_text
 from ..services.monitoria_export import gerar_csv, gerar_xlsx
 from ..services.wfm_montagem import EventoCalendario, horario_efetivo
+from .monitoria_schema import SQL_MONITORIA_NAO_EXCLUIDA
 
 MAX_DIAS = 366
 TIPOS = ("resumo", "escalas", "escalados", "presencas", "trocas", "aprovacoes")  # relatórios em tabela (exportáveis)
@@ -83,6 +85,19 @@ def _hhmm(horas: Any) -> str:
 
 def _pausas_texto(pausas: list[dict]) -> str:
     return "; ".join(f"{p['tipo']} {p['inicio']} ({p['duracao_min']} min)" for p in pausas) or "—"
+
+
+def _pausas_horarios(pausas: list[dict]) -> str:
+    """Horários previstos das pausas do dia, de início a fim: "10:00–10:10 · 12:30–12:50"."""
+    def faixa(p: dict) -> str:
+        try:
+            h, m = (int(x) for x in str(p["inicio"])[:5].split(":"))
+        except ValueError:
+            return str(p["inicio"])
+        fim = (h * 60 + m + int(p["duracao_min"])) % 1440
+        return f"{h:02d}:{m:02d}–{fim // 60:02d}:{fim % 60:02d}"
+
+    return " · ".join(faixa(p) for p in pausas) or "—"
 
 
 def _meses(ini: date, fim: date) -> list[str]:
@@ -150,6 +165,8 @@ class WfmRelatoriosRepositoryMixin:
 
         presencas: dict[tuple[int, date], dict] = {}
         extras: dict[tuple[int, date], int] = {}
+        pausas: dict[tuple[int, date], list[dict]] = {}
+        monitorias: dict[int, list[dict]] | None = None  # None = quem pede não vê monitorias (colunas ficam de fora)
         if ids:
             marc = ",".join("?" for _ in ids)
             cursor.execute(
@@ -164,6 +181,24 @@ class WfmRelatoriosRepositoryMixin:
             )
             for r in cursor.fetchall():
                 extras[(int(r[0]), r[1])] = int(r[2])
+            # Escala de pausas (horários PREVISTOS do dia). O Conecta não registra a pausa realmente tirada (isso é da telefonia).
+            cursor.execute(
+                f"SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marc}) "
+                "ORDER BY data, id_operador, ordem",
+                (operacao, ini, fim, *ids),
+            )
+            for r in cursor.fetchall():
+                pausas.setdefault((int(r[0]), r[1]), []).append({"tipo": normalize_text(r[2]), "inicio": normalize_text(r[3]), "duracao_min": int(r[4])})
+            # Monitorias do período (só para quem pode consultar monitorias): quantidade e notas por operador, na operação da escala.
+            if getattr(user, "has_permission", None) and user.has_permission("monitoria.visualizar"):
+                monitorias = {i: [] for i in ids}
+                cursor.execute(
+                    f"SELECT m.id_operador, m.nota, m.anulada FROM dbo.monitorias m WHERE m.operacao = ? AND CAST(m.data_monitoria AS DATE) BETWEEN ? AND ? "  # nosec B608
+                    f"AND m.id_operador IN ({marc}) AND {SQL_MONITORIA_NAO_EXCLUIDA}",
+                    (wfm_scope.operacao_base(operacao), ini, fim, *ids),
+                )
+                for r in cursor.fetchall():
+                    monitorias.setdefault(int(r[0]), []).append({"id_operador": int(r[0]), "nota": float(r[1]), "anulada": bool(r[2])})
 
         # Trocas: Supervisor só as da própria equipe; filtro por operador vale para solicitante ou colega.
         cursor.execute(
@@ -208,7 +243,7 @@ class WfmRelatoriosRepositoryMixin:
         ]
         return {
             "operadores": operadores, "nomes": nomes, "dias_escala": dias_escala, "presencas": presencas, "extras": extras,
-            "versoes": versoes, "trocas": trocas, "aprovacoes": aprovacoes,
+            "pausas": pausas, "monitorias": monitorias, "versoes": versoes, "trocas": trocas, "aprovacoes": aprovacoes,
         }
 
     def _wfm_rel_detalhar_trocas(self, cursor, operacao: str, trocas: list[dict], modelos: dict) -> None:
@@ -291,6 +326,7 @@ class WfmRelatoriosRepositoryMixin:
     def _wfm_rel_resumo(self, dado: dict, anterior: dict | None = None) -> tuple[list[dict], list[dict], list[dict], list[str]]:
         por_op = self._wfm_rel_agregar(dado)
         antes = {nome: v for v in (self._wfm_rel_agregar(anterior).values() if anterior else []) for nome in [v["operador"]]}
+        com_monitoria = dado.get("monitorias") is not None
         linhas = []
         for id_op, linha in sorted(por_op.items(), key=lambda x: x[1]["operador"]):
             ant = antes.get(linha["operador"])
@@ -305,11 +341,16 @@ class WfmRelatoriosRepositoryMixin:
                 "variacao_horas": _horas((linha["horas_trabalhadas"] + linha["extras"]) - horas_ant) if horas_ant is not None else None,
                 "absenteismo": round(100 * (linha["faltas"] + linha["justificadas"]) / apurados, 1) if apurados else None,
             })
+            if com_monitoria:
+                validas = [m for m in dado["monitorias"].get(id_op, []) if mi.eh_valida(m)]
+                linhas[-1]["monitorias"] = len(validas)
+                linhas[-1]["nota_media"] = round(sum(m["nota"] for m in validas) / len(validas), 2) if validas else None
         colunas = [
             _col("operador", "Operador"), _col("equipe", "Equipe"), _col("dias_escalados", "Dias escalados", "numero"), _col("horas_escaladas", "Horas escaladas", "horas"),
             _col("presencas", "Presenças", "numero"), _col("faltas", "Faltas", "numero"), _col("faltas_justificadas", "Faltas justificadas", "numero"),
             _col("atestados", "Atestados", "numero"), _col("outras_ausencias", "Outras ausências", "numero"), _col("sem_lancamento", "Sem lançamento", "numero"), _col("horas_trabalhadas", "Horas trabalhadas", "horas"),
             _col("horas_extras", "Horas extras", "horas"), _col("total_horas", "Total de horas", "horas"), _col("trocas_aprovadas", "Trocas aprovadas", "numero"),
+            *([_col("monitorias", "Monitorias", "numero"), _col("nota_media", "Nota média", "media")] if com_monitoria else []),
             _col("absenteismo", "Absenteísmo (%)", "percentual"), _col("variacao_horas", "Δ horas vs. período anterior", "variacao"),
         ]
         soma = lambda k: sum(l[k] for l in linhas)  # noqa: E731
@@ -326,6 +367,9 @@ class WfmRelatoriosRepositoryMixin:
             *CALCULO_COMUM,
             "Horas trabalhadas = horas dos dias lançados como Presente; atestado e falta não contam como trabalhadas. Total = trabalhadas + horas extras.",
             "Absenteísmo = (faltas + faltas justificadas) ÷ dias de trabalho com presença apurada. Dias sem lançamento não entram na conta.",
+            "Trocas aprovadas = trocas de plantão aprovadas no período em que o operador é uma das duas partes.",
+            *(["Monitorias = monitorias válidas feitas no período (anuladas e excluídas ficam de fora). Nota média = média dessas notas (com NCG, a nota é 0)."]
+              if com_monitoria else []),
         ]
         return colunas, linhas, resumo, calculo
 
@@ -465,18 +509,21 @@ class WfmRelatoriosRepositoryMixin:
             troca = troca_do_dia.get((d["id_operador"], d["data"]))
             linhas.append({
                 "data": _br(d["data"]), "dia": SEMANA[d["data"].weekday()], "operador": dado["nomes"][d["id_operador"]], "equipe": equipes.get(d["id_operador"], ""),
-                "escala": d["codigo"], "horario": f"{d['entrada']}–{d['saida']}", "status_troca": "Sim" if troca else "Não",
+                "escala": d["codigo"], "horario": f"{d['entrada']}–{d['saida']}",
+                "pausas": _pausas_horarios(dado.get("pausas", {}).get((d["id_operador"], d["data"]), [])),
+                "presenca": ROTULO_STATUS[self._wfm_rel_status(dado, d["id_operador"], d["data"])], "status_troca": "Sim" if troca else "Não",
                 "com_quem": troca[0] if troca else "—", "dia_troca": _br(troca[1]) if troca else "—",
             })
         colunas = [_col("data", "Data"), _col("dia", "Dia"), _col("operador", "Operador"), _col("equipe", "Equipe"), _col("escala", "Escala"), _col("horario", "Horário"),
-                   _col("status_troca", "Trocou?", "estado"), _col("com_quem", "Com quem"), _col("dia_troca", "Dia que deu em troca")]
+                   _col("pausas", "Pausas"), _col("presenca", "Presença", "estado"), _col("status_troca", "Trocou?", "estado"), _col("com_quem", "Com quem"), _col("dia_troca", "Dia que deu em troca")]
         trocados = sum(1 for l in linhas if l["status_troca"] == "Sim")
         pct = f"{100 * trocados / len(linhas):.1f}".replace(".", ",") if linhas else "0"
         resumo = [{"rotulo": "Dias escalados", "valor": len(linhas), "dica": "Dias de trabalho no período"},
                   {"rotulo": "Operadores", "valor": len({l["operador"] for l in linhas}), "dica": "Com pelo menos 1 dia na escala"},
                   {"rotulo": "Dias trocados", "valor": trocados, "dica": f"{pct}% dos dias · trocas aprovadas"}]
         calculo = [CALCULO_COMUM[0], "Só dias de trabalho (folga e DSR ficam de fora). \"Trocou?\" considera só trocas aprovadas em que o dia é um dos dois dias da troca.",
-                   "O Supervisor vê a escala completa (todas as equipes)."]
+                   "Pausas = horários previstos na escala de pausas do dia (o Conecta não registra a hora em que a pausa foi de fato tirada).",
+                   "Presença = situação lançada no dia (ou \"Sem lançamento\").", "O Supervisor vê a escala completa (todas as equipes)."]
         return colunas, linhas, resumo, calculo
 
     def _wfm_rel_presencas(self, dado: dict) -> tuple[list[dict], list[dict], list[dict], list[str]]:
@@ -488,17 +535,18 @@ class WfmRelatoriosRepositoryMixin:
             p = dado["presencas"].get((d["id_operador"], d["data"])) or {}
             linhas.append({
                 "data": _br(d["data"]), "operador": dado["nomes"][d["id_operador"]], "turno": d["codigo"], "horario": f"{d['entrada']}–{d['saida']}", "horas_escaladas": _horas(d["minutos"]),
-                "status": ROTULO_STATUS[situacao], "horas_trabalhadas": _horas(d["minutos"]) if situacao == "PRESENTE" else 0,
+                "pausas": _pausas_horarios(dado.get("pausas", {}).get((d["id_operador"], d["data"]), [])), "status": ROTULO_STATUS[situacao], "horas_trabalhadas": _horas(d["minutos"]) if situacao == "PRESENTE" else 0,
                 "horas_extras": _horas(dado["extras"].get((d["id_operador"], d["data"]), 0)), "observacao": p.get("observacao", ""), "lancado_por": p.get("lancado_por", ""),
             })
         colunas = [_col("data", "Data"), _col("operador", "Operador"), _col("turno", "Turno"), _col("horario", "Horário"), _col("horas_escaladas", "Horas escaladas", "horas"),
-                   _col("status", "Presença", "estado"), _col("horas_trabalhadas", "Horas trabalhadas", "horas"), _col("horas_extras", "Horas extras", "horas"),
+                   _col("pausas", "Pausas"), _col("status", "Presença", "estado"), _col("horas_trabalhadas", "Horas trabalhadas", "horas"), _col("horas_extras", "Horas extras", "horas"),
                    _col("observacao", "Observação"), _col("lancado_por", "Lançado por")]
         cont = lambda s: sum(1 for l in linhas if l["status"] == ROTULO_STATUS[s])  # noqa: E731
         resumo = [{"rotulo": "Dias de trabalho", "valor": len(linhas)}, {"rotulo": "Presenças", "valor": cont("PRESENTE")},
                   {"rotulo": "Faltas", "valor": cont("FALTA") + cont("FALTA_JUSTIFICADA")}, {"rotulo": "Atestados", "valor": cont("ATESTADO")},
                   {"rotulo": "Outras ausências", "valor": sum(cont(s) for s in OUTRAS_AUSENCIAS)}, {"rotulo": "Sem lançamento", "valor": cont("SEM_LANCAMENTO")}]
-        calculo = [*CALCULO_COMUM, "Só aparecem dias de trabalho (folga e DSR ficam de fora). Sem presença lançada = \"Sem lançamento\"."]
+        calculo = [*CALCULO_COMUM, "Só aparecem dias de trabalho (folga e DSR ficam de fora). Sem presença lançada = \"Sem lançamento\".",
+                   "Pausas = horários previstos na escala de pausas do dia (o Conecta não registra a hora em que a pausa foi de fato tirada)."]
         return colunas, linhas, resumo, calculo
 
     def _wfm_rel_trocas(self, dado: dict) -> tuple[list[dict], list[dict], list[dict], list[str]]:

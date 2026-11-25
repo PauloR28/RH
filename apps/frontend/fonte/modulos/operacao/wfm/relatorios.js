@@ -23,7 +23,7 @@ const VISOES = [
   { id: 'trocas', rotulo: 'Trocas', icone: 'compare_arrows', dica: 'Pedidos, aprovações e reprovações' },
   { id: 'aprovacoes', rotulo: 'Aprovações', icone: 'verified', dica: 'Envio, aprovação, declínio e publicação' },
 ];
-const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao'];
+const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 const TAMANHOS = [25, 50, 100];
 const CORES_PRESENCA = ['var(--wfm-g-ok)', 'var(--wfm-g-perigo)', 'var(--wfm-g-aviso)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];
 const CORES_TROCA = ['var(--wfm-g-ok)', 'var(--wfm-g-marca)', 'var(--wfm-g-aviso)', 'var(--wfm-g-perigo)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];

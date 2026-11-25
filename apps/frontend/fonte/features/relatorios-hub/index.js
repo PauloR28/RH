@@ -17,7 +17,7 @@ import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from '
 // Painel e Dashboard abrem na própria seção (↗); se a pessoa não abre a seção, continuam aqui dentro, como antes.
 
 const TAMANHOS = [25, 50, 100];
-const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao'];
+const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 // Permissão de EXPORTAR por relatório (o servidor confere de novo em /relatorios-hub/exportar).
 const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
   : id.startsWith('wfm.') ? 'wfm.relatorios'
@@ -33,7 +33,8 @@ const DESTINO_SECAO = { 'wfm.painel': 'screen-wfm-painel', 'monitoria.dashboard'
 // Colunas que a tela abre DESLIGADAS (amostra aprovada da Fase 12). Os demais relatórios: até 10 colunas, todas; mais
 // que isso, as 8 primeiras. "Colunas" liga o resto e a escolha fica guardada neste navegador, por pessoa.
 const COLUNAS_DESLIGADAS = {
-  'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas', 'Trocas aprovadas'],
+  'wfm.resumo': ['Dias escalados', 'Faltas justificadas', 'Atestados', 'Outras ausências', 'Horas extras', 'Total de horas'],
+  'wfm.escalados': [],
   'wfm.escalas': ['Aprovada por'],
   'diario.dias': ['Situação', 'Início do dia', 'Encerramento', 'Envio ao grupo', 'Passagem', 'Abertura', 'Intermediário', 'Fechamento'],
   'diario.intercorrencias': ['Registrado por'],
@@ -95,7 +96,9 @@ const COLUNA_DO_FILTRO = {
 const ROTULO_FILTRO = { equipe: 'Equipe', supervisor: 'Supervisor', operador: 'Operador', status: 'Status' };
 
 // Escolha de colunas guardada no navegador (conveniência; se o navegador não guardar, volta ao padrão).
-const chaveColunas = (usuario, id) => `c24_relhub_colunas:${usuario || 'anon'}:${id}`;
+// Relatório que ganhou colunas novas: a escolha antiga volta uma vez ao padrão, para as colunas novas aparecerem.
+const VERSAO_COLUNAS = { 'wfm.resumo': '20261125', 'wfm.escalados': '20261125', 'wfm.presencas': '20261125' };
+const chaveColunas = (usuario, id) => `c24_relhub_colunas:${usuario || 'anon'}:${id}${VERSAO_COLUNAS[id] ? `:${VERSAO_COLUNAS[id]}` : ''}`;
 const lerEscolha = (usuario, id) => { try { const v = JSON.parse(window.localStorage.getItem(chaveColunas(usuario, id)) || 'null'); return Array.isArray(v) ? v : null; } catch { return null; } };
 const gravarEscolha = (usuario, id, rotulos) => { try { window.localStorage.setItem(chaveColunas(usuario, id), JSON.stringify(rotulos)); } catch { /* sem storage */ } };
 function colunasPadrao(id, colunas) {
