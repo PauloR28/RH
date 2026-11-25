@@ -58,3 +58,30 @@
 .c-acessos-alcance td { line-height: normal; padding-top: var(--espaco-2); padding-bottom: var(--espaco-2); }
 .c-acessos-alcance .c-entrada { min-width: 104px; }
 .c-acessos-alcance .c-entrada.is-alterada { border-color: var(--cor-foco-anel); }
+/* Visão "Por perfil" (25/nov/2026): alternador na altura dos botões do cabeçalho; tabela de uma coluna com a ação à esquerda. */
+.c-acessos-pagina .c-pagina-acoes .c-segmento .c-botao { height: var(--altura-controle); }
+.c-acessos-tabela--perfil td, .c-acessos-tabela--perfil thead th:not(:first-child) { width: 160px; }
+.c-acessos-tabela--perfil th[scope='row'], .c-acessos-tabela--perfil thead th:first-child { width: auto; }
+.c-acessos-pagina .c-pagina-acoes { display: flex; align-items: center; gap: var(--espaco-2); }
+.c-acessos-vale--perfil { flex-basis: 200px; }
+.c-acessos-tabela tbody tr:last-child > th, .c-acessos-tabela tbody tr:last-child > td { border-bottom: 0; }
+/* Por perfil · função aberta no lugar da lista (25/nov/2026): ações em 2 colunas, 1 linha cada, cabe numa tela. */
+.c-acessos-det { display: grid; gap: var(--espaco-2); padding: 0 var(--espaco-4); min-width: 0; }
+.c-acessos-det-cab { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espaco-2) var(--espaco-4); min-height: var(--altura-controle); }
+.c-acessos-det-cab strong { font-weight: var(--fonte-peso-semi); }
+.c-acessos-det-cab small { color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); margin-left: var(--espaco-2); }
+.c-acessos-det-alcance { display: inline-flex; align-items: center; gap: var(--espaco-2); color: var(--cor-texto-secundario); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-det-alcance .c-entrada { width: auto; min-width: 120px; }
+.c-acessos-det-alcance .c-entrada.is-alterada { border-color: var(--cor-foco-anel); }
+.c-acessos-grade { list-style: none; margin: 0; padding: var(--espaco-2); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--espaco-4); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio); background: var(--cor-fundo-sutil); }
+.c-acessos-grade li { display: flex; align-items: center; gap: var(--espaco-2); height: var(--altura-controle-compacto); min-width: 0; }
+.c-acessos-grade li span { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-acessos-grade li span.is-sem { color: var(--cor-texto-apagado); }
+@media (max-width: 959.98px) { .c-acessos-grade { grid-template-columns: minmax(0, 1fr); } }
+/* v4 (25/nov): Marcar todas/Limpar no cabeçalho da caixa de ações; Alcance por extenso ("Enxerga"). */
+.c-acessos-det-conta { color: var(--cor-texto-apagado); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-det-alcance .c-entrada { min-width: 184px; }
+.c-acessos-grade-caixa { border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio); background: var(--cor-fundo-sutil); min-width: 0; }
+.c-acessos-grade-caixa .c-acessos-grade { border: 0; border-radius: 0; background: transparent; }
+.c-acessos-grade-cab { display: flex; align-items: center; gap: var(--espaco-2); padding: var(--espaco-1) var(--espaco-2) var(--espaco-1) var(--espaco-4); border-bottom: var(--borda-fina) solid var(--cor-linha-divisoria); color: var(--cor-texto-secundario); font-size: var(--texto-rotulo-tamanho); }
+.c-acessos-grade-cab > span { flex: 1 1 0; }

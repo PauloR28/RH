@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-deploy';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-acessos-perfil';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261125-acessos-perfil';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261125-deploy';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261125-deploy';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-deploy';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261125-deploy';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261125-deploy';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261125-deploy';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261125-deploy';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-deploy';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261125-deploy';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261125-deploy';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-deploy';
+} from '../../app/controlador-aplicacao.js?v=20261125-acessos-perfil';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261125-acessos-perfil';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-acessos-perfil';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261125-acessos-perfil';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261125-acessos-perfil';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261125-acessos-perfil';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-perfil';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261125-acessos-perfil';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-acessos-perfil';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261125-acessos-perfil';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261125-acessos-perfil';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-acessos-perfil';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-deploy';
+} from '../../shared/notificacoes.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-acessos-perfil';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,17 +53,17 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261125-deploy';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261125-deploy';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261125-deploy';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261125-deploy';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-deploy';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261125-deploy';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-deploy';
-import { CentralAcessos } from './central-acessos.js?v=20261125-deploy';
-import { AbaEquipesAdmin } from './equipes-admin.js?v=20261125-deploy';
-import { ConfigPaineis } from './paineis.js?v=20261125-deploy';
+} from './monitoria-config.js?v=20261125-acessos-perfil';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261125-acessos-perfil';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261125-acessos-perfil';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261125-acessos-perfil';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-acessos-perfil';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261125-acessos-perfil';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-acessos-perfil';
+import { CentralAcessos } from './central-acessos.js?v=20261125-acessos-perfil';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261125-acessos-perfil';
+import { ConfigPaineis } from './paineis.js?v=20261125-acessos-perfil';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

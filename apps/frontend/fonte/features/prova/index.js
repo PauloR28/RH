@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-deploy';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-deploy';
+} from '../../perguntas.js?v=20261125-acessos-perfil';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js?v=20261125-deploy';
+} from '../../app/controlador-aplicacao.js?v=20261125-acessos-perfil';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js?v=20261125-deploy';
+} from '../../shared/helpers-visuais.js?v=20261125-acessos-perfil';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261125-acessos-perfil';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-deploy';
+} from '../../shared/process-reference.js?v=20261125-acessos-perfil';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js?v=20261125-deploy';
-import { isProcessClosed } from '../../shared/process-flow.js?v=20261125-deploy';
+} from './services/personalizacao-inteligente.js?v=20261125-acessos-perfil';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261125-acessos-perfil';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

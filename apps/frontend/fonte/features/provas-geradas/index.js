@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-deploy';
+} from '../../perguntas.js?v=20261125-acessos-perfil';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261125-deploy';
+} from '../prova/services/personalizacao-inteligente.js?v=20261125-acessos-perfil';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js?v=20261125-deploy';
+} from '../../regras-prova.js?v=20261125-acessos-perfil';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20261125-deploy';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261125-deploy';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261125-deploy';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261125-deploy';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261125-deploy';
-import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261125-deploy';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261125-deploy';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261125-deploy';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261125-deploy';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-deploy';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-perfil';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261125-acessos-perfil';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-perfil';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261125-acessos-perfil';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261125-acessos-perfil';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261125-acessos-perfil';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261125-acessos-perfil';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261125-acessos-perfil';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261125-acessos-perfil';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261125-acessos-perfil';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-acessos-perfil';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-acessos-perfil';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-acessos-perfil';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';

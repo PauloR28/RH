@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -8,12 +8,12 @@ import {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from '../../servico-api.js?v=20261125-deploy';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-deploy';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-deploy';
-import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-perfil';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-perfil';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-perfil';
+import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
 
 const TIPOS = [
   { valor: 'sequencia_logica', label: 'Sequência lógica' },

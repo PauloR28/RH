@@ -1,12 +1,12 @@
 // Central de Acessos (Etapa 6, desenho aprovado em 12/nov/2026): módulos, funções e permissões dos perfis num lugar só.
 // Rebranding: só peças c- (conecta-ds.css) e tokens; estilos próprios em estilos/central-acessos.css.
 // Fluxo: escolher o módulo > "Vale para" (todos, uma unidade do módulo ou uma pessoa) > clicar nas células > Salvar.
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { definirModuloAtivo } from '../../services/api/modulos.js?v=20261125-deploy';
-import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js?v=20261125-deploy';
-import { JanelaPerfis } from './perfis-janela.js?v=20261125-deploy';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { definirModuloAtivo } from '../../services/api/modulos.js?v=20261125-acessos-perfil';
+import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js?v=20261125-acessos-perfil';
+import { JanelaPerfis } from './perfis-janela.js?v=20261125-acessos-perfil';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-acessos-perfil';
 
 const POR_PAGINA = 5;
 const MODULOS_PADRAO = [{ chave: 'tecnologia', nome: 'Tecnologia', ativo: true, protegido: true }, { chave: 'rh', nome: 'RH', ativo: true }, { chave: 'operacao', nome: 'Operação', ativo: true }];
@@ -21,6 +21,8 @@ const chaveFunc = (funcao) => `f|${funcao}`;
 const chaveAlc = (area, perfil) => `a|${area}|${perfil}`;
 // Alcance (Etapa 6 da reestruturação, 17/nov/2026): 1ª linha da tabela, até onde cada perfil enxerga nesta função.
 const NIVEIS_ALCANCE = [['todos', 'Todos'], ['unidade', 'Unidade'], ['equipe', 'Equipe'], ['proprio', 'Próprio']];
+// Mesmos níveis, escritos por extenso para a visão Por perfil (há espaço).
+const ALCANCE_LONGO = [['todos', 'Todas as operações'], ['unidade', 'Só a operação dele'], ['equipe', 'Só a equipe dele'], ['proprio', 'Só o que é dele']];
 
 export function CentralAcessos({ controlador }) {
   const podeEditar = Boolean(controlador?.possuiPermissao?.('configuracoes.editar'));
@@ -40,6 +42,11 @@ export function CentralAcessos({ controlador }) {
   const [salvando, setSalvando] = useState(false);
   const [confirmarPadronizar, setConfirmarPadronizar] = useState(false);
   const [perfisAberta, setPerfisAberta] = useState(false);
+  // Visão "Por perfil" (25/nov/2026): mesma leitura e mesmo Salvar; só muda a arrumação (um perfil, todas as funções).
+  const [vista, setVista] = useState('funcao');
+  const [perfilSel, setPerfilSel] = useState('');
+  // Por perfil: a função abre NO LUGAR da lista (um nível por vez), para tudo caber numa tela sem rolar.
+  const [detalhe, setDetalhe] = useState('');
 
   const carregar = async (mod = modulo, esc = escopo) => {
     setCarregando(true);
@@ -71,6 +78,16 @@ export function CentralAcessos({ controlador }) {
   const perfis = dados?.perfis || [];
   const tipo = dados?.tipo || 'padrao';
   const perfilPessoa = dados?.perfil_da_pessoa || '';
+  const porPerfil = vista === 'perfil';
+  // Com "Vale para › Uma pessoa", o perfil fica preso ao perfil dela.
+  const perfilAtivo = (tipo === 'pessoa' && perfilPessoa) || (perfis.some((p) => p.id === perfilSel) ? perfilSel : (perfis[0]?.id || ''));
+  const perfisVisiveis = porPerfil ? perfis.filter((p) => p.id === perfilAtivo) : perfis;
+  const nomePerfil = (perfis.find((p) => p.id === perfilAtivo) || {}).nome || '';
+  const trocarVista = (v) => {
+    if (v === vista) return;
+    if (Object.keys(rascunho).length) { setErro('Salve ou desfaça as mudanças antes de trocar a visão.'); return; }
+    setVista(v); setPagina(1); setMostrar('todas'); setAviso(''); setDetalhe('');
+  };
 
   const ligada = (f) => (rascunho[chaveFunc(f.id)] !== undefined ? rascunho[chaveFunc(f.id)] : f.ligada);
   const valor = (f, acao, perfil) => {
@@ -86,17 +103,19 @@ export function CentralAcessos({ controlador }) {
     });
   };
 
+  const doPerfil = (f) => (porPerfil && ligada(f) ? f.acoes.filter((a) => valor(f, a, perfilAtivo)).length : 0);
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return funcoes
-      .filter((f) => (mostrar === 'todas' || ligada(f)) && (!termo || f.nome.toLowerCase().includes(termo)))
-      .sort((a, b) => Number(ligada(b)) - Number(ligada(a)) || a.n - b.n);
-  }, [funcoes, busca, mostrar, rascunho]);
+      .filter((f) => (mostrar === 'todas' || (mostrar === 'com' ? doPerfil(f) > 0 : ligada(f))) && (!termo || f.nome.toLowerCase().includes(termo)))
+      .sort((a, b) => Number(ligada(b)) - Number(ligada(a)) || Number(doPerfil(b) > 0) - Number(doPerfil(a) > 0) || a.n - b.n);
+  }, [funcoes, busca, mostrar, rascunho, vista, perfilAtivo]);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const inicio = (paginaAtual - 1) * POR_PAGINA;
   const visiveis = filtradas.slice(inicio, inicio + POR_PAGINA);
   const nLigadas = funcoes.filter((f) => ligada(f)).length;
+  const nComAcesso = porPerfil ? funcoes.filter((f) => doPerfil(f) > 0).length : 0;
   const pendentes = Object.keys(rascunho).length;
 
   const salvar = async () => {
@@ -155,6 +174,7 @@ export function CentralAcessos({ controlador }) {
           <p>Escolha um módulo, depois diga para quem vale a regra. O que você salvar vale na hora, sem sair e entrar de novo.</p>
         </div>
         <div class="c-pagina-acoes">
+          <${Segmento} rotulo="Ver por" valor=${vista} aoMudar=${trocarVista} opcoes=${[['funcao', 'Por função'], ['perfil', 'Por perfil']]} />
           <button type="button" class="c-botao c-botao--secundario" onClick=${() => setPerfisAberta(true)}><${Ic} nome="users" />Perfis</button>
         </div>
       </div>
@@ -177,15 +197,20 @@ export function CentralAcessos({ controlador }) {
               </div>
             </li>`)}
           </ul>
-          <p class="c-acessos-nota">Um módulo novo aparece nesta lista sozinho, com as 49 funções listadas. Você liga as que ele usa.</p>
+          <p class="c-acessos-nota">Um módulo novo aparece nesta lista sozinho, com as ${funcoes.length || 64} funções listadas. Você liga as que ele usa.</p>
         </section>
 
         <section class="c-cartao c-acessos-detalhe" aria-label=${`Acessos de ${nomeModulo}`}>
           <div class="c-acessos-detalhe-cab">
             <div class="c-acessos-cresce">
               <h2>${nomeModulo} ${(modulos.find((m) => m.chave === modulo) || {}).protegido ? html`<${Selo} tom="neutro">Base</${Selo}>` : html`<${Selo} tom="sucesso">Ligado</${Selo}>`}</h2>
-              <p>Abra uma função para ver o que cada perfil pode fazer. A chave ao lado do nome liga ou desliga a função.</p>
+              <p>${porPerfil ? `O que ${nomePerfil} pode fazer.` : 'Abra uma função para ver o que cada perfil pode fazer. A chave ao lado do nome liga ou desliga a função.'}</p>
             </div>
+            ${porPerfil ? html`<label class="c-campo c-acessos-vale c-acessos-vale--perfil"><span class="c-rotulo">Perfil</span>
+              <select class="c-entrada" value=${perfilAtivo} disabled=${tipo === 'pessoa'} onChange=${(e) => { setPerfilSel(e.target.value); setPagina(1); }}>
+                ${perfis.map((p) => html`<option key=${p.id} value=${p.id}>${p.nome}</option>`)}
+              </select>
+            </label>` : null}
             <label class="c-campo c-acessos-vale"><span class="c-rotulo">Vale para</span>
               <select class="c-entrada" value=${escopo} onChange=${(e) => trocarEscopo(e.target.value)}>
                 <option value="padrao">Todos (padrão de ${nomeModulo})</option>
@@ -195,6 +220,38 @@ export function CentralAcessos({ controlador }) {
             </label>
           </div>
 
+          ${porPerfil && detalhe && funcoes.find((x) => x.id === detalhe) ? (() => {
+    const f = funcoes.find((x) => x.id === detalhe);
+    const on = ligada(f);
+    const n = doPerfil(f);
+    const marcarTodas = (v) => f.acoes.forEach((a) => alternar(chavePerm(f.id, a.chave, perfilAtivo), v, Boolean(a.valores?.[perfilAtivo])));
+    const k = f.alcance ? chaveAlc(f.alcance.area, perfilAtivo) : '';
+    const alcOriginal = f.alcance ? (f.alcance.valores?.[perfilAtivo] || 'unidade') : '';
+    return html`<div class="c-acessos-det">
+            <div class="c-acessos-det-cab">
+              <button type="button" class="c-botao c-botao--secundario c-botao--compacto" onClick=${() => setDetalhe('')}><${Ic} nome="caret-left" />Funções</button>
+              <strong>${f.nome}</strong>
+              <span class="c-acessos-det-conta">${n} de ${f.acoes.length} ações</span>
+              <span class="c-acessos-cresce"></span>
+              ${f.alcance ? html`<label class="c-acessos-det-alcance" title="Até onde ${nomePerfil} enxerga os dados desta função"><span>Enxerga</span><select class=${`c-entrada c-entrada--compacta ${rascunho[k] !== undefined ? 'is-alterada' : ''}`.trim()} value=${rascunho[k] !== undefined ? rascunho[k] : alcOriginal}
+                disabled=${!podeEditar || !on} aria-label=${`${f.nome}: o que ${nomePerfil} enxerga`} onChange=${(e) => alternar(k, e.target.value, alcOriginal)}>${ALCANCE_LONGO.map(([v, t]) => html`<option key=${v} value=${v}>${t}</option>`)}</select></label>` : null}
+            </div>
+            <div class="c-acessos-grade-caixa">
+              <div class="c-acessos-grade-cab">
+                <span>Ações</span>
+                <button type="button" class="c-botao c-botao--texto c-botao--compacto" disabled=${!podeEditar || !on || n === f.acoes.length} onClick=${() => marcarTodas(true)}><${Ic} nome="check" />Marcar todas</button>
+                <button type="button" class="c-botao c-botao--texto c-botao--compacto" disabled=${!podeEditar || !on || n === 0} onClick=${() => marcarTodas(false)}><${Ic} nome="x" />Limpar</button>
+              </div>
+            ${f.acoes.length ? html`<ul class="c-acessos-grade">${f.acoes.map((a) => {
+    const v = valor(f, a, perfilAtivo);
+    const ck = chavePerm(f.id, a.chave, perfilAtivo);
+    return html`<li key=${a.chave}><button type="button" class=${`c-acessos-cel ${v ? 'is-pode' : ''} ${rascunho[ck] !== undefined ? 'is-alterada' : ''}`.trim()} disabled=${!podeEditar || !on}
+                aria-pressed=${v ? 'true' : 'false'} aria-label=${`${a.nome}: ${v ? 'pode' : 'não pode'}`} onClick=${() => alternar(ck, !v, Boolean(a.valores?.[perfilAtivo]))}>${v ? html`<${Ic} nome="check" />` : html`<span aria-hidden="true">–</span>`}</button>
+                <span class=${v ? '' : 'is-sem'} title=${a.nome}>${a.nome}</span></li>`;
+  })}</ul>` : html`<p class="c-acessos-vazio">Esta função não tem ações próprias.</p>`}
+            </div>
+          </div>`;
+  })() : html`
           <div class="c-faixa c-faixa--informacao c-acessos-faixa">
             <${Ic} nome="info" />
             <div class="c-faixa-txt"><p>${textoEscopo}</p></div>
@@ -212,12 +269,12 @@ export function CentralAcessos({ controlador }) {
           <div class="c-acessos-barra">
             <label class="c-com-icone c-acessos-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada" type="search" placeholder="Buscar função" aria-label="Buscar função" value=${busca} onInput=${(e) => { setBusca(e.target.value); setPagina(1); }} /></label>
             <${Segmento} rotulo="Mostrar" valor=${mostrar} aoMudar=${(v) => { setMostrar(v); setPagina(1); }}
-              opcoes=${[['todas', 'Todas', funcoes.length], ['ligadas', 'Ligadas', nLigadas]]} />
+              opcoes=${porPerfil ? [['todas', 'Todas', funcoes.length], ['com', 'Com acesso', nComAcesso]] : [['todas', 'Todas', funcoes.length], ['ligadas', 'Ligadas', nLigadas]]} />
             <span class="c-acessos-cresce"></span>
-            <button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => {
+            ${porPerfil ? null : html`<button type="button" class="c-botao c-botao--texto c-botao--compacto" onClick=${() => {
               const fechar = visiveis.every((f) => abertas[f.id]);
               setAbertas((a) => ({ ...a, ...Object.fromEntries(visiveis.map((f) => [f.id, !fechar])) }));
-            }}>${visiveis.length && visiveis.every((f) => abertas[f.id]) ? 'Fechar todas' : 'Abrir todas'}</button>
+            }}>${visiveis.length && visiveis.every((f) => abertas[f.id]) ? 'Fechar todas' : 'Abrir todas'}</button>`}
           </div>
 
           ${carregando && !dados ? html`<div class="c-esqueleto" aria-busy="true"></div>` : html`<ul class="c-acessos-funcoes">
@@ -229,20 +286,21 @@ export function CentralAcessos({ controlador }) {
     return html`<li key=${f.id} class=${`c-acessos-funcao ${on ? '' : 'is-desligada'}`.trim()}>
                 <div class="c-acessos-funcao-cab">
                   <button type="button" class="c-botao c-botao--texto c-botao--icone c-botao--compacto" aria-expanded=${aberta ? 'true' : 'false'}
-                    aria-label=${`${aberta ? 'Fechar' : 'Abrir'} ${f.nome}`} onClick=${() => setAbertas((a) => ({ ...a, [f.id]: !aberta }))}><${Ic} nome=${aberta ? 'caret-down' : 'caret-right'} /></button>
-                  <button type="button" class="c-acessos-funcao-nome" onClick=${() => setAbertas((a) => ({ ...a, [f.id]: !aberta }))}>
+                    aria-label=${`${aberta ? 'Fechar' : 'Abrir'} ${f.nome}`} onClick=${() => (porPerfil ? setDetalhe(f.id) : setAbertas((a) => ({ ...a, [f.id]: !aberta })))}><${Ic} nome=${aberta ? 'caret-down' : 'caret-right'} /></button>
+                  <button type="button" class="c-acessos-funcao-nome" onClick=${() => (porPerfil ? setDetalhe(f.id) : setAbertas((a) => ({ ...a, [f.id]: !aberta })))}>
                     <strong>${f.nome}</strong>${f.base ? html` <${Selo} tom="neutro">Base</${Selo}>` : f.futura ? html` <${Selo} tom="informacao">Futura</${Selo}>` : null}
-                    <small>${on ? (f.acoes.length ? `${f.acoes.length} ${f.acoes.length === 1 ? 'ação' : 'ações'}` : (f.futura ? 'Ainda não existe no Conecta' : 'Sem ações próprias')) : (f.ligada_no_modulo ? 'Desligada nesta unidade. Nenhum perfil tem acesso.' : `Desligada em ${nomeModulo}. Nenhum perfil tem acesso.`)}</small>
+                    <small>${on && porPerfil && f.acoes.length ? `${doPerfil(f)} de ${f.acoes.length} ${f.acoes.length === 1 ? 'ação' : 'ações'} para ${nomePerfil}` : on ? (f.acoes.length ? `${f.acoes.length} ${f.acoes.length === 1 ? 'ação' : 'ações'}` : (f.futura ? 'Ainda não existe no Conecta' : 'Sem ações próprias')) : (f.ligada_no_modulo ? 'Desligada nesta unidade. Nenhum perfil tem acesso.' : `Desligada em ${nomeModulo}. Nenhum perfil tem acesso.`)}</small>
                   </button>
-                  ${travada ? html`<span class="c-acessos-cadeado"><${Ic} nome="lock" />Sempre ligada</span>`
+                  ${porPerfil ? (on ? null : html`<span class="c-acessos-cadeado" title="A função liga e desliga na visão Por função"><${Ic} nome="lock" />Desligada</span>`)
+    : travada ? html`<span class="c-acessos-cadeado"><${Ic} nome="lock" />Sempre ligada</span>`
     : semChave ? (tipo === 'unidade' ? html`<span class="c-acessos-cadeado" title="Ligue primeiro no padrão do módulo"><${Ic} nome="lock" />Desligada no módulo</span>` : null)
       : html`<label class="c-interruptor"><input type="checkbox" checked=${on} disabled=${!podeEditar} aria-label=${`${f.nome} ligada`} onChange=${(e) => alternar(chaveFunc(f.id), e.target.checked, f.ligada)} /></label>`}
                 </div>
                 ${aberta ? html`<div class="c-acessos-funcao-corpo">
-                  ${f.acoes.length ? html`<div class="c-tabela-caixa c-acessos-tabela"><table class="c-tabela c-tabela--compacta">
-                    <thead><tr><th scope="col">Ação</th>${perfis.map((p) => html`<th key=${p.id} scope="col">${p.nome}</th>`)}</tr></thead>
+                  ${f.acoes.length ? html`<div class=${`c-tabela-caixa c-acessos-tabela ${porPerfil ? 'c-acessos-tabela--perfil' : ''}`.trim()}><table class="c-tabela c-tabela--compacta">
+                    <thead><tr><th scope="col">Ação</th>${perfisVisiveis.map((p) => html`<th key=${p.id} scope="col">${p.nome}</th>`)}</tr></thead>
                     <tbody>${f.alcance ? html`<tr class="c-acessos-alcance"><th scope="row">Alcance <small>(o que enxerga)</small></th>
-                      ${perfis.map((p) => {
+                      ${perfisVisiveis.map((p) => {
     const k = chaveAlc(f.alcance.area, p.id);
     const original = f.alcance.valores?.[p.id] || 'unidade';
     const atual = rascunho[k] !== undefined ? rascunho[k] : original;
@@ -250,7 +308,7 @@ export function CentralAcessos({ controlador }) {
                           disabled=${!podeEditar || !on} aria-label=${`${f.nome}, alcance de ${p.nome}`} onChange=${(e) => alternar(k, e.target.value, original)}>
                           ${NIVEIS_ALCANCE.map(([v, t]) => html`<option key=${v} value=${v}>${t}</option>`)}</select></td>`;
   })}</tr>` : null}${f.acoes.map((a) => html`<tr key=${a.chave}><th scope="row" title=${a.chave}>${a.nome}</th>
-                      ${perfis.map((p) => {
+                      ${perfisVisiveis.map((p) => {
     const v = valor(f, a, p.id);
     const original = Boolean(a.valores?.[p.id]);
     const difere = tipo !== 'padrao' && v !== Boolean(a.padrao?.[p.id]);
@@ -273,6 +331,7 @@ export function CentralAcessos({ controlador }) {
             <button type="button" class="c-botao c-botao--secundario c-botao--compacto" disabled=${paginaAtual === totalPaginas} aria-label="Próxima página" onClick=${() => setPagina(paginaAtual + 1)}>›</button>
           </nav>` : null}
 
+          `}
           <div class="c-acessos-salvar">
             <span class="c-acessos-cresce">${pendentes ? `${pendentes} ${pendentes === 1 ? 'mudança' : 'mudanças'} sem salvar` : 'Nenhuma mudança.'}</span>
             <button type="button" class="c-botao c-botao--secundario" disabled=${!pendentes || salvando} onClick=${() => { setRascunho({}); setErro(''); }}>Desfazer</button>

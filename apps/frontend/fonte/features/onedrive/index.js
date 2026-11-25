@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   baixarArquivoOneDrive,
   criarPastaOneDrive,
@@ -6,8 +6,8 @@ import {
   excluirItemOneDrive,
   listarArquivosOneDrive,
   obterPreviewOneDrive,
-} from '../../servico-api.js?v=20261125-deploy';
-import { baixarBlob } from '../../utilitarios.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-perfil';
+import { baixarBlob } from '../../utilitarios.js?v=20261125-acessos-perfil';
 import {
   EmptyState,
   LoadingState,
@@ -18,9 +18,9 @@ import {
   SectionCard,
   Table,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
 
 const CHAVE_MODO_VISUALIZACAO = 'rh_onedrive_modo_visualizacao_v1';
 

@@ -6,7 +6,7 @@
  */
 
 
-import { requisitar, invalidarCacheApi } from './services/api/core.js?v=20261125-deploy';
+import { requisitar, invalidarCacheApi } from './services/api/core.js?v=20261125-acessos-perfil';
 
 export async function criarBancoTalentos(dadosCandidato) {
   const { id_banco, ...payload } = dadosCandidato || {};
@@ -32,7 +32,7 @@ export {
   lerSessaoAutenticacao,
   possuiSessaoAutenticada,
   salvarSessaoAutenticacao,
-} from './services/api/core.js?v=20261125-deploy';
+} from './services/api/core.js?v=20261125-acessos-perfil';
 export {
   aprovarSolicitacaoAlteracaoEmailApi,
   ativarLoginLocalApi,
@@ -49,14 +49,14 @@ export {
   rejeitarSolicitacaoAlteracaoEmailApi,
   solicitarAlteracaoEmailApi,
   verificarSessaoApi,
-} from './services/api/auth.js?v=20261125-deploy';
+} from './services/api/auth.js?v=20261125-acessos-perfil';
 export {
   lerArquivosResposta,
   lerHistorico,
   lerHistoricoPaginado,
   salvarArquivoResposta,
   salvarHistorico,
-} from './services/api/history.js?v=20261125-deploy';
+} from './services/api/history.js?v=20261125-acessos-perfil';
 export {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -83,7 +83,7 @@ export {
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
   salvarRespostasConectaProvas,
-} from './services/api/generated-exams.js?v=20261125-deploy';
+} from './services/api/generated-exams.js?v=20261125-acessos-perfil';
 export {
   atualizarBlocoDisc,
   criarAplicacaoDisc,
@@ -93,7 +93,7 @@ export {
   lerAplicacaoDiscPublica,
   lerResultadoDiscCandidato,
   listarBlocosDisc,
-} from './services/api/disc.js?v=20261125-deploy';
+} from './services/api/disc.js?v=20261125-acessos-perfil';
 export {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -101,7 +101,7 @@ export {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from './services/api/fit-cultural.js?v=20261125-deploy';
+} from './services/api/fit-cultural.js?v=20261125-acessos-perfil';
 export {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -113,7 +113,7 @@ export {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from './services/api/raciocinio-logico.js?v=20261125-deploy';
+} from './services/api/raciocinio-logico.js?v=20261125-acessos-perfil';
 export {
   adicionarCvManualCaixaEmail,
   adicionarPreAnaliseAoProcesso,
@@ -175,11 +175,11 @@ export {
   cancelarProcesso,
   excluirEmailRecebido,
   vincularEmailRecebidoProcesso,
-} from './services/api/processes.js?v=20261125-deploy';
+} from './services/api/processes.js?v=20261125-acessos-perfil';
 export {
   enviarCandidaturaPublica,
   lerPaginaPublicaCandidatura,
-} from './services/api/public-candidacy.js?v=20261125-deploy';
+} from './services/api/public-candidacy.js?v=20261125-acessos-perfil';
 export {
   baixarRelatorioCandidatos,
   baixarRelatorioProcessos,
@@ -188,7 +188,7 @@ export {
   lerFunilDashboard,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from './services/api/analytics.js?v=20261125-deploy';
+} from './services/api/analytics.js?v=20261125-acessos-perfil';
 export {
   compararResultadosAnaliticos,
   lerConfiguracaoResultadosAnaliticosProcesso,
@@ -198,13 +198,13 @@ export {
   salvarPerfilIdealResultadosAnaliticos,
   salvarPesosResultadosAnaliticos,
   salvarMapeamentosResultadosAnaliticos,
-} from './services/api/exam-analytics.js?v=20261125-deploy';
+} from './services/api/exam-analytics.js?v=20261125-acessos-perfil';
 export {
   criarCardPipeline,
   excluirCardPipeline,
   lerPipelineCandidatos,
   moverCardPipeline,
-} from './services/api/pipeline.js?v=20261125-deploy';
+} from './services/api/pipeline.js?v=20261125-acessos-perfil';
 export {
   agendarEntrevista,
   atualizarEntrevista,
@@ -213,7 +213,7 @@ export {
   excluirSlotEntrevista,
   lerEntrevistas,
   lerSlotsEntrevista,
-} from './services/api/interviews.js?v=20261125-deploy';
+} from './services/api/interviews.js?v=20261125-acessos-perfil';
 export {
   baixarArquivoOneDrive,
   criarPastaOneDrive,
@@ -221,11 +221,11 @@ export {
   excluirItemOneDrive,
   listarArquivosOneDrive,
   obterPreviewOneDrive,
-} from './services/api/onedrive.js?v=20261125-deploy';
+} from './services/api/onedrive.js?v=20261125-acessos-perfil';
 export {
   enviarEmail,
   listarModelosEmail,
-} from './services/api/email-send.js?v=20261125-deploy';
+} from './services/api/email-send.js?v=20261125-acessos-perfil';
 export {
   alterarStatusUsuario,
   atualizarAutomacaoNotificacoes,
@@ -246,14 +246,14 @@ export {
   listarUsuarios,
   redefinirSenhaUsuario,
   registrarSolicitacaoLgpd,
-} from './services/api/settings.js?v=20261125-deploy';
+} from './services/api/settings.js?v=20261125-acessos-perfil';
 export {
   atualizarPolitica,
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
   criarPolitica,
   listarPoliticas,
-} from './services/api/policies.js?v=20261125-deploy';
+} from './services/api/policies.js?v=20261125-acessos-perfil';
 export {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -263,7 +263,7 @@ export {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from './services/api/calendar.js?v=20261125-deploy';
+} from './services/api/calendar.js?v=20261125-acessos-perfil';
 export {
   atualizarAgendaTreinamento,
   atualizarTrilhaOnboarding,
@@ -295,14 +295,14 @@ export {
   uploadSlideTreinamento,
   uploadVideoModulo,
   validarModuloJson,
-} from './services/api/onboarding.js?v=20261125-deploy';
+} from './services/api/onboarding.js?v=20261125-acessos-perfil';
 export {
   excluirNotificacao,
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   marcarTodasNotificacoesLidas,
-} from './services/api/notifications.js?v=20261125-deploy';
+} from './services/api/notifications.js?v=20261125-acessos-perfil';
 export {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -310,4 +310,4 @@ export {
   gerarDocumentoPorTemplate,
   listarTemplatesDocumentos,
   listarVariaveisTemplatesDocumentos,
-} from './services/api/document-templates.js?v=20261125-deploy';
+} from './services/api/document-templates.js?v=20261125-acessos-perfil';

@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261125-deploy';
-import { listarMonitorias } from '../../services/api/monitoria.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
+import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { lerContextoWfm, lerEscalaWfm, listarTrocasWfm } from '../../services/api/wfm.js?v=20261125-acessos-perfil';
+import { listarMonitorias } from '../../services/api/monitoria.js?v=20261125-acessos-perfil';
 
 // Início do Operador (redesign Fase 15, fatia 4, lote 3 · amostra Fase 14, quadro 1): cabeçalho em caixa com a saudação,
 // "Operador · <dia>" e a faixa "Seu dia" (Entrada · pausas · Saída do turno de hoje, da escala publicada); o que já passou

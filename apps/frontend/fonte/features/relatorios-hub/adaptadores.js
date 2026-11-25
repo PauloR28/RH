@@ -1,10 +1,10 @@
-import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261125-deploy';
-import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js?v=20261125-deploy';
-import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js?v=20261125-deploy';
-import { lerHistoricoPaginado } from '../../services/api/history.js?v=20261125-deploy';
-import { listarLogsAuditoria } from '../../services/api/settings.js?v=20261125-deploy';
-import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js?v=20261125-deploy';
-export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-deploy';
+import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261125-acessos-perfil';
+import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js?v=20261125-acessos-perfil';
+import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js?v=20261125-acessos-perfil';
+import { lerHistoricoPaginado } from '../../services/api/history.js?v=20261125-acessos-perfil';
+import { listarLogsAuditoria } from '../../services/api/settings.js?v=20261125-acessos-perfil';
+import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js?v=20261125-acessos-perfil';
+export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-acessos-perfil';
 
 // Relatórios e Históricos — registro de relatórios. Cada item descreve: onde aparece (área), qual permissão o liga ao perfil
 // (`relhub.*`, conferida também no servidor), quais filtros unificados valem e como carregar os dados como PLANILHA
@@ -182,7 +182,7 @@ export const RELATORIOS = [
       {
         id: 'rh.processos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Processos seletivos', descricao: 'Processos abertos no período, vagas, aprovados e eliminados.', permissao: 'relhub.rh.processos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261125-deploy');
+          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261125-acessos-perfil');
           const procs = await operacaoDosProcessos(f);
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
           const linhas = procs.filter((p) => !f.operacao || p.operacao === f.operacao).map((p) => ({ ...montarLinhaProcessoRelatorio(p), operacao_relatorio: p.operacao || '' }));
@@ -192,7 +192,7 @@ export const RELATORIOS = [
       {
         id: 'rh.candidatos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Candidatos', descricao: 'Candidatos por processo, notas, aprovação e eliminação.', permissao: 'relhub.rh.candidatos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261125-deploy');
+          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261125-acessos-perfil');
           const [procs, cands] = await Promise.all([operacaoDosProcessos(f), lerRelatorioCandidatos({ dataInicial: f.ini, dataFinal: f.fim })]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
@@ -203,7 +203,7 @@ export const RELATORIOS = [
       {
         id: 'rh.ranking', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Ranking analítico', descricao: 'Nota final, afinidade e recomendação por candidato.', permissao: 'relhub.rh.ranking', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261125-deploy');
+          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261125-acessos-perfil');
           const [procs, analises] = await Promise.all([operacaoDosProcessos(f), lerAnalisesCandidatos()]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);

@@ -1,14 +1,14 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-deploy';
-import { telaEmAreaInativa } from '../../shared/areas.js?v=20261125-deploy';
-import { baixarArquivo } from '../monitoria/comum.js?v=20261125-deploy';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261125-deploy';
-import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-deploy';
-import { useModulos } from '../../modulos/estado.js?v=20261125-deploy';
-import { MODULO_TECNOLOGIA } from '../../modulos/registro.js?v=20261125-deploy';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261125-deploy';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-perfil';
+import { telaEmAreaInativa } from '../../shared/areas.js?v=20261125-acessos-perfil';
+import { baixarArquivo } from '../monitoria/comum.js?v=20261125-acessos-perfil';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261125-acessos-perfil';
+import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-acessos-perfil';
+import { useModulos } from '../../modulos/estado.js?v=20261125-acessos-perfil';
+import { MODULO_TECNOLOGIA } from '../../modulos/registro.js?v=20261125-acessos-perfil';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261125-acessos-perfil';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -230,9 +230,9 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261125-deploy').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261125-acessos-perfil').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
-      Promise.all([import('../monitoria/painel.js?v=20261125-deploy'), import('../monitoria/comum.js?v=20261125-deploy')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
+      Promise.all([import('../monitoria/painel.js?v=20261125-acessos-perfil'), import('../monitoria/comum.js?v=20261125-acessos-perfil')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
         if (erro) return html`<${Estado} titulo=${erro} />`;
         if (!contexto) return html`<${Esqueleto} linhas=${6} />`;

@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-acessos-perfil';
 
 // RH: administração de valores da empresa e frases associadas.
 export async function listarValoresEmpresa() {
