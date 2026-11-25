@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -8,20 +8,20 @@ import {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-filtro-equipe';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-filtro-equipe';
-import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-tela-grande';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-tela-grande';
+import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-filtro-equipe';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-tela-grande';

@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+} from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   atualizarEntrevista,
   atualizarSlotEntrevista,
@@ -12,36 +12,36 @@ import {
   lerEntrevistas,
   lerProcessos,
   lerSlotsEntrevista,
-} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
+} from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+} from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 import {
   ModalEdicaoEntrevista,
   STATUS_ENTREVISTA,
-} from '../../shared/components/interview-edit-modal.js?v=20261125-filtro-equipe';
+} from '../../shared/components/interview-edit-modal.js?v=20261125-tela-grande';
 import {
   CANDIDATE_STATUS_PENDING_CONFIRMATION,
   canonicalizeCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-filtro-equipe';
-import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261125-filtro-equipe';
+} from '../../shared/process-flow.js?v=20261125-tela-grande';
+import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261125-tela-grande';
 import {
   LoadingState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
 import {
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-filtro-equipe';
-import { obterItensPaginados } from '../../utilitarios.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../shared/process-reference.js?v=20261125-tela-grande';
+import { obterItensPaginados } from '../../utilitarios.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 const STATUS_SLOT_DISPONIVEL = 'Disponivel';
 const STATUS_SLOT_BLOQUEADO = 'Bloqueado';

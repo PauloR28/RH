@@ -1,5 +1,5 @@
-import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../icone.js?v=20261125-tela-grande';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 
 // Extraído de features/processos/index.js (Correções.txt item 3) para ser
 // reaproveitado também em telas fora de Processos, como Provas e Resultados.

@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-filtro-equipe';
+import { requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function listarOperacoes() {
   // Correções.txt (24/set/2026, item 5/13): endpoint quase estático (poucas

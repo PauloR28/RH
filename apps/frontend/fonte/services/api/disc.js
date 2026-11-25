@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-filtro-equipe';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-tela-grande';
 
 // RH: banco de blocos/frases do teste DISC próprio (calibrado para Call Center).
 export async function listarBlocosDisc() {

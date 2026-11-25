@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261125-filtro-equipe';
-import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
-import { EmptyState } from './feedback.js?v=20261125-filtro-equipe';
-import { SectionCard } from './layout.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261125-tela-grande';
+import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
+import { EmptyState } from './feedback.js?v=20261125-tela-grande';
+import { SectionCard } from './layout.js?v=20261125-tela-grande';
+import { IconeSvg } from '../icone.js?v=20261125-tela-grande';
 
 export function ModalPadrao({
   aberto,

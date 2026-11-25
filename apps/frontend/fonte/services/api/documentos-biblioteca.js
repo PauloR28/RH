@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-filtro-equipe';
+import { requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function listarDocumentosBiblioteca() {
   return requisitar('/documentos-biblioteca', { method: 'GET' });

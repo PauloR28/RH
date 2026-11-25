@@ -1,19 +1,19 @@
-import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../icone.js?v=20261125-tela-grande';
 
 ﻿import {
   html,
   useEffect,
   useRef,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+} from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   baixarModeloExcel,
   converterArrayBufferParaBase64,
   formatarDocumentoRichText,
   obterCapacidadesDaTarefa,
   validarArquivoExcel,
-} from '../../regras-prova.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+} from '../../regras-prova.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 
 function escaparHtml(valor) {
   return String(valor || '')

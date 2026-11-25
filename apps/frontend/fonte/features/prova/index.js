@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-filtro-equipe';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-filtro-equipe';
+} from '../../perguntas.js?v=20261125-tela-grande';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
+} from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
+} from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261125-tela-grande';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-filtro-equipe';
+} from '../../shared/process-reference.js?v=20261125-tela-grande';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js?v=20261125-filtro-equipe';
-import { isProcessClosed } from '../../shared/process-flow.js?v=20261125-filtro-equipe';
+} from './services/personalizacao-inteligente.js?v=20261125-tela-grande';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261125-tela-grande';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

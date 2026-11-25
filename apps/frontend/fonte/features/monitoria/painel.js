@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js?v=20261125-filtro-equipe';
-import { lerDashboard } from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { SelectOperacao, TagOperacao, formatarNota } from './comum.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js?v=20261125-tela-grande';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { SelectOperacao, TagOperacao, formatarNota } from './comum.js?v=20261125-tela-grande';
 
 // Dashboard (4 modos: Geral, Equipe, Período, Operador). Tudo vem do servidor —
 // o motor único de indicadores (o mesmo dos relatórios e exportações).

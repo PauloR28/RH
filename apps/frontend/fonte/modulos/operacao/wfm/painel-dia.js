@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   lancarPresencaWfm,
   lerEscalaWfm,
@@ -6,11 +6,11 @@ import {
   lerPausasDiaWfm,
   listarPresencasWfm,
   listarTrocasWfm,
-} from '../../../services/api/wfm.js?v=20261125-filtro-equipe';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-filtro-equipe';
-import { Esqueleto, Estado, Ic, Selo } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { pedirFocoPessoa, tomarFocoPessoa } from './foco-pessoa.js?v=20261125-filtro-equipe';
-import { FaixaDiarioPainel } from '../diario/ligacoes.js?v=20261125-filtro-equipe';
+} from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-tela-grande';
+import { Esqueleto, Estado, Ic, Selo } from '../../../ui/components/ds.js?v=20261125-tela-grande';
+import { pedirFocoPessoa, tomarFocoPessoa } from './foco-pessoa.js?v=20261125-tela-grande';
+import { FaixaDiarioPainel } from '../diario/ligacoes.js?v=20261125-tela-grande';
 
 // Turnos e Plantões › Painel (amostra "Painel do dia", aprovada em 08/11/2026): o dia inteiro do Supervisor numa tela.
 // Escala, turno, pausas PREVISTAS, trocas e presença vêm das rotas que já existem. "Logado" e a hora de entrada vêm do

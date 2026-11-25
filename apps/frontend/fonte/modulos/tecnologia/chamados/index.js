@@ -1,16 +1,16 @@
-import { html } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261125-filtro-equipe';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+import { html } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261125-tela-grande';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 import {
   ABAS_CHAMADOS, Icone, TELA_CONFIG, TELA_DASHBOARD, TELA_DETALHE, TELA_FILA, TELA_LISTA, TELA_NOVO,
-} from './comum.js?v=20261125-filtro-equipe';
-import { ListaChamados } from './lista.js?v=20261125-filtro-equipe';
-import { NovoChamado } from './novo.js?v=20261125-filtro-equipe';
-import { PaginaDetalheChamado } from './detalhe.js?v=20261125-filtro-equipe';
-import { FilaChamados } from './fila.js?v=20261125-filtro-equipe';
-import { DashboardChamados } from './dashboard.js?v=20261125-filtro-equipe';
-import { ConfiguracoesChamados } from './configuracoes.js?v=20261125-filtro-equipe';
+} from './comum.js?v=20261125-tela-grande';
+import { ListaChamados } from './lista.js?v=20261125-tela-grande';
+import { NovoChamado } from './novo.js?v=20261125-tela-grande';
+import { PaginaDetalheChamado } from './detalhe.js?v=20261125-tela-grande';
+import { FilaChamados } from './fila.js?v=20261125-tela-grande';
+import { DashboardChamados } from './dashboard.js?v=20261125-tela-grande';
+import { ConfiguracoesChamados } from './configuracoes.js?v=20261125-tela-grande';
 
 // Suporte TI (Conecta Tecnologia): abertura e gestão de chamados. As abas visíveis dependem das permissões do usuário,
 // nunca do nome do perfil. Quem só abre/acompanha (ex.: Supervisor) vê apenas a página "Chamados", sem barra de abas.

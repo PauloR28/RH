@@ -4,7 +4,7 @@ import {
   lerCache,
   requisitar,
   requisitarArquivo,
-} from './core.js?v=20261125-filtro-equipe';
+} from './core.js?v=20261125-tela-grande';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();

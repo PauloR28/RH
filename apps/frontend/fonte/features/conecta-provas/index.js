@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
-﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -14,15 +14,15 @@ import {
   lerSessaoConectaProvas,
   marcarRevisaoConectaProvas,
   salvarRespostasConectaProvas,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 import {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
 
 const CHAVE_TOKEN_PUBLICO = 'conecta_provas_token';
 const CHAVE_TIMER_PUBLICO = 'conecta_provas_timer';

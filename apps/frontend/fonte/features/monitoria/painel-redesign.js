@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { lerDashboard } from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { LineTrendChart } from '../../ui/components/charts.js?v=20261125-filtro-equipe';
-import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261125-filtro-equipe';
-import { formatarNota } from './comum.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { LineTrendChart } from '../../ui/components/charts.js?v=20261125-tela-grande';
+import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261125-tela-grande';
+import { formatarNota } from './comum.js?v=20261125-tela-grande';
 
 // Monitoria › Painel (antigo Dashboard) no desenho novo, no mesmo molde do Painel de Turnos e Plantões
 // (DEC-069): filtros suaves na faixa de cima da caixa, uma faixa de indicadores, gráficos finos e tabelas

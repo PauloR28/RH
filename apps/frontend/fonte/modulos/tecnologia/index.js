@@ -1,14 +1,14 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-filtro-equipe';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
-import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261125-filtro-equipe';
-import { montarHashDaTela } from '../../rotas.js?v=20261125-filtro-equipe';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261125-filtro-equipe';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261125-filtro-equipe';
-import { requisitar } from '../../services/api/core.js?v=20261125-filtro-equipe';
-import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-tela-grande';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
+import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261125-tela-grande';
+import { montarHashDaTela } from '../../rotas.js?v=20261125-tela-grande';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261125-tela-grande';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261125-tela-grande';
+import { requisitar } from '../../services/api/core.js?v=20261125-tela-grande';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-tela-grande';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.

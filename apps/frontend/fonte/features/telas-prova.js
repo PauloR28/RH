@@ -4,4 +4,4 @@ export {
   TelaConclusao,
   TelaProva,
   TelaResultado,
-} from './prova/index.js?v=20261125-filtro-equipe';
+} from './prova/index.js?v=20261125-tela-grande';

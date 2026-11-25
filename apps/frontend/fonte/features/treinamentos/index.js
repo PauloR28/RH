@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   atualizarTrilhaOnboarding,
   baixarPdfSlideTreinamento,
@@ -16,27 +16,27 @@ import {
   relatorioPresencaColaborador,
   relatorioTreinamentosStatus,
   salvarPresencaTreinamento,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
 import {
   atribuirTreinamentoUsuarios,
   buscarParticipantesTreinamento,
   listarOperacoesParaTreinamento,
   vincularTrilhaProcesso,
-} from '../../services/api/onboarding.js?v=20261125-filtro-equipe';
-import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261125-filtro-equipe';
-import { lerProcessos } from '../../services/api/processes.js?v=20261125-filtro-equipe';
+} from '../../services/api/onboarding.js?v=20261125-tela-grande';
+import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261125-tela-grande';
+import { lerProcessos } from '../../services/api/processes.js?v=20261125-tela-grande';
 import {
   MinistrantePicker,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-filtro-equipe';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-filtro-equipe';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-tela-grande';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-tela-grande';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 // QA T2-TRE-01: quem recebe o treinamento pode ser um candidato, um usuário do
 // sistema (operador, funcionário...) ou uma operação inteira. Tudo vira uma

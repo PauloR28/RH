@@ -1,6 +1,6 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261125-filtro-equipe';
-import { listarNotificacoes } from '../services/api/notifications.js?v=20261125-filtro-equipe';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-tela-grande';
+import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261125-tela-grande';
+import { listarNotificacoes } from '../services/api/notifications.js?v=20261125-tela-grande';
 
 // Bolinha vermelha do Suporte TI: quantas notificações NÃO LIDAS da categoria `chamados` o usuário tem.
 // Uma única consulta compartilhada por todos os componentes (tile do início e item da navbar), renovada a cada minuto.

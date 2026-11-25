@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 import {
   excluirTipoAtendimento,
   listarCatalogoMonitoria,
   listarTiposAtendimento,
   salvarTipoAtendimento,
-} from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { useContextoMonitoria } from '../monitoria/comum.js?v=20261125-filtro-equipe';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { useContextoMonitoria } from '../monitoria/comum.js?v=20261125-tela-grande';
 
 // Configurações > Parâmetros > "Tipos de atendimentos": cada tipo pertence a uma operação e a um
 // canal de atendimento (usados no formulário de Nova monitoria). As regras de escopo e de

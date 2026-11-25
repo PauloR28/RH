@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-filtro-equipe';
+} from '../../perguntas.js?v=20261125-tela-grande';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261125-filtro-equipe';
+} from '../prova/services/personalizacao-inteligente.js?v=20261125-tela-grande';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js?v=20261125-filtro-equipe';
+} from '../../regras-prova.js?v=20261125-tela-grande';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261125-filtro-equipe';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261125-filtro-equipe';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261125-filtro-equipe';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
-import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261125-filtro-equipe';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261125-filtro-equipe';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261125-filtro-equipe';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261125-filtro-equipe';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-filtro-equipe';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261125-tela-grande';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261125-tela-grande';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261125-tela-grande';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261125-tela-grande';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261125-tela-grande';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261125-tela-grande';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-tela-grande';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-tela-grande';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';

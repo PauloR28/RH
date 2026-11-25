@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-filtro-equipe';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function listarDatasComemorativas() {
   return requisitar('/celebratory-dates', { method: 'GET' });

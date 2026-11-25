@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
-import { MetricGrid } from './feedback.js?v=20261125-filtro-equipe';
+import { html } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { IconeSvg } from '../icone.js?v=20261125-tela-grande';
+import { MetricGrid } from './feedback.js?v=20261125-tela-grande';
 
 /*
  * Extraído da rodada 2 de promt.txt (padrão de leitura em Z): o stepper de

@@ -1,7 +1,7 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261125-filtro-equipe';
-import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-filtro-equipe';
-import { Esqueleto, Estado, Ic, Janela, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { exportarHistoricoWfm, listarHistoricoWfm, opcoesHistoricoWfm } from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-tela-grande';
+import { Esqueleto, Estado, Ic, Janela, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-tela-grande';
 
 // Histórico de alterações (antiga "Auditoria de Plantões"; no redesign Fase 15 vira item "Registro" de Cadastros, amostra Q3):
 // Quando · Quem · O quê · Ação · Item · Antes → depois, com período, busca, filtros e Exportar. Lista com cursor (20 na

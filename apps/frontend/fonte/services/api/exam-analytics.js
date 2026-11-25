@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-filtro-equipe';
+import { requisitar } from './core.js?v=20261125-tela-grande';
 
 function queryString(params = {}) {
   const query = new URLSearchParams();

@@ -1,6 +1,6 @@
-import { html, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-filtro-equipe';
+import { html, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-tela-grande';
 
 // WFM — peças de formulário compactas, compartilhadas por Jornadas, Cadastros e Presença.
 // Campos em grade de 12 colunas (`span` = quantas colunas ocupa) para caber o máximo por linha.

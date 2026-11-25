@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -6,12 +6,12 @@ import {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-filtro-equipe';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-filtro-equipe';
-import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-tela-grande';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-tela-grande';
+import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 const FRASE_VAZIA = () => ({ frase: '' });
 const FORM_INICIAL = () => ({ id_valor: '', nome: '', descricao: '', ativo: true, frases: [FRASE_VAZIA()] });

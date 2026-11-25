@@ -2,8 +2,8 @@ import {
   html,
   useEffect,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+} from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
 
 export const DOCUMENTOS_APROVACAO_PADRAO = [
   'RG',

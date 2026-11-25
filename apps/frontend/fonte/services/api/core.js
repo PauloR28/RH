@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261125-filtro-equipe';
+import { criarLogger } from '../../logger.js?v=20261125-tela-grande';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 

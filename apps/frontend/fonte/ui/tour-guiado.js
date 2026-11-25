@@ -3,9 +3,9 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { IconeSvg } from './icone.js?v=20261125-filtro-equipe';
-import { requisitar } from '../services/api/core.js?v=20261125-filtro-equipe';
+} from '../infraestrutura-react.js?v=20261125-tela-grande';
+import { IconeSvg } from './icone.js?v=20261125-tela-grande';
+import { requisitar } from '../services/api/core.js?v=20261125-tela-grande';
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT_ESTIMATE = 220;

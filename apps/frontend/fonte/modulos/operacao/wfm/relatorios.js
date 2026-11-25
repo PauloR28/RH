@@ -1,14 +1,14 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-filtro-equipe';
-import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261125-filtro-equipe';
-import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261125-filtro-equipe';
-import { Icone } from './escala-ui.js?v=20261125-filtro-equipe';
-import { horasDec } from './comum.js?v=20261125-filtro-equipe';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261125-filtro-equipe';
-import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-filtro-equipe';
-import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261125-filtro-equipe';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-tela-grande';
+import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261125-tela-grande';
+import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261125-tela-grande';
+import { Icone } from './escala-ui.js?v=20261125-tela-grande';
+import { horasDec } from './comum.js?v=20261125-tela-grande';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-tela-grande';
+import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261125-tela-grande';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261125-tela-grande';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.

@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { lerFunilDashboard } from '../../servico-api.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { lerFunilDashboard } from '../../servico-api.js?v=20261125-tela-grande';
 import {
   EmptyState,
   LoadingState,
@@ -7,8 +7,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
 

@@ -4,19 +4,19 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../infraestrutura-react.js?v=20261125-filtro-equipe';
+} from '../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   lerCandidatosProcessos,
   lerProcessos,
-} from '../servico-api.js?v=20261125-filtro-equipe';
-import { montarIndiceRequisitosBusca } from '../perguntas.js?v=20261125-filtro-equipe';
+} from '../servico-api.js?v=20261125-tela-grande';
+import { montarIndiceRequisitosBusca } from '../perguntas.js?v=20261125-tela-grande';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
   CHAVE_PROCESSO_DETALHE,
-} from '../features/processos-estado.js?v=20261125-filtro-equipe';
-import { IconeSvg } from './icone.js?v=20261125-filtro-equipe';
-import { AREA_PROCESSOS, AREA_PROVAS, areaAtiva, telaEmAreaInativa } from '../shared/areas.js?v=20261125-filtro-equipe';
+} from '../features/processos-estado.js?v=20261125-tela-grande';
+import { IconeSvg } from './icone.js?v=20261125-tela-grande';
+import { AREA_PROCESSOS, AREA_PROVAS, areaAtiva, telaEmAreaInativa } from '../shared/areas.js?v=20261125-tela-grande';
 
 export const CHAVE_REQUISITO_BUSCA = 'rh_requisito_busca_atual';
 export const CHAVE_COMANDO_NOVO_PROCESSO = 'rh_comando_novo_processo';

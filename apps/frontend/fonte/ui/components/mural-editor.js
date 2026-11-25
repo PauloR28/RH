@@ -1,6 +1,6 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-tela-grande';
+import { IconeSvg } from '../icone.js?v=20261125-tela-grande';
 
 function limparHtmlVazio(valor) {
   const conteudo = String(valor || '').trim();

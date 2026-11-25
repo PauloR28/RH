@@ -1,5 +1,5 @@
-import { html } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-filtro-equipe';
+import { html } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-tela-grande';
 
 export function BlocoFiltro({ children, tourId = '' }) {
   return html`

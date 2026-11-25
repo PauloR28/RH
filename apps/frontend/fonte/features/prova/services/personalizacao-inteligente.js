@@ -1,4 +1,4 @@
-import { obterQuestaoPersonalizadaDoBanco } from '../../../banco-questoes.js?v=20261125-filtro-equipe';
+import { obterQuestaoPersonalizadaDoBanco } from '../../../banco-questoes.js?v=20261125-tela-grande';
 
 const CHAVE_HISTORICO_PERSONALIZACAO =
   'rh_exam_personalization_history_v1';
@@ -1676,4 +1676,4 @@ export function registrarHistoricoPersonalizacao(item) {
   }
 }
 
-export { corrigirRespostaDiscursivaInteligente } from './analise-resposta.js?v=20261125-filtro-equipe';
+export { corrigirRespostaDiscursivaInteligente } from './analise-resposta.js?v=20261125-tela-grande';

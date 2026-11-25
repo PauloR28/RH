@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-filtro-equipe';
+import { requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function listarMural(statusFiltro = '') {
   const query = statusFiltro ? `?status_filtro=${encodeURIComponent(statusFiltro)}` : '';

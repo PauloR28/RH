@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { LoadingState } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { LoadingState } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 import {
   enviarLogoOperacao,
   lerAmbienteOperacao,
@@ -13,9 +13,9 @@ import {
   salvarCorOperacao,
   salvarEquipeMonitoria,
   salvarModulosOperacao,
-} from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-filtro-equipe';
-import { CartaoLista } from './monitoria-config.js?v=20261125-filtro-equipe';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-tela-grande';
+import { CartaoLista } from './monitoria-config.js?v=20261125-tela-grande';
 
 // Aba "Configurar ambiente" da operação (Configurações > Operações): quem trabalha nela
 // (supervisores, Qualidade), se ela tem Qualidade, turnos/equipes e as intranets (ambientes

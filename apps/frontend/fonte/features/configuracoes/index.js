@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-filtro-equipe';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-tela-grande';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261125-tela-grande';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261125-filtro-equipe';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261125-filtro-equipe';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261125-filtro-equipe';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261125-filtro-equipe';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261125-filtro-equipe';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-filtro-equipe';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261125-filtro-equipe';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261125-filtro-equipe';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-filtro-equipe';
+} from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261125-tela-grande';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261125-tela-grande';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261125-tela-grande';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261125-tela-grande';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-tela-grande';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261125-tela-grande';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261125-tela-grande';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-tela-grande';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-filtro-equipe';
+} from '../../shared/notificacoes.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-tela-grande';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,17 +53,17 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261125-filtro-equipe';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261125-filtro-equipe';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261125-filtro-equipe';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-filtro-equipe';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261125-filtro-equipe';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-filtro-equipe';
-import { CentralAcessos } from './central-acessos.js?v=20261125-filtro-equipe';
-import { AbaEquipesAdmin } from './equipes-admin.js?v=20261125-filtro-equipe';
-import { ConfigPaineis } from './paineis.js?v=20261125-filtro-equipe';
+} from './monitoria-config.js?v=20261125-tela-grande';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261125-tela-grande';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261125-tela-grande';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-tela-grande';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261125-tela-grande';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-tela-grande';
+import { CentralAcessos } from './central-acessos.js?v=20261125-tela-grande';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261125-tela-grande';
+import { ConfigPaineis } from './paineis.js?v=20261125-tela-grande';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

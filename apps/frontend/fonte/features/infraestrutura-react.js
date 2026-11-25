@@ -1,1 +1,1 @@
-export * from '../infraestrutura-react.js?v=20261125-filtro-equipe';
+export * from '../infraestrutura-react.js?v=20261125-tela-grande';

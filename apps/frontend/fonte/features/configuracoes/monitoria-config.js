@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-tela-grande';
 import {
   lerVinculosUsuarioMonitoria,
   listarCatalogoMonitoria,
@@ -12,9 +12,9 @@ import {
   salvarEquipeMonitoria,
   transferirOperacaoUsuario,
   transferirSupervisao,
-} from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js?v=20261125-filtro-equipe';
-import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261125-filtro-equipe';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { SelectMultiplo, SelectOperacao, formatarDataHoraCurta, useContextoMonitoria } from '../monitoria/comum.js?v=20261125-tela-grande';
+import { lerContratoOperadorWfm, listarContratosWfm } from '../../services/api/wfm.js?v=20261125-tela-grande';
 
 // Administração da vertente Monitoria dentro de Configurações (função do Administrador):
 // equipes e catálogos, logs de auditoria, vínculos do usuário (operação, equipe, turno e

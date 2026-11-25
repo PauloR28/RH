@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-filtro-equipe';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function listarVariaveisTemplatesDocumentos() {
   return requisitar('/document-templates/variables', { method: 'GET' });

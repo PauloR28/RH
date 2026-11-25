@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261125-filtro-equipe';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-tela-grande';
 
 // Equipes na Tecnologia (24/11/2026). Regras e escopo ficam no servidor (/equipes-admin).
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

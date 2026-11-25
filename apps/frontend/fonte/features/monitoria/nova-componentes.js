@@ -1,5 +1,5 @@
-import { html, useRef } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { html, useRef } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 // Peças da tela Nova monitoria: respostas SIM/NÃO/NCG/N/A, escala dos pilares, trilho de etapas
 // e barra de progresso. Cores só por tokens do tema (classes em monitoria.css).

@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
 import {
   excluirEquipeAdmin,
   exportarEquipesAdmin,
@@ -9,8 +9,8 @@ import {
   moverEquipe,
   previaMoverEquipe,
   salvarEquipeAdmin,
-} from '../../services/api/equipes-admin.js?v=20261125-filtro-equipe';
-import { baixarBlob } from '../../utilitarios.js?v=20261125-filtro-equipe';
+} from '../../services/api/equipes-admin.js?v=20261125-tela-grande';
+import { baixarBlob } from '../../utilitarios.js?v=20261125-tela-grande';
 
 // Tecnologia › Acessos › Equipes (24/11/2026, amostra 22_EQUIPES_TECNOLOGIA aprovada).
 // Cada operador fica em 1 equipe; o supervisor responsável recebe as pendências. Mover mostra antes o que migra.

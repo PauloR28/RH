@@ -1,9 +1,9 @@
 // Janela Perfis da tela Acessos (reestruturação, Etapa 9 — amostra aprovada em 21/nov/2026).
 // Uma janela, não uma página: lista os perfis (funciona como, pessoas), cria, renomeia e apaga. As ações ficam no botão ⋯
 // (MenuAcoes, como nas outras áreas); o perfil fixo mostra só o cadeado. As permissões continuam só na tabela de Acessos.
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { apagarPerfil, criarPerfil, editarPerfil, listarPerfisAtualizados } from '../../services/api/settings.js?v=20261125-filtro-equipe';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { apagarPerfil, criarPerfil, editarPerfil, listarPerfisAtualizados } from '../../services/api/settings.js?v=20261125-tela-grande';
 
 const AJUDA_FUNCIONA = 'Diz como o Conecta trata as pessoas deste perfil: quem pode liderar equipe, quem é avaliado na Monitoria, quem entra na escala.';
 const AJUDA_COPIA = 'Copia permissões, alcance e Início. Depois você ajusta na tela Acessos.';

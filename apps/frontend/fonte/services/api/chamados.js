@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261125-filtro-equipe';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-tela-grande';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   ativarFormularioMatriz,
   lerVersaoMatriz,
@@ -6,9 +6,9 @@ import {
   listarVersoesMatriz,
   restaurarVersaoMatriz,
   salvarMatriz,
-} from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
-import { formatarNota } from './comum.js?v=20261125-filtro-equipe';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { formatarNota } from './comum.js?v=20261125-tela-grande';
 import {
   ChipSituacao,
   DialogoConfirmar,
@@ -16,8 +16,8 @@ import {
   VersionRow,
   alternarMarcadas,
   compararConfigs,
-} from './formularios-comum.js?v=20261125-filtro-equipe';
-import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261125-filtro-equipe';
+} from './formularios-comum.js?v=20261125-tela-grande';
+import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261125-tela-grande';
 
 const Fragment = React.Fragment;
 

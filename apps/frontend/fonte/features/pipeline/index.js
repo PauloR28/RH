@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+} from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
+} from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
+} from '../../shared/helpers-visuais.js?v=20261125-tela-grande';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-filtro-equipe';
-import { validarCardPipeline } from '../../shared/validacoes.js?v=20261125-filtro-equipe';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261125-filtro-equipe';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-filtro-equipe';
+} from '../../shared/process-flow.js?v=20261125-tela-grande';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261125-tela-grande';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261125-tela-grande';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-tela-grande';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js?v=20261125-filtro-equipe';
+} from '../processos/state.js?v=20261125-tela-grande';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../shared/process-reference.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 const ETAPAS_PIPELINE = [
   'Triagem',

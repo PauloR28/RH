@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   atualizarStatusCandidato,
   compararResultadosAnaliticos,
@@ -9,12 +9,12 @@ import {
   salvarPerfilIdealResultadosAnaliticos,
   salvarMapeamentosResultadosAnaliticos,
   salvarPesosResultadosAnaliticos,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { navegarParaTela } from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { navegarParaTela } from '../../app/controlador-aplicacao.js?v=20261125-tela-grande';
 import {
   obterProcessoResultadosAnaliticosPorRota,
   obterRotaAtual,
-} from '../../rotas.js?v=20261125-filtro-equipe';
+} from '../../rotas.js?v=20261125-tela-grande';
 import {
   EmptyState,
   GrupoPaginacao,
@@ -24,8 +24,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 
 function numero(value, digits = 1) {

@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   distribuirPausasWfm,
   lancarHoraExtraWfm,
@@ -13,15 +13,15 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261125-filtro-equipe';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-filtro-equipe';
-import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261125-filtro-equipe';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261125-filtro-equipe';
-import { ModalConfigEscala } from './configuracao.js?v=20261125-filtro-equipe';
-import { GavetaAjusteDia } from './ajuste.js?v=20261125-filtro-equipe';
-import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261125-filtro-equipe';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261125-filtro-equipe';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
+} from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-tela-grande';
+import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261125-tela-grande';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261125-tela-grande';
+import { ModalConfigEscala } from './configuracao.js?v=20261125-tela-grande';
+import { GavetaAjusteDia } from './ajuste.js?v=20261125-tela-grande';
+import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261125-tela-grande';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261125-tela-grande';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-tela-grande';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser

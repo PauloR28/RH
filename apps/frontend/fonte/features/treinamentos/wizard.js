@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-tela-grande';
 import {
   baixarModeloModulo,
   criarTreinamentoWizard,
@@ -8,17 +8,17 @@ import {
   uploadVideoModulo,
   validarModuloJson,
   alternarDownloadAnexo,
-} from '../../servico-api.js?v=20261125-filtro-equipe';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
+} from '../../servico-api.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
 import {
   atualizarTrilhaOnboarding,
   buscarParticipantesTreinamento,
   lerTrilhaOnboarding,
   listarOperacoesParaTreinamento,
   uploadImagemSecaoModulo,
-} from '../../services/api/onboarding.js?v=20261125-filtro-equipe';
-import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+} from '../../services/api/onboarding.js?v=20261125-tela-grande';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 function limparHtmlVazioModulo(valor) {
   const conteudo = String(valor || '').trim();

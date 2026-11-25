@@ -1,4 +1,4 @@
-import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js?v=20261125-filtro-equipe';
+import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js?v=20261125-tela-grande';
 
 export async function lerEntrevistas({
   idProcesso = '',

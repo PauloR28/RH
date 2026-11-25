@@ -1,7 +1,7 @@
 // Sessão sem uso (Configurações › Segurança, Etapa 7b): depois de N minutos parado, o Conecta sai sozinho.
 // Avisa X minutos antes, com botão para continuar. Os números vêm da tela Segurança (GET /settings/seguranca/sessao).
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { requisitar } from '../../services/api/core.js?v=20261125-filtro-equipe';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { requisitar } from '../../services/api/core.js?v=20261125-tela-grande';
 
 const EVENTOS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
 // Várias abas abertas: o uso numa aba vale para todas (senão a aba de fundo derrubaria quem está trabalhando na outra).

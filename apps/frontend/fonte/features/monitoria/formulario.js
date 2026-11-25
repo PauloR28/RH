@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
-import { EmptyState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { EmptyState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 import {
   calcularPrevia,
   descartarRascunho,
@@ -10,10 +10,10 @@ import {
   listarRascunhos,
   realizarMonitoria,
   salvarRascunho,
-} from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
-import { RESPOSTAS, formatarNota, hoje, SelectOperacao } from './comum.js?v=20261125-filtro-equipe';
-import { AnswerSegmented, ProgressBar, RatingScale, StepRail } from './nova-componentes.js?v=20261125-filtro-equipe';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-filtro-equipe';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { RESPOSTAS, formatarNota, hoje, SelectOperacao } from './comum.js?v=20261125-tela-grande';
+import { AnswerSegmented, ProgressBar, RatingScale, StepRail } from './nova-componentes.js?v=20261125-tela-grande';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-tela-grande';
 
 // Formulário de monitoria (avaliador), em etapas: trilho + resumo fixos à esquerda e a etapa
 // aberta à direita. A nota exibida é sempre calculada pelo servidor (mesmo motor da gravação) —
