@@ -23,7 +23,7 @@ from ..rbac import ACCESS_DENIED_MESSAGE
 from ..services import diario_regras as r
 from ..services.helpers import normalize_text, rows_to_dicts
 from ..services.wfm_historico import FUSO_BRASIL
-from .diario_schema import ensure_diario_schema
+from .diario_schema import ensure_diario_schema, listas_padrao_sql
 
 VERSAO_TERMOS = "2026-11-08"
 MINUTOS_EDITANDO = 2  # "Fulano está editando": vale enquanto a pessoa salvou/abriu o turno nos últimos 2 minutos
@@ -146,12 +146,37 @@ class DiarioRepositoryMixin:
         return conn, cursor
 
     def _db_operacoes_do_diario(self, cursor, user) -> list[dict]:
-        """Operações que têm Diário de bordo (alguma lista cadastrada) e estão no escopo do usuário."""
+        """Operações ativas, no escopo do usuário, com a função Diário de bordo LIGADA (tela Módulos + módulos da operação).
+        Nenhuma operação é especial (25/nov/2026): ligou o Diário na operação, ele aparece. A operação que ainda não tem
+        listas (tipos de demanda, canais, ferramentas) recebe as listas padrão na primeira vez."""
+        from ..modulos_catalogo import MODULO_OPERACAO
+        from ..services import acesso, acesso_cache
+
+        if not acesso.funcao_ligada_em_algum_modulo("diario"):
+            return []
         cursor.execute(
-            "SELECT o.chave, o.nome FROM dbo.operacoes o WHERE o.ativo = 1 "
-            "AND EXISTS (SELECT 1 FROM dbo.diario_cadastro c WHERE c.operacao = o.chave) ORDER BY o.nome"
+            "SELECT o.chave, o.nome, CASE WHEN EXISTS (SELECT 1 FROM dbo.diario_cadastro c WHERE c.operacao = o.chave) THEN 1 ELSE 0 END "
+            "FROM dbo.operacoes o WHERE o.ativo = 1 AND o.chave IS NOT NULL ORDER BY o.nome"
         )
-        return [{"chave": normalize_text(c), "nome": normalize_text(n)} for c, n in cursor.fetchall() if user.allows_operacao(normalize_text(c))]
+        ops, sem_listas = [], []
+        for c, n, tem_listas in cursor.fetchall():
+            chave = normalize_text(c)
+            if not chave or not user.allows_operacao(chave):
+                continue
+            modulo = acesso_cache.modulo_da_unidade(chave)
+            if modulo and modulo != MODULO_OPERACAO:
+                continue  # setor de outro módulo (RH, Tecnologia): não tem Diário
+            if not acesso.funcao_ligada_na_unidade("diario", chave, modulo or MODULO_OPERACAO):
+                continue
+            ops.append({"chave": chave, "nome": normalize_text(n)})
+            if not tem_listas:
+                sem_listas.append(chave)
+        if sem_listas:
+            for chave in sem_listas:
+                for instrucao in listas_padrao_sql():
+                    cursor.execute(instrucao, (chave,))
+            cursor.connection.commit()
+        return ops
 
     def _db_exigir_operacao(self, cursor, user, operacao: str) -> str:
         chave = normalize_text(operacao)

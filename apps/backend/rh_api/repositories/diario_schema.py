@@ -344,6 +344,21 @@ def schema_statements_v073() -> list[str]:
     return instrucoes + _permissoes_sql(PERMISSOES_POSTERIORES_A_V068)
 
 
+def listas_padrao_sql() -> list[str]:
+    """Listas padrão do Diário para uma operação que ainda não tem nenhuma (25/nov/2026: o Diário vale para qualquer
+    operação com a função ligada). Cada instrução recebe a chave da operação no único `?`; só insere o que falta."""
+    itens = list(CADASTROS_PADRAO) + [("demanda", nome, chave, 80) for nome, chave in TIPOS_DEMANDA_V073]
+    instrucoes = []
+    for tipo, nome, chave, ordem in itens:
+        chave_sql = f"'{chave}'" if chave else "NULL"
+        instrucoes.append(
+            "INSERT INTO dbo.diario_cadastro (operacao, tipo, nome, chave_prototipo, ordem, ativo, criado_por) "
+            f"SELECT x.op, '{tipo}', {_nstr(nome)}, {chave_sql}, {ordem}, 1, N'Padrão' FROM (SELECT CAST(? AS NVARCHAR(60)) AS op) x "
+            f"WHERE NOT EXISTS (SELECT 1 FROM dbo.diario_cadastro c WHERE c.operacao = x.op AND c.tipo = '{tipo}' AND c.nome = {_nstr(nome)});"
+        )
+    return instrucoes
+
+
 def ensure_diario_schema(cursor) -> None:
     for instrucao in schema_statements() + schema_statements_v073():
         cursor.execute(instrucao)

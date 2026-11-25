@@ -121,7 +121,7 @@ const TelaCentralMonitoriaConfig = carregarTela(importarMonitoria, 'TelaCentralM
 const TelaInicioPorSessoes = carregarTela(importarMonitoria, 'TelaInicioPorSessoes');
 const TelaRelatoriosHub = carregarTela(() => import('../features/relatorios-hub/index.js?v=20261125-deploy'), 'TelaRelatoriosHub');
 const TelaEquipesControle = carregarTela(() => import('../modulos/operacao/equipes/index.js?v=20261125-deploy'), 'TelaEquipesControle');
-const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261125-deploy'), 'TelaDiario');
+const TelaDiario = carregarTela(() => import('../modulos/operacao/diario/index.js?v=20261125-diario'), 'TelaDiario');
 const TelaPainel = carregarTela(() => import('../modulos/painel/index.js?v=20261125-deploy'), 'TelaPainel');
 const TelaWfm = carregarTela(() => import('../modulos/operacao/wfm/index.js?v=20261125-deploy'), 'TelaWfm');
 const TelaChamados = carregarTela(() => import('../modulos/tecnologia/chamados/index.js?v=20261125-deploy'), 'TelaChamados');

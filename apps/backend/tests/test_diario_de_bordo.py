@@ -244,3 +244,56 @@ def test_migration_v073_gerada_do_codigo_aditiva_e_v068_congelada():
     assert all(s.lstrip().startswith("IF ") for s in schema_statements_v073())
     assert "diario.demandas.criar" in sql and "'supervisor', 'diario.demandas.criar'" in sql
     assert "diario.demandas.criar" not in render_migration_sql()
+
+
+# ------------------------------------------------------------------ operações com Diário (25/nov/2026)
+class _CursorOps:
+    """Cursor falso: devolve as operações e grava os INSERTs das listas padrão."""
+
+    def __init__(self, linhas):
+        self.linhas, self.inserts, self.connection = linhas, [], self
+        self.commits = 0
+
+    def execute(self, sql, params=()):
+        if sql.startswith("INSERT"):
+            self.inserts.append((sql, params))
+
+    def fetchall(self):
+        return self.linhas
+
+    def commit(self):
+        self.commits += 1
+
+
+class _Usuario:
+    def __init__(self, ops=()):
+        self.operacoes = set(ops)
+
+    def allows_operacao(self, op):
+        return not self.operacoes or op in self.operacoes
+
+
+def _ops_do_diario(monkeypatch, linhas, *, user=None, desligadas=(), modulos=None):
+    from rh_api.repositories.diario import DiarioRepositoryMixin
+    from rh_api.services import acesso, acesso_cache
+
+    monkeypatch.setattr(acesso, "funcao_ligada_em_algum_modulo", lambda f: True)
+    monkeypatch.setattr(acesso, "funcao_ligada_na_unidade", lambda f, u, m: u not in desligadas)
+    monkeypatch.setattr(acesso_cache, "modulo_da_unidade", lambda c: (modulos or {}).get(c, "operacao"))
+    cursor = _CursorOps(linhas)
+    return DiarioRepositoryMixin()._db_operacoes_do_diario(cursor, user or _Usuario()), cursor
+
+
+def test_diario_vale_para_qualquer_operacao_com_a_funcao_ligada(monkeypatch):
+    # Newe nunca teve listas (só a CRF foi semeada): com o Diário ligado, ela aparece e ganha as listas padrão.
+    ops, cursor = _ops_do_diario(monkeypatch, [("CRF", "CRF / Flamengo", 1), ("NEWE", "Newe", 0)], user=_Usuario({"NEWE"}))
+    assert [o["chave"] for o in ops] == ["NEWE"]
+    assert len(cursor.inserts) == len(CADASTROS_PADRAO) + 1 and all(p == ("NEWE",) for _, p in cursor.inserts)
+    assert cursor.commits == 1
+
+
+def test_diario_some_onde_a_funcao_esta_desligada_ou_fora_da_operacao(monkeypatch):
+    linhas = [("CRF", "CRF", 1), ("NEWE", "Newe", 1), ("RH-SETOR", "RH", 0)]
+    ops, cursor = _ops_do_diario(monkeypatch, linhas, desligadas={"CRF"}, modulos={"RH-SETOR": "rh"})
+    assert [o["chave"] for o in ops] == ["NEWE"]
+    assert cursor.inserts == [] and cursor.commits == 0

@@ -62,7 +62,7 @@ export function TelaDiario({ controlador, telaAtual = 'screen-diario' }) {
   if (erro) corpo = html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} /></div>`;
   else if (!contexto) corpo = html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${6} /></div>`;
   else if (!contexto.termos_aceitos_em) corpo = html`<div class="c-cab-linha"><h1>Diário de bordo</h1></div><${Termos} onAceitar=${async () => { const r = await aceitarTermosDiario(); setContexto((c) => ({ ...c, ...r })); }} />`;
-  else if (!contexto.operacoes.length) corpo = html`<div class="c-cab-linha"><h1>Diário de bordo</h1></div><div class="c-tabela-caixa"><${Estado} icone="notebook" titulo="Nenhuma operação com Diário de bordo no seu acesso" texto="O diário começa na CRF / Flamengo. Peça a quem administra para liberar a operação." /></div>`;
+  else if (!contexto.operacoes.length) corpo = html`<div class="c-cab-linha"><h1>Diário de bordo</h1></div><div class="c-tabela-caixa"><${Estado} icone="notebook" titulo="Nenhuma operação com Diário de bordo no seu acesso" texto="Peça a quem administra para ligar o Diário de bordo na sua operação." /></div>`;
   else {
     const props = { contexto, operacao, setOperacao, controlador, showToast };
     corpo = telaAtual === 'screen-diario-historico' ? html`<${AbaHistorico} ...${props} irParaDia=${irParaDia} />`
