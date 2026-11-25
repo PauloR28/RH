@@ -16,7 +16,7 @@ import { TelaMinhaEscala } from './minha.js?v=20261125-acessos-salvar';
 import { ListaEscalas } from './escalas.js?v=20261125-acessos-salvar';
 import { ModalConfigEscala } from './configuracao.js?v=20261125-acessos-salvar';
 import { TelaTrocas } from './trocas.js?v=20261125-acessos-salvar';
-import { TelaRelatorios } from './relatorios.js?v=20261125-acessos-salvar';
+import { TelaRelatorios } from './relatorios.js?v=20261125-indicadores';
 import { TelaPainelDia } from './painel-dia.js?v=20261125-acessos-salvar';
 
 // WFM — Turnos e Plantões. Um módulo de telas, cada uma com sua rota (screen-wfm*).
