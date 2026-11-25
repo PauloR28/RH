@@ -18,9 +18,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ..auth import OperacaoEscolhida
-
 from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
+from ..auth import OperacaoEscolhida
 
 PERFIS_GLOBAIS = perfis_com(wfm=TODOS)  # Etapa 5: vem do alcance (antes: Admin e Gestor por nome)
 # Perfis que gerem a escala de uma operação (Analista de TI = Gestor do setor de TI, limitado à operação TI).

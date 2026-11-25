@@ -17,9 +17,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ..auth import OperacaoEscolhida
-
 from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
+from ..auth import OperacaoEscolhida
 
 PERFIS_GLOBAIS = perfis_com(monitoria=TODOS)  # Etapa 5: vem do alcance
 
