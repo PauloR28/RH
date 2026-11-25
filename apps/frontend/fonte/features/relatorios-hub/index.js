@@ -6,7 +6,7 @@ import { telaEmAreaInativa } from '../../shared/areas.js?v=20261124-equipes4';
 import { baixarArquivo } from '../monitoria/comum.js?v=20261124-equipes4';
 import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261124-equipes4';
 import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261124-equipes4';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261124-equipes4';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261125-relatorios';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -225,7 +225,7 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261124-equipes4').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261125-relatorios').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
       Promise.all([import('../monitoria/painel.js?v=20261124-equipes4'), import('../monitoria/comum.js?v=20261124-equipes4')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
