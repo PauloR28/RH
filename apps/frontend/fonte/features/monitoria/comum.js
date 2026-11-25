@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { lerContextoMonitoria } from '../../services/api/monitoria.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { lerContextoMonitoria } from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
 
 // Vertente Monitoria — peças compartilhadas pelas telas (tags, badges, formatação,
 // carregamento do contexto do usuário: operações visíveis, tema, vínculos).

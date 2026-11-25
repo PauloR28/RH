@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
 import {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -8,12 +8,12 @@ import {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from '../../servico-api.js?v=20261124-equipes4';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes4';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes4';
-import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+} from '../../servico-api.js?v=20261125-filtro-equipe';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-filtro-equipe';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-filtro-equipe';
+import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
 
 const TIPOS = [
   { valor: 'sequencia_logica', label: 'Sequência lógica' },

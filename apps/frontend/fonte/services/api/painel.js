@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261124-equipes4';
+import { requisitar } from './core.js?v=20261125-filtro-equipe';
 
 // Painel (14/11/2026): visão analítica por módulo e unidade. Acesso, escopo e métricas são decididos no servidor (/painel/*).
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

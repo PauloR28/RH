@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { minutosParaHoras } from './comum.js?v=20261124-equipes4';
-import { semAcento } from './escala-ui.js?v=20261124-equipes4';
-import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { desvincularOperadorContratoWfm, excluirContratoWfm, listarContratosWfm, listarOperadoresContratoWfm, salvarContratoWfm } from '../../../services/api/wfm.js?v=20261125-filtro-equipe';
+import { minutosParaHoras } from './comum.js?v=20261125-filtro-equipe';
+import { semAcento } from './escala-ui.js?v=20261125-filtro-equipe';
+import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
 
 // Jornadas e limites (item de Cadastros no redesign Fase 15, amostra Q3 do lote 1): limites do motor de regras (horas no dia
 // e na semana, descanso entre dias, dias seguidos) e pausas obrigatórias. "Bloqueio duro" vira o selo Bloqueia / Só avisa.

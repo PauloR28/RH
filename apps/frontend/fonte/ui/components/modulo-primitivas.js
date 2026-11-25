@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { IconeSvg } from '../icone.js?v=20261124-equipes4';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../icone.js?v=20261125-filtro-equipe';
 
 // Cabeçalho e abas do módulo Turnos e Plantões. Estilos: bloco `.mo-*` em estilos/console.css (só tokens do tema).
 

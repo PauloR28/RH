@@ -1,6 +1,6 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261124-equipes4';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261124-equipes4';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261124-equipes4';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-filtro-equipe';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261125-filtro-equipe';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261125-filtro-equipe';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+import { html } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
 
 const DIRETRIZES = [
   {

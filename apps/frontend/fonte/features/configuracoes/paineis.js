@@ -1,9 +1,9 @@
 // Configurações › Painéis (14/11/2026, amostra v3 aprovada): a Tecnologia monta cada painel (módulo + unidade):
 // métricas, forma de mostrar, ordem, de quanto em quanto tempo atualiza e quais perfis podem ver.
 // Rebranding: só peças c- e tokens (estilos/painel.css). Regras e validação ficam no servidor (/painel/config).
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261124-equipes4';
-import { lerConfigPaineis, salvarConfigPainel } from '../../services/api/painel.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
+import { lerConfigPaineis, salvarConfigPainel } from '../../services/api/painel.js?v=20261125-filtro-equipe';
 
 const NOME_INTERVALO = { 60: '1 minuto', 300: '5 minutos', 900: '15 minutos' };
 

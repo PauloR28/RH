@@ -1,8 +1,8 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261124-equipes4';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
-import { SinalTurno } from './hoje.js?v=20261124-equipes4';
-import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261125-filtro-equipe';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261125-filtro-equipe';
+import { SinalTurno } from './hoje.js?v=20261125-filtro-equipe';
+import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261125-filtro-equipe';
 
 // Diário de bordo › Histórico (amostra quadro 5): 1 linha por dia e a gaveta com tudo o que mudou no dia (antes → depois).
 

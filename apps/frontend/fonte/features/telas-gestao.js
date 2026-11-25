@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261124-equipes4';
+} from './gestao/index.js?v=20261125-filtro-equipe';

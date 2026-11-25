@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261124-equipes4';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-filtro-equipe';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261125-filtro-equipe';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes4';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261124-equipes4';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261124-equipes4';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes4';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261124-equipes4';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261124-equipes4';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261124-equipes4';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261124-equipes4';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261124-equipes4';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261124-equipes4';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261124-equipes4';
+} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261125-filtro-equipe';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261125-filtro-equipe';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261125-filtro-equipe';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261125-filtro-equipe';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-filtro-equipe';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261125-filtro-equipe';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261125-filtro-equipe';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261125-filtro-equipe';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261125-filtro-equipe';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261125-filtro-equipe';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes4';
+} from '../../shared/notificacoes.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-filtro-equipe';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,17 +53,17 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261124-equipes4';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261124-equipes4';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261124-equipes4';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261124-equipes4';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261124-equipes4';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-equipes4';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261124-equipes4';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261124-equipes4';
-import { CentralAcessos } from './central-acessos.js?v=20261124-equipes4';
-import { AbaEquipesAdmin } from './equipes-admin.js?v=20261124-equipes4';
-import { ConfigPaineis } from './paineis.js?v=20261124-equipes4';
+} from './monitoria-config.js?v=20261125-filtro-equipe';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261125-filtro-equipe';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261125-filtro-equipe';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261125-filtro-equipe';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261125-filtro-equipe';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-filtro-equipe';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261125-filtro-equipe';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-filtro-equipe';
+import { CentralAcessos } from './central-acessos.js?v=20261125-filtro-equipe';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261125-filtro-equipe';
+import { ConfigPaineis } from './paineis.js?v=20261125-filtro-equipe';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

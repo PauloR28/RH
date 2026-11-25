@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { lerFunilDashboard } from '../../servico-api.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
+import { lerFunilDashboard } from '../../servico-api.js?v=20261125-filtro-equipe';
 import {
   EmptyState,
   LoadingState,
@@ -7,8 +7,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
 

@@ -1,5 +1,5 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes4';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-filtro-equipe';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-filtro-equipe';
 
 import {
   html,
@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes4';
+} from '../../infraestrutura-react.js?v=20261125-filtro-equipe';
 import {
   TAMANHO_DETALHE_PROCESSO,
   agendarEntrevista,
@@ -57,42 +57,42 @@ import {
   usarCandidatoDoBancoTalentos,
   retomarProcesso,
   cancelarProcesso,
-} from '../../app/controlador-aplicacao.js?v=20261124-equipes4';
+} from '../../app/controlador-aplicacao.js?v=20261125-filtro-equipe';
 import {
   baixarBlob,
   formatarDataCurta,
   formatarDataParaInput,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261124-equipes4';
+} from '../../utilitarios.js?v=20261125-filtro-equipe';
 import {
   formatarDataHora,
   formatarDataNascimento,
   montarResumoAnaliticoCv,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js?v=20261124-equipes4';
+} from '../../shared/helpers-visuais.js?v=20261125-filtro-equipe';
 import {
   abrirBlobEmNovaGuia,
   copiarTexto,
   montarUrlPublicaCandidatura,
   obterBasePublicaCandidatura,
   toDatetimeLocal,
-} from '../../shared/browser-utils.js?v=20261124-equipes4';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261124-equipes4';
+} from '../../shared/browser-utils.js?v=20261125-filtro-equipe';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-filtro-equipe';
 import {
   ModalCompartilharVaga,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261124-equipes4';
+} from '../../shared/components/share-job-modal.js?v=20261125-filtro-equipe';
 import {
   DOCUMENTOS_APROVACAO_PADRAO,
   ModalAprovacaoCandidato,
   atualizarDocumentosNaMensagem,
-} from '../../shared/components/approval-modal.js?v=20261124-equipes4';
+} from '../../shared/components/approval-modal.js?v=20261125-filtro-equipe';
 import {
   ModalEdicaoEntrevista,
-} from '../../shared/components/interview-edit-modal.js?v=20261124-equipes4';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261124-equipes4';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261124-equipes4';
+} from '../../shared/components/interview-edit-modal.js?v=20261125-filtro-equipe';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-filtro-equipe';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-filtro-equipe';
 import {
   CANDIDATE_STATUS_APPROVED,
   CANDIDATE_STATUS_ANALYSIS,
@@ -110,34 +110,34 @@ import {
   getCandidateActionState,
   isActiveCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261124-equipes4';
+} from '../../shared/process-flow.js?v=20261125-filtro-equipe';
 import {
   quebrarListaTexto,
   validarFormularioEntrevista,
   validarFormularioProcesso,
-} from '../../shared/validacoes.js?v=20261124-equipes4';
+} from '../../shared/validacoes.js?v=20261125-filtro-equipe';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
   obterReferenciaProcessoDoCandidato,
-} from '../../shared/process-reference.js?v=20261124-equipes4';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261124-equipes4';
-import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261124-equipes4';
+} from '../../shared/process-reference.js?v=20261125-filtro-equipe';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261125-filtro-equipe';
+import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261125-filtro-equipe';
 import {
   criarProvaGerada,
   cancelarProvaGerada,
   deletarProvaGerada,
   lerProvaGerada,
   reabrirProvaGerada,
-} from '../../services/api/generated-exams.js?v=20261124-equipes4';
-import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261124-equipes4';
-import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261124-equipes4';
+} from '../../services/api/generated-exams.js?v=20261125-filtro-equipe';
+import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261125-filtro-equipe';
+import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261125-filtro-equipe';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROCESSO,
-} from '../../perguntas.js?v=20261124-equipes4';
-import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261124-equipes4';
+} from '../../perguntas.js?v=20261125-filtro-equipe';
+import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261125-filtro-equipe';
 import {
   LoadingState,
   MetricGrid,
@@ -149,11 +149,11 @@ import {
   ScoreRadarChart,
   SectionCard,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-filtro-equipe';
 
 const MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO =
   'Este candidato já foi aprovado. Para alterar sua situação, será necessário um novo cadastro ou atualização manual.';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261124-equipes4').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261125-filtro-equipe').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 const AVISO_URL_PUBLICA_NAO_CONFIGURADA =
