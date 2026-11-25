@@ -3,7 +3,7 @@ import {
   invalidarCacheApi,
   lerCache,
   requisitar,
-} from './core.js?v=20261125-deploy';
+} from './core.js?v=20261125-acessos-perfil';
 
 export async function lerHistorico() {
   return requisitar('/history', { method: 'GET' });

@@ -1,9 +1,9 @@
 // Configurações › Painéis (14/11/2026, amostra v3 aprovada): a Tecnologia monta cada painel (módulo + unidade):
 // métricas, forma de mostrar, ordem, de quanto em quanto tempo atualiza e quais perfis podem ver.
 // Rebranding: só peças c- e tokens (estilos/painel.css). Regras e validação ficam no servidor (/painel/config).
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261125-deploy';
-import { lerConfigPaineis, salvarConfigPainel } from '../../services/api/painel.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { lerConfigPaineis, salvarConfigPainel } from '../../services/api/painel.js?v=20261125-acessos-perfil';
 
 const NOME_INTERVALO = { 60: '1 minuto', 300: '5 minutos', 900: '15 minutos' };
 

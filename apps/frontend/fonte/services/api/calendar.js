@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-acessos-perfil';
 
 export async function listarDatasComemorativas() {
   return requisitar('/celebratory-dates', { method: 'GET' });

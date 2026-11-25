@@ -1,14 +1,14 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-deploy';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-deploy';
-import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261125-deploy';
-import { montarHashDaTela } from '../../rotas.js?v=20261125-deploy';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261125-deploy';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261125-deploy';
-import { requisitar } from '../../services/api/core.js?v=20261125-deploy';
-import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-acessos-perfil';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-perfil';
+import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261125-acessos-perfil';
+import { montarHashDaTela } from '../../rotas.js?v=20261125-acessos-perfil';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261125-acessos-perfil';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261125-acessos-perfil';
+import { requisitar } from '../../services/api/core.js?v=20261125-acessos-perfil';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-acessos-perfil';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.

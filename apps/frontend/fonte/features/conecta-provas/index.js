@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
 
-﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+﻿import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -14,15 +14,15 @@ import {
   lerSessaoConectaProvas,
   marcarRevisaoConectaProvas,
   salvarRespostasConectaProvas,
-} from '../../servico-api.js?v=20261125-deploy';
-import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-deploy';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-perfil';
+import { formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-acessos-perfil';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-perfil';
 import {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
 
 const CHAVE_TOKEN_PUBLICO = 'conecta_provas_token';
 const CHAVE_TIMER_PUBLICO = 'conecta_provas_timer';

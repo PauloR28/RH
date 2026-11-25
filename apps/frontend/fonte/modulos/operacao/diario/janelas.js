@@ -1,6 +1,6 @@
-import { html, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { Campo, Ic, Janela, JanelaForm } from '../../../ui/components/ds.js?v=20261125-deploy';
-import { CANAIS, ROTULO_TURNO, numeroOuVazio, turnoPelaHora } from './regras.js?v=20261125-deploy';
+import { html, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { Campo, Ic, Janela, JanelaForm } from '../../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { CANAIS, ROTULO_TURNO, numeroOuVazio, turnoPelaHora } from './regras.js?v=20261125-acessos-perfil';
 
 // Janelas do Diário de bordo: intercorrência, parcial, motivo (reabrir/excluir) e correção do ABS.
 // Erro do servidor aparece DENTRO da janela; nada some do que foi digitado.

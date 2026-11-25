@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261125-deploy';
+} from './gestao/index.js?v=20261125-acessos-perfil';

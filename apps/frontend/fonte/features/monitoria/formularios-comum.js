@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { Ic, Janela, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { formatarDataHoraCurta, formatarNota } from './comum.js?v=20261125-deploy';
+import { html } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { Ic, Janela, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { formatarDataHoraCurta, formatarNota } from './comum.js?v=20261125-acessos-perfil';
 
 // Peças compartilhadas pela lista de formulários e pela tela do formulário (redesign Fase 15, fatia 4, amostras Q2 e Q3
 // do lote 2): selo de situação, linha de versão (com caixinha para Comparar), comparação e confirmação.

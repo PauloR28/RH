@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261125-deploy';
+import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261125-acessos-perfil';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();

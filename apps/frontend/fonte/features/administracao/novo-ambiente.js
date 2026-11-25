@@ -1,19 +1,19 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
 import {
   criarAmbienteSharePoint,
   excluirAmbienteSharePoint,
   listarAmbientesSharePoint,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js?v=20261125-deploy';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
+} from '../../services/api/sistema.js?v=20261125-acessos-perfil';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-perfil';
 
 const FORM_INICIAL = {
   operacao_id: '',

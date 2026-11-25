@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-perfil';
 import {
   excluirTipoAtendimento,
   listarCatalogoMonitoria,
   listarTiposAtendimento,
   salvarTipoAtendimento,
-} from '../../services/api/monitoria.js?v=20261125-deploy';
-import { useContextoMonitoria } from '../monitoria/comum.js?v=20261125-deploy';
+} from '../../services/api/monitoria.js?v=20261125-acessos-perfil';
+import { useContextoMonitoria } from '../monitoria/comum.js?v=20261125-acessos-perfil';
 
 // Configurações > Parâmetros > "Tipos de atendimentos": cada tipo pertence a uma operação e a um
 // canal de atendimento (usados no formulário de Nova monitoria). As regras de escopo e de

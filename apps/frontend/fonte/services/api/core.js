@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261125-deploy';
+import { criarLogger } from '../../logger.js?v=20261125-acessos-perfil';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 

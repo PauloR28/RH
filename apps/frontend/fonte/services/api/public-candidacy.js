@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-deploy';
+import { requisitar } from './core.js?v=20261125-acessos-perfil';
 
 export async function lerPaginaPublicaCandidatura(slug) {
   return requisitar(

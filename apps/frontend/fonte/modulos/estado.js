@@ -1,11 +1,11 @@
 // Estado dos módulos em tempo de execução: carrega GET /core/acesso uma vez por sessão e guarda o módulo atual.
 // Falha ao carregar = `carregado: false` e o menu se comporta como antes da modularização (nada some por engano).
 
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-deploy';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261125-deploy';
-import { lerAcessoCore } from '../services/api/modulos.js?v=20261125-deploy';
-import { definirAreasInativas } from '../shared/areas.js?v=20261125-deploy';
-import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261125-deploy';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261125-acessos-perfil';
+import { lerAcessoCore } from '../services/api/modulos.js?v=20261125-acessos-perfil';
+import { definirAreasInativas } from '../shared/areas.js?v=20261125-acessos-perfil';
+import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261125-acessos-perfil';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
 

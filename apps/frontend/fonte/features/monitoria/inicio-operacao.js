@@ -1,15 +1,15 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { lerResumoHojeDiario } from '../../services/api/diario.js?v=20261125-deploy';
-import { pedirDiaDiario, pendenciasDiario } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-deploy';
-import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-perfil';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-perfil';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-perfil';
+import { Esqueleto, Estado, Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-perfil';
+import { lerResumoHojeDiario } from '../../services/api/diario.js?v=20261125-acessos-perfil';
+import { pedirDiaDiario, pendenciasDiario } from '../../modulos/operacao/diario/ligacoes.js?v=20261125-acessos-perfil';
+import { aprovacoesPendentesWfm, lerContextoWfm, listarTrocasWfm, pendenciasPresencaWfm } from '../../services/api/wfm.js?v=20261125-acessos-perfil';
 import {
   EixoHoras, agoraNoDia, agruparPorTurno, carregarDia, faixa, iniciais, montarLinhas, paraIso, pctEixo, resumoGrupo, rotuloDiaMes,
-} from '../../modulos/operacao/wfm/painel-dia.js?v=20261125-deploy';
-import { pedirFocoPessoa } from '../../modulos/operacao/wfm/foco-pessoa.js?v=20261125-deploy';
-import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-deploy';
+} from '../../modulos/operacao/wfm/painel-dia.js?v=20261125-acessos-perfil';
+import { pedirFocoPessoa } from '../../modulos/operacao/wfm/foco-pessoa.js?v=20261125-acessos-perfil';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-acessos-perfil';
 
 // Início da Operação (reestruturação, Etapa 8 — amostra aprovada em 17/11/2026). Vale para todos os perfis no módulo
 // Operação, menos o Operador (que tem o Início próprio, "Seu dia"). Mesmo desenho do Início do Supervisor (08/11/2026):
