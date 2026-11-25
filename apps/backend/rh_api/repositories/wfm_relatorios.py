@@ -183,7 +183,7 @@ class WfmRelatoriosRepositoryMixin:
                 extras[(int(r[0]), r[1])] = int(r[2])
             # Escala de pausas (horários PREVISTOS do dia). O Conecta não registra a pausa realmente tirada (isso é da telefonia).
             cursor.execute(
-                f"SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marc}) "
+                f"SELECT id_operador, data, tipo, inicio, duracao_min FROM dbo.wfm_pausas WHERE operacao = ? AND data BETWEEN ? AND ? AND id_operador IN ({marc}) "  # nosec B608 - só marcadores "?"
                 "ORDER BY data, id_operador, ordem",
                 (operacao, ini, fim, *ids),
             )
