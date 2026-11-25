@@ -333,7 +333,11 @@ function MenuExportar({ desabilitado, ocupado, onExportar }) {
 }
 
 // ---------------------------------------------------------------------------------------------------- tela
-export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, somentePainel = false }) {
+export function TelaRelatorios({ contexto, operacao: operacaoRecebida, aoTrocarEscala, showToast, somentePainel = false }) {
+  // Só escalas ativas entram nos relatórios. Se a escala recebida estiver desativada (ex.: a principal da operação foi
+  // trocada por uma escala nova), usa a primeira ativa; antes a tela consultava a desativada e mostrava tudo zerado.
+  const opcoesEscalas = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => [o.chave, o.nome]);
+  const operacao = !opcoesEscalas.length || opcoesEscalas.some(([c]) => c === operacaoRecebida) ? operacaoRecebida : opcoesEscalas[0][0];
   const [visao, setVisao] = useState('painel');
   const [preset, setPreset] = useState('mes');
   const [[ini, fim], setIntervalo] = useState(() => PERIODOS.mes.calc());
@@ -378,7 +382,6 @@ export function TelaRelatorios({ contexto, operacao, aoTrocarEscala, showToast, 
   const visaoAtual = VISOES.find((v) => v.id === visao);
   const ehPainel = visao === 'painel';
 
-  const opcoesEscalas = (contexto?.operacoes || []).filter((o) => o.escala_ativa !== false).map((o) => [o.chave, o.nome]);
   const opcoesPeriodo = [...Object.entries(PERIODOS).map(([k, p]) => [k, p.rotulo]), ['personalizado', 'Personalizado']];
   const opcoesOperador = [['', 'Todos'], ...operadores.map((o) => [String(o.id_usuario), o.nome])];
   const [calculoAberto, setCalculoAberto] = useState(false);

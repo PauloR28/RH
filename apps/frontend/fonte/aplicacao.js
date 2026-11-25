@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-acessos-salvar';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-indicadores';
