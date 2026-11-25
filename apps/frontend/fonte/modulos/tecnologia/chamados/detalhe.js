@@ -1,18 +1,18 @@
-import { html, useCallback, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { obterRotaAtual } from '../../../rotas.js?v=20261124-equipes4';
-import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20261124-equipes4';
-import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261124-equipes4';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { obterRotaAtual } from '../../../rotas.js?v=20261125-tela-grande';
+import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20261125-tela-grande';
+import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261125-tela-grande';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261125-tela-grande';
 import {
   assumirChamado, atribuirChamado, baixarAnexoChamado, buscarAtendentesChamado, cancelarChamado, confirmarEncerramentoChamado,
   enviarMensagemChamado, excluirAnexoChamado, lerChamado, lerHistoricoChamado, listarEventosChamado, mudarStatusChamado,
   mudarUrgenciaChamado, reabrirChamado,
-} from '../../../services/api/chamados.js?v=20261124-equipes4';
+} from '../../../services/api/chamados.js?v=20261125-tela-grande';
 import {
   AcessoRestrito, Avatar, EstadoErro, Icone, MenuCompartilhar, ORDEM_URGENCIA, Pill, PillSla, PillStatus, PillUrgencia, ROTULO_STATUS,
   ROTULO_URGENCIA, TELA_LISTA, formatarDataCompleta, formatarDataHora, tamanhoLegivel, useDebounce,
-} from './comum.js?v=20261124-equipes4';
+} from './comum.js?v=20261125-tela-grande';
 
 // Detalhe do chamado. Vive em dois lugares com o mesmo componente: painel ao lado da lista (`embutido`) e a rota própria
 // /suporte-ti/chamado/:id (links de notificação). Descrição sempre à vista; Conversa, Histórico e Anexos em abas; ações numa barra só.

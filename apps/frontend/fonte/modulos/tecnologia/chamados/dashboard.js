@@ -1,7 +1,7 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { lerDashboardChamados } from '../../../services/api/chamados.js?v=20261124-equipes4';
-import { Section, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261124-equipes4';
-import { EstadoErro, Indicador } from './comum.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
+import { lerDashboardChamados } from '../../../services/api/chamados.js?v=20261125-tela-grande';
+import { Section, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261125-tela-grande';
+import { EstadoErro, Indicador } from './comum.js?v=20261125-tela-grande';
 
 // Dashboard (`chamados.dashboard`): indicadores do momento e blocos do período. Cada bloco pode ser visto como tabela, pizza ou barras.
 // Gráficos em SVG/CSS com os tokens do Conecta (sem biblioteca).

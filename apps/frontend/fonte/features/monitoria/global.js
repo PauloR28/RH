@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261124-equipes4';
-import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261124-equipes4';
-import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261125-tela-grande';
+import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261125-tela-grande';
 
 // Peças GLOBAIS da vertente Monitoria (montadas uma vez na raiz do app):
 //  * tema/logo por operação;

@@ -1,6 +1,6 @@
-﻿import { ROTULOS_ETAPAS } from './rotulos-etapas.js?v=20261124-equipes4';
-import { obterDadosBaseExcel } from './features/prova/services/excel-base-data.js?v=20261124-equipes4';
-import { corrigirRespostaDiscursivaInteligente } from './features/prova/services/analise-resposta.js?v=20261124-equipes4';
+﻿import { ROTULOS_ETAPAS } from './rotulos-etapas.js?v=20261125-tela-grande';
+import { obterDadosBaseExcel } from './features/prova/services/excel-base-data.js?v=20261125-tela-grande';
+import { corrigirRespostaDiscursivaInteligente } from './features/prova/services/analise-resposta.js?v=20261125-tela-grande';
 import {
   baixarBlob,
   contarFrases,
@@ -8,7 +8,7 @@ import {
   removerHtml,
   sanitizarNomeArquivo,
   textoMaiusculoSeguro,
-} from './utilitarios.js?v=20261124-equipes4';
+} from './utilitarios.js?v=20261125-tela-grande';
 
 function obterBibliotecaXlsx() {
   if (!window.XLSX) {

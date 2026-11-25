@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261124-equipes4';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261125-tela-grande';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

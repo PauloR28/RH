@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
@@ -6,17 +6,17 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { Badge, ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { TelaLgpdRetencao } from './lgpd-retencao.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { Badge, ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
+import { TelaLgpdRetencao } from './lgpd-retencao.js?v=20261125-tela-grande';
 import {
   atualizarItemConfiguracao,
   criarItemConfiguracao,
   desativarItemConfiguracao,
   excluirItemConfiguracao,
   listarCatalogoConfiguracoes,
-} from '../../services/api/settings.js?v=20261124-equipes4';
+} from '../../services/api/settings.js?v=20261125-tela-grande';
 
 // Correções.txt item 5: LGPD e Retenção, Motivos de Eliminação, Modelos de
 // E-mail e Etapas do Processo saem do switcher interno de Operações e viram

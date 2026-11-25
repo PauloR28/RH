@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   lancarHoraExtraWfm,
   lerPausasDiaWfm,
   listarHorasExtrasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { falhaAo, minutosParaHoras } from './comum.js?v=20261124-equipes4';
-import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js?v=20261124-equipes4';
-import { LinhaTempo } from './minha.js?v=20261124-equipes4';
+} from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { falhaAo, minutosParaHoras } from './comum.js?v=20261125-tela-grande';
+import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js?v=20261125-tela-grande';
+import { LinhaTempo } from './minha.js?v=20261125-tela-grande';
 
 // Gaveta "Ajustar dia": turno, horário, hora extra e pausas de UM colaborador em UM dia, com a opção de repetir o
 // ajuste em outros dias do mês. Salva direto na API existente (itens da escala, pausas e hora extra); regras de negócio,

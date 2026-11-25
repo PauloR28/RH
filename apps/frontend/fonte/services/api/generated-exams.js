@@ -1,4 +1,4 @@
-import { invalidarCacheApi, lerCache, gravarCache, requisitar } from './core.js?v=20261124-equipes4';
+import { invalidarCacheApi, lerCache, gravarCache, requisitar } from './core.js?v=20261125-tela-grande';
 
 const CACHE_PROVAS_GERADAS = 'provas-geradas';
 const TEMPO_CACHE_PROVAS_GERADAS_MS = 60 * 60 * 1000;

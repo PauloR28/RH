@@ -111,6 +111,13 @@ class EquipesControleRepositoryMixin:
                 "turno": self._eq_turnos_da_escala(cursor, [alvo]).get(alvo) or normalize_text(sup[0].get("turno")),
             }
             contexto["operadores"] = self._eq_operadores(cursor, alvo)
+            # Nome da equipe (Equipes da Tecnologia): a equipe ativa em que ele é o supervisor responsável.
+            cursor.execute(
+                "SELECT TOP 1 nome FROM dbo.equipes_operacao WHERE id_supervisor = ? AND ativo = 1 ORDER BY nome",
+                (alvo,),
+            )
+            linha = cursor.fetchone()
+            contexto["equipe_nome"] = normalize_text(linha[0]) if linha else ""
             return contexto
         finally:
             conn.close()

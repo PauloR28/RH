@@ -1,8 +1,8 @@
 // Tela inicial configurável por perfil (espelha apps/backend/rh_api/services/tela_inicial.py).
 // A configuração do perfil só ESCONDE ou reordena blocos: cada bloco continua
 // exigindo a permissão da área (quem não acessa a Caixa de CV não vê o bloco).
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261124-equipes4';
-import { lerSessaoAutenticacao, requisitar } from '../services/api/core.js?v=20261124-equipes4';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-tela-grande';
+import { lerSessaoAutenticacao, requisitar } from '../services/api/core.js?v=20261125-tela-grande';
 
 export const PERFIS_INICIO_POR_SESSOES = new Set(['supervisor', 'qualidade', 'operador', 'candidato']);
 

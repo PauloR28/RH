@@ -1,7 +1,7 @@
 // Peças do Painel (14/11/2026) usadas pela tela e pelos blocos das métricas da amostra v6.
 // Só desenham com classes c- (conecta-ds.css) e c-pg- (estilos/painel.css).
-import { html, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { Estado, Ic } from '../../ui/components/ds.js?v=20261124-equipes4';
+import { html, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { Estado, Ic } from '../../ui/components/ds.js?v=20261125-tela-grande';
 
 export const POR_PAGINA_SUB = 5;
 export const POR_PAGINA_OPS = 10;

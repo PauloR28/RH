@@ -1,5 +1,5 @@
-import { ROTULOS_ETAPAS } from '../rotulos-etapas.js?v=20261124-equipes4';
-import { canonicalizeCandidateStatus } from './process-flow.js?v=20261124-equipes4';
+import { ROTULOS_ETAPAS } from '../rotulos-etapas.js?v=20261125-tela-grande';
+import { canonicalizeCandidateStatus } from './process-flow.js?v=20261125-tela-grande';
 
 // Aceita nota em escala 0-10 ou 0-100 (a origem do dado varia por fluxo de
 // prova) — normaliza para 0-10 só para decidir a cor da faixa, o valor

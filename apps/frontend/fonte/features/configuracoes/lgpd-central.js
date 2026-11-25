@@ -1,10 +1,10 @@
 // Configurações do Conecta › LGPD (reestruturação, Etapa 7c — amostra aprovada em 17/nov/2026).
 // Regra do Paulo: TODA retenção de dado sensível, de qualquer módulo, é configurada aqui. Nenhuma outra tela tem prazo.
 // Os 3 tipos de candidato usam a configuração que já existia (/settings/lgpd/retencao); os demais, /settings/lgpd/dados.
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261124-equipes4';
-import { requisitar } from '../../services/api/core.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { requisitar } from '../../services/api/core.js?v=20261125-tela-grande';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const api = {

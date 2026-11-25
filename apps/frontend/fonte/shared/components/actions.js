@@ -1,5 +1,5 @@
-import { html } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+import { html } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 
 export function AcaoSair({ controlador }) {
   return html`

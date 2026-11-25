@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   definirSkillsOperadorWfm,
   lerEscalaWfm,
@@ -19,12 +19,12 @@ import {
   impactoTipoTurnoWfm,
   excluirEscalaWfm,
   salvarTipoEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261124-equipes4';
-import { semAcento } from './escala-ui.js?v=20261124-equipes4';
-import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261124-equipes4';
-import { TabelaHistorico } from './historico.js?v=20261124-equipes4';
-import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
+} from '../../../services/api/wfm.js?v=20261125-tela-grande';
+import { ROTULO_TIPO_EVENTO, falhaAo, minutosParaHoras } from './comum.js?v=20261125-tela-grande';
+import { semAcento } from './escala-ui.js?v=20261125-tela-grande';
+import { TIPOS_PAUSA, TabelaJornadas } from './jornadas.js?v=20261125-tela-grande';
+import { TabelaHistorico } from './historico.js?v=20261125-tela-grande';
+import { Campo, Esqueleto, Estado, Ic, Janela, JanelaForm, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-tela-grande';
 
 // Cadastros do WFM (redesign Fase 15, amostra Q3 do lote 1): lista lateral em caixa branca (como Relatórios) —
 // Escala › Turnos · Jornadas e limites · Calendário especial · Skills · Tipos de escala; Registro › Histórico de alterações.
@@ -335,7 +335,10 @@ function Busca({ valor, aoMudar, rotulo }) {
   return html`<div class="c-com-icone c-com-icone--compacta c-busca"><${Ic} nome="magnifying-glass" /><input class="c-entrada c-entrada--compacta" type="search" placeholder=${rotulo} aria-label=${rotulo} value=${valor} onInput=${(e) => aoMudar(e.target.value)} /></div>`;
 }
 
-function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], podeEditar, recarregar, showToast }) {
+// `idSupervisorEquipe`: tela Equipes com uma equipe escolhida mostra só os turnos dessa equipe e os sem supervisor (folga, DSR…).
+function Turnos({ operacao, turnos: todosTurnos, contratos, supervisores, operadores = [], podeEditar, recarregar, showToast, idSupervisorEquipe = null }) {
+  const turnos = idSupervisorEquipe ? todosTurnos.filter((t) => !t.id_supervisor || String(t.id_supervisor) === String(idSupervisorEquipe)) : todosTurnos;
+  const turnoNovo = () => ({ ...TURNO_VAZIO, pausas: [], id_supervisor: idSupervisorEquipe ? String(idSupervisorEquipe) : '' });
   const [edit, setEdit] = useState(null);
   const [personalizar, setPersonalizar] = useState(null);
   const [busca, setBusca] = useState('');
@@ -353,12 +356,12 @@ function Turnos({ operacao, turnos, contratos, supervisores, operadores = [], po
   const tipos = [...new Set(turnos.map((t) => t.tipo))];
   return html`
     <div class="c-tabela-caixa">
-      <${FaixaItem} titulo="Turnos" contagem=${`${visiveis.length} de ${turnos.length}`} novo=${podeEditar ? { rotulo: 'Novo turno', onClick: () => setEdit({ ...TURNO_VAZIO, pausas: [] }) } : null}>
+      <${FaixaItem} titulo="Turnos" contagem=${`${visiveis.length} de ${turnos.length}`} novo=${podeEditar ? { rotulo: 'Novo turno', onClick: () => setEdit(turnoNovo()) } : null}>
         <${Busca} valor=${busca} aoMudar=${setBusca} rotulo="Buscar turno" />
         ${tipos.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Tipo" value=${tipo} onChange=${(e) => setTipo(e.target.value)}><option value="">Tipo: todos</option>${tipos.map((t) => html`<option key=${t} value=${t}>${TIPOS_TURNO[t] || t}</option>`)}</select>` : null}
         <select class="c-entrada c-entrada--compacta" aria-label="Situação" value=${situacao} onChange=${(e) => setSituacao(e.target.value)}><option value="">Situação: todas</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select>
       <//>
-      ${!turnos.length ? html`<${Estado} icone="clock" titulo="Nenhum turno cadastrado." rotuloAcao=${podeEditar ? 'Novo turno' : undefined} aoAcao=${podeEditar ? () => setEdit({ ...TURNO_VAZIO, pausas: [] }) : undefined} />`
+      ${!turnos.length ? html`<${Estado} icone="clock" titulo="Nenhum turno cadastrado." rotuloAcao=${podeEditar ? 'Novo turno' : undefined} aoAcao=${podeEditar ? () => setEdit(turnoNovo()) : undefined} />`
         : !visiveis.length ? html`<${Estado} titulo="Nenhum turno com estes filtros." rotuloAcao="Limpar filtros" aoAcao=${() => { setBusca(''); setTipo(''); setSituacao(''); }} />`
         : html`<table class="c-tabela">
           <thead><tr><th scope="col">Código</th><th scope="col" class="c-estica">Nome</th><th scope="col">Tipo</th><th scope="col">Horário</th><th scope="col">Dias</th><th scope="col" class="c-col-opc">Jornada</th><th scope="col" class="c-col-opc">Supervisor</th><th scope="col" class="c-num c-col-opc">Pausas</th><th scope="col">Situação</th><th scope="col" class="c-acoes"><span class="c-oculto">Ações</span></th></tr></thead>
@@ -536,7 +539,7 @@ const ITENS = [
 
 // Cadastros: lista lateral + a tabela do item escolhido. `pagina` monta a página inteira (cabeçalho com a escala);
 // sem ela (Equipes › Horários) mostra só a lista e a tabela. Jornadas e Histórico só aparecem quando a tela os oferece.
-export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala, itemInicial = 'turnos', comJornadas = false, comHistorico = false, pagina = false }) {
+export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToast, recarregarContexto, aoTrocarEscala, itemInicial = 'turnos', comJornadas = false, comHistorico = false, pagina = false, idSupervisorEquipe = null }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [item, setItem] = useState(itemInicial);
@@ -573,7 +576,7 @@ export function TelaCadastros({ controlador, contexto, operacao, anoMes, showToa
     if (!dados) return html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${6} /></div>`;
     if (atual === 'calendario') return html`<${Calendario} ...${comum} anoMes=${mesCal} aoMudarMes=${setMesCal} eventos=${dados.eventos} turnos=${dados.turnos} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
     if (atual === 'skills') return html`<${Skills} ...${comum} skills=${dados.skills} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
-    return html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} />`;
+    return html`<${Turnos} ...${comum} turnos=${dados.turnos} contratos=${dados.contratos} supervisores=${dados.supervisores} operadores=${dados.operadores} podeEditar=${podeCadastros} idSupervisorEquipe=${idSupervisorEquipe} />`;
   };
 
   const lista = html`<nav class="c-rel-lista c-rel-lista--caixa c-cad-lista" aria-label="Cadastros">

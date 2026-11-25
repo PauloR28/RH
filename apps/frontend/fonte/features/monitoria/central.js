@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
+import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 import {
   enviarLogoOperacao,
   executarZonaDeRisco,
@@ -10,8 +10,8 @@ import {
   salvarConfigMonitoria,
   salvarCorOperacao,
   salvarGuia,
-} from '../../services/api/monitoria.js?v=20261124-equipes4';
-import { SelectOperacao } from './comum.js?v=20261124-equipes4';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { SelectOperacao } from './comum.js?v=20261125-tela-grande';
 
 // Central de Monitoria (Configurações, só Administrador): prazos e alertas, identidade
 // visual por operação e Zona de risco na aba "Geral"; guia de processos em aba própria.

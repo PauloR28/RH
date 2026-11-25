@@ -1,6 +1,6 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261124-equipes4';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261124-equipes4';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261124-equipes4';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-tela-grande';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261125-tela-grande';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261125-tela-grande';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

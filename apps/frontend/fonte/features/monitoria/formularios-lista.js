@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   alterarSituacaoFormulario,
   ativarFormularioMatriz,
@@ -8,10 +8,10 @@ import {
   listarFormulariosMatriz,
   listarVersoesMatriz,
   restaurarVersaoMatriz,
-} from '../../services/api/monitoria.js?v=20261124-equipes4';
-import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento } from '../../ui/components/ds.js?v=20261124-equipes4';
-import { formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261124-equipes4';
-import { ChipSituacao, DialogoConfirmar, ModalComparacao, ROTULO_ACAO, SITUACOES, VersionRow, alternarMarcadas, compararConfigs } from './formularios-comum.js?v=20261124-equipes4';
+} from '../../services/api/monitoria.js?v=20261125-tela-grande';
+import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento } from '../../ui/components/ds.js?v=20261125-tela-grande';
+import { formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261125-tela-grande';
+import { ChipSituacao, DialogoConfirmar, ModalComparacao, ROTULO_ACAO, SITUACOES, VersionRow, alternarMarcadas, compararConfigs } from './formularios-comum.js?v=20261125-tela-grande';
 
 // Lista de formulários (redesign Fase 15, fatia 4, amostra Q2 do lote 2): caixa com o filtro de situação (com contagem),
 // Operação e busca; tabela Formulário · Situação · Versão · Atualizado · Monit. · Nota · [Abrir ⋯]; coluna à direita de 320 px

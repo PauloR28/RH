@@ -1,19 +1,19 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-tela-grande';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-tela-grande';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-tela-grande';
 import {
   criarAmbienteSharePoint,
   excluirAmbienteSharePoint,
   listarAmbientesSharePoint,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js?v=20261124-equipes4';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
+} from '../../services/api/sistema.js?v=20261125-tela-grande';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-tela-grande';
 
 const FORM_INICIAL = {
   operacao_id: '',
