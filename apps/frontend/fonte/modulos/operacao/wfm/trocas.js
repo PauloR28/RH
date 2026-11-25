@@ -1,15 +1,15 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
 import {
   cancelarTrocaWfm,
   decidirTrocaWfm,
   desfazerTrocaWfm,
   listarTrocasWfm,
   responderTrocaWfm,
-} from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { dataHora } from './comum.js?v=20261124-equipes4';
-import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js?v=20261124-equipes4';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
-import { tomarFocoPessoa } from './foco-pessoa.js?v=20261124-equipes4';
+} from '../../../services/api/wfm.js?v=20261125-deploy';
+import { dataHora } from './comum.js?v=20261125-deploy';
+import { ModalResumoTroca, textoTrocaSupervisor } from './trocas-texto.js?v=20261125-deploy';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { tomarFocoPessoa } from './foco-pessoa.js?v=20261125-deploy';
 
 // Trocas de plantão (redesign Fase 15, amostra "Trocas" da Fase 12). Nenhuma troca é automática: mesmo com o colega
 // de acordo, um Supervisor, Control Desk ou Gestor/RH aprova. Todas as regras (janela, prazo, skills, motor) rodam

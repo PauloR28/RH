@@ -1,14 +1,14 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../../ui/icone.js?v=20261124-equipes4';
-import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261124-equipes4';
-import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261124-equipes4';
-import { Icone } from './escala-ui.js?v=20261124-equipes4';
-import { horasDec } from './comum.js?v=20261124-equipes4';
-import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261124-equipes4';
-import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261124-equipes4';
-import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { EmptyState, LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-deploy';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-deploy';
+import { AbasConsole, idAba, idPainel } from '../../../ui/components/console-primitivas.js?v=20261125-deploy';
+import { ContextField, PainelFlutuante } from '../../../ui/components/modulo-primitivas.js?v=20261125-deploy';
+import { Icone } from './escala-ui.js?v=20261125-deploy';
+import { horasDec } from './comum.js?v=20261125-deploy';
+import { exportarRelatorioWfm, lerRelatorioWfm } from '../../../services/api/wfm.js?v=20261125-deploy';
+import { baixarArquivo } from '../../../features/monitoria/comum.js?v=20261125-deploy';
+import { CabPagina, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { CartaoGrafico, GraficoBarrasH, GraficoBarrasSobrepostas, GraficoColunas, GraficoEmpilhada, GraficoRosca, GraficoSerieDiaria, GraficoSituacao, LegendaSerieDiaria, LegendaSimples, fmt } from './graficos.js?v=20261125-deploy';
 
 // Relatórios do WFM (Supervisor, Control Desk, Gestor, Analista de TI). Seis visões sobre um período de UMA escala:
 // Painel (indicadores com comparação ao período anterior + gráficos), Resumo por operador, Escalas, Presenças, Trocas e Aprovações.
@@ -23,18 +23,19 @@ const VISOES = [
   { id: 'trocas', rotulo: 'Trocas', icone: 'compare_arrows', dica: 'Pedidos, aprovações e reprovações' },
   { id: 'aprovacoes', rotulo: 'Aprovações', icone: 'verified', dica: 'Envio, aprovação, declínio e publicação' },
 ];
-const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao'];
+const NUMERICAS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 const TAMANHOS = [25, 50, 100];
 const CORES_PRESENCA = ['var(--wfm-g-ok)', 'var(--wfm-g-perigo)', 'var(--wfm-g-aviso)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];
 const CORES_TROCA = ['var(--wfm-g-ok)', 'var(--wfm-g-marca)', 'var(--wfm-g-aviso)', 'var(--wfm-g-perigo)', 'var(--wfm-g-marca-clara)', 'var(--wfm-g-neutro)'];
 
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// Períodos que incluem o dia de hoje terminam HOJE (dias futuros só entram se o usuário escolher a data em "Personalizado").
 const PERIODOS = {
-  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(new Date(h.getFullYear(), h.getMonth() + 1, 0))]; } },
+  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(h)]; } },
   anterior: { rotulo: 'Mês anterior', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth() - 1, 1)), iso(new Date(h.getFullYear(), h.getMonth(), 0))]; } },
   trinta: { rotulo: 'Últimos 30 dias', calc: () => { const h = new Date(); const i = new Date(h); i.setDate(i.getDate() - 29); return [iso(i), iso(h)]; } },
-  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, `${h.getFullYear()}-12-31`]; } },
+  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, iso(h)]; } },
 };
 const br = (isoData) => (isoData ? isoData.split('-').reverse().join('/') : '');
 

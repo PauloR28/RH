@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261124-equipes4';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-deploy';

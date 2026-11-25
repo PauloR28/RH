@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261124-equipes4';
-import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261124-equipes4';
-import { EmptyState } from './feedback.js?v=20261124-equipes4';
-import { SectionCard } from './layout.js?v=20261124-equipes4';
-import { IconeSvg } from '../icone.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261125-deploy';
+import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261125-deploy';
+import { EmptyState } from './feedback.js?v=20261125-deploy';
+import { SectionCard } from './layout.js?v=20261125-deploy';
+import { IconeSvg } from '../icone.js?v=20261125-deploy';
 
 export function ModalPadrao({
   aberto,

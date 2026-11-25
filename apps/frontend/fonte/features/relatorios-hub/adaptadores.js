@@ -1,10 +1,10 @@
-import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261124-equipes4';
-import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js?v=20261124-equipes4';
-import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js?v=20261124-equipes4';
-import { lerHistoricoPaginado } from '../../services/api/history.js?v=20261124-equipes4';
-import { listarLogsAuditoria } from '../../services/api/settings.js?v=20261124-equipes4';
-import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js?v=20261124-equipes4';
-export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js?v=20261124-equipes4';
+import { lerContextoWfm, lerRelatorioWfm, listarHistoricoWfm } from '../../services/api/wfm.js?v=20261125-deploy';
+import { lerContextoMonitoria, lerRelatorio as lerRelatorioMonitoria, listarLogsMonitoria } from '../../services/api/monitoria.js?v=20261125-deploy';
+import { lerAnalisesCandidatos, lerRelatorioCandidatos, lerRelatorioProcessos } from '../../services/api/analytics.js?v=20261125-deploy';
+import { lerHistoricoPaginado } from '../../services/api/history.js?v=20261125-deploy';
+import { listarLogsAuditoria } from '../../services/api/settings.js?v=20261125-deploy';
+import { lerContextoDiario, lerRelatorioDiario } from '../../services/api/diario.js?v=20261125-deploy';
+export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-deploy';
 
 // Relatórios e Históricos — registro de relatórios. Cada item descreve: onde aparece (área), qual permissão o liga ao perfil
 // (`relhub.*`, conferida também no servidor), quais filtros unificados valem e como carregar os dados como PLANILHA
@@ -12,20 +12,21 @@ export { TELA_ANTIGA_PARA_RELATORIO } from '../../shared/relatorios-hub.js?v=202
 // "tela" e continuam existindo no lugar de origem.
 
 export const AREAS = [
-  { id: 'wfm', rotulo: 'Turnos e Plantões', icone: 'calendar_month' },
-  { id: 'monitoria', rotulo: 'Monitoria', icone: 'fact_check' },
-  { id: 'diario', rotulo: 'Diário de bordo', icone: 'menu_book' },
-  { id: 'rh', rotulo: 'RH', icone: 'badge' },
-  { id: 'sistema', rotulo: 'Sistema', icone: 'shield' },
+  { id: 'wfm', rotulo: 'Turnos e Plantões', icone: 'calendar_month', modulo: 'operacao' },
+  { id: 'monitoria', rotulo: 'Monitoria', icone: 'fact_check', modulo: 'operacao' },
+  { id: 'diario', rotulo: 'Diário de bordo', icone: 'menu_book', modulo: 'operacao' },
+  { id: 'rh', rotulo: 'RH', icone: 'badge', modulo: 'rh' },
+  { id: 'sistema', rotulo: 'Sistema', icone: 'shield', modulo: 'tecnologia' },
 ];
 
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// Períodos que incluem o dia de hoje terminam HOJE (dias futuros só entram se o usuário escolher a data em "Personalizado").
 export const PERIODOS = {
-  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(new Date(h.getFullYear(), h.getMonth() + 1, 0))]; } },
+  mes: { rotulo: 'Mês atual', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth(), 1)), iso(h)]; } },
   anterior: { rotulo: 'Mês anterior', calc: () => { const h = new Date(); return [iso(new Date(h.getFullYear(), h.getMonth() - 1, 1)), iso(new Date(h.getFullYear(), h.getMonth(), 0))]; } },
   trinta: { rotulo: 'Últimos 30 dias', calc: () => { const h = new Date(); const i = new Date(h); i.setDate(i.getDate() - 29); return [iso(i), iso(h)]; } },
-  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, `${h.getFullYear()}-12-31`]; } },
+  ano: { rotulo: 'Ano atual', calc: () => { const h = new Date(); return [`${h.getFullYear()}-01-01`, iso(h)]; } },
 };
 
 const LIMITE_LINHAS = 5000;
@@ -181,7 +182,7 @@ export const RELATORIOS = [
       {
         id: 'rh.processos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Processos seletivos', descricao: 'Processos abertos no período, vagas, aprovados e eliminados.', permissao: 'relhub.rh.processos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261124-equipes4');
+          const { COLUNAS_RELATORIO_PROCESSOS, montarLinhaProcessoRelatorio } = await import('../gestao/index.js?v=20261125-deploy');
           const procs = await operacaoDosProcessos(f);
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
           const linhas = procs.filter((p) => !f.operacao || p.operacao === f.operacao).map((p) => ({ ...montarLinhaProcessoRelatorio(p), operacao_relatorio: p.operacao || '' }));
@@ -191,7 +192,7 @@ export const RELATORIOS = [
       {
         id: 'rh.candidatos', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Candidatos', descricao: 'Candidatos por processo, notas, aprovação e eliminação.', permissao: 'relhub.rh.candidatos', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261124-equipes4');
+          const { COLUNAS_RELATORIO_CANDIDATOS } = await import('../gestao/index.js?v=20261125-deploy');
           const [procs, cands] = await Promise.all([operacaoDosProcessos(f), lerRelatorioCandidatos({ dataInicial: f.ini, dataFinal: f.fim })]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);
@@ -202,7 +203,7 @@ export const RELATORIOS = [
       {
         id: 'rh.ranking', area: 'rh', origem: 'screen-analysis-candidates', rotulo: 'Ranking analítico', descricao: 'Nota final, afinidade e recomendação por candidato.', permissao: 'relhub.rh.ranking', filtros: filtrosRh,
         async carregar(f) {
-          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261124-equipes4');
+          const { COLUNAS_RANKING_ANALITICO, montarLinhaRankingRelatorio } = await import('../gestao/index.js?v=20261125-deploy');
           const [procs, analises] = await Promise.all([operacaoDosProcessos(f), lerAnalisesCandidatos()]);
           const opPorProcesso = new Map(procs.flatMap((p) => [[p.id_processo, p.operacao], [p.nome_relatorio_processo, p.operacao]].filter(([k]) => k)));
           const operacoes = [...new Set(procs.map((p) => p.operacao).filter(Boolean))].sort().map((o) => [o, o]);

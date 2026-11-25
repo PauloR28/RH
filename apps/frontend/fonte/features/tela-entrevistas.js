@@ -1,1 +1,1 @@
-export { TelaEntrevistas } from './entrevistas/index.js?v=20261124-equipes4';
+export { TelaEntrevistas } from './entrevistas/index.js?v=20261125-deploy';

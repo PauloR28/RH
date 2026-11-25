@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { useVisaoEquipes } from './escala-ui.js?v=20261124-equipes4';
-import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261124-equipes4';
-import { Esqueleto, Estado, Ic, Navegar, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { useVisaoEquipes } from './escala-ui.js?v=20261125-deploy';
+import { lerEscalaWfm } from '../../../services/api/wfm.js?v=20261125-deploy';
+import { Esqueleto, Estado, Ic, Navegar, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
 
 // Equipes › Escala (redesign Fase 15, fatia 4, amostra Q4 do lote 2): calendário do mês (c-cal) em que cada dia mostra quantos
 // estão escalados; o dia escolhido ganha contorno e a coluna da direita (320 px) lista quem trabalha, código do turno, horário e
@@ -19,7 +19,15 @@ const hhmm = (min) => `${pad(Math.floor(min / 60) % 24)}:${pad(min % 60)}`;
 const tituloDia = (d) => `${SEMANA[diaSemana(d)]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 const fimPausa = (p) => hhmm((aMin(p.inicio) + p.duracao_min) % 1440);
 
-export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, aoTrocarEscala, ehSupervisor = false, aoVerPainel }) {
+// `idsOperadores`: quando vem (Adm/Control Desk escolhendo uma equipe), só essas pessoas aparecem, mesmo que o servidor mande a operação toda.
+const somenteEquipe = (dados, ids) => {
+  if (!ids) return dados;
+  const da = new Set(ids.map(Number));
+  return { ...dados, operadores: (dados.operadores || []).filter((o) => da.has(Number(o.id_usuario))), itens: (dados.itens || []).filter((i) => da.has(Number(i.id_operador))),
+    pausas_equipe: (dados.pausas_equipe || []).filter((p) => da.has(Number(p.id_operador))) };
+};
+
+export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, aoTrocarEscala, ehSupervisor = false, aoVerPainel, idsOperadores = null }) {
   // Supervisor: alterna entre a própria equipe e TODAS as equipes (sábado, domingo e feriado ele responde pela operação toda).
   const [todasEquipes, setTodasEquipes] = useVisaoEquipes(ehSupervisor);
   const [dados, setDados] = useState(null);
@@ -32,10 +40,10 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
     let ativo = true;
     setDados(null); setErro('');
     lerEscalaWfm(operacao, anoMes, false, todasEquipes)
-      .then((r) => { if (ativo) setDados(r); })
+      .then((r) => { if (ativo) setDados(somenteEquipe(r, idsOperadores)); })
       .catch((e) => { if (ativo) setErro(e?.message || 'Não foi possível carregar a escala da equipe.'); });
     return () => { ativo = false; };
-  }, [operacao, anoMes, todasEquipes]);
+  }, [operacao, anoMes, todasEquipes, (idsOperadores || []).join(',')]);
 
   // dia (ISO) -> { trabalham: [{ id, nome, entrada, saida, codigo, cor, pausas }], folgas: [nome] }
   const porDia = useMemo(() => {
@@ -115,7 +123,7 @@ export function CalendarioEquipe({ operacao, anoMes, aoMudarMes, opcoesEscala, a
       ${faixa}
       ${erro ? html`<${Estado} titulo=${erro} />`
         : !dados ? html`<${Esqueleto} linhas=${6} />`
-        : !(dados.itens || []).length ? html`<${Estado} icone="calendar-blank" titulo="Escala sem colaboradores" texto=${todasEquipes ? 'Não há colaboradores escalados neste mês.' : 'Não há colaboradores escalados da sua equipe neste mês.'} />`
+        : !(dados.itens || []).length ? html`<${Estado} icone="calendar-blank" titulo="Escala sem colaboradores" texto=${todasEquipes ? 'Não há colaboradores escalados neste mês.' : (idsOperadores ? 'Não há colaboradores desta equipe escalados neste mês.' : 'Não há colaboradores escalados da sua equipe neste mês.')} />`
         : html`<table class="c-cal c-eq-cal" aria-label=${`Escala de ${MESES[mes - 1]} de ${ano}`}>
           <thead><tr>${SEMANA.map((s) => html`<th key=${s} scope="col">${s.slice(0, 3)}</th>`)}</tr></thead>
           <tbody>${semanas.map((linha, i) => html`<tr key=${i}>${linha.map(celula)}</tr>`)}</tbody>

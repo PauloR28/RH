@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { requisitar } from '../../services/api/core.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+import { requisitar } from '../../services/api/core.js?v=20261125-deploy';
 
 // Configurações > LGPD e Retenção (Correções 27/set/2026). Regras do RH:
 // prazo contado da candidatura (ou da entrada no banco de talentos), aviso

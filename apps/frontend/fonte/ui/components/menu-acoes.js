@@ -1,5 +1,5 @@
-import { IconeSvg } from '../icone.js?v=20261124-equipes4';
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { IconeSvg } from '../icone.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
 
 // Extraído de features/processos/index.js (Correções.txt item 3) para ser
 // reaproveitado também em telas fora de Processos, como Provas e Resultados.

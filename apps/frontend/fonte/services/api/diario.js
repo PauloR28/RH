@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261124-equipes4';
+import { requisitar, requisitarArquivo } from './core.js?v=20261125-deploy';
 
 // Diário de bordo (08/11/2026): registro do dia da operação por turno. Regras e permissões ficam no servidor (/diario/*).
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

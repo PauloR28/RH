@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261124-equipes4';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261124-equipes4';
+import { html, useCallback, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261125-deploy';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261125-deploy';
 import {
   adicionarOperadorEquipe,
   API_MURAL_EQUIPE,
@@ -9,15 +9,15 @@ import {
   listarCandidatosEquipe,
   listarSupervisoresDestinoEquipe,
   removerOperadorEquipe,
-} from '../../../services/api/equipes.js?v=20261124-equipes4';
-import { TelaMural } from '../../../features/mural/index.js?v=20261124-equipes4';
-import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261124-equipes4';
-import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261124-equipes4';
-import { TelaPresenca } from '../wfm/presenca.js?v=20261124-equipes4';
-import { TelaCadastros } from '../wfm/cadastros.js?v=20261124-equipes4';
-import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261124-equipes4';
-import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261124-equipes4';
-import { tomarFocoPessoa } from '../wfm/foco-pessoa.js?v=20261124-equipes4';
+} from '../../../services/api/equipes.js?v=20261125-deploy';
+import { TelaMural } from '../../../features/mural/index.js?v=20261125-deploy';
+import { mesAtual, useContextoWfm } from '../wfm/comum.js?v=20261125-deploy';
+import { CalendarioEquipe } from '../wfm/calendario-equipe.js?v=20261125-deploy';
+import { TelaPresenca } from '../wfm/presenca.js?v=20261125-deploy';
+import { TelaCadastros } from '../wfm/cadastros.js?v=20261125-deploy';
+import { rotuloMesAno, somarMes } from '../wfm/escala-ui.js?v=20261125-deploy';
+import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { tomarFocoPessoa } from '../wfm/foco-pessoa.js?v=20261125-deploy';
 
 // Equipes (redesign Fase 15, amostra "Equipe" da Fase 12): visão macro da própria equipe do Supervisor. Presença, escala e
 // horários reaproveitam as telas do WFM (com o escopo de operação/equipe aplicado no servidor); equipe, monitorias e Mural
@@ -41,6 +41,7 @@ const DESCRICAO = {
   mural: 'Publique avisos direto nas intranets das operações da sua equipe.',
 };
 
+const chaveBase = (chave) => String(chave || '').split('::')[0].toUpperCase();
 const dataBr = (valor) => (valor ? new Date(valor).toLocaleDateString('pt-BR') : '—');
 const formatarNota = (valor) => (valor === null || valor === undefined ? '—' : Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
@@ -244,14 +245,25 @@ export function TelaEquipesControle({ controlador }) {
   useEffect(() => {
     if (contexto && !contexto.eh_supervisor && !idSupervisor && contexto.supervisores?.length) setIdSupervisor(String(contexto.supervisores[0].id_usuario));
   }, [contexto, idSupervisor]);
-  // Escalas ativas das operações da equipe: o WFM decide o que o usuário enxerga.
+  // Escalas ativas SÓ das operações da equipe escolhida (mesmo quem enxerga todas as operações vê uma equipe por vez).
+  // Ordem: a operação onde estão mais operadores da equipe vem primeiro. Sem escala da equipe = estado vazio (nunca outra operação).
   const operacoesWfm = (wfm.contexto?.operacoes || []).filter((o) => o.escala_ativa !== false);
-  const chavesEquipe = new Set((contexto?.operacoes || []).map((o) => o.chave));
-  const daEquipe = operacoesWfm.filter((o) => chavesEquipe.has(o.chave));
-  const escalas = daEquipe.length ? daEquipe : operacoesWfm;
+  const opsEquipe = new Set((contexto?.operacoes || []).map((o) => chaveBase(o.chave)));
+  const pessoasPorOp = {};
+  (contexto?.operadores || []).forEach((p) => (p.operacoes || []).forEach((c) => { pessoasPorOp[chaveBase(c)] = (pessoasPorOp[chaveBase(c)] || 0) + 1; }));
+  const escalas = operacoesWfm.filter((o) => opsEquipe.has(chaveBase(o.chave)))
+    .map((o, i) => ({ o, i, n: pessoasPorOp[chaveBase(o.chave)] || 0 }))
+    .sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.o);
+  const idSupAtual = contexto?.supervisor?.id_usuario || '';
+  const supAnterior = useRef(idSupAtual);
   useEffect(() => {
-    if (escalas.length && !escalas.some((o) => o.chave === operacao)) setOperacao(escalas[0].chave);
-  }, [escalas.map((o) => o.chave).join('|')]);
+    const trocouEquipe = supAnterior.current !== idSupAtual;
+    supAnterior.current = idSupAtual;
+    if (trocouEquipe || !escalas.some((o) => o.chave === operacao)) setOperacao(escalas[0]?.chave || '');
+  }, [idSupAtual, escalas.map((o) => o.chave).join('|')]);
+  // Quem não é supervisor (Adm, Control Desk…) escolhe a equipe no topo: escala e turnos mostram só essa equipe.
+  const filtroEquipe = contexto && !contexto.eh_supervisor && contexto.supervisor
+    ? { idSupervisor: contexto.supervisor.id_usuario, idsOperadores: (contexto.operadores || []).map((o) => o.id_usuario) } : null;
 
   const corpoSecao = () => {
     if (aba === 'equipe') return html`<${SecaoEquipe} contexto=${contexto} setContexto=${setContexto} showToast=${showToast} adicionando=${adicionando} setAdicionando=${setAdicionando} />`;
@@ -259,18 +271,18 @@ export function TelaEquipesControle({ controlador }) {
     if (aba === 'mural') return html`<${TelaMural} controlador=${controlador} embutido=${true} api=${API_MURAL_EQUIPE} rotuloAmbientes="Publicar nas intranets das operações da sua equipe" />`;
     if (wfm.erro) return html`<div class="c-tabela-caixa"><${Estado} titulo=${wfm.erro} /></div>`;
     if (!wfm.contexto) return html`<div class="c-tabela-caixa"><${Esqueleto} linhas=${5} /></div>`;
-    if (!escalas.length || !operacao) return html`<div class="c-tabela-caixa"><${Estado} icone="calendar-blank" titulo="Nenhuma escala ativa" texto="Não há escala ativa para a sua equipe. Quem gere as escalas pode criar ou ativar uma em Turnos e Plantões." /></div>`;
-    const props = { controlador, contexto: wfm.contexto, operacao, anoMes, showToast, recarregarContexto: wfm.recarregar, aoTrocarEscala: setOperacao };
-    const seletores = aba === 'horarios' || (aba === 'presenca' && escalas.length > 1) ? html`<div class="c-filtros c-filtros--suave c-filtros--solto">
+    if (!escalas.length || !operacao) return html`<div class="c-tabela-caixa"><${Estado} icone="calendar-blank" titulo="Nenhuma escala ativa para esta equipe" texto=${`${(contexto?.operacoes || []).map((o) => o.nome).join(', ') || 'A operação desta equipe'} não tem escala ativa. Quem gere as escalas pode criar ou ativar uma em Turnos e Plantões.`} /></div>`;
+    const props = { controlador, contexto: wfm.contexto, operacao, anoMes, showToast, recarregarContexto: wfm.recarregar, aoTrocarEscala: setOperacao, idSupervisorEquipe: filtroEquipe?.idSupervisor };
+    return html`
+      ${aba === 'presenca' ? html`<${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} embutido=${true} />`
+        : aba === 'escala' ? html`<${CalendarioEquipe} aoVerPainel=${controlador.podeAcessarTela('screen-wfm-dia') ? () => controlador.irParaTelaProtegida('screen-wfm-dia') : undefined} ehSupervisor=${controlador.estado?.perfilUsuario === 'supervisor'} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} idsOperadores=${filtroEquipe?.idsOperadores} />`
+          : html`<${TelaCadastros} ...${props} />`}`;
+  };
+
+  const seletores = wfm.contexto && escalas.length && operacao && contexto?.supervisor && (aba === 'horarios' || (aba === 'presenca' && escalas.length > 1)) ? html`<div class="c-eq-seletores">
       ${escalas.length > 1 ? html`<select class="c-entrada c-entrada--compacta" aria-label="Escala / operação" value=${operacao} onChange=${(e) => setOperacao(e.target.value)}>${escalas.map((o) => html`<option key=${o.chave} value=${o.chave}>${o.nome}</option>`)}</select>` : null}
       ${aba === 'horarios' ? html`<${Navegar} grupo="Mês" rotulo=${rotuloMesAno(anoMes)} rotuloAnterior="Mês anterior" rotuloProximo="Próximo mês" aoAnterior=${() => setAnoMes(somarMes(anoMes, -1))} aoProximo=${() => setAnoMes(somarMes(anoMes, 1))} />` : null}
     </div>` : null;
-    return html`
-      ${seletores}
-      ${aba === 'presenca' ? html`<${TelaPresenca} controlador=${controlador} operacao=${operacao} showToast=${showToast} embutido=${true} />`
-        : aba === 'escala' ? html`<${CalendarioEquipe} aoVerPainel=${controlador.podeAcessarTela('screen-wfm-dia') ? () => controlador.irParaTelaProtegida('screen-wfm-dia') : undefined} ehSupervisor=${controlador.estado?.perfilUsuario === 'supervisor'} operacao=${operacao} anoMes=${anoMes} aoMudarMes=${setAnoMes} aoTrocarEscala=${setOperacao} opcoesEscala=${escalas.length > 1 ? escalas.map((o) => [o.chave, o.nome]) : null} />`
-          : html`<${TelaCadastros} ...${props} />`}`;
-  };
 
   let corpo;
   if (erro) corpo = html`<div class="c-tabela-caixa"><${Estado} titulo=${erro} /></div>`;
@@ -278,7 +290,10 @@ export function TelaEquipesControle({ controlador }) {
   else if (!contexto.supervisor) corpo = html`<div class="c-tabela-caixa"><${Estado} icone="users" titulo="Escolha um supervisor" texto="Não há supervisores nas operações a que você tem acesso." /></div>`;
   else corpo = corpoSecao();
 
-  const titulo = contexto?.supervisor?.nome ? `Equipe de ${contexto.supervisor.nome}` : 'Equipe';
+  // Título = nome da equipe (Paulo, 25/11). Sem equipe cadastrada: a equipe mais comum entre os operadores; por último, o primeiro nome.
+  const nomesEquipe = (contexto?.operadores || []).map((o) => o.equipe_nome).filter(Boolean);
+  const maisComum = nomesEquipe.sort((a, b) => nomesEquipe.filter((x) => x === b).length - nomesEquipe.filter((x) => x === a).length)[0];
+  const titulo = contexto?.equipe_nome || maisComum || (contexto?.supervisor?.nome ? `Equipe ${contexto.supervisor.nome.split(' ')[0]}` : 'Equipe');
   return html`
     <${PainelRh} screenId="screen-equipes-controle" navAtiva="screen-equipes-controle" subtituloMarca="Equipes" placeholderBusca="Equipes" controlador=${controlador}>
       <${ToastHost} />
@@ -292,7 +307,7 @@ export function TelaEquipesControle({ controlador }) {
             ${aba === 'equipe' && contexto?.pode_editar_membros ? html`<button type="button" class="c-botao c-botao--principal c-botao--compacto" onClick=${() => setAdicionando(true)}><${Ic} nome="user-plus" />Adicionar pessoa</button>` : null}
           </div>
         </div>
-        ${secoes.length > 1 ? html`<div><${Segmento} rotulo="Seções da equipe" valor=${aba} aoMudar=${setAba} opcoes=${secoes.map((s) => [s.id, s.rotulo])} /></div>` : null}
+        ${secoes.length > 1 || seletores ? html`<div class="c-eq-linha">${secoes.length > 1 ? html`<${Segmento} rotulo="Seções da equipe" valor=${aba} aoMudar=${setAba} opcoes=${secoes.map((s) => [s.id, s.rotulo])} />` : null}${seletores}</div>` : null}
         ${corpo}
       </main>
     </${PainelRh}>`;

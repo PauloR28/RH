@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261124-equipes4';
+} from '../../perguntas.js?v=20261125-deploy';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261124-equipes4';
+} from '../prova/services/personalizacao-inteligente.js?v=20261125-deploy';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js?v=20261124-equipes4';
+} from '../../regras-prova.js?v=20261125-deploy';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20261124-equipes4';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261124-equipes4';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261124-equipes4';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261124-equipes4';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261124-equipes4';
-import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261124-equipes4';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261124-equipes4';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261124-equipes4';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261124-equipes4';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261124-equipes4';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261124-equipes4';
+} from '../../servico-api.js?v=20261125-deploy';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261125-deploy';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261125-deploy';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261125-deploy';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261125-deploy';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261125-deploy';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261125-deploy';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261125-deploy';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261125-deploy';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261125-deploy';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261125-deploy';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-deploy';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';

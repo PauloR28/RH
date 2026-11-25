@@ -2,8 +2,8 @@ import {
   html,
   useEffect,
   useState,
-} from '../../infraestrutura-react.js?v=20261124-equipes4';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
+} from '../../infraestrutura-react.js?v=20261125-deploy';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
 
 export const DOCUMENTOS_APROVACAO_PADRAO = [
   'RG',

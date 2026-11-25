@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261124-equipes4';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
@@ -8,10 +8,10 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261124-equipes4';
-import { IconeSvg } from '../../ui/icone.js?v=20261124-equipes4';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261124-equipes4';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261124-equipes4';
+} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-deploy';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-deploy';
 import {
   atualizarAmbienteSharePoint,
   excluirAmbienteSharePoint,
@@ -22,9 +22,9 @@ import {
   resetarDadosConecta,
   salvarParametroSistema,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js?v=20261124-equipes4';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261124-equipes4';
-import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20261124-equipes4';
+} from '../../services/api/sistema.js?v=20261125-deploy';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261125-deploy';
+import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20261125-deploy';
 
 // Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
 // ponto (rh-status-pill) usado em administracao/novo-ambiente.js.

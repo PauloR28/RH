@@ -4,7 +4,7 @@ import {
   lerCache,
   requisitar,
   requisitarArquivo,
-} from './core.js?v=20261124-equipes4';
+} from './core.js?v=20261125-deploy';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();
