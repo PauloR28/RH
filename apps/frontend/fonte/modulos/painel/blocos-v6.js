@@ -1,8 +1,8 @@
 // Painel — blocos das métricas da amostra v6 (aprovada pelo Paulo em 15/11/2026), organizados em abas por área.
 // Gráficos em SVG com as cores --cor-grafico-* do rebranding; só peças c- e c-pg- (estilos/painel.css).
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
-import { lerDiaPainel, lerPresencaComparada } from '../../services/api/painel.js?v=20261125-deploy';
-import { Cartao, Contador, Indicador, Indisponivel, Linha, MiniTabela, SEMANA, ddmm, num, nota, pct } from './pecas.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { lerDiaPainel, lerPresencaComparada } from '../../services/api/painel.js?v=20261125-acessos-salvar';
+import { Cartao, Contador, Indicador, Indisponivel, Linha, MiniTabela, SEMANA, ddmm, num, nota, pct } from './pecas.js?v=20261125-acessos-salvar';
 
 const COR1 = 'var(--cor-grafico-1)';
 const COR2 = 'var(--cor-grafico-2)';

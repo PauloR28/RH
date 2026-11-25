@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-deploy';
+import { requisitar } from './core.js?v=20261125-acessos-salvar';
 
 // Central de Acessos (Etapa 6): /tecnologia/acessos. Sem cache: a tela precisa ver o que acabou de salvar.
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

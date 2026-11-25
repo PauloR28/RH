@@ -1,7 +1,7 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-deploy';
-import { gestaoEscalasWfm } from '../../../services/api/wfm.js?v=20261125-deploy';
-import { foraDeRascunho } from './escalas.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../../ui/icone.js?v=20261125-acessos-salvar';
+import { gestaoEscalasWfm } from '../../../services/api/wfm.js?v=20261125-acessos-salvar';
+import { foraDeRascunho } from './escalas.js?v=20261125-acessos-salvar';
 
 // Outras escalas do mês, na visão do Gestor: só aparece se houver outra escala ATIVA que já saiu de rascunho
 // (enviada para aprovação, aprovada ou publicada). Um clique troca a escala exibida. `versao` força recarregar.

@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   ativarFormularioMatriz,
   lerVersaoMatriz,
@@ -6,9 +6,9 @@ import {
   listarVersoesMatriz,
   restaurarVersaoMatriz,
   salvarMatriz,
-} from '../../services/api/monitoria.js?v=20261125-deploy';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { formatarNota } from './comum.js?v=20261125-deploy';
+} from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
+import { formatarNota } from './comum.js?v=20261125-acessos-salvar';
 import {
   ChipSituacao,
   DialogoConfirmar,
@@ -16,8 +16,8 @@ import {
   VersionRow,
   alternarMarcadas,
   compararConfigs,
-} from './formularios-comum.js?v=20261125-deploy';
-import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261125-deploy';
+} from './formularios-comum.js?v=20261125-acessos-salvar';
+import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261125-acessos-salvar';
 
 const Fragment = React.Fragment;
 

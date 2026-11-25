@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   anexarEvidencia,
   baixarEvidencia,
@@ -9,10 +9,10 @@ import {
   lerMonitoria,
   listarMonitorias,
   reanalisarContestacao,
-} from '../../services/api/monitoria.js?v=20261125-deploy';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261125-deploy';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-deploy';
-import { STATUS_INFO, baixarArquivo, formatarHoras, formatarNota } from './comum.js?v=20261125-deploy';
+} from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261125-acessos-salvar';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
+import { STATUS_INFO, baixarArquivo, formatarHoras, formatarNota } from './comum.js?v=20261125-acessos-salvar';
 
 // Monitoria no desenho novo (Fase 15, amostras Fase 12 "Histórico" e Fase 14 "Minhas monitorias" e
 // "Contestações"). Mesmas rotas e regras de antes: a monitoria nunca é editada; cada ação só acrescenta

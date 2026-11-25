@@ -1,13 +1,15 @@
 // Estado dos módulos em tempo de execução: carrega GET /core/acesso uma vez por sessão e guarda o módulo atual.
 // Falha ao carregar = `carregado: false` e o menu se comporta como antes da modularização (nada some por engano).
 
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-deploy';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261125-deploy';
-import { lerAcessoCore } from '../services/api/modulos.js?v=20261125-deploy';
-import { definirAreasInativas } from '../shared/areas.js?v=20261125-deploy';
-import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261125-deploy';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261125-acessos-salvar';
+import { lerAcessoCore } from '../services/api/modulos.js?v=20261125-acessos-salvar';
+import { definirAreasInativas } from '../shared/areas.js?v=20261125-acessos-salvar';
+import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261125-acessos-salvar';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
+// Seletor de operação do topo (25/11/2026). Mesma chave lida por services/api/core.js (cabeçalho X-Conecta-Operacao).
+const CHAVE_OPERACAO_ATUAL = 'conecta_operacao_atual';
 
 const ESTADO_VAZIO = {
   carregado: false,
@@ -19,6 +21,8 @@ const ESTADO_VAZIO = {
   moduloAtual: '',
   moduloPadrao: '',
   permissoes: [],
+  operacoes: [],
+  operacaoAtual: '',
 };
 
 let estado = { ...ESTADO_VAZIO };
@@ -46,6 +50,23 @@ function salvarModulo(chave) {
     window.sessionStorage.setItem(CHAVE_MODULO_ATUAL, JSON.stringify({ token: estado.token, chave }));
   } catch {
     /* sem armazenamento, vale o padrão */
+  }
+}
+
+function lerOperacaoSalva(token) {
+  try {
+    const salvo = JSON.parse(window.sessionStorage.getItem(CHAVE_OPERACAO_ATUAL) || 'null');
+    return salvo && salvo.token === token ? String(salvo.chave || '') : '';
+  } catch {
+    return '';
+  }
+}
+
+function salvarOperacao(chave) {
+  try {
+    window.sessionStorage.setItem(CHAVE_OPERACAO_ATUAL, JSON.stringify({ token: estado.token, chave }));
+  } catch {
+    /* sem armazenamento: o servidor usa a primeira operação da lista */
   }
 }
 
@@ -90,6 +111,7 @@ export async function carregarAcessoModulos() {
       moduloPadrao: acesso.modulo_padrao || MODULO_CORE,
       moduloAtual,
       permissoes: acesso.permissoes || [],
+      ...escolherOperacao(acesso.operacoes_escolha, token),
     });
     // Guarda já o módulo de entrada: a camada de API manda ele ao servidor (X-Conecta-Modulo) desde o primeiro pedido.
     salvarModulo(moduloAtual);
@@ -97,6 +119,29 @@ export async function carregarAcessoModulos() {
     // Backend antigo (sem /core/acesso) ou indisponível: comportamento de antes.
     publicar({ ...ESTADO_VAZIO, erro: true, token });
   }
+}
+
+// Operação aberta: a salva (se ainda vale) ou a primeira da lista, a mesma que o servidor usa sem cabeçalho.
+function escolherOperacao(lista, token) {
+  const operacoes = Array.isArray(lista) ? lista.filter((op) => op && op.chave) : [];
+  if (operacoes.length < 2) return { operacoes, operacaoAtual: '' };
+  const salva = lerOperacaoSalva(token);
+  const operacaoAtual = operacoes.some((op) => op.chave === salva) ? salva : operacoes[0].chave;
+  try {
+    window.sessionStorage.setItem(CHAVE_OPERACAO_ATUAL, JSON.stringify({ token, chave: operacaoAtual }));
+  } catch {
+    /* sem armazenamento */
+  }
+  return { operacoes, operacaoAtual };
+}
+
+/** Troca a operação aberta e recarrega a tela: todos os dados voltam do servidor já filtrados pela nova operação. */
+export function selecionarOperacao(chave) {
+  if (estado.token !== lerSessaoAutenticacao().token || chave === estado.operacaoAtual) return;
+  if (!estado.operacoes.some((op) => op.chave === chave)) return;
+  salvarOperacao(chave);
+  publicar({ operacaoAtual: chave });
+  window.location.reload();
 }
 
 export function selecionarModulo(chave) {

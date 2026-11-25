@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   lancarPresencaLoteWfm,
   lancarPresencaWfm,
@@ -7,10 +7,10 @@ import {
   listarPresencasWfm,
   pendenciasPresencaWfm,
   registrarAtestadoWfm,
-} from '../../../services/api/wfm.js?v=20261125-deploy';
-import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-deploy';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar } from '../../../ui/components/ds.js?v=20261125-deploy';
-import { tomarFocoPessoa } from './foco-pessoa.js?v=20261125-deploy';
+} from '../../../services/api/wfm.js?v=20261125-acessos-salvar';
+import { ROTULO_STATUS_PRESENCA, SIGLA_PRESENCA, rotuloPresenca, siglaPresenca } from './comum.js?v=20261125-acessos-salvar';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar } from '../../../ui/components/ds.js?v=20261125-acessos-salvar';
+import { tomarFocoPessoa } from './foco-pessoa.js?v=20261125-acessos-salvar';
 
 // Presença (redesign Fase 15, amostra "Presença" da Fase 12): Supervisor (própria equipe) e Control Desk (operações
 // vinculadas). Trabalha-se por SEMANA. Sem prazo para lançar ou corrigir (regra do RH); tudo fica em auditoria.

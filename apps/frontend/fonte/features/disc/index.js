@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   atualizarBlocoDisc,
   criarBlocoDisc,
@@ -6,11 +6,11 @@ import {
   lerAplicacaoDiscPublica,
   lerResultadoDiscCandidato,
   listarBlocosDisc,
-} from '../../servico-api.js?v=20261125-deploy';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-deploy';
-import { obterIdAplicacaoDiscPorHash } from '../../rotas.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-salvar';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
+import { obterIdAplicacaoDiscPorHash } from '../../rotas.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
 
 const DIMENSOES = ['D', 'I', 'S', 'C'];
 const DIMENSAO_LABEL = { D: 'Dominância (D)', I: 'Influência (I)', S: 'Estabilidade (S)', C: 'Conformidade (C)' };

@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from ..alcance import ALCANCES, EQUIPE, PROPRIO, TODOS, alcance, perfis_com  # noqa: E402
+from ..auth import OperacaoEscolhida
 
 PERFIS_GLOBAIS = perfis_com(monitoria=TODOS)  # Etapa 5: vem do alcance
 
@@ -35,9 +36,12 @@ def escopo_global(perfil: str) -> bool:
 
 def operacoes_permitidas(perfil: str, operacoes_usuario: Iterable[str]) -> frozenset[str] | None:
     """`None` = todas as operações; conjunto (possivelmente vazio) = restrito."""
-    if escopo_global(perfil):
-        return None
-    return frozenset(item for item in operacoes_usuario if item)
+    escolhida = operacoes_usuario if isinstance(operacoes_usuario, OperacaoEscolhida) else None
+    vinculos = escolhida.originais if escolhida is not None else operacoes_usuario
+    base = None if escopo_global(perfil) else frozenset(item for item in vinculos if item)
+    if escolhida is not None:  # seletor de operação do topo: só a escolhida, dentro do que já via
+        return frozenset(escolhida) if base is None else frozenset(escolhida) & base
+    return base
 
 
 def pode_ver_operacao(perfil: str, operacoes_usuario: Iterable[str], operacao: str | None) -> bool:

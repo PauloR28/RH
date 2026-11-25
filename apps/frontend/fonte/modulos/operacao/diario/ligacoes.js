@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-deploy';
-import { intercorrenciasNoHorario, lerResumoHojeDiario } from '../../../services/api/diario.js?v=20261125-deploy';
-import { Ic, Selo } from '../../../ui/components/ds.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { intercorrenciasNoHorario, lerResumoHojeDiario } from '../../../services/api/diario.js?v=20261125-acessos-salvar';
+import { Ic, Selo } from '../../../ui/components/ds.js?v=20261125-acessos-salvar';
 
 // Ligações do Diário de bordo com o resto do Conecta (amostra quadro 6). Só leitura; cada uma some quando a pessoa não tem
 // permissão ou quando a operação não tem diário. Nunca bloqueiam a tela de origem: erro de leitura = a faixa não aparece.

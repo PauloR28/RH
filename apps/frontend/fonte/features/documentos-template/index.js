@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -6,24 +6,24 @@ import {
   gerarDocumentoPorTemplate,
   listarTemplatesDocumentos,
   listarVariaveisTemplatesDocumentos,
-} from '../../servico-api.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-salvar';
 import {
   atualizarDocumentoBiblioteca,
   criarDocumentoBiblioteca,
   excluirDocumentoBiblioteca,
   listarDocumentosBiblioteca,
-} from '../../services/api/documentos-biblioteca.js?v=20261125-deploy';
+} from '../../services/api/documentos-biblioteca.js?v=20261125-acessos-salvar';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-deploy';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
-import { GuiaProcessos } from '../ajuda/guia.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+import { GuiaProcessos } from '../ajuda/guia.js?v=20261125-acessos-salvar';
 
 const FORM_INICIAL = { id_template: '', titulo: '', corpo_texto: '', ativo: true };
 const FORM_DOC_INICIAL = { id_documento: '', titulo: '', topico: '', area: '', descricao: '', url_arquivo: '', ativo: true };

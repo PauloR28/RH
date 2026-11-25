@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-deploy';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
 import {
   atualizarTrilhaOnboarding,
   criarTrilhaOnboarding,
@@ -6,16 +6,16 @@ import {
   lerProgressoOnboardingCandidato,
   listarTrilhasOnboarding,
   marcarItemOnboarding,
-} from '../../servico-api.js?v=20261125-deploy';
+} from '../../servico-api.js?v=20261125-acessos-salvar';
 import {
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-deploy';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-deploy';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-deploy';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-deploy';
+} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
 
 const ITEM_INICIAL = { titulo: '', descricao: '', obrigatorio: true };
 const FORM_INICIAL = { id_trilha: '', nome: '', descricao: '', ativo: true, itens: [] };

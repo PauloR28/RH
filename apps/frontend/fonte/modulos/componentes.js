@@ -1,8 +1,8 @@
-import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261125-deploy';
-import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261125-deploy';
-import { IconeSvg } from '../ui/icone.js?v=20261125-deploy';
-import { selecionarModulo } from './estado.js?v=20261125-deploy';
-import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261125-deploy';
+import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../ui/icone.js?v=20261125-acessos-salvar';
+import { selecionarModulo, selecionarOperacao } from './estado.js?v=20261125-acessos-salvar';
+import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261125-acessos-salvar';
 
 // Peças de interface dos módulos usadas pela navbar (ui/components/layout.js): seletor de módulo e menu da Tecnologia.
 
@@ -50,6 +50,44 @@ export function SeletorModulo({ controlador, modulos }) {
             <button type="button" role="menuitem" key=${chave} class=${`mod-seletor-op ${chave === modulos.moduloAtual ? 'is-atual' : ''}`.trim()}
               aria-current=${chave === modulos.moduloAtual ? 'true' : null} onClick=${() => escolher(chave)}>
               <span><strong>${NOMES_MODULOS[chave] || chave}</strong><small>${DESCRICAO_MODULO[chave] || ''}</small></span>
+            </button>`)}
+        </div>` : null}
+    </div>`;
+}
+
+/** Seletor de operação (25/11/2026): só no módulo Operação e só para quem enxerga 2 ou mais operações.
+ * A escolha vai ao servidor em todo pedido (X-Conecta-Operacao) e todas as telas da Operação mostram só ela. */
+export function SeletorOperacao({ modulos }) {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fechar = (evento) => {
+      if (raiz.current && !raiz.current.contains(evento.target)) setAberto(false);
+    };
+    document.addEventListener('mousedown', fechar);
+    return () => document.removeEventListener('mousedown', fechar);
+  }, [aberto]);
+
+  const operacoes = modulos?.operacoes || [];
+  if (!modulos?.carregado || modulos.moduloAtual !== 'operacao' || operacoes.length < 2) return null;
+  const atual = operacoes.find((op) => op.chave === modulos.operacaoAtual) || operacoes[0];
+
+  return html`
+    <div class="mod-seletor mod-seletor--operacao" ref=${raiz}>
+      <button type="button" class="mod-seletor-btn" aria-haspopup="menu" aria-expanded=${aberto}
+        title="Trocar de operação" onClick=${() => setAberto((v) => !v)}>
+        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('buildings')}</span>
+        <span class="mod-seletor-nome">${atual.nome}</span>
+        <span class="material-symbols-outlined" aria-hidden="true">${IconeSvg('expand_more')}</span>
+      </button>
+      ${aberto ? html`
+        <div class="mod-seletor-menu" role="menu" aria-label="Operações">
+          <div class="mod-seletor-titulo">Suas operações</div>
+          ${operacoes.map((op) => html`
+            <button type="button" role="menuitem" key=${op.chave} class=${`mod-seletor-op ${op.chave === atual.chave ? 'is-atual' : ''}`.trim()}
+              aria-current=${op.chave === atual.chave ? 'true' : null} onClick=${() => { setAberto(false); selecionarOperacao(op.chave); }}>
+              <span><strong>${op.nome}</strong></span>
             </button>`)}
         </div>` : null}
     </div>`;

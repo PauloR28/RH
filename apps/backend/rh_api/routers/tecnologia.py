@@ -45,13 +45,22 @@ def ler_escopos_acessos(modulo: str) -> dict:
     return central_acessos.escopos(modulo)
 
 
+def _alvo_auditoria(m: dict) -> str:
+    """Rótulo da linha de auditoria. Alcance não tem `chave`: antes dava KeyError e o salvar respondia erro 500."""
+    if m["tipo"] == "funcao":
+        return m["funcao"]
+    if m["tipo"] == "alcance":
+        return f"{m['perfil']}|alcance:{m['area']}"
+    return f"{m['perfil']}|{m['chave']}"
+
+
 @router.put("/acessos/lote", dependencies=[Depends(require_permissions("configuracoes.editar"))])
 def salvar_acessos(payload: LoteAcessosRequest, request: Request,
                    user: AuthenticatedUser = Depends(get_current_user), repository: DatabaseRepository = Depends(get_repository)) -> dict:
     """Salvar da Central de Acessos: tudo ou nada, uma linha de auditoria por mudança."""
     resultado = central_acessos.salvar_lote(payload.modulo, payload.escopo, [m.model_dump() for m in payload.mudancas], autor=user.username)
     for m in resultado["aplicadas"]:
-        entidade_id = f"{payload.modulo}|{payload.escopo}|" + (m["funcao"] if m["tipo"] == "funcao" else f"{m['perfil']}|{m['chave']}")
+        entidade_id = f"{payload.modulo}|{payload.escopo}|" + _alvo_auditoria(m)
         audit_action(repository, user, modulo="Sistema", acao="central_acessos_alterada", entidade=m["tipo"], entidade_id=entidade_id,
                      valor_novo=m, justificativa=payload.justificativa, request=request)
     return resultado
