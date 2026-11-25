@@ -15,18 +15,24 @@ UNIDADES = [
     acesso_cache.Unidade("DAVITA", "Davita", "operacao", "operacao", True),
     acesso_cache.Unidade("TI", "TI", "setor", "tecnologia", True),
 ]
+_ATUAL = {"ops": frozenset()}
 
 
 def _usuario(perfil, operacoes=()):
+    _ATUAL["ops"] = frozenset(operacoes)
+    oe.limpar_cache()  # mesmo id_usuario nos testes
     return AuthenticatedUser(username="x", perfil=perfil, operacoes=frozenset(operacoes), id_usuario=7)
 
 
-def _sem_banco(monkeypatch):
+def _sem_banco(monkeypatch, vinculos=None):
+    """Vínculos "do banco": por padrão, os mesmos do token do último usuário criado."""
     al.definir_carregador(lambda: {})
+    oe.limpar_cache()
     monkeypatch.setattr(acesso_cache, "unidades_do_modulo", lambda m, **_: [u for u in UNIDADES if u.modulo == m])
+    monkeypatch.setattr(oe, "_leitor", lambda _id: frozenset(vinculos) if vinculos is not None else _ATUAL["ops"])
 
 
-def test_global_ve_todas_as_operacoes_e_escolhe_uma(monkeypatch):
+def test_global_sem_operacao_liberada_ve_todas_e_escolhe_uma(monkeypatch):
     _sem_banco(monkeypatch)
     adm = _usuario(r.ROLE_ADMIN)
     assert [o["chave"] for o in oe.operacoes_escolhiveis(adm)] == ["CRF", "DAVITA"]
@@ -34,7 +40,6 @@ def test_global_ve_todas_as_operacoes_e_escolhe_uma(monkeypatch):
     assert ws.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == {"DAVITA"}
     assert ms.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == {"DAVITA"}
     assert escolhido.allows_operacao("DAVITA") and not escolhido.allows_operacao("CRF")
-    # De volta à lista: ainda oferece as duas.
     assert len(oe.operacoes_escolhiveis(escolhido)) == 2
 
 
@@ -42,29 +47,47 @@ def test_restrito_so_escolhe_os_proprios_vinculos(monkeypatch):
     _sem_banco(monkeypatch)
     sup = _usuario(r.ROLE_SUPERVISOR, {"CRF"})
     assert [o["chave"] for o in oe.operacoes_escolhiveis(sup)] == ["CRF"]
-    assert oe.aplicar(sup, "DAVITA", "operacao") is sup  # uma operação só: sem seletor, nada muda
+    assert oe.aplicar(sup, "DAVITA", "operacao").operacoes == {"CRF"}  # forçada fora do permitido: não abre
     sup2 = _usuario(r.ROLE_SUPERVISOR, {"CRF", "DAVITA"})
-    assert oe.aplicar(sup2, "OUTRA", "operacao") is sup2  # fora do alcance: ignorado
+    assert oe.aplicar(sup2, "OUTRA", "operacao").operacoes == {"CRF"}
     assert oe.aplicar(sup2, "DAVITA", "operacao").operacoes == {"DAVITA"}
 
 
-def test_nunca_abre_area_restrita(monkeypatch):
-    _sem_banco(monkeypatch)
-    # Control Desk: Monitoria global, WFM só nos vínculos. Escolher outra operação não abre o WFM dela.
-    cd = _usuario(r.ROLE_CONTROL_DESK, {"CRF"})
-    escolhido = oe.aplicar(cd, "DAVITA", "operacao")
-    assert ms.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == {"DAVITA"}
-    assert ws.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == frozenset()
-    assert not escolhido.allows_operacao("DAVITA")
+def test_perfil_global_com_operacoes_liberadas_ve_so_elas(monkeypatch):
+    # Correção 25/11: Control Desk (Monitoria global) e Gestor com operações liberadas viam todas no seletor.
+    for perfil in (r.ROLE_CONTROL_DESK, r.ROLE_MANAGER, r.ROLE_ADMIN):
+        _sem_banco(monkeypatch)
+        u = _usuario(perfil, {"CRF"})
+        assert [o["chave"] for o in oe.operacoes_escolhiveis(u)] == ["CRF"], perfil
+        escolhido = oe.aplicar(u, "DAVITA", "operacao")  # forçada
+        assert escolhido.operacoes == {"CRF"}
+        assert ms.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == {"CRF"}
+        assert ws.operacoes_permitidas(escolhido.perfil, escolhido.operacoes) == {"CRF"}
+        assert not escolhido.allows_operacao("DAVITA")
+
+
+def test_vinculos_do_banco_valem_sem_novo_login(monkeypatch):
+    _sem_banco(monkeypatch, vinculos={"crf", "DAVITA"})
+    cd = _usuario(r.ROLE_CONTROL_DESK, {"CRF"})  # token antigo
+    assert [o["chave"] for o in oe.operacoes_escolhiveis(cd)] == ["CRF", "DAVITA"]
+    escolhido = oe.aplicar(cd, "CRF", "operacao")
+    assert escolhido.allows_operacao("CRF") and not escolhido.allows_operacao("DAVITA")
 
 
 def test_sem_cabecalho_vale_a_primeira_e_fora_da_operacao_nada_muda(monkeypatch):
     _sem_banco(monkeypatch)
     adm = _usuario(r.ROLE_ADMIN)
     assert oe.aplicar(adm, "", "operacao").operacoes == {"CRF"}  # sem escolha: a primeira, igual ao topo
+    assert oe.aplicar(adm, "TI", "operacao").operacoes == {"CRF"}  # TI não é da Operação: vale a primeira
     assert oe.aplicar(adm, "CRF", "rh") is adm
-    assert oe.aplicar(adm, "TI", "operacao") is adm
     assert ws.operacoes_permitidas(adm.perfil, adm.operacoes) is None
+
+
+def test_sem_operacao_a_escolher_nada_muda(monkeypatch):
+    _sem_banco(monkeypatch)
+    sup = _usuario(r.ROLE_SUPERVISOR)
+    assert oe.operacoes_escolhiveis(sup) == []
+    assert oe.aplicar(sup, "CRF", "operacao") is sup
 
 
 def test_operacao_escolhida_guarda_os_vinculos():
