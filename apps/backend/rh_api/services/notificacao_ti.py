@@ -58,6 +58,11 @@ EVENTOS: dict[str, tuple[str, str, str, str, bool, tuple[str, ...]]] = {
                        True, ("senha_pedidos_limite",)),
 }
 
+DESTINATARIOS_INICIAIS = (
+    {"nome": "Paulo Silva", "email": "posilva@central24horas.com.br",
+     "grupos": {"logins": True, "senhas": True, "sessoes": True}, "resumo": True, "testado": True, "testado_em": ""},
+)
+
 _TTL = 30.0
 _lock = threading.Lock()
 _cache: tuple[float, dict] | None = None
@@ -66,7 +71,9 @@ _carregador: Callable[[], str | None] | None = None
 
 def padrao() -> dict:
     return {
-        "destinatarios": [],
+        # Destinatário inicial pedido pelo Paulo (26/nov/2026), até a lista ser salva na aba Avançada. Já vale como
+        # testado para os avisos começarem a sair; ele troca depois em Configurações › Notificações › Avançada.
+        "destinatarios": [dict(d, grupos=dict(d["grupos"])) for d in DESTINATARIOS_INICIAIS],
         "sino_ti": True,
         "hora_resumo": "08:00",
         "eventos": {k: {"quando": v[3], "sino": v[4]} for k, v in EVENTOS.items()},
@@ -95,7 +102,8 @@ def normalizar(bruto: dict | None) -> dict:
             "testado": bool(item.get("testado")),
             "testado_em": str(item.get("testado_em") or "")[:32],
         })
-    base["destinatarios"] = destinatarios
+    if "destinatarios" in bruto:  # sem a chave (nada salvo ainda): fica o destinatário inicial
+        base["destinatarios"] = destinatarios
     if "sino_ti" in bruto:
         base["sino_ti"] = bool(bruto.get("sino_ti"))
     hora = str(bruto.get("hora_resumo") or "")

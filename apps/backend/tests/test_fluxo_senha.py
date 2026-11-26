@@ -77,7 +77,10 @@ def config_ti():
 
 def test_configuracao_padrao_e_normalizada(config_ti):
     cfg = notificacao_ti.ler()
-    assert cfg["destinatarios"] == []
+    # Antes de salvar a lista: o destinatário inicial pedido pelo Paulo já recebe (testado).
+    assert [d["email"] for d in cfg["destinatarios"]] == ["posilva@central24horas.com.br"]
+    assert cfg["destinatarios"][0]["testado"] is True
+    assert notificacao_ti.normalizar({"destinatarios": []})["destinatarios"] == []
     assert cfg["eventos"]["conta_bloqueada"] == {"quando": "na_hora", "sino": True}
     assert cfg["eventos"]["login"]["quando"] == "resumo"
     lixo = notificacao_ti.normalizar({
