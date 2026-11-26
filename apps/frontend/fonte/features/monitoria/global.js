@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
-import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261125-acessos-salvar';
-import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
+import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261126-painel-relatorios';
+import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261126-painel-relatorios';
 
 // Peças GLOBAIS da vertente Monitoria (montadas uma vez na raiz do app):
 //  * tema/logo por operação;

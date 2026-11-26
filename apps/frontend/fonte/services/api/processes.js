@@ -5,7 +5,7 @@ import {
   montarChaveCacheApi,
   requisitarArquivo,
   requisitar,
-} from './core.js?v=20261125-acessos-salvar';
+} from './core.js?v=20261126-painel-relatorios';
 
 const TEMPO_CACHE_EMAIL_INBOX_MS = 60 * 60 * 1000;
 const requisicoesEmailEmAndamento = new Map();

@@ -1,5 +1,5 @@
-import { html, useRef } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+import { html, useRef } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 // Peças da tela Nova monitoria: respostas SIM/NÃO/NCG/N/A, escala dos pilares, trilho de etapas
 // e barra de progresso. Cores só por tokens do tema (classes em monitoria.css).

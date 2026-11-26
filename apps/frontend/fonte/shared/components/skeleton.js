@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 
 const LARGURAS_PADRAO = [80, 55, 70, 45, 90, 60, 40, 75, 50, 65];
 

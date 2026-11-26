@@ -1,14 +1,14 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261125-acessos-salvar';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
-import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261125-acessos-salvar';
-import { montarHashDaTela } from '../../rotas.js?v=20261125-acessos-salvar';
-import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261125-acessos-salvar';
-import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261125-acessos-salvar';
-import { requisitar } from '../../services/api/core.js?v=20261125-acessos-salvar';
-import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { AbasConsole, AtalhoLinha, AvisoConsole, CabecalhoConsole, CardResumoLink, GrupoAtalhos, PaginaConsole, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261126-painel-relatorios';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
+import { lerResumoTecnologia } from '../../services/api/modulos.js?v=20261126-painel-relatorios';
+import { montarHashDaTela } from '../../rotas.js?v=20261126-painel-relatorios';
+import { TELA_MODULOS_TECNOLOGIA, funcaoLigada, telaWfmParaTecnologia } from '../registro.js?v=20261126-painel-relatorios';
+import { SecaoAtribuicao, SecaoFuncoes } from './modulos.js?v=20261126-painel-relatorios';
+import { requisitar } from '../../services/api/core.js?v=20261126-painel-relatorios';
+import { useInicioDoModulo } from '../../shared/tela-inicial.js?v=20261126-painel-relatorios';
 
 // Módulo Tecnologia: centro de administração do Conecta. Início = 2 números + atalhos agrupados por assunto; Módulos = funções por
 // módulo e atribuição. 100% administração: usuários, perfis, operações, módulos, parâmetros, auditoria e a tela "Escalas e Plantões" do WFM.

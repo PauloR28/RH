@@ -1,13 +1,13 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   analisarCurriculoIa,
   lerConfiguracaoAnaliseCurriculoIa,
   lerUltimaAnaliseCurriculoIa,
   marcarAnaliseCurriculoIaRevisada,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
-import { SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
+import { SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 
 const AVISO_REVISAO_HUMANA =

@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { construirModeloPaginacao } from '../../utilitarios.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../icone.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { construirModeloPaginacao } from '../../utilitarios.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
 
 function BotaoPaginacao({ pagina, ativa, onClick }) {
   return html`

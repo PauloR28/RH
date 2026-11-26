@@ -1,6 +1,6 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261125-acessos-salvar';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261125-acessos-salvar';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261125-acessos-salvar';
+import { requisitar, requisitarArquivo } from './core.js?v=20261126-painel-relatorios';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261126-painel-relatorios';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261126-painel-relatorios';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

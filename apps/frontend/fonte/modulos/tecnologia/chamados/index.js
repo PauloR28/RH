@@ -1,16 +1,16 @@
-import { html } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261125-acessos-salvar';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
+import { html } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-relatorios';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
 import {
   ABAS_CHAMADOS, Icone, TELA_CONFIG, TELA_DASHBOARD, TELA_DETALHE, TELA_FILA, TELA_LISTA, TELA_NOVO,
-} from './comum.js?v=20261125-acessos-salvar';
-import { ListaChamados } from './lista.js?v=20261125-acessos-salvar';
-import { NovoChamado } from './novo.js?v=20261125-acessos-salvar';
-import { PaginaDetalheChamado } from './detalhe.js?v=20261125-acessos-salvar';
-import { FilaChamados } from './fila.js?v=20261125-acessos-salvar';
-import { DashboardChamados } from './dashboard.js?v=20261125-acessos-salvar';
-import { ConfiguracoesChamados } from './configuracoes.js?v=20261125-acessos-salvar';
+} from './comum.js?v=20261126-painel-relatorios';
+import { ListaChamados } from './lista.js?v=20261126-painel-relatorios';
+import { NovoChamado } from './novo.js?v=20261126-painel-relatorios';
+import { PaginaDetalheChamado } from './detalhe.js?v=20261126-painel-relatorios';
+import { FilaChamados } from './fila.js?v=20261126-painel-relatorios';
+import { DashboardChamados } from './dashboard.js?v=20261126-painel-relatorios';
+import { ConfiguracoesChamados } from './configuracoes.js?v=20261126-painel-relatorios';
 
 // Suporte TI (Conecta Tecnologia): abertura e gestão de chamados. As abas visíveis dependem das permissões do usuário,
 // nunca do nome do perfil. Quem só abre/acompanha (ex.: Supervisor) vê apenas a página "Chamados", sem barra de abas.

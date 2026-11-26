@@ -1,5 +1,5 @@
-import { React, createRoot, html } from './infraestrutura-react.js?v=20261125-acessos-salvar';
-import { inicializarTema } from './shared/tema.js?v=20261125-acessos-salvar';
+import { React, createRoot, html } from './infraestrutura-react.js?v=20261126-painel-relatorios';
+import { inicializarTema } from './shared/tema.js?v=20261126-painel-relatorios';
 
 inicializarTema();
 
@@ -60,7 +60,7 @@ const root = createRoot(container);
 
 async function iniciarAplicacao() {
   try {
-    const { Aplicacao } = await import('./aplicacao.js?v=20261125-indicadores');
+    const { Aplicacao } = await import('./aplicacao.js?v=20261126-painel-relatorios');
 
     root.render(html`
       <${ErrorBoundary}>

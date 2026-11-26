@@ -3,9 +3,9 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { IconeSvg } from './icone.js?v=20261125-acessos-salvar';
-import { requisitar } from '../services/api/core.js?v=20261125-acessos-salvar';
+} from '../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { IconeSvg } from './icone.js?v=20261126-painel-relatorios';
+import { requisitar } from '../services/api/core.js?v=20261126-painel-relatorios';
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT_ESTIMATE = 220;

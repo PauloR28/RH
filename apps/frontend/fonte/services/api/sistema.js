@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-acessos-salvar';
+import { requisitar } from './core.js?v=20261126-painel-relatorios';
 
 export async function listarParametrosSistema() {
   return requisitar('/sistema/parametros', { method: 'GET' });

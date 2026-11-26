@@ -1,8 +1,8 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js?v=20261125-acessos-salvar';
-import { lerDashboard } from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
-import { SelectOperacao, TagOperacao, formatarNota } from './comum.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { EmptyState, LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { BarComparisonChart, LineTrendChart, ScoreRadarChart } from '../../ui/components/charts.js?v=20261126-painel-relatorios';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
+import { SelectOperacao, TagOperacao, formatarNota } from './comum.js?v=20261126-painel-relatorios';
 
 // Dashboard (4 modos: Geral, Equipe, Período, Operador). Tudo vem do servidor —
 // o motor único de indicadores (o mesmo dos relatórios e exportações).

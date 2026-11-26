@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { lerFunilDashboard } from '../../servico-api.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { lerFunilDashboard } from '../../servico-api.js?v=20261126-painel-relatorios';
 import {
   EmptyState,
   LoadingState,
@@ -7,8 +7,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
 

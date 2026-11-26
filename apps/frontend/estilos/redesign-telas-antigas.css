@@ -345,3 +345,31 @@
 .c-graficos-wfm .c-grafico > .wfm-g-rosca { flex: 1 1 auto; align-content: center; }
 /* Início: contador de pendências no atalho (como a bolinha do avatar), 11/11/2026 */
 .c-atalho .c-atalho-conta { margin-left: auto; min-width: 20px; height: 20px; padding: 0 var(--espaco-1); border-radius: var(--raio-cheio); background: var(--cor-status-perigo-texto); color: var(--cor-fundo-painel); font-size: 12px; font-weight: var(--fonte-peso-negrito); display: inline-grid; place-items: center; }
+
+/* Monitoria › Painel em duas pilhas (amostra aprovada 25/11/2026): cada cartão fica do tamanho do que mostra,
+   sem esticar até a altura do vizinho. Abaixo de 1180 px, uma coluna só. */
+.c-mon-pilhas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espaco-4); align-items: start; }
+.c-mon-pilha { display: flex; flex-direction: column; gap: var(--espaco-4); min-width: 0; }
+.c-mon-pilha-item { min-width: 0; }
+.c-mon-pilhas .c-cartao { margin: 0; }
+@media (max-width: 1179.98px) { .c-mon-pilhas { grid-template-columns: minmax(0, 1fr); } }
+
+/* Relatórios: cada área do menu com título em faixa cinza, ícone e negrito; linha separando as áreas;
+   itens recuados embaixo do título (amostra aprovada 25/11/2026). */
+.c-rel { grid-template-columns: 224px minmax(0, 1fr); }
+.c-rel-grupo { display: flex; flex-direction: column; gap: 2px; }
+.c-rel-grupo + .c-rel-grupo { margin-top: var(--espaco-2); padding-top: var(--espaco-2); border-top: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-rel-lista .c-rel-grupo h3, .c-rel-lista--caixa .c-rel-grupo h3 {
+  display: flex; align-items: center; gap: var(--espaco-2); margin: 0 0 var(--espaco-1); padding: 0 var(--espaco-2); min-height: 32px;
+  border-radius: var(--raio-pequeno); background: var(--cor-fundo-sutil); color: var(--cor-texto-padrao);
+  font-size: 13px; font-weight: var(--fonte-peso-negrito);
+}
+.c-rel-grupo h3 .c-ic, .c-rel-grupo h3 svg { flex: none; width: 16px; height: 16px; color: var(--cor-texto-link); }
+.c-rel-grupo a { padding-left: var(--espaco-6); }
+@media (max-width: 1179.98px) {
+  .c-rel { grid-template-columns: minmax(0, 1fr); }
+  .c-rel-grupo { flex-direction: row; align-items: center; flex: none; }
+  .c-rel-grupo + .c-rel-grupo { margin-top: 0; padding-top: 0; border-top: 0; margin-left: var(--espaco-2); padding-left: var(--espaco-2); border-left: var(--borda-fina) solid var(--cor-linha-divisoria); }
+  .c-rel-lista .c-rel-grupo h3, .c-rel-lista--caixa .c-rel-grupo h3 { margin: 0; }
+  .c-rel-grupo a { padding-left: var(--espaco-2); }
+}

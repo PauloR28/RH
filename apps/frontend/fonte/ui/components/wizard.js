@@ -1,6 +1,6 @@
-import { html } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../icone.js?v=20261125-acessos-salvar';
-import { MetricGrid } from './feedback.js?v=20261125-acessos-salvar';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
+import { MetricGrid } from './feedback.js?v=20261126-painel-relatorios';
 
 /*
  * Extraído da rodada 2 de promt.txt (padrão de leitura em Z): o stepper de

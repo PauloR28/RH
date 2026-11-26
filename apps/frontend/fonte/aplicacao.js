@@ -1,1 +1,1 @@
-export { Aplicacao } from './app/aplicacao-raiz.js?v=20261125-indicadores';
+export { Aplicacao } from './app/aplicacao-raiz.js?v=20261126-painel-relatorios';

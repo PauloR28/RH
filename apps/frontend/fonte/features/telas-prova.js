@@ -4,4 +4,4 @@ export {
   TelaConclusao,
   TelaProva,
   TelaResultado,
-} from './prova/index.js?v=20261125-acessos-salvar';
+} from './prova/index.js?v=20261126-painel-relatorios';

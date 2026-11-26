@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { LoadingState, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 import {
   enviarLogoOperacao,
   executarZonaDeRisco,
@@ -10,8 +10,8 @@ import {
   salvarConfigMonitoria,
   salvarCorOperacao,
   salvarGuia,
-} from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
-import { SelectOperacao } from './comum.js?v=20261125-acessos-salvar';
+} from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
+import { SelectOperacao } from './comum.js?v=20261126-painel-relatorios';
 
 // Central de Monitoria (Configurações, só Administrador): prazos e alertas, identidade
 // visual por operação e Zona de risco na aba "Geral"; guia de processos em aba própria.

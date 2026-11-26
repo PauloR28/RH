@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261125-acessos-salvar';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261125-acessos-salvar';
+} from '../../perguntas.js?v=20261126-painel-relatorios';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js?v=20261125-acessos-salvar';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js?v=20261125-acessos-salvar';
+} from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261126-painel-relatorios';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-acessos-salvar';
+} from '../../shared/process-reference.js?v=20261126-painel-relatorios';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js?v=20261125-acessos-salvar';
-import { isProcessClosed } from '../../shared/process-flow.js?v=20261125-acessos-salvar';
+} from './services/personalizacao-inteligente.js?v=20261126-painel-relatorios';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261126-painel-relatorios';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

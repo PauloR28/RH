@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -6,24 +6,24 @@ import {
   gerarDocumentoPorTemplate,
   listarTemplatesDocumentos,
   listarVariaveisTemplatesDocumentos,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
 import {
   atualizarDocumentoBiblioteca,
   criarDocumentoBiblioteca,
   excluirDocumentoBiblioteca,
   listarDocumentosBiblioteca,
-} from '../../services/api/documentos-biblioteca.js?v=20261125-acessos-salvar';
+} from '../../services/api/documentos-biblioteca.js?v=20261126-painel-relatorios';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
-import { GuiaProcessos } from '../ajuda/guia.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+import { GuiaProcessos } from '../ajuda/guia.js?v=20261126-painel-relatorios';
 
 const FORM_INICIAL = { id_template: '', titulo: '', corpo_texto: '', ativo: true };
 const FORM_DOC_INICIAL = { id_documento: '', titulo: '', topico: '', area: '', descricao: '', url_arquivo: '', ativo: true };

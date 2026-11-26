@@ -2,8 +2,8 @@ import {
   html,
   useEffect,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+} from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
 
 export const DOCUMENTOS_APROVACAO_PADRAO = [
   'RG',

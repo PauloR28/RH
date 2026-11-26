@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { EmptyState, LoadingState, ModalConfirmacaoAcao, ModalPadrao, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
 import {
   excluirTipoAtendimento,
   listarCatalogoMonitoria,
   listarTiposAtendimento,
   salvarTipoAtendimento,
-} from '../../services/api/monitoria.js?v=20261125-acessos-salvar';
-import { useContextoMonitoria } from '../monitoria/comum.js?v=20261125-acessos-salvar';
+} from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
+import { useContextoMonitoria } from '../monitoria/comum.js?v=20261126-painel-relatorios';
 
 // Configurações > Parâmetros > "Tipos de atendimentos": cada tipo pertence a uma operação e a um
 // canal de atendimento (usados no formulário de Nova monitoria). As regras de escopo e de

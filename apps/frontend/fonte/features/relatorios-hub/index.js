@@ -1,14 +1,14 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
-import { telaEmAreaInativa } from '../../shared/areas.js?v=20261125-acessos-salvar';
-import { baixarArquivo } from '../monitoria/comum.js?v=20261125-acessos-salvar';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261125-acessos-salvar';
-import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261125-acessos-salvar';
-import { useModulos } from '../../modulos/estado.js?v=20261125-acessos-salvar';
-import { MODULO_TECNOLOGIA } from '../../modulos/registro.js?v=20261125-acessos-salvar';
-import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261125-acessos-salvar';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { Esqueleto, Estado, Ic, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
+import { telaEmAreaInativa } from '../../shared/areas.js?v=20261126-painel-relatorios';
+import { baixarArquivo } from '../monitoria/comum.js?v=20261126-painel-relatorios';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261126-painel-relatorios';
+import { CHAVE_SELECAO_RELATORIO } from '../../shared/relatorios-hub.js?v=20261126-painel-relatorios';
+import { useModulos } from '../../modulos/estado.js?v=20261126-painel-relatorios';
+import { MODULO_TECNOLOGIA } from '../../modulos/registro.js?v=20261126-painel-relatorios';
+import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from './adaptadores.js?v=20261126-painel-relatorios';
 
 // Relatórios e Históricos (23/out/2026): todos os relatórios e históricos do Conecta num ambiente só. Cada relatório só
 // aparece se o perfil tem a chave `relhub.*` (Perfis e Permissões); o servidor continua aplicando escopo e permissão de
@@ -19,6 +19,8 @@ import { AREAS, PERIODOS, PERMISSAO_BASE, RELATORIOS, carregarOperacoes } from '
 // Painel e Dashboard abrem na própria seção (↗); se a pessoa não abre a seção, continuam aqui dentro, como antes.
 
 const TAMANHOS = [25, 50, 100];
+// Ícone (Fase 09) do título de cada área no menu da esquerda (amostra aprovada 25/11/2026).
+const ICONE_AREA = { wfm: 'calendar-blank', monitoria: 'clipboard-text', diario: 'book-open', rh: 'identification-card', sistema: 'shield' };
 const NUMERICOS = ['numero', 'horas', 'percentual', 'variacao', 'media']; // 'media' (ex.: nota média) não soma no total
 // Permissão de EXPORTAR por relatório (o servidor confere de novo em /relatorios-hub/exportar).
 const exportarPermissao = (id) => (id === 'wfm.historico' ? 'wfm.auditoria'
@@ -230,9 +232,9 @@ function TelaEmbutida({ relatorio, controlador, filtros, showToast }) {
   const [Comp, setComp] = useState(null);
   useEffect(() => {
     let ativo = true;
-    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261125-indicadores').then((m) => ativo && setComp(() => m.PainelWfmHub));
+    if (relatorio.tela === 'painel-wfm') import('../../modulos/operacao/wfm/relatorios.js?v=20261126-painel-relatorios').then((m) => ativo && setComp(() => m.PainelWfmHub));
     if (relatorio.tela === 'dashboard-monitoria') {
-      Promise.all([import('../monitoria/painel.js?v=20261125-acessos-salvar'), import('../monitoria/comum.js?v=20261125-acessos-salvar')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
+      Promise.all([import('../monitoria/painel.js?v=20261126-painel-relatorios'), import('../monitoria/comum.js?v=20261126-painel-relatorios')]).then(([p, c]) => ativo && setComp(() => function Dashboard() {
         const { contexto, erro } = c.useContextoMonitoria();
         if (erro) return html`<${Estado} titulo=${erro} />`;
         if (!contexto) return html`<${Esqueleto} linhas=${6} />`;
@@ -397,9 +399,11 @@ export function TelaRelatoriosHub({ controlador }) {
       <main class="c-pagina c-conteudo">
         <div class="c-rel">
           <nav class="c-rel-lista c-rel-lista--caixa" aria-label="Relatórios e históricos">
-            ${porArea.map((a) => html`<h3 key=${`t-${a.id}`}>${a.rotulo}</h3>
+            ${porArea.map((a) => html`<div key=${a.id} class="c-rel-grupo" role="group" aria-labelledby=${`rel-area-${a.id}`}>
+              <h3 id=${`rel-area-${a.id}`}><${Ic} nome=${ICONE_AREA[a.id] || 'folder'} />${a.rotulo}</h3>
               ${a.itens.map((r) => { const destino = naSecao(r); return html`<a key=${r.id} href=${destino ? '#' : `/relatorios-historicos?r=${encodeURIComponent(r.id)}`} title=${r.descricao}
-                aria-current=${!destino && relatorio?.id === r.id ? 'page' : null} onClick=${(ev) => { ev.preventDefault(); escolher(r); }}>${r.rotulo}${destino ? html` <small>na seção ↗</small>` : null}</a>`; })}`)}
+                aria-current=${!destino && relatorio?.id === r.id ? 'page' : null} onClick=${(ev) => { ev.preventDefault(); escolher(r); }}>${r.rotulo}${destino ? html` <small>na seção ↗</small>` : null}</a>`; })}
+            </div>`)}
           </nav>
           <div class="c-rel-corpo" aria-live="polite">
             ${relatorio ? html`<div class="c-cab-linha"><h1 title=${relatorio.descricao}>${relatorio.rotulo}</h1>

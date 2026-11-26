@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { Campo, Estado, Esqueleto, Faixa, Ic, Janela, JanelaForm, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-relatorios';
 import {
   excluirEquipeAdmin,
   exportarEquipesAdmin,
@@ -9,8 +9,8 @@ import {
   moverEquipe,
   previaMoverEquipe,
   salvarEquipeAdmin,
-} from '../../services/api/equipes-admin.js?v=20261125-acessos-salvar';
-import { baixarBlob } from '../../utilitarios.js?v=20261125-acessos-salvar';
+} from '../../services/api/equipes-admin.js?v=20261126-painel-relatorios';
+import { baixarBlob } from '../../utilitarios.js?v=20261126-painel-relatorios';
 
 // Tecnologia › Acessos › Equipes (24/11/2026, amostra 22_EQUIPES_TECNOLOGIA aprovada).
 // Cada operador fica em 1 equipe; o supervisor responsável recebe as pendências. Mover mostra antes o que migra.

@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -8,12 +8,12 @@ import {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
-import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
+import { obterIdAplicacaoRaciocinioPorHash } from '../../rotas.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 const TIPOS = [
   { valor: 'sequencia_logica', label: 'Sequência lógica' },

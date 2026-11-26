@@ -1,12 +1,12 @@
 // Central de Acessos (Etapa 6, desenho aprovado em 12/nov/2026): módulos, funções e permissões dos perfis num lugar só.
 // Rebranding: só peças c- (conecta-ds.css) e tokens; estilos próprios em estilos/central-acessos.css.
 // Fluxo: escolher o módulo > "Vale para" (todos, uma unidade do módulo ou uma pessoa) > clicar nas células > Salvar.
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { definirModuloAtivo } from '../../services/api/modulos.js?v=20261125-acessos-salvar';
-import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js?v=20261125-acessos-salvar';
-import { JanelaPerfis } from './perfis-janela.js?v=20261125-acessos-salvar';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { definirModuloAtivo } from '../../services/api/modulos.js?v=20261126-painel-relatorios';
+import { lerAcessos, lerEscoposAcessos, padronizarAcessos, salvarAcessos } from '../../services/api/central-acessos.js?v=20261126-painel-relatorios';
+import { JanelaPerfis } from './perfis-janela.js?v=20261126-painel-relatorios';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261126-painel-relatorios';
 
 const POR_PAGINA = 5;
 const MODULOS_PADRAO = [{ chave: 'tecnologia', nome: 'Tecnologia', ativo: true, protegido: true }, { chave: 'rh', nome: 'RH', ativo: true }, { chave: 'operacao', nome: 'Operação', ativo: true }];

@@ -1,6 +1,6 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-acessos-salvar';
-import { lerMetaChamados } from '../../../services/api/chamados.js?v=20261125-acessos-salvar';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../../ui/icone.js?v=20261126-painel-relatorios';
+import { lerMetaChamados } from '../../../services/api/chamados.js?v=20261126-painel-relatorios';
 
 // Chamados (Suporte TI) — peças comuns: ícone, pills, datas, SLA, navegação, compartilhamento.
 // Estados e cores usam os tokens do Conecta (success/warning/danger/info); sem tela de personalização de tags.

@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -8,20 +8,20 @@ import {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
-import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
+import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

@@ -1,6 +1,6 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261125-acessos-salvar';
-import { listarNotificacoes } from '../services/api/notifications.js?v=20261125-acessos-salvar';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { areaAtiva, AREA_SUPORTE_TI } from './areas.js?v=20261126-painel-relatorios';
+import { listarNotificacoes } from '../services/api/notifications.js?v=20261126-painel-relatorios';
 
 // Bolinha vermelha do Suporte TI: quantas notificações NÃO LIDAS da categoria `chamados` o usuário tem.
 // Uma única consulta compartilhada por todos os componentes (tile do início e item da navbar), renovada a cada minuto.

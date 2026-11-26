@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   atualizarTrilhaOnboarding,
   baixarPdfSlideTreinamento,
@@ -16,27 +16,27 @@ import {
   relatorioPresencaColaborador,
   relatorioTreinamentosStatus,
   salvarPresencaTreinamento,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-relatorios';
 import {
   atribuirTreinamentoUsuarios,
   buscarParticipantesTreinamento,
   listarOperacoesParaTreinamento,
   vincularTrilhaProcesso,
-} from '../../services/api/onboarding.js?v=20261125-acessos-salvar';
-import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261125-acessos-salvar';
-import { lerProcessos } from '../../services/api/processes.js?v=20261125-acessos-salvar';
+} from '../../services/api/onboarding.js?v=20261126-painel-relatorios';
+import { CHAVE_TRILHA_EDICAO } from './wizard.js?v=20261126-painel-relatorios';
+import { lerProcessos } from '../../services/api/processes.js?v=20261126-painel-relatorios';
 import {
   MinistrantePicker,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-acessos-salvar';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-relatorios';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 // QA T2-TRE-01: quem recebe o treinamento pode ser um candidato, um usuário do
 // sistema (operador, funcionário...) ou uma operação inteira. Tudo vira uma

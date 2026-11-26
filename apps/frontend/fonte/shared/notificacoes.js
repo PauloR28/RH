@@ -1,22 +1,22 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   lerProcessos,
   lerEntrevistas,
   lerCandidatosProcessos,
   listarSolicitacoesAlteracaoEmailApi,
-} from '../app/controlador-aplicacao.js?v=20261125-acessos-salvar';
+} from '../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
 import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   obterEstadoNotificacoesUsuario,
   registrarEstadoNotificacoesUsuario,
-} from '../services/api/notifications.js?v=20261125-acessos-salvar';
-import { listarOperacoes } from '../services/api/operations.js?v=20261125-acessos-salvar';
-import { listarUsuarios } from '../services/api/settings.js?v=20261125-acessos-salvar';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261125-acessos-salvar';
+} from '../services/api/notifications.js?v=20261126-painel-relatorios';
+import { listarOperacoes } from '../services/api/operations.js?v=20261126-painel-relatorios';
+import { listarUsuarios } from '../services/api/settings.js?v=20261126-painel-relatorios';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261126-painel-relatorios';
 
-import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261125-acessos-salvar';
+import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261126-painel-relatorios';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {

@@ -1,1 +1,1 @@
-export { TelaEntrevistas } from './entrevistas/index.js?v=20261125-acessos-salvar';
+export { TelaEntrevistas } from './entrevistas/index.js?v=20261126-painel-relatorios';

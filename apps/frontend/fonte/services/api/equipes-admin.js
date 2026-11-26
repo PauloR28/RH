@@ -1,4 +1,4 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261125-acessos-salvar';
+import { requisitar, requisitarArquivo } from './core.js?v=20261126-painel-relatorios';
 
 // Equipes na Tecnologia (24/11/2026). Regras e escopo ficam no servidor (/equipes-admin).
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+} from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js?v=20261125-acessos-salvar';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261125-acessos-salvar';
+} from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-acessos-salvar';
-import { validarCardPipeline } from '../../shared/validacoes.js?v=20261125-acessos-salvar';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261125-acessos-salvar';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261125-acessos-salvar';
+} from '../../shared/process-flow.js?v=20261126-painel-relatorios';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261126-painel-relatorios';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261126-painel-relatorios';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-painel-relatorios';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js?v=20261125-acessos-salvar';
+} from '../processos/state.js?v=20261126-painel-relatorios';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../shared/process-reference.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 const ETAPAS_PIPELINE = [
   'Triagem',

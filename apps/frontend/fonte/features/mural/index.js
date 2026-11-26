@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
 import {
   arquivarPublicacaoMural,
   criarPublicacaoMural,
@@ -12,7 +12,7 @@ import {
   restaurarPublicacaoMural,
   atualizarPublicacaoMural,
   uploadImagemMural,
-} from '../../services/api/mural.js?v=20261125-acessos-salvar';
+} from '../../services/api/mural.js?v=20261126-painel-relatorios';
 
 // Mural (redesign Fase 15, fatia 4, amostra Q5 do lote 2): página do Mural (Início › Ver tudo) e a aba Mural de Equipes
 // (`embutido`, com a API de escopo da equipe). Cabeçalho com voltar, "Mural" e "Nova publicação"; caixa com o filtro

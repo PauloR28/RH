@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261125-acessos-salvar';
-import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261125-acessos-salvar';
-import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261125-acessos-salvar';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261125-acessos-salvar';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261126-painel-relatorios';
+import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261126-painel-relatorios';
+import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261126-painel-relatorios';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-painel-relatorios';
 
 // Minha escala (redesign Fase 15, amostras "Minha escala" e "Pedir troca" da Fase 14). Só a própria escala PUBLICADA.
 // Duas visões do mês: Planilha (um dia por linha) e Calendário. O detalhe do dia (jornada, pausas, presença) abre no

@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 
 const SEQUENCIAL = [
   'var(--color-chart-sequential-1)',
@@ -224,12 +224,11 @@ export function ScoreDistributionChart({ buckets = [], height = 140 }) {
 
 // Vertente Monitoria: evolução da nota no tempo (o HTML de referência tinha um
 // gráfico de linha que o Conecta ainda não possuía). Só SVG, sem dependências.
-export function LineTrendChart({ points = [], height = 200, min = 0, max = 100, valueFormatter = (v) => v, emptyText = 'Sem dados no período.' }) {
+export function LineTrendChart({ points = [], height = 200, largura = 640, min = 0, max = 100, valueFormatter = (v) => v, emptyText = 'Sem dados no período.' }) {
   const validos = points.filter((p) => p.value !== null && p.value !== undefined);
   if (!validos.length) {
     return html`<p class="rh-chart-empty">${emptyText}</p>`;
   }
-  const largura = 640;
   const margem = { esquerda: 40, direita: 16, topo: 16, base: 32 };
   const areaW = largura - margem.esquerda - margem.direita;
   const areaH = height - margem.topo - margem.base;

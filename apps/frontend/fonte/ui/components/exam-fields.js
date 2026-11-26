@@ -1,19 +1,19 @@
-import { IconeSvg } from '../icone.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
 
 ﻿import {
   html,
   useEffect,
   useRef,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+} from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   baixarModeloExcel,
   converterArrayBufferParaBase64,
   formatarDocumentoRichText,
   obterCapacidadesDaTarefa,
   validarArquivoExcel,
-} from '../../regras-prova.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
+} from '../../regras-prova.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
 
 function escaparHtml(valor) {
   return String(valor || '')

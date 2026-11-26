@@ -4,7 +4,7 @@ import {
   possuiSessaoAutenticada,
   requisitar,
   salvarSessaoAutenticacao,
-} from './core.js?v=20261125-acessos-salvar';
+} from './core.js?v=20261126-painel-relatorios';
 
 export async function fazerLoginApi(usuario, senha, mfaCode = '') {
   const resultado = await requisitar(

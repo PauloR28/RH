@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-acessos-salvar';
+import { requisitar } from './core.js?v=20261126-painel-relatorios';
 
 // "Preencher com o CV": lê o currículo salvo do candidato e devolve
 // nome/e-mail/telefone para o RH revisar antes de gerar a prova individual.

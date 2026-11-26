@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261126-painel-relatorios';
 import {
   baixarModeloModulo,
   criarTreinamentoWizard,
@@ -8,17 +8,17 @@ import {
   uploadVideoModulo,
   validarModuloJson,
   alternarDownloadAnexo,
-} from '../../servico-api.js?v=20261125-acessos-salvar';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261125-acessos-salvar';
+} from '../../servico-api.js?v=20261126-painel-relatorios';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-relatorios';
 import {
   atualizarTrilhaOnboarding,
   buscarParticipantesTreinamento,
   lerTrilhaOnboarding,
   listarOperacoesParaTreinamento,
   uploadImagemSecaoModulo,
-} from '../../services/api/onboarding.js?v=20261125-acessos-salvar';
-import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
+} from '../../services/api/onboarding.js?v=20261126-painel-relatorios';
+import { LoadingState, MinistrantePicker, PageIntro, PainelRh, SectionCard, WizardStepper, WizardSummaryStrip } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
 
 function limparHtmlVazioModulo(valor) {
   const conteudo = String(valor || '').trim();

@@ -1,10 +1,10 @@
 // Configurações do Conecta › Segurança e Backup (reestruturação, Etapa 7b — amostra aprovada em 17/nov/2026).
 // Segurança = política GLOBAL (senha, inatividade, sessão). O que é pessoal (MFA, e-mail secundário) fica no perfil de
 // cada usuário. Backup = só a situação (decisão D5): quem faz o backup é a tarefa agendada do servidor.
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { requisitar } from '../../services/api/core.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { Ic, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { requisitar } from '../../services/api/core.js?v=20261126-painel-relatorios';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const api = {

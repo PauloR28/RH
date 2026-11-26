@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
@@ -6,17 +6,17 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { Badge, ToggleSwitch } from '../../ui/components/primitives.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
-import { TelaLgpdRetencao } from './lgpd-retencao.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { Badge, ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+import { TelaLgpdRetencao } from './lgpd-retencao.js?v=20261126-painel-relatorios';
 import {
   atualizarItemConfiguracao,
   criarItemConfiguracao,
   desativarItemConfiguracao,
   excluirItemConfiguracao,
   listarCatalogoConfiguracoes,
-} from '../../services/api/settings.js?v=20261125-acessos-salvar';
+} from '../../services/api/settings.js?v=20261126-painel-relatorios';
 
 // Correções.txt item 5: LGPD e Retenção, Motivos de Eliminação, Modelos de
 // E-mail e Etapas do Processo saem do switcher interno de Operações e viram

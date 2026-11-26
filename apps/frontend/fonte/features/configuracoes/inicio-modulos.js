@@ -2,10 +2,10 @@
 // Um lugar só para os 3 módulos: o que cada perfil vê quando entra em cada módulo. Só esconde ou muda a ordem; um bloco
 // ou atalho que o perfil não pode abrir continua escondido, mesmo ligado aqui. Substitui a aba "Tela inicial" que
 // ficava em Perfis e Permissões.
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { Ic, Segmento } from '../../ui/components/ds.js?v=20261125-acessos-salvar';
-import { listarPerfis } from '../../services/api/settings.js?v=20261125-acessos-salvar';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { Ic, Segmento } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { listarPerfis } from '../../services/api/settings.js?v=20261126-painel-relatorios';
 import {
   ATALHOS_POR_MODULO,
   BLOCOS_POR_MODULO,
@@ -15,7 +15,7 @@ import {
   configTelaInicialPadrao,
   listarTelaInicialPerfis,
   salvarTelaInicialPerfil,
-} from '../../shared/tela-inicial.js?v=20261125-acessos-salvar';
+} from '../../shared/tela-inicial.js?v=20261126-painel-relatorios';
 
 const NOTA_PERMISSAO = 'Só esconde ou muda a ordem. Um bloco que o perfil não pode abrir (sem acesso à função) continua escondido, mesmo ligado aqui.';
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);

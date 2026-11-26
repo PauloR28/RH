@@ -1,5 +1,5 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261125-acessos-salvar';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261125-acessos-salvar';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-relatorios';
 
 import {
   html,
@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
+} from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
 import {
   TAMANHO_DETALHE_PROCESSO,
   agendarEntrevista,
@@ -57,42 +57,42 @@ import {
   usarCandidatoDoBancoTalentos,
   retomarProcesso,
   cancelarProcesso,
-} from '../../app/controlador-aplicacao.js?v=20261125-acessos-salvar';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
 import {
   baixarBlob,
   formatarDataCurta,
   formatarDataParaInput,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261125-acessos-salvar';
+} from '../../utilitarios.js?v=20261126-painel-relatorios';
 import {
   formatarDataHora,
   formatarDataNascimento,
   montarResumoAnaliticoCv,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js?v=20261125-acessos-salvar';
+} from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
 import {
   abrirBlobEmNovaGuia,
   copiarTexto,
   montarUrlPublicaCandidatura,
   obterBasePublicaCandidatura,
   toDatetimeLocal,
-} from '../../shared/browser-utils.js?v=20261125-acessos-salvar';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261125-acessos-salvar';
+} from '../../shared/browser-utils.js?v=20261126-painel-relatorios';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
 import {
   ModalCompartilharVaga,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261125-acessos-salvar';
+} from '../../shared/components/share-job-modal.js?v=20261126-painel-relatorios';
 import {
   DOCUMENTOS_APROVACAO_PADRAO,
   ModalAprovacaoCandidato,
   atualizarDocumentosNaMensagem,
-} from '../../shared/components/approval-modal.js?v=20261125-acessos-salvar';
+} from '../../shared/components/approval-modal.js?v=20261126-painel-relatorios';
 import {
   ModalEdicaoEntrevista,
-} from '../../shared/components/interview-edit-modal.js?v=20261125-acessos-salvar';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261125-acessos-salvar';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261125-acessos-salvar';
+} from '../../shared/components/interview-edit-modal.js?v=20261126-painel-relatorios';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
 import {
   CANDIDATE_STATUS_APPROVED,
   CANDIDATE_STATUS_ANALYSIS,
@@ -110,34 +110,34 @@ import {
   getCandidateActionState,
   isActiveCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261125-acessos-salvar';
+} from '../../shared/process-flow.js?v=20261126-painel-relatorios';
 import {
   quebrarListaTexto,
   validarFormularioEntrevista,
   validarFormularioProcesso,
-} from '../../shared/validacoes.js?v=20261125-acessos-salvar';
+} from '../../shared/validacoes.js?v=20261126-painel-relatorios';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
   obterReferenciaProcessoDoCandidato,
-} from '../../shared/process-reference.js?v=20261125-acessos-salvar';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261125-acessos-salvar';
-import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261125-acessos-salvar';
+} from '../../shared/process-reference.js?v=20261126-painel-relatorios';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261126-painel-relatorios';
+import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261126-painel-relatorios';
 import {
   criarProvaGerada,
   cancelarProvaGerada,
   deletarProvaGerada,
   lerProvaGerada,
   reabrirProvaGerada,
-} from '../../services/api/generated-exams.js?v=20261125-acessos-salvar';
-import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261125-acessos-salvar';
-import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261125-acessos-salvar';
+} from '../../services/api/generated-exams.js?v=20261126-painel-relatorios';
+import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261126-painel-relatorios';
+import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261126-painel-relatorios';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROCESSO,
-} from '../../perguntas.js?v=20261125-acessos-salvar';
-import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261125-acessos-salvar';
+} from '../../perguntas.js?v=20261126-painel-relatorios';
+import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261126-painel-relatorios';
 import {
   LoadingState,
   MetricGrid,
@@ -149,11 +149,11 @@ import {
   ScoreRadarChart,
   SectionCard,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
 
 const MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO =
   'Este candidato já foi aprovado. Para alterar sua situação, será necessário um novo cadastro ou atualização manual.';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261125-acessos-salvar').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261126-painel-relatorios').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 const AVISO_URL_PUBLICA_NAO_CONFIGURADA =

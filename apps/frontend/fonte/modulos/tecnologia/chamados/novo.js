@@ -1,9 +1,9 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { criarChamado } from '../../../services/api/chamados.js?v=20261125-acessos-salvar';
-import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261125-acessos-salvar';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { criarChamado } from '../../../services/api/chamados.js?v=20261126-painel-relatorios';
+import { Campo, FormGrid, PageHeader, PageShell, Section } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-relatorios';
 import {
   AcoesCompartilhar, EstadoErro, Icone, ORDEM_URGENCIA, ROTULO_URGENCIA, TELA_LISTA, irParaChamado, tamanhoLegivel, textoCompartilhar, useMetaChamados,
-} from './comum.js?v=20261125-acessos-salvar';
+} from './comum.js?v=20261126-painel-relatorios';
 
 // Novo chamado: uma linha de solicitante (somente leitura), grade de 3 colunas e as ações no cabeçalho (sempre visíveis).
 // O piso de urgência (PA parada / célula inteira) é reforçado no backend.

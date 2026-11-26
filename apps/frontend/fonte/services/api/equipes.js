@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261125-acessos-salvar';
+import { requisitar } from './core.js?v=20261126-painel-relatorios';
 
 // Controle de Equipes e Turnos. Presença, escala e horários usam as rotas do WFM; aqui só a equipe, as monitorias e o Mural da operação.
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

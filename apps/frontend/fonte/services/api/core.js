@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261125-acessos-salvar';
+import { criarLogger } from '../../logger.js?v=20261126-painel-relatorios';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 

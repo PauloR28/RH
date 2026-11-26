@@ -1,7 +1,7 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../../../ui/icone.js?v=20261125-acessos-salvar';
-import { textoLegivel } from './compartilhar.js?v=20261125-acessos-salvar';
-import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261125-acessos-salvar';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../../ui/icone.js?v=20261126-painel-relatorios';
+import { textoLegivel } from './compartilhar.js?v=20261126-painel-relatorios';
+import { ContextField, Stepper } from '../../../ui/components/modulo-primitivas.js?v=20261126-painel-relatorios';
 
 // Peças compartilhadas da administração de escala (Escala do dia, Escala mensal e gaveta "Ajustar dia").
 // Só apresentação e estado local de interface; regras, API e permissões continuam nas telas. Estilos: bloco `.ea-*` em estilos/wfm.css.

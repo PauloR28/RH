@@ -1,6 +1,6 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261125-acessos-salvar';
-import { IconeSvg } from '../icone.js?v=20261125-acessos-salvar';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { formatarDocumentoRichText } from '../../regras-prova.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
 
 function limparHtmlVazio(valor) {
   const conteudo = String(valor || '').trim();

@@ -1,18 +1,18 @@
-import { html, useCallback, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261125-acessos-salvar';
-import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261125-acessos-salvar';
-import { obterRotaAtual } from '../../../rotas.js?v=20261125-acessos-salvar';
-import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20261125-acessos-salvar';
-import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261125-acessos-salvar';
-import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261125-acessos-salvar';
+import { html, useCallback, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { LoadingState, ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { obterRotaAtual } from '../../../rotas.js?v=20261126-painel-relatorios';
+import { marcarNotificacoesEntidadeLidas } from '../../../services/api/notifications.js?v=20261126-painel-relatorios';
+import { atualizarChamadosNaoLidos } from '../../../shared/chamados-nao-lidos.js?v=20261126-painel-relatorios';
+import { PageHeader, PageShell } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-relatorios';
 import {
   assumirChamado, atribuirChamado, baixarAnexoChamado, buscarAtendentesChamado, cancelarChamado, confirmarEncerramentoChamado,
   enviarMensagemChamado, excluirAnexoChamado, lerChamado, lerHistoricoChamado, listarEventosChamado, mudarStatusChamado,
   mudarUrgenciaChamado, reabrirChamado,
-} from '../../../services/api/chamados.js?v=20261125-acessos-salvar';
+} from '../../../services/api/chamados.js?v=20261126-painel-relatorios';
 import {
   AcessoRestrito, Avatar, EstadoErro, Icone, MenuCompartilhar, ORDEM_URGENCIA, Pill, PillSla, PillStatus, PillUrgencia, ROTULO_STATUS,
   ROTULO_URGENCIA, TELA_LISTA, formatarDataCompleta, formatarDataHora, tamanhoLegivel, useDebounce,
-} from './comum.js?v=20261125-acessos-salvar';
+} from './comum.js?v=20261126-painel-relatorios';
 
 // Detalhe do chamado. Vive em dois lugares com o mesmo componente: painel ao lado da lista (`embutido`) e a rota própria
 // /suporte-ti/chamado/:id (links de notificação). Descrição sempre à vista; Conversa, Histórico e Anexos em abas; ações numa barra só.

@@ -1,4 +1,4 @@
-import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js?v=20261125-acessos-salvar';
+import { gravarCache, invalidarCacheApi, lerCache, requisitar } from './core.js?v=20261126-painel-relatorios';
 
 export async function lerEntrevistas({
   idProcesso = '',
