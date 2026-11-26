@@ -1,8 +1,8 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { baixarArquivo } from '../monitoria/comum.js?v=20261126-painel-graficos';
-import { baixarModeloUsuariosEmMassa, enviarPlanilhaUsuarios } from '../../services/api/settings.js?v=20261126-painel-graficos';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { baixarArquivo } from '../monitoria/comum.js?v=20261126-senha';
+import { baixarModeloUsuariosEmMassa, enviarPlanilhaUsuarios } from '../../services/api/settings.js?v=20261126-senha';
 
 // Configurações > Usuários > Ações > Cadastro em massa.
 // 1) baixa a planilha modelo; 2) envia a planilha preenchida e vê a prévia (quem será incluído e quem foi ignorado, com o

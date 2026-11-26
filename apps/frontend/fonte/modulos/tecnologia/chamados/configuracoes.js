@@ -1,10 +1,10 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
 import {
   atualizarCategoriaChamado, atualizarEmailChamados, criarCategoriaChamado, criarEmailChamados, lerConfigChamados, listarEmailsChamados,
   removerEmailChamados, salvarConfigChamados,
-} from '../../../services/api/chamados.js?v=20261126-painel-graficos';
-import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-graficos';
-import { EstadoErro, Icone } from './comum.js?v=20261126-painel-graficos';
+} from '../../../services/api/chamados.js?v=20261126-senha';
+import { DataTable, FormGrid, Section, SettingsLayout } from '../../../ui/components/layout-primitivas.js?v=20261126-senha';
+import { EstadoErro, Icone } from './comum.js?v=20261126-senha';
 
 // Configurações (`chamados.configurar`): subnavegação à esquerda e uma seção por assunto. Nada fica fixo no código.
 // Alterar um prazo vale só para chamados novos. Cada seção de números tem o seu próprio Salvar.

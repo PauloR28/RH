@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -8,20 +8,20 @@ import {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from '../../servico-api.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
 import {
   EmptyState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
-import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-senha';
+import { obterClasseStatusEntrevista } from '../../shared/helpers-visuais.js?v=20261126-senha';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-senha';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

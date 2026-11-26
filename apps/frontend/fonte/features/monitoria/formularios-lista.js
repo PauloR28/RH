@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   alterarSituacaoFormulario,
   ativarFormularioMatriz,
@@ -8,10 +8,10 @@ import {
   listarFormulariosMatriz,
   listarVersoesMatriz,
   restaurarVersaoMatriz,
-} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261126-painel-graficos';
-import { ChipSituacao, DialogoConfirmar, ModalComparacao, ROTULO_ACAO, SITUACOES, VersionRow, alternarMarcadas, compararConfigs } from './formularios-comum.js?v=20261126-painel-graficos';
+} from '../../services/api/monitoria.js?v=20261126-senha';
+import { Campo, Esqueleto, Estado, Ic, Janela, MenuAcoes, Segmento } from '../../ui/components/ds.js?v=20261126-senha';
+import { formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261126-senha';
+import { ChipSituacao, DialogoConfirmar, ModalComparacao, ROTULO_ACAO, SITUACOES, VersionRow, alternarMarcadas, compararConfigs } from './formularios-comum.js?v=20261126-senha';
 
 // Lista de formulários (redesign Fase 15, fatia 4, amostra Q2 do lote 2): caixa com o filtro de situação (com contagem),
 // Operação e busca; tabela Formulário · Situação · Versão · Atualizado · Monit. · Nota · [Abrir ⋯]; coluna à direita de 320 px

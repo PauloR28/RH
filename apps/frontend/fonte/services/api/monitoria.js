@@ -1,4 +1,4 @@
-import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js?v=20261126-painel-graficos';
+import { lerSessaoAutenticacao, requisitar, requisitarArquivo } from './core.js?v=20261126-senha';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

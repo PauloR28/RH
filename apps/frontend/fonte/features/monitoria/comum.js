@@ -1,6 +1,6 @@
-import { html, useCallback, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { lerContextoMonitoria } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
+import { html, useCallback, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { lerContextoMonitoria } from '../../services/api/monitoria.js?v=20261126-senha';
 
 // Vertente Monitoria — peças compartilhadas pelas telas (tags, badges, formatação,
 // carregamento do contexto do usuário: operações visíveis, tema, vínculos).

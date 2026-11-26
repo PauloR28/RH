@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useCallback, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
 import {
   distribuirPausasWfm,
   lancarHoraExtraWfm,
@@ -13,15 +13,15 @@ import {
   replicarPausasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261126-painel-graficos';
-import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261126-painel-graficos';
-import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261126-painel-graficos';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261126-painel-graficos';
-import { ModalConfigEscala } from './configuracao.js?v=20261126-painel-graficos';
-import { GavetaAjusteDia } from './ajuste.js?v=20261126-painel-graficos';
-import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261126-painel-graficos';
-import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
+} from '../../../services/api/wfm.js?v=20261126-senha';
+import { SIGLA_PRESENCA, ROTULO_STATUS_PRESENCA, dataHora, falhaAo, minutosParaHoras, rotuloPresenca, siglaPresenca } from './comum.js?v=20261126-senha';
+import { ModalTurno, TURNO_VAZIO } from './cadastros.js?v=20261126-senha';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261126-senha';
+import { ModalConfigEscala } from './configuracao.js?v=20261126-senha';
+import { GavetaAjusteDia } from './ajuste.js?v=20261126-senha';
+import { faixaTurno, semAcento, useVisaoEquipes } from './escala-ui.js?v=20261126-senha';
+import { AcoesAprovacao, estadoEscala } from './escala.js?v=20261126-senha';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, MenuAcoes, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-senha';
 
 // Escala do dia — a tela única do Control Desk. Um dia por vez, uma linha por colaborador, com tudo no lugar:
 // turno, entrada/saída, 3 pausas, presença e hora extra. Dias sem turno são DSR (padrão). Turno e horário podem ser

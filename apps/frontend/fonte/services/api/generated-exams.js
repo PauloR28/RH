@@ -1,4 +1,4 @@
-import { invalidarCacheApi, lerCache, gravarCache, requisitar } from './core.js?v=20261126-painel-graficos';
+import { invalidarCacheApi, lerCache, gravarCache, requisitar } from './core.js?v=20261126-senha';
 
 const CACHE_PROVAS_GERADAS = 'provas-geradas';
 const TEMPO_CACHE_PROVAS_GERADAS_MS = 60 * 60 * 1000;

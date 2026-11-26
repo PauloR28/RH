@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261126-painel-graficos';
-import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
-import { EmptyState } from './feedback.js?v=20261126-painel-graficos';
-import { SectionCard } from './layout.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../icone.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261126-senha';
+import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261126-senha';
+import { EmptyState } from './feedback.js?v=20261126-senha';
+import { SectionCard } from './layout.js?v=20261126-senha';
+import { IconeSvg } from '../icone.js?v=20261126-senha';
 
 export function ModalPadrao({
   aberto,

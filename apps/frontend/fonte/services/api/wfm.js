@@ -1,6 +1,6 @@
-import { requisitar, requisitarArquivo } from './core.js?v=20261126-painel-graficos';
-import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261126-painel-graficos';
-import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261126-painel-graficos';
+import { requisitar, requisitarArquivo } from './core.js?v=20261126-senha';
+import { operacaoBaseAtiva } from '../../modulos/estado.js?v=20261126-senha';
+import { filtrarPorOperacaoBase } from '../../modulos/registro.js?v=20261126-senha';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 

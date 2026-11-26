@@ -3,7 +3,7 @@ import {
   invalidarCacheApi,
   lerCache,
   requisitar,
-} from './core.js?v=20261126-painel-graficos';
+} from './core.js?v=20261126-senha';
 
 export async function lerHistorico() {
   return requisitar('/history', { method: 'GET' });

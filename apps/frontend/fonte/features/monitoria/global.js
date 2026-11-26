@@ -1,8 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261126-painel-graficos';
-import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { escolherDesignOperacao, lerContextoMonitoria, trocarSenhaInicial } from '../../services/api/monitoria.js?v=20261126-senha';
+import { salvarSessaoAutenticacao } from '../../services/api/core.js?v=20261126-senha';
+import { CrieSuaSenha } from '../acesso/senha.js?v=20261126-senha';
+import { definirTemaOperacao, limparTemaOperacao } from '../../shared/tema-operacao.js?v=20261126-senha';
 
 // Peças GLOBAIS da vertente Monitoria (montadas uma vez na raiz do app):
 //  * tema/logo por operação;
@@ -69,11 +70,10 @@ export function TemaOperacao({ controlador }) {
     </${ModalPadrao}>`;
 }
 
+// Senha temporária (admin) ou provisória (supervisor): tela "Crie a sua senha" no desenho do login, antes de qualquer
+// outra tela (fluxo de senha aprovado em 26/11/2026). Não pede a senha atual: a pessoa acabou de entrar com ela.
 export function TrocaSenhaObrigatoria({ controlador }) {
   const [aberto, setAberto] = useState(() => Boolean(controlador.estado.autenticado && controlador.estado.exigeTrocaSenha));
-  const [f, setF] = useState({ senha_atual: '', nova_senha: '', confirmar: '' });
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     const abrir = () => setAberto(true);
@@ -82,29 +82,10 @@ export function TrocaSenhaObrigatoria({ controlador }) {
   }, []);
 
   if (!aberto || !controlador.estado.autenticado) return null;
-  const invalido = f.nova_senha.length < 8 || f.nova_senha !== f.confirmar || !f.senha_atual;
-  const trocar = async () => {
-    setSalvando(true);
-    setErro('');
-    try {
-      const sessao = await trocarSenhaInicial({ senha_atual: f.senha_atual, nova_senha: f.nova_senha });
-      salvarSessaoAutenticacao(sessao.access_token, sessao);
-      window.location.reload();
-    } catch (e) {
-      setErro(e?.message || 'Não foi possível trocar a senha.');
-    } finally {
-      setSalvando(false);
-    }
+  const salvar = async (novaSenha) => {
+    const sessao = await trocarSenhaInicial({ senha_atual: '', nova_senha: novaSenha });
+    salvarSessaoAutenticacao(sessao.access_token, sessao);
+    window.location.reload();
   };
-  return html`
-    <${ModalPadrao} aberto=${true} ocultarFechar=${true} titulo="Defina sua nova senha" subtitulo="Este é o seu primeiro acesso: a senha inicial precisa ser trocada para liberar o Conecta." onClose=${() => null}>
-      <div class="mon-shell">
-        <label>Senha atual (inicial)<input class="form-control" type="password" autocomplete="current-password" value=${f.senha_atual} onInput=${(e) => setF({ ...f, senha_atual: e.target.value })} /></label>
-        <label>Nova senha (mínimo de 8 caracteres)<input class="form-control" type="password" autocomplete="new-password" value=${f.nova_senha} onInput=${(e) => setF({ ...f, nova_senha: e.target.value })} /></label>
-        <label>Confirmar nova senha<input class="form-control" type="password" autocomplete="new-password" value=${f.confirmar} onInput=${(e) => setF({ ...f, confirmar: e.target.value })} /></label>
-        ${f.confirmar && f.confirmar !== f.nova_senha ? html`<div class="mon-alerta">As senhas não conferem.</div>` : null}
-        ${erro ? html`<div class="mon-alerta mon-alerta--danger" role="alert">${erro}</div>` : null}
-        <div class="mon-acoes-fixas"><button type="button" class="btn btn-primary" disabled=${invalido || salvando} onClick=${trocar}>${salvando ? 'Salvando…' : 'Trocar senha e continuar'}</button></div>
-      </div>
-    </${ModalPadrao}>`;
+  return html`<${CrieSuaSenha} aoSalvar=${salvar} aoSair=${() => { setAberto(false); controlador.sair(); }} />`;
 }

@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261126-painel-graficos';
+import { requisitar } from './core.js?v=20261126-senha';
 
 export async function lerPaginaPublicaCandidatura(slug) {
   return requisitar(

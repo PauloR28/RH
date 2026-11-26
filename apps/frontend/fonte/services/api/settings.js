@@ -4,7 +4,7 @@ import {
   lerCache,
   requisitar,
   requisitarArquivo,
-} from './core.js?v=20261126-painel-graficos';
+} from './core.js?v=20261126-senha';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();
@@ -243,4 +243,39 @@ export async function apagarPerfil(id) {
 export async function listarPerfisAtualizados() {
   invalidarCacheApi('settings:roles');
   return listarPerfis();
+}
+
+// Fluxo de senha (26/11/2026): senha temporária sugerida, avisos ao TI e Auditoria › Senhas e acessos.
+export async function sugerirSenhaTemporaria() {
+  return requisitar('/settings/users/senha-sugerida');
+}
+
+export async function lerNotificacaoTi() {
+  return requisitar('/settings/notificacao-ti');
+}
+
+export async function salvarNotificacaoTi(config) {
+  return requisitar('/settings/notificacao-ti', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function testarNotificacaoTi(email) {
+  return requisitar('/settings/notificacao-ti/teste', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function listarSenhasAcessos(filtros = {}) {
+  const qs = new URLSearchParams(Object.entries(filtros).filter(([, v]) => v !== '' && v != null)).toString();
+  return requisitar(`/settings/auditoria/senhas-acessos${qs ? `?${qs}` : ''}`);
+}
+
+export async function baixarSenhasAcessos(filtros = {}) {
+  const qs = new URLSearchParams(Object.entries(filtros).filter(([, v]) => v !== '' && v != null)).toString();
+  return requisitarArquivo(`/settings/auditoria/senhas-acessos/export${qs ? `?${qs}` : ''}`, { method: 'GET' });
 }

@@ -1,19 +1,19 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 import {
   criarAmbienteSharePoint,
   excluirAmbienteSharePoint,
   listarAmbientesSharePoint,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js?v=20261126-painel-graficos';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
+} from '../../services/api/sistema.js?v=20261126-senha';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-senha';
 
 const FORM_INICIAL = {
   operacao_id: '',

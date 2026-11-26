@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Ic, Janela } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { duplicarEscalaWfm, excluirEscalaWfm, lerConfigEscalaWfm, salvarConfigEscalaWfm } from '../../../services/api/wfm.js?v=20261126-senha';
+import { Campo, Esqueleto, Ic, Janela } from '../../../ui/components/ds.js?v=20261126-senha';
 
 // Configurações da escala (redesign Fase 15, amostra Q4 do lote 1): janela de 560 px com Nome · Jornada · Escala ativa ·
 // Escalas por pessoa · Antecedência para pedir troca; "Quem aprova" em fichas com × e a linha Perfil + Usuário + Adicionar;

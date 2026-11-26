@@ -1,5 +1,5 @@
-import { IconeSvg } from '../icone.js?v=20261126-painel-graficos';
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../icone.js?v=20261126-senha';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 
 // Extraído de features/processos/index.js (Correções.txt item 3) para ser
 // reaproveitado também em telas fora de Processos, como Provas e Resultados.

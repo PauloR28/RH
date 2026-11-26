@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261126-painel-graficos';
+import { requisitar } from './core.js?v=20261126-senha';
 
 // Controle de Equipes e Turnos. Presença, escala e horários usam as rotas do WFM; aqui só a equipe, as monitorias e o Mural da operação.
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

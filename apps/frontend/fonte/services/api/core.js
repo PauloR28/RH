@@ -1,4 +1,4 @@
-import { criarLogger } from '../../logger.js?v=20261126-painel-graficos';
+import { criarLogger } from '../../logger.js?v=20261126-senha';
 
 const CONFIG_RUNTIME = window.RUNTIME_CONFIG || {};
 
@@ -27,6 +27,8 @@ const LIMITE_ITENS_CACHE_MEMORIA = 80;
 const CHAVE_TOKEN_AUTENTICACAO = 'rh_api_access_token';
 const CHAVE_USUARIO_AUTENTICADO = 'rh_api_authenticated_user';
 const CHAVE_SESSAO_AUTENTICACAO = 'rh_api_session_payload';
+// Uma conta, um computador por vez (26/11/2026): o aviso do servidor vai para a tela de login ("Sessão encerrada").
+export const CHAVE_SESSAO_ENCERRADA = 'conecta-sessao-encerrada';
 
 export const EVENTO_AUTENTICACAO_EXPIRADA = 'rh-auth-expired';
 
@@ -347,6 +349,13 @@ async function executarRequisicao(caminho, opcoes = {}, configuracao = {}) {
     const textoErro = await lerMensagemErro(resposta);
 
     if (resposta.status === 401) {
+      if (String(textoErro).startsWith('SESSAO_SUBSTITUIDA')) {
+        try {
+          sessionStorage.setItem(CHAVE_SESSAO_ENCERRADA, String(textoErro).replace(/^SESSAO_SUBSTITUIDA:\s*/, ''));
+        } catch {
+          /* sem armazenamento: a tela de login abre normal */
+        }
+      }
       limparSessaoAutenticacao();
       notificarSessaoExpirada();
     }

@@ -1,5 +1,5 @@
-import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261126-painel-graficos';
+import { html, useEffect, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { marcarNotificacoesEntidadeLidas } from '../../services/api/notifications.js?v=20261126-senha';
 import {
   excluirMonitoria,
   restaurarMonitoria,
@@ -13,12 +13,12 @@ import {
   listarDestinatarios,
   reanalisarContestacao,
   replicarContestacao,
-} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261126-painel-graficos';
-import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261126-painel-graficos';
-import { JanelaPlano } from './redesign-feedback-planos.js?v=20261126-painel-graficos';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-painel-graficos';
+} from '../../services/api/monitoria.js?v=20261126-senha';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-senha';
+import { baixarArquivo, formatarData, formatarDataHoraCurta, formatarNota } from './comum.js?v=20261126-senha';
+import { Gabarito, JanelaContestar, SeloSituacao } from './redesign-listas.js?v=20261126-senha';
+import { JanelaPlano } from './redesign-feedback-planos.js?v=20261126-senha';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-senha';
 
 // Detalhe de UMA monitoria (redesign Fase 15, fatia 4, amostra Q1 do lote 2): painel lateral de 640 px (padrão c-diario da
 // Fase 14) em todas as listas. Cabeçalho com ID + situação, linha curta operador · operação · data · avaliador e ⋯ (Exportar,

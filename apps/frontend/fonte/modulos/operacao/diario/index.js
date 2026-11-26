@@ -1,17 +1,17 @@
-import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { useToast } from '../../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
-import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js?v=20261126-painel-graficos';
-import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
-import { AbaHoje } from './hoje.js?v=20261126-painel-graficos';
-import { AbaHistorico } from './historico.js?v=20261126-painel-graficos';
-import { AbaCadastros } from './cadastros.js?v=20261126-painel-graficos';
-import { tomarDiaPedido } from './ligacoes.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { PainelRh } from '../../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { useToast } from '../../../shared/hooks/use-toast.js?v=20261126-senha';
+import { aceitarTermosDiario, lerContextoDiario } from '../../../services/api/diario.js?v=20261126-senha';
+import { Esqueleto, Estado, Ic } from '../../../ui/components/ds.js?v=20261126-senha';
+import { AbaHoje } from './hoje.js?v=20261126-senha';
+import { AbaHistorico } from './historico.js?v=20261126-senha';
+import { AbaCadastros } from './cadastros.js?v=20261126-senha';
+import { tomarDiaPedido } from './ligacoes.js?v=20261126-senha';
 
 // Diário de bordo (seção própria na barra de cima, D1 aprovada em 08/11/2026): Hoje · Histórico · Cadastros.
 // O registro do DIA DA OPERAÇÃO por turno (não é o "Diário do operador" de Equipes, que é sobre uma pessoa).
 
-export { pedirDiaDiario } from './ligacoes.js?v=20261126-painel-graficos';
+export { pedirDiaDiario } from './ligacoes.js?v=20261126-senha';
 
 function Termos({ onAceitar }) {
   const [li, setLi] = useState(false);

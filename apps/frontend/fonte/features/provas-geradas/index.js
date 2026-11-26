@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261126-painel-graficos';
+} from '../../perguntas.js?v=20261126-senha';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261126-painel-graficos';
+} from '../prova/services/personalizacao-inteligente.js?v=20261126-senha';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js?v=20261126-painel-graficos';
+} from '../../regras-prova.js?v=20261126-senha';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261126-painel-graficos';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-painel-graficos';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
-import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261126-painel-graficos';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261126-painel-graficos';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-painel-graficos';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-painel-graficos';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261126-senha';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-senha';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261126-senha';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-senha';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261126-senha';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261126-senha';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261126-senha';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-senha';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-senha';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-senha';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261126-senha';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-senha';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';

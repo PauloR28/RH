@@ -265,7 +265,7 @@ def _perfis_da_ti(cursor) -> list[str]:
 
 def _link_auditoria(repository) -> str:
     base = str(getattr(repository.settings, "public_frontend_base_url", "") or "").rstrip("/")
-    return f"{base}/#/tecnologia/auditoria/senhas-acessos" if base else "#"
+    return f"{base}/configuracoes/senhas-e-acessos" if base else "#"
 
 
 CHAVE_RESUMO = "notificacao_ti.resumo_enviado_em"

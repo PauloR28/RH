@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   enviarEmail,
   listarArquivosOneDrive,
   listarModelosEmail,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { ModalPadrao, ToastAlert } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { ModalPadrao, ToastAlert } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 const PADRAO_VARIAVEL = /{\s*([a-zA-Z0-9_]+)\s*}/g;
 

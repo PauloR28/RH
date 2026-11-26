@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261126-painel-graficos';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261126-senha';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261126-senha';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261126-painel-graficos';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261126-painel-graficos';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261126-painel-graficos';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-painel-graficos';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261126-painel-graficos';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261126-painel-graficos';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261126-painel-graficos';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-painel-graficos';
+} from '../../app/controlador-aplicacao.js?v=20261126-senha';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261126-senha';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261126-senha';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-senha';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261126-senha';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261126-senha';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-senha';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-senha';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261126-senha';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261126-senha';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261126-senha';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-senha';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
+} from '../../shared/notificacoes.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-senha';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,17 +53,21 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261126-painel-graficos';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261126-painel-graficos';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261126-painel-graficos';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261126-painel-graficos';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261126-painel-graficos';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261126-painel-graficos';
-import { CentralAcessos } from './central-acessos.js?v=20261126-painel-graficos';
-import { AbaEquipesAdmin } from './equipes-admin.js?v=20261126-painel-graficos';
-import { ConfigPaineis } from './paineis.js?v=20261126-painel-graficos';
+} from './monitoria-config.js?v=20261126-senha';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261126-senha';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261126-senha';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261126-senha';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261126-senha';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-senha';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261126-senha';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261126-senha';
+import { CentralAcessos } from './central-acessos.js?v=20261126-senha';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261126-senha';
+import { ConfigPaineis } from './paineis.js?v=20261126-senha';
+import { BlocoSenhaUsuario } from './senha-usuario.js?v=20261126-senha';
+import { NotificacaoAvancada } from './notificacao-avancada.js?v=20261126-senha';
+import { AbaSenhasAcessos } from './senhas-acessos.js?v=20261126-senha';
+import { senhaCumpreRegras } from '../acesso/senha.js?v=20261126-senha';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];
@@ -577,7 +581,11 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   const [operacaoExcluir, setOperacaoExcluir] = useState(null);
   const [excluindoOperacao, setExcluindoOperacao] = useState(false);
   const [secoesComErro, setSecoesComErro] = useState([]);
-  const [subAbaLogs, setSubAbaLogs] = useState(telaAtual === 'screen-settings-monitoria-logs' ? 'monitoria' : 'sistema');
+  const [abaNotificacoes, setAbaNotificacoes] = useState('geral');
+  const [subAbaLogs, setSubAbaLogs] = useState(() => {
+    if (telaAtual === 'screen-settings-monitoria-logs') return 'monitoria';
+    return /senhas-e-acessos/.test(`${window.location.pathname}${window.location.hash}`) ? 'senhas' : 'sistema';
+  });
   const [transferindoSupervisao, setTransferindoSupervisao] = useState(false);
   const [transferindoOperacao, setTransferindoOperacao] = useState(false);
   const [cadastrandoEmMassa, setCadastrandoEmMassa] = useState(false);
@@ -879,6 +887,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
       }
     }
     setSalvando(true);
+    // Redefinir senha (fluxo de senha 26/11/2026): regra da senha e motivo obrigatório antes de enviar.
+    if (formUsuario.senha && !senhaCumpreRegras(formUsuario.senha)) {
+      setErro('A senha temporária não cumpre as regras da senha.');
+      return;
+    }
+    if (formUsuario.senha && formUsuario.id_usuario && !String(formUsuario.justificativa || '').trim()) {
+      setErro('Escreva o motivo da redefinição da senha.');
+      return;
+    }
     setErro('');
     setFeedback('');
     try {
@@ -922,7 +939,7 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
         if (formUsuario.senha) {
           await redefinirSenhaUsuario(formUsuario.id_usuario, {
             senha: formUsuario.senha,
-            justificativa: formUsuario.justificativa || 'Senha redefinida em Configurações.',
+            justificativa: formUsuario.justificativa,
           });
         }
         setFeedback('Usuário atualizado com sucesso.');
@@ -1984,18 +2001,15 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
                         ${!criandoUsuario && situacaoDoForm.chave === 'parado30' ? html`<span class="c-ajuda">Sem acesso há 30 dias ou mais.</span>` : null}
                       </div>
                       ${!acessoMicrosoft && (criandoUsuario || podeRedefinirSenha)
-            ? html`
-                            <${Campo}
-                              rotulo=${criandoUsuario ? 'Senha inicial' : 'Nova senha'}
-                              opcional=${!criandoUsuario}
-                              ajuda=${criandoUsuario ? '' : (formUsuario.possui_senha ? 'Deixe em branco para manter a senha atual.' : 'Ainda não tem senha no Conecta.')}
-                              cheio=${true}
-                            >
-                              <input class="c-entrada" type="password" autocomplete="new-password" required=${criandoUsuario} value=${formUsuario.senha} onInput=${(event) => setFormUsuario({ ...formUsuario, senha: event.target.value })} />
-                            <//>
-                          `
+            ? html`<${BlocoSenhaUsuario}
+                            criando=${criandoUsuario}
+                            possuiSenha=${Boolean(formUsuario.possui_senha)}
+                            nome=${String(formUsuario.nome || '').split(' ')[0]}
+                            valor=${formUsuario.senha}
+                            aoMudar=${(senha) => setFormUsuario((atual) => ({ ...atual, senha }))}
+                          />`
             : null}
-                      <${Campo} rotulo="Motivo da alteração" ajuda="Fica no Registro de alterações." cheio=${true} opcional=${criandoUsuario}>
+                      <${Campo} rotulo=${formUsuario.senha && !criandoUsuario ? 'Motivo da alteração (obrigatório ao redefinir)' : 'Motivo da alteração'} ajuda="Fica no Registro de alterações." cheio=${true} opcional=${criandoUsuario}>
                         <input class="c-entrada" placeholder="Ex.: mudou de operação" value=${formUsuario.justificativa} onInput=${(event) => setFormUsuario({ ...formUsuario, justificativa: event.target.value })} />
                       <//>
                     </fieldset>
@@ -3076,7 +3090,20 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
     }
   };
 
-  const renderNotificacoes = () => html`
+  // Notificações: Geral (tela de hoje) | Avançada (avisos de segurança ao TI, fluxo de senha 26/11/2026).
+  const renderNotificacoes = () => {
+    const podeAvancada = controlador.possuiPermissao('notificacoes.configurar');
+    if (!podeAvancada) return renderNotificacoesGeral();
+    return html`
+      <div class="c-cfg-abas">
+        <${Segmento} rotulo="Notificações" valor=${abaNotificacoes} aoMudar=${setAbaNotificacoes}
+          opcoes=${[['geral', 'Geral'], ['avancada', 'Avançada']]} />
+      </div>
+      ${abaNotificacoes === 'avancada' ? html`<${NotificacaoAvancada} />` : renderNotificacoesGeral()}
+    `;
+  };
+
+  const renderNotificacoesGeral = () => html`
     <div class="settings-admin-shell">
       <section class="c24-card">
         <header class="c24-card-header">
@@ -3680,16 +3707,25 @@ export function TelaConfiguracoesSistema({ controlador, telaAtual = 'screen-sett
   // Logs do sistema e Logs da Monitoria (só Administrador) numa única tela, separados por abas.
   const renderLogsComAbas = () => {
     const temLogsMonitoria = ehAdministrador && controlador.possuiPermissao('monitoria.logs');
-    if (!temLogsMonitoria) return renderLogs();
+    // Fluxo de senha (26/11/2026): "Senhas e acessos" = logins, trocas, pedidos e bloqueios, filtrados no servidor.
+    const abasLogs = [
+      ['sistema', 'Logs do sistema', 'history_edu'],
+      ['senhas', 'Senhas e acessos', 'lock'],
+      ...(temLogsMonitoria ? [['monitoria', 'Logs da Monitoria', 'lock']] : []),
+    ];
     return html`
       <div class="settings-admin-shell">
         <div class="cfg-subabas" role="tablist" aria-label="Tipo de log">
-          ${[['sistema', 'Logs do sistema', 'history_edu'], ['monitoria', 'Logs da Monitoria', 'lock']].map(([id, rotulo, icone]) => html`
+          ${abasLogs.map(([id, rotulo, icone]) => html`
             <button key=${id} type="button" role="tab" aria-selected=${subAbaLogs === id} class=${`cfg-subaba ${subAbaLogs === id ? 'is-active' : ''}`} onClick=${() => setSubAbaLogs(id)}>
               <${Icone} name=${icone} /> ${rotulo}
             </button>`)}
         </div>
-        ${subAbaLogs === 'monitoria' ? html`<${AbaLogsMonitoria} />` : renderLogs()}
+        ${subAbaLogs === 'monitoria' && temLogsMonitoria
+    ? html`<${AbaLogsMonitoria} />`
+    : subAbaLogs === 'senhas'
+      ? html`<${AbaSenhasAcessos} podeExportar=${controlador.possuiPermissao('logs.exportar')} />`
+      : renderLogs()}
       </div>
     `;
   };

@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   calcularPrevia,
   descartarRascunho,
@@ -8,10 +8,10 @@ import {
   listarRascunhos,
   realizarMonitoria,
   salvarRascunho,
-} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { RESPOSTAS, formatarNota, hoje } from './comum.js?v=20261126-painel-graficos';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-painel-graficos';
+} from '../../services/api/monitoria.js?v=20261126-senha';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Segmento } from '../../ui/components/ds.js?v=20261126-senha';
+import { RESPOSTAS, formatarNota, hoje } from './comum.js?v=20261126-senha';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-senha';
 
 // Nova monitoria no desenho novo (amostra Fase 12, DEC-068): etapas no topo com a nota viva à direita,
 // dados do contato numa linha fina sempre à vista, critérios em tabela e "Finalizar" só na Revisão.

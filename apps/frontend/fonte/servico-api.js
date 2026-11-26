@@ -6,7 +6,7 @@
  */
 
 
-import { requisitar, invalidarCacheApi } from './services/api/core.js?v=20261126-painel-graficos';
+import { requisitar, invalidarCacheApi } from './services/api/core.js?v=20261126-senha';
 
 export async function criarBancoTalentos(dadosCandidato) {
   const { id_banco, ...payload } = dadosCandidato || {};
@@ -32,7 +32,7 @@ export {
   lerSessaoAutenticacao,
   possuiSessaoAutenticada,
   salvarSessaoAutenticacao,
-} from './services/api/core.js?v=20261126-painel-graficos';
+} from './services/api/core.js?v=20261126-senha';
 export {
   aprovarSolicitacaoAlteracaoEmailApi,
   ativarLoginLocalApi,
@@ -49,14 +49,14 @@ export {
   rejeitarSolicitacaoAlteracaoEmailApi,
   solicitarAlteracaoEmailApi,
   verificarSessaoApi,
-} from './services/api/auth.js?v=20261126-painel-graficos';
+} from './services/api/auth.js?v=20261126-senha';
 export {
   lerArquivosResposta,
   lerHistorico,
   lerHistoricoPaginado,
   salvarArquivoResposta,
   salvarHistorico,
-} from './services/api/history.js?v=20261126-painel-graficos';
+} from './services/api/history.js?v=20261126-senha';
 export {
   acessarProvaPorCodigo,
   acessarProvaPorEmail,
@@ -83,7 +83,7 @@ export {
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
   salvarRespostasConectaProvas,
-} from './services/api/generated-exams.js?v=20261126-painel-graficos';
+} from './services/api/generated-exams.js?v=20261126-senha';
 export {
   atualizarBlocoDisc,
   criarAplicacaoDisc,
@@ -93,7 +93,7 @@ export {
   lerAplicacaoDiscPublica,
   lerResultadoDiscCandidato,
   listarBlocosDisc,
-} from './services/api/disc.js?v=20261126-painel-graficos';
+} from './services/api/disc.js?v=20261126-senha';
 export {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -101,7 +101,7 @@ export {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from './services/api/fit-cultural.js?v=20261126-painel-graficos';
+} from './services/api/fit-cultural.js?v=20261126-senha';
 export {
   atualizarPerguntaRaciocinio,
   avancarRaciocinioAdaptativoPublico,
@@ -113,7 +113,7 @@ export {
   lerAplicacaoRaciocinioPublica,
   lerResultadoRaciocinioCandidato,
   listarPerguntasRaciocinio,
-} from './services/api/raciocinio-logico.js?v=20261126-painel-graficos';
+} from './services/api/raciocinio-logico.js?v=20261126-senha';
 export {
   adicionarCvManualCaixaEmail,
   adicionarPreAnaliseAoProcesso,
@@ -175,11 +175,11 @@ export {
   cancelarProcesso,
   excluirEmailRecebido,
   vincularEmailRecebidoProcesso,
-} from './services/api/processes.js?v=20261126-painel-graficos';
+} from './services/api/processes.js?v=20261126-senha';
 export {
   enviarCandidaturaPublica,
   lerPaginaPublicaCandidatura,
-} from './services/api/public-candidacy.js?v=20261126-painel-graficos';
+} from './services/api/public-candidacy.js?v=20261126-senha';
 export {
   baixarRelatorioCandidatos,
   baixarRelatorioProcessos,
@@ -188,7 +188,7 @@ export {
   lerFunilDashboard,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from './services/api/analytics.js?v=20261126-painel-graficos';
+} from './services/api/analytics.js?v=20261126-senha';
 export {
   compararResultadosAnaliticos,
   lerConfiguracaoResultadosAnaliticosProcesso,
@@ -198,13 +198,13 @@ export {
   salvarPerfilIdealResultadosAnaliticos,
   salvarPesosResultadosAnaliticos,
   salvarMapeamentosResultadosAnaliticos,
-} from './services/api/exam-analytics.js?v=20261126-painel-graficos';
+} from './services/api/exam-analytics.js?v=20261126-senha';
 export {
   criarCardPipeline,
   excluirCardPipeline,
   lerPipelineCandidatos,
   moverCardPipeline,
-} from './services/api/pipeline.js?v=20261126-painel-graficos';
+} from './services/api/pipeline.js?v=20261126-senha';
 export {
   agendarEntrevista,
   atualizarEntrevista,
@@ -213,7 +213,7 @@ export {
   excluirSlotEntrevista,
   lerEntrevistas,
   lerSlotsEntrevista,
-} from './services/api/interviews.js?v=20261126-painel-graficos';
+} from './services/api/interviews.js?v=20261126-senha';
 export {
   baixarArquivoOneDrive,
   criarPastaOneDrive,
@@ -221,11 +221,11 @@ export {
   excluirItemOneDrive,
   listarArquivosOneDrive,
   obterPreviewOneDrive,
-} from './services/api/onedrive.js?v=20261126-painel-graficos';
+} from './services/api/onedrive.js?v=20261126-senha';
 export {
   enviarEmail,
   listarModelosEmail,
-} from './services/api/email-send.js?v=20261126-painel-graficos';
+} from './services/api/email-send.js?v=20261126-senha';
 export {
   alterarStatusUsuario,
   atualizarAutomacaoNotificacoes,
@@ -246,14 +246,14 @@ export {
   listarUsuarios,
   redefinirSenhaUsuario,
   registrarSolicitacaoLgpd,
-} from './services/api/settings.js?v=20261126-painel-graficos';
+} from './services/api/settings.js?v=20261126-senha';
 export {
   atualizarPolitica,
   buscarPoliticaPendente,
   confirmarLeituraPolitica,
   criarPolitica,
   listarPoliticas,
-} from './services/api/policies.js?v=20261126-painel-graficos';
+} from './services/api/policies.js?v=20261126-senha';
 export {
   atualizarDataComemorativa,
   buscarEnderecoEmpresaCalendario,
@@ -263,7 +263,7 @@ export {
   listarEventosCalendario,
   removerDataComemorativa,
   uploadImagemCalendario,
-} from './services/api/calendar.js?v=20261126-painel-graficos';
+} from './services/api/calendar.js?v=20261126-senha';
 export {
   atualizarAgendaTreinamento,
   atualizarTrilhaOnboarding,
@@ -295,14 +295,14 @@ export {
   uploadSlideTreinamento,
   uploadVideoModulo,
   validarModuloJson,
-} from './services/api/onboarding.js?v=20261126-painel-graficos';
+} from './services/api/onboarding.js?v=20261126-senha';
 export {
   excluirNotificacao,
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   marcarTodasNotificacoesLidas,
-} from './services/api/notifications.js?v=20261126-painel-graficos';
+} from './services/api/notifications.js?v=20261126-senha';
 export {
   atualizarTemplateDocumento,
   criarTemplateDocumento,
@@ -310,4 +310,4 @@ export {
   gerarDocumentoPorTemplate,
   listarTemplatesDocumentos,
   listarVariaveisTemplatesDocumentos,
-} from './services/api/document-templates.js?v=20261126-painel-graficos';
+} from './services/api/document-templates.js?v=20261126-senha';

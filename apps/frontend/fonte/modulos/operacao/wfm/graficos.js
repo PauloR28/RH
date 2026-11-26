@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
 
 // Gráficos dos Relatórios do WFM, em SVG/CSS puro (sem biblioteca). Cores vêm de variáveis CSS (`--wfm-g-*`, em wfm.css),
 // nunca fixas aqui; cada gráfico traz rótulos e valores em texto (legenda/tabela), então nenhuma informação depende só da cor.

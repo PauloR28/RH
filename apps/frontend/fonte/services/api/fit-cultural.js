@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-senha';
 
 // RH: administração de valores da empresa e frases associadas.
 export async function listarValoresEmpresa() {

@@ -1,6 +1,8 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { listarMural } from '../../services/api/mural.js?v=20261126-painel-graficos';
-import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { RecuperarAcesso, SessaoEncerrada } from '../acesso/senha.js?v=20261126-senha';
+import { CHAVE_SESSAO_ENCERRADA } from '../../services/api/core.js?v=20261126-senha';
+import { listarMural } from '../../services/api/mural.js?v=20261126-senha';
+import { exportarRelatorioHub } from '../../services/api/relatorios-hub.js?v=20261126-senha';
 
 import {
   React,
@@ -9,12 +11,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+} from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   blocosVisiveisTelaInicial,
   configTelaInicialPadrao,
   lerMinhaTelaInicial,
-} from '../../shared/tela-inicial.js?v=20261126-painel-graficos';
+} from '../../shared/tela-inicial.js?v=20261126-senha';
 
 const Fragment = React.Fragment;
 import {
@@ -25,13 +27,13 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261126-painel-graficos';
+} from '../../perguntas.js?v=20261126-senha';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261126-painel-graficos';
+} from '../prova/services/personalizacao-inteligente.js?v=20261126-senha';
 import {
   TAMANHO_HISTORICO,
   TAMANHO_RECENTES,
@@ -73,7 +75,7 @@ import {
   vincularEmailRecebidoProcesso,
   lerRelatorioCandidatos,
   lerRelatorioProcessos,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+} from '../../app/controlador-aplicacao.js?v=20261126-senha';
 import {
   baixarBlob,
   formatarDataParaInput,
@@ -81,47 +83,47 @@ import {
   formatarPercentualAfinidade,
   formatarPontuacaoDetalhada,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261126-painel-graficos';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
-import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-painel-graficos';
+} from '../../utilitarios.js?v=20261126-senha';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-senha';
+import { resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-senha';
 import {
   formatarDataHora,
   obterClasseAderencia,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261126-painel-graficos';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
+} from '../../shared/helpers-visuais.js?v=20261126-senha';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261126-senha';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-senha';
 import {
   ModalCompartilharVaga,
   REQUISITOS_PUBLICOS_PADRAO,
   RESPONSABILIDADES_PUBLICAS_PADRAO,
   montarItensPublicosPadrao,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
+} from '../../shared/components/share-job-modal.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-senha';
 import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261126-painel-graficos';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261126-painel-graficos';
-import { obterTourLogin } from '../../shared/tour-config.js?v=20261126-painel-graficos';
+} from '../../shared/process-flow.js?v=20261126-senha';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from '../processos-estado.js?v=20261126-senha';
+import { obterTourLogin } from '../../shared/tour-config.js?v=20261126-senha';
 import {
   obterChaveProcesso,
   obterReferenciaProcessoDoCandidato,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261126-painel-graficos';
+} from '../../shared/process-reference.js?v=20261126-senha';
 import {
   quebrarListaTexto,
   validarFormularioProcesso,
   validarPerfilCandidato,
-} from '../../shared/validacoes.js?v=20261126-painel-graficos';
-import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261126-painel-graficos';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
-import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261126-painel-graficos';
-import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261126-painel-graficos';
+} from '../../shared/validacoes.js?v=20261126-senha';
+import { BlocoFiltro, CampoFiltro } from './components/filtros.js?v=20261126-senha';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-senha';
+import { listarTrilhasOnboarding } from '../../services/api/onboarding.js?v=20261126-senha';
+import { CHAVE_COMANDO_NOVO_PROCESSO } from '../../ui/busca-global.js?v=20261126-senha';
 import {
   AcceptanceDonutChart,
   AvatarUsuario,
@@ -137,8 +139,8 @@ import {
   SectionCard,
   WizardStepper,
   WizardSummaryStrip,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { TourGuiado } from '../../ui/tour-guiado.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { TourGuiado } from '../../ui/tour-guiado.js?v=20261126-senha';
 
 const MENSAGEM_EMAIL_NAO_CONFIGURADO =
   'Caixa de e-mail corporativa ainda não configurada. Informe TENANT_ID, CLIENT_ID e CLIENT_SECRET no servidor.';
@@ -1665,12 +1667,26 @@ const NOVIDADES_LOGIN = [
   { versao: '', titulo: 'Um módulo por vez', data: '12/11', descricao: 'Troque entre RH, Operação e Tecnologia pelo seletor no topo.' },
 ];
 
+// Sessão derrubada por login em outro computador ou troca de senha (fluxo de senha, 26/11/2026): core.js guarda o aviso.
+function lerSessaoEncerrada() {
+  try {
+    const texto = sessionStorage.getItem(CHAVE_SESSAO_ENCERRADA) || '';
+    sessionStorage.removeItem(CHAVE_SESSAO_ENCERRADA);
+    return texto;
+  } catch {
+    return '';
+  }
+}
+
 export function TelaLogin({ controlador }) {
   const [usuario, setUsuario] = useState(() => lerEmailLoginCacheado());
   const [senha, setSenha] = useState('');
   const [mensagemErro, setMensagemErro] = useState('');
+  const [mensagemInfo, setMensagemInfo] = useState('');
   const [autenticandoMicrosoft, setAutenticandoMicrosoft] = useState(false);
   const [exibirLoginLocal, setExibirLoginLocal] = useState(false);
+  const [sessaoEncerrada] = useState(lerSessaoEncerrada);
+  const [modo, setModo] = useState(() => (sessaoEncerrada ? 'encerrada' : 'entrar'));
   const [tourReopenSignal, setTourReopenSignal] = useState(0);
   const tourLogin = obterTourLogin();
 
@@ -1699,7 +1715,23 @@ export function TelaLogin({ controlador }) {
     };
   }, []);
 
+  const voltarParaEntrar = (identificador = '') => {
+    if (identificador) atualizarUsuario(identificador);
+    setMensagemErro('');
+    setSenha('');
+    setExibirLoginLocal(true);
+    setModo('entrar');
+  };
+
+  const abrirRecuperar = (evento) => {
+    evento?.preventDefault?.();
+    setMensagemErro('');
+    setMensagemInfo('');
+    setModo('recuperar');
+  };
+
   const enviar = async () => {
+    setMensagemInfo('');
     const resultado = await controlador.fazerLogin(
       usuario.trim(),
       senha.trim(),
@@ -1765,12 +1797,28 @@ export function TelaLogin({ controlador }) {
             class="c-login-caixa"
             onSubmit=${(evento) => {
       evento.preventDefault();
-      enviar();
+      if (modo === 'entrar') enviar();
     }}
           >
             <span class="c-login-logo">
               <img alt="Conecta, da Central 24 Horas" src="/estilos/marca/conecta_colorido_assinatura.svg" />
             </span>
+            ${modo === 'recuperar'
+      ? html`<${RecuperarAcesso}
+                  identificadorInicial=${usuario}
+                  aoVoltar=${voltarParaEntrar}
+                  aoConcluir=${(identificador) => {
+          voltarParaEntrar(identificador);
+          setMensagemInfo('Senha criada. Entre com a senha nova.');
+        }}
+                />`
+      : modo === 'encerrada'
+        ? html`<${SessaoEncerrada}
+                  mensagem=${sessaoEncerrada}
+                  aoEntrar=${() => voltarParaEntrar()}
+                  aoEsqueci=${abrirRecuperar}
+                />`
+        : html`
             <h1>Entrar</h1>
 
             ${mensagemErro
@@ -1778,6 +1826,14 @@ export function TelaLogin({ controlador }) {
                   <div class="c-faixa c-faixa--perigo" role="alert">
                     <span class="c-ic" aria-hidden="true">${IconeSvg('warning-octagon')}</span>
                     <div class="c-faixa-txt"><p>${mensagemErro}</p></div>
+                  </div>
+                `
+      : null}
+            ${mensagemInfo && !mensagemErro
+      ? html`
+                  <div class="c-faixa c-faixa--informacao" role="status">
+                    <span class="c-ic" aria-hidden="true">${IconeSvg('check-circle')}</span>
+                    <div class="c-faixa-txt"><p><b>${mensagemInfo}</b></p></div>
                   </div>
                 `
       : null}
@@ -1803,7 +1859,7 @@ export function TelaLogin({ controlador }) {
                   <div class="c-login-campo">
                     <div class="c-login-campo-cab">
                       <label for="login-senha">Senha</label>
-                      <span class="c-login-em-breve" title="Recurso em breve">Esqueci a senha</span>
+                      <a href="#" onClick=${abrirRecuperar}>Esqueci a senha</a>
                     </div>
                     <input
                       id="login-senha"
@@ -1818,6 +1874,7 @@ export function TelaLogin({ controlador }) {
                   <div class="c-login-ou">ou</div>
                   ${botaoMicrosoft(true)}
                 `}
+          `}
           </form>
 
           <div class="c-login-rodape">
@@ -1937,7 +1994,7 @@ export function TelaInicio({ controlador }) {
       .catch(() => {});
     // Mesmas "sessões" da Início por sessões (Treinamentos, Monitoria...), para o
     // bloco "Suas áreas" — mesma URL de módulo usada em aplicacao-raiz.js.
-    import('../monitoria/index.js?v=20261126-painel-graficos')
+    import('../monitoria/index.js?v=20261126-senha')
       .then((modulo) => { if (ativo) setSessoesUsuario(modulo.sessoesDoUsuario(controlador)); })
       .catch(() => {});
     return () => { ativo = false; };

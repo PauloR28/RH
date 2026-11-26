@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-senha';
 
 export async function lerPipelineCandidatos(idProcesso = '', search = '') {
   const params = new URLSearchParams();

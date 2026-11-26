@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { listarChamados } from '../../../services/api/chamados.js?v=20261126-painel-graficos';
-import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-graficos';
-import { DetalheChamado } from './detalhe.js?v=20261126-painel-graficos';
-import { Pill, PillStatus, RodapePaginacao, formatarDataHora, useDebounce, useMetaChamados } from './comum.js?v=20261126-painel-graficos';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { listarChamados } from '../../../services/api/chamados.js?v=20261126-senha';
+import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261126-senha';
+import { DetalheChamado } from './detalhe.js?v=20261126-senha';
+import { Pill, PillStatus, RodapePaginacao, formatarDataHora, useDebounce, useMetaChamados } from './comum.js?v=20261126-senha';
 
 // Aba "Chamados": lista + detalhe lado a lado (abaixo de 1280px o detalhe abre em painel sobre a lista).
 // Duas dimensões, nunca misturadas: escopo (Meus / Da operação) e fase (Em aberto / Resolvidos / Histórico).

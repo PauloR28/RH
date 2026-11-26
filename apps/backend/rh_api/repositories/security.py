@@ -1017,8 +1017,15 @@ class SecurityRepositoryMixin(SenhaAcessoRepositoryMixin):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Este usuário autentica pela Microsoft; a senha é gerenciada por lá.",
                 )
-            if not verify_password(safe_current, senha_hash):
+            # 1º acesso ("Crie a sua senha"): a pessoa acabou de entrar com a senha temporária/provisória (o token tem a
+            # trava de troca), então a tela não pede de novo. Nos demais casos a senha atual é obrigatória.
+            if (safe_current or not primeiro_acesso) and not verify_password(safe_current, senha_hash):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Senha atual incorreta.")
+            if verify_password(safe_new, senha_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="A nova senha precisa ser diferente da senha atual ou temporária.",
+                )
 
             cursor.execute(
                 "UPDATE usuarios SET senha_hash = ?, atualizado_em = GETDATE() WHERE id_usuario = ?",

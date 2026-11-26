@@ -1,8 +1,8 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261126-painel-graficos';
-import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261126-painel-graficos';
-import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261126-painel-graficos';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { lerEscalaWfm, listarColegasTrocaWfm, listarTrocasWfm, solicitarTrocaWfm } from '../../../services/api/wfm.js?v=20261126-senha';
+import { TextoFormal, textoTrocaOperador } from './trocas-texto.js?v=20261126-senha';
+import { horasMin, ROTULO_STATUS_PRESENCA } from './comum.js?v=20261126-senha';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-senha';
 
 // Minha escala (redesign Fase 15, amostras "Minha escala" e "Pedir troca" da Fase 14). Só a própria escala PUBLICADA.
 // Duas visões do mês: Planilha (um dia por linha) e Calendário. O detalhe do dia (jornada, pausas, presença) abre no

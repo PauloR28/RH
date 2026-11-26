@@ -1,8 +1,8 @@
 // Configurações do Conecta (reestruturação, Etapa 7 — amostra aprovada em 17/nov/2026).
 // Uma página só, com seções na lateral. Cada seção abre a tela que já existia (mesmo conteúdo, mesmo endereço);
 // o que muda é o lugar: as telas saem do menu e passam a viver aqui. Peças c- e tokens do rebranding.
-import { html } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { Ic, Segmento } from '../../ui/components/ds.js?v=20261126-painel-graficos';
+import { html } from '../../infraestrutura-react.js?v=20261126-senha';
+import { Ic, Segmento } from '../../ui/components/ds.js?v=20261126-senha';
 
 // Entrada única no menu (Tecnologia › Administração › Configurações). Abre a 1ª seção que a pessoa pode ver.
 export const TELA_CONFIGURACOES_CONECTA = 'screen-settings-conecta';

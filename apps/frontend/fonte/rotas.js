@@ -123,6 +123,8 @@ TELAS_POR_ROTA.configuracoes = 'screen-settings-users';
 TELAS_POR_ROTA['configuracoes/usuario'] = 'screen-settings-users';
 TELAS_POR_ROTA['configuracoes/usuarios'] = 'screen-settings-users';
 TELAS_POR_ROTA['configuracoes/regras-reutilizaveis'] = 'screen-settings-users';
+// Link dos e-mails de segurança ao TI (fluxo de senha, 26/11/2026): Auditoria já na aba "Senhas e acessos".
+TELAS_POR_ROTA['configuracoes/senhas-e-acessos'] = 'screen-settings-logs';
 
 export function obterRotaPorTela(tela) {
   if (tela === 'screen-processes-open') return ROTAS_POR_TELA['screen-processes'];

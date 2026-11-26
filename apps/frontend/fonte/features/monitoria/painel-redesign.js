@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { lerDashboard } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { LineTrendChart } from '../../ui/components/charts.js?v=20261126-painel-graficos';
-import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261126-painel-graficos';
-import { formatarNota } from './comum.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261126-senha';
+import { LineTrendChart } from '../../ui/components/charts.js?v=20261126-senha';
+import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261126-senha';
+import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261126-senha';
+import { formatarNota } from './comum.js?v=20261126-senha';
 
 // Monitoria › Painel (antigo Dashboard) no desenho novo, no mesmo molde do Painel de Turnos e Plantões
 // (DEC-069): filtros suaves na faixa de cima da caixa, uma faixa de indicadores, gráficos finos e tabelas

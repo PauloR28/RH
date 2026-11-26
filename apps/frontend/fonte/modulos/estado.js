@@ -1,11 +1,11 @@
 // Estado dos módulos em tempo de execução: carrega GET /core/acesso uma vez por sessão e guarda o módulo atual.
 // Falha ao carregar = `carregado: false` e o menu se comporta como antes da modularização (nada some por engano).
 
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-painel-graficos';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261126-painel-graficos';
-import { lerAcessoCore } from '../services/api/modulos.js?v=20261126-painel-graficos';
-import { definirAreasInativas } from '../shared/areas.js?v=20261126-painel-graficos';
-import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261126-painel-graficos';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-senha';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261126-senha';
+import { lerAcessoCore } from '../services/api/modulos.js?v=20261126-senha';
+import { definirAreasInativas } from '../shared/areas.js?v=20261126-senha';
+import { MODULO_CORE, definirFuncoesModulos, escolherModuloAtual, operacaoBaseDoModulo } from './registro.js?v=20261126-senha';
 
 const CHAVE_MODULO_ATUAL = 'conecta_modulo_atual';
 // Seletor de operação do topo (25/11/2026). Mesma chave lida por services/api/core.js (cabeçalho X-Conecta-Operacao).

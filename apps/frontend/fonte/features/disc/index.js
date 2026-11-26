@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   atualizarBlocoDisc,
   criarBlocoDisc,
@@ -6,11 +6,11 @@ import {
   lerAplicacaoDiscPublica,
   lerResultadoDiscCandidato,
   listarBlocosDisc,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { obterIdAplicacaoDiscPorHash } from '../../rotas.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { obterIdAplicacaoDiscPorHash } from '../../rotas.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 const DIMENSOES = ['D', 'I', 'S', 'C'];
 const DIMENSAO_LABEL = { D: 'Dominância (D)', I: 'Influência (I)', S: 'Estabilidade (S)', C: 'Conformidade (C)' };

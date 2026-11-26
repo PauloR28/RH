@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   atualizarValorEmpresa,
   criarValorEmpresa,
@@ -6,12 +6,12 @@ import {
   lerResultadoFitCultural,
   listarFrasesFitCulturalPublicas,
   listarValoresEmpresa,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
-import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { ModalPadrao, PageIntro, PainelRh, SectionCard } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-senha';
+import { obterCandidatoProcessoIdFitCulturalPorHash } from '../../rotas.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 const FRASE_VAZIA = () => ({ frase: '' });
 const FORM_INICIAL = () => ({ id_valor: '', nome: '', descricao: '', ativo: true, frases: [FRASE_VAZIA()] });

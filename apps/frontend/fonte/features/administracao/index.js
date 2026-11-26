@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   EmptyState,
   ModalConfirmacaoAcao,
@@ -8,10 +8,10 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
-import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-senha';
+import { ToggleSwitch } from '../../ui/components/primitives.js?v=20261126-senha';
 import {
   atualizarAmbienteSharePoint,
   excluirAmbienteSharePoint,
@@ -22,9 +22,9 @@ import {
   resetarDadosConecta,
   salvarParametroSistema,
   testarAmbienteSharePoint,
-} from '../../services/api/sistema.js?v=20261126-painel-graficos';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
-import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20261126-painel-graficos';
+} from '../../services/api/sistema.js?v=20261126-senha';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-senha';
+import { AbaTiposAtendimento } from './tipos-atendimento.js?v=20261126-senha';
 
 // Redesign 10/set/2026 (achado transversal nº3): mesmo padrão contorno+
 // ponto (rh-status-pill) usado em administracao/novo-ambiente.js.

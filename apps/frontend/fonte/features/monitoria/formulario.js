@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { EmptyState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { EmptyState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 import {
   calcularPrevia,
   descartarRascunho,
@@ -10,10 +10,10 @@ import {
   listarRascunhos,
   realizarMonitoria,
   salvarRascunho,
-} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
-import { RESPOSTAS, formatarNota, hoje, SelectOperacao } from './comum.js?v=20261126-painel-graficos';
-import { AnswerSegmented, ProgressBar, RatingScale, StepRail } from './nova-componentes.js?v=20261126-painel-graficos';
-import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-painel-graficos';
+} from '../../services/api/monitoria.js?v=20261126-senha';
+import { RESPOSTAS, formatarNota, hoje, SelectOperacao } from './comum.js?v=20261126-senha';
+import { AnswerSegmented, ProgressBar, RatingScale, StepRail } from './nova-componentes.js?v=20261126-senha';
+import { AvisoIntercorrencia } from '../../modulos/operacao/diario/ligacoes.js?v=20261126-senha';
 
 // Formulário de monitoria (avaliador), em etapas: trilho + resumo fixos à esquerda e a etapa
 // aberta à direita. A nota exibida é sempre calculada pelo servidor (mesmo motor da gravação) —

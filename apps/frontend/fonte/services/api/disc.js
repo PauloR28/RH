@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-senha';
 
 // RH: banco de blocos/frases do teste DISC próprio (calibrado para Call Center).
 export async function listarBlocosDisc() {

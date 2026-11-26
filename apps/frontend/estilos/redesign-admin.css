@@ -65,3 +65,27 @@
 .c-modulos-acesso .c-mod-nome small { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
 .c-modulos-acesso li[aria-disabled="true"] { color: var(--cor-texto-desligado); }
 .c-modulos-acesso li .c-grupo { flex-wrap: nowrap; }
+
+/* ── Fluxo de senha (amostra aprovada em 26/11/2026, 27_SENHA_E_ACESSO) ─────────────── */
+.c-login-cab { display: flex; flex-direction: column; gap: var(--espaco-1); }
+.c-login-cab p, .c-login-bloco p, .c-login-texto { margin: 0; font-size: 14px; line-height: 20px; color: var(--cor-texto-padrao); }
+.c-login-bloco { display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-login-caixa .c-login-link { display: inline-flex; align-items: center; justify-content: center; gap: var(--espaco-1); }
+.c-login-caixa .c-login-link .c-ic { width: 16px; height: 16px; }
+.c-login--so-form { grid-template-columns: 1fr; }
+.c-crie-senha { position: fixed; inset: 0; z-index: 2000; overflow: auto; }
+.c-senha-pilha { display: flex; flex-direction: column; align-items: flex-start; gap: var(--espaco-2); }
+.c-senha-caixa { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; }
+.c-senha-caixa .c-entrada { flex: 1; padding-right: 40px; }
+.c-senha-caixa > .c-botao, .c-login-caixa .c-senha-caixa > .c-botao { position: absolute; right: var(--espaco-1); width: auto; height: var(--altura-controle-compacto); }
+.c-codigo { font-size: 20px; letter-spacing: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.c-senha-regras { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espaco-1); font-size: 12px; color: var(--cor-texto-secundario); }
+.c-senha-regras li { display: flex; align-items: center; gap: var(--espaco-2); }
+.c-senha-regras .c-ic { width: 16px; height: 16px; color: var(--cor-texto-secundario); }
+.c-senha-regras li.c-ok { color: var(--cor-texto-padrao); }
+.c-senha-regras li.c-ok .c-ic { color: var(--cor-status-sucesso-texto); }
+.c-senha-confere { display: flex; align-items: center; gap: var(--espaco-1); color: var(--cor-status-sucesso-texto); }
+.c-senha-confere .c-ic { width: 16px; height: 16px; }
+.c-senha-redefinir { padding: var(--espaco-4); border-radius: var(--raio-medio); background: var(--cor-fundo-sutil); gap: var(--espaco-2); }
+.c-senha-redefinir .c-ajuda { display: flex; gap: var(--espaco-1); align-items: flex-start; }
+.c-senha-redefinir .c-ajuda .c-ic { width: 16px; height: 16px; flex: none; margin-top: 2px; }

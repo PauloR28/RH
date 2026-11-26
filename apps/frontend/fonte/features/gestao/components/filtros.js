@@ -1,5 +1,5 @@
-import { html } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../../ui/icone.js?v=20261126-painel-graficos';
+import { html } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { IconeSvg } from '../../../ui/icone.js?v=20261126-senha';
 
 export function BlocoFiltro({ children, tourId = '' }) {
   return html`

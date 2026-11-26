@@ -820,8 +820,11 @@ def change_initial_password(
     acesso). Reemite a sessão já sem a trava de troca de senha."""
     if user.id_usuario is None:
         raise HTTPException(status_code=400, detail="Este usuário não possui cadastro para alterar a senha.")
+    if not user.deve_trocar_senha and not payload.senha_atual:
+        raise HTTPException(status_code=422, detail="Informe a senha atual.")
     repository.update_own_password(
-        user.id_usuario, payload.senha_atual, payload.nova_senha, manter_sessao=user.sessao_id, primeiro_acesso=True,
+        user.id_usuario, payload.senha_atual, payload.nova_senha, manter_sessao=user.sessao_id,
+        primeiro_acesso=bool(user.deve_trocar_senha),
     )
     audit_action(
         repository,

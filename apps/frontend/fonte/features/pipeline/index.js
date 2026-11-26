@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+} from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   baixarCvCandidato,
   criarCardPipeline,
@@ -11,11 +11,11 @@ import {
   lerPipelineCandidatos,
   lerProcessos,
   moverCardPipeline,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+} from '../../app/controlador-aplicacao.js?v=20261126-senha';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
+} from '../../shared/helpers-visuais.js?v=20261126-senha';
 import {
   CANDIDATE_STATUS_SCHEDULED,
   canonicalizeCandidateStatus,
@@ -23,14 +23,14 @@ import {
   getCandidateVisibleStatus,
   getPipelineStageLabel,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261126-painel-graficos';
-import { validarCardPipeline } from '../../shared/validacoes.js?v=20261126-painel-graficos';
-import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261126-painel-graficos';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
+} from '../../shared/process-flow.js?v=20261126-senha';
+import { validarCardPipeline } from '../../shared/validacoes.js?v=20261126-senha';
+import { baixarBlob, formatarNotaAnalise } from '../../utilitarios.js?v=20261126-senha';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-senha';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
-} from '../processos/state.js?v=20261126-painel-graficos';
+} from '../processos/state.js?v=20261126-senha';
 import {
   EmptyState,
   LoadingState,
@@ -39,13 +39,13 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
 import {
   montarPayloadProcessoSelecionado,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+} from '../../shared/process-reference.js?v=20261126-senha';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 const ETAPAS_PIPELINE = [
   'Triagem',

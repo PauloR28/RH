@@ -1,16 +1,16 @@
 // Painel (14/11/2026, amostra v3 aprovada pelo Paulo): visão analítica por módulo e unidade.
 // Cada painel é montado pela Tecnologia (Configurações › Painéis). Os filtros só valem ao clicar em "Aplicar filtros" e
 // tudo (números, listas e Diário de Bordo) segue o período escolhido. Rebranding: só peças c- e tokens (estilos/painel.css).
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261126-painel-graficos';
-import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js?v=20261126-painel-graficos';
-import { obterEstadoModulos } from '../estado.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { Esqueleto, Estado, Ic } from '../../ui/components/ds.js?v=20261126-senha';
+import { lerDadosPainel, lerFichaOperador, lerOpcoesPainel } from '../../services/api/painel.js?v=20261126-senha';
+import { obterEstadoModulos } from '../estado.js?v=20261126-senha';
 
 import {
   POR_PAGINA_SUB, POR_PAGINA_OPS, ROTULO_TROCA, TOM_SIGLA, SEMANA, num, pct, nota, ddmm, diaSemana, hhmm, Indicador, Cartao, Indisponivel, MiniTabela, Linha, Contador,
-} from './pecas.js?v=20261126-painel-graficos';
-import { BLOCOS_V6 } from './blocos-v6.js?v=20261126-painel-graficos';
+} from './pecas.js?v=20261126-senha';
+import { BLOCOS_V6 } from './blocos-v6.js?v=20261126-senha';
 
 // ── Blocos ──────────────────────────────────────────────────────────
 function BlocoPresenca({ d }) {

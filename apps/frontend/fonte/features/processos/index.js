@@ -1,5 +1,5 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-senha';
 
 import {
   html,
@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+} from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   TAMANHO_DETALHE_PROCESSO,
   agendarEntrevista,
@@ -57,42 +57,42 @@ import {
   usarCandidatoDoBancoTalentos,
   retomarProcesso,
   cancelarProcesso,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+} from '../../app/controlador-aplicacao.js?v=20261126-senha';
 import {
   baixarBlob,
   formatarDataCurta,
   formatarDataParaInput,
   obterItensPaginados,
-} from '../../utilitarios.js?v=20261126-painel-graficos';
+} from '../../utilitarios.js?v=20261126-senha';
 import {
   formatarDataHora,
   formatarDataNascimento,
   montarResumoAnaliticoCv,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
+} from '../../shared/helpers-visuais.js?v=20261126-senha';
 import {
   abrirBlobEmNovaGuia,
   copiarTexto,
   montarUrlPublicaCandidatura,
   obterBasePublicaCandidatura,
   toDatetimeLocal,
-} from '../../shared/browser-utils.js?v=20261126-painel-graficos';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
+} from '../../shared/browser-utils.js?v=20261126-senha';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-senha';
 import {
   ModalCompartilharVaga,
   montarTextoCompartilhamentoVaga,
-} from '../../shared/components/share-job-modal.js?v=20261126-painel-graficos';
+} from '../../shared/components/share-job-modal.js?v=20261126-senha';
 import {
   DOCUMENTOS_APROVACAO_PADRAO,
   ModalAprovacaoCandidato,
   atualizarDocumentosNaMensagem,
-} from '../../shared/components/approval-modal.js?v=20261126-painel-graficos';
+} from '../../shared/components/approval-modal.js?v=20261126-senha';
 import {
   ModalEdicaoEntrevista,
-} from '../../shared/components/interview-edit-modal.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
+} from '../../shared/components/interview-edit-modal.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-senha';
 import {
   CANDIDATE_STATUS_APPROVED,
   CANDIDATE_STATUS_ANALYSIS,
@@ -110,34 +110,34 @@ import {
   getCandidateActionState,
   isActiveCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261126-painel-graficos';
+} from '../../shared/process-flow.js?v=20261126-senha';
 import {
   quebrarListaTexto,
   validarFormularioEntrevista,
   validarFormularioProcesso,
-} from '../../shared/validacoes.js?v=20261126-painel-graficos';
+} from '../../shared/validacoes.js?v=20261126-senha';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
   obterReferenciaProcessoDoCandidato,
-} from '../../shared/process-reference.js?v=20261126-painel-graficos';
-import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261126-painel-graficos';
-import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261126-painel-graficos';
+} from '../../shared/process-reference.js?v=20261126-senha';
+import { CHAVE_DUPLICAR_PROCESSO, CHAVE_PROCESSO_DETALHE } from './state.js?v=20261126-senha';
+import { gerarAnaliseInteligenteProcesso } from '../../services/process-dossier-ai.js?v=20261126-senha';
 import {
   criarProvaGerada,
   cancelarProvaGerada,
   deletarProvaGerada,
   lerProvaGerada,
   reabrirProvaGerada,
-} from '../../services/api/generated-exams.js?v=20261126-painel-graficos';
-import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261126-painel-graficos';
-import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261126-painel-graficos';
+} from '../../services/api/generated-exams.js?v=20261126-senha';
+import { criarAplicacaoDisc } from '../../services/api/disc.js?v=20261126-senha';
+import { criarAplicacaoRaciocinio } from '../../services/api/raciocinio-logico.js?v=20261126-senha';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROCESSO,
-} from '../../perguntas.js?v=20261126-painel-graficos';
-import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261126-painel-graficos';
+} from '../../perguntas.js?v=20261126-senha';
+import { CabecalhoSecaoColapsavel } from './components/section-toggle.js?v=20261126-senha';
 import {
   LoadingState,
   MetricGrid,
@@ -149,11 +149,11 @@ import {
   ScoreRadarChart,
   SectionCard,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
 
 const MENSAGEM_CANDIDATO_APROVADO_BLOQUEADO =
   'Este candidato já foi aprovado. Para alterar sua situação, será necessário um novo cadastro ou atualização manual.';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261126-painel-graficos').then((modulo) => ({
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261126-senha').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
 const AVISO_URL_PUBLICA_NAO_CONFIGURADA =

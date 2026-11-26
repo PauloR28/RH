@@ -1,6 +1,6 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { construirModeloPaginacao } from '../../utilitarios.js?v=20261126-painel-graficos';
-import { IconeSvg } from '../icone.js?v=20261126-painel-graficos';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-senha';
+import { construirModeloPaginacao } from '../../utilitarios.js?v=20261126-senha';
+import { IconeSvg } from '../icone.js?v=20261126-senha';
 
 function BotaoPaginacao({ pagina, ativa, onClick }) {
   return html`

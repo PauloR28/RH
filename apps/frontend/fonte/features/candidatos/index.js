@@ -5,7 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+} from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   atualizarPerfilCandidato,
   atualizarStatusCandidato,
@@ -23,8 +23,8 @@ import {
   removerBancoTalentos,
   uploadCvCandidato,
   usarCandidatoDoBancoTalentos,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-senha';
 import {
   LoadingState,
   MetricGrid,
@@ -34,17 +34,17 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-painel-graficos';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
-import { PainelOnboardingCandidato } from '../onboarding/index.js?v=20261126-painel-graficos';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261126-painel-graficos';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-painel-graficos';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-painel-graficos';
-import { ModalGerarDocumento } from '../documentos-template/index.js?v=20261126-painel-graficos';
+} from '../../ui/componentes-compartilhados.js?v=20261126-senha';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-senha';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-senha';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-senha';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-senha';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-senha';
+import { PainelOnboardingCandidato } from '../onboarding/index.js?v=20261126-senha';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261126-senha';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-senha';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-senha';
+import { ModalGerarDocumento } from '../documentos-template/index.js?v=20261126-senha';
 import {
   CANDIDATE_STATUS_ANALYSIS,
   CANDIDATE_STATUS_APPROVED,
@@ -54,20 +54,20 @@ import {
   getCandidateActionState,
   getCandidateVisibleStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261126-painel-graficos';
-import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
+} from '../../shared/process-flow.js?v=20261126-senha';
+import { abrirBlobEmNovaGuia } from '../../shared/browser-utils.js?v=20261126-senha';
 import {
   formatarDataHora,
   obterClasseFaixaNota,
   obterClasseStatusEntrevista,
   obterClasseStatusProcesso,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
-import { obterReferenciaProcesso } from '../../shared/process-reference.js?v=20261126-painel-graficos';
-import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js?v=20261126-painel-graficos';
-const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261126-painel-graficos').then((modulo) => ({
+} from '../../shared/helpers-visuais.js?v=20261126-senha';
+import { obterReferenciaProcesso } from '../../shared/process-reference.js?v=20261126-senha';
+import { PainelAnaliseCurriculoIa } from './analise-curriculo-ia.js?v=20261126-senha';
+const ModalGerarProva = lazy(() => import('../provas-geradas/index.js?v=20261126-senha').then((modulo) => ({
   default: modulo.ModalGerarProva,
 })));
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-senha';
 
 function normalizarTexto(valor) {
   return String(valor || '')

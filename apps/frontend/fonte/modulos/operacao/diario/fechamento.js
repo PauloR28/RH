@@ -1,7 +1,7 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
-import { registrarEnvioDiario } from '../../../services/api/diario.js?v=20261126-painel-graficos';
-import { Ic, Janela, Segmento } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
-import { avisosDoTurno, consolidar, diaLongo, hhmm, nf, pct } from './regras.js?v=20261126-painel-graficos';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-senha';
+import { registrarEnvioDiario } from '../../../services/api/diario.js?v=20261126-senha';
+import { Ic, Janela, Segmento } from '../../../ui/components/ds.js?v=20261126-senha';
+import { avisosDoTurno, consolidar, diaLongo, hhmm, nf, pct } from './regras.js?v=20261126-senha';
 
 // Fechamento para o grupo (D9, amostra quadro 3): imagem em pé (PNG de 1080 px gerado no navegador) e texto no formato do
 // WhatsApp, os dois a partir dos DADOS SALVOS. O Conecta não envia nada sozinho: 2 passos (gerado → copiado/baixado).

@@ -4,7 +4,7 @@ import {
   possuiSessaoAutenticada,
   requisitar,
   salvarSessaoAutenticacao,
-} from './core.js?v=20261126-painel-graficos';
+} from './core.js?v=20261126-senha';
 
 export async function fazerLoginApi(usuario, senha, mfaCode = '') {
   const resultado = await requisitar(
@@ -152,3 +152,17 @@ export async function encerrarSessaoApi() {
     limparSessaoAutenticacao();
   }
 }
+
+// Esqueci a senha (fluxo aprovado em 26/11/2026). Rotas públicas: a pessoa ainda não entrou.
+const postPublico = (caminho, corpo) => requisitar(
+  caminho,
+  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo || {}) },
+  { autenticado: false },
+);
+
+export const iniciarRecuperacaoSenhaApi = (identificador) => postPublico('/auth/recuperar/iniciar', { identificador });
+
+export const concluirRecuperacaoSenhaApi = (identificador, codigo, novaSenha) => postPublico(
+  '/auth/recuperar/concluir',
+  { identificador, codigo, nova_senha: novaSenha },
+);

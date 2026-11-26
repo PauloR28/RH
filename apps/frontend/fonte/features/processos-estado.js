@@ -3,4 +3,4 @@ export {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
   CHAVE_PROCESSO_DETALHE,
-} from './processos/state.js?v=20261126-painel-graficos';
+} from './processos/state.js?v=20261126-senha';

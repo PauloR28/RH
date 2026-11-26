@@ -3,12 +3,12 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+} from '../../infraestrutura-react.js?v=20261126-senha';
 import {
   enviarCandidaturaPublica,
   lerPaginaPublicaCandidatura,
-} from '../../servico-api.js?v=20261126-painel-graficos';
-import { obterSlugCandidaturaPorHash } from '../../rotas.js?v=20261126-painel-graficos';
+} from '../../servico-api.js?v=20261126-senha';
+import { obterSlugCandidaturaPorHash } from '../../rotas.js?v=20261126-senha';
 
 function quebrarTextoEmLinhas(valor) {
   return String(valor || '')

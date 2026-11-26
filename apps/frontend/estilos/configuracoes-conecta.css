@@ -10,7 +10,7 @@
 .c-cfg-bloco { display: grid; gap: var(--espaco-4); padding: var(--espaco-4); background: var(--cor-fundo-sutil); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-medio); }
 .c-cfg-bloco > h3 { margin: 0; display: flex; align-items: center; gap: var(--espaco-2); font-size: var(--texto-corpo-tamanho); font-weight: var(--fonte-peso-semi); color: var(--cor-texto-padrao); }
 .c-cfg-bloco > h3 .c-ic { width: var(--icone-pequeno); height: var(--icone-pequeno); color: var(--cor-texto-secundario); }
-.c-cfg-bloco .c-entrada { background: var(--cor-fundo-painel); }
+.c-cfg-bloco .c-entrada { background-color: var(--cor-fundo-painel); } /* só a cor: o atalho "background" apagava a seta dos selects */
 .c-cfg-bloco .c-campo { gap: var(--espaco-1); }
 .c-cfg-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espaco-4); }
 .c-cfg-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); padding: var(--espaco-3) var(--espaco-4); background: var(--cor-fundo-painel); border: var(--borda-fina) solid var(--cor-linha-divisoria); border-radius: var(--raio-pequeno); }
@@ -23,3 +23,24 @@
 .c-cfg-cartao > header p { margin: var(--espaco-1) 0 0; color: var(--cor-texto-secundario); }
 .c-cfg-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--espaco-4); }
 @media (max-width: 599.98px) { .c-cfg-par { grid-template-columns: minmax(0, 1fr); } .c-cfg-linha { flex-wrap: wrap; } }
+
+/* ── Notificações › Avançada: avisos de segurança ao TI (amostra aprovada em 26/11/2026) ── */
+.c-nf-bloco{ gap:var(--espaco-3); }
+.c-nf-bloco-cab{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--espaco-4); }
+.c-nf-bloco-cab h3{ margin:0 0 var(--espaco-1); display:flex; align-items:center; gap:var(--espaco-2); font-size:var(--texto-corpo-tamanho); font-weight:var(--fonte-peso-semi); }
+.c-nf-bloco-cab h3 .c-ic{ width:var(--icone-pequeno); height:var(--icone-pequeno); color:var(--cor-texto-secundario); }
+.c-nf-bloco-cab .c-grupo{ flex-wrap:nowrap; align-items:center; }
+.c-nf-bloco-cab .c-busca .c-entrada, .c-nf-bloco-cab .c-botao{ height:var(--altura-controle-compacto); box-sizing:border-box; }
+.c-nf-novo td{ background:var(--cor-fundo-sutil); }
+.c-nf-emails{ display:flex; flex-wrap:wrap; gap:var(--espaco-2); margin-bottom:var(--espaco-2); }
+.c-nf-email{ display:inline-flex; align-items:center; gap:var(--espaco-1); padding:0 0 0 var(--espaco-3); height:32px; border-radius:var(--raio-cheio, 999px); background:var(--cor-fundo-painel); border:var(--borda-fina) solid var(--cor-linha-divisoria); font-size:13px; }
+.c-nf-txt{ margin:0; font-size:14px; line-height:20px; color:var(--cor-texto-secundario); }
+.c-nf-desc{ display:block; font-size:12px; color:var(--cor-texto-secundario); font-weight:var(--fonte-peso-normal); }
+.c-nf-centro, .c-nf-tabela th.c-nf-centro{ text-align:center; }
+.c-nf-tabela td{ vertical-align:middle; padding-top:var(--espaco-2); padding-bottom:var(--espaco-2); }
+.c-nf-tabela td strong{ display:block; margin-bottom:2px; }
+.c-nf-hora{ width:120px; flex:none; }
+.c-nf-grupo th{ background:var(--cor-fundo-sutil); text-align:left; padding:var(--espaco-1) var(--espaco-2); }
+.c-nf-grupo .c-botao{ gap:var(--espaco-2); color:var(--cor-texto-padrao); font-weight:var(--fonte-peso-semi); }
+.c-nf-col{ width:104px; } .c-nf-col-situacao{ width:120px; } .c-nf-col-quando{ width:180px; } .c-nf-col-sino{ width:96px; }
+.c-nf-novo-nome{ flex:1; max-width:280px; } .c-nf-novo-email{ flex:1; max-width:320px; }
