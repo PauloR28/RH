@@ -1,4 +1,4 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   baixarArquivoOneDrive,
   criarPastaOneDrive,
@@ -6,8 +6,8 @@ import {
   excluirItemOneDrive,
   listarArquivosOneDrive,
   obterPreviewOneDrive,
-} from '../../servico-api.js?v=20261126-painel-relatorios';
-import { baixarBlob } from '../../utilitarios.js?v=20261126-painel-relatorios';
+} from '../../servico-api.js?v=20261126-painel-graficos';
+import { baixarBlob } from '../../utilitarios.js?v=20261126-painel-graficos';
 import {
   EmptyState,
   LoadingState,
@@ -18,9 +18,9 @@ import {
   SectionCard,
   Table,
   ToastAlert,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { ModalComporEmail } from '../../shared/components/compose-email-modal.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 
 const CHAVE_MODO_VISUALIZACAO = 'rh_onedrive_modo_visualizacao_v1';
 

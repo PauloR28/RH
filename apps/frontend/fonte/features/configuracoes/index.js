@@ -1,6 +1,6 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261126-painel-relatorios';
-import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { AbasConsole, AvisoConsole, CabecalhoConsole, CampoConsole, CardDados, CardResumo, EstadoConsole, IconeCx, InterruptorCx, PaginaConsole, PilulaStatus, idAba, idPainel } from '../../ui/components/console-primitivas.js?v=20261126-painel-graficos';
+import { BuscaGlobalTopbar } from '../../ui/busca-global.js?v=20261126-painel-graficos';
 import {
   alterarStatusUsuario,
   aprovarSolicitacaoAlteracaoEmailApi,
@@ -21,19 +21,19 @@ import {
   listarUsuarios,
   redefinirSenhaUsuario,
   rejeitarSolicitacaoAlteracaoEmailApi,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
-import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261126-painel-relatorios';
-import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
-import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-relatorios';
-import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261126-painel-relatorios';
-import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261126-painel-relatorios';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-relatorios';
-import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-painel-relatorios';
-import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261126-painel-relatorios';
-import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261126-painel-relatorios';
-import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261126-painel-relatorios';
-import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-painel-relatorios';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+import { canonicalizeCandidateStatus } from '../../shared/process-flow.js?v=20261126-painel-graficos';
+import { formatarDataHora } from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
+import { baixarBlob, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
+import { excluirItemConfiguracao, lerModulosUsuario, redefinirMfaUsuario, salvarModulosUsuario } from '../../services/api/settings.js?v=20261126-painel-graficos';
+import { BlocoModulos, mudancasModulos, valoresDosModulos } from './modulos-acesso.js?v=20261126-painel-graficos';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
+import { ModalConfirmacaoAcao, PageIntro, PainelRh } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { ModalPadrao } from '../../ui/components/modals.js?v=20261126-painel-graficos';
+import { definirTema, obterTemaSalvo, proximoTema } from '../../shared/tema.js?v=20261126-painel-graficos';
+import { AREA_PROCESSOS, areaAtiva } from '../../shared/areas.js?v=20261126-painel-graficos';
+import { definirOrientacoesAtivas, useOrientacoesGlobais } from '../../ui/tour-guiado.js?v=20261126-painel-graficos';
+import { AVATARES_ILUSTRADOS, resolverAvatarUrl } from '../../shared/avatares.js?v=20261126-painel-graficos';
 import {
   CATEGORIAS_NOTIFICACAO,
   categoriasNotificacaoVisiveis,
@@ -41,9 +41,9 @@ import {
   lerPreferenciasNotificacao,
   salvarCorNotificacao,
   salvarPreferenciasNotificacao,
-} from '../../shared/notificacoes.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-relatorios';
+} from '../../shared/notificacoes.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
 import {
   AbaEquipesCatalogos,
   AbaLogsMonitoria,
@@ -53,17 +53,17 @@ import {
   PERFIS_MONITORIA,
   VINCULOS_INICIAIS,
   validarVinculosMonitoria,
-} from './monitoria-config.js?v=20261126-painel-relatorios';
-import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261126-painel-relatorios';
-import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
-import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261126-painel-relatorios';
-import { SelectMultiplo } from '../monitoria/comum.js?v=20261126-painel-relatorios';
-import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
-import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261126-painel-relatorios';
-import { obterEstadoModulos } from '../../modulos/estado.js?v=20261126-painel-relatorios';
-import { CentralAcessos } from './central-acessos.js?v=20261126-painel-relatorios';
-import { AbaEquipesAdmin } from './equipes-admin.js?v=20261126-painel-relatorios';
-import { ConfigPaineis } from './paineis.js?v=20261126-painel-relatorios';
+} from './monitoria-config.js?v=20261126-painel-graficos';
+import { vincularContratoOperadorWfm } from '../../services/api/wfm.js?v=20261126-painel-graficos';
+import { salvarVinculosUsuarioMonitoria } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
+import { ModalCadastroEmMassa } from './usuarios-massa.js?v=20261126-painel-graficos';
+import { SelectMultiplo } from '../monitoria/comum.js?v=20261126-painel-graficos';
+import { Campo, Estado, Faixa, Ic, MenuAcoes, Segmento, Selo } from '../../ui/components/ds.js?v=20261126-painel-graficos';
+import { AbaAmbienteOperacao } from './ambiente-operacao.js?v=20261126-painel-graficos';
+import { obterEstadoModulos } from '../../modulos/estado.js?v=20261126-painel-graficos';
+import { CentralAcessos } from './central-acessos.js?v=20261126-painel-graficos';
+import { AbaEquipesAdmin } from './equipes-admin.js?v=20261126-painel-graficos';
+import { ConfigPaineis } from './paineis.js?v=20261126-painel-graficos';
 
 // Unidade (Central de Acessos, Etapa 3): operação ou setor, e o ÚNICO módulo a que pertence (nunca o núcleo).
 const TIPOS_UNIDADE = [{ value: 'operacao', label: 'Operação' }, { value: 'setor', label: 'Setor' }];

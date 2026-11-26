@@ -1,4 +1,4 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   atualizarTrilhaOnboarding,
   criarTrilhaOnboarding,
@@ -6,16 +6,16 @@ import {
   lerProgressoOnboardingCandidato,
   listarTrilhasOnboarding,
   marcarItemOnboarding,
-} from '../../servico-api.js?v=20261126-painel-relatorios';
+} from '../../servico-api.js?v=20261126-painel-graficos';
 import {
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-relatorios';
-import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { TabelaVazia } from '../../shared/components/empty-table-row.js?v=20261126-painel-graficos';
+import { SkeletonTableRows } from '../../shared/components/skeleton.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 
 const ITEM_INICIAL = { titulo: '', descricao: '', obrigatorio: true };
 const FORM_INICIAL = { id_trilha: '', nome: '', descricao: '', ativo: true, itens: [] };

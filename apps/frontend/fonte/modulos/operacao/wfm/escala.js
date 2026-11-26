@@ -1,4 +1,4 @@
-import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useCallback, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   aprovarEscalaWfm,
   cancelarEnvioEscalaWfm,
@@ -11,15 +11,15 @@ import {
   publicarEscalaWfm,
   salvarItensEscalaWfm,
   validarEscalaWfm,
-} from '../../../services/api/wfm.js?v=20261126-painel-relatorios';
-import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261126-painel-relatorios';
-import { MenuCompartilharEscala } from './compartilhar.js?v=20261126-painel-relatorios';
-import { ModalConfigEscala } from './configuracao.js?v=20261126-painel-relatorios';
-import { OutrasEscalas } from './outras.js?v=20261126-painel-relatorios';
-import { GavetaAjusteDia } from './ajuste.js?v=20261126-painel-relatorios';
-import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261126-painel-relatorios';
-import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-painel-relatorios';
-import { tomarFocoPessoa } from './foco-pessoa.js?v=20261126-painel-relatorios';
+} from '../../../services/api/wfm.js?v=20261126-painel-graficos';
+import { dataHora, falhaAo, infoDia, horasMin } from './comum.js?v=20261126-painel-graficos';
+import { MenuCompartilharEscala } from './compartilhar.js?v=20261126-painel-graficos';
+import { ModalConfigEscala } from './configuracao.js?v=20261126-painel-graficos';
+import { OutrasEscalas } from './outras.js?v=20261126-painel-graficos';
+import { GavetaAjusteDia } from './ajuste.js?v=20261126-painel-graficos';
+import { diaDoTurno, doIso, paraIso, semAcento, somarMes, useVisaoEquipes } from './escala-ui.js?v=20261126-painel-graficos';
+import { Campo, Esqueleto, Estado, Faixa, Ic, Janela, Navegar, Segmento, Selo } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
+import { tomarFocoPessoa } from './foco-pessoa.js?v=20261126-painel-graficos';
 
 // Escala aberta (redesign Fase 15, amostra "Escala padrão" da Fase 12): visões Semana e Mês. Supervisor/Control Desk/
 // Gestor editam; Qualidade lê; o Operador lê a própria escala PUBLICADA. Toda validação (jornada, interjornada, pausas,

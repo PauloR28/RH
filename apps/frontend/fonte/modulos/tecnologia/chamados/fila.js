@@ -1,11 +1,11 @@
-import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { assumirChamado, listarFilaChamados } from '../../../services/api/chamados.js?v=20261126-painel-relatorios';
-import { listarOperacoes } from '../../../services/api/operations.js?v=20261126-painel-relatorios';
-import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-relatorios';
-import { DetalheChamado } from './detalhe.js?v=20261126-painel-relatorios';
+import { html, useCallback, useEffect, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { assumirChamado, listarFilaChamados } from '../../../services/api/chamados.js?v=20261126-painel-graficos';
+import { listarOperacoes } from '../../../services/api/operations.js?v=20261126-painel-graficos';
+import { DataTable, SplitView, Toolbar } from '../../../ui/components/layout-primitivas.js?v=20261126-painel-graficos';
+import { DetalheChamado } from './detalhe.js?v=20261126-painel-graficos';
 import {
   ORDEM_URGENCIA, PillSla, PillStatus, PillUrgencia, RodapePaginacao, ROTULO_STATUS, ROTULO_URGENCIA, useDebounce, useMetaChamados,
-} from './comum.js?v=20261126-painel-relatorios';
+} from './comum.js?v=20261126-painel-graficos';
 
 // Fila do Suporte (`chamados.atender`): todos os chamados, SLA vencido primeiro, depois urgência e prazo mais próximo.
 

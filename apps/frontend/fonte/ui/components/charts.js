@@ -1,4 +1,4 @@
-import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 
 const SEQUENCIAL = [
   'var(--color-chart-sequential-1)',

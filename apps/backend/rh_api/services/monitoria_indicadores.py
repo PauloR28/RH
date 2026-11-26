@@ -61,6 +61,15 @@ def evolucao(linhas: Iterable[dict], granularidade: str = "mes") -> list[dict]:
     return [{"periodo": chave, "nota_media": _media(v), "quantidade": len(v)} for chave, v in sorted(grupos.items())]
 
 
+def evolucao_por_equipe(linhas: Iterable[dict], granularidade: str = "mes") -> list[dict]:
+    """Evolução da nota média por equipe (uma série por equipe, ordem alfabética). Só monitorias válidas."""
+    por_equipe: dict[str, list[dict]] = defaultdict(list)
+    for linha in linhas:
+        por_equipe[linha.get("equipe_nome") or "Sem equipe"].append(linha)
+    series = [{"nome": nome, "pontos": evolucao(grupo, granularidade)} for nome, grupo in por_equipe.items()]
+    return sorted([s for s in series if s["pontos"]], key=lambda s: str(s["nome"]).lower())
+
+
 def top_n(linhas: Iterable[dict], n: int = 5) -> list[dict]:
     """Top N por nota média (só válidas). Desempate: mais monitorias válidas, depois nome."""
     n = n if n in TOPS_PERMITIDOS else 5

@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { lerDashboard } from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
-import { LineTrendChart } from '../../ui/components/charts.js?v=20261126-painel-relatorios';
-import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
-import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261126-painel-relatorios';
-import { formatarNota } from './comum.js?v=20261126-painel-relatorios';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { lerDashboard } from '../../services/api/monitoria.js?v=20261126-painel-graficos';
+import { LineTrendChart } from '../../ui/components/charts.js?v=20261126-painel-graficos';
+import { Esqueleto, Estado, Faixa, Segmento } from '../../ui/components/ds.js?v=20261126-painel-graficos';
+import { GraficoBarrasH } from '../../modulos/operacao/wfm/graficos.js?v=20261126-painel-graficos';
+import { formatarNota } from './comum.js?v=20261126-painel-graficos';
 
 // Monitoria › Painel (antigo Dashboard) no desenho novo, no mesmo molde do Painel de Turnos e Plantões
 // (DEC-069): filtros suaves na faixa de cima da caixa, uma faixa de indicadores, gráficos finos e tabelas
@@ -31,6 +31,96 @@ function DuasPilhas({ itens, classe = '' }) {
   const alturas = [0, 0];
   itens.filter(Boolean).forEach((it) => { const i = alturas[0] <= alturas[1] ? 0 : 1; pilhas[i].push(it); alturas[i] += it.linhas; });
   return html`<div class=${`c-mon-pilhas ${classe}`.trim()}>${pilhas.map((p, i) => html`<div key=${i} class="c-mon-pilha">${p.map((it) => html`<div key=${it.chave} class="c-mon-pilha-item">${it.no}</div>`)}</div>`)}</div>`;
+}
+
+
+// Gráficos do Painel com mais informação (amostra 26/11/2026): cada linha mostra o nome, a barra com a marca da
+// média, o valor e as colunas de apoio; cor só para o que pede atenção (sempre com o número ao lado).
+const FAIXAS_ORDEM = ['Excelência', 'Muito bom', 'Bom', 'Desenvolvimento', 'Crítico'];
+const TOM_FAIXA = { 'Excelência': 'sucesso', 'Muito bom': 'sucesso', Bom: 'informacao', Desenvolvimento: 'atencao', 'Crítico': 'perigo' };
+const tomNota = (v) => (v >= 80 ? '' : v >= 70 ? 'atencao' : 'perigo');
+const um = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+
+function Barras({ colunas = [], linhas, max = 100, media = null, rotuloMedia = 'média' }) {
+  const pct = (v) => `${Math.max(0, Math.min(100, (Number(v) || 0) / max * 100))}%`;
+  return html`<div class="c-barras" style=${{ '--c-barras-cols': linhas[0]?.extras.length || 1 }}>
+    ${colunas.length ? html`<div class="c-barras-cab"><span></span><span>${media !== null ? html`<span class="c-barras-legenda"><i></i>${rotuloMedia} ${um(media)}</span>` : null}</span>${colunas.map((c) => html`<span key=${c} class="c-num">${c}</span>`)}</div>` : null}
+    ${linhas.map((l) => html`<div key=${l.chave ?? l.rotulo} class=${`c-barras-linha ${l.tom ? `c-tom-${l.tom}` : ''}`.trim()}>
+      <span class="c-barras-rotulo" title=${l.rotulo}>${l.rotulo}</span>
+      <span class="c-barras-trilho" role="img" aria-label=${`${l.rotulo}: ${l.texto}`}><i style=${{ width: pct(l.valor) }}></i>${media !== null ? html`<b style=${{ left: pct(media) }}></b>` : null}</span>
+      ${l.extras.map((x, i) => html`<span key=${i} class=${i === 0 ? 'c-num c-forte' : 'c-num c-secundario'}>${x}</span>`)}
+    </div>`)}
+  </div>`;
+}
+
+function Destaques({ itens }) {
+  return html`<div class="c-graf-destaques">${itens.filter(Boolean).map(([r, v, tom]) => html`<span key=${r}><small>${r}</small><b class=${tom ? `c-tom-${tom}` : ''}>${v}</b></span>`)}</div>`;
+}
+
+function CartaoBlocos({ blocos }) {
+  const ord = [...blocos].sort((a, b) => (a.percentual_medio ?? 0) - (b.percentual_medio ?? 0));
+  const media = blocos.reduce((t, b) => t + (b.percentual_medio || 0), 0) / (blocos.length || 1);
+  return html`<${Figura} titulo="Desempenho por bloco" nota="% de acerto médio por bloco · do pior para o melhor">
+    <${Destaques} itens=${[['Média dos blocos', `${um(media)}%`], ['Pior bloco', `${ord[0].bloco} · ${um(ord[0].percentual_medio)}%`, tomNota(ord[0].percentual_medio) || 'atencao'], ['Melhor bloco', `${ord[ord.length - 1].bloco} · ${um(ord[ord.length - 1].percentual_medio)}%`]]} />
+    <${Barras} colunas=${['Acerto', 'Avaliações']} media=${media} linhas=${ord.map((b) => ({ chave: b.id_bloco, rotulo: b.bloco, valor: b.percentual_medio, texto: `${um(b.percentual_medio)}%`, tom: tomNota(b.percentual_medio), extras: [`${um(b.percentual_medio)}%`, b.quantidade ?? '—'] }))} />
+  <//>`;
+}
+
+function CartaoFaixas({ faixas }) {
+  const total = faixas.reduce((t, f) => t + f.quantidade, 0) || 1;
+  const ord = [...faixas].sort((a, b) => (FAIXAS_ORDEM.indexOf(a.label) + 99) % 99 - (FAIXAS_ORDEM.indexOf(b.label) + 99) % 99);
+  const abaixo = faixas.filter((f) => ['Desenvolvimento', 'Crítico'].includes(f.label)).reduce((t, f) => t + f.quantidade, 0);
+  return html`<${Figura} titulo="Monitorias por faixa de nota" nota="Monitorias válidas no período">
+    <${Destaques} itens=${[['Monitorias', total], ['Muito bom ou melhor', `${um((faixas.filter((f) => ['Excelência', 'Muito bom'].includes(f.label)).reduce((t, f) => t + f.quantidade, 0)) / total * 100)}%`], ['Pedem plano de ação', `${abaixo} · ${um(abaixo / total * 100)}%`, abaixo ? 'atencao' : '']]} />
+    <div class="c-faixa-pilha" role="img" aria-label="Distribuição por faixa">${ord.map((f) => html`<i key=${f.label} class=${`c-tom-${TOM_FAIXA[f.label] || 'neutro'}`} style=${{ flexGrow: f.quantidade }} title=${`${f.label}: ${f.quantidade}`}></i>`)}</div>
+    <${Barras} colunas=${['Monitorias', '%']} max=${Math.max(...ord.map((f) => f.quantidade), 1)} linhas=${ord.map((f) => ({ rotulo: f.label, valor: f.quantidade, texto: String(f.quantidade), tom: TOM_FAIXA[f.label] || '', extras: [f.quantidade, `${um(f.quantidade / total * 100)}%`] }))} />
+  <//>`;
+}
+
+function CartaoOperadores({ operadores, mediaGeral }) {
+  const [todos, setTodos] = useState(false);
+  const ord = [...operadores].sort((a, b) => a.nota_media - b.nota_media);
+  const abaixo = ord.filter((o) => o.nota_media < mediaGeral).length;
+  const lista = todos ? ord : ord.slice(0, 10);
+  return html`<${Figura} titulo="Nota média por operador" nota=${`Da menor para a maior nota · ${todos ? `${ord.length} operadores` : `${lista.length} de ${ord.length}`}`}>
+    <${Destaques} itens=${[['Operadores', ord.length], ['Abaixo da média', abaixo, abaixo ? 'atencao' : ''], ['Menor nota', `${um(ord[0]?.nota_media)}`, tomNota(ord[0]?.nota_media)]]} />
+    <${Barras} colunas=${['Nota', 'Monit.', 'NCG']} media=${mediaGeral} rotuloMedia="média geral" linhas=${lista.map((o) => ({ chave: o.chave, rotulo: o.rotulo, valor: o.nota_media, texto: um(o.nota_media), tom: tomNota(o.nota_media) || (o.nota_media < mediaGeral ? 'abaixo' : ''), extras: [um(o.nota_media), o.quantidade_validas, o.ncg] }))} />
+    ${ord.length > 10 ? html`<button type="button" class="c-botao c-botao--texto c-botao--compacto c-graf-mais" onClick=${() => setTodos((v) => !v)}>${todos ? 'Mostrar só os 10 primeiros' : `Ver todos os ${ord.length}`}</button>` : null}
+  <//>`;
+}
+
+function CartaoPilares({ pilares }) {
+  const grupos = ['conhecimento', 'encantamento'].map((t) => ({ t, nome: t === 'conhecimento' ? 'Conhecimento' : 'Encantamento', media: pilares?.[t]?.media, itens: Object.entries(pilares?.[t]?.indicadores || {}) })).filter((g) => g.itens.length);
+  return html`<${Figura} titulo="Pilares por indicador" nota="Escala 1 a 10 · não alteram a nota da monitoria">
+    ${grupos.map((g) => html`<div key=${g.t} class="c-pilar-grupo"><div class="c-pilar-cab"><b>${g.nome}</b><span>média <b>${um(g.media)}</b></span></div>
+      <${Barras} max=${10} media=${g.media} linhas=${g.itens.sort((a, b) => a[1] - b[1]).map(([k, v]) => ({ rotulo: k, valor: v, texto: um(v), tom: v < 7 ? 'atencao' : '', extras: [um(v)] }))} /></div>`)}
+  <//>`;
+}
+
+// Evolução da nota comparando as equipes (amostra 26/11/2026): uma linha por equipe + a média geral tracejada.
+// Legenda com a última nota de cada linha; passar o mouse num ponto mostra a nota e as monitorias.
+function EvolucaoEquipes({ series, geral, rotuloPeriodo }) {
+  const periodos = [...new Set([...geral.map((p) => p.periodo), ...series.flatMap((s) => s.pontos.map((p) => p.periodo))])].sort();
+  const valores = [...geral, ...series.flatMap((s) => s.pontos)].map((p) => p.nota_media).filter((v) => v !== null && v !== undefined);
+  const min = Math.max(0, Math.floor((Math.min(...valores) - 5) / 10) * 10);
+  const L = 900, A = 240, m = { e: 40, d: 16, t: 12, b: 28 };
+  const x = (i) => m.e + (periodos.length === 1 ? (L - m.e - m.d) / 2 : ((L - m.e - m.d) * i) / (periodos.length - 1));
+  const y = (v) => m.t + (A - m.t - m.b) * (1 - (v - min) / (100 - min));
+  const passoGrade = 100 - min > 40 ? 20 : 10;
+  const grade = Array.from({ length: Math.floor((100 - min) / passoGrade) + 1 }, (_, i) => min + i * passoGrade);
+  const caminho = (pts) => pts.map((p) => `${x(periodos.indexOf(p.periodo))},${y(p.nota_media)}`).join(' ');
+  const todas = [...series.map((s, i) => ({ ...s, cor: `var(--cor-grafico-${(i % 6) + 1})` })), { nome: 'Média geral', pontos: geral, cor: 'var(--cor-texto-padrao)', geral: true }];
+  const ultimo = (pts) => pts[pts.length - 1]?.nota_media;
+  const rot = (p) => p.slice(rotuloPeriodo === 'mes' ? 0 : 5);
+  return html`<div class="c-evol">
+    <div class="c-evol-legenda">${todas.map((s) => html`<span key=${s.nome} class=${s.geral ? 'c-evol-geral' : ''}><i style=${{ background: s.cor }}></i>${s.nome}<b>${um(ultimo(s.pontos))}</b></span>`)}</div>
+    <svg viewBox=${`0 0 ${L} ${A}`} width="100%" role="img" aria-label="Evolução da nota média por equipe">
+      ${grade.map((g) => html`<g key=${g}><line x1=${m.e} x2=${L - m.d} y1=${y(g)} y2=${y(g)} stroke="var(--cor-linha-divisoria)" /><text x=${m.e - 8} y=${y(g) + 4} text-anchor="end" class="c-evol-eixo">${Math.round(g)}</text></g>`)}
+      ${periodos.map((p, i) => html`<text key=${p} x=${x(i)} y=${A - 8} text-anchor="middle" class="c-evol-eixo">${rot(p)}</text>`)}
+      ${todas.map((s) => html`<g key=${s.nome}><polyline points=${caminho(s.pontos)} fill="none" stroke=${s.cor} stroke-width=${s.geral ? 2 : 2.5} stroke-dasharray=${s.geral ? '6 4' : null} />
+        ${s.pontos.map((p) => html`<circle key=${p.periodo} cx=${x(periodos.indexOf(p.periodo))} cy=${y(p.nota_media)} r=${s.geral ? 3 : 4} fill=${s.cor}><title>${`${s.nome} · ${rot(p.periodo)}: ${um(p.nota_media)} (${p.quantidade} monitorias)`}</title></circle>`)}</g>`)}
+    </svg>
+  </div>`;
 }
 
 export function TelaPainelMonitoria({ controlador, contexto }) {
@@ -65,7 +155,7 @@ export function TelaPainelMonitoria({ controlador, contexto }) {
   const comparativo = f.modo === 'equipe' ? d?.por_equipe : f.modo === 'operador' ? d?.por_operador : d?.por_operacao;
   const rotuloComp = f.modo === 'equipe' ? 'Equipe' : f.modo === 'operador' ? 'Operador' : 'Operação';
   const pontos = (d?.evolucao || []).map((e) => ({ label: e.periodo.slice(f.granularidade === 'mes' ? 0 : 5), value: e.nota_media, extra: `${e.quantidade} monitoria(s)` }));
-  const notasOperador = (d?.por_operador || []).filter((o) => o.nota_media !== null).slice(0, 15);
+  const notasOperador = (d?.por_operador || []).filter((o) => o.nota_media !== null);
   const pilares = ['conhecimento', 'encantamento'].flatMap((t) => Object.entries(r?.pilares?.[t]?.indicadores || {}).map(([k, v]) => ({ rotulo: k, valor: Number(v) || 0 })));
 
   const filtros = html`<div class="c-filtros c-filtros--suave">
@@ -111,24 +201,23 @@ export function TelaPainelMonitoria({ controlador, contexto }) {
     ${perfil === 'supervisor' && d.visao_operacao ? html`<${Faixa} tom="informacao" icone="info">Operação inteira: nota média <b>${formatarNota(d.visao_operacao.nota_media)}</b> · ${d.visao_operacao.quantidade_realizadas} monitoria(s) · ${d.visao_operacao.ncg} NCG. O detalhe abaixo é só da(s) sua(s) equipe(s).<//>` : null}
     ${ehOperador && d.escala ? html`<${Faixa} tom="informacao" icone="info">Sua nota média: <b>${formatarNota(d.escala.nota_operador)}</b>${d.escala.faixa_operador ? ` (${d.escala.faixa_operador.label})` : ''} · média da operação: <b>${formatarNota(d.escala.media_operacao)}</b>.<//>` : null}
     <${DuasPilhas} classe="c-graficos-wfm" itens=${[
-      (f.modo !== 'geral' || ehOperador) && { chave: 'evolucao', linhas: 9, no: html`<${Figura} titulo=${`Evolução da nota${f.modo === 'periodo' ? ` por ${{ dia: 'dia', semana: 'semana', mes: 'mês' }[f.granularidade]}` : ''}`} nota="Nota média das monitorias válidas">
+      !ehOperador && f.modo !== 'operador' && (d.evolucao_equipes || []).length > 1 ? { chave: 'evolucao', linhas: 11, no: html`<${Figura} titulo=${`Evolução da nota por equipe${f.modo === 'periodo' ? ` · por ${{ dia: 'dia', semana: 'semana', mes: 'mês' }[f.granularidade]}` : ''}`} nota="Nota média das monitorias válidas · a linha tracejada é a média geral">
+        <${EvolucaoEquipes} series=${d.evolucao_equipes} geral=${d.evolucao || []} rotuloPeriodo=${f.granularidade} /><//>` }
+      : (f.modo !== 'geral' || ehOperador) && { chave: 'evolucao', linhas: 9, no: html`<${Figura} titulo=${`Evolução da nota${f.modo === 'periodo' ? ` por ${{ dia: 'dia', semana: 'semana', mes: 'mês' }[f.granularidade]}` : ''}`} nota="Nota média das monitorias válidas">
         ${pontos.length ? html`<${LineTrendChart} points=${pontos} largura=${900} height=${220} valueFormatter=${(v) => formatarNota(v)} />` : html`<p class="c-nota">Sem dados no período.</p>`}<//>` },
-      { chave: 'blocos', linhas: (d.desempenho_blocos || []).length + 3, no: html`<${Figura} titulo="Desempenho por bloco" nota="% de acerto médio">
-        ${(d.desempenho_blocos || []).length ? html`<${GraficoBarrasH} dados=${d.desempenho_blocos.map((b) => ({ rotulo: b.bloco, valor: b.percentual_medio || 0 }))} series=${[{ chave: 'valor', rotulo: '% de acerto', cor: cor(1) }]} unidade="%" />` : html`<p class="c-nota">Sem dados no período.</p>`}<//>` },
-      { chave: 'faixas', linhas: (r.distribuicao_faixas || []).length + 3, no: html`<${Figura} titulo="Monitorias por faixa de nota" nota="Quantidade no período">
-        <${GraficoBarrasH} dados=${(r.distribuicao_faixas || []).map((x) => ({ rotulo: x.label, valor: x.quantidade }))} series=${[{ chave: 'valor', rotulo: 'Monitorias', cor: cor(1) }]} /><//>` },
-      !ehOperador && notasOperador.length && { chave: 'operador', linhas: notasOperador.length + 3, no: html`<${Figura} titulo="Nota média por operador" nota="Até 15 operadores">
-        <${GraficoBarrasH} dados=${notasOperador.map((o) => ({ rotulo: o.rotulo, valor: o.nota_media }))} series=${[{ chave: 'valor', rotulo: 'Nota', cor: cor(1) }]} /><//>` },
-      pilares.length && { chave: 'pilares', linhas: pilares.length + 3, no: html`<${Figura} titulo="Pilares por indicador" nota="Escala 1–10 · não alteram a nota">
-        <${GraficoBarrasH} dados=${pilares} series=${[{ chave: 'valor', rotulo: 'Média', cor: cor(2) }]} /><//>` },
+      (d.desempenho_blocos || []).length && { chave: 'blocos', linhas: d.desempenho_blocos.length + 6, no: html`<${CartaoBlocos} blocos=${d.desempenho_blocos} />` },
+      (r.distribuicao_faixas || []).length && { chave: 'faixas', linhas: r.distribuicao_faixas.length + 7, no: html`<${CartaoFaixas} faixas=${r.distribuicao_faixas} />` },
+      !ehOperador && notasOperador.length && { chave: 'operador', linhas: Math.min(10, notasOperador.length) + 7, no: html`<${CartaoOperadores} operadores=${notasOperador} mediaGeral=${r.nota_media} />` },
+      pilares.length && { chave: 'pilares', linhas: pilares.length + 7, no: html`<${CartaoPilares} pilares=${r.pilares} />` },
     ]} />
     <${DuasPilhas} itens=${[
       { chave: 'erros', linhas: Math.max(1, (d.criterios_erro || []).length) + 2, no: html`<section class="c-cartao" aria-labelledby="mon-p-erros">
         <div class="c-cartao-cab"><h2 id="mon-p-erros">Critérios com mais erro</h2></div>
-        ${(d.criterios_erro || []).length ? html`<div class="c-tabela-caixa"><table class="c-tabela c-tabela--compacta">
-          <thead><tr><th scope="col" class="c-estica">Critério</th><th scope="col" class="c-num">Não</th><th scope="col" class="c-num">% erro</th><th scope="col" class="c-num">NCG</th></tr></thead>
-          <tbody>${d.criterios_erro.map((c) => html`<tr key=${c.id_criterio}><td class="c-estica" title=${c.bloco} style=${{ whiteSpace: 'normal' }}>${c.pergunta}</td>
-            <td class="c-num">${c.nao}/${c.avaliados}</td><td class="c-num c-forte">${formatarNota(c.pct_erro)}%</td><td class="c-num">${c.ncg}</td></tr>`)}</tbody></table></div>`
+        ${(d.criterios_erro || []).length ? html`<div class="c-tabela-caixa"><table class="c-tabela c-tabela--compacta c-tabela-crit">
+          <thead><tr><th scope="col">Critério</th><th scope="col">Bloco</th><th scope="col" class="c-estica">% de erro</th><th scope="col" class="c-num">Não</th><th scope="col" class="c-num">NCG</th></tr></thead>
+          <tbody>${d.criterios_erro.map((c) => html`<tr key=${c.id_criterio}><td class="c-crit-pergunta" title=${c.pergunta}>${c.pergunta}</td><td class="c-secundario">${c.bloco}</td>
+            <td class="c-estica"><span class="c-crit-erro"><span class="c-barras-trilho"><i style=${{ width: `${Math.min(100, (c.pct_erro / Math.max(...d.criterios_erro.map((x) => x.pct_erro), 1)) * 100)}%` }}></i></span><b>${formatarNota(c.pct_erro)}%</b></span></td>
+            <td class="c-num">${c.nao}/${c.avaliados}</td><td class=${`c-num ${c.ncg ? 'c-tom-perigo c-forte' : ''}`}>${c.ncg}</td></tr>`)}</tbody></table></div>`
     : html`<${Estado} titulo="Nenhum erro registrado no período." />`}
       </section>` },
       !ehOperador && { chave: 'top', linhas: Math.max(1, (d.top || []).length) + 2, no: html`<section class="c-cartao" aria-labelledby="mon-p-top">

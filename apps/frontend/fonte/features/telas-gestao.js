@@ -6,4 +6,4 @@ export {
   TelaHistorico,
   TelaInicio,
   TelaLogin,
-} from './gestao/index.js?v=20261126-painel-relatorios';
+} from './gestao/index.js?v=20261126-painel-graficos';

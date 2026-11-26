@@ -1,6 +1,6 @@
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 
-﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
+﻿import { html, useEffect, useMemo, useState } from '../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   OPCOES_OPERACOES,
   OPCOES_TRILHAS_PROVA,
@@ -8,20 +8,20 @@ import {
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261126-painel-relatorios';
+} from '../../perguntas.js?v=20261126-painel-graficos';
 import {
   atualizarEntrevista,
   lerEntrevistas,
   lerProcessos,
   navegarParaTela,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
 import {
   formatarDataHora,
   formatarNotaVisual,
   formatarTempoRestante,
   montarDescricaoFluxo,
   obterClasseEtapaResultado,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
+} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
 import {
   EditorTextoRich,
   EmptyState,
@@ -33,13 +33,13 @@ import {
   PerguntaGrupoCompacto,
   PerguntaMultipla,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { CHAVE_REQUISITO_BUSCA } from '../../ui/busca-global.js?v=20261126-painel-graficos';
 import {
   encontrarProcessoPorReferencia,
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261126-painel-relatorios';
+} from '../../shared/process-reference.js?v=20261126-painel-graficos';
 import {
   NIVEIS_PERSONALIZACAO,
   PERFIS_OPERACAO,
@@ -48,8 +48,8 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from './services/personalizacao-inteligente.js?v=20261126-painel-relatorios';
-import { isProcessClosed } from '../../shared/process-flow.js?v=20261126-painel-relatorios';
+} from './services/personalizacao-inteligente.js?v=20261126-painel-graficos';
+import { isProcessClosed } from '../../shared/process-flow.js?v=20261126-painel-graficos';
 
 const STATUS_CANDIDATOS_AGENDADOS = new Set(['Agendado', 'Confirmado']);
 const OPCAO_OUTRO = 'Outro';

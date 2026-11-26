@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-relatorios';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
 
 export async function listarPoliticas() {
   return requisitar('/policies', { method: 'GET' });

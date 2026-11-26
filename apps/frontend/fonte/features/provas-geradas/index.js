@@ -1,11 +1,11 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useRef, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   OPCOES_OPERACOES,
   OPCOES_VAGAS_PROVA,
   SUGESTOES_NIVEL_POR_VAGA,
   montarProvaPorBlueprint,
   resolverBlueprintProva,
-} from '../../perguntas.js?v=20261126-painel-relatorios';
+} from '../../perguntas.js?v=20261126-painel-graficos';
 import {
   NIVEIS_PERSONALIZACAO,
   TIPOS_ATENDIMENTO_PERSONALIZACAO,
@@ -13,11 +13,11 @@ import {
   gerarPersonalizacaoProva,
   inferirPerfilAtendimentoPersonalizacao,
   registrarHistoricoPersonalizacao,
-} from '../prova/services/personalizacao-inteligente.js?v=20261126-painel-relatorios';
+} from '../prova/services/personalizacao-inteligente.js?v=20261126-painel-graficos';
 import {
   avaliarRespostaTexto,
   obterFormatacoesAplicadas,
-} from '../../regras-prova.js?v=20261126-painel-relatorios';
+} from '../../regras-prova.js?v=20261126-painel-graficos';
 import {
   atualizarProvaGerada,
   cancelarProvaGerada,
@@ -31,18 +31,18 @@ import {
   recalcularScoreProva,
   registrarDecisaoRhProva,
   salvarAvaliacaoManualProva,
-} from '../../servico-api.js?v=20261126-painel-relatorios';
-import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-relatorios';
-import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-relatorios';
-import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261126-painel-relatorios';
-import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-painel-relatorios';
-import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
-import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261126-painel-relatorios';
-import { PainelResultadoDisc } from '../disc/index.js?v=20261126-painel-relatorios';
-import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-painel-relatorios';
-import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-painel-relatorios';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-painel-relatorios';
-import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
+} from '../../servico-api.js?v=20261126-painel-graficos';
+import { escaparHtml, obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
+import { listarOperacoes } from '../../services/api/operations.js?v=20261126-painel-graficos';
+import { extrairContatoCvCandidato } from '../../services/api/cv-contato.js?v=20261126-painel-graficos';
+import { ModalAprovacaoCandidato } from '../../shared/components/approval-modal.js?v=20261126-painel-graficos';
+import { abrirFichaCandidatoDaProva } from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+import { TelaConectaProvas } from '../conecta-provas/index.js?v=20261126-painel-graficos';
+import { PainelResultadoDisc } from '../disc/index.js?v=20261126-painel-graficos';
+import { PainelResultadoFitCultural } from '../fit-cultural/index.js?v=20261126-painel-graficos';
+import { PainelResultadoRaciocinio } from '../raciocinio-logico/index.js?v=20261126-painel-graficos';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
+import { formatarNotaVisual, formatarTempoRestante } from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
 import {
   EmptyState,
   IlustracaoEstadoVazio,
@@ -55,9 +55,9 @@ import {
   SectionCard,
   Tabs,
   TabPanel,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
-import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
+import { MenuAcoesProcesso } from '../../ui/components/menu-acoes.js?v=20261126-painel-graficos';
 
 const LINK_CONECTA_PROVAS = '/conecta-provas';
 const CHAVE_ABRIR_MODAL_GERAR_PROVA = 'rh_open_generated_exam_modal_v1';

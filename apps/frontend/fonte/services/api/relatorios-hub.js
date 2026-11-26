@@ -1,4 +1,4 @@
-import { requisitarArquivo } from './core.js?v=20261126-painel-relatorios';
+import { requisitarArquivo } from './core.js?v=20261126-painel-graficos';
 
 // Relatórios e Históricos: exportação unificada (XLSX, CSV, PDF). Os dados vêm das rotas de origem de cada relatório.
 export const exportarRelatorioHub = (corpo) =>

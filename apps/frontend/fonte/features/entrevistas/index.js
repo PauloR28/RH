@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
-} from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+} from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   atualizarEntrevista,
   atualizarSlotEntrevista,
@@ -12,36 +12,36 @@ import {
   lerEntrevistas,
   lerProcessos,
   lerSlotsEntrevista,
-} from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
+} from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
 import {
   formatarDataHora,
   obterClasseStatusEntrevista,
-} from '../../shared/helpers-visuais.js?v=20261126-painel-relatorios';
-import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-painel-relatorios';
-import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-relatorios';
+} from '../../shared/helpers-visuais.js?v=20261126-painel-graficos';
+import { copiarTexto } from '../../shared/browser-utils.js?v=20261126-painel-graficos';
+import { useToast } from '../../shared/hooks/use-toast.js?v=20261126-painel-graficos';
 import {
   ModalEdicaoEntrevista,
   STATUS_ENTREVISTA,
-} from '../../shared/components/interview-edit-modal.js?v=20261126-painel-relatorios';
+} from '../../shared/components/interview-edit-modal.js?v=20261126-painel-graficos';
 import {
   CANDIDATE_STATUS_PENDING_CONFIRMATION,
   canonicalizeCandidateStatus,
   isProcessClosed,
-} from '../../shared/process-flow.js?v=20261126-painel-relatorios';
-import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261126-painel-relatorios';
+} from '../../shared/process-flow.js?v=20261126-painel-graficos';
+import { validarFormularioEntrevista } from '../../shared/validacoes.js?v=20261126-painel-graficos';
 import {
   LoadingState,
   ModalPadrao,
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
 import {
   obterChaveProcesso,
   obterReferenciaProcesso,
-} from '../../shared/process-reference.js?v=20261126-painel-relatorios';
-import { obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+} from '../../shared/process-reference.js?v=20261126-painel-graficos';
+import { obterItensPaginados } from '../../utilitarios.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 
 const STATUS_SLOT_DISPONIVEL = 'Disponivel';
 const STATUS_SLOT_BLOQUEADO = 'Bloqueado';

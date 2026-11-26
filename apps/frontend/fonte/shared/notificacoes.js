@@ -1,22 +1,22 @@
-import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { useEffect, useState } from '../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   lerProcessos,
   lerEntrevistas,
   lerCandidatosProcessos,
   listarSolicitacoesAlteracaoEmailApi,
-} from '../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
+} from '../app/controlador-aplicacao.js?v=20261126-painel-graficos';
 import {
   excluirTodasNotificacoes,
   listarNotificacoes,
   marcarNotificacaoLida,
   obterEstadoNotificacoesUsuario,
   registrarEstadoNotificacoesUsuario,
-} from '../services/api/notifications.js?v=20261126-painel-relatorios';
-import { listarOperacoes } from '../services/api/operations.js?v=20261126-painel-relatorios';
-import { listarUsuarios } from '../services/api/settings.js?v=20261126-painel-relatorios';
-import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261126-painel-relatorios';
+} from '../services/api/notifications.js?v=20261126-painel-graficos';
+import { listarOperacoes } from '../services/api/operations.js?v=20261126-painel-graficos';
+import { listarUsuarios } from '../services/api/settings.js?v=20261126-painel-graficos';
+import { lerSessaoAutenticacao } from '../services/api/core.js?v=20261126-painel-graficos';
 
-import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261126-painel-relatorios';
+import { AREA_SUPORTE_TI, AREA_TREINAMENTOS, areaAtiva } from './areas.js?v=20261126-painel-graficos';
 
 export const CATEGORIAS_NOTIFICACAO = [
   {

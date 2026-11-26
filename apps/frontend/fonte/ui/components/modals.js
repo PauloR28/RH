@@ -1,9 +1,9 @@
-import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261126-painel-relatorios';
-import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261126-painel-relatorios';
-import { EmptyState } from './feedback.js?v=20261126-painel-relatorios';
-import { SectionCard } from './layout.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
+import { html, useEffect, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { formatarPontuacaoDetalhada } from '../../utilitarios.js?v=20261126-painel-graficos';
+import { obterClasseSituacaoAtual } from '../../app/controlador-aplicacao.js?v=20261126-painel-graficos';
+import { EmptyState } from './feedback.js?v=20261126-painel-graficos';
+import { SectionCard } from './layout.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../icone.js?v=20261126-painel-graficos';
 
 export function ModalPadrao({
   aberto,

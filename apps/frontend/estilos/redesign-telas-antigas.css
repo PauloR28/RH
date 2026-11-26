@@ -373,3 +373,57 @@
   .c-rel-lista .c-rel-grupo h3, .c-rel-lista--caixa .c-rel-grupo h3 { margin: 0; }
   .c-rel-grupo a { padding-left: var(--espaco-2); }
 }
+
+/* Painel da Monitoria · gráficos com mais informação (amostra 26/11/2026) */
+.c-graf-destaques { display: flex; flex-wrap: wrap; gap: var(--espaco-2) var(--espaco-5); padding: var(--espaco-2) 0; border-bottom: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-graf-destaques > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.c-graf-destaques small { font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-graf-destaques b { font-size: 16px; font-weight: var(--fonte-peso-negrito); color: var(--cor-texto-padrao); white-space: nowrap; }
+.c-graf-destaques b.c-tom-atencao { color: var(--cor-status-atencao-texto); }
+.c-graf-destaques b.c-tom-perigo { color: var(--cor-status-perigo-texto); }
+.c-barras { display: grid; grid-template-columns: minmax(96px, 168px) minmax(80px, 1fr) repeat(var(--c-barras-cols, 1), minmax(48px, max-content)); column-gap: var(--espaco-3); font-size: 13px; }
+.c-barras-cab, .c-barras-linha { display: contents; }
+.c-barras-cab > span { padding-bottom: var(--espaco-1); font-size: var(--texto-rotulo-tamanho); color: var(--cor-texto-secundario); }
+.c-barras-linha > span { display: flex; align-items: center; min-height: 28px; border-bottom: var(--borda-fina) solid var(--cor-linha-divisoria); }
+.c-barras-linha:last-child > span { border-bottom: 0; }
+.c-barras-linha > .c-num { justify-content: flex-end; }
+.c-barras-rotulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block !important; line-height: 28px; }
+.c-barras-trilho { position: relative; height: 8px; min-height: 0 !important; border-radius: var(--raio-cheio); background: var(--cor-fundo-sutil); align-self: center; border-bottom: 0 !important; }
+.c-barras-trilho > i { display: block; height: 100%; border-radius: inherit; background: var(--cor-grafico-1); }
+.c-barras-trilho > b { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--cor-texto-padrao); }
+.c-barras-linha.c-tom-atencao .c-barras-trilho > i { background: var(--cor-status-atencao-texto); }
+.c-barras-linha.c-tom-perigo .c-barras-trilho > i { background: var(--cor-status-perigo-texto); }
+.c-barras-linha.c-tom-abaixo .c-barras-trilho > i { background: color-mix(in srgb, var(--cor-grafico-1) 55%, var(--cor-fundo-painel)); }
+.c-barras-linha.c-tom-atencao > .c-forte { color: var(--cor-status-atencao-texto); }
+.c-barras-linha.c-tom-perigo > .c-forte { color: var(--cor-status-perigo-texto); }
+.c-barras-legenda { display: inline-flex; align-items: center; gap: var(--espaco-1); }
+.c-barras-legenda i { display: inline-block; width: 2px; height: 12px; background: var(--cor-texto-padrao); }
+.c-faixa-pilha { display: flex; height: 12px; border-radius: var(--raio-cheio); overflow: hidden; gap: 2px; margin: var(--espaco-1) 0 var(--espaco-2); }
+.c-faixa-pilha > i { min-width: 4px; }
+.c-faixa-pilha > .c-tom-sucesso { background: var(--cor-status-sucesso-texto); }
+.c-faixa-pilha > .c-tom-informacao { background: var(--cor-grafico-1); }
+.c-faixa-pilha > .c-tom-atencao { background: var(--cor-status-atencao-texto); }
+.c-faixa-pilha > .c-tom-perigo { background: var(--cor-status-perigo-texto); }
+.c-faixa-pilha > .c-tom-neutro { background: var(--cor-borda-padrao); }
+.c-pilar-grupo + .c-pilar-grupo { margin-top: var(--espaco-2); }
+.c-pilar-cab { display: flex; align-items: baseline; justify-content: space-between; padding: var(--espaco-1) 0; font-size: 13px; color: var(--cor-texto-secundario); }
+.c-pilar-cab > b { color: var(--cor-texto-padrao); font-weight: var(--fonte-peso-negrito); }
+.c-graf-mais { align-self: flex-start; }
+/* Critérios com mais erro: a barra de % ocupa o espaço que sobrava; pergunta com reticências (inteira no balão) */
+.c-tabela-crit td.c-crit-pergunta { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+.c-crit-erro { display: flex; align-items: center; gap: var(--espaco-2); }
+.c-crit-erro .c-barras-trilho { flex: 1 1 auto; min-width: 48px; }
+.c-crit-erro .c-barras-trilho > i { background: var(--cor-status-atencao-texto); }
+.c-crit-erro b { min-width: 56px; text-align: right; font-weight: var(--fonte-peso-semi); }
+.c-pagina .c-barras-linha[class*='c-tom-'] > .c-barras-rotulo { color: var(--cor-texto-padrao); }
+.c-pagina .c-barras-linha[class*='c-tom-'] > .c-secundario { color: var(--cor-texto-secundario); }
+.c-pagina .c-barras-linha.c-tom-sucesso > .c-forte, .c-pagina .c-barras-linha.c-tom-informacao > .c-forte { color: var(--cor-texto-padrao); }
+.c-barras-linha.c-tom-sucesso .c-barras-trilho > i { background: var(--cor-status-sucesso-texto); }
+/* Evolução da nota por equipe (amostra 26/11/2026) */
+.c-evol { display: flex; flex-direction: column; gap: var(--espaco-2); }
+.c-evol-legenda { display: flex; flex-wrap: wrap; gap: var(--espaco-1) var(--espaco-4); font-size: 13px; color: var(--cor-texto-padrao); }
+.c-evol-legenda > span { display: inline-flex; align-items: center; gap: var(--espaco-2); white-space: nowrap; }
+.c-evol-legenda i { width: 16px; height: 4px; border-radius: var(--raio-cheio); }
+.c-evol-legenda .c-evol-geral i { height: 0; border-top: 2px dashed var(--cor-texto-padrao); background: none !important; }
+.c-evol-legenda b { font-weight: var(--fonte-peso-negrito); }
+.c-evol-eixo { font-size: 12px; fill: var(--cor-texto-secundario); font-family: inherit; }
