@@ -23,7 +23,15 @@ logger = logging.getLogger(__name__)
 CHAVE = "notificacao_ti.config"
 GRUPOS = ("logins", "senhas", "sessoes")
 QUANDO = ("na_hora", "resumo", "nao")
-_EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+def email_valido(email: str) -> bool:
+    """Sem regex (evita lentidão com texto malicioso): nome@dominio.ext, sem espaços, até 254 caracteres."""
+    if not email or len(email) > 254 or any(c.isspace() for c in email) or email.count("@") != 1:
+        return False
+    nome, dominio = email.split("@")
+    partes = dominio.split(".")
+    return bool(nome) and len(partes) >= 2 and all(partes)
 
 # evento -> (grupo, título, descrição, quando padrão, sino padrão, ações da Auditoria que contam no resumo)
 EVENTOS: dict[str, tuple[str, str, str, str, bool, tuple[str, ...]]] = {
@@ -75,7 +83,7 @@ def normalizar(bruto: dict | None) -> dict:
         if not isinstance(item, dict):
             continue
         email = str(item.get("email") or "").strip().lower()
-        if not _EMAIL.match(email) or email in vistos:
+        if not email_valido(email) or email in vistos:
             continue
         vistos.add(email)
         grupos = item.get("grupos") if isinstance(item.get("grupos"), dict) else {}
