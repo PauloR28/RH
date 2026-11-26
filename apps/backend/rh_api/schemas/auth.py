@@ -168,3 +168,22 @@ class UpdateAuthProviderRequest(BaseSchema):
         if safe_value not in {"local", "microsoft", "ambos"}:
             raise ValueError("Tipo de acesso inválido.")
         return safe_value
+
+
+class RecuperarSenhaIniciarRequest(BaseSchema):
+    """1º passo do "Esqueci a senha" (26/nov/2026): e-mail ou login."""
+
+    identificador: str = Field(default="", max_length=255)
+
+
+class RecuperarSenhaIniciarResponse(BaseSchema):
+    tipo: str  # supervisor | ti | codigo
+    email_mascarado: str = ""
+    validade: str = ""
+    validade_minutos: int = 0
+
+
+class RecuperarSenhaConcluirRequest(BaseSchema):
+    identificador: str = Field(default="", max_length=255)
+    codigo: str = Field(default="", max_length=12)
+    nova_senha: str = Field(default="", max_length=200)

@@ -108,6 +108,18 @@ def _run_inatividade_job(settings: Settings) -> None:
         logger.exception("Falha ao executar a política de inatividade.")
 
 
+def _run_resumo_ti_job(settings: Settings) -> None:
+    """Resumo do dia dos avisos de segurança ao TI (Notificações › Avançada, 26/nov/2026). Envia uma vez por dia, no
+    horário escolhido na tela."""
+    try:
+        from .repositories import DatabaseRepository
+        from .services import notificacao_ti
+
+        notificacao_ti.enviar_resumo_se_hora(DatabaseRepository(settings))
+    except Exception:  # pragma: no cover - blindagem defensiva do job agendado
+        logger.exception("Falha ao enviar o resumo do dia ao TI.")
+
+
 def start_scheduler(settings: Settings):
     """Inicia um `BackgroundScheduler` (APScheduler) com o job periódico de
     lembretes/alertas automáticos, se a biblioteca estiver disponível e a
@@ -210,6 +222,16 @@ def start_scheduler(settings: Settings):
             minute=0,
             args=(settings,),
             id="politica_inatividade",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        scheduler.add_job(
+            _run_resumo_ti_job,
+            trigger="interval",
+            minutes=15,
+            args=(settings,),
+            id="resumo_seguranca_ti",
             replace_existing=True,
             coalesce=True,
             max_instances=1,

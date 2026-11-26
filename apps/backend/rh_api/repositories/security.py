@@ -39,9 +39,10 @@ from ..rbac import (
     perfis_ativos,
     sanitize_permissions,
 )
+from ..services import notificacao_ti, senha_politica, sessao_unica
 from ..services.helpers import normalize_compare_text, normalize_text, rows_to_dicts, safe_json_loads
-from ..services.seguranca_config import mensagem_senha_curta, tamanho_minimo_senha
 from .bootstrap import ensure_email_change_requests_table, ensure_notifications_table
+from .senha_acesso import SenhaAcessoRepositoryMixin
 
 AUTH_PROVIDER_LOCAL = "local"
 AUTH_PROVIDER_MICROSOFT = "microsoft"
@@ -181,7 +182,7 @@ MENSAGEM_LOGIN_INVALIDO = (
 )
 
 
-class SecurityRepositoryMixin:
+class SecurityRepositoryMixin(SenhaAcessoRepositoryMixin):
     def _insert_audit_log(
         self,
         cursor,
@@ -427,13 +428,14 @@ class SecurityRepositoryMixin:
                     cursor,
                     user=user_context,
                     modulo="Autenticação",
-                    acao="login_negado",
+                    acao="login_conta_parada",
                     entidade="usuario",
                     entidade_id=str(user_row.get("id_usuario") or ""),
                     justificativa=f"Usuário com status {user_row.get('status') or 'indefinido'}.",
                     origem=origem,
                     sucesso=False,
                 )
+                notificacao_ti.disparar(self, cursor, "login_conta_parada", self._sa_dados_aviso(cursor, user_row, ip=origem))
                 conn.commit()
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário inativo ou bloqueado.")
 
@@ -452,7 +454,16 @@ class SecurityRepositoryMixin:
                 conn.commit()
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=MENSAGEM_SOMENTE_MICROSOFT)
 
-            if not verify_password(senha, user_row.get("senha_hash")):
+            # Fluxo de senha (26/nov/2026): bloqueio por 5 erros, senha provisória do supervisor, temporária vencida.
+            estado = self._sa_estado(cursor, int(user_row["id_usuario"]))
+            erro = self._sa_bloqueio(cursor, user_row, estado, origem=origem)
+            if erro is not None:
+                conn.commit()
+                raise erro
+            if not verify_password(senha, user_row.get("senha_hash")) and not self._sa_usar_provisoria(
+                cursor, user_row, senha, origem=origem
+            ):
+                self._sa_registrar_erro(cursor, user_row, estado, origem=origem)
                 self._insert_audit_log(
                     cursor,
                     user=user_context,
@@ -496,7 +507,13 @@ class SecurityRepositoryMixin:
                         detail="Código MFA inválido.",
                     )
 
+            erro = self._sa_temporaria_vencida(cursor, user_row, estado, origem=origem)
+            if erro is not None:
+                conn.commit()
+                raise erro
+
             permissions = self._get_role_permissions_from_db(cursor, user_row.get("perfil_id"))
+            sessao_id = self._sa_abrir_sessao(cursor, user_row, estado, origem=origem)
             cursor.execute(
                 """
                 UPDATE usuarios
@@ -507,6 +524,7 @@ class SecurityRepositoryMixin:
             )
             operacoes = self._get_user_operacoes(cursor, user_row.get("id_usuario"))
             result = self._serialize_system_user(user_row, permissions, operacoes)
+            result["sessao_web_id"] = sessao_id
             self._insert_audit_log(
                 cursor,
                 user=result,
@@ -517,7 +535,9 @@ class SecurityRepositoryMixin:
                 origem=origem,
                 sucesso=True,
             )
+            notificacao_ti.disparar(self, cursor, "login", self._sa_dados_aviso(cursor, user_row, ip=origem))
             conn.commit()
+            sessao_unica.registrar(user_row.get("id_usuario"), sessao_id)
             return result
         finally:
             conn.close()
@@ -973,11 +993,13 @@ class SecurityRepositoryMixin:
         finally:
             conn.close()
 
-    def update_own_password(self, id_usuario: int, senha_atual: str, nova_senha: str) -> dict:
+    def update_own_password(
+        self, id_usuario: int, senha_atual: str, nova_senha: str, *, manter_sessao: str = "", primeiro_acesso: bool = False,
+    ) -> dict:
+        """Meu perfil e "Crie a sua senha" (1º acesso). A sessão de quem trocou continua; outras caem."""
         safe_current = normalize_text(senha_atual)
         safe_new = normalize_text(nova_senha)
-        if not safe_new or len(safe_new) < tamanho_minimo_senha():
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
+        senha_politica.validar(safe_new, diferente_de=(safe_current,))
 
         conn = self._connect()
         try:
@@ -1007,10 +1029,25 @@ class SecurityRepositoryMixin:
                 "UPDATE dbo.usuarios SET deve_trocar_senha = 0 WHERE id_usuario = ?",
                 (int(id_usuario),),
             )
+            cursor.execute(
+                "IF COL_LENGTH('dbo.usuarios', 'senha_temporaria_expira_em') IS NOT NULL "
+                "UPDATE dbo.usuarios SET senha_temporaria_expira_em = NULL WHERE id_usuario = ?",
+                (int(id_usuario),),
+            )
+            sid, linha = self._sa_depois_da_troca(
+                cursor, int(id_usuario),
+                acao="trocar_senha_primeiro_acesso" if primeiro_acesso else "alterar_propria_senha",
+                evento="senha_primeiro_acesso" if primeiro_acesso else "senha_trocada",
+                manter_sessao=manter_sessao,
+                motivo="Senha criada no 1º acesso." if primeiro_acesso else "Trocada em Meu perfil.",
+            )
             conn.commit()
-            return {"success": True}
         finally:
             conn.close()
+        sessao_unica.registrar(id_usuario, sid)
+        if not primeiro_acesso:
+            self._sa_avisar_pessoa(linha)
+        return {"success": True}
 
     def update_own_surname(self, id_usuario: int, sobrenome: str) -> dict:
         safe_surname = _nome_maiusculo(sobrenome)
@@ -1059,9 +1096,7 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def activate_local_login(self, id_usuario: int, nova_senha: str) -> dict:
-        safe_new = normalize_text(nova_senha)
-        if len(safe_new) < tamanho_minimo_senha():
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=mensagem_senha_curta())
+        safe_new = senha_politica.validar(normalize_text(nova_senha))
 
         conn = self._connect()
         try:
@@ -1584,6 +1619,8 @@ class SecurityRepositoryMixin:
                 detail="A senha é obrigatória para usuários com acesso por Login.",
             )
 
+        if safe_password:
+            senha_politica.validar(safe_password)  # fluxo de senha 26/nov/2026: 8+, maiúscula, minúscula, número, especial
         password_hash = hash_password(safe_password) if safe_password else None
 
         actor_info = _actor_payload(actor)
@@ -1627,6 +1664,9 @@ class SecurityRepositoryMixin:
                 ),
             )
             id_usuario = int(cursor.fetchone()[0])
+            if password_hash:
+                # Senha temporária definida pelo admin: troca obrigatória no 1º acesso, vale 7 dias.
+                self._sa_marcar_temporaria(cursor, id_usuario)
             if "operacoes" in data:
                 self._sync_user_operacoes(cursor, id_usuario, data.get("operacoes"))
             self._insert_audit_log(
@@ -1842,15 +1882,27 @@ class SecurityRepositoryMixin:
             conn.close()
 
     def reset_system_user_password(self, id_usuario: int, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
+        """Botão "Redefinir senha" (fluxo de senha 26/nov/2026): senha temporária que a pessoa troca no próximo acesso.
+
+        Vale 7 dias, encerra a sessão aberta, zera o bloqueio por senhas erradas, pede motivo e avisa o TI."""
         safe_password = normalize_text(data.get("senha") or data.get("password"))
         if not safe_password:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe a nova senha.")
+        senha_politica.validar(safe_password)
+        motivo = normalize_text(data.get("justificativa") or data.get("motivo"))
+        if not motivo:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Escreva o motivo da redefinição.")
 
         conn = self._connect()
         try:
             cursor = conn.cursor()
             _alvo = self._serialize_system_user(self._get_system_user_by_id(cursor, id_usuario))
             _garantir_fronteira_administrador(actor, _alvo["perfil"])
+            if normalize_text(_alvo.get("provedor_autenticacao")).lower() == AUTH_PROVIDER_MICROSOFT:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Esta conta entra pela Microsoft. A senha é cuidada pelo TI, fora do Conecta.",
+                )
             actor_info = _actor_payload(actor)
             cursor.execute(
                 """
@@ -1864,6 +1916,12 @@ class SecurityRepositoryMixin:
                     int(id_usuario),
                 ),
             )
+            self._sa_marcar_temporaria(cursor, int(id_usuario))
+            cursor.execute(
+                "UPDATE dbo.senha_recuperacoes SET cancelado_em = GETDATE() "
+                "WHERE id_usuario = ? AND usado_em IS NULL AND cancelado_em IS NULL",
+                (int(id_usuario),),
+            )
             self._insert_audit_log(
                 cursor,
                 user=actor,
@@ -1871,13 +1929,17 @@ class SecurityRepositoryMixin:
                 acao="redefinir_senha",
                 entidade="usuario",
                 entidade_id=str(id_usuario),
-                justificativa=normalize_text(data.get("justificativa")),
+                justificativa=motivo,
                 sucesso=True,
             )
+            sid, _linha = self._sa_depois_da_troca(
+                cursor, int(id_usuario), acao="redefinir_senha", evento="senha_redefinida", ator=actor, motivo=motivo,
+            )
             conn.commit()
-            return {"success": True}
         finally:
             conn.close()
+        sessao_unica.registrar(id_usuario, sid)
+        return {"success": True, "validade_dias": senha_politica.TEMPORARIA_DIAS}
 
     def set_system_user_status(self, id_usuario: int, data: dict, *, actor: AuthenticatedUser | dict | None = None) -> dict:
         action = normalize_text(data.get("acao")).lower()

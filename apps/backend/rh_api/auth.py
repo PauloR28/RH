@@ -90,6 +90,8 @@ class AuthenticatedUser:
     # Módulo aberto no navegador (cabeçalho X-Conecta-Modulo, 16/nov/2026). Vazio = pedido sem módulo (cliente antigo,
     # rotina interna): nenhum filtro por módulo, como antes. Só filtra a LISTA de unidades; nunca concede nada.
     modulo_aberto: str = ""
+    # Uma conta, um computador por vez (26/nov/2026): número da sessão web. Vazio = não confere (app, token antigo).
+    sessao_id: str = ""
 
     def has_permission(self, permission: str) -> bool:
         return permission in self.permissions
@@ -143,6 +145,7 @@ def _build_user_payload(user: AuthenticatedUser) -> dict:
         "provedor_autenticacao": user.provedor_autenticacao,
         "operacoes": sorted(user.operacoes),
         "pwd": bool(user.deve_trocar_senha),
+        **({"sid": user.sessao_id} if user.sessao_id else {}),
         "pv": PERMISSIONS_VERSION,
         "wl": bool(wfm_participantes_liberado()),  # liberação do WFM na emissão (ver validate_access_token)
     }
@@ -213,6 +216,7 @@ def _user_from_record(record: dict | None) -> AuthenticatedUser:
             normalize_text(item) for item in (safe_record.get("operacoes") or []) if normalize_text(item)
         ),
         deve_trocar_senha=bool(safe_record.get("deve_trocar_senha")),
+        sessao_id=normalize_text(safe_record.get("sessao_web_id")),
     )
 
 
@@ -338,4 +342,5 @@ def validate_access_token(token: str) -> AuthenticatedUser:
             normalize_text(item) for item in (data.get("operacoes") or []) if normalize_text(item)
         ),
         deve_trocar_senha=bool(data.get("pwd")),
+        sessao_id=normalize_text(data.get("sid")),
     )

@@ -108,6 +108,8 @@ class EmailSendService:
                     "name": anexo["nome"],
                     "contentType": anexo.get("mime_type") or "application/octet-stream",
                     "contentBytes": anexo["conteudo_base64"],
+                    # Imagem embutida no corpo (ex.: logo do e-mail via cid:...). Sem content_id, anexo comum.
+                    **({"contentId": anexo["content_id"], "isInline": True} if anexo.get("content_id") else {}),
                 }
                 for anexo in anexos
             ]

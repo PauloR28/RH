@@ -29,6 +29,9 @@ from ..schemas.auth import (
     LoginResponse,
     MfaCodeRequest,
     MfaSetupResponse,
+    RecuperarSenhaConcluirRequest,
+    RecuperarSenhaIniciarRequest,
+    RecuperarSenhaIniciarResponse,
     RequestEmailChangeRequest,
     SessionResponse,
     UpdateAuthProviderRequest,
@@ -578,6 +581,13 @@ def complete_microsoft_login(
         )
 
     user_record = repository.get_system_user_for_session(int(id_usuario))
+    if user_record and str(user_record.get("status") or "").strip().lower() == "ativo":
+        # Uma conta, um computador por vez (26/nov/2026): o login pela Microsoft também abre sessão nova.
+        origem = request.client.host if request and request.client else ""
+        try:
+            user_record = {**user_record, "sessao_web_id": repository.abrir_sessao_web(int(id_usuario), origem=origem)}
+        except Exception:  # noqa: BLE001 - sem a coluna nova (banco antigo) o login segue como antes
+            logger.exception("Não foi possível abrir a sessão única do login Microsoft.")
     token, user = create_session_for_user_record(user_record)
     _bloquear_perfil_sem_acesso_web(user)
     _presenca_automatica(repository, user)
@@ -786,7 +796,9 @@ def update_my_password(
 ) -> SuccessResponse:
     if user.id_usuario is None:
         raise HTTPException(status_code=400, detail="Este usuário não possui cadastro para alterar a senha.")
-    repository.update_own_password(user.id_usuario, payload.senha_atual, payload.nova_senha)
+    repository.update_own_password(
+        user.id_usuario, payload.senha_atual, payload.nova_senha, manter_sessao=user.sessao_id,
+    )
     audit_action(
         repository,
         user,
@@ -808,9 +820,9 @@ def change_initial_password(
     acesso). Reemite a sessão já sem a trava de troca de senha."""
     if user.id_usuario is None:
         raise HTTPException(status_code=400, detail="Este usuário não possui cadastro para alterar a senha.")
-    if payload.nova_senha == payload.senha_atual:
-        raise HTTPException(status_code=422, detail="A nova senha deve ser diferente da senha atual.")
-    repository.update_own_password(user.id_usuario, payload.senha_atual, payload.nova_senha)
+    repository.update_own_password(
+        user.id_usuario, payload.senha_atual, payload.nova_senha, manter_sessao=user.sessao_id, primeiro_acesso=True,
+    )
     audit_action(
         repository,
         user,
@@ -871,3 +883,58 @@ def logout(
             sucesso=True,
         )
     return SuccessResponse(message="Sessao encerrada.")
+
+
+# ---------------------------------------------------------------- Esqueci a senha (fluxo aprovado em 26/nov/2026)
+# Limites (S4): 3 pedidos por conta por hora e 10 por rede por hora. Passou: "Aguarde 15 minutos" e aviso ao TI.
+recuperacao_limiter = InMemoryRateLimiter()
+_MSG_MUITOS_PEDIDOS = "Muitos pedidos seguidos. Aguarde 15 minutos para pedir de novo."
+
+
+def _limite_recuperacao(repository, request: Request | None, identificador: str) -> None:
+    origem = request.client.host if request and request.client else ""
+    conta = identificador.strip().lower()
+    if recuperacao_limiter.allow(f"conta:{conta}", limit=3, window_seconds=3600) and recuperacao_limiter.allow(
+        f"rede:{origem}", limit=10, window_seconds=3600
+    ):
+        return
+    try:
+        repository.registrar_limite_recuperacao(conta, origem=origem)
+    except Exception:  # noqa: BLE001 - o aviso não pode trocar a resposta
+        logger.exception("Falha ao registrar o limite do Esqueci a senha.")
+    raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=_MSG_MUITOS_PEDIDOS)
+
+
+@router.post("/recuperar/iniciar", response_model=RecuperarSenhaIniciarResponse)
+def recuperar_senha_iniciar(
+    payload: RecuperarSenhaIniciarRequest,
+    request: Request = None,
+    repository: DatabaseRepository = Depends(get_repository),
+) -> RecuperarSenhaIniciarResponse:
+    """Operador: senha provisória vai ao supervisor. Os demais: código de 6 números no e-mail (15 min)."""
+    _limite_recuperacao(repository, request, payload.identificador)
+    origem = request.client.host if request and request.client else ""
+    return RecuperarSenhaIniciarResponse(**repository.iniciar_recuperacao_senha(payload.identificador, origem=origem))
+
+
+@router.post("/recuperar/concluir", response_model=SuccessResponse)
+def recuperar_senha_concluir(
+    payload: RecuperarSenhaConcluirRequest,
+    request: Request = None,
+    repository: DatabaseRepository = Depends(get_repository),
+) -> SuccessResponse:
+    origem = request.client.host if request and request.client else ""
+    if request is not None and not recuperacao_limiter.allow(f"concluir:{origem}", limit=30, window_seconds=3600):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=_MSG_MUITOS_PEDIDOS)
+    resultado = repository.concluir_recuperacao_senha(
+        payload.identificador, payload.codigo, payload.nova_senha, origem=origem,
+    )
+    return SuccessResponse(message=resultado["message"])
+
+
+@router.get("/senha/regras")
+def regras_da_senha() -> dict:
+    """A tela mostra a lista ao vivo com o mesmo mínimo do servidor."""
+    from ..services import senha_politica
+
+    return {"tamanho_minimo": senha_politica.tamanho_minimo(), "especiais": senha_politica.ESPECIAIS}

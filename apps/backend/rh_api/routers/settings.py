@@ -674,3 +674,102 @@ def get_lgpd_dados_simulacao(repository: DatabaseRepository = Depends(get_reposi
     finally:
         conn.close()
     return {"contagens": contagens}
+
+
+# ---------------------------------------------------------------- Fluxo de senha (aprovado em 26/nov/2026)
+@router.get("/users/senha-sugerida", dependencies=[Depends(require_permissions("usuarios.redefinir_senha"))])
+def senha_sugerida():
+    """Botão "Gerar outra" do Redefinir senha: senha temporária forte, já dentro da regra."""
+    from ..services import senha_politica
+
+    return {"senha": senha_politica.gerar_senha(), "validade_dias": senha_politica.TEMPORARIA_DIAS}
+
+
+@router.get("/notificacao-ti", dependencies=[Depends(require_permissions("notificacoes.configurar"))])
+def get_notificacao_ti():
+    """Configurações do Conecta › Notificações › Avançada."""
+    from ..services import notificacao_ti
+
+    return {"config": notificacao_ti.ler(), "eventos": notificacao_ti.catalogo()}
+
+
+@router.put("/notificacao-ti", dependencies=[Depends(require_permissions("notificacoes.configurar"))])
+def put_notificacao_ti(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    from ..services import notificacao_ti
+
+    anterior = notificacao_ti.ler()
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        novo = notificacao_ti.salvar(cursor, payload.get("config") if isinstance(payload.get("config"), dict) else payload,
+                                     ator=user.email or user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(
+        repository, user, modulo="Configurações", acao="alterar_notificacao_ti", entidade="parametros_sistema",
+        entidade_id=notificacao_ti.CHAVE, valor_anterior=anterior, valor_novo=novo,
+    )
+    return {"config": novo, "eventos": notificacao_ti.catalogo()}
+
+
+@router.post("/notificacao-ti/teste", dependencies=[Depends(require_permissions("notificacoes.configurar"))])
+def testar_notificacao_ti(
+    payload: dict,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    """Enviar teste: manda o e-mail de teste e, se saiu, o endereço passa a receber os avisos."""
+    from ..services import emails_senha, notificacao_ti
+
+    email = str(payload.get("email") or "").strip().lower()
+    alvo = next((d for d in notificacao_ti.ler()["destinatarios"] if d["email"] == email), None)
+    if not alvo:
+        raise HTTPException(status_code=404, detail="Salve o e-mail na lista antes de enviar o teste.")
+    try:
+        emails_senha.enviar(repository.settings, "teste_ti", [email], {"nome": alvo["nome"], "email": email}, esperar=True)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail="O e-mail de teste não saiu. Confira o endereço e tente de novo.") from exc
+    conn = repository._connect()
+    try:
+        cursor = conn.cursor()
+        config = notificacao_ti.marcar_testado(cursor, email, ator=user.email or user.username)
+        conn.commit()
+    finally:
+        conn.close()
+    audit_action(repository, user, modulo="Configurações", acao="testar_notificacao_ti", entidade="parametros_sistema",
+                 entidade_id=email)
+    return {"config": config, "eventos": notificacao_ti.catalogo()}
+
+
+@router.get("/auditoria/senhas-acessos", dependencies=[Depends(require_permissions("logs.visualizar"))])
+def get_senhas_acessos(
+    tipo: str = Query(default=""),
+    periodo: str = Query(default="7d"),
+    resultado: str = Query(default=""),
+    busca: str = Query(default="", max_length=120),
+    pagina: int = Query(default=1, ge=1),
+    tamanho: int = Query(default=20, ge=5, le=100),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    return repository.listar_senhas_acessos(tipo=tipo, periodo=periodo, resultado=resultado, busca=busca,
+                                            pagina=pagina, tamanho=tamanho)
+
+
+@router.get("/auditoria/senhas-acessos/export", dependencies=[Depends(require_permissions("logs.exportar"))])
+def export_senhas_acessos(
+    tipo: str = Query(default=""),
+    periodo: str = Query(default="7d"),
+    resultado: str = Query(default=""),
+    busca: str = Query(default="", max_length=120),
+    repository: DatabaseRepository = Depends(get_repository),
+):
+    filename, content = repository.exportar_senhas_acessos_csv(tipo=tipo, periodo=periodo, resultado=resultado, busca=busca)
+    return Response(content=content, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"})

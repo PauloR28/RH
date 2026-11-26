@@ -82,6 +82,16 @@ def get_current_user(
         )
 
     user = validate_access_token(credentials.credentials)
+    # Uma conta, um computador por vez (26/nov/2026): a conta foi aberta em outro lugar ou a senha mudou.
+    if user.sessao_id and user.id_usuario:
+        from .services import sessao_unica
+
+        substituida_em = sessao_unica.conferir(user.id_usuario, user.sessao_id)
+        if substituida_em is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=sessao_unica.mensagem_substituida(substituida_em),
+            )
     user = _refresh_monitoria_scope(user, request)
     # Central de Acessos, Etapa 2: permissões atuais do perfil (cache em memória), não as congeladas no token.
     # Mudou o perfil em Perfis e Permissões, vale no próximo pedido, sem sair e entrar. Sem cache = token, como antes.
