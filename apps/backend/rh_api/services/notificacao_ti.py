@@ -258,8 +258,8 @@ def _perfis_da_ti(cursor) -> list[str]:
         )
         if cursor.description:
             perfis |= {str(r[0]).strip() for r in cursor.fetchall() if r[0]}
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001 - sem a tabela: só o Administrador recebe
+        logger.info("Perfis da TI indisponíveis (%s); avisando só o Administrador.", exc)
     return sorted(perfis)
 
 
