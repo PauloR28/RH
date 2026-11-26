@@ -58,6 +58,16 @@ def test_evolucao_so_validas_por_dia_semana_e_mes():
     assert [e["periodo"] for e in ind.evolucao(linhas, "mes")] == ["2026-09", "2026-10"]
 
 
+def test_evolucao_por_equipe_uma_serie_por_equipe_so_validas():
+    linhas = [_l(1, "A", 80, "2026-09-07", equipe_nome="Diogo"), _l(2, "B", 100, "2026-09-08", equipe_nome="Ana"),
+              _l(2, "B", 10, "2026-10-08", equipe_nome="Ana", anulada=True), _l(3, "C", 70, "2026-10-01", equipe_nome="Diogo"),
+              _l(4, "D", 50, "2026-10-01", equipe_nome="Zé", anulada=True)]
+    series = ind.evolucao_por_equipe(linhas, "mes")
+    assert [s["nome"] for s in series] == ["Ana", "Diogo"]  # ordem alfabética; equipe só com anuladas fica fora
+    assert series[0]["pontos"] == [{"periodo": "2026-09", "nota_media": 100.0, "quantidade": 1}]
+    assert [p["nota_media"] for p in series[1]["pontos"]] == [80.0, 70.0]
+
+
 # ---------------------------------------------------------------------------
 # Top N: desempate por quantidade válida e depois por nome
 # ---------------------------------------------------------------------------

@@ -170,6 +170,7 @@ class MonitoriaAnaliseRepositoryMixin:
             "modo": modo, "filtros": filtros, "granularidade": granularidade, "top_n": top, "faixas": faixas,
             "resumo": ind.resumo(linhas, faixas=faixas, agora=agora),
             "evolucao": ind.evolucao(linhas, granularidade),
+            "evolucao_equipes": ind.evolucao_por_equipe(linhas, granularidade),
             "desempenho_blocos": ind.desempenho_por_bloco(linhas),
             "criterios_erro": ind.criterios_com_maior_erro(linhas, 10),
             "por_operacao": ind.agrupar(linhas, "operacao", faixas=faixas),
@@ -182,7 +183,7 @@ class MonitoriaAnaliseRepositoryMixin:
             base = self._mon_linhas_escopo(user, {k: v for k, v in filtros.items() if k not in ("id_operador", "id_equipe")}, so_operacao=True, com_respostas=False)
             validas = [float(l["nota"]) for l in base if ind.eh_valida(l)]
             media_op = round(sum(validas) / len(validas), 2) if validas else None
-            resposta["por_equipe"], resposta["por_operador"] = [], []
+            resposta["por_equipe"], resposta["por_operador"], resposta["evolucao_equipes"] = [], [], []
             resposta["media_operacao"] = media_op
             resposta["escala"] = {
                 "faixas": faixas, "nota_operador": resposta["resumo"]["nota_media"], "media_operacao": media_op,

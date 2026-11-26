@@ -4,19 +4,19 @@ import {
   useMemo,
   useRef,
   useState,
-} from '../infraestrutura-react.js?v=20261126-painel-relatorios';
+} from '../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   lerCandidatosProcessos,
   lerProcessos,
-} from '../servico-api.js?v=20261126-painel-relatorios';
-import { montarIndiceRequisitosBusca } from '../perguntas.js?v=20261126-painel-relatorios';
+} from '../servico-api.js?v=20261126-painel-graficos';
+import { montarIndiceRequisitosBusca } from '../perguntas.js?v=20261126-painel-graficos';
 import {
   CHAVE_PIPELINE_CANDIDATO,
   CHAVE_PIPELINE_PROCESSO,
   CHAVE_PROCESSO_DETALHE,
-} from '../features/processos-estado.js?v=20261126-painel-relatorios';
-import { IconeSvg } from './icone.js?v=20261126-painel-relatorios';
-import { AREA_PROCESSOS, AREA_PROVAS, areaAtiva, telaEmAreaInativa } from '../shared/areas.js?v=20261126-painel-relatorios';
+} from '../features/processos-estado.js?v=20261126-painel-graficos';
+import { IconeSvg } from './icone.js?v=20261126-painel-graficos';
+import { AREA_PROCESSOS, AREA_PROVAS, areaAtiva, telaEmAreaInativa } from '../shared/areas.js?v=20261126-painel-graficos';
 
 export const CHAVE_REQUISITO_BUSCA = 'rh_requisito_busca_atual';
 export const CHAVE_COMANDO_NOVO_PROCESSO = 'rh_comando_novo_processo';

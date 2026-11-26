@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261126-painel-relatorios';
+import { invalidarCacheApi, requisitar, requisitarArquivo } from './core.js?v=20261126-painel-graficos';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();

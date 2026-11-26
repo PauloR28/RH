@@ -1,8 +1,8 @@
-import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261126-painel-relatorios';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261126-painel-relatorios';
-import { SinalTurno } from './hoje.js?v=20261126-painel-relatorios';
-import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { exportarAlteracoesDiario, exportarHistoricoDiario, lerAlteracoesDiario, lerHistoricoDiario } from '../../../services/api/diario.js?v=20261126-painel-graficos';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../../ui/components/ds.js?v=20261126-painel-graficos';
+import { SinalTurno } from './hoje.js?v=20261126-painel-graficos';
+import { ROTULO_ENCERRAMENTO, ROTULO_TURNO, diaHist, nf, pct, rotuloMes, somarMes } from './regras.js?v=20261126-painel-graficos';
 
 // Diário de bordo › Histórico (amostra quadro 5): 1 linha por dia e a gaveta com tudo o que mudou no dia (antes → depois).
 

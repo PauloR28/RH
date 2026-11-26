@@ -1,8 +1,8 @@
-import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../ui/icone.js?v=20261126-painel-relatorios';
-import { selecionarModulo, selecionarOperacao } from './estado.js?v=20261126-painel-relatorios';
-import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261126-painel-relatorios';
+import { html, useEffect, useRef, useState } from '../infraestrutura-react.js?v=20261126-painel-graficos';
+import { useChamadosNaoLidos } from '../shared/chamados-nao-lidos.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../ui/icone.js?v=20261126-painel-graficos';
+import { selecionarModulo, selecionarOperacao } from './estado.js?v=20261126-painel-graficos';
+import { MODULO_TECNOLOGIA, NOMES_MODULOS, montarMenuTecnologia, telaInicialDoModulo } from './registro.js?v=20261126-painel-graficos';
 
 // Peças de interface dos módulos usadas pela navbar (ui/components/layout.js): seletor de módulo e menu da Tecnologia.
 

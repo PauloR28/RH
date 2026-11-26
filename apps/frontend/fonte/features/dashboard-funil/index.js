@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { lerFunilDashboard } from '../../servico-api.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { lerFunilDashboard } from '../../servico-api.js?v=20261126-painel-graficos';
 import {
   EmptyState,
   LoadingState,
@@ -7,8 +7,8 @@ import {
   PageIntro,
   PainelRh,
   SectionCard,
-} from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+} from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 
 const FILTROS_INICIAIS = { dataInicial: '', dataFinal: '', processo: '' };
 

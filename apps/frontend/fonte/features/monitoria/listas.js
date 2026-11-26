@@ -1,5 +1,5 @@
-import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useState } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { EmptyState, LoadingState, ModalPadrao } from '../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
 import {
   compartilharMonitorias,
   criarPlano,
@@ -13,8 +13,8 @@ import {
   listarOperadoresMonitoria,
   listarPlanos,
   revisarPlano,
-} from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-relatorios';
+} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../ui/icone.js?v=20261126-painel-graficos';
 import {
   BadgeSla,
   BadgeStatus,
@@ -28,7 +28,7 @@ import {
   formatarDataHoraCurta,
   formatarNota,
   hoje,
-} from './comum.js?v=20261126-painel-relatorios';
+} from './comum.js?v=20261126-painel-graficos';
 
 // ---------------------------------------------------------------------------
 // Lista de monitorias (histórico + busca; fila de feedback; contestações; minhas)

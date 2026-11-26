@@ -1,7 +1,7 @@
-import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { GrupoPaginacao } from './feedback.js?v=20261126-painel-relatorios';
-import { ModalPadrao } from './modals.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../icone.js?v=20261126-painel-relatorios';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { GrupoPaginacao } from './feedback.js?v=20261126-painel-graficos';
+import { ModalPadrao } from './modals.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../icone.js?v=20261126-painel-graficos';
 
 
 export function Button({ label = '', icon = '', variant = 'primary', className = '', children, ...props }) {

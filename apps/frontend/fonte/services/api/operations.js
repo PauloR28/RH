@@ -1,4 +1,4 @@
-import { requisitar } from './core.js?v=20261126-painel-relatorios';
+import { requisitar } from './core.js?v=20261126-painel-graficos';
 
 export async function listarOperacoes() {
   // Correções.txt (24/set/2026, item 5/13): endpoint quase estático (poucas

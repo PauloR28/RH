@@ -1,8 +1,8 @@
 // Bloco "Módulos" (16/nov/2026, amostra aprovada pelo Paulo): liga/desliga de cada módulo no cadastro do usuário
 // (Perfis e Permissões saiu na Etapa 10, nov/2026: o perfil abre o módulo pelas funções marcadas em Acessos). Dobrável para poupar espaço. Ligar só põe o módulo no
 // seletor do topo; as telas dentro dele seguem as permissões do perfil. Módulo desligado no Conecta fica travado.
-import { html } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
+import { html } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { Selo } from '../../ui/components/ds.js?v=20261126-painel-graficos';
 
 function linhaPessoa(item, valor, nomePerfil) {
   if (!item.ativo) return { texto: 'Desligado em Configurações › Módulos. Vale para todos.', selo: ['neutro', 'Desligado'] };

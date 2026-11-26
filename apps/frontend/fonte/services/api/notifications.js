@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-relatorios';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
 
 export async function listarNotificacoes(apenasNaoLidas = false) {
   const query = apenasNaoLidas ? '?apenas_nao_lidas=true' : '';

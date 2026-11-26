@@ -1,4 +1,4 @@
-import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-relatorios';
+import { invalidarCacheApi, requisitar } from './core.js?v=20261126-painel-graficos';
 
 // RH: banco de questões de raciocínio lógico/numérico.
 export async function listarPerguntasRaciocinio() {

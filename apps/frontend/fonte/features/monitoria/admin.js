@@ -1,4 +1,4 @@
-import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useEffect, useRef, useState, React } from '../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   ativarFormularioMatriz,
   lerVersaoMatriz,
@@ -6,9 +6,9 @@ import {
   listarVersoesMatriz,
   restaurarVersaoMatriz,
   salvarMatriz,
-} from '../../services/api/monitoria.js?v=20261126-painel-relatorios';
-import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261126-painel-relatorios';
-import { formatarNota } from './comum.js?v=20261126-painel-relatorios';
+} from '../../services/api/monitoria.js?v=20261126-painel-graficos';
+import { Esqueleto, Estado, Ic, MenuAcoes, Selo } from '../../ui/components/ds.js?v=20261126-painel-graficos';
+import { formatarNota } from './comum.js?v=20261126-painel-graficos';
 import {
   ChipSituacao,
   DialogoConfirmar,
@@ -16,8 +16,8 @@ import {
   VersionRow,
   alternarMarcadas,
   compararConfigs,
-} from './formularios-comum.js?v=20261126-painel-relatorios';
-import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261126-painel-relatorios';
+} from './formularios-comum.js?v=20261126-painel-graficos';
+import { DialogoDuplicar, ESTADO_LISTA_INICIAL, TelaListaFormularios } from './formularios-lista.js?v=20261126-painel-graficos';
 
 const Fragment = React.Fragment;
 

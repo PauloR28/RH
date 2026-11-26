@@ -4,7 +4,7 @@ export {
   IlustracaoEstadoVazio,
   LoadingState,
   MetricGrid,
-} from './components/feedback.js?v=20261126-painel-relatorios';
+} from './components/feedback.js?v=20261126-painel-graficos';
 export {
   AvatarUsuario,
   PainelRh,
@@ -12,19 +12,19 @@ export {
   SectionCard,
   Tabs,
   TabPanel,
-} from './components/layout.js?v=20261126-painel-relatorios';
+} from './components/layout.js?v=20261126-painel-graficos';
 export {
   ModalConfirmacaoAcao,
   ModalDetalhesProva,
   ModalPadrao,
-} from './components/modals.js?v=20261126-painel-relatorios';
-export { MinistrantePicker } from './components/ministrante-picker.js?v=20261126-painel-relatorios';
+} from './components/modals.js?v=20261126-painel-graficos';
+export { MinistrantePicker } from './components/ministrante-picker.js?v=20261126-painel-graficos';
 export {
   EditorTextoRich,
   PerguntaExcel,
   PerguntaGrupoCompacto,
   PerguntaMultipla,
-} from './components/exam-fields.js?v=20261126-painel-relatorios';
+} from './components/exam-fields.js?v=20261126-painel-graficos';
 export {
   Badge,
   Button,
@@ -33,8 +33,8 @@ export {
   Pagination,
   Table,
   ToastAlert,
-} from './components/primitives.js?v=20261126-painel-relatorios';
-export { WizardStepper, WizardSummaryStrip } from './components/wizard.js?v=20261126-painel-relatorios';
+} from './components/primitives.js?v=20261126-painel-graficos';
+export { WizardStepper, WizardSummaryStrip } from './components/wizard.js?v=20261126-painel-graficos';
 export {
   AcceptanceDonutChart,
   BarComparisonChart,
@@ -42,4 +42,4 @@ export {
   ScoreDistributionChart,
   ScoreRadarChart,
   StageFunnelChart,
-} from './components/charts.js?v=20261126-painel-relatorios';
+} from './components/charts.js?v=20261126-painel-graficos';

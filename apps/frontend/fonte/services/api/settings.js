@@ -4,7 +4,7 @@ import {
   lerCache,
   requisitar,
   requisitarArquivo,
-} from './core.js?v=20261126-painel-relatorios';
+} from './core.js?v=20261126-painel-graficos';
 
 function montarQuery(params = {}) {
   const query = new URLSearchParams();

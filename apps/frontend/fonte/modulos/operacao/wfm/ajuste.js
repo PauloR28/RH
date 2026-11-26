@@ -1,14 +1,14 @@
-import { html, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
+import { html, useEffect, useMemo, useRef, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
 import {
   lancarHoraExtraWfm,
   lerPausasDiaWfm,
   listarHorasExtrasWfm,
   salvarItensEscalaWfm,
   salvarPausasWfm,
-} from '../../../services/api/wfm.js?v=20261126-painel-relatorios';
-import { falhaAo, minutosParaHoras } from './comum.js?v=20261126-painel-relatorios';
-import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js?v=20261126-painel-relatorios';
-import { LinhaTempo } from './minha.js?v=20261126-painel-relatorios';
+} from '../../../services/api/wfm.js?v=20261126-painel-graficos';
+import { falhaAo, minutosParaHoras } from './comum.js?v=20261126-painel-graficos';
+import { Icone, Quadrado, SEMANA_LONGA, aMin, brData, deMin, doIso, duracaoMin } from './escala-ui.js?v=20261126-painel-graficos';
+import { LinhaTempo } from './minha.js?v=20261126-painel-graficos';
 
 // Gaveta "Ajustar dia": turno, horário, hora extra e pausas de UM colaborador em UM dia, com a opção de repetir o
 // ajuste em outros dias do mês. Salva direto na API existente (itens da escala, pausas e hora extra); regras de negócio,

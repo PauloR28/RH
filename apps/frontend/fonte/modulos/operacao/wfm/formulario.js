@@ -1,6 +1,6 @@
-import { html, useState } from '../../../infraestrutura-react.js?v=20261126-painel-relatorios';
-import { ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261126-painel-relatorios';
-import { IconeSvg } from '../../../ui/icone.js?v=20261126-painel-relatorios';
+import { html, useState } from '../../../infraestrutura-react.js?v=20261126-painel-graficos';
+import { ModalPadrao } from '../../../ui/componentes-compartilhados.js?v=20261126-painel-graficos';
+import { IconeSvg } from '../../../ui/icone.js?v=20261126-painel-graficos';
 
 // WFM — peças de formulário compactas, compartilhadas por Jornadas, Cadastros e Presença.
 // Campos em grade de 12 colunas (`span` = quantas colunas ocupa) para caber o máximo por linha.

@@ -1,1 +1,1 @@
-export { TelaPipelineCandidatos } from './pipeline/index.js?v=20261126-painel-relatorios';
+export { TelaPipelineCandidatos } from './pipeline/index.js?v=20261126-painel-graficos';

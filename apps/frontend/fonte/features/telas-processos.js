@@ -4,4 +4,4 @@ export {
   TelaProcessosDecisoesPendentes,
   TelaProcessosEncerrados,
   TelaProcessos,
-} from './processos/index.js?v=20261126-painel-relatorios';
+} from './processos/index.js?v=20261126-painel-graficos';
