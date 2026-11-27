@@ -148,6 +148,18 @@ def alcance(perfil: str | None) -> Alcance:
     return replace(base, **mudado) if mudado else base
 
 
+def ve_operacao(user, operacao: str | None) -> bool:
+    """Escopo de operação para telas que antes usavam só `user.allows_operacao` (Diário e Painel).
+
+    Quem tem operação vinculada: vale `allows_operacao`. Quem NÃO tem vínculo só enxerga se o perfil é global
+    (total, ou alcance TODOS em WFM/Monitoria); os demais não veem nada, como já acontece no WFM e na Monitoria.
+    """
+    if getattr(user, "operacoes", None):
+        return user.allows_operacao(operacao)
+    a = alcance(getattr(user, "perfil", None))
+    return a.total or a.wfm == TODOS or a.monitoria == TODOS
+
+
 def perfis_com(**filtro) -> frozenset[str]:
     """Perfis cujo alcance bate com o filtro. Ex.: perfis_com(wfm=TODOS)."""
     return frozenset(p for p, a in ALCANCES.items() if all(getattr(a, k) == v for k, v in filtro.items()))

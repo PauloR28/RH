@@ -266,8 +266,9 @@ class _CursorOps:
 
 
 class _Usuario:
-    def __init__(self, ops=()):
+    def __init__(self, ops=(), perfil="administrador"):
         self.operacoes = set(ops)
+        self.perfil = perfil
 
     def allows_operacao(self, op):
         return not self.operacoes or op in self.operacoes
@@ -297,3 +298,10 @@ def test_diario_some_onde_a_funcao_esta_desligada_ou_fora_da_operacao(monkeypatc
     ops, cursor = _ops_do_diario(monkeypatch, linhas, desligadas={"CRF"}, modulos={"RH-SETOR": "rh"})
     assert [o["chave"] for o in ops] == ["NEWE"]
     assert cursor.inserts == [] and cursor.commits == 0
+
+
+def test_diario_perfil_comum_sem_vinculo_nao_ve_nenhuma_operacao(monkeypatch):
+    # 27/11/2026: Supervisor esquecido sem operação vinculada não pode enxergar todas as operações.
+    linhas = [("CRF", "CRF", 1), ("NEWE", "Newe", 1)]
+    ops, _ = _ops_do_diario(monkeypatch, linhas, user=_Usuario(perfil="supervisor"))
+    assert ops == []

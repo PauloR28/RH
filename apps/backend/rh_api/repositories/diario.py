@@ -2,7 +2,7 @@
 repositories/diario_schema.py (V068).
 
 Regras de acesso (todas no servidor):
-  * escopo de operação = `user.allows_operacao` (sem operação atribuída vê tudo, como no resto do Conecta);
+  * escopo de operação = `alcance.ve_operacao` (sem operação atribuída só vê tudo quem tem perfil global; 27/11/2026);
   * `diario.visualizar` lê tudo; `diario.intercorrencias` (Qualidade) lê só as intercorrências;
   * `diario.preencher` escreve; `diario.reabrir` reabre (com motivo); `diario.administrar` mexe nas listas e importa.
 Toda criação/edição/conclusão/reabertura/exportação grava `diario_alteracao` (antes -> depois).
@@ -19,6 +19,7 @@ from typing import Any
 import pyodbc
 from fastapi import HTTPException, status
 
+from ..alcance import ve_operacao
 from ..rbac import ACCESS_DENIED_MESSAGE
 from ..services import diario_regras as r
 from ..services.helpers import normalize_text, rows_to_dicts
@@ -161,7 +162,7 @@ class DiarioRepositoryMixin:
         ops, sem_listas = [], []
         for c, n, tem_listas in cursor.fetchall():
             chave = normalize_text(c)
-            if not chave or not user.allows_operacao(chave):
+            if not chave or not ve_operacao(user, chave):
                 continue
             modulo = acesso_cache.modulo_da_unidade(chave)
             if modulo and modulo != MODULO_OPERACAO:
@@ -181,7 +182,7 @@ class DiarioRepositoryMixin:
     def _db_exigir_operacao(self, cursor, user, operacao: str) -> str:
         chave = normalize_text(operacao)
         if not chave or not any(o["chave"] == chave for o in self._db_operacoes_do_diario(cursor, user)):
-            if chave and not user.allows_operacao(chave):
+            if chave and not ve_operacao(user, chave):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta operação está fora do seu escopo de acesso.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Esta operação não tem Diário de bordo.")
         return chave
@@ -236,7 +237,7 @@ class DiarioRepositoryMixin:
         if not linhas:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dia do diário não encontrado.")
         dia = linhas[0]
-        if not user.allows_operacao(dia["operacao"]):
+        if not ve_operacao(user, dia["operacao"]):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta operação está fora do seu escopo de acesso.")
         return dia
 
@@ -797,7 +798,7 @@ class DiarioRepositoryMixin:
         conn, cursor = self._db_abrir()
         try:
             chave = normalize_text(operacao)
-            if not chave or not user.allows_operacao(chave):
+            if not chave or not ve_operacao(user, chave):
                 return []
             cursor.execute(
                 "SELECT id_intercorrencia, id_dia, turno, ferramenta, canal, inicio, fim, descricao FROM dbo.diario_intercorrencia "
@@ -1005,7 +1006,7 @@ class DiarioRepositoryMixin:
         try:
             operacao = normalize_text(operacao)
             cursor.execute("SELECT chave FROM dbo.operacoes WHERE chave = ?", (operacao,))
-            if not cursor.fetchone() or not user.allows_operacao(operacao):
+            if not cursor.fetchone() or not ve_operacao(user, operacao):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operação não encontrada.")
             cursor.execute("SELECT id_item FROM dbo.diario_cadastro WHERE operacao = ? AND tipo = ? AND nome = ? AND id_item <> ?", (operacao, tipo, nome, id_item or 0))
             if cursor.fetchone():
