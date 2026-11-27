@@ -2,7 +2,7 @@
 
 Só leitura sobre os dados dos módulos. Regras de acesso (todas no servidor):
   * ver um painel: `painel.visualizar` + perfil marcado no painel (Administrador vê todos) + escopo de operação
-    (`user.allows_operacao`); painel desligado não aparece;
+    (`alcance.ve_operacao`); painel desligado não aparece;
   * cada métrica exige ainda a permissão de BASE do módulo de origem (`painel_regras.METRICAS[...].base`) e a função
     ligada na unidade (tela Módulos / item 16): sem isso o bloco não é montado;
   * configurar: `painel.configurar` (Tecnologia). Toda mudança grava `painel_alteracao` (antes -> depois).
@@ -22,6 +22,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from ..alcance import ve_operacao
 from ..rbac import ROLE_ADMIN, get_role_definition
 from ..services import acesso, wfm_scope
 from ..services import monitoria_indicadores as ind
@@ -172,7 +173,7 @@ class PainelRepositoryMixin(PainelMetricasMixin):
         return [
             p for p in self._pn_paineis(cursor)
             if regras.pode_ver_painel(perfil=user.perfil, perfis_do_painel=set(p["perfis"]), permissoes=permissoes, ativo=p["ativo"], eh_admin=user.perfil == ROLE_ADMIN)
-            and user.allows_operacao(p["operacao"])
+            and ve_operacao(user, p["operacao"])
         ]
 
     def _pn_exigir_painel(self, cursor, user, id_painel: int) -> dict:

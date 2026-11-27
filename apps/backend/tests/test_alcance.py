@@ -63,3 +63,29 @@ def test_tela_acessos_mostra_alcance_e_base():
     assert a["area"] == "wfm" and a["valores"] == {r.ROLE_SUPERVISOR: al.EQUIPE, r.ROLE_OPERATOR: al.PROPRIO}
     assert ca._alcance_da_funcao(cat.POR_ID["mural"], perfis) is None
     assert ca._sempre_ligada(cat.POR_ID["logs"], "tecnologia") and not ca._sempre_ligada(cat.POR_ID["mural"], "tecnologia")
+
+
+class _U:
+    def __init__(self, perfil, ops=()):
+        self.perfil = perfil
+        self.operacoes = frozenset(ops)
+
+    def allows_operacao(self, op):
+        return not self.operacoes or op in self.operacoes
+
+
+def test_ve_operacao_sem_vinculo_so_perfil_global():
+    from rh_api.rbac import ROLE_ADMIN, ROLE_CONTROL_DESK, ROLE_MANAGER, ROLE_OPERATOR, ROLE_QUALIDADE, ROLE_SUPERVISOR
+
+    for perfil in (ROLE_ADMIN, ROLE_MANAGER, ROLE_CONTROL_DESK):
+        assert al.ve_operacao(_U(perfil), "CRF") is True
+    for perfil in (ROLE_SUPERVISOR, ROLE_OPERATOR, ROLE_QUALIDADE):
+        assert al.ve_operacao(_U(perfil), "CRF") is False
+
+
+def test_ve_operacao_com_vinculo_segue_as_operacoes_da_pessoa():
+    from rh_api.rbac import ROLE_SUPERVISOR
+
+    u = _U(ROLE_SUPERVISOR, {"NEWE"})
+    assert al.ve_operacao(u, "NEWE") is True
+    assert al.ve_operacao(u, "CRF") is False
